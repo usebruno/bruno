@@ -27,7 +27,7 @@ describe('curlToJson', () => {
       raw_url: 'https://www.usebruno.com',
       method: 'get',
       headers: {
-        Accept: 'application/json, text/plain, */*',
+        'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8'
       }
     });
@@ -50,11 +50,11 @@ describe('curlToJson', () => {
       raw_url: 'https://www.usebruno.com',
       method: 'post',
       headers: {
-        Accept: 'application/json, text/plain, */*',
+        'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
         'Content-Type': 'application/json;charset=utf-8',
-        Origin: 'https://www.usebruno.com',
-        Referer: 'https://www.usebruno.com/'
+        'Origin': 'https://www.usebruno.com',
+        'Referer': 'https://www.usebruno.com/'
       },
       data: '{"email":"test@usebruno.com","password":"test"}'
     });
@@ -71,7 +71,7 @@ describe('curlToJson', () => {
       raw_url: 'https://www.usebruno.com',
       method: 'get',
       headers: {
-        cookie: "val_1=''; val_2=\\^373:0\\^373:0; val_3=hello"
+        cookie: 'val_1=\'\'; val_2=\\^373:0\\^373:0; val_3=hello'
       }
     });
   });
@@ -104,11 +104,11 @@ describe('curlToJson', () => {
       raw_url: 'https://www.usebruno.com',
       method: 'post',
       headers: {
-        Accept: 'application/json, text/plain, */*',
+        'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
         'Content-Type': 'application/json;charset=utf-8',
-        Origin: 'https://www.usebruno.com',
-        Referer: 'https://www.usebruno.com/'
+        'Origin': 'https://www.usebruno.com',
+        'Referer': 'https://www.usebruno.com/'
       },
       isDataBinary: true,
       data: [
@@ -119,5 +119,38 @@ describe('curlToJson', () => {
         }
       ]
     });
+  });
+
+  it('should parse custom json content-types', () => {
+    const curlCommand = `curl 'https://api.example.com/test'
+    -H 'content-type: application/x.custom+json;version=1'
+    --data-raw '{"test":"data"}'
+    `;
+
+    const result = curlToJson(curlCommand);
+
+    expect(result).toEqual({
+      url: 'https://api.example.com/test',
+      raw_url: 'https://api.example.com/test',
+      method: 'post',
+      headers: {
+        'content-type': 'application/x.custom+json;version=1'
+      },
+      data: '{"test":"data"}'
+    });
+  });
+
+  it('should parse vendor tree json content-types', () => {
+    const curlCommand = `curl --request POST \\
+      --url https://api.example.com/orders/42/preferences \\
+      --header 'accept: */*' \\
+      --header 'content-type: application/vnd.vendor+json' \\
+      --data '{\\n  "data": {\\n    "type": "order-preferences",\\n    "attributes": {\\n      "notes": "Leave at door",\\n      "priority": true\\n    }\\n  }\\n}'`;
+
+    const result = curlToJson(curlCommand);
+    expect(result.data).toContain('"type": "order-preferences"');
+    expect(result.data).toContain('"notes": "Leave at door"');
+    expect(result.data).toContain('"priority": true');
+    expect(result.headers['content-type']).toBe('application/vnd.vendor+json');
   });
 });

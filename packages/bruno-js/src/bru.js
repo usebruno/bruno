@@ -1,14 +1,16 @@
 const { cloneDeep } = require('lodash');
+const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { sendRequest } = require('@usebruno/requests').scripting;
-const { jar: createCookieJar } = require('@usebruno/common').cookies;
+const { jar: createCookieJar } = require('@usebruno/requests').cookies;
 
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
+    this.promptVariables = promptVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
     this.collectionVariables = collectionVariables || {};
     this.folderVariables = folderVariables || {};
@@ -18,11 +20,10 @@ class Bru {
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
     this.sendRequest = sendRequest;
-
     this.cookies = {
       jar: () => {
         const cookieJar = createCookieJar();
-                
+
         return {
           getCookie: (url, cookieName, callback) => {
             const interpolatedUrl = this.interpolate(url);
@@ -62,6 +63,8 @@ class Bru {
         };
       }
     };
+    // Holds variables that are marked as persistent by scripts
+    this.persistentEnvVariables = {};
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
@@ -71,6 +74,50 @@ class Bru {
       },
       setNextRequest: (nextRequest) => {
         this.nextRequest = nextRequest;
+      }
+    };
+
+    this.utils = {
+      minifyJson: (json) => {
+        if (json === null || json === undefined) {
+          throw new Error('Failed to minify');
+        }
+
+        if (typeof json === 'object') {
+          try {
+            return JSON.stringify(json);
+          } catch (err) {
+            throw new Error(`Failed to minify: ${err?.message || err}`);
+          }
+        }
+
+        if (typeof json === 'string') {
+          const trimmed = json.trim();
+          if (trimmed === '') return trimmed;
+          try {
+            return JSON.stringify(JSON.parse(trimmed));
+          } catch (err) {
+            throw new Error(`Failed to minify: ${err?.message || err}`);
+          }
+        }
+
+        throw new TypeError('minifyJson expects a string or object');
+      },
+
+      minifyXml: (xml) => {
+        if (xml === null || xml === undefined) {
+          throw new Error('Failed to minify');
+        }
+
+        if (typeof xml === 'string') {
+          try {
+            return xmlFormat(xml, { collapseContent: false, indentation: '', lineSeparator: '' });
+          } catch (err) {
+            throw new Error(`Failed to minify: ${err?.message || err}`);
+          }
+        }
+
+        throw new TypeError('minifyXml expects a string');
       }
     };
   }
@@ -88,6 +135,7 @@ class Bru {
       ...this.requestVariables,
       ...this.oauth2CredentialVariables,
       ...this.runtimeVariables,
+      ...this.promptVariables,
       process: {
         env: {
           ...this.processEnvVars
@@ -119,12 +167,31 @@ class Bru {
     return this.interpolate(this.envVariables[key]);
   }
 
-  setEnvVar(key, value) {
+  setEnvVar(key, value, options = {}) {
     if (!key) {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters! Names must only contain alpha-numeric characters, "-", "_", "."`
+      );
+    }
+
+    // When persist is true, only string values are allowed
+    if (options?.persist && typeof value !== 'string') {
+      throw new Error(`Persistent environment variables must be strings. Received ${typeof value} for key "${key}".`);
+    }
+
     this.envVariables[key] = value;
+
+    if (options?.persist) {
+      this.persistentEnvVariables[key] = value;
+    } else {
+      if (this.persistentEnvVariables[key]) {
+        delete this.persistentEnvVariables[key];
+      }
+    }
   }
 
   deleteEnvVar(key) {
@@ -158,19 +225,19 @@ class Bru {
 
     if (variableNameRegex.test(key) === false) {
       throw new Error(
-        `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        `Variable name: "${key}" contains invalid characters!`
+        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
-    this.runtimeVariables[key] = value;
+    this.runtimeVariables[key] = this.interpolate(value);
   }
 
   getVar(key) {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
-        `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        `Variable name: "${key}" contains invalid characters!`
+        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 

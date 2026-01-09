@@ -43,7 +43,7 @@ export const interpolateBody = (body, variables = {}) => {
       break;
 
     case 'formUrlEncoded':
-      interpolatedBody.formUrlEncoded = Array.isArray(body.formUrlEncoded) 
+      interpolatedBody.formUrlEncoded = Array.isArray(body.formUrlEncoded)
         ? body.formUrlEncoded.map((param) => ({
             ...param,
             value: param.enabled ? interpolate(param.value, variables) : param.value
@@ -68,25 +68,4 @@ export const interpolateBody = (body, variables = {}) => {
   }
 
   return interpolatedBody;
-};
-
-export const createVariablesObject = ({
-  globalEnvironmentVariables = {},
-  collectionVars = {},
-  allVariables = {},
-  collection = {},
-  runtimeVariables = {},
-  processEnvVars = {}
-}) => {
-  return {
-    ...globalEnvironmentVariables,
-    ...allVariables,
-    ...collectionVars,
-    ...runtimeVariables,
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  };
 };

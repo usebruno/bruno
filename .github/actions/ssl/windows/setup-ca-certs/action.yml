@@ -1,0 +1,25 @@
+name: 'Setup CA Certificates - Windows'
+description: 'Setup CA certificates and start test server for custom CA certs tests on Windows'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup CA certificates
+      shell: pwsh
+      run: |
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = "Stop"
+        
+        Set-Location tests\ssl\custom-ca-certs\server
+        
+        Write-Host "running certificate setup"
+        node scripts/generate-certs.js
+
+    - name: Start test server
+      shell: pwsh
+      run: |
+        Set-StrictMode -Version Latest
+        
+        Set-Location tests\ssl\custom-ca-certs\server
+        
+        Write-Host "starting server in background"
+        Start-Process -FilePath "node" -ArgumentList "index.js" -PassThru -WindowStyle Hidden

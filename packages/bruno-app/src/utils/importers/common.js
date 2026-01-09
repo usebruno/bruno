@@ -37,6 +37,17 @@ export const updateUidsInCollection = (_collection) => {
       each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
       each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
 
+      each(get(item, 'examples'), (example) => {
+        example.uid = uuid();
+        example.itemUid = item.uid;
+        each(get(example, 'request.headers'), (header) => (header.uid = uuid()));
+        each(get(example, 'request.params'), (param) => (param.uid = uuid()));
+        each(get(example, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
+        each(get(example, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
+        each(get(example, 'request.body.file'), (param) => (param.uid = uuid()));
+        each(get(example, 'response.headers'), (header) => (header.uid = uuid()));
+      });
+
       if (item.items && item.items.length) {
         updateItemUids(item.items);
       }
@@ -62,9 +73,10 @@ export const updateUidsInCollection = (_collection) => {
 export const transformItemsInCollection = (collection) => {
   const transformItems = (items = []) => {
     each(items, (item) => {
-
-      if (['http', 'graphql'].includes(item.type)) {
+      if (['http', 'graphql', 'grpc', 'ws'].includes(item.type)) {
         item.type = `${item.type}-request`;
+        const isGrpcRequest = item.type === 'grpc-request';
+        const isWSRequest = item.type === 'ws-request';
 
         if (item.request.query) {
           item.request.params = item.request.query.map((queryItem) => ({
@@ -72,6 +84,15 @@ export const transformItemsInCollection = (collection) => {
             type: 'query',
             uid: queryItem.uid || uuid()
           }));
+        }
+
+        if (isGrpcRequest) {
+          delete item.request.params;
+        }
+
+        if (isWSRequest) {
+          delete item.request.params;
+          delete item.request.method;
         }
 
         delete item.request.query;
@@ -87,6 +108,46 @@ export const transformItemsInCollection = (collection) => {
             }
           });
         }
+
+        // Transform examples as well
+        each(get(item, 'examples'), (example) => {
+          if (['http', 'graphql', 'grpc', 'ws'].includes(example.type)) {
+            example.type = `${example.type}-request`;
+            const isGrpcExample = example.type === 'grpc-request';
+            const isWSExample = example.type === 'ws-request';
+
+            if (example.request && example.request.query) {
+              example.request.params = example.request.query.map((queryItem) => ({
+                ...queryItem,
+                type: 'query',
+                uid: queryItem.uid || uuid()
+              }));
+            }
+
+            if (isGrpcExample) {
+              delete example.request.params;
+            }
+
+            if (isWSExample) {
+              delete example.request.params;
+              delete example.request.method;
+            }
+
+            if (example.request) {
+              delete example.request.query;
+            }
+
+            // Handle multipartFormData for examples
+            let exampleMultipartFormData = get(example, 'request.body.multipartForm');
+            if (exampleMultipartFormData) {
+              each(exampleMultipartFormData, (form) => {
+                if (!form.type) {
+                  form.type = 'text';
+                }
+              });
+            }
+          }
+        });
       }
 
       if (item.items && item.items.length) {
@@ -96,7 +157,6 @@ export const transformItemsInCollection = (collection) => {
   };
 
   transformItems(collection.items);
-
   return collection;
 };
 

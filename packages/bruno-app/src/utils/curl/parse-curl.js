@@ -186,7 +186,7 @@ const handleValue = (value, state, request) => {
  * Set header from value
  */
 const setHeader = (request, value) => {
-  const [headerName, headerValue] = value.split(/: (.+)/);
+  const [headerName, headerValue] = value.split(/:\s*(.+)/);
   request.headers[headerName] = headerValue;
 };
 
@@ -312,7 +312,22 @@ const isURL = (arg) => {
   if (typeof arg !== 'string') {
     return false;
   }
-  return !!URL.parse(arg || '').host;
+
+  // First try to parse as a regular URL (with protocol)
+  if (URL.parse(arg || '').host) {
+    return true;
+  }
+
+  // Check if it looks like a domain without protocol
+  // This regex matches domain patterns like:
+  // - example.com
+  // - sub.example.com
+  // - example.com/path
+  // - example.com/path?query=value
+  // Must contain at least one dot to be considered a domain
+  const DOMAIN_PATTERN = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+(\/[^\s]*)?(\?[^\s]*)?$/;
+
+  return DOMAIN_PATTERN.test(arg);
 };
 
 /**
@@ -320,8 +335,9 @@ const isURL = (arg) => {
  * Handles shell-quote operator objects and query parameter patterns
  */
 const isURLFragment = (arg) => {
+  // If it's a glob pattern that looks like a URL, treat it as a complete URL
   if (arg && typeof arg === 'object' && arg.op === 'glob') {
-    return !!URL.parse(arg.pattern || '').host;
+    return isURL(arg.pattern);
   }
   if (arg && typeof arg === 'object' && arg.op === '&') {
     return true;
@@ -341,7 +357,13 @@ const setURL = (request, url) => {
   const urlString = getUrlString(url);
   if (!urlString) return;
 
-  const newUrl = request.url ? request.url + urlString : urlString;
+  // Add default protocol if none is present
+  let processedUrl = urlString;
+  if (!request.url && !urlString.match(/^[a-zA-Z]+:\/\//)) {
+    processedUrl = 'https://' + urlString;
+  }
+
+  const newUrl = request.url ? request.url + processedUrl : processedUrl;
 
   const { url: formattedUrl, queries, urlWithoutQuery } = parseUrl(newUrl);
 
@@ -419,7 +441,6 @@ const postBuildProcessRequest = (request) => {
     // remove data and isQuery from request as they are no longer needed
     delete request.data;
     delete request.isQuery;
-
   } else if (request.data) {
     // if data is present, set method to POST unless the method is explicitly set
     if (!request.method || request.method === 'HEAD') {
@@ -461,7 +482,7 @@ const cleanCurlCommand = (curlCommand) => {
   // Handle escape sequences
   curlCommand = curlCommand.replace(/\$('.*')/g, (match, group) => group);
   // Convert escaped single quotes to shell quote pattern
-  curlCommand = curlCommand.replace(/\\'(?!')/g, "'\\''");
+  curlCommand = curlCommand.replace(/\\'(?!')/g, '\'\\\'\'');
   // Fix concatenated HTTP methods
   curlCommand = fixConcatenatedMethods(curlCommand);
 

@@ -2,7 +2,7 @@ import React, { useRef, forwardRef } from 'react';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { IconCaretDown, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizontal } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -10,11 +10,16 @@ import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
+import AdditionalParams from '../AdditionalParams/index';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
+import toast from 'react-hot-toast';
 
 const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
+  const preferences = useSelector((state) => state.app.preferences);
   const { storedTheme } = useTheme();
+  const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const { isSensitive } = useDetectSensitiveField(collection);
@@ -35,7 +40,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     tokenQueryKey,
     refreshTokenUrl,
     autoRefreshToken,
-    autoFetchToken
+    autoFetchToken,
+    additionalParameters
   } = oAuth;
 
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
@@ -85,7 +91,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           refreshTokenUrl,
           autoRefreshToken,
           autoFetchToken,
-          [key]: value,
+          additionalParameters,
+          [key]: value
         }
       })
     );
@@ -112,28 +119,90 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           tokenHeaderPrefix,
           tokenQueryKey,
           autoFetchToken,
+          additionalParameters,
           pkce: !Boolean(oAuth?.['pkce'])
         }
       })
     );
   };
 
+  const handleUseSystemBrowserToggle = (e) => {
+    const newValue = e.target.checked;
+    dispatch(
+      savePreferences({
+        ...preferences,
+        request: {
+          ...preferences.request,
+          oauth2: {
+            ...preferences.request.oauth2,
+            useSystemBrowser: newValue
+          }
+        }
+      })
+    )
+      .then(() => {
+        toast.success('Preference updated successfully');
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error('Failed to update preference');
+      });
+  };
+
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={accessTokenUrl} credentialsId={credentialsId} />
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconSettings size={14} className="oauth2-icon" />
         </div>
-        <span className="text-sm font-medium">
+        <span className="oauth2-section-label">
           Configuration
         </span>
+      </div>
+      <div className="flex items-center gap-4 w-full" key="input-callbackUrl">
+        <label className="block min-w-[140px]">Callback URL</label>
+        <div className="flex flex-col gap-1 w-full">
+          <div className="single-line-editor-wrapper flex-1 flex items-center">
+            <SingleLineEditor
+              value={callbackUrl}
+              theme={storedTheme}
+              onSave={handleSave}
+              onChange={(val) => handleChange('callbackUrl', val)}
+              onRun={handleRun}
+              collection={collection}
+              item={item}
+              placeholder={useSystemBrowser ? 'https://oauth.usebruno.com/callback' : undefined}
+              isCompact
+            />
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-4 w-full" key="input-use-system-browser">
+        <label className="block min-w-[140px]"></label>
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={Boolean(useSystemBrowser)}
+            onChange={handleUseSystemBrowserToggle}
+            className="cursor-pointer"
+          />
+          <label
+            className="block cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              handleUseSystemBrowserToggle({ target: { checked: !useSystemBrowser } });
+            }}
+          >
+            Use system browser for OAuth
+          </label>
+        </div>
       </div>
       {inputsConfig.map((input) => {
         const { key, label, isSecret } = input;
         const value = oAuth[key] || '';
         const { showWarning, warningMessage } = isSensitive(value);
-        
+
         return (
           <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
             <label className="block min-w-[140px]">{label}</label>
@@ -147,13 +216,14 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
                 collection={collection}
                 item={item}
                 isSecret={isSecret}
+                isCompact
               />
               {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
             </div>
           </div>
         );
       })}
-      <div className="flex items-center gap-4 w-full" key={`input-credentials-placement`}>
+      <div className="flex items-center gap-4 w-full" key="input-credentials-placement">
         <label className="block min-w-[140px]">Add Credentials to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <Dropdown onCreate={onDropdownCreate} icon={<CredentialsPlacementIcon />} placement="bottom-end">
@@ -188,14 +258,14 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         />
       </div>
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconKey size={14} className="oauth2-icon" />
         </div>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+        <span className="oauth2-section-label">
           Token
         </span>
       </div>
-      <div className="flex items-center gap-4 w-full" key={`input-token-name`}>
+      <div className="flex items-center gap-4 w-full" key="input-token-name">
         <label className="block min-w-[140px]">Token ID</label>
         <div className="single-line-editor-wrapper flex-1">
           <SingleLineEditor
@@ -206,10 +276,11 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             onRun={handleRun}
             collection={collection}
             item={item}
+            isCompact
           />
         </div>
       </div>
-      <div className="flex items-center gap-4 w-full" key={`input-token-placement`}>
+      <div className="flex items-center gap-4 w-full" key="input-token-placement">
         <label className="block min-w-[140px]">Add token to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <Dropdown onCreate={onDropdownCreate} icon={<TokenPlacementIcon />} placement="bottom-end">
@@ -235,40 +306,45 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         </div>
       </div>
       {
-        tokenPlacement === 'header' ?
-          <div className="flex items-center gap-4 w-full" key={`input-token-prefix`}>
-            <label className="block min-w-[140px]">Header Prefix</label>
-            <div className="single-line-editor-wrapper flex-1">
-              <SingleLineEditor
-                value={oAuth['tokenHeaderPrefix'] || ''}
-                theme={storedTheme}
-                onSave={handleSave}
-                onChange={(val) => handleChange('tokenHeaderPrefix', val)}
-                onRun={handleRun}
-                collection={collection}
-              />
-            </div>
-          </div>
-          :
-          <div className="flex items-center gap-4 w-full" key={`input-token-query-param-key`}>
-            <label className="block font-medium min-w-[140px]">Query Param Key</label>
-            <div className="single-line-editor-wrapper flex-1">
-              <SingleLineEditor
-                value={oAuth['tokenQueryKey'] || ''}
-                theme={storedTheme}
-                onSave={handleSave}
-                onChange={(val) => handleChange('tokenQueryKey', val)}
-                onRun={handleRun}
-                collection={collection}
-              />
-            </div>
-          </div>
+        tokenPlacement === 'header'
+          ? (
+              <div className="flex items-center gap-4 w-full" key="input-token-prefix">
+                <label className="block min-w-[140px]">Header Prefix</label>
+                <div className="single-line-editor-wrapper flex-1">
+                  <SingleLineEditor
+                    value={oAuth['tokenHeaderPrefix'] || ''}
+                    theme={storedTheme}
+                    onSave={handleSave}
+                    onChange={(val) => handleChange('tokenHeaderPrefix', val)}
+                    onRun={handleRun}
+                    collection={collection}
+                    isCompact
+                  />
+                </div>
+              </div>
+            )
+          : (
+              <div className="flex items-center gap-4 w-full" key="input-token-query-param-key">
+                <label className="block min-w-[140px]">Query Param Key</label>
+                <div className="single-line-editor-wrapper flex-1">
+                  <SingleLineEditor
+                    value={oAuth['tokenQueryKey'] || ''}
+                    theme={storedTheme}
+                    onSave={handleSave}
+                    onChange={(val) => handleChange('tokenQueryKey', val)}
+                    onRun={handleRun}
+                    collection={collection}
+                    isCompact
+                  />
+                </div>
+              </div>
+            )
       }
       <div className="flex items-center gap-2.5 mt-4 mb-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
         </div>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+        <span className="oauth2-section-label">
           Advanced Settings
         </span>
       </div>
@@ -280,18 +356,19 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             value={get(request, 'auth.oauth2.refreshTokenUrl', '')}
             theme={storedTheme}
             onSave={handleSave}
-            onChange={(val) => handleChange("refreshTokenUrl", val)}
+            onChange={(val) => handleChange('refreshTokenUrl', val)}
             collection={collection}
             item={item}
+            isCompact
           />
         </div>
       </div>
 
       <div className="flex items-center gap-2.5 mt-4">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconSettings size={14} className="oauth2-icon" />
         </div>
-        <span className="text-sm font-medium">Settings</span>
+        <span className="font-medium">Settings</span>
       </div>
 
       {/* Automatically Fetch Token */}
@@ -332,6 +409,13 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           </div>
         </div>
       </div>
+      <AdditionalParams
+        item={item}
+        request={request}
+        collection={collection}
+        updateAuth={updateAuth}
+        handleSave={handleSave}
+      />
       <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
     </StyledWrapper>
   );

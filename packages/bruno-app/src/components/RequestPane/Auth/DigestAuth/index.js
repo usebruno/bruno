@@ -17,7 +17,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
   const { showWarning, warningMessage } = isSensitive(digestAuth?.password);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  
+
   const handleSave = () => {
     save();
   };
@@ -52,8 +52,8 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
 
   return (
     <StyledWrapper className="mt-2 w-full">
-      <label className="block font-medium mb-2">Username</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Username</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={digestAuth.username || ''}
           theme={storedTheme}
@@ -62,13 +62,14 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Password</label>
+      <label className="block mb-1">Password</label>
       <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
-          value={digestAuth.username || ''}
+          value={digestAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handlePasswordChange(val)}
@@ -76,6 +77,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
           collection={collection}
           item={item}
           isSecret={true}
+          isCompact
         />
         {showWarning && <SensitiveFieldWarning fieldName="digest-password" warningMessage={warningMessage} />}
       </div>

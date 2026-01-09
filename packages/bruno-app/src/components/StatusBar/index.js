@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconSettings, IconCookie, IconTool } from '@tabler/icons';
+import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
+import Mousetrap from 'mousetrap';
+import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
 import Preferences from 'components/Preferences';
 import Cookies from 'components/Cookies';
 import Notifications from 'components/Notifications';
 import Portal from 'components/Portal';
+import ThemeDropdown from './ThemeDropdown';
 import { showPreferences } from 'providers/ReduxStore/slices/app';
 import { openConsole } from 'providers/ReduxStore/slices/logs';
 import { useApp } from 'providers/App';
@@ -18,10 +21,17 @@ const StatusBar = () => {
   const [cookiesOpen, setCookiesOpen] = useState(false);
   const { version } = useApp();
 
-  const errorCount = logs.filter(log => log.type === 'error').length;
+  const errorCount = logs.filter((log) => log.type === 'error').length;
 
   const handleConsoleClick = () => {
     dispatch(openConsole());
+  };
+
+  const openGlobalSearch = () => {
+    const bindings = getKeyBindingsForActionAllOS('globalSearch') || [];
+    bindings.forEach((binding) => {
+      Mousetrap.trigger(binding);
+    });
   };
 
   return (
@@ -40,7 +50,7 @@ const StatusBar = () => {
           />
         </Portal>
       )}
-      
+
       {cookiesOpen && (
         <Portal>
           <Cookies
@@ -61,7 +71,7 @@ const StatusBar = () => {
           <div className="status-bar-group">
             <ToolHint text="Preferences" toolhintId="Preferences" place="top-start" offset={10}>
               <button
-                className="status-bar-button"
+                className="status-bar-button preferences-button"
                 data-trigger="preferences"
                 onClick={() => dispatch(showPreferences(true))}
                 tabIndex={0}
@@ -70,17 +80,54 @@ const StatusBar = () => {
                 <IconSettings size={16} strokeWidth={1.5} aria-hidden="true" />
               </button>
             </ToolHint>
-            
+
+            <ThemeDropdown>
+              <button
+                className="status-bar-button"
+                data-trigger="theme"
+                tabIndex={0}
+                aria-label="Change Theme"
+              >
+                <IconPalette size={16} strokeWidth={1.5} aria-hidden="true" />
+              </button>
+            </ThemeDropdown>
+
             <ToolHint text="Notifications" toolhintId="Notifications" place="top" offset={10}>
               <div className="status-bar-button">
                 <Notifications />
               </div>
+            </ToolHint>
+
+            <ToolHint text="GitHub Repository" toolhintId="GitHub" place="top" offset={10}>
+              <button
+                className="status-bar-button"
+                onClick={() => {
+                  window?.ipcRenderer?.openExternal('https://github.com/usebruno/bruno');
+                }}
+                tabIndex={0}
+                aria-label="Open GitHub Repository"
+              >
+                <IconBrandGithub size={16} strokeWidth={1.5} aria-hidden="true" />
+              </button>
             </ToolHint>
           </div>
         </div>
 
         <div className="status-bar-section">
           <div className="flex items-center gap-3">
+            <button
+              className="status-bar-button"
+              data-trigger="search"
+              onClick={openGlobalSearch}
+              tabIndex={0}
+              aria-label="Global Search"
+            >
+              <div className="console-button-content">
+                <IconSearch size={16} strokeWidth={1.5} aria-hidden="true" />
+                <span className="console-label">Search</span>
+              </div>
+            </button>
+
             <button
               className="status-bar-button"
               data-trigger="cookies"
@@ -93,7 +140,7 @@ const StatusBar = () => {
                 <span className="console-label">Cookies</span>
               </div>
             </button>
-            
+
             <button
               className={`status-bar-button ${errorCount > 0 ? 'has-errors' : ''}`}
               data-trigger="dev-tools"
@@ -109,9 +156,9 @@ const StatusBar = () => {
                 )}
               </div>
             </button>
-            
+
             <div className="status-bar-divider"></div>
-            
+
             <div className="status-bar-version">
               v{version}
             </div>
@@ -122,4 +169,4 @@ const StatusBar = () => {
   );
 };
 
-export default StatusBar; 
+export default StatusBar;

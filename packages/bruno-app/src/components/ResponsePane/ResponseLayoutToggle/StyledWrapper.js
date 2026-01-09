@@ -8,7 +8,13 @@ const Wrapper = styled.div`
     background: transparent;
     border: none;
     cursor: pointer;
-    color: ${(props) => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.dropdown.iconColor};
+    border-radius: 4px;
+
+    &:hover {
+      background-color: ${(props) => props.theme.workspace.button.bg};
+      color: ${(props) => props.theme.text};
+    }
   }
 `;
 

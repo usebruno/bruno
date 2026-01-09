@@ -1,1 +1,1 @@
-module.exports = require('@usebruno/common').cookies;
+module.exports = require('@usebruno/requests').cookies;

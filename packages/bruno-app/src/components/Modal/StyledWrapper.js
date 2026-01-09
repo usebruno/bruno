@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const Wrapper = styled.div`
   color: ${(props) => props.theme.text};
@@ -28,8 +29,8 @@ const Wrapper = styled.div`
   .bruno-modal-card {
     animation-duration: 0.85s;
     animation-delay: 0.1s;
-    background: var(--color-background-top);
-    border-radius: var(--border-radius);
+    background: ${(props) => props.theme.modal.body.bg};
+    border-radius: ${(props) => props.theme.border.radius.base};
     position: relative;
     z-index: 11;
     max-width: calc(100% - var(--spacing-base-unit));
@@ -40,6 +41,7 @@ const Wrapper = styled.div`
     flex-grow: 0;
     margin: 3vh 10vw;
     margin-top: 50px;
+    border: 1px solid ${(props) => props.theme.border.border0};
 
     &.modal-sm {
       min-width: 300px;
@@ -68,25 +70,36 @@ const Wrapper = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    text-transform: uppercase;
     color: ${(props) => props.theme.modal.title.color};
     background-color: ${(props) => props.theme.modal.title.bg};
-    font-size: 0.75rem;
-    padding: 12px;
-    font-weight: 600;
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
+    font-size: ${(props) => props.theme.font.size.md};
+    padding: 0.5rem 1rem;
+    border-top-left-radius: ${(props) => props.theme.border.radius.base};
+    border-top-right-radius: ${(props) => props.theme.border.radius.base};
+
+    .bruno-modal-header-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
     .close {
-      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      margin-right: -0.5rem;
+      font-size: 1.125rem;
       line-height: 1;
-      color: ${(props) => props.theme.modal.iconColor};
-      text-shadow: 0 1px 0 #fff;
-      opacity: 0.5;
-      margin-top: -2px;
+      color: ${(props) => props.theme.modal.title.color};
+      border-radius: ${(props) => props.theme.border.radius.sm};
+      opacity: 0.7;
+      transition: opacity 0.2s ease, background-color 0.2s ease;
 
       &:hover {
-        opacity: 0.8;
+        opacity: 1;
+        background-color: ${(props) => rgba(props.theme.modal.title.color, 0.1)};
       }
     }
   }
@@ -104,14 +117,23 @@ const Wrapper = styled.div`
       outline: none;
       box-shadow: none;
       transition: border-color ease-in-out 0.1s;
-      border-radius: 3px;
-      background-color: ${(props) => props.theme.modal.input.bg};
-      border: 1px solid ${(props) => props.theme.modal.input.border};
+      border-radius: ${(props) => props.theme.border.radius.sm};
+      background-color: ${(props) => props.theme.input.bg};
+      border: 1px solid ${(props) => props.theme.input.border};
 
       &:focus {
-        border: solid 1px ${(props) => props.theme.modal.input.focusBorder} !important;
+        border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
         outline: none !important;
       }
+    }
+
+    select.textbox {
+      appearance: none;
+      padding-right: 30px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.5rem center;
+      cursor: pointer;
     }
 
     .bruno-form {
@@ -144,15 +166,25 @@ const Wrapper = styled.div`
 
   .bruno-modal-footer {
     background-color: ${(props) => props.theme.modal.body.bg};
-    border-bottom-left-radius: 3px;
-    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: ${(props) => props.theme.border.radius.base};
+    border-bottom-right-radius: ${(props) => props.theme.border.radius.base};
   }
 
   &.modal-footer-none {
     .bruno-modal-content {
-      border-bottom-left-radius: 4px;
-      border-bottom-right-radius: 4px;
+      border-bottom-left-radius: ${(props) => props.theme.border.radius.base};
+      border-bottom-right-radius: ${(props) => props.theme.border.radius.base};
     }
+  }
+
+  input[type='radio'] {
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
+  }
+
+  input[type='checkbox'] {
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
   }
 `;
 

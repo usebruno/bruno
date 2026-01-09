@@ -10,10 +10,16 @@ get {
   auth: inherit
 }
 
+script:pre-request {
+  const jar = bru.cookies.jar()
+  
+  jar.setCookie("https://testbench-sanity.usebruno.com", "name", "value")
+}
+
 tests {
   const jar = bru.cookies.jar()
   
-  jar.getCookie("https://testbench-sanity.usebruno.com", "__cf_bm", function(error, data) {
+  jar.getCookie("https://testbench-sanity.usebruno.com", "name", function(error, data) {
     if(error) {
       console.error("Cookie retrieval error:", error)
       throw new Error(`Failed to get cookie: ${error.message || error}`)
@@ -22,7 +28,7 @@ tests {
     test("should successfully retrieve cookie data", function() {
       expect(data).to.have.property('key');
       expect(data).to.have.property('value');
-      expect(data.key).to.equal("__cf_bm");
+      expect(data.key).to.equal("name");
       expect(data.value).to.be.a('string');
       expect(data.value).to.not.be.empty;
       expect(data.domain).to.include('usebruno.com');

@@ -16,233 +16,233 @@ describe('openapi-circular-references', () => {
 });
 
 const circularRefsData = {
-  "components": {
-    "schemas": {
-      "schema_1": {
-        "additionalProperties": false,
-        "description": "schema_1",
-        "properties": {
-          "conditions": {
-            "$ref": "#/components/schemas/schema_1"
+  components: {
+    schemas: {
+      schema_1: {
+        additionalProperties: false,
+        description: 'schema_1',
+        properties: {
+          conditions: {
+            $ref: '#/components/schemas/schema_1'
           }
         },
-        "type": "object"
+        type: 'object'
       },
-      "schema_2": {
-        "additionalProperties": false,
-        "description": "schema_2",
-        "properties": {
-          "conditionGroup": {
-            "description": "nested schema_1",
-            "items": { "$ref": "#/components/schemas/schema_1" },
-            "type": "array"
+      schema_2: {
+        additionalProperties: false,
+        description: 'schema_2',
+        properties: {
+          conditionGroup: {
+            description: 'nested schema_1',
+            items: { $ref: '#/components/schemas/schema_1' },
+            type: 'array'
           },
-          "operation": {
-            "description": "operation",
-            "enum": ["ANY", "ALL"],
-            "type": "string"
+          operation: {
+            description: 'operation',
+            enum: ['ANY', 'ALL'],
+            type: 'string'
           }
         },
-        "type": "object"
+        type: 'object'
       }
     }
   },
-  "info": {
-    "description": "circular reference openapi sample json spec",
-    "title": "circular reference openapi sample json spec",
-    "version": "0.1"
+  info: {
+    description: 'circular reference openapi sample json spec',
+    title: 'circular reference openapi sample json spec',
+    version: '0.1'
   },
-  "openapi": "3.0.1",
-  "paths": {
-    "/": {
-      "post": {
-        "deprecated": false,
-        "description": "echo ping api",
-        "operationId": "echo ping",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/schema_1"
+  openapi: '3.0.1',
+  paths: {
+    '/': {
+      post: {
+        deprecated: false,
+        description: 'echo ping api',
+        operationId: 'echo ping',
+        parameters: [],
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/schema_1'
               }
             }
           },
-          "description": "echo ping api",
-          "required": true
+          description: 'echo ping api',
+          required: true
         },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "example": "ping"
+        responses: {
+          200: {
+            content: {
+              'application/json': {
+                example: 'ping'
               }
             },
-            "description": "Returned if the request is successful."
+            description: 'Returned if the request is successful.'
           }
         }
       }
     }
   },
-  "servers": [{ "url": "https://echo.usebruno.com" }]
+  servers: [{ url: 'https://echo.usebruno.com' }]
 };
 
 // More complex circular reference test with a longer chain
 const complexCircularRefsData = {
-  "components": {
-    "schemas": {
-      "schema_1": {
-        "additionalProperties": false,
-        "description": "schema_1",
-        "properties": {
-          "conditionGroup": {
-            "description": "nested schema_1",
-            "items": { "$ref": "#/components/schemas/schema_2" },
-            "type": "array"
+  components: {
+    schemas: {
+      schema_1: {
+        additionalProperties: false,
+        description: 'schema_1',
+        properties: {
+          conditionGroup: {
+            description: 'nested schema_1',
+            items: { $ref: '#/components/schemas/schema_2' },
+            type: 'array'
           }
         },
-        "type": "object"
+        type: 'object'
       },
-      "schema_2": {
-        "additionalProperties": false,
-        "description": "schema_2",
-        "properties": {
-          "conditionGroup": {
-            "description": "nested schema_2",
-            "items": { "$ref": "#/components/schemas/schema_3" },
-            "type": "array"
+      schema_2: {
+        additionalProperties: false,
+        description: 'schema_2',
+        properties: {
+          conditionGroup: {
+            description: 'nested schema_2',
+            items: { $ref: '#/components/schemas/schema_3' },
+            type: 'array'
           }
         },
-        "type": "object"
+        type: 'object'
       },
-      "schema_3": {
-        "additionalProperties": false,
-        "description": "schema_3",
-        "properties": {
-          "conditionGroup": {
-            "description": "nested schema_3",
-            "items": { "$ref": "#/components/schemas/schema_4" },
-            "type": "array"
+      schema_3: {
+        additionalProperties: false,
+        description: 'schema_3',
+        properties: {
+          conditionGroup: {
+            description: 'nested schema_3',
+            items: { $ref: '#/components/schemas/schema_4' },
+            type: 'array'
           }
         },
-        "type": "object"
+        type: 'object'
       },
-      "schema_4": {
-        "additionalProperties": false,
-        "description": "schema_4",
-        "properties": {
-          "conditionGroup": {
-            "description": "nested schema_4",
-            "items": { "$ref": "#/components/schemas/schema_5" },
-            "type": "array"
+      schema_4: {
+        additionalProperties: false,
+        description: 'schema_4',
+        properties: {
+          conditionGroup: {
+            description: 'nested schema_4',
+            items: { $ref: '#/components/schemas/schema_5' },
+            type: 'array'
           }
         },
-        "type": "object"
+        type: 'object'
       },
-      "schema_5": {
-        "additionalProperties": false,
-        "description": "schema_4",
-        "properties": {
-          "conditionGroup": {
-            "description": "nested schema_5",
-            "items": { "$ref": "#/components/schemas/schema_1" },
-            "type": "array"
+      schema_5: {
+        additionalProperties: false,
+        description: 'schema_4',
+        properties: {
+          conditionGroup: {
+            description: 'nested schema_5',
+            items: { $ref: '#/components/schemas/schema_1' },
+            type: 'array'
           }
         },
-        "type": "object"
+        type: 'object'
       },
-      "schema_6": {
-        "additionalProperties": false,
-        "description": "schema_3",
-        "properties": {
-          "conditionGroup": {
-            "description": "nested schema_3",
-            "items": { "$ref": "#/components/schemas/schema_1" },
-            "type": "array"
+      schema_6: {
+        additionalProperties: false,
+        description: 'schema_3',
+        properties: {
+          conditionGroup: {
+            description: 'nested schema_3',
+            items: { $ref: '#/components/schemas/schema_1' },
+            type: 'array'
           },
-          "operation": {
-            "description": "operation",
-            "enum": ["ANY", "ALL"],
-            "type": "string"
+          operation: {
+            description: 'operation',
+            enum: ['ANY', 'ALL'],
+            type: 'string'
           }
         },
-        "type": "object"
+        type: 'object'
       }
     }
   },
-  "info": {
-    "description": "circular reference openapi sample json spec",
-    "title": "circular reference openapi sample json spec",
-    "version": "0.1"
+  info: {
+    description: 'circular reference openapi sample json spec',
+    title: 'circular reference openapi sample json spec',
+    version: '0.1'
   },
-  "openapi": "3.0.1",
-  "paths": {
-    "/": {
-      "post": {
-        "deprecated": false,
-        "description": "echo ping api",
-        "operationId": "echo ping",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/schema_1"
+  openapi: '3.0.1',
+  paths: {
+    '/': {
+      post: {
+        deprecated: false,
+        description: 'echo ping api',
+        operationId: 'echo ping',
+        parameters: [],
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/schema_1'
               }
             }
           },
-          "description": "echo ping api",
-          "required": true
+          description: 'echo ping api',
+          required: true
         },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "example": "ping"
+        responses: {
+          200: {
+            content: {
+              'application/json': {
+                example: 'ping'
               }
             },
-            "description": "Returned if the request is successful."
+            description: 'Returned if the request is successful.'
           }
         }
       }
     }
   },
-  "servers": [{ "url": "https://echo.usebruno.com" }]
+  servers: [{ url: 'https://echo.usebruno.com' }]
 };
 
 const circularRefsOutput = {
-  "environments": [
+  environments: [
     {
-      "name": "Environment 1",
-      "variables": [
+      name: 'Environment 1',
+      variables: [
         {
-          "enabled": true,
-          "name": "baseUrl",
-          "secret": false,
-          "type": "text",
-          "value": "https://echo.usebruno.com",
-        },
-      ],
-    },
-  ],
-  "items": [
-    {
-      "name": "echo ping",
-      "type": "http-request",
-      "request": {
-        "url": "{{baseUrl}}/",
-        "method": "POST",
-        "auth": {
-          "mode": "none",
-        },
-        "headers": [],
-        "params": [],
-        "body": {
-          "mode": "json",
+          enabled: true,
+          name: 'baseUrl',
+          secret: false,
+          type: 'text',
+          value: 'https://echo.usebruno.com'
         }
-      },
-    },
+      ]
+    }
   ],
-  "name": "circular reference openapi sample json spec",
-  "version": "1",
+  items: [
+    {
+      name: 'echo ping',
+      type: 'http-request',
+      request: {
+        url: '{{baseUrl}}/',
+        method: 'POST',
+        auth: {
+          mode: 'inherit'
+        },
+        headers: [],
+        params: [],
+        body: {
+          mode: 'json'
+        }
+      }
+    }
+  ],
+  name: 'circular reference openapi sample json spec',
+  version: '1'
 };

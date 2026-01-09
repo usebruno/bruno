@@ -8,6 +8,13 @@ describe('openapi-collection', () => {
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
 
+  it('should set auth mode to inherit when no security is defined in the collection', () => {
+    const brunoCollection = openApiToBruno(openApiCollectionString);
+
+    // The openApiCollectionString has no security defined, so auth mode should be 'inherit'
+    expect(brunoCollection.items[0].items[0].request.auth.mode).toBe('inherit');
+  });
+
   it('trims whitespace from info.title and uses the trimmed value as the collection name', () => {
     const openApiWithTitle = `
 openapi: '3.0.0'
@@ -109,6 +116,150 @@ servers:
     expect(result.name).toBe('Untitled Collection');
   });
 
+  describe('authentication inheritance', () => {
+    it('should set auth mode to inherit when no security is defined', () => {
+      const openApiWithoutSecurity = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API without security'
+paths:
+  /test:
+    get:
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithoutSecurity);
+      expect(result.items[0].request.auth.mode).toBe('inherit');
+    });
+
+    it('should set auth mode to inherit when no global security schemes exist', () => {
+      const openApiWithEmptySecurity = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with empty security'
+security: []
+paths:
+  /test:
+    get:
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithEmptySecurity);
+      expect(result.items[0].request.auth.mode).toBe('inherit');
+    });
+
+    it('should set auth mode to inherit when components.securitySchemes is empty', () => {
+      const openApiWithEmptyComponents = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with empty components'
+components:
+  securitySchemes: {}
+paths:
+  /test:
+    get:
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithEmptyComponents);
+      expect(result.items[0].request.auth.mode).toBe('inherit');
+    });
+
+    it('should set auth mode to inherit when operation has empty security array', () => {
+      const openApiWithEmptyOperationSecurity = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with empty operation security'
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+paths:
+  /test:
+    get:
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      security: []
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithEmptyOperationSecurity);
+      expect(result.items[0].request.auth.mode).toBe('inherit');
+    });
+
+    it('should set auth mode to inherit for folder root when no security is defined', () => {
+      const openApiWithTags = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with tags'
+paths:
+  /test:
+    get:
+      tags:
+        - TestGroup
+      summary: 'Test endpoint'
+      operationId: 'testEndpoint'
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+      const result = openApiToBruno(openApiWithTags);
+      expect(result.items[0].type).toBe('folder');
+      expect(result.items[0].root.request.auth.mode).toBe('inherit');
+    });
+  });
+
+  it('should handle requestBody with empty content object (undefined mimeType)', () => {
+    const openApiWithEmptyContent = `
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'API with empty requestBody content'
+paths:
+  /test:
+    post:
+      summary: 'Test endpoint with empty content'
+      operationId: 'testEndpoint'
+      requestBody:
+        content: {}
+      responses:
+        '200':
+          description: 'OK'
+servers:
+  - url: 'https://example.com'
+`;
+    const result = openApiToBruno(openApiWithEmptyContent);
+    expect(result.items[0].request.body.mode).toBe('none');
+    expect(result.items[0].request.body.json).toBe(null);
+    expect(result.items[0].request.body.text).toBe(null);
+    expect(result.items[0].request.body.xml).toBe(null);
+  });
 });
 
 const openApiCollectionString = `
@@ -144,65 +295,65 @@ components:
         type: "string"
         default: "value2"
 servers:
-  - url: "https://httpbin.org"
+  - url: "https://echo.usebruno.com"
 `;
 
 const expectedOutput = {
-  "environments": [
+  environments: [
     {
-      "name": "Environment 1",
-      "uid": "mockeduuidvalue123456",
-      "variables": [
+      name: 'Environment 1',
+      uid: 'mockeduuidvalue123456',
+      variables: [
         {
-          "enabled": true,
-          "name": "baseUrl",
-          "secret": false,
-          "type": "text",
-          "uid": "mockeduuidvalue123456",
-          "value": "https://httpbin.org",
-        },
-      ],
-    },
+          enabled: true,
+          name: 'baseUrl',
+          secret: false,
+          type: 'text',
+          uid: 'mockeduuidvalue123456',
+          value: 'https://echo.usebruno.com'
+        }
+      ]
+    }
   ],
-  "items": [
+  items: [
     {
-      "items": [
+      items: [
         {
-          "name": "Request1 and Request2",
-          "request": {
-            "auth": {
-              "basic": null,
-              "bearer": null,
-              "digest": null,
-              "mode": "none",
+          name: 'Request1 and Request2',
+          request: {
+            auth: {
+              basic: null,
+              bearer: null,
+              digest: null,
+              mode: 'inherit'
             },
-            "body": {
-              "formUrlEncoded": [],
-              "json": null,
-              "mode": "none",
-              "multipartForm": [],
-              "text": null,
-              "xml": null,
+            body: {
+              formUrlEncoded: [],
+              json: null,
+              mode: 'none',
+              multipartForm: [],
+              text: null,
+              xml: null
             },
-            "headers": [],
-            "method": "GET",
-            "params": [],
-            "script": {
-              "res": null,
+            headers: [],
+            method: 'GET',
+            params: [],
+            script: {
+              res: null
             },
-            "url": "{{baseUrl}}/get",
+            url: '{{baseUrl}}/get'
           },
-          "seq": 1,
-          "type": "http-request",
-          "uid": "mockeduuidvalue123456",
-        },
+          seq: 1,
+          type: 'http-request',
+          uid: 'mockeduuidvalue123456'
+        }
       ],
-      "name": "Folder1",
-      "type": "folder",
-      "uid": "mockeduuidvalue123456",
-    },
+      name: 'Folder1',
+      type: 'folder',
+      uid: 'mockeduuidvalue123456'
+    }
   ],
-  "name": "Hello World OpenAPI",
-  "uid": "mockeduuidvalue123456",
-  "version": "1",
+  name: 'Hello World OpenAPI',
+  uid: 'mockeduuidvalue123456',
+  version: '1'
 };

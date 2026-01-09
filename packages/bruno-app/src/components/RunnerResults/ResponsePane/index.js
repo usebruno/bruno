@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import get from 'lodash/get';
 import classnames from 'classnames';
-import { safeStringifyJSON } from 'utils/common';
-import QueryResult from 'components/ResponsePane/QueryResult';
+import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 import ResponseHeaders from 'components/ResponsePane/ResponseHeaders';
 import StatusCode from 'components/ResponsePane/StatusCode';
 import ResponseTime from 'components/ResponsePane/ResponseTime';
@@ -40,7 +39,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
     switch (tab) {
       case 'response': {
         return (
-          <QueryResult
+          <QueryResponse
             item={item}
             collection={collection}
             width={rightPaneWidth}
@@ -67,12 +66,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         );
       }
       case 'tests': {
-        return <TestResults
-          results={testResults}
-          assertionResults={assertionResults}
-          preRequestTestResults={preRequestTestResults}
-          postResponseTestResults={postResponseTestResults}
-        />;
+        return (
+          <TestResults
+            results={testResults}
+            assertionResults={assertionResults}
+            preRequestTestResults={preRequestTestResults}
+            postResponseTestResults={postResponseTestResults}
+          />
+        );
       }
 
       default: {
@@ -128,14 +129,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           <ResponseSize size={size} />
         </div>
       </div>
-      <section className="flex flex-col flex-grow overflow-auto">
+      <section className="flex flex-col pt-3 flex-grow overflow-auto">
         {hasScriptError && showScriptErrorCard && (
           <ScriptError
             item={item}
             onClose={() => setShowScriptErrorCard(false)}
           />
         )}
-        <div className='flex-1'>
+        <div className="flex-1">
           {getTabPanel(selectedTab)}
         </div>
       </section>

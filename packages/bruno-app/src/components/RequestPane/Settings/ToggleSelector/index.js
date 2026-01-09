@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from 'providers/Theme';
 
 const ToggleSelector = ({
   checked,
@@ -6,8 +7,11 @@ const ToggleSelector = ({
   label,
   description,
   disabled = false,
-  size = 'small' // 'small', 'medium', 'large'
+  size = 'small', // 'small', 'medium', 'large'
+  'data-testid': dataTestId
 }) => {
+  const { theme } = useTheme();
+
   const sizeClasses = {
     small: {
       container: 'h-4 w-8',
@@ -29,22 +33,29 @@ const ToggleSelector = ({
   const currentSize = sizeClasses[size];
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center justify-between">
+      <div className="flex flex-col">
+        <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
+          {label}
+        </label>
+        {description && (
+          <p className="text-xs text-gray-700 dark:text-gray-400">
+            {description}
+          </p>
+        )}
+      </div>
       <button
         type="button"
         onClick={onChange}
         disabled={disabled}
+        data-testid={dataTestId}
+        style={{
+          backgroundColor: checked ? theme.primary.solid : theme.background.surface2
+        }}
         className={`
-          relative inline-flex ${currentSize.container} mx-1 items-center rounded-full transition-colors
+          relative inline-flex ${currentSize.container} flex-shrink-0 items-center rounded-full transition-colors
           focus:outline-none focus:ring-1 focus:ring-offset-1
-          ${disabled
-            ? 'opacity-50 cursor-not-allowed'
-            : 'cursor-pointer'
-          }
-          ${checked
-            ? 'bg-blue-600 dark:bg-blue-500'
-            : 'bg-gray-200 dark:bg-gray-700'
-          }
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
         role="switch"
         aria-checked={checked}
@@ -57,16 +68,6 @@ const ToggleSelector = ({
           `}
         />
       </button>
-      <div className="flex flex-col">
-        <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
-          {label}
-        </label>
-        {description && (
-          <p className="text-xs text-gray-700 dark:text-gray-400">
-            {description}
-          </p>
-        )}
-      </div>
     </div>
   );
 };

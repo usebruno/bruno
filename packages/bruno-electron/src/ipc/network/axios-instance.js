@@ -2,16 +2,17 @@ const URL = require('url');
 const Socket = require('net').Socket;
 const axios = require('axios');
 const connectionCache = new Map(); // Cache to store checkConnection() results
-const electronApp = require("electron");
+const electronApp = require('electron');
 const { setupProxyAgents } = require('../../utils/proxy-util');
 const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies');
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
+const { createFormData } = require('../../utils/form-data');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
 const LOCALHOST = 'localhost';
-const version = electronApp?.app?.getVersion() ?? "";
+const version = electronApp?.app?.getVersion() ?? '';
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 
 const saveCookies = (url, headers) => {
@@ -28,7 +29,7 @@ const saveCookies = (url, headers) => {
       }
     }
   }
-}
+};
 
 const getTld = (hostname) => {
   if (!hostname) {
@@ -70,11 +71,11 @@ const checkConnection = (host, port) =>
  * @see https://github.com/axios/axios/issues/695
  * @returns {axios.AxiosInstance}
  */
-function makeAxiosInstance({ 
-  proxyMode = 'off', 
-  proxyConfig = {}, 
-  requestMaxRedirects = 5, 
-  httpsAgentRequestFields = {}, 
+function makeAxiosInstance({
+  proxyMode = 'off',
+  proxyConfig = {},
+  requestMaxRedirects = 5,
+  httpsAgentRequestFields = {},
   interpolationOptions = {}
 } = {}) {
   /** @type {axios.AxiosInstance} */
@@ -94,7 +95,7 @@ function makeAxiosInstance({
     proxy: false,
     maxRedirects: 0,
     headers: {
-      "User-Agent": `bruno-runtime/${version}`
+      'User-Agent': `bruno-runtime/${version}`
     }
   });
 
@@ -111,35 +112,44 @@ function makeAxiosInstance({
     timeline.push({
       timestamp: new Date(),
       type: 'info',
-      message: `Preparing request to ${config.url}`,
+      message: `Preparing request to ${config.url}`
     });
     timeline.push({
       timestamp: new Date(),
       type: 'info',
-      message: `Current time is ${new Date().toISOString()}`,
+      message: `Current time is ${new Date().toISOString()}`
     });
-  
+
     // Add request method and headers
     timeline.push({
       timestamp: new Date(),
       type: 'request',
-      message: `${config.method.toUpperCase()} ${config.url}`,
+      message: `${config.method.toUpperCase()} ${config.url}`
     });
+
     Object.entries(config.headers).forEach(([key, value]) => {
+      // See https://github.com/usebruno/bruno/issues/1693
+      // Axios adds 'Content-Type': 'application/x-www-form-urlencoded for requests with no body
+      // Bruno sets content-type: false for no body requests so that axios doesn't add the default content-type header
+      // Hence we skip content-type if it's false
+      if (key.toLowerCase() === 'content-type' && value === false) {
+        return;
+      }
+
       timeline.push({
         timestamp: new Date(),
         type: 'requestHeader',
-        message: `${key}: ${value}`,
+        message: `${key}: ${value}`
       });
     });
-  
+
     // Add request data if available
     if (config.data) {
       let requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
       timeline.push({
         timestamp: new Date(),
         type: 'requestData',
-        message: requestData,
+        message: requestData
       });
     }
 
@@ -161,7 +171,7 @@ function makeAxiosInstance({
 
     const agentOptions = {
       ...httpsAgentRequestFields,
-      keepAlive: true,
+      keepAlive: true
     };
 
     try {
@@ -172,24 +182,23 @@ function makeAxiosInstance({
         proxyConfig: proxyConfig,
         httpsAgentRequestFields: agentOptions,
         interpolationOptions: interpolationOptions, // Provide your interpolation options
-        timeline,
+        timeline
       });
-    }
-    catch(err) {
+    } catch (err) {
       if (err.timeline) {
         timeline = err.timeline;
       }
       timeline.push({
         timestamp: new Date(),
         type: 'error',
-        message: `Error setting up proxy agents: ${err?.message}`,
+        message: `Error setting up proxy agents: ${err?.message}`
       });
     }
     config.metadata.timeline = timeline;
     return config;
   });
 
-  let redirectCount = 0
+  let redirectCount = 0;
 
   instance.interceptors.response.use(
     (response) => {
@@ -200,7 +209,7 @@ function makeAxiosInstance({
       redirectCount = 0;
 
       const config = response.config;
-      timeline = config?.metadata?.timeline || []
+      timeline = config?.metadata?.timeline || [];
       const duration = end - config?.metadata.startTime;
 
       const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
@@ -208,27 +217,27 @@ function makeAxiosInstance({
         timeline.push({
           timestamp: new Date(),
           type: 'info',
-          message: `Using HTTP/2, server supports multiplexing`,
+          message: `Using HTTP/2, server supports multiplexing`
         });
       }
       timeline.push({
         timestamp: new Date(),
         type: 'response',
-        message: `HTTP/${httpVersion || '1.1'} ${response.status} ${response.statusText}`,
+        message: `HTTP/${httpVersion || '1.1'} ${response.status} ${response.statusText}`
       });
 
       Object.entries(response.headers).forEach(([key, value]) => {
         timeline.push({
           timestamp: new Date(),
           type: 'responseHeader',
-          message: `${key}: ${value}`,
+          message: `${key}: ${value}`
         });
       });
 
       timeline.push({
         timestamp: new Date(),
         type: 'info',
-        message: `Request completed in ${duration} ms`,
+        message: `Request completed in ${duration} ms`
       });
       response.timeline = timeline;
       return response;
@@ -250,19 +259,19 @@ function makeAxiosInstance({
           timeline.push({
             timestamp: new Date(),
             type: 'response',
-            message: `HTTP/${error.response.httpVersion || '1.1'} ${error.response.status} ${error.response.statusText}`,
+            message: `HTTP/${error.response.httpVersion || '1.1'} ${error.response.status} ${error.response.statusText}`
           });
           Object.entries(error.response.headers).forEach(([key, value]) => {
             timeline.push({
               timestamp: new Date(),
               type: 'responseHeader',
-              message: `${key}: ${value}`,
+              message: `${key}: ${value}`
             });
           });
           timeline.push({
             timestamp: new Date(),
             type: 'info',
-            message: `Request completed in ${duration} ms`,
+            message: `Request completed in ${duration} ms`
           });
 
           // Attach the timeline to the response
@@ -288,16 +297,16 @@ function makeAxiosInstance({
           if (locationHeader && !locationHeader.match(/^https?:\/\//i)) {
             // It's a relative URL, resolve it against the original URL
             redirectUrl = URL.resolve(error.config.url, locationHeader);
-            
+
             timeline.push({
               timestamp: new Date(),
               type: 'info',
-              message: `Resolving relative redirect URL: ${locationHeader} → ${redirectUrl}`,
+              message: `Resolving relative redirect URL: ${locationHeader} → ${redirectUrl}`
             });
           }
 
           if (preferencesUtil.shouldStoreCookies()) {
-            saveCookies(redirectUrl, error.response.headers);
+            saveCookies(error.config.url, error.response.headers);
           }
 
           // Create a new request config for the redirect
@@ -305,8 +314,8 @@ function makeAxiosInstance({
             ...error.config,
             url: redirectUrl,
             headers: {
-              ...error.config.headers,
-            },
+              ...error.config.headers
+            }
           };
 
           // Apply proper HTTP redirect behavior based on status code
@@ -315,19 +324,53 @@ function makeAxiosInstance({
 
           // For 301, 302, 303: change method to GET unless it was HEAD
           if ([301, 302, 303].includes(statusCode) && originalMethod !== 'head') {
-              requestConfig.method = 'get';
-              requestConfig.data = undefined;
-              delete requestConfig.headers['content-length'];
-              delete requestConfig.headers['Content-Length'];
-              
-              delete requestConfig.headers['content-type']; 
-              delete requestConfig.headers['Content-Type'];
-              
-              timeline.push({
-                timestamp: new Date(),
-                type: 'info',
-                message: `Changed method from ${originalMethod.toUpperCase()} to GET for ${statusCode} redirect and removed request body`,
-              });
+            requestConfig.method = 'get';
+            requestConfig.data = undefined;
+            delete requestConfig.headers['content-length'];
+            delete requestConfig.headers['Content-Length'];
+
+            delete requestConfig.headers['content-type'];
+            delete requestConfig.headers['Content-Type'];
+
+            timeline.push({
+              timestamp: new Date(),
+              type: 'info',
+              message: `Changed method from ${originalMethod.toUpperCase()} to GET for ${statusCode} redirect and removed request body`
+            });
+          } else {
+            // For 307, 308 and other status codes: preserve method and body
+            if (requestConfig.data && typeof requestConfig.data === 'object'
+              && requestConfig.data.constructor && requestConfig.data.constructor.name === 'FormData') {
+              const formData = requestConfig.data;
+              if (formData._released || (formData._streams && formData._streams.length === 0)) {
+                if (error.config._originalMultipartData && error.config.collectionPath) {
+                  timeline.push({
+                    timestamp: new Date(),
+                    type: 'info',
+                    message: `Recreating consumed FormData for ${statusCode} redirect`
+                  });
+
+                  const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath);
+                  requestConfig.data = recreatedForm;
+
+                  const formHeaders = recreatedForm.getHeaders();
+                  Object.assign(requestConfig.headers, formHeaders);
+
+                  // preserve the original data for potential future redirects
+                  requestConfig._originalMultipartData = error.config._originalMultipartData;
+                  requestConfig.collectionPath = error.config.collectionPath;
+                } else {
+                  timeline.push({
+                    timestamp: new Date(),
+                    type: 'info',
+                    message: `FormData consumed but no original data available for ${statusCode} redirect`
+                  });
+                }
+              } else {
+                requestConfig._originalMultipartData = error.config._originalMultipartData;
+                requestConfig.collectionPath = error.config.collectionPath;
+              }
+            }
           }
 
           if (preferencesUtil.shouldSendCookies()) {
@@ -337,7 +380,7 @@ function makeAxiosInstance({
             }
           }
 
-          try { 
+          try {
             setupProxyAgents({
               requestConfig,
               proxyMode,
@@ -346,34 +389,32 @@ function makeAxiosInstance({
               interpolationOptions,
               timeline
             });
-          }
-          catch(err) {
+          } catch (err) {
             if (err.timeline) {
               timeline = err.timeline;
             }
             timeline.push({
               timestamp: new Date(),
               type: 'error',
-              message: `Error setting up proxy agents: ${err?.message}`,
+              message: `Error setting up proxy agents: ${err?.message}`
             });
           }
 
           requestConfig.metadata.timeline = timeline;
           // Make the redirected request
           return instance(requestConfig);
-        }
-        else {
+        } else {
           const errorResponseData = error.response.data;
           timeline.push({
             timestamp: new Date(),
             type: 'response',
-            message: `HTTP/${error.response.httpVersion || '1.1'} ${error.response.status} ${error.response.statusText}`,
+            message: `HTTP/${error.response.httpVersion || '1.1'} ${error.response.status} ${error.response.statusText}`
           });
           Object.entries(error?.response?.headers || {}).forEach(([key, value]) => {
             timeline.push({
               timestamp: new Date(),
               type: 'responseHeader',
-              message: `${key}: ${value}`,
+              message: `${key}: ${value}`
             });
           });
           timeline?.push({
@@ -394,13 +435,12 @@ function makeAxiosInstance({
           error.response.timeline = timeline;
           return Promise.reject(error);
         }
-      }
-      else if (error?.code) {
+      } else if (error?.code) {
         Object.entries(error?.response?.headers || {}).forEach(([key, value]) => {
           timeline.push({
             timestamp: new Date(),
             type: 'responseHeader',
-            message: `${key}: ${value}`,
+            message: `${key}: ${value}`
           });
         });
         timeline?.push({

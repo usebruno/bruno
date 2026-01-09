@@ -17,7 +17,7 @@ const prepareGqlIntrospectionRequest = (endpoint, resolvedVars, request, collect
     url: endpoint,
     headers: {
       ...mapHeaders(request.headers, get(collectionRoot, 'request.headers', []), resolvedVars),
-      Accept: 'application/json',
+      'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
     data: JSON.stringify(queryParams)

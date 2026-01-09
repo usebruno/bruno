@@ -20,7 +20,7 @@ const evaluateJsExpressionBasedOnRuntime = (expr, context, runtime, mode) => {
 
 class VarsRuntime {
   constructor(props) {
-    this.runtime = props?.runtime || 'vm2';
+    this.runtime = props?.runtime || 'quickjs';
     this.mode = props?.mode || 'developer';
   }
 
@@ -35,7 +35,8 @@ class VarsRuntime {
       return;
     }
 
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables);
+    const promptVariables = request?.promptVariables || {};
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, undefined, promptVariables);
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 
@@ -74,6 +75,7 @@ class VarsRuntime {
       envVariables,
       runtimeVariables,
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
       error
     };
   }

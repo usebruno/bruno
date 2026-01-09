@@ -1,13 +1,29 @@
 const fs = require('fs');
-const path = require('path');
+const { generateHtmlReport } = require('@usebruno/common/runner');
+const { CLI_VERSION } = require('../constants');
 
-const makeHtmlOutput = async (results, outputPath) => {
-  const resultsJson = JSON.stringify(results, null, 2);
+const makeHtmlOutput = async (results, outputPath, runCompletionTime, environment = null) => {
+  let runnerResults = results;
+  if (!results) {
+    runnerResults = [];
+  } else if (results.results) {
+    // Convert CLI format to expected format: array of { iterationIndex, results, summary }
+    runnerResults = [{
+      iterationIndex: 0,
+      results: results.results,
+      summary: results.summary
+    }];
+  } else if (Array.isArray(results)) {
+    runnerResults = results;
+  }
 
-  const reportPath = path.join(__dirname, 'html-template.html');
-  const template = fs.readFileSync(reportPath, 'utf8');
-
-  fs.writeFileSync(outputPath, template.replace('__RESULTS_JSON__', resultsJson));
+  const htmlString = generateHtmlReport({
+    runnerResults: runnerResults,
+    version: `usebruno v${CLI_VERSION}`,
+    environment: environment,
+    runCompletionTime: runCompletionTime
+  });
+  fs.writeFileSync(outputPath, htmlString);
 };
 
 module.exports = makeHtmlOutput;

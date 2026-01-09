@@ -1,7 +1,7 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
 import { useDispatch } from 'react-redux';
 import { updateCollectionAuthMode } from 'providers/ReduxStore/slices/collections';
 import { humanizeRequestAuthMode } from 'utils/collections';
@@ -9,113 +9,77 @@ import StyledWrapper from './StyledWrapper';
 
 const AuthMode = ({ collection }) => {
   const dispatch = useDispatch();
-  const dropdownTippyRef = useRef();
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-  const authMode = get(collection, 'root.request.auth.mode');
+  const authMode = collection.draft?.root ? get(collection, 'draft.root.request.auth.mode') : get(collection, 'root.request.auth.mode');
 
-  const Icon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex items-center justify-center auth-mode-label select-none">
-        {humanizeRequestAuthMode(authMode)} <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
-      </div>
-    );
-  });
-
-  const onModeChange = (value) => {
+  const onModeChange = useCallback((value) => {
     dispatch(
       updateCollectionAuthMode({
         collectionUid: collection.uid,
         mode: value
       })
     );
-  };
+  }, [dispatch, collection.uid]);
+
+  const menuItems = useMemo(() => [
+    {
+      id: 'awsv4',
+      label: 'AWS Sig v4',
+      onClick: () => onModeChange('awsv4')
+    },
+    {
+      id: 'basic',
+      label: 'Basic Auth',
+      onClick: () => onModeChange('basic')
+    },
+    {
+      id: 'wsse',
+      label: 'WSSE Auth',
+      onClick: () => onModeChange('wsse')
+    },
+    {
+      id: 'bearer',
+      label: 'Bearer Token',
+      onClick: () => onModeChange('bearer')
+    },
+    {
+      id: 'digest',
+      label: 'Digest Auth',
+      onClick: () => onModeChange('digest')
+    },
+    {
+      id: 'ntlm',
+      label: 'NTLM Auth',
+      onClick: () => onModeChange('ntlm')
+    },
+    {
+      id: 'oauth2',
+      label: 'OAuth 2.0',
+      onClick: () => onModeChange('oauth2')
+    },
+    {
+      id: 'apikey',
+      label: 'API Key',
+      onClick: () => onModeChange('apikey')
+    },
+    {
+      id: 'none',
+      label: 'No Auth',
+      onClick: () => onModeChange('none')
+    }
+  ], [onModeChange]);
 
   return (
     <StyledWrapper>
       <div className="inline-flex items-center cursor-pointer auth-mode-selector">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('awsv4');
-            }}
-          >
-            AWS Sig v4
+        <MenuDropdown
+          items={menuItems}
+          placement="bottom-end"
+          selectedItemId={authMode}
+        >
+          <div className="flex items-center justify-center auth-mode-label select-none">
+            {humanizeRequestAuthMode(authMode)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
           </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('basic');
-            }}
-          >
-            Basic Auth
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('wsse');
-            }}
-          >
-            WSSE Auth
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('bearer');
-            }}
-          >
-            Bearer Token
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('digest');
-            }}
-          >
-            Digest Auth
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('ntlm');
-            }}
-          >
-            NTLM Auth
-          </div>          
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('oauth2');
-            }}
-          >
-            OAuth 2.0
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('apikey');
-            }}
-          >
-            API Key
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('none');
-            }}
-          >
-            No Auth
-          </div>
-        </Dropdown>
+        </MenuDropdown>
       </div>
     </StyledWrapper>
   );

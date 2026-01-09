@@ -1,23 +1,26 @@
 import React from 'react';
 import { Tooltip as ReactToolHint } from 'react-tooltip';
-import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
 
 const ToolHint = ({
   text,
   toolhintId,
+  anchorSelect,
   children,
   tooltipStyle = {},
   place = 'top',
+  hidden = false,
   offset,
+  positionStrategy,
   theme = null,
-  className = ''
+  className = '',
+  delayShow = 200
 }) => {
   const { theme: contextTheme } = useTheme();
   const appliedTheme = theme || contextTheme;
 
-  const toolhintBackgroundColor = appliedTheme?.sidebar.badge.bg || 'black';
-  const toolhintTextColor = appliedTheme?.text || 'white';
+  const toolhintBackgroundColor = appliedTheme?.background.surface0;
+  const toolhintTextColor = appliedTheme?.text;
 
   const combinedToolhintStyle = {
     ...tooltipStyle,
@@ -28,20 +31,27 @@ const ToolHint = ({
     color: toolhintTextColor
   };
 
+  const toolhintProps_final = anchorSelect
+    ? { anchorSelect }
+    : { anchorId: toolhintId };
+
   return (
     <>
-      <span id={toolhintId} className={className}>{children}</span>
-      <StyledWrapper theme={appliedTheme}>
-        <ReactToolHint
-          anchorId={toolhintId}
-          content={text}
-          className="toolhint"
-          offset={offset}
-          place={place}
-          noArrow={true}
-          style={combinedToolhintStyle}
-        />
-      </StyledWrapper>
+      {!anchorSelect && <span id={toolhintId} className={className}>{children}</span>}
+      {anchorSelect && children}
+      <ReactToolHint
+        {...toolhintProps_final}
+        content={anchorSelect ? undefined : text}
+        className="toolhint"
+        offset={offset}
+        place={place}
+        hidden={hidden}
+        positionStrategy={positionStrategy}
+        noArrow={true}
+        delayShow={delayShow}
+        style={combinedToolhintStyle}
+        opacity={1}
+      />
     </>
   );
 };

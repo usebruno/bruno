@@ -40,9 +40,9 @@ export const logsSlice = createSlice({
         args: args || [],
         timestamp: timestamp || new Date().toISOString()
       };
-      
+
       state.logs.push(newLog);
-      
+
       if (state.logs.length > state.maxLogs) {
         state.logs = state.logs.slice(-state.maxLogs);
       }
@@ -59,9 +59,9 @@ export const logsSlice = createSlice({
         args: args || [],
         timestamp: timestamp || new Date().toISOString()
       };
-      
+
       state.debugErrors.push(newError);
-      
+
       if (state.debugErrors.length > state.maxDebugErrors) {
         state.debugErrors = state.debugErrors.slice(-state.maxDebugErrors);
       }
@@ -93,7 +93,7 @@ export const logsSlice = createSlice({
     },
     toggleAllFilters: (state, action) => {
       const enabled = action.payload;
-      Object.keys(state.filters).forEach(key => {
+      Object.keys(state.filters).forEach((key) => {
         state.filters[key] = enabled;
       });
     },
@@ -103,7 +103,7 @@ export const logsSlice = createSlice({
     },
     toggleAllNetworkFilters: (state, action) => {
       const enabled = action.payload;
-      Object.keys(state.networkFilters).forEach(key => {
+      Object.keys(state.networkFilters).forEach((key) => {
         state.networkFilters[key] = enabled;
       });
     },
@@ -122,15 +122,15 @@ export const logsSlice = createSlice({
   }
 });
 
-export const { 
-  addLog, 
+export const {
+  addLog,
   addDebugError,
-  clearLogs, 
+  clearLogs,
   clearDebugErrors,
-  openConsole, 
-  closeConsole, 
+  openConsole,
+  closeConsole,
   setActiveTab,
-  updateFilter, 
+  updateFilter,
   toggleAllFilters,
   updateNetworkFilter,
   toggleAllNetworkFilters,
@@ -140,4 +140,4 @@ export const {
   clearSelectedError
 } = logsSlice.actions;
 
-export default logsSlice.reducer; 
+export default logsSlice.reducer;

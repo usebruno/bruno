@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import find from 'lodash/find';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
 import GraphQLRequestPane from 'components/RequestPane/GraphQLRequestPane';
 import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
+import GrpcRequestPane from 'components/RequestPane/GrpcRequestPane/index';
 import ResponsePane from 'components/ResponsePane';
-import Welcome from 'components/Welcome';
+import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
 import { findItemInCollection } from 'utils/collections';
-import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
-import QueryUrl from 'components/RequestPane/QueryUrl';
+import QueryUrl from 'components/RequestPane/QueryUrl/index';
+import GrpcQueryUrl from 'components/RequestPane/GrpcQueryUrl/index';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import RunnerResults from 'components/RunnerResults';
 import VariablesEditor from 'components/VariablesEditor';
@@ -18,7 +19,6 @@ import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import StyledWrapper from './StyledWrapper';
-import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
 import { produce } from 'immer';
@@ -26,9 +26,18 @@ import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
 import FolderNotFound from './FolderNotFound';
+import ExampleNotFound from './ExampleNotFound';
+import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
+import WSRequestPane from 'components/RequestPane/WSRequestPane';
+import WSResponsePane from 'components/ResponsePane/WsResponsePane';
+import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
+import ResponseExample from 'components/ResponseExample';
+import WorkspaceHome from 'components/WorkspaceHome';
+import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
+import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 
 const MIN_LEFT_PANE_WIDTH = 300;
-const MIN_RIGHT_PANE_WIDTH = 350;
+const MIN_RIGHT_PANE_WIDTH = 490;
 const MIN_TOP_PANE_HEIGHT = 150;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 
@@ -44,10 +53,17 @@ const RequestTabPanel = () => {
   const _collections = useSelector((state) => state.collections.collections);
   const preferences = useSelector((state) => state.app.preferences);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
+  const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
+
+  // Use ref to avoid stale closure in event handlers
+  const isVerticalLayoutRef = useRef(isVerticalLayout);
+  useEffect(() => {
+    isVerticalLayoutRef.current = isVerticalLayout;
+  }, [isVerticalLayout]);
 
   // merge `globalEnvironmentVariables` into the active collection and rebuild `collections` immer proxy object
-  let collections = produce(_collections, (draft) => {
-    let collection = find(draft, (c) => c.uid === focusedTab?.collectionUid);
+  const collections = produce(_collections, (draft) => {
+    const collection = find(draft, (c) => c.uid === focusedTab?.collectionUid);
 
     if (collection) {
       // add selected global env variables to the collection object
@@ -61,102 +77,66 @@ const RequestTabPanel = () => {
     }
   });
 
-  let collection = find(collections, (c) => c.uid === focusedTab?.collectionUid);
-
-  const screenWidth = useSelector((state) => state.app.screenWidth);
-  let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
-  const [leftPaneWidth, setLeftPaneWidth] = useState(
-    focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / 2.2
-  ); // 2.2 is intentional to make both panes appear to be of equal width
-  const [topPaneHeight, setTopPaneHeight] = useState(focusedTab?.requestPaneHeight || MIN_TOP_PANE_HEIGHT);
+  const collection = find(collections, (c) => c.uid === focusedTab?.collectionUid);
   const [dragging, setDragging] = useState(false);
-  const dragOffset = useRef({ x: 0, y: 0 });
+  const draggingRef = useRef(false);
+
+  const { left: leftPaneWidth, top: topPaneHeight, reset: resetPaneBoundaries, setTop: setTopPaneHeight, setLeft: setLeftPaneWidth } = useTabPaneBoundaries(activeTabUid);
+  const previousTopPaneHeight = useRef(null); // Store height before devtools opens
 
   // Not a recommended pattern here to have the child component
   // make a callback to set state, but treating this as an exception
   const docExplorerRef = useRef(null);
   const mainSectionRef = useRef(null);
+
   const [schema, setSchema] = useState(null);
   const [showGqlDocs, setShowGqlDocs] = useState(false);
-  const onSchemaLoad = (schema) => setSchema(schema);
-  const toggleDocs = () => setShowGqlDocs((showGqlDocs) => !showGqlDocs);
-  const handleGqlClickReference = (reference) => {
+  const onSchemaLoad = useCallback((schema) => setSchema(schema), []);
+  const toggleDocs = useCallback(() => setShowGqlDocs((prev) => !prev), []);
+
+  const handleGqlClickReference = useCallback((reference) => {
     if (docExplorerRef.current) {
       docExplorerRef.current.showDocForReference(reference);
     }
     if (!showGqlDocs) {
       setShowGqlDocs(true);
     }
-  };
+  }, []);
 
-  useEffect(() => {
-    // Initialize vertical heights when switching to vertical layout
-    if (mainSectionRef.current) {
-      const mainRect = mainSectionRef.current.getBoundingClientRect();
-      if (isVerticalLayout) {
-        const initialHeight = mainRect.height / 2;
-        setTopPaneHeight(initialHeight);
-        // In vertical mode, set leftPaneWidth to full container width
-        setLeftPaneWidth(mainRect.width);
-      } else {
-        // In horizontal mode, set to roughly half width
-        setLeftPaneWidth((screenWidth - asideWidth) / 2.2);
-      }
-    }
-  }, [isVerticalLayout, screenWidth, asideWidth]);
+  const handleMouseMove = useCallback((e) => {
+    if (!draggingRef.current || !mainSectionRef.current) return;
 
-  const handleMouseMove = (e) => {
-    if (dragging && mainSectionRef.current) {
-      e.preventDefault();
-      const mainRect = mainSectionRef.current.getBoundingClientRect();
-
-      if (isVerticalLayout) {
-        const newHeight = e.clientY - mainRect.top - dragOffset.current.y;
-        if (newHeight < MIN_TOP_PANE_HEIGHT || newHeight > mainRect.height - MIN_BOTTOM_PANE_HEIGHT) {
-          return;
-        }
-        
-        setTopPaneHeight(newHeight);
-      } else {
-        const newWidth = e.clientX - mainRect.left - dragOffset.current.x;
-        if (newWidth < MIN_LEFT_PANE_WIDTH || newWidth > mainRect.width - MIN_RIGHT_PANE_WIDTH) {
-          return;
-        }
-        setLeftPaneWidth(newWidth);
-      }
-    }
-  };
-
-  const handleMouseUp = (e) => {
-    if (dragging && mainSectionRef.current) {
-      e.preventDefault();
-      setDragging(false);
-      if (!isVerticalLayout) {
-        const mainRect = mainSectionRef.current.getBoundingClientRect();
-        dispatch(
-          updateRequestPaneTabWidth({
-            uid: activeTabUid,
-            requestPaneWidth: e.clientX - mainRect.left
-          })
-        );
-      }
-    }
-  };
-
-  const handleDragbarMouseDown = (e) => {
     e.preventDefault();
-    setDragging(true);
+    const mainRect = mainSectionRef.current.getBoundingClientRect();
 
-    if (isVerticalLayout) {
-      const dragBar = e.currentTarget;
-      const dragBarRect = dragBar.getBoundingClientRect();
-      dragOffset.current.y = e.clientY - dragBarRect.top;
+    if (isVerticalLayoutRef.current) {
+      const newHeight = e.clientY - mainRect.top;
+      const maxHeight = mainRect.height - MIN_BOTTOM_PANE_HEIGHT;
+      // Clamp to bounds instead of returning early
+      const clampedHeight = Math.max(MIN_TOP_PANE_HEIGHT, Math.min(newHeight, maxHeight));
+      setTopPaneHeight(clampedHeight);
     } else {
-      const dragBar = e.currentTarget;
-      const dragBarRect = dragBar.getBoundingClientRect();
-      dragOffset.current.x = e.clientX - dragBarRect.left;
+      const newWidth = e.clientX - mainRect.left;
+      const maxWidth = mainRect.width - MIN_RIGHT_PANE_WIDTH;
+      // Clamp to bounds instead of returning early
+      const clampedWidth = Math.max(MIN_LEFT_PANE_WIDTH, Math.min(newWidth, maxWidth));
+      setLeftPaneWidth(clampedWidth);
     }
-  };
+  }, [setTopPaneHeight, setLeftPaneWidth]);
+
+  const handleMouseUp = useCallback((e) => {
+    if (draggingRef.current) {
+      e.preventDefault();
+      draggingRef.current = false;
+      setDragging(false);
+    }
+  }, []);
+
+  const handleDragbarMouseDown = useCallback((e) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    setDragging(true);
+  }, []);
 
   useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp);
@@ -166,19 +146,59 @@ const RequestTabPanel = () => {
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [dragging]);
+  }, [handleMouseUp, handleMouseMove]);
 
-  if (!activeTabUid) {
-    return <Welcome />;
+  useEffect(() => {
+    if (!isVerticalLayout) return;
+
+    if (isConsoleOpen) {
+      // Store current height before reducing
+      if (previousTopPaneHeight.current === null) {
+        previousTopPaneHeight.current = topPaneHeight;
+      }
+      // Reduce request pane height to make room for response pane when devtools is open
+      const maxHeight = 200;
+      if (topPaneHeight > maxHeight) {
+        setTopPaneHeight(maxHeight);
+      }
+    } else {
+      // Restore previous height when devtools closes
+      if (previousTopPaneHeight.current !== null) {
+        setTopPaneHeight(previousTopPaneHeight.current);
+        previousTopPaneHeight.current = null;
+      }
+    }
+  }, [isConsoleOpen, isVerticalLayout]);
+
+  if (!activeTabUid || !focusedTab) {
+    return <WorkspaceHome />;
   }
 
-  if (!focusedTab || !focusedTab.uid || !focusedTab.collectionUid) {
+  if (focusedTab.type === 'global-environment-settings') {
+    return <GlobalEnvironmentSettings />;
+  }
+
+  if (!focusedTab.uid || !focusedTab.collectionUid) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
   if (!collection || !collection.uid) {
     return <div className="pb-4 px-4">Collection not found!</div>;
   }
+
+  if (focusedTab.type === 'response-example') {
+    const item = findItemInCollection(collection, focusedTab.itemUid);
+    const example = item?.examples?.find((ex) => ex.uid === focusedTab.uid);
+
+    if (!example) {
+      return <ExampleNotFound itemUid={focusedTab.itemUid} exampleUid={focusedTab.uid} />;
+    }
+    return <ResponseExample item={item} collection={collection} example={example} />;
+  }
+
+  const item = findItemInCollection(collection, activeTabUid);
+  const isGrpcRequest = item?.type === 'grpc-request';
+  const isWsRequest = item?.type === 'ws-request';
 
   if (focusedTab.type === 'collection-runner') {
     return <RunnerResults collection={collection} />;
@@ -201,74 +221,143 @@ const RequestTabPanel = () => {
     if (!folder) {
       return <FolderNotFound folderUid={focusedTab.folderUid} />;
     }
-    
+
     return <FolderSettings collection={collection} folder={folder} />;
   }
 
-  if (focusedTab.type === 'security-settings') {
-    return <SecuritySettings collection={collection} />;
+  if (focusedTab.type === 'environment-settings') {
+    return <EnvironmentSettings collection={collection} />;
   }
 
-  const item = findItemInCollection(collection, activeTabUid);
   if (!item || !item.uid) {
     return <RequestNotFound itemUid={activeTabUid} />;
   }
 
   if (item?.partial) {
-    return <RequestNotLoaded item={item} collection={collection} />
+    return <RequestNotLoaded item={item} collection={collection} />;
   }
 
   if (item?.loading) {
-    return <RequestIsLoading item={item} />
+    return <RequestIsLoading item={item} />;
   }
 
   const handleRun = async () => {
-    dispatch(sendRequest(item, collection.uid)).catch((err) =>
-      toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
-        duration: 5000
-      })
-    );
+    const request = item.draft ? item.draft.request : item.request;
+
+    if (isGrpcRequest && !request.url) {
+      toast.error('Please enter a valid gRPC server URL');
+      return;
+    }
+
+    if (isGrpcRequest && !request.method) {
+      toast.error('Please select a gRPC method');
+      return;
+    }
+
+    if (isWsRequest && !request.url) {
+      toast.error('Please enter a valid WebSocket URL');
+      return;
+    }
+
+    if (item.response?.stream?.running) {
+      dispatch(cancelRequest(item.cancelTokenUid, item, collection)).catch((err) =>
+        toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
+          duration: 5000
+        }));
+    } else if (item.requestState !== 'sending' && item.requestState !== 'queued') {
+      dispatch(sendRequest(item, collection.uid)).catch((err) =>
+        toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
+          duration: 5000
+        }));
+    }
   };
 
+  const renderQueryUrl = () => {
+    if (isGrpcRequest) {
+      return <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />;
+    }
+    if (isWsRequest) {
+      return <WsQueryUrl item={item} collection={collection} handleRun={handleRun} />;
+    }
+    return <QueryUrl item={item} collection={collection} handleRun={handleRun} />;
+  };
+
+  const renderRequestPane = () => {
+    switch (item.type) {
+      case 'graphql-request':
+        return (
+          <GraphQLRequestPane
+            item={item}
+            collection={collection}
+            onSchemaLoad={onSchemaLoad}
+            toggleDocs={toggleDocs}
+            handleGqlClickReference={handleGqlClickReference}
+          />
+        );
+      case 'http-request':
+        return <HttpRequestPane item={item} collection={collection} />;
+      case 'grpc-request':
+        return <GrpcRequestPane item={item} collection={collection} handleRun={handleRun} />;
+      case 'ws-request':
+        return <WSRequestPane item={item} collection={collection} handleRun={handleRun} />;
+      default:
+        return null;
+    }
+  };
+
+  const renderResponsePane = () => {
+    switch (item.type) {
+      case 'grpc-request':
+        return <GrpcResponsePane item={item} collection={collection} response={item.response} />;
+      case 'ws-request':
+        return <WSResponsePane item={item} collection={collection} response={item.response} />;
+      default:
+        return <ResponsePane item={item} collection={collection} response={item.response} />;
+    }
+  };
+
+  const requestPaneStyle = isVerticalLayout
+    ? {
+        height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
+        minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
+        width: '100%'
+      }
+    : {
+        width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
+      };
+
   return (
-    <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${isVerticalLayout ? 'vertical-layout' : ''}`}>
-      <div className="pt-4 pb-3 px-4">
-        <QueryUrl item={item} collection={collection} handleRun={handleRun} />
+    <StyledWrapper
+      className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${
+        isVerticalLayout ? 'vertical-layout' : ''
+      }`}
+    >
+      <div className="pt-3 pb-3 px-4">
+        {renderQueryUrl()}
       </div>
-      <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative`}>
+      <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}>
         <section className="request-pane">
           <div
             className="px-4 h-full"
-            style={isVerticalLayout ? {
-              height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
-              minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
-              width: '100%'
-            } : {
-              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
-            }}
+            style={requestPaneStyle}
           >
-            {item.type === 'graphql-request' ? (
-              <GraphQLRequestPane
-                item={item}
-                collection={collection}
-                onSchemaLoad={onSchemaLoad}
-                toggleDocs={toggleDocs}
-                handleGqlClickReference={handleGqlClickReference}
-              />
-            ) : null}
-
-            {item.type === 'http-request' ? (
-              <HttpRequestPane item={item} collection={collection} />
-            ) : null}
+            {renderRequestPane()}
           </div>
         </section>
 
-        <div className="dragbar-wrapper" onMouseDown={handleDragbarMouseDown}>
+        <div
+          className="dragbar-wrapper"
+          onDoubleClick={(e) => {
+            e.preventDefault();
+            resetPaneBoundaries();
+          }}
+          onMouseDown={handleDragbarMouseDown}
+        >
           <div className="dragbar-handle" />
         </div>
 
         <section className="response-pane flex-grow overflow-x-auto">
-          <ResponsePane item={item} collection={collection} response={item.response} />
+          {renderResponsePane()}
         </section>
       </section>
 

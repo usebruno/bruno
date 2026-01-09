@@ -11,7 +11,7 @@ const bundleLibraries = async () => {
     import moment from "moment";
     import btoa from "btoa";
     import atob from "atob";
-    import * as CryptoJS from "@usebruno/crypto-js";
+    import * as cryptoJs from 'crypto-js';
     import tv4 from "tv4";
     globalThis.expect = expect;
     globalThis.assert = assert;
@@ -19,7 +19,6 @@ const bundleLibraries = async () => {
     globalThis.btoa = btoa;
     globalThis.atob = atob;
     globalThis.Buffer = Buffer;
-    globalThis.CryptoJS = CryptoJS;
     globalThis.tv4 = tv4;
     globalThis.requireObject = {
       ...(globalThis.requireObject || {}),
@@ -28,7 +27,7 @@ const bundleLibraries = async () => {
       'buffer': { Buffer },
       'btoa': btoa,
       'atob': atob,
-      'crypto-js': CryptoJS,
+      'crypto-js': cryptoJs,
       'tv4': tv4
     };
 `;

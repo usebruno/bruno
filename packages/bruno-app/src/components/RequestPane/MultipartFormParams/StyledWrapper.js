@@ -1,48 +1,41 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-weight: 600;
-    table-layout: fixed;
-
-    thead,
-    td {
-      border: 1px solid ${(props) => props.theme.table.border};
-    }
-
-    thead {
-      color: ${(props) => props.theme.table.thead.color};
-      font-size: 0.8125rem;
-      user-select: none;
-    }
-    td {
-      padding: 6px 10px;
-      }
-  }
-
-  .btn-add-param {
-    font-size: 0.8125rem;
-  }
-
-  input[type='text'] {
-    width: 100%;
-    border: solid 1px transparent;
-    outline: none !important;
-    color: ${(props) => props.theme.table.input.color};
+  .upload-btn,
+  .clear-file-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: ${(props) => props.theme.colors.text.muted};
     background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 0.15s ease;
 
-    &:focus {
-      outline: none !important;
-      border: solid 1px transparent;
+    &:hover {
+      color: ${(props) => props.theme.colors.text.link};
     }
   }
 
-  input[type='checkbox'] {
-    cursor: pointer;
-    position: relative;
-    top: 1px;
+  .clear-file-btn:hover {
+    color: ${(props) => props.theme.colors.text.danger};
+  }
+
+  .file-value-cell {
+    padding: 4px 0;
+
+    .file-name {
+      font-size: 12px;
+      color: ${(props) => props.theme.text};
+    }
+  }
+
+  .value-cell {
+    .flex-1 {
+      min-width: 0;
+    }
   }
 `;
 

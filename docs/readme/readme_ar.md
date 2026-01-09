@@ -41,13 +41,6 @@
 
 ![bruno](/assets/images/landing-2.png) <br /><br />
 
-### الطبعة الذهبية ✨
-
-غالبية ميزاتنا مجانية ومفتوحة المصدر.
-نحن نسعى لتحقيق توازن متناغم بين [مبادئ الشفافية والاستدامة](https://github.com/usebruno/bruno/discussions/269)
-
-طلبات الشراء لـ [الطبعة الذهبية](https://www.usebruno.com/pricing) ستطلق قريبًا بسعر ~~$19~~ **$9** ! <br/>
-[اشترك هنا](https://usebruno.ck.page/4c65576bd4) لتصلك إشعارات عند الإطلاق.
 
 ### التثبيت
 
@@ -74,10 +67,13 @@ flatpak install com.usebruno.Bruno
 
 # على نظام Linux عبر Apt
 sudo mkdir -p /etc/apt/keyrings
-sudo apt update && sudo apt install gpg
-sudo gpg --list-keys
-sudo gpg --no-default-keyring --keyring /etc/apt/keyrings/bruno.gpg --keyserver keyserver.ubuntu.com --recv-keys 9FA6017ECABE0266
-echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" | sudo tee /etc/apt/sources.list.d/bruno.list
+sudo apt update && sudo apt install gpg curl
+curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x9FA6017ECABE0266" \
+  | gpg --dearmor \
+  | sudo tee /etc/apt/keyrings/bruno.gpg > /dev/null
+sudo chmod 644 /etc/apt/keyrings/bruno.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" \
+  | sudo tee /etc/apt/sources.list.d/bruno.list
 sudo apt update && sudo apt install bruno
 ```
 

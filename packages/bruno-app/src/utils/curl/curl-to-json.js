@@ -10,6 +10,7 @@ import parseCurlCommand from './parse-curl';
 import * as querystring from 'query-string';
 import * as jsesc from 'jsesc';
 import { buildQueryString } from '@usebruno/common/utils';
+import { isStructuredContentType } from './content-type';
 
 function getContentType(headers = {}) {
   const contentType = Object.keys(headers).find((key) => key.toLowerCase() === 'content-type');
@@ -18,7 +19,7 @@ function getContentType(headers = {}) {
 }
 
 function repr(value, isKey) {
-  return isKey ? "'" + jsesc(value, { quotes: 'single' }) + "'" : value;
+  return isKey ? '\'' + jsesc(value, { quotes: 'single' }) + '\'' : value;
 }
 
 /**
@@ -34,7 +35,7 @@ function getDataString(request) {
 
   const contentType = getContentType(request.headers);
 
-  if (contentType && (contentType.includes('application/json') || contentType.includes('application/xml') || contentType.includes('text/plain'))) {
+  if (isStructuredContentType(contentType)) {
     return { data: request.data };
   }
 
@@ -91,7 +92,7 @@ function getFilesString(request) {
       {
         filePath: repr(filePath),
         contentType: request.headers['Content-Type'],
-        selected: true,
+        selected: true
       }
     ];
 

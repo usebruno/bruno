@@ -11,6 +11,7 @@ const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscrip
 const getBundledCode = require('../bundle-browser-rollup');
 const addPathShimToContext = require('./shims/lib/path');
 const { marshallToVm } = require('./utils');
+const addCryptoUtilsShimToContext = require('./shims/lib/crypto-utils');
 
 let QuickJSSyncContext;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
@@ -23,7 +24,7 @@ const toNumber = (value) => {
 };
 
 const removeQuotes = (str) => {
-  if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+  if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith('\'') && str.endsWith('\''))) {
     return str.slice(1, -1);
   }
   return str;
@@ -35,7 +36,7 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   }
   externalScript = externalScript?.trim();
 
-  if(scriptType === 'template-literal') {
+  if (scriptType === 'template-literal') {
     if (!isNaN(Number(externalScript))) {
       const number = Number(externalScript);
 
@@ -97,6 +98,9 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
   try {
     const module = await newQuickJSWASMModule();
     const vm = module.newContext();
+
+    // add crypto utilities required by the crypto-js library in bundledCode
+    await addCryptoUtilsShimToContext(vm);
 
     const bundledCode = getBundledCode?.toString() || '';
     const moduleLoaderCode = function () {

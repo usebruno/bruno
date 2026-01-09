@@ -1,95 +1,287 @@
-import React, { useRef, forwardRef, useState } from 'react';
+import React, { useMemo, useState, useRef, forwardRef } from 'react';
 import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
+import { IconWorld, IconDatabase, IconCaretDown } from '@tabler/icons';
+import { useSelector, useDispatch } from 'react-redux';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
-import { IconSettings, IconCaretDown, IconDatabase, IconDatabaseOff } from '@tabler/icons';
-import EnvironmentSettings from '../EnvironmentSettings';
+import { selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import toast from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
+import EnvironmentListContent from './EnvironmentListContent/index';
+import CreateEnvironment from '../EnvironmentSettings/CreateEnvironment';
+import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
+import CreateGlobalEnvironment from 'components/WorkspaceHome/WorkspaceEnvironments/CreateEnvironment';
+import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentSelector = ({ collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
-  const [openSettingsModal, setOpenSettingsModal] = useState(false);
-  const { environments, activeEnvironmentUid } = collection;
-  const activeEnvironment = activeEnvironmentUid ? find(environments, (e) => e.uid === activeEnvironmentUid) : null;
+  const [activeTab, setActiveTab] = useState('collection');
+  const [showCreateGlobalModal, setShowCreateGlobalModal] = useState(false);
+  const [showImportGlobalModal, setShowImportGlobalModal] = useState(false);
+  const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
+  const [showImportCollectionModal, setShowImportCollectionModal] = useState(false);
 
-  const Icon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="current-environment flex items-center justify-center pl-3 pr-2 py-1 select-none">
-        <p className="text-nowrap truncate max-w-32">{activeEnvironment ? activeEnvironment.name : 'No Environment'}</p>
-        <IconCaretDown className="caret" size={14} strokeWidth={2} />
-      </div>
-    );
-  });
+  const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
+  const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
+  const activeGlobalEnvironment = activeGlobalEnvironmentUid
+    ? find(globalEnvironments, (e) => e.uid === activeGlobalEnvironmentUid)
+    : null;
 
-  const handleSettingsIconClick = () => {
-    setOpenSettingsModal(true);
-    dispatch(updateEnvironmentSettingsModalVisibility(true));
+  const environments = collection?.environments || [];
+  const activeEnvironmentUid = collection?.activeEnvironmentUid;
+  const activeCollectionEnvironment = activeEnvironmentUid
+    ? find(environments, (e) => e.uid === activeEnvironmentUid)
+    : null;
+
+  const tabs = [
+    { id: 'collection', label: 'Collection', icon: <IconDatabase size={16} strokeWidth={1.5} /> },
+    { id: 'global', label: 'Global', icon: <IconWorld size={16} strokeWidth={1.5} /> }
+  ];
+
+  const onDropdownCreate = (ref) => {
+    dropdownTippyRef.current = ref;
   };
 
-  const handleModalClose = () => {
-    setOpenSettingsModal(false);
-    dispatch(updateEnvironmentSettingsModalVisibility(false));
-  };
+  // Get description based on active tab
+  const description
+    = activeTab === 'collection'
+      ? 'Create your first environment to begin working with your collection.'
+      : 'Create your first global environment to begin working across collections.';
 
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+  // Environment selection handler
+  const handleEnvironmentSelect = (environment) => {
+    const action
+      = activeTab === 'collection'
+        ? selectEnvironment(environment ? environment.uid : null, collection.uid)
+        : selectGlobalEnvironment({ environmentUid: environment ? environment.uid : null });
 
-  const onSelect = (environment) => {
-    dispatch(selectEnvironment(environment ? environment.uid : null, collection.uid))
+    dispatch(action)
       .then(() => {
         if (environment) {
           toast.success(`Environment changed to ${environment.name}`);
         } else {
-          toast.success(`No Environments are active now`);
+          toast.success('No Environments are active now');
         }
+        dropdownTippyRef.current.hide();
       })
-      .catch((err) => console.log(err) && toast.error('An error occurred while selecting the environment'));
+      .catch((err) => {
+        toast.error('An error occurred while selecting the environment');
+      });
   };
 
-  return (
-    <StyledWrapper>
-      <div className="flex items-center cursor-pointer environment-selector">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
-          <div className="label-item font-medium">Collection Environments</div>
-          {environments && environments.length
-            ? environments.map((e) => (
-                <div
-                  className={`dropdown-item ${e?.uid === activeEnvironmentUid ? 'active' : ''}`}
-                  key={e.uid}
-                  onClick={() => {
-                    onSelect(e);
-                    dropdownTippyRef.current.hide();
-                  }}
-                >
-                  <IconDatabase size={18} strokeWidth={1.5} /> <span className="ml-2 break-all">{e.name}</span>
-                </div>
-              ))
-            : null}
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onSelect(null);
-            }}
-          >
-            <IconDatabaseOff size={18} strokeWidth={1.5} />
-            <span className="ml-2">No Environment</span>
-          </div>
-          <div className="dropdown-item border-top" onClick={() => {
-            handleSettingsIconClick();
-            dropdownTippyRef.current.hide();
-          }}>
-            <div className="pr-2 text-gray-600">
-              <IconSettings size={18} strokeWidth={1.5} />
+  // Settings handler - opens environment settings tab
+  const handleSettingsClick = () => {
+    if (activeTab === 'collection') {
+      dispatch(
+        addTab({
+          uid: `${collection.uid}-environment-settings`,
+          collectionUid: collection.uid,
+          type: 'environment-settings'
+        })
+      );
+    } else {
+      dispatch(
+        addTab({
+          uid: `${collection.uid}-global-environment-settings`,
+          collectionUid: collection.uid,
+          type: 'global-environment-settings'
+        })
+      );
+    }
+    dropdownTippyRef.current.hide();
+  };
+
+  // Create handler
+  const handleCreateClick = () => {
+    if (activeTab === 'collection') {
+      setShowCreateCollectionModal(true);
+    } else {
+      setShowCreateGlobalModal(true);
+    }
+    dropdownTippyRef.current.hide();
+  };
+
+  // Import handler
+  const handleImportClick = () => {
+    if (activeTab === 'collection') {
+      setShowImportCollectionModal(true);
+    } else {
+      setShowImportGlobalModal(true);
+    }
+    dropdownTippyRef.current.hide();
+  };
+
+  // Calculate dropdown width based on the longest environment name.
+  // To prevent resizing while switching between collection and global environments.
+  const dropdownWidth = useMemo(() => {
+    const allEnvironments = [...environments, ...globalEnvironments];
+    if (allEnvironments.length === 0) return 0;
+
+    const maxCharLength = Math.max(...allEnvironments.map((env) => env.name?.length || 0));
+    // 8 pixels per character: This is a rough estimate for the average character width in most fonts
+    // (monospace fonts are typically 8-10px, proportional fonts vary but 8px is a safe average)
+    return maxCharLength * 8;
+  }, [environments, globalEnvironments]);
+
+  // Create icon component for dropdown trigger
+  const Icon = forwardRef((props, ref) => {
+    const hasAnyEnv = activeGlobalEnvironment || activeCollectionEnvironment;
+
+    const displayContent = hasAnyEnv ? (
+      <>
+        {activeCollectionEnvironment && (
+          <>
+            <div className="flex items-center">
+              <IconDatabase size={14} strokeWidth={1.5} className="env-icon" />
+              <ToolHint
+                text={activeCollectionEnvironment.name}
+                toolhintId={`collection-env-${activeCollectionEnvironment.uid}`}
+                place="bottom-start"
+                delayShow={1000}
+                hidden={activeCollectionEnvironment.name?.length < 7}
+              >
+                <span className="env-text max-w-24 truncate overflow-hidden">{activeCollectionEnvironment.name}</span>
+              </ToolHint>
             </div>
-            <span>Configure</span>
+            {activeGlobalEnvironment && <span className="env-separator">|</span>}
+          </>
+        )}
+        {activeGlobalEnvironment && (
+          <div className="flex items-center">
+            <IconWorld size={14} strokeWidth={1.5} className="env-icon" />
+            <ToolHint
+              text={activeGlobalEnvironment.name}
+              toolhintId={`global-env-${activeGlobalEnvironment.uid}`}
+              place="bottom-start"
+              delayShow={1000}
+              hidden={activeGlobalEnvironment.name?.length < 7}
+            >
+              <span className="env-text max-w-24 truncate overflow-hidden">{activeGlobalEnvironment.name}</span>
+            </ToolHint>
+          </div>
+        )}
+      </>
+    ) : (
+      <span className="env-text-inactive max-w-36 truncate no-wrap">No Environment</span>
+    );
+
+    return (
+      <div
+        ref={ref}
+        className={`current-environment flex align-center justify-center cursor-pointer bg-transparent ${
+          !hasAnyEnv ? 'no-environments' : ''
+        }`}
+        data-testid="environment-selector-trigger"
+      >
+        {displayContent}
+        <IconCaretDown className="caret flex items-center justify-center" size={12} strokeWidth={2} />
+      </div>
+    );
+  });
+
+  return (
+    <StyledWrapper width={dropdownWidth}>
+      <div className="environment-selector flex align-center cursor-pointer">
+        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+          {/* Tab Headers */}
+          <div className="tab-header flex pt-3 pb-2 px-3">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                className={`tab-button whitespace-nowrap pb-[0.375rem] border-b-[0.125rem] bg-transparent flex align-center cursor-pointer transition-all duration-200 mr-[1.25rem] ${
+                  activeTab === tab.id ? 'active' : 'inactive'
+                }`}
+                onClick={() => setActiveTab(tab.id)}
+                data-testid={`env-tab-${tab.id}`}
+              >
+                <span className="tab-content-wrapper">
+                  {tab.icon}
+                  {tab.label}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          <div className="tab-content">
+            <EnvironmentListContent
+              environments={activeTab === 'collection' ? environments : globalEnvironments}
+              activeEnvironmentUid={activeTab === 'collection' ? activeEnvironmentUid : activeGlobalEnvironmentUid}
+              description={description}
+              onEnvironmentSelect={handleEnvironmentSelect}
+              onSettingsClick={handleSettingsClick}
+              onCreateClick={handleCreateClick}
+              onImportClick={handleImportClick}
+            />
           </div>
         </Dropdown>
       </div>
-      {openSettingsModal && <EnvironmentSettings collection={collection} onClose={handleModalClose} />}
+
+      {showCreateGlobalModal && (
+        <CreateGlobalEnvironment
+          onClose={() => setShowCreateGlobalModal(false)}
+          onEnvironmentCreated={() => {
+            dispatch(
+              addTab({
+                uid: `${collection.uid}-global-environment-settings`,
+                collectionUid: collection.uid,
+                type: 'global-environment-settings'
+              })
+            );
+          }}
+        />
+      )}
+
+      {showImportGlobalModal && (
+        <ImportEnvironmentModal
+          type="global"
+          onClose={() => setShowImportGlobalModal(false)}
+          onEnvironmentCreated={() => {
+            dispatch(
+              addTab({
+                uid: `${collection.uid}-global-environment-settings`,
+                collectionUid: collection.uid,
+                type: 'global-environment-settings'
+              })
+            );
+          }}
+        />
+      )}
+
+      {showCreateCollectionModal && (
+        <CreateEnvironment
+          collection={collection}
+          onClose={() => setShowCreateCollectionModal(false)}
+          onEnvironmentCreated={() => {
+            dispatch(
+              addTab({
+                uid: `${collection.uid}-environment-settings`,
+                collectionUid: collection.uid,
+                type: 'environment-settings'
+              })
+            );
+          }}
+        />
+      )}
+
+      {showImportCollectionModal && (
+        <ImportEnvironmentModal
+          type="collection"
+          collection={collection}
+          onClose={() => setShowImportCollectionModal(false)}
+          onEnvironmentCreated={() => {
+            dispatch(
+              addTab({
+                uid: `${collection.uid}-environment-settings`,
+                collectionUid: collection.uid,
+                type: 'environment-settings'
+              })
+            );
+          }}
+        />
+      )}
     </StyledWrapper>
   );
 };

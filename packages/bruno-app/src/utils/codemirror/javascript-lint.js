@@ -21,7 +21,7 @@ if (!SERVER_RENDERED) {
       }
       return [];
     }
-    
+
     // Set default options for Bruno
     const defaultOptions = {
       esversion: 11,
@@ -33,19 +33,19 @@ if (!SERVER_RENDERED) {
       module: true,
       node: true,
       predef: {
-        'bru': false,
-        'req': false,
-        'res': false,
-        'test': false,
-        'expect': false,
-        'require': false,
-        'module': false
+        bru: false,
+        req: false,
+        res: false,
+        test: false,
+        expect: false,
+        require: false,
+        module: false
       }
     };
-    
+
     // Merge provided options with defaults
     options = Object.assign({}, defaultOptions, options);
-    
+
     if (!options.indent)
       // JSHint error.character actually is a column index, this fixes underlining on lines using tabs for indentation
       options.indent = 1; // JSHint default value is 4
@@ -68,9 +68,9 @@ if (!SERVER_RENDERED) {
     errors = filter(errors, (error) => {
       if (error.code === 'E058' || error.code === 'W024') {
         if (
-          error.evidence &&
-          error.evidence.includes('await') &&
-          error.scope === '(main)'
+          error.evidence
+          && error.evidence.includes('await')
+          && error.scope === '(main)'
         ) {
           return false;
         }
@@ -80,7 +80,7 @@ if (!SERVER_RENDERED) {
 
       /*
        * Filter out errors due to atob/btoa redefinition
-       * 
+       *
        * - W079: Redefinition of '{a}'
        *   This JSHint warning triggers when a variable name conflicts with a built-in global.
        *   We filter this for atob/btoa to allow explicit requires in Node.js environments

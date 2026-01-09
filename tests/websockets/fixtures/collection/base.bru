@@ -1,0 +1,18 @@
+meta {
+  name: base
+  type: ws
+  seq: 3
+}
+
+ws {
+  url: ws://localhost:8082
+  body: ws
+  auth: inherit
+}
+
+body:ws {
+  name: message 1
+  content: '''
+    {}
+  '''
+}

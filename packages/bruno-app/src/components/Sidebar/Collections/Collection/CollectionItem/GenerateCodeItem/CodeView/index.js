@@ -10,7 +10,6 @@ import { findCollectionByItemUid, getGlobalEnvironmentVariables } from 'utils/co
 import { cloneDeep } from 'lodash';
 import { useMemo } from 'react';
 import { generateSnippet } from '../utils/snippet-generator';
-
 const CodeView = ({ language, item }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
@@ -33,7 +32,12 @@ const CodeView = ({ language, item }) => {
   }, [collectionOriginal, globalEnvironments, activeGlobalEnvironmentUid]);
 
   const snippet = useMemo(() => {
-    return generateSnippet({ language, item, collection, shouldInterpolate: generateCodePrefs.shouldInterpolate });
+    return generateSnippet({
+      language,
+      item,
+      collection,
+      shouldInterpolate: generateCodePrefs.shouldInterpolate
+    });
   }, [language, item, collection, generateCodePrefs.shouldInterpolate]);
 
   return (
@@ -43,7 +47,7 @@ const CodeView = ({ language, item }) => {
         onCopy={() => toast.success('Copied to clipboard!')}
       >
         <button className="copy-to-clipboard">
-          <IconCopy size={25} strokeWidth={1.5} />
+          <IconCopy size={20} strokeWidth={1.5} />
         </button>
       </CopyToClipboard>
       <div className="editor-content">

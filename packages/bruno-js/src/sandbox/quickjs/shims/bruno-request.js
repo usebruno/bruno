@@ -10,6 +10,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   const timeout = marshallToVm(req.getTimeout(), vm);
   const name = marshallToVm(req.getName(), vm);
   const pathParams = marshallToVm(req.getPathParams(), vm);
+  const tags = marshallToVm(req.getTags(), vm);
 
   vm.setProp(reqObject, 'url', url);
   vm.setProp(reqObject, 'method', method);
@@ -18,6 +19,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'timeout', timeout);
   vm.setProp(reqObject, 'name', name);
   vm.setProp(reqObject, 'pathParams', pathParams);
+  vm.setProp(reqObject, 'tags', tags);
 
   url.dispose();
   method.dispose();
@@ -26,6 +28,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   timeout.dispose();
   name.dispose();
   pathParams.dispose();
+  tags.dispose();
 
   let getUrl = vm.newFunction('getUrl', function () {
     return marshallToVm(req.getUrl(), vm);
@@ -93,14 +96,15 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'setHeader', setHeader);
   setHeader.dispose();
 
-  let getBody = vm.newFunction('getBody', function () {
-    return marshallToVm(req.getBody(), vm);
+  let getBody = vm.newFunction('getBody', function (options = {}) {
+    return marshallToVm(req.getBody(vm.dump(options)), vm);
   });
+
   vm.setProp(reqObject, 'getBody', getBody);
   getBody.dispose();
 
-  let setBody = vm.newFunction('setBody', function (data) {
-    req.setBody(vm.dump(data));
+  let setBody = vm.newFunction('setBody', function (data, options = {}) {
+    req.setBody(vm.dump(data), vm.dump(options));
   });
   vm.setProp(reqObject, 'setBody', setBody);
   setBody.dispose();
@@ -134,6 +138,12 @@ const addBrunoRequestShimToContext = (vm, req) => {
   });
   vm.setProp(reqObject, 'getExecutionMode', getExecutionMode);
   getExecutionMode.dispose();
+
+  let getTags = vm.newFunction('getTags', function () {
+    return marshallToVm(req.getTags(), vm);
+  });
+  vm.setProp(reqObject, 'getTags', getTags);
+  getTags.dispose();
 
   vm.setProp(vm.global, 'req', reqObject);
   reqObject.dispose();
