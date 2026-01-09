@@ -196,6 +196,7 @@ class Bru {
 
   deleteEnvVar(key) {
     delete this.envVariables[key];
+    delete this.persistentEnvVariables[key];
   }
 
   getGlobalEnvVar(key) {
