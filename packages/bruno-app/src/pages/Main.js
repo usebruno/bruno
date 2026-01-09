@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useRef } from 'react';
 import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
 import { AppProvider } from 'providers/App';
 import { ToastProvider } from 'providers/Toaster';
 import { HotkeysProvider } from 'providers/Hotkeys';
 import { PromptVariablesProvider } from 'providers/PromptVariables';
 
-import ReduxStore from 'providers/ReduxStore';
+import ReduxStore, { persistor } from 'providers/ReduxStore';
 import ThemeProvider from 'providers/Theme/index';
 import ErrorBoundary from './ErrorBoundary';
+import LoadingScreen from 'components/LoadingScreen';
 
 import '../styles/globals.css';
 import 'codemirror/lib/codemirror.css';
@@ -27,6 +29,8 @@ import { setupPolyfills } from 'utils/common/setupPolyfills';
 setupPolyfills();
 
 function Main({ children }) {
+  const rendererReadyCalled = useRef(false);
+
   if (!window.ipcRenderer) {
     return (
       <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mx-10 my-10 rounded relative" role="alert">
@@ -43,17 +47,34 @@ function Main({ children }) {
   return (
     <ErrorBoundary>
       <Provider store={ReduxStore}>
-        <ThemeProvider>
-          <ToastProvider>
-            <PromptVariablesProvider>
-              <AppProvider>
-                <HotkeysProvider>
-                  {children}
-                </HotkeysProvider>
-              </AppProvider>
-            </PromptVariablesProvider>
-          </ToastProvider>
-        </ThemeProvider>
+        <PersistGate persistor={persistor}>
+          {(bootstrapped) => {
+            if (bootstrapped && !rendererReadyCalled.current) {
+              rendererReadyCalled.current = true;
+              window.ipcRenderer.invoke('renderer:ready').catch((error) => {
+                console.error('Error calling renderer:ready:', error);
+              });
+            }
+
+            if (!bootstrapped) {
+              return <LoadingScreen />;
+            }
+
+            return (
+              <ThemeProvider>
+                <ToastProvider>
+                  <PromptVariablesProvider>
+                    <AppProvider>
+                      <HotkeysProvider>
+                        {children}
+                      </HotkeysProvider>
+                    </AppProvider>
+                  </PromptVariablesProvider>
+                </ToastProvider>
+              </ThemeProvider>
+            );
+          }}
+        </PersistGate>
       </Provider>
     </ErrorBoundary>
   );

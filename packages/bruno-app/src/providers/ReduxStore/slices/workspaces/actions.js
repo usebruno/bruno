@@ -195,7 +195,6 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
       }
     }
 
-    // Load API specs for this workspace
     await dispatch(loadWorkspaceApiSpecs(workspace.uid));
   } catch (error) {
     console.error('Failed to load workspace collections:', error);
@@ -362,6 +361,42 @@ export const loadLastOpenedWorkspaces = () => {
   };
 };
 
+// Helper function to determine which workspace should be active and switch to it
+// This runs after all workspace collections are loaded to avoid race conditions
+const ensureActiveWorkspace = (dispatch, getState) => {
+  const state = getState();
+  const { workspaces, activeWorkspaceUid } = state.workspaces;
+
+  // Check if all workspaces with pathname have finished loading their collections
+  // Workspaces without pathname (like default) don't need to load collections
+  const workspacesToLoad = workspaces.filter((w) => w.pathname);
+  const allWorkspacesLoaded = workspacesToLoad.length === 0 || workspacesToLoad.every((workspace) => {
+    const loadingState = workspace.loadingState;
+    return loadingState === 'loaded' || loadingState === 'error';
+  });
+
+  if (!allWorkspacesLoaded) {
+    return;
+  }
+
+  const activeWorkspaceExists = activeWorkspaceUid
+    ? workspaces.some((w) => w.uid === activeWorkspaceUid)
+    : false;
+
+  let targetWorkspaceUid = null;
+
+  if (activeWorkspaceUid && activeWorkspaceExists) {
+    targetWorkspaceUid = activeWorkspaceUid;
+  } else {
+    const defaultWorkspace = workspaces.find((w) => w.uid === 'default');
+    targetWorkspaceUid = defaultWorkspace ? defaultWorkspace.uid : (workspaces[0]?.uid || null);
+  }
+
+  if (targetWorkspaceUid && targetWorkspaceUid !== activeWorkspaceUid) {
+    dispatch(switchWorkspace(targetWorkspaceUid));
+  }
+};
+
 export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfig) => {
   return async (dispatch, getState) => {
     dispatch(createWorkspace({
@@ -373,15 +408,10 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
     try {
       await dispatch(loadWorkspaceCollections(workspaceUid));
     } catch (error) {
+      console.error('Failed to load workspace collections:', error);
     }
 
-    // If this is the default workspace or no workspace is active yet, switch to it
-    const state = getState();
-    const activeWorkspaceUid = state.workspaces.activeWorkspaceUid;
-
-    if (!activeWorkspaceUid || workspaceConfig.type === 'default') {
-      dispatch(switchWorkspace(workspaceUid));
-    }
+    ensureActiveWorkspace(dispatch, getState);
   };
 };
 
@@ -424,7 +454,6 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
           }
         }
 
-        // Load API specs when workspace config is updated
         await dispatch(loadWorkspaceApiSpecs(workspaceUid));
       } catch (error) {
       }
