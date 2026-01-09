@@ -348,4 +348,37 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
 
     expect(result).toEqual(expectedUrl);
   });
+
+  it('should URL-encode path params with spaces', () => {
+    const url = 'https://example.com/api/v1/roles/:role_name';
+    const params = [{ name: 'role_name', type: 'path', enabled: true, value: 'test - test' }];
+    const expectedUrl = 'https://example.com/api/v1/roles/test%20-%20test';
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual(expectedUrl);
+  });
+
+  it('should URL-encode path params with special characters', () => {
+    const url = 'https://example.com/api/:id/details';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: 'hello world & stuff' }];
+    const expectedUrl = 'https://example.com/api/hello%20world%20%26%20stuff/details';
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual(expectedUrl);
+  });
+
+  it('should URL-encode multiple path params with spaces', () => {
+    const url = 'https://example.com/api/:category/:name';
+    const params = [
+      { name: 'category', type: 'path', enabled: true, value: 'my category' },
+      { name: 'name', type: 'path', enabled: true, value: 'item name' }
+    ];
+    const expectedUrl = 'https://example.com/api/my%20category/item%20name';
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual(expectedUrl);
+  });
 });
