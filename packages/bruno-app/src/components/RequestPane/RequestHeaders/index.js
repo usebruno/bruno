@@ -104,7 +104,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         })
       );
     },
-    [dispatch, collection.uid, item.uid]
+    [dispatch, collection.uid, item.uid, allHeaders]
   );
 
   const toggleBulkEditMode = () => {
