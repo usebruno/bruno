@@ -46,6 +46,30 @@ body:
     validations:
       required: true
 
+  - type: input
+    attributes:
+      label: Architecture and Chipset
+      description: Information about your system architecture and processor.
+      placeholder: x64 if Intel Core i series / ARM64 if Apple Silicon M series / ARM64 if Snapdragon chip
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: Installation Medium
+      description: The file type used to install Bruno.
+      placeholder: .exe / .msi / .deb / .dmg / .AppImage / .snap / .rpm
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: Installation Method
+      description: How you installed or updated Bruno.
+      placeholder: Direct install / Auto-update / Package manager (brew, chocolatey, winget, apt, etc.)
+    validations:
+      required: false
+
   - type: textarea
     attributes:
       label: Describe the bug
