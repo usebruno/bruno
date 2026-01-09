@@ -8,6 +8,7 @@ import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions'
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
+import { IconEdit } from '@tabler/icons';
 
 const Documentation = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -30,7 +31,14 @@ const Documentation = ({ collection, folder }) => {
     );
   };
 
-  const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
+  const onSave = () => {
+    dispatch(saveFolderRoot(collection.uid, folder.uid));
+    toggleViewMode();
+  };
+
+  const handleCancel = () => {
+    toggleViewMode();
+  };
 
   if (!folder) {
     return null;
@@ -38,8 +46,21 @@ const Documentation = ({ collection, folder }) => {
 
   return (
     <StyledWrapper className="mt-1 h-full w-full relative flex flex-col">
-      <div className="editing-mode flex justify-between items-center" role="tab" onClick={toggleViewMode}>
-        {isEditing ? 'Preview' : 'Edit'}
+      <div className="flex flex-row gap-2 items-center">
+        {isEditing ? (
+          <>
+            <button type="button" className="btn btn-sm btn-close" onClick={handleCancel}>
+              Cancel
+            </button>
+            <button type="submit" className="submit btn btn-sm btn-secondary" onClick={onSave}>
+              Save
+            </button>
+          </>
+        ) : (
+          <div className="editing-mode" role="tab" onClick={toggleViewMode}>
+            <IconEdit className="cursor-pointer" size={20} strokeWidth={1.5} />
+          </div>
+        )}
       </div>
 
       {isEditing ? (
@@ -51,10 +72,9 @@ const Documentation = ({ collection, folder }) => {
             onEdit={onEdit}
             onSave={onSave}
             mode="application/text"
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
           />
-          <button type="submit" className="submit btn btn-sm btn-secondary my-6" onClick={onSave}>
-            Save
-          </button>
         </div>
       ) : (
         <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />

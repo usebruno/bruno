@@ -8,7 +8,7 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { IconEdit, IconX, IconFileText } from '@tabler/icons';
+import { IconEdit, IconFileText } from '@tabler/icons';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
@@ -55,9 +55,9 @@ const Docs = ({ collection }) => {
         <div className="flex flex-row gap-2 items-center justify-center">
           {isEditing ? (
             <>
-              <div className="editing-mode" role="tab" onClick={handleDiscardChanges}>
-                <IconX className="cursor-pointer" size={20} strokeWidth={1.5} />
-              </div>
+              <button type="button" className="btn btn-sm btn-close" onClick={handleDiscardChanges}>
+                Cancel
+              </button>
               <button type="submit" className="submit btn btn-sm btn-secondary" onClick={onSave}>
                 Save
               </button>

@@ -8,6 +8,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
+import { IconEdit } from '@tabler/icons';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -30,7 +31,14 @@ const Documentation = ({ item, collection }) => {
     );
   };
 
-  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const onSave = () => {
+    dispatch(saveRequest(item.uid, collection.uid));
+    toggleViewMode();
+  };
+
+  const handleCancel = () => {
+    toggleViewMode();
+  };
 
   if (!item) {
     return null;
@@ -38,8 +46,21 @@ const Documentation = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative">
-      <div className="editing-mode" role="tab" onClick={toggleViewMode}>
-        {isEditing ? 'Preview' : 'Edit'}
+      <div className="flex flex-row gap-2 items-center">
+        {isEditing ? (
+          <>
+            <button type="button" className="btn btn-sm btn-close" onClick={handleCancel}>
+              Cancel
+            </button>
+            <button type="submit" className="submit btn btn-sm btn-secondary" onClick={onSave}>
+              Save
+            </button>
+          </>
+        ) : (
+          <div className="editing-mode" role="tab" onClick={toggleViewMode}>
+            <IconEdit className="cursor-pointer" size={20} strokeWidth={1.5} />
+          </div>
+        )}
       </div>
 
       {isEditing ? (
