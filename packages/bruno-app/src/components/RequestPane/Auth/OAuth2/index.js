@@ -47,7 +47,7 @@ const OAuth2 = ({ item, collection }) => {
   let request = item.draft ? get(item, 'draft.request', {}) : get(item, 'request', {});
 
   return (
-    <StyledWrapper className="mt-2 w-full">
+    <StyledWrapper className="w-full">
       <GrantTypeSelector item={item} request={request} updateAuth={updateAuth} collection={collection} />
       <GrantTypeComponentMap item={item} collection={collection} />
     </StyledWrapper>

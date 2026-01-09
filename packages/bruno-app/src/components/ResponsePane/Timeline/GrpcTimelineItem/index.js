@@ -245,7 +245,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
   };
 
   return (
-    <StyledWrapper className={`${eventClass} pl-1`}>
+    <StyledWrapper className={`${eventClass} pl-1 mb-2`}>
       <div className="event-header" onClick={toggleCollapse}>
         {isCollapsed ? <IconChevronRight size={16} strokeWidth={1.5} /> : <IconChevronDown size={16} strokeWidth={1.5} />}
         <div className="event-icon-container">

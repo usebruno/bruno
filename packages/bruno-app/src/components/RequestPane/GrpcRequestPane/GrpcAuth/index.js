@@ -76,6 +76,9 @@ const GrpcAuth = ({ item, collection }) => {
 
   const getAuthView = () => {
     switch (authMode) {
+      case 'none': {
+        return <div>No Auth</div>;
+      }
       case 'basic': {
         return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
@@ -98,7 +101,7 @@ const GrpcAuth = ({ item, collection }) => {
         if (source && supportedGrpcAuthModes.includes(source.auth?.mode)) {
           return (
             <>
-              <div className="flex flex-row w-full mt-2 gap-2">
+              <div className="flex flex-row w-full gap-2">
                 <div>Auth inherited from {source.name}: </div>
                 <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
               </div>
@@ -107,7 +110,7 @@ const GrpcAuth = ({ item, collection }) => {
         } else {
           return (
             <>
-              <div className="flex flex-row w-full mt-2 gap-2">
+              <div className="flex flex-row w-full gap-2">
                 <div>Inherited auth not supported by gRPC. Using no auth instead.</div>
               </div>
             </>
@@ -122,9 +125,6 @@ const GrpcAuth = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
-      <div className="flex flex-grow justify-start items-center">
-        <GrpcAuthMode item={item} collection={collection} />
-      </div>
       {getAuthView()}
     </StyledWrapper>
   );

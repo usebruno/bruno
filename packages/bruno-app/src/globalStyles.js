@@ -324,6 +324,27 @@ const GlobalStyle = createGlobalStyle`
     margin: 1em 0;
   }
 
+  .CodeMirror-lint-tooltip {
+    padding: 4px 8px;
+    background-color: ${(props) => props.theme.infoTip.bg};
+    border: 1px solid ${(props) => props.theme.infoTip.border};
+    box-shadow: ${(props) => props.theme.infoTip.boxShadow};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+  }
+
+  .CodeMirror-lint-message {
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.text};
+  }
+
+  .CodeMirror-lint-message-warning {
+    color: ${(props) => props.theme.status.warning.text};
+  }
+
+  .CodeMirror-lint-message-error {
+    color: ${(props) => props.theme.status.danger.text};
+  }
+
   /* Header */
   .CodeMirror-brunoVarInfo .var-info-header {
     display: flex;
@@ -539,6 +560,25 @@ const GlobalStyle = createGlobalStyle`
   .cmd-ctrl-pressed .hovered-link.CodeMirror-link[data-url] {
     cursor: pointer;
     color: ${(props) => props.theme.textLink} !important;
+  }
+
+  // Native select styling
+  select {
+    background-color: ${(props) => props.theme.input.bg};
+    color: ${(props) => props.theme.text};
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: 400;
+  }
+
+  select option {
+    background-color: ${(props) => props.theme.dropdown.bg};
+    color: ${(props) => props.theme.dropdown.color};
+  }
+
+  select option:hover,
+  select option:focus {
+    background-color: ${(props) => props.theme.dropdown.hoverBg} !important;
+    color: ${(props) => props.theme.dropdown.color} !important;
   }
 `;
 

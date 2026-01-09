@@ -123,7 +123,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   return (
     <StyledWrapper>
       <div className="flex items-center h-full">
-        <div className="flex items-center input-container flex-1 w-full input-container pr-2 h-full relative">
+        <div className="flex items-center input-container flex-1 w-full h-full relative">
           <div className="flex items-center justify-center px-[10px]">
             <span className="text-xs font-medium method-ws">WS</span>
           </div>
@@ -138,9 +138,9 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             collection={collection}
             item={item}
           />
-          <div className="flex items-center h-full mr-2 cursor-pointer">
+          <div className="flex items-center h-full cursor-pointer gap-3 mx-3">
             <div
-              className="infotip mr-3"
+              className="infotip"
               onClick={(e) => {
                 e.stopPropagation();
                 if (!hasChanges) return;
@@ -159,7 +159,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             </div>
 
             {connectionStatus === 'connected' && (
-              <div className="connection-controls relative flex items-center h-full gap-3 mr-3">
+              <div className="connection-controls relative flex items-center h-full">
                 <div className="infotip" onClick={(e) => handleDisconnect(e, true)}>
                   <IconPlugConnectedX
                     color={theme.colors.text.danger}
@@ -173,7 +173,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             )}
 
             {connectionStatus !== 'connected' && (
-              <div className="connection-controls relative flex items-center h-full gap-3 mr-3">
+              <div className="connection-controls relative flex items-center h-full">
                 <div className="infotip" onClick={handleConnect}>
                   <IconPlugConnected
                     className={classnames('cursor-pointer', {
