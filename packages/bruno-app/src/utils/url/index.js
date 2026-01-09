@@ -98,7 +98,51 @@ export const interpolateUrl = ({ url, variables }) => {
   return interpolate(url, variables);
 };
 
+export const normalizeAndEncodeUrl = (url) => {
+  if (!url || typeof url !== 'string') {
+    return url;
+  }
+
+  let uri;
+  let originalUrl = url;
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `http://${url}`;
+  }
+
+  try {
+    uri = new URL(url);
+  } catch (error) {
+    // if the URL is invalid, return the original URL as is
+    return originalUrl;
+  }
+
+  // Reconstruct URL to ensure proper encoding
+  // Include username/password if present
+  let base = uri.origin;
+  if (uri.username || uri.password) {
+    const auth = uri.password ? `${uri.username}:${uri.password}` : uri.username;
+    base = `${uri.protocol}//${auth}@${uri.host}`;
+  }
+
+  return `${base}${uri.pathname}${uri.search || ''}`;
+};
+
 export const interpolateUrlPathParams = (url, params) => {
+  if (!url || typeof url !== 'string') {
+    return url;
+  }
+
+  // If there are no params or no enabled path params, return the URL as-is
+  if (!params || !params.length) {
+    return url;
+  }
+
+  const hasPathParams = params.some((p) => p?.type === 'path' && p?.enabled);
+  if (!hasPathParams) {
+    return url;
+  }
+
   const getInterpolatedBasePath = (pathname, params) => {
     return pathname
       .split('/')
