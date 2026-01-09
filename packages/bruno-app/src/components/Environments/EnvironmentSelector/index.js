@@ -1,7 +1,7 @@
-import React, { useMemo, useState, useRef, forwardRef } from 'react';
+import React, { useMemo, useState, useRef, forwardRef, useEffect } from 'react';
 import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
-import { IconWorld, IconDatabase, IconCaretDown } from '@tabler/icons';
+import { IconWorld, IconDatabase, IconCaretDown, IconSearch, IconX } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
@@ -13,6 +13,7 @@ import ImportEnvironmentModal from 'components/Environments/Common/ImportEnviron
 import CreateGlobalEnvironment from 'components/WorkspaceHome/WorkspaceEnvironments/CreateEnvironment';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
+import ActionIcon from 'ui/ActionIcon';
 
 const EnvironmentSelector = ({ collection }) => {
   const dispatch = useDispatch();
@@ -22,6 +23,8 @@ const EnvironmentSelector = ({ collection }) => {
   const [showImportGlobalModal, setShowImportGlobalModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
   const [showImportCollectionModal, setShowImportCollectionModal] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
@@ -40,9 +43,19 @@ const EnvironmentSelector = ({ collection }) => {
     { id: 'global', label: 'Global', icon: <IconWorld size={16} strokeWidth={1.5} /> }
   ];
 
+  // enable environment search only if there are environments present
+  const isSearchEnabled
+    = (activeTab === 'collection' && environments && environments?.length > 0)
+      || (activeTab === 'global' && globalEnvironments && globalEnvironments?.length > 0);
+
   const onDropdownCreate = (ref) => {
     dropdownTippyRef.current = ref;
   };
+
+  useEffect(() => {
+    setShowSearch(false);
+    setSearchText('');
+  }, [activeTab]);
 
   // Get description based on active tab
   const description
@@ -111,6 +124,16 @@ const EnvironmentSelector = ({ collection }) => {
       setShowImportGlobalModal(true);
     }
     dropdownTippyRef.current.hide();
+  };
+
+  // Toggle search field
+  const handleToggleSearch = () => {
+    setShowSearch((prev) => !prev);
+  };
+
+  const handleDropdownHide = () => {
+    setShowSearch(false);
+    setSearchText('');
   };
 
   // Calculate dropdown width based on the longest environment name.
@@ -184,7 +207,7 @@ const EnvironmentSelector = ({ collection }) => {
   return (
     <StyledWrapper width={dropdownWidth}>
       <div className="environment-selector flex align-center cursor-pointer">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end" onHide={handleDropdownHide}>
           {/* Tab Headers */}
           <div className="tab-header flex pt-3 pb-2 px-3">
             {tabs.map((tab) => (
@@ -202,7 +225,44 @@ const EnvironmentSelector = ({ collection }) => {
                 </span>
               </button>
             ))}
+            <div className="ml-auto pb-[0.375rem]">
+              <ActionIcon
+                key="search"
+                disabled={!isSearchEnabled}
+                onClick={handleToggleSearch}
+                data-testid="env-search-button"
+                aria-label="Toggle environments search"
+              >
+                <IconSearch size={16} stroke={1.5} />
+              </ActionIcon>
+            </div>
           </div>
+
+          {showSearch && (
+            <div className="search-container">
+              <IconSearch size={16} strokeWidth={1.5} className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search environments..."
+                id="search"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                autoFocus
+                spellCheck="false"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="search-input"
+                data-testid="env-search-input"
+                aria-label="Search environments"
+              />
+              {searchText !== '' && (
+                <button className="clear-icon" data-testid="reset-env-search" onClick={() => setSearchText('')}>
+                  <IconX size={16} strokeWidth={1.5} />
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Tab Content */}
           <div className="tab-content">
@@ -210,6 +270,7 @@ const EnvironmentSelector = ({ collection }) => {
               environments={activeTab === 'collection' ? environments : globalEnvironments}
               activeEnvironmentUid={activeTab === 'collection' ? activeEnvironmentUid : activeGlobalEnvironmentUid}
               description={description}
+              searchText={searchText}
               onEnvironmentSelect={handleEnvironmentSelect}
               onSettingsClick={handleSettingsClick}
               onCreateClick={handleCreateClick}
