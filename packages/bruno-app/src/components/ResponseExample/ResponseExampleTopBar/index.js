@@ -1,13 +1,13 @@
+import { IconCode, IconDeviceFloppy, IconPlayerPlay } from '@tabler/icons';
+import IconEdit from 'components/Icons/IconEdit';
+import TruncatedText from 'components/TruncatedText';
+import get from 'lodash/get';
+import { updateResponseExampleDescription, updateResponseExampleName } from 'providers/ReduxStore/slices/collections';
+import { useTheme } from 'providers/Theme';
 import React, { useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import IconEdit from 'components/Icons/IconEdit';
-import { IconCode, IconDeviceFloppy } from '@tabler/icons';
-import StyledWrapper from './StyledWrapper';
-import { useTheme } from 'providers/Theme';
-import TruncatedText from 'components/TruncatedText';
-import { updateResponseExampleName, updateResponseExampleDescription } from 'providers/ReduxStore/slices/collections';
-import get from 'lodash/get';
 import Button from 'ui/Button';
+import StyledWrapper from './StyledWrapper';
 
 const ResponseExampleTopBar = ({
   item,
@@ -17,7 +17,8 @@ const ResponseExampleTopBar = ({
   onEditToggle,
   onSave,
   onCancel,
-  onGenerateCode
+  onGenerateCode,
+  onTryExample
 }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
@@ -196,6 +197,15 @@ const ResponseExampleTopBar = ({
               data-testid="response-example-edit-btn"
             >
               Edit Example
+            </Button>
+            <Button
+              color="primary"
+              size="sm"
+              icon={<IconPlayerPlay size={16} color={theme.examples.buttonIconColor} />}
+              onClick={onTryExample}
+              data-testid="response-example-try-as-request-btn"
+            >
+              Try As Request
             </Button>
           </div>
         </div>
