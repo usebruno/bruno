@@ -54,7 +54,26 @@ class BrunoRequest {
   getPath() {
     try {
       const url = new URL(this.req.url);
-      return url.pathname;
+      let pathname = url.pathname;
+
+      // If path params exist, interpolate them into the pathname
+      if (this.req.pathParams && Array.isArray(this.req.pathParams)) {
+        pathname = pathname
+          .split('/')
+          .map((segment) => {
+            if (segment.startsWith(':')) {
+              const paramName = segment.slice(1);
+              const pathParam = this.req.pathParams.find((param) => param.name === paramName);
+              if (pathParam && pathParam.value) {
+                return pathParam.value;
+              }
+            }
+            return segment;
+          })
+          .join('/');
+      }
+
+      return pathname;
     } catch (e) {
       return '';
     }
