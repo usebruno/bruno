@@ -115,7 +115,6 @@ const WSResponsePane = ({ item, collection }) => {
         <>
           <ResponseLayoutToggle />
           <ResponseClear item={item} collection={collection} />
-          <WSResponseSortOrder item={item} collection={collection} />
           <WSStatusCode
             status={response.statusCode}
             text={response.statusText}
