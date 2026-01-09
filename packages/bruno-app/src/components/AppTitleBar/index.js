@@ -18,7 +18,6 @@ import ImportWorkspace from 'components/WorkspaceSidebar/ImportWorkspace';
 
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
 import StyledWrapper from './StyledWrapper';
-import { toTitleCase } from 'utils/common/index';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
 import { isMacOS, isWindowsOS, isLinuxOS } from 'utils/common/platform';
 
@@ -115,7 +114,7 @@ const AppTitleBar = () => {
   const WorkspaceName = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="workspace-name-container" {...props}>
-        <span className="workspace-name">{toTitleCase(activeWorkspace?.name) || 'Default Workspace'}</span>
+        <span className="workspace-name">{activeWorkspace?.name || 'Default Workspace'}</span>
         <IconChevronDown size={14} stroke={1.5} className="chevron-icon" />
       </div>
     );
@@ -178,7 +177,7 @@ const AppTitleBar = () => {
 
       return {
         id: workspace.uid,
-        label: toTitleCase(workspace.name),
+        label: workspace.name,
         onClick: () => handleWorkspaceSwitch(workspace.uid),
         className: `workspace-item ${isActive ? 'active' : ''}`,
         rightSection: (
