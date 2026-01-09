@@ -1,4 +1,4 @@
-import translateCode from '../utils/jscode-shift-translator';
+import translateCode from '../utils/pm-to-bru-translator';
 
 const replacements = {
   'pm\\.environment\\.get\\(': 'bru.getEnvVar(',
