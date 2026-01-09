@@ -1,11 +1,11 @@
-const j = require('jscodeshift');
-const cloneDeep = require('lodash/cloneDeep');
-const {
+import {
   getMemberExpressionString,
   buildMemberExpressionFromString,
   isIdentifierNamed,
   isNullLiteral
-} = require('./ast-utils');
+} from './ast-utils';
+const j = require('jscodeshift');
+const cloneDeep = require('lodash/cloneDeep');
 
 // =============================================================================
 // SIMPLE TRANSLATIONS
@@ -449,5 +449,4 @@ function translateBruToPostman(code) {
   }
 }
 
-module.exports = translateBruToPostman;
-module.exports.default = translateBruToPostman;
+export default translateBruToPostman;

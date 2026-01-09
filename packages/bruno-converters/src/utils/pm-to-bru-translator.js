@@ -1,7 +1,7 @@
 import sendRequestTransformer from './send-request-transformer';
+import { getMemberExpressionString } from './ast-utils';
 const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
-const { getMemberExpressionString } = require('./ast-utils');
 
 // Simple 1:1 translations for straightforward replacements
 const simpleTranslations = {

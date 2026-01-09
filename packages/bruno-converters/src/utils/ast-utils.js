@@ -17,7 +17,7 @@ const j = require('jscodeshift');
  * // For AST node representing `bru.cookies.jar()`
  * getMemberExpressionString(node) // returns "bru.cookies.jar()"
  */
-function getMemberExpressionString(node) {
+export function getMemberExpressionString(node) {
   if (node.type === 'Identifier') {
     return node.name;
   }
@@ -62,7 +62,7 @@ function getMemberExpressionString(node) {
  * buildMemberExpressionFromString("pm")
  * // Returns AST for: pm (just an Identifier)
  */
-function buildMemberExpressionFromString(str) {
+export function buildMemberExpressionFromString(str) {
   const parts = str.split('.');
   let expr = j.identifier(parts[0]);
   for (let i = 1; i < parts.length; i += 1) {
@@ -78,7 +78,7 @@ function buildMemberExpressionFromString(str) {
  * @param {string} name - The expected identifier name
  * @returns {boolean} - True if node is an identifier with the given name
  */
-function isIdentifierNamed(node, name) {
+export function isIdentifierNamed(node, name) {
   return node && node.type === 'Identifier' && node.name === name;
 }
 
@@ -88,13 +88,6 @@ function isIdentifierNamed(node, name) {
  * @param {Object} node - The AST node to check
  * @returns {boolean} - True if node is a null literal
  */
-function isNullLiteral(node) {
+export function isNullLiteral(node) {
   return node && node.type === 'Literal' && node.value === null;
 }
-
-module.exports = {
-  getMemberExpressionString,
-  buildMemberExpressionFromString,
-  isIdentifierNamed,
-  isNullLiteral
-};

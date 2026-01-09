@@ -1,4 +1,4 @@
-const translateBruToPostman = require('../../../src/utils/bru-to-pm-translator');
+import translateBruToPostman from '../../../src/utils/bru-to-pm-translator';
 
 describe('Bruno to Postman Variables Translation', () => {
   // Regular variables tests
