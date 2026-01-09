@@ -1129,7 +1129,7 @@ export const handleCollectionItemDrop
 
         // Update sequences in the target directory (if dropping adjacent)
         if (dropType === 'adjacent') {
-          const targetItemSequence = targetItemDirectoryItems.findIndex((i) => i.uid === targetItemUid)?.seq;
+          const targetItemSequence = targetItemDirectoryItems.find((i) => i.uid === targetItemUid)?.seq;
 
           const draggedItemWithNewPathAndSequence = {
             ...draggedItem,
@@ -1176,6 +1176,14 @@ export const handleCollectionItemDrop
           });
           if (!newPathname) return;
           if (targetItemPathname?.startsWith(draggedItemPathname)) return;
+
+          // Discard operation if dragging a root item to the collection name (same location)
+          const isTargetTheCollection = targetItemPathname === collection.pathname;
+          const isDraggedItemAtRoot = draggedItemDirectory === sourceCollection;
+          if (isTargetTheCollection && isDraggedItemAtRoot && !isCrossCollectionMove) {
+            return;
+          }
+
           if (newPathname !== draggedItemPathname) {
             await handleMoveToNewLocation({
               targetItem,
@@ -1755,8 +1763,8 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
      Modal Save writes what the user sees:
      - Non-ephemeral vars are saved as-is (without metadata)
      - Ephemeral vars:
-       - if persistedValue exists, save that (explicit persisted case)
-       - otherwise save the current UI value (treat as user-authored)
+       - if persistedValue exists, save that (restore original value)
+       - otherwise filter out (don't save script-created ephemeral vars)
      */
     const persisted = buildPersistedEnvVariables(variables, { mode: 'save' });
     environment.variables = persisted;

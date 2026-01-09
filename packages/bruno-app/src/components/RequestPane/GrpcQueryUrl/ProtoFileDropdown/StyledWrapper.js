@@ -60,7 +60,7 @@ const StyledWrapper = styled.div`
 
   .proto-file-dropdown-reflection-message {
     padding: 0.5rem 0.75rem;
-    color: ${(props) => props.theme.overlay.overlay1};
+    color: ${(props) => props.theme.colors.text.muted};
     margin-bottom: 0.5rem;
   }
 `;

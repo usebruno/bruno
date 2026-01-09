@@ -61,7 +61,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
   }, [apikeyAuth]);
 
   return (
-    <StyledWrapper className="mt-2 w-full">
+    <StyledWrapper className="w-full">
       <label className="block mb-1">Key</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
