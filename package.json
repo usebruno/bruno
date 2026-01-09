@@ -78,6 +78,7 @@
     "build:electron:rpm": "./scripts/build-electron.sh rpm",
     "build:electron:snap": "./scripts/build-electron.sh snap",
     "watch:common": "npm run watch --workspace=packages/bruno-common",
+    "watch:requests": "npm run watch --workspace=packages/bruno-requests",
     "test:codegen": "node playwright/codegen.ts",
     "test:e2e": "playwright test --project=default",
     "test:e2e:ssl": "playwright test --project=ssl",
