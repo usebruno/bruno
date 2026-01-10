@@ -18,6 +18,7 @@ class BrunoRequest {
     this.headers = req.headers;
     this.timeout = req.timeout;
     this.name = req.name;
+    this.pathParams = req.pathParams;
     this.tags = req.tags || [];
     /**
      * We automatically parse the JSON body if the content type is JSON
@@ -191,6 +192,10 @@ class BrunoRequest {
     return this.req.name;
   }
 
+  getPathParams() {
+    return this.req.pathParams;
+  }
+  
   /**
    * Get the tags associated with this request
    * @returns {Array<string>} Array of tag strings
