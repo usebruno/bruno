@@ -34,8 +34,48 @@ const Wrapper = styled.div`
       }
 
       &:nth-child(2) {
-        width: 30%;
+        width: ${(props) => props.nameColumnWidth || 25}%;
       }
+    }
+
+    .name-column {
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        right: -1px;
+        top: -1px;
+        bottom: 0;
+        width: 1.5px;
+        pointer-events: none;
+        background-color: transparent;
+      }
+    }
+
+    .resize-handle {
+      position: absolute;
+      right: -6px;
+      top: -1px;
+      bottom: -1px;
+      width: 12px;
+      cursor: col-resize;
+      user-select: none;
+      z-index: 1;
+      outline: none;
+
+      &:focus-visible {
+        outline: 2px solid ${(props) => props.theme.colors.accent};
+        outline-offset: -1px;
+      }
+    }
+
+    &:has(.resize-handle:hover) .name-column::after {
+      background-color: ${(props) => props.theme.sidebar.dragbar};
+    }
+
+    &:has(.resize-handle:active) .name-column::after {
+      background-color: ${(props) => props.theme.sidebar.dragbar};
     }
 
     thead {
