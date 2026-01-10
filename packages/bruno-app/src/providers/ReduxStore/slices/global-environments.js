@@ -247,7 +247,7 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
   });
 };
 
-export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) => (dispatch, getState) => {
+export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables, requestEnvUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     if (!globalEnvironmentVariables) resolve();
@@ -255,7 +255,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     const state = getState();
     const { workspaceUid, workspacePath } = getWorkspaceContext(state);
     const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
-    const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
+    const environmentUid = requestEnvUid;
     const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
 
     if (!environment || !environmentUid) {
