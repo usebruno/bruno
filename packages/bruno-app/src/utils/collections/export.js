@@ -99,6 +99,7 @@ export const exportCollection = (collection, version) => {
 
   // delete process variables
   delete collection.processEnvVariables;
+  delete collection.workspaceProcessEnvVariables;
 
   deleteUidsInItems(collection.items);
   deleteUidsInEnvs(collection.environments);
