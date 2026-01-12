@@ -4,7 +4,7 @@ const path = require('path');
 const yaml = require('js-yaml');
 const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
-const { exists, isFile, isDirectory } = require('../utils/filesystem');
+const { exists, isFile, isDirectory, stripExtension } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
 const { parseEnvironmentJson } = require('../utils/environment');
@@ -597,6 +597,38 @@ const handler = async function (argv) {
       return isRequestTagsIncluded(item.tags, includeTags, excludeTags);
     });
 
+    const skippedFiles = global.brunoSkippedFiles || [];
+    const skippedResults = skippedFiles.map((skippedFile) => {
+      const relativePath = path.relative(collectionPath, skippedFile.path);
+      return {
+        test: {
+          filename: relativePath
+        },
+        request: {
+          method: null,
+          url: null,
+          headers: null,
+          data: null
+        },
+        response: {
+          status: 'skipped',
+          statusText: skippedFile.error,
+          data: null,
+          responseTime: 0
+        },
+        error: skippedFile.error,
+        status: 'skipped',
+        skipped: true,
+        assertionResults: [],
+        testResults: [],
+        preRequestTestResults: [],
+        postResponseTestResults: [],
+        name: stripExtension(path.basename(skippedFile.path)),
+        path: relativePath,
+        runDuration: 0
+      };
+    });
+
     const runtime = getJsSandboxRuntime(sandbox);
 
     const runSingleRequestByPathname = async (relativeItemPathname) => {
@@ -661,7 +693,8 @@ const handler = async function (argv) {
         ...result,
         runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: pathname.replace('.bru', ''),
-        name
+        name,
+        path: result.test?.filename || path.relative(collectionPath, pathname)
       });
 
       if (reporterSkipAllHeaders) {
@@ -733,6 +766,8 @@ const handler = async function (argv) {
         currentRequestIndex++;
       }
     }
+
+    results.push(...skippedResults);
 
     const summary = printRunSummary(results);
     const runCompletionTime = new Date().toISOString();
