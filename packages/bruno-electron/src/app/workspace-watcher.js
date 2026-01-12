@@ -213,7 +213,7 @@ class WorkspaceWatcher {
         ignorePermissionErrors: true,
         awaitWriteFinish: {
           stabilityThreshold: 80,
-          pollInterval: 10
+          pollInterval: 250
         }
       });
 
