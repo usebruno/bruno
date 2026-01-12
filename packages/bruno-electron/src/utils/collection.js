@@ -6,15 +6,17 @@ const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
-  let headers = new Map();
+  let headers = [];
+  let contentTypeValue = null;
 
   let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       if (header?.name?.toLowerCase?.() === 'content-type') {
-        headers.set('content-type', header.value);
+        // Content-Type should be overridden, not duplicated
+        contentTypeValue = header.value;
       } else {
-        headers.set(header.name, header.value);
+        headers.push({ name: header.name, value: header.value, enabled: true });
       }
     }
   });
@@ -26,9 +28,9 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       _headers.forEach((header) => {
         if (header.enabled) {
           if (header.name.toLowerCase() === 'content-type') {
-            headers.set('content-type', header.value);
+            contentTypeValue = header.value;
           } else {
-            headers.set(header.name, header.value);
+            headers.push({ name: header.name, value: header.value, enabled: true });
           }
         }
       });
@@ -37,16 +39,21 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       _headers.forEach((header) => {
         if (header.enabled) {
           if (header.name.toLowerCase() === 'content-type') {
-            headers.set('content-type', header.value);
+            contentTypeValue = header.value;
           } else {
-            headers.set(header.name, header.value);
+            headers.push({ name: header.name, value: header.value, enabled: true });
           }
         }
       });
     }
   }
 
-  request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
+  // Add content-type at the beginning if it was set
+  if (contentTypeValue !== null) {
+    headers.unshift({ name: 'content-type', value: contentTypeValue, enabled: true });
+  }
+
+  request.headers = headers;
 };
 
 const mergeVars = (collection, request, requestTreePath = []) => {

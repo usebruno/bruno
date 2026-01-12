@@ -61,7 +61,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   forOwn(request.headers, (value, key) => {
     delete request.headers[key];
-    request.headers[_interpolate(key)] = _interpolate(value);
+    request.headers[_interpolate(key)] = Array.isArray(value) ? value.map(_interpolate) : _interpolate(value);
   });
 
   const contentType = getContentType(request.headers);

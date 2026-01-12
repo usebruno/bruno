@@ -30,7 +30,10 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
   each(get(request, 'headers', []), (h) => {
     if (h.enabled) {
-      headers[h.name] = h.value;
+      const existing = headers[h.name];
+      headers[h.name] = existing !== undefined
+        ? (Array.isArray(existing) ? [...existing, h.value] : [existing, h.value])
+        : h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }

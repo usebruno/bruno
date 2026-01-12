@@ -332,7 +332,10 @@ const prepareRequest = async (item, collection = {}, abortController) => {
 
   each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name.length > 0) {
-      headers[h.name] = h.value;
+      const existing = headers[h.name];
+      headers[h.name] = existing !== undefined
+        ? (Array.isArray(existing) ? [...existing, h.value] : [existing, h.value])
+        : h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
