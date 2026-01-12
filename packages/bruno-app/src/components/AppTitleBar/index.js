@@ -20,6 +20,7 @@ import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
 import StyledWrapper from './StyledWrapper';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
 import { isMacOS, isWindowsOS, isLinuxOS } from 'utils/common/platform';
+import classNames from 'classnames';
 
 const getOsClass = () => {
   if (isMacOS()) return 'os-mac';
@@ -29,8 +30,8 @@ const getOsClass = () => {
 };
 
 // Helper to get display name for workspace
-const getWorkspaceDisplayName = (name) => {
-  if (!name || name === 'default') return 'Default Workspace';
+export const getWorkspaceDisplayName = (name) => {
+  if (!name) return 'Untitled Workspace';
   return name;
 };
 
@@ -120,7 +121,7 @@ const AppTitleBar = () => {
   const WorkspaceName = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="workspace-name-container" {...props}>
-        <span className="workspace-name">{getWorkspaceDisplayName(activeWorkspace?.name)}</span>
+        <span data-testid="workspace-name" className={classNames('workspace-name', { 'italic text-muted': !activeWorkspace?.name })}>{getWorkspaceDisplayName(activeWorkspace?.name)}</span>
         <IconChevronDown size={14} stroke={1.5} className="chevron-icon" />
       </div>
     );
