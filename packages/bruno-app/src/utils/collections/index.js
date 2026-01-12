@@ -115,6 +115,9 @@ export const findParentItemInCollectionByPathname = (collection, pathname) => {
 };
 
 export const findItemInCollection = (collection, itemUid) => {
+  if (!collection || !collection.items) {
+    return null;
+  }
   let flattenedItems = flattenItems(collection.items);
 
   return findItem(flattenedItems, itemUid);

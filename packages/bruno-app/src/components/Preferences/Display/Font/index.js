@@ -6,7 +6,7 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 
-const Font = ({ close }) => {
+const Font = () => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
   const isInitialMount = useRef(true);

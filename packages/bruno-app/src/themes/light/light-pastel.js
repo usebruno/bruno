@@ -433,7 +433,8 @@ const lightPastelTheme = {
   table: {
     border: colors.GRAY_3,
     thead: {
-      color: colors.TEXT_MUTED
+      color: colors.TEXT_MUTED,
+      bg: colors.GRAY_1
     },
     striped: colors.GRAY_1,
     input: {

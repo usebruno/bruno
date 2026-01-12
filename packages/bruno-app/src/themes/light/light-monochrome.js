@@ -417,7 +417,8 @@ const lightMonochromeTheme = {
   table: {
     border: '#efefef',
     thead: {
-      color: '#616161'
+      color: '#616161',
+      bg: colors.GRAY_1
     },
     striped: '#f3f3f3',
     input: {

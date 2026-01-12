@@ -432,7 +432,8 @@ const catppuccinFrappeTheme = {
   table: {
     border: colors.SURFACE0,
     thead: {
-      color: colors.TEXT
+      color: colors.TEXT,
+      bg: colors.MANTLE
     },
     striped: colors.SURFACE0,
     input: {
