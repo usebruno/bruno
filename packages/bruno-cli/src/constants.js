@@ -35,8 +35,33 @@ const EXIT_STATUS = {
   ERROR_GENERIC: 255
 };
 
+const SINGLE_VALUE_HEADERS = new Set([
+  'authorization',
+  'proxy-authorization',
+  'host',
+  'content-type',
+  'content-length',
+  'content-encoding',
+  'content-language',
+  'content-range',
+  'date',
+  'expires',
+  'last-modified',
+  'retry-after',
+  'user-agent',
+  'referer',
+  'origin',
+  'location',
+  'server',
+  'etag',
+  'expect',
+  'max-forwards',
+  'upgrade'
+]);
+
 module.exports = {
   CLI_EPILOGUE,
   CLI_VERSION,
-  EXIT_STATUS
+  EXIT_STATUS,
+  SINGLE_VALUE_HEADERS
 };
