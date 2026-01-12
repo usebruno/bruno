@@ -55,6 +55,20 @@ class BrunoResponse {
     const clonedData = _.cloneDeep(data);
     this.res.data = clonedData;
     this.body = clonedData;
+
+    // Update dataBuffer to match the modified body
+    if (clonedData === null || clonedData === undefined) {
+      this.res.dataBuffer = Buffer.from('');
+    } else if (typeof clonedData === 'string') {
+      this.res.dataBuffer = Buffer.from(clonedData);
+    } else {
+      // For objects, stringify them
+      try {
+        this.res.dataBuffer = Buffer.from(JSON.stringify(clonedData));
+      } catch (e) {
+        this.res.dataBuffer = Buffer.from('');
+      }
+    }
   }
 
   // TODO: Refactor: dataBuffer size calculation should be handled in a shared utility so it can be passed and reused across the application
