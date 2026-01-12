@@ -253,7 +253,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     'content-type': 'application/x-www-form-urlencoded',
     'Accept': 'application/json'
   };
-  if (credentialsPlacement === "basic_auth_header") {
+  if (credentialsPlacement === 'basic_auth_header') {
     const secret = clientSecret ?? '';
     axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
   }
@@ -669,7 +669,7 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       'content-type': 'application/x-www-form-urlencoded',
       'Accept': 'application/json'
     };
-    if (credentialsPlacement === "basic_auth_header") {
+    if (credentialsPlacement === 'basic_auth_header') {
       const secret = clientSecret ?? '';
       axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
     }
