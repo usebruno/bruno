@@ -1716,6 +1716,20 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateRequestHooksScript: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          set(item.draft, 'request.script.hooks', action.payload.hooks);
+        }
+      }
+    },
     updateRequestMethod: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -2078,6 +2092,18 @@ export const collectionsSlice = createSlice({
         set(collection, 'draft.root.request.tests', action.payload.tests);
       }
     },
+    updateCollectionHooksScript: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+        set(collection.draft, 'root.request.script.hooks', action.payload.hooks);
+      }
+    },
     updateCollectionDocs: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -2332,6 +2358,16 @@ export const collectionsSlice = createSlice({
           folder.draft = cloneDeep(folder.root);
         }
         set(folder, 'draft.request.tests', action.payload.tests);
+      }
+    },
+    updateFolderHooksScript: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        set(folder.draft, 'request.script.hooks', action.payload.hooks);
       }
     },
     updateFolderAuth: (state, action) => {
@@ -2828,6 +2864,7 @@ export const collectionsSlice = createSlice({
       item.preRequestScriptErrorMessage = null;
       item.postResponseScriptErrorMessage = null;
       item.testScriptErrorMessage = null;
+      item.hookScriptErrorMessage = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -2849,6 +2886,10 @@ export const collectionsSlice = createSlice({
 
           if (type === 'test-script-execution') {
             item.testScriptErrorMessage = action.payload.errorMessage;
+          }
+
+          if (type === 'hooks-script-execution') {
+            item.hookScriptErrorMessage = action.payload.errorMessage;
           }
 
           if (type === 'request-queued') {
@@ -2989,6 +3030,11 @@ export const collectionsSlice = createSlice({
         if (type === 'pre-request-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.preRequestScriptErrorMessage = action.payload.errorMessage;
+        }
+
+        if (type === 'hooks-script-execution') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.hookScriptErrorMessage = action.payload.errorMessage;
         }
       }
     },
@@ -3487,6 +3533,7 @@ export const {
   updateRequestScript,
   updateResponseScript,
   updateRequestTests,
+  updateRequestHooksScript,
   updateRequestMethod,
   updateRequestProtoPath,
   addAssertion,
@@ -3509,6 +3556,7 @@ export const {
   updateFolderRequestScript,
   updateFolderResponseScript,
   updateFolderTests,
+  updateFolderHooksScript,
   addCollectionHeader,
   updateCollectionHeader,
   deleteCollectionHeader,
@@ -3521,6 +3569,7 @@ export const {
   updateCollectionRequestScript,
   updateCollectionResponseScript,
   updateCollectionTests,
+  updateCollectionHooksScript,
   updateCollectionDocs,
   updateCollectionProxy,
   updateCollectionClientCertificates,

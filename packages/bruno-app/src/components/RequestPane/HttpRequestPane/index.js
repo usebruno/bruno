@@ -87,7 +87,7 @@ const HttpRequestPane = ({ item, collection }) => {
   );
 
   const indicators = useMemo(() => {
-    const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
+    const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage || item.hooksScriptErrorMessage;
     const hasTestError = item.testScriptErrorMessage;
 
     return {
@@ -96,7 +96,7 @@ const HttpRequestPane = ({ item, collection }) => {
       headers: activeCounts.headers > 0 ? <sup className="font-medium">{activeCounts.headers}</sup> : null,
       auth: auth.mode !== 'none' ? <StatusDot /> : null,
       vars: activeCounts.vars > 0 ? <sup className="font-medium">{activeCounts.vars}</sup> : null,
-      script: (script.req || script.res) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null,
+      script: (script.req || script.res || script.hooks) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null,
       assert: activeCounts.assertions > 0 ? <sup className="font-medium">{activeCounts.assertions}</sup> : null,
       tests: tests?.length > 0 ? (hasTestError ? <StatusDot type="error" /> : <StatusDot />) : null,
       docs: docs?.length > 0 ? <StatusDot /> : null,

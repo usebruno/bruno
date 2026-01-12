@@ -2,7 +2,7 @@ const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
 const yaml = require('js-yaml');
-const { forOwn, cloneDeep } = require('lodash');
+const { forOwn, cloneDeep, get } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
@@ -15,8 +15,9 @@ const { rpad } = require('../utils/common');
 const { getOptions } = require('../utils/bru');
 const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
-const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
+const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG, HOOK_EVENTS, getOrCreateHookManager } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
+const HookManager = require('@usebruno/js/src/hook-manager');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -314,7 +315,7 @@ const handler = async function (argv) {
     const collectionPath = process.cwd();
 
     let collection = createCollectionJsonFromPathname(collectionPath);
-    const { root: collectionRoot, brunoConfig } = collection;
+    let { root: collectionRoot, brunoConfig } = collection;
 
     if (clientCertConfig) {
       try {
@@ -598,6 +599,49 @@ const handler = async function (argv) {
     });
 
     const runtime = getJsSandboxRuntime(sandbox);
+    const scriptingConfig = get(brunoConfig, 'scripts', {});
+    scriptingConfig.runtime = runtime;
+
+    // Create HookManager map to share HookManagers across requests
+    const hookManagersMap = new Map();
+    const collectionName = collection?.brunoConfig?.name;
+    const onConsoleLog = (type, args) => {
+      console[type](...args);
+    };
+
+    // Register collection-level hooks once at the start
+    collectionRoot = collection?.draft?.root || collection?.root || {};
+    const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
+    const collectionHookManagerKey = `collection:${collection.pathname}`;
+    let collectionHookManager = null;
+
+    if (collectionHooks && collectionHooks.trim()) {
+      const hookManagerOptions = {
+        request: {}, // Placeholder request for hook registration
+        envVariables: envVars,
+        runtimeVariables,
+        collectionPath,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        runRequestByItemPathname: null, // Not available at collection level
+        collectionName
+      };
+      collectionHookManager = await getOrCreateHookManager(hookManagersMap, collectionHookManagerKey, collectionHooks, hookManagerOptions);
+    } else {
+      // Create empty HookManager for collection even if no hooks
+      collectionHookManager = new HookManager();
+      hookManagersMap.set(collectionHookManagerKey, collectionHookManager);
+    }
+
+    // Call onBeforeCollectionRun hook before starting to run requests
+    if (collectionHookManager) {
+      try {
+        await collectionHookManager.call(HOOK_EVENTS.RUNNER_BEFORE_COLLECTION_RUN, { collection });
+      } catch (error) {
+        console.error('Error calling onBeforeCollectionRun hooks:', error);
+      }
+    }
 
     const runSingleRequestByPathname = async (relativeItemPathname) => {
       const ext = FORMAT_CONFIG[collection.format].ext;
@@ -618,7 +662,8 @@ const handler = async function (argv) {
             collectionRoot,
             runtime,
             collection,
-            runSingleRequestByPathname
+            runSingleRequestByPathname,
+            hookManagersMap
           );
           resolve(res?.response);
         }
@@ -643,7 +688,8 @@ const handler = async function (argv) {
         collectionRoot,
         runtime,
         collection,
-        runSingleRequestByPathname
+        runSingleRequestByPathname,
+        hookManagersMap
       );
 
       const isLastRun = currentRequestIndex === requestItems.length - 1;
@@ -733,6 +779,28 @@ const handler = async function (argv) {
         currentRequestIndex++;
       }
     }
+
+    // Call onAfterCollectionRun hook after all requests are done
+    if (collectionHookManager) {
+      try {
+        await collectionHookManager.call(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection });
+      } catch (error) {
+        console.error('Error calling onAfterCollectionRun hooks:', error);
+      }
+    }
+
+    // Cleanup: Dispose all HookManagers to free VM resources, then clear the map
+    // This is critical to prevent memory leaks from persisted QuickJS VMs
+    hookManagersMap.forEach((hookManager) => {
+      if (hookManager && typeof hookManager.dispose === 'function') {
+        try {
+          hookManager.dispose();
+        } catch (e) {
+          // Ignore disposal errors
+        }
+      }
+    });
+    hookManagersMap.clear();
 
     const summary = printRunSummary(results);
     const runCompletionTime = new Date().toISOString();

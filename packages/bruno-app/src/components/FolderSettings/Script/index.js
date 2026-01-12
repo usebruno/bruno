@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
-import { updateFolderRequestScript, updateFolderResponseScript } from 'providers/ReduxStore/slices/collections';
+import { updateFolderRequestScript, updateFolderResponseScript, updateFolderHooksScript } from 'providers/ReduxStore/slices/collections';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
@@ -14,8 +14,10 @@ const Script = ({ collection, folder }) => {
   const [activeTab, setActiveTab] = useState('pre-request');
   const preRequestEditorRef = useRef(null);
   const postResponseEditorRef = useRef(null);
+  const hooksEditorRef = useRef(null);
   const requestScript = folder.draft ? get(folder, 'draft.request.script.req', '') : get(folder, 'root.request.script.req', '');
   const responseScript = folder.draft ? get(folder, 'draft.request.script.res', '') : get(folder, 'root.request.script.res', '');
+  const hooks = folder.draft ? get(folder, 'draft.request.script.hooks', '') : get(folder, 'root.request.script.hooks', '');
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
@@ -27,6 +29,8 @@ const Script = ({ collection, folder }) => {
         preRequestEditorRef.current.editor.refresh();
       } else if (activeTab === 'post-response' && postResponseEditorRef.current?.editor) {
         postResponseEditorRef.current.editor.refresh();
+      } else if (activeTab === 'hooks' && hooksEditorRef.current?.editor) {
+        hooksEditorRef.current.editor.refresh();
       }
     }, 0);
 
@@ -53,6 +57,14 @@ const Script = ({ collection, folder }) => {
     );
   };
 
+  const onHooksEdit = (value) => {
+    dispatch(updateFolderHooksScript({
+      hooks: value,
+      collectionUid: collection.uid,
+      folderUid: folder.uid
+    }));
+  };
+
   const handleSave = () => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
   };
@@ -67,6 +79,7 @@ const Script = ({ collection, folder }) => {
         <TabsList>
           <TabsTrigger value="pre-request">Pre Request</TabsTrigger>
           <TabsTrigger value="post-response">Post Response</TabsTrigger>
+          <TabsTrigger value="hooks">Hooks</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pre-request" className="mt-2">
@@ -91,6 +104,21 @@ const Script = ({ collection, folder }) => {
             value={responseScript || ''}
             theme={displayedTheme}
             onEdit={onResponseScriptEdit}
+            mode="javascript"
+            onSave={handleSave}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+            showHintsFor={['req', 'res', 'bru']}
+          />
+        </TabsContent>
+
+        <TabsContent value="hooks" className="mt-2">
+          <CodeEditor
+            ref={hooksEditorRef}
+            collection={collection}
+            value={hooks || ''}
+            theme={displayedTheme}
+            onEdit={onHooksEdit}
             mode="javascript"
             onSave={handleSave}
             font={get(preferences, 'font.codeFont', 'default')}

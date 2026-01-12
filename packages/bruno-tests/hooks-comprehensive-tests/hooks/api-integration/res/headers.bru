@@ -1,0 +1,31 @@
+meta {
+  name: headers
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    bru.setVar('res-content-type', res.getHeader('content-type'));
+    bru.setVar('res-headers-count', Object.keys(res.getHeaders()).length);
+  });
+}
+
+tests {
+  test("res.getHeader - returns header value", function() {
+    const contentType = bru.getVar('res-content-type');
+    expect(contentType).to.be.a('string');
+  });
+  
+  test("res.getHeaders - returns all headers", function() {
+    const count = bru.getVar('res-headers-count');
+    expect(count).to.be.greaterThan(0);
+  });
+}
+
