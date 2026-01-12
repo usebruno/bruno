@@ -7,7 +7,7 @@ const os = require('os');
 
 const DEFAULT_GITIGNORE = [
   '# Secrets',
-  '.env',
+  '.env*',
   '',
   '# Dependencies',
   'node_modules',
