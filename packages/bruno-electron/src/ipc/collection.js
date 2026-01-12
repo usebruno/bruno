@@ -25,6 +25,7 @@ const { wsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 
 const {
+  DEFAULT_GITIGNORE,
   writeFile,
   hasBruExtension,
   isDirectory,
@@ -159,6 +160,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         } else {
           throw new Error(`Invalid format: ${format}`);
         }
+
+        await writeFile(path.join(dirPath, '.gitignore'), DEFAULT_GITIGNORE);
 
         const { size, filesCount } = await getCollectionStats(dirPath);
         brunoConfig.size = size;
@@ -820,9 +823,24 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths) => {
+  ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths, options = {}) => {
     if (watcher && mainWindow) {
       await openCollectionsByPathname(mainWindow, watcher, collectionPaths);
+      if (options.workspacePath) {
+        const { setCollectionWorkspace } = require('../store/process-env');
+        const { generateUidBasedOnHash } = require('../utils/common');
+        for (const collectionPath of collectionPaths) {
+          const collectionUid = generateUidBasedOnHash(collectionPath);
+          setCollectionWorkspace(collectionUid, options.workspacePath);
+        }
+      }
+    }
+  });
+
+  ipcMain.handle('renderer:set-collection-workspace', (event, collectionUid, workspacePath) => {
+    if (workspacePath) {
+      const { setCollectionWorkspace } = require('../store/process-env');
+      setCollectionWorkspace(collectionUid, workspacePath);
     }
   });
 
@@ -834,6 +852,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         wsClient.closeForCollection(collectionUid);
       }
     }
+
+    // Clean up
+    const { clearCollectionWorkspace } = require('../store/process-env');
+    clearCollectionWorkspace(collectionUid);
 
     if (workspacePath && workspacePath !== 'default') {
       try {

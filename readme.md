@@ -3,7 +3,7 @@
 
 ### Bruno - Opensource IDE for exploring and testing APIs.
 
-[![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
+[![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%2Fbruno)
 [![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
@@ -43,7 +43,8 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 
 📢 Watch our recent talk at India FOSS 3.0 Conference [here](https://www.youtube.com/watch?v=7bSMFpbcPiY)
 
-![bruno](assets/images/landing-2.png) <br /><br />
+![bruno](assets/images/landing-2-dark.png#gh-light-mode-only)
+![bruno](assets/images/landing-2-light.png#gh-dark-mode-only) <br /><br />
 
 ## Commercial Versions ✨
 

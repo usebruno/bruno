@@ -1174,7 +1174,14 @@ export const getAllVariables = (collection, item) => {
   const pathParams = getPathParams(item);
   const { globalEnvironmentVariables = {} } = collection;
 
-  const { processEnvVariables = {}, runtimeVariables = {}, promptVariables = {} } = collection;
+  const { processEnvVariables = {}, runtimeVariables = {}, promptVariables = {}, workspaceProcessEnvVariables = {} } = collection;
+
+  // Merge workspace and collection processEnvVariables (collection takes priority)
+  const mergedProcessEnvVariables = {
+    ...workspaceProcessEnvVariables,
+    ...processEnvVariables
+  };
+
   const mergedVariables = {
     ...folderVariables,
     ...requestVariables,
@@ -1216,7 +1223,7 @@ export const getAllVariables = (collection, item) => {
     maskedEnvVariables: uniqueMaskedVariables,
     process: {
       env: {
-        ...processEnvVariables
+        ...mergedProcessEnvVariables
       }
     }
   };

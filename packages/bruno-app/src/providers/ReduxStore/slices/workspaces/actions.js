@@ -169,8 +169,8 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
 };
 
 const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
-  const openCollectionsFunction = (collectionPaths, workspaceId) => {
-    return dispatch(openMultipleCollections(collectionPaths, { workspaceId }));
+  const openCollectionsFunction = (collectionPaths, workspacePath) => {
+    return dispatch(openMultipleCollections(collectionPaths, { workspacePath }));
   };
 
   try {
@@ -418,7 +418,7 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
 
           if (uniqueNewCollectionPaths.length > 0) {
             try {
-              await dispatch(openMultipleCollections(uniqueNewCollectionPaths, { workspaceId: workspace.pathname }));
+              await dispatch(openMultipleCollections(uniqueNewCollectionPaths, { workspacePath: workspace.pathname }));
             } catch (error) {
             }
           }
