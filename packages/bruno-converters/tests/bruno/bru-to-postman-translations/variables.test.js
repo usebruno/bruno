@@ -58,6 +58,13 @@ describe('Bruno to Postman Variables Translation', () => {
     expect(translatedCode).toBe('pm.variables.get("baseUrl");');
   });
 
+  // Folder variables tests
+  it('should translate bru.getFolderVar', () => {
+    const code = 'bru.getFolderVar("folderToken");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.variables.get("folderToken");');
+  });
+
   // Request variables tests
   it('should translate bru.getRequestVar', () => {
     const code = 'bru.getRequestVar("requestId");';

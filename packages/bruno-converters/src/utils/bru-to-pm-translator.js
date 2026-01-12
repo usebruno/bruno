@@ -35,6 +35,10 @@ const simpleTranslations = {
   'bru.getCollectionVar': 'pm.variables.get',
   /* Bruno does not have a way to set, has or delete collection variables */
 
+  // Folder variables
+  'bru.getFolderVar': 'pm.variables.get',
+  /* Bruno does not have a way to set, has or delete folder variables */
+
   // Request variables (map to pm.variables.*)
   'bru.getRequestVar': 'pm.variables.get',
   /* Bruno does not have a way to set, has or delete request variables */
