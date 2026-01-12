@@ -167,7 +167,7 @@ const complexTransformations = [
     pattern: 'res.getStatus',
     transform: () => buildMemberExpressionFromString('pm.response.code')
   },
-  // res.getStatusText() -> pm.response.code
+  // res.getStatusText() -> pm.response.status
   {
     pattern: 'res.getStatusText',
     transform: () => buildMemberExpressionFromString('pm.response.status')
@@ -211,9 +211,8 @@ const cookieMethodMapping = {
  * and complex transformations in a single pass.
  *
  * @param {Object} ast - jscodeshift AST
- * @param {Object} changeTracker - Object to track if changes were made
  */
-function processAllTransformations(ast, changeTracker) {
+function processAllTransformations(ast) {
   // First handle CallExpressions for complex transformations
   ast.find(j.CallExpression).forEach((path) => {
     const { callee } = path.value;
@@ -229,10 +228,6 @@ function processAllTransformations(ast, changeTracker) {
       const replacement = transform.transform(path);
       if (replacement !== null) {
         j(path).replaceWith(replacement);
-        changeTracker.changed = true;
-      } else {
-        // Transform modified in place
-        changeTracker.changed = true;
       }
     }
   });
@@ -245,7 +240,6 @@ function processAllTransformations(ast, changeTracker) {
 
     const replacement = simpleTranslations[memberExprStr];
     j(path).replaceWith(buildMemberExpressionFromString(replacement));
-    changeTracker.changed = true;
   });
 }
 
@@ -254,9 +248,8 @@ function processAllTransformations(ast, changeTracker) {
  * Handles both direct calls and variables assigned to cookie jars.
  *
  * @param {Object} ast - jscodeshift AST
- * @param {Object} changeTracker - Object to track if changes were made
  */
-function transformCookieJarMethods(ast, changeTracker) {
+function transformCookieJarMethods(ast) {
   // Track variables assigned to cookie jar instances
   const cookieJarVars = new Set();
 
@@ -289,7 +282,6 @@ function transformCookieJarMethods(ast, changeTracker) {
 
     if (isDirectJarCall || isJarVariable) {
       path.value.callee.property.name = cookieMethodMapping[methodName];
-      changeTracker.changed = true;
     }
   });
 }
@@ -298,16 +290,14 @@ function transformCookieJarMethods(ast, changeTracker) {
  * Transform test() -> pm.test() and expect() -> pm.expect()
  *
  * @param {Object} ast - jscodeshift AST
- * @param {Object} changeTracker - Object to track if changes were made
  */
-function transformTestsAndExpect(ast, changeTracker) {
+function transformTestsAndExpect(ast) {
   // Transform test(...) -> pm.test(...)
   ast.find(j.CallExpression, { callee: { type: 'Identifier', name: 'test' } })
     .forEach((path) => {
       j(path.get('callee')).replaceWith(
         j.memberExpression(j.identifier('pm'), j.identifier('test'))
       );
-      changeTracker.changed = true;
     });
 
   // Transform expect(...) -> pm.expect(...)
@@ -316,7 +306,6 @@ function transformTestsAndExpect(ast, changeTracker) {
       j(path.get('callee')).replaceWith(
         j.memberExpression(j.identifier('pm'), j.identifier('expect'))
       );
-      changeTracker.changed = true;
     });
 }
 
@@ -343,30 +332,18 @@ function transformTestsAndExpect(ast, changeTracker) {
  */
 function translateBruToPostman(code) {
   if (!code || typeof code !== 'string') {
-    return code;
+    return '';
   }
 
   try {
     const ast = j(code);
-    const changeTracker = { changed: false };
 
-    // 1. Process all member expression transformations (simple + complex)
-    processAllTransformations(ast, changeTracker);
-
-    // 2. Transform cookie jar methods
-    transformCookieJarMethods(ast, changeTracker);
-
-    // 3. Transform test/expect (must run after other transformations)
-    transformTestsAndExpect(ast, changeTracker);
-
-    // If no changes were made, return original to preserve formatting
-    if (!changeTracker.changed) {
-      return code;
-    }
+    processAllTransformations(ast);
+    transformCookieJarMethods(ast);
+    transformTestsAndExpect(ast);
 
     return ast.toSource();
   } catch (e) {
-    // If translation fails, return original code
     console.warn('Error in Bruno to Postman translation:', e);
     return code;
   }
