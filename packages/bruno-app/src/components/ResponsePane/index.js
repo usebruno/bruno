@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import find from 'lodash/find';
+import isEqual from 'lodash/isEqual';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
@@ -41,8 +42,8 @@ const ResponsePane = ({ item, collection }) => {
   // Get the focused tab for reading persisted format/view state
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
 
-  // Track previous response data to detect when response actually changes
-  const previousResponseRef = useRef({ dataBuffer: null, headers: null });
+  // Track previous response headers to detect when content-type changes
+  const previousHeadersRef = useRef(null);
 
   // Initialize format and tab only once when data loads.
   const { initialFormat, initialTab } = useInitialResponseFormat(response?.dataBuffer, response?.headers);
@@ -60,27 +61,18 @@ const ResponsePane = ({ item, collection }) => {
       return;
     }
 
-    // Check if response data actually changed (not just format/tab)
-    const responseChanged
-      = previousResponseRef.current.dataBuffer !== response?.dataBuffer
-        || previousResponseRef.current.headers !== response?.headers;
+    // Check if response headers (content-type) changed using deep comparison
+    const headersChanged = !isEqual(previousHeadersRef.current, response?.headers);
 
-    if (responseChanged) {
-      // Update ref to track current response
-      previousResponseRef.current = {
-        dataBuffer: response?.dataBuffer,
-        headers: response?.headers
-      };
+    if (headersChanged) {
+      // Update ref to track current response headers
+      previousHeadersRef.current = response?.headers;
 
-      // Only auto-update format/tab when response data changes
-      if (persistedFormat === null || persistedFormat !== initialFormat) {
-        dispatch(updateResponseFormat({ uid: item.uid, responseFormat: initialFormat }));
-      }
-      if (persistedViewTab === null || persistedViewTab !== initialTab) {
-        dispatch(updateResponseViewTab({ uid: item.uid, responseViewTab: initialTab }));
-      }
+      // Always auto-update format/tab when content-type changes (new response)
+      dispatch(updateResponseFormat({ uid: item.uid, responseFormat: initialFormat }));
+      dispatch(updateResponseViewTab({ uid: item.uid, responseViewTab: initialTab }));
     }
-  }, [response?.dataBuffer, response?.headers, initialFormat, initialTab, persistedFormat, persistedViewTab, focusedTab, item.uid, dispatch]);
+  }, [response?.headers, initialFormat, initialTab, persistedFormat, persistedViewTab, focusedTab, item.uid, dispatch]);
 
   const handleFormatChange = useCallback((newFormat) => {
     dispatch(updateResponseFormat({ uid: item.uid, responseFormat: newFormat }));
