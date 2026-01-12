@@ -600,7 +600,7 @@ const handler = async function (argv) {
     const skippedFiles = global.brunoSkippedFiles || [];
     const skippedResults = skippedFiles.map((skippedFile) => {
       const relativePath = path.relative(collectionPath, skippedFile.path);
-      return {
+      const result = {
         test: {
           filename: relativePath
         },
@@ -622,10 +622,14 @@ const handler = async function (argv) {
         assertionResults: [],
         testResults: [],
         preRequestTestResults: [],
-        postResponseTestResults: [],
-        name: stripExtension(path.basename(skippedFile.path)),
-        path: relativePath,
-        runDuration: 0
+        postResponseTestResults: []
+      };
+      return {
+        ...result,
+        runDuration: 0,
+        suitename: stripExtension(relativePath),
+        name: path.basename(skippedFile.path),
+        path: relativePath
       };
     });
 
