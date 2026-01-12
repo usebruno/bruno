@@ -25,6 +25,7 @@ const { wsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 
 const {
+  DEFAULT_GITIGNORE,
   writeFile,
   hasBruExtension,
   isDirectory,
@@ -159,6 +160,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         } else {
           throw new Error(`Invalid format: ${format}`);
         }
+
+        await writeFile(path.join(dirPath, '.gitignore'), DEFAULT_GITIGNORE);
 
         const { size, filesCount } = await getCollectionStats(dirPath);
         brunoConfig.size = size;
