@@ -189,13 +189,16 @@ complexTransformations.forEach((t) => {
   complexTransformationsMap.set(t.pattern, t);
 });
 
-// Cookie jar method mappings (Bruno -> Postman)
+// Cookie jar method mappings (Bruno -> PM)
+// Note: Bruno's setCookie with cookie object form is not supported (Postman only accepts url, name, value, callback?)
+// Note: getCookies(url, callback?) -> getAll(url, options?, callback?)
+//       PM docs treat callback as 2nd arg, likely handled internally to detect function vs options object
 const cookieMethodMapping = {
-  getCookie: 'get',
-  getCookies: 'getAll',
-  setCookie: 'set',
-  deleteCookie: 'unset',
-  deleteCookies: 'clear'
+  getCookie: 'get', // (url, name, callback?) -> (url, name, callback?)
+  getCookies: 'getAll', // (url, callback?) -> (url, callback?) - PM handles internally
+  setCookie: 'set', // (url, name, value, callback?) -> (url, name, value?, callback?)
+  deleteCookie: 'unset', // (url, name, callback?) -> (url, name, callback?)
+  deleteCookies: 'clear' // (url, callback?) -> (url, callback?)
 };
 
 // =============================================================================

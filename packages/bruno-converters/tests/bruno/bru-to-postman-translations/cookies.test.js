@@ -22,9 +22,9 @@ describe('Bruno to Postman Cookies Translation', () => {
   });
 
   it('should translate setCookie to set (direct chaining)', () => {
-    const code = 'bru.cookies.jar().setCookie("https://example.com", "token=abc123");';
+    const code = 'bru.cookies.jar().setCookie("https://example.com", "token", "abc123");';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('pm.cookies.jar().set("https://example.com", "token=abc123");');
+    expect(translatedCode).toBe('pm.cookies.jar().set("https://example.com", "token", "abc123");');
   });
 
   it('should translate deleteCookie to unset (direct chaining)', () => {
@@ -65,12 +65,12 @@ const allCookies = jar.getCookies("https://example.com");
   it('should translate setCookie to set (jar variable)', () => {
     const code = `
 const jar = bru.cookies.jar();
-jar.setCookie("https://example.com", "token=abc123");
+jar.setCookie("https://example.com", "token", "abc123");
 `;
     const translatedCode = translateBruToPostman(code);
 
     expect(translatedCode).toContain('const jar = pm.cookies.jar();');
-    expect(translatedCode).toContain('jar.set("https://example.com", "token=abc123");');
+    expect(translatedCode).toContain('jar.set("https://example.com", "token", "abc123");');
   });
 
   it('should translate deleteCookie to unset (jar variable)', () => {
@@ -106,7 +106,7 @@ const existingToken = jar.getCookie(domain, "authToken");
 
 if (!existingToken) {
     // Set new cookie
-    jar.setCookie(domain, "authToken=" + bru.getEnvVar("token"));
+    jar.setCookie(domain, "authToken", bru.getEnvVar("token"));
 }
 
 // Get all cookies for logging
@@ -117,7 +117,7 @@ console.log("Current cookies:", allCookies);
 
     expect(translatedCode).toContain('const jar = pm.cookies.jar();');
     expect(translatedCode).toContain('const existingToken = jar.get(domain, "authToken");');
-    expect(translatedCode).toContain('jar.set(domain, "authToken=" + pm.environment.get("token"));');
+    expect(translatedCode).toContain('jar.set(domain, "authToken", pm.environment.get("token"));');
     expect(translatedCode).toContain('const allCookies = jar.getAll(domain);');
   });
 
