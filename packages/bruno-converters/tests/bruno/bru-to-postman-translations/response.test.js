@@ -8,10 +8,10 @@ describe('Bruno to Postman Response Translation', () => {
     expect(translatedCode).toBe('const jsonData = pm.response.json();');
   });
 
-  it('should translate res.getStatus()', () => {
+  it('should translate res.getStatus() to pm.response.code (function to property)', () => {
     const code = 'if (res.getStatus() === 200) { console.log("Success"); }';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('if (pm.response.code() === 200) { console.log("Success"); }');
+    expect(translatedCode).toBe('if (pm.response.code === 200) { console.log("Success"); }');
   });
 
   it('should translate JSON.stringify(res.getBody()) to pm.response.text()', () => {
@@ -20,22 +20,34 @@ describe('Bruno to Postman Response Translation', () => {
     expect(translatedCode).toBe('const responseText = pm.response.text();');
   });
 
-  it('should translate res.getResponseTime()', () => {
+  it('should translate res.getResponseTime() to pm.response.responseTime (function to property)', () => {
     const code = 'console.log("Response time:", res.getResponseTime());';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('console.log("Response time:", pm.response.responseTime());');
+    expect(translatedCode).toBe('console.log("Response time:", pm.response.responseTime);');
   });
 
-  it('should translate res.statusText', () => {
+  it('should translate res.statusText to pm.response.status (property to property)', () => {
     const code = 'console.log("Status text:", res.statusText);';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('console.log("Status text:", pm.response.statusText);');
+    expect(translatedCode).toBe('console.log("Status text:", pm.response.status);');
   });
 
-  it('should translate res.getHeaders()', () => {
+  it('should translate res.status to pm.response.code (property to property)', () => {
+    const code = 'const code = res.status;';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const code = pm.response.code;');
+  });
+
+  it('should translate res.getStatusText() to pm.response.status (function to property)', () => {
+    const code = 'const statusText = res.getStatusText();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const statusText = pm.response.status;');
+  });
+
+  it('should translate res.getHeaders() to pm.response.headers (function to property)', () => {
     const code = 'console.log("Headers:", res.getHeaders());';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('console.log("Headers:", pm.response.headers());');
+    expect(translatedCode).toBe('console.log("Headers:", pm.response.headers);');
   });
 
   it('should translate res.getHeader()', () => {
@@ -44,23 +56,23 @@ describe('Bruno to Postman Response Translation', () => {
     expect(translatedCode).toBe('const contentType = pm.response.headers.get("Content-Type");');
   });
 
-  // Response assertions
-  it('should transform expect(res.getStatus()).to.equal() to pm.response.to.have.status()', () => {
+  // Response assertions - translated to pm.expect with response properties
+  it('should transform expect(res.getStatus()).to.equal() to pm.expect(pm.response.code).to.equal()', () => {
     const code = 'expect(res.getStatus()).to.equal(201);';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('pm.response.to.have.status(201);');
+    expect(translatedCode).toBe('pm.expect(pm.response.code).to.equal(201);');
   });
 
-  it('should transform expect(res.getHeaders()).to.have.property() to pm.response.to.have.header()', () => {
+  it('should transform expect(res.getHeaders()).to.have.property() to pm.expect(pm.response.headers).to.have.property()', () => {
     const code = 'expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase());';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('pm.response.to.have.header("Content-Type".toLowerCase());');
+    expect(translatedCode).toBe('pm.expect(pm.response.headers).to.have.property("Content-Type".toLowerCase());');
   });
 
-  it('should transform expect(res.getBody()).to.equal() to pm.response.to.have.body()', () => {
+  it('should transform expect(res.getBody()).to.equal() to pm.expect(pm.response.json()).to.equal()', () => {
     const code = 'expect(res.getBody()).to.equal("Expected response body");';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('pm.response.to.have.body("Expected response body");');
+    expect(translatedCode).toBe('pm.expect(pm.response.json()).to.equal("Expected response body");');
   });
 
   // getSize translations
@@ -133,12 +145,12 @@ if (res.getStatus() >= 200 && res.getStatus() < 300) {
 `;
     const translatedCode = translateBruToPostman(code);
 
-    expect(translatedCode).toContain('if (pm.response.code() >= 200 && pm.response.code() < 300) {');
+    expect(translatedCode).toContain('if (pm.response.code >= 200 && pm.response.code < 300) {');
     expect(translatedCode).toContain('if (pm.response.headers.get(\'Content-Type\').includes(\'application/json\')) {');
     expect(translatedCode).toContain('const data = pm.response.json();');
     expect(translatedCode).toContain('pm.environment.set("authToken", data.token);');
-    expect(translatedCode).toContain('} else if (pm.response.code() === 404) {');
-    expect(translatedCode).toContain('console.error("Request failed with status:", pm.response.code());');
+    expect(translatedCode).toContain('} else if (pm.response.code === 404) {');
+    expect(translatedCode).toContain('console.error("Request failed with status:", pm.response.code);');
   });
 
   it('should handle all response property methods together', () => {
@@ -151,10 +163,10 @@ const responseTime = res.getResponseTime();
 `;
     const translatedCode = translateBruToPostman(code);
 
-    expect(translatedCode).toContain('const statusCode = pm.response.code();');
+    expect(translatedCode).toContain('const statusCode = pm.response.code;');
     expect(translatedCode).toContain('const responseBody = pm.response.json();');
-    expect(translatedCode).toContain('const statusText = pm.response.statusText;');
-    expect(translatedCode).toContain('const responseTime = pm.response.responseTime();');
+    expect(translatedCode).toContain('const statusText = pm.response.status;');
+    expect(translatedCode).toContain('const responseTime = pm.response.responseTime;');
   });
 
   it('should handle response processing in arrow functions', () => {

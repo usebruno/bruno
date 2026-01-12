@@ -51,6 +51,20 @@ describe('Bruno to Postman Variables Translation', () => {
     expect(translatedCode).toBe('pm.globals.set("test", "value");');
   });
 
+  // Collection variables tests
+  it('should translate bru.getCollectionVar', () => {
+    const code = 'bru.getCollectionVar("baseUrl");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.variables.get("baseUrl");');
+  });
+
+  // Request variables tests
+  it('should translate bru.getRequestVar', () => {
+    const code = 'bru.getRequestVar("requestId");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.variables.get("requestId");');
+  });
+
   // Combined tests
   it('should handle conditional expressions with variable calls', () => {
     const code = 'const userStatus = bru.hasVar("userId") ? "logged-in" : "guest";';

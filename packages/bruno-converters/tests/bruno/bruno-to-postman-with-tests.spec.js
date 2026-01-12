@@ -34,7 +34,7 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
           },
           vars: {},
           assertions: [],
-          tests: 'test("Status code is 200", () => {\n    expect(res.status).to.eql(200);\n});\ntest("Body is not empty", () => {\n    expect(res.text).not.to.eql("");\n});',
+          tests: 'test("Status code is 200", () => {\n    expect(res.status).to.eql(200);\n});\ntest("Body is not empty", () => {\n    expect(res.body).not.to.eql("");\n});',
           docs: '',
           auth: {
             mode: 'none'
@@ -56,7 +56,7 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
               req: 'console.log("scripts-folder script line 1");\nconsole.log("scripts-folder script line 2")',
               res: 'console.log("scripts-folder script line 1");\nconsole.log("scripts-folder script line 2")'
             },
-            tests: 'test("Status code is 200", () => {\n    expect(res.status).to.eql(200);\n});\ntest("Body is not empty", () => {\n    expect(res.text).not.to.eql("");\n});'
+            tests: 'test("Status code is 200", () => {\n    expect(res.status).to.eql(200);\n});\ntest("Body is not empty", () => {\n    expect(res.body).not.to.eql("");\n});'
           },
           meta: {
             name: 'Scripts Folder',
@@ -93,7 +93,7 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
               },
               vars: {},
               assertions: [],
-              tests: 'test("Status code is 200", () => {\n    expect(res.status).to.eql(200);\n});\ntest("Body is not empty", () => {\n    expect(res.text).not.to.eql("");\n});',
+              tests: 'test("Status code is 200", () => {\n    expect(res.status).to.eql(200);\n});\ntest("Body is not empty", () => {\n    expect(res.body).not.to.eql("");\n});',
               docs: '',
               auth: {
                 mode: 'none'
@@ -115,7 +115,7 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
                   req: 'console.log("scripts-inner-folder script line 1");\nconsole.log("scripts-inner-folder script line 2")',
                   res: 'console.log("scripts-inner-folder script line 1");\nconsole.log("scripts-inner-folder script line 2")'
                 },
-                tests: 'test("Status code is 200", () => {\n    expect(res.status).to.eql(200);\n});\ntest("Body is not empty", () => {\n    expect(res.text).not.to.eql("");\n});'
+                tests: 'test("Status code is 200", () => {\n    expect(res.status).to.eql(200);\n});\ntest("Body is not empty", () => {\n    expect(res.body).not.to.eql("");\n});'
               },
               meta: {
                 name: 'Scripts Inner Folder',
@@ -152,7 +152,7 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
                   },
                   vars: {},
                   assertions: [],
-                  tests: 'test("Status code is 200", () => {\n    expect(res.status).to.eql(200);\n});\ntest("Body is not empty", () => {\n    expect(res.text).not.to.eql("");\n});',
+                  tests: 'test("Status code is 200", () => {\n    expect(res.status).to.eql(200);\n});\ntest("Body is not empty", () => {\n    expect(res.body).not.to.eql("");\n});',
                   docs: '',
                   auth: {
                     mode: 'none'
@@ -171,7 +171,7 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
           req: 'console.log("root-request script line 1");\nconsole.log("root-request script line 2")',
           res: 'console.log("root-request script line 1");\nconsole.log("root-request script line 2")'
         },
-        tests: 'test("Status code is 200", () => {\n    expect(res.status).to.eql(200);\n});\ntest("Body is not empty", () => {\n    expect(res.text).not.to.eql("");\n});'
+        tests: 'test("Status code is 200", () => {\n    expect(res.status).to.eql(200);\n});\ntest("Body is not empty", () => {\n    expect(res.body).not.to.eql("");\n});'
       }
     },
     brunoConfig: {
@@ -205,10 +205,10 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
       '',
       '// Tests',
       'pm.test("Status code is 200", () => {',
-      '    pm.expect(res.status).to.eql(200);',
+      '    pm.expect(pm.response.code).to.eql(200);',
       '});',
       'pm.test("Body is not empty", () => {',
-      '    pm.expect(res.text).not.to.eql("");',
+      '    pm.expect(pm.response.body).not.to.eql("");',
       '});'
     ]);
   });
@@ -231,10 +231,10 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
       '',
       '// Tests',
       'pm.test("Status code is 200", () => {',
-      '    pm.expect(res.status).to.eql(200);',
+      '    pm.expect(pm.response.code).to.eql(200);',
       '});',
       'pm.test("Body is not empty", () => {',
-      '    pm.expect(res.text).not.to.eql("");',
+      '    pm.expect(pm.response.body).not.to.eql("");',
       '});'
     ]);
   });
@@ -258,10 +258,10 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
       '',
       '// Tests',
       'pm.test("Status code is 200", () => {',
-      '    pm.expect(res.status).to.eql(200);',
+      '    pm.expect(pm.response.code).to.eql(200);',
       '});',
       'pm.test("Body is not empty", () => {',
-      '    pm.expect(res.text).not.to.eql("");',
+      '    pm.expect(pm.response.body).not.to.eql("");',
       '});'
     ]);
   });
@@ -283,10 +283,10 @@ describe('Bruno to Postman Converter with Tests and Scripts', () => {
       '',
       '// Tests',
       'pm.test("Status code is 200", () => {',
-      '    pm.expect(res.status).to.eql(200);',
+      '    pm.expect(pm.response.code).to.eql(200);',
       '});',
       'pm.test("Body is not empty", () => {',
-      '    pm.expect(res.text).not.to.eql("");',
+      '    pm.expect(pm.response.body).not.to.eql("");',
       '});'
     ]);
   });

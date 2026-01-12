@@ -23,40 +23,46 @@ const simpleTranslations = {
   // Environment variables
   'bru.getEnvVar': 'pm.environment.get',
   'bru.setEnvVar': 'pm.environment.set',
+  'bru.hasEnvVar': 'pm.environment.has',
   'bru.deleteEnvVar': 'pm.environment.unset',
-  'bru.getEnvName': 'pm.environment.name',
+  // Note: bru.getEnvName() is handled in complexTransformations because it's a function -> property conversion
 
-  // Variables
+  // Runtime variables
   'bru.getVar': 'pm.variables.get',
   'bru.setVar': 'pm.variables.set',
   'bru.hasVar': 'pm.variables.has',
   'bru.deleteVar': 'pm.variables.unset',
+  // 'bru.deleteAllVars':  Postman does not have a way to delete all variables
+
+  // Collection variables
+  'bru.getCollectionVar': 'pm.variables.get',
+  /* Bruno does not have a way to set, has or delete collection variables */
+
+  // Request variables (map to pm.variables.*)
+  'bru.getRequestVar': 'pm.variables.get',
+  /* Bruno does not have a way to set, has or delete request variables */
+
+  // Interpolation
   'bru.interpolate': 'pm.variables.replaceIn',
 
-  // Collection variables (map to pm.variables.*)
-  'bru.collection.getVar': 'pm.variables.get',
-  'bru.collection.setVar': 'pm.variables.set',
-  'bru.collection.hasVar': 'pm.variables.has',
-  'bru.collection.deleteVar': 'pm.variables.unset',
-
   // Execution control
-  'bru.setNextRequest': 'pm.setNextRequest',
+  'bru.setNextRequest': 'pm.execution.setNextRequest',
   'bru.runner.skipRequest': 'pm.execution.skipRequest',
   'bru.runner.setNextRequest': 'pm.execution.setNextRequest',
 
   // Request helpers
-  'req.getUrl': 'pm.request.url',
-  'req.getMethod': 'pm.request.method',
-  'req.getHeaders': 'pm.request.headers',
-  'req.getBody': 'pm.request.body',
-  'req.getName': 'pm.info.requestName',
+  // Note: req.getUrl(), req.getMethod(), req.getHeaders(), req.getBody(), req.getName() are handled
+  // in complexTransformations because they're function -> property conversions
+  'req.getHeader': 'pm.request.headers.get',
+  'req.setHeader': 'pm.request.headers.set',
 
   // Response helpers
+  // Note: res.getStatus(), res.getResponseTime(), res.getHeaders() are handled
+  // in complexTransformations because they're function -> property conversions
+  'res.status': 'pm.response.code',
+  'res.statusText': 'pm.response.status',
+  'res.body': 'pm.response.body',
   'res.getBody': 'pm.response.json',
-  'res.getStatus': 'pm.response.code',
-  'res.statusText': 'pm.response.statusText',
-  'res.getResponseTime': 'pm.response.responseTime',
-  'res.getHeaders': 'pm.response.headers',
   'res.getHeader': 'pm.response.headers.get',
 
   // Cookies jar
@@ -116,6 +122,64 @@ const complexTransformations = [
         []
       );
     }
+  },
+
+  // bru.getEnvName() -> pm.environment.name (function to property)
+  {
+    pattern: 'bru.getEnvName',
+    transform: () => {
+      // Replace the entire call expression with just the member expression (property access)
+      return buildMemberExpressionFromString('pm.environment.name');
+    }
+  },
+
+  // Request helpers: function -> property conversions
+  // req.getUrl() -> pm.request.url
+  {
+    pattern: 'req.getUrl',
+    transform: () => buildMemberExpressionFromString('pm.request.url')
+  },
+  // req.getMethod() -> pm.request.method
+  {
+    pattern: 'req.getMethod',
+    transform: () => buildMemberExpressionFromString('pm.request.method')
+  },
+  // req.getHeaders() -> pm.request.headers
+  {
+    pattern: 'req.getHeaders',
+    transform: () => buildMemberExpressionFromString('pm.request.headers')
+  },
+  // req.getBody() -> pm.request.body
+  {
+    pattern: 'req.getBody',
+    transform: () => buildMemberExpressionFromString('pm.request.body')
+  },
+  // req.getName() -> pm.info.requestName
+  {
+    pattern: 'req.getName',
+    transform: () => buildMemberExpressionFromString('pm.info.requestName')
+  },
+
+  // Response helpers: function -> property conversions
+  // res.getStatus() -> pm.response.code
+  {
+    pattern: 'res.getStatus',
+    transform: () => buildMemberExpressionFromString('pm.response.code')
+  },
+  // res.getStatusText() -> pm.response.code
+  {
+    pattern: 'res.getStatusText',
+    transform: () => buildMemberExpressionFromString('pm.response.status')
+  },
+  // res.getResponseTime() -> pm.response.responseTime
+  {
+    pattern: 'res.getResponseTime',
+    transform: () => buildMemberExpressionFromString('pm.response.responseTime')
+  },
+  // res.getHeaders() -> pm.response.headers
+  {
+    pattern: 'res.getHeaders',
+    transform: () => buildMemberExpressionFromString('pm.response.headers')
   }
 ];
 
@@ -293,76 +357,6 @@ function transformEnvHas(ast, changeTracker) {
 }
 
 /**
- * Transform expect assertions for response properties.
- *
- * Transforms:
- * - expect(res.getStatus()).to.equal(X) -> pm.response.to.have.status(X)
- * - expect(res.getBody()).to.equal(X) -> pm.response.to.have.body(X)
- * - expect(res.getHeaders()).to.have.property(X) -> pm.response.to.have.header(X)
- *
- * @param {Object} ast - jscodeshift AST
- * @param {Object} changeTracker - Object to track if changes were made
- */
-function transformExpectAssertions(ast, changeTracker) {
-  ast.find(j.CallExpression).forEach((path) => {
-    const { callee, arguments: args } = path.value;
-    if (callee.type !== 'MemberExpression') return;
-
-    // Traverse up to find expect(...) call and build chain method string
-    let current = callee;
-    const pathParts = [];
-
-    while (current && current.type === 'MemberExpression') {
-      if (current.property?.type === 'Identifier') {
-        pathParts.unshift(current.property.name);
-      }
-      current = current.object;
-    }
-
-    // Current should now be expect(...) call
-    if (!current || current.type !== 'CallExpression') return;
-    if (!current.callee || current.callee.type !== 'Identifier' || current.callee.name !== 'expect') return;
-
-    const expectArgs = current.arguments;
-    if (expectArgs.length === 0) return;
-
-    const expectArg = expectArgs[0];
-    const chainMethod = pathParts.join('.');
-
-    // Get the expect target (what's being tested)
-    let expectTarget = '';
-    if (expectArg.type === 'CallExpression' && expectArg.callee.type === 'MemberExpression') {
-      expectTarget = getMemberExpressionString(expectArg.callee);
-    }
-
-    // Transform based on pattern
-    let newCall = null;
-
-    if (expectTarget === 'res.getStatus' && chainMethod === 'to.equal') {
-      newCall = j.callExpression(
-        buildMemberExpressionFromString('pm.response.to.have.status'),
-        cloneDeep(args)
-      );
-    } else if (expectTarget === 'res.getBody' && chainMethod === 'to.equal') {
-      newCall = j.callExpression(
-        buildMemberExpressionFromString('pm.response.to.have.body'),
-        cloneDeep(args)
-      );
-    } else if (expectTarget === 'res.getHeaders' && chainMethod === 'to.have.property') {
-      newCall = j.callExpression(
-        buildMemberExpressionFromString('pm.response.to.have.header'),
-        cloneDeep(args)
-      );
-    }
-
-    if (newCall) {
-      j(path).replaceWith(newCall);
-      changeTracker.changed = true;
-    }
-  });
-}
-
-/**
  * Transform test() -> pm.test() and expect() -> pm.expect()
  *
  * @param {Object} ast - jscodeshift AST
@@ -424,16 +418,13 @@ function translateBruToPostman(code) {
     // 1. Transform env.has pattern (detects bru.getEnvVar)
     transformEnvHas(ast, changeTracker);
 
-    // 2. Transform expect assertions (detects res.* patterns)
-    transformExpectAssertions(ast, changeTracker);
-
-    // 3. Process all member expression transformations (simple + complex)
+    // 2. Process all member expression transformations (simple + complex)
     processAllTransformations(ast, changeTracker);
 
-    // 4. Transform cookie jar methods
+    // 3. Transform cookie jar methods
     transformCookieJarMethods(ast, changeTracker);
 
-    // 5. Transform test/expect (must run after other transformations)
+    // 4. Transform test/expect (must run after other transformations)
     transformTestsAndExpect(ast, changeTracker);
 
     // If no changes were made, return original to preserve formatting

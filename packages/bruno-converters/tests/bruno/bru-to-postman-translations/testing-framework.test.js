@@ -5,7 +5,7 @@ describe('Bruno to Postman Testing Framework Translation', () => {
   it('should translate test() to pm.test()', () => {
     const code = 'test("Status code is 200", function() { expect(res.getStatus()).to.equal(200); });';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('pm.test("Status code is 200", function() { pm.response.to.have.status(200); });');
+    expect(translatedCode).toBe('pm.test("Status code is 200", function() { pm.expect(pm.response.code).to.equal(200); });');
   });
 
   it('should translate expect() to pm.expect()', () => {
@@ -30,8 +30,8 @@ test("Check environment and call successful", function () {
     const translatedCode = translateBruToPostman(code);
     expect(translatedCode).toBe(`
 pm.test("Check environment and call successful", function () {
-    pm.expect(pm.environment.name()).to.equal("ENVIRONMENT_NAME");
-    pm.response.to.have.status(200);
+    pm.expect(pm.environment.name).to.equal("ENVIRONMENT_NAME");
+    pm.expect(pm.response.code).to.equal(200);
 });`);
   });
 
@@ -45,7 +45,7 @@ test("Status code is 200", () => {
     const translatedCode = translateBruToPostman(code);
 
     expect(translatedCode).toContain('pm.test("Status code is 200", () => {');
-    expect(translatedCode).toContain('pm.response.to.have.status(200);');
+    expect(translatedCode).toContain('pm.expect(pm.response.code).to.equal(200);');
   });
 
   it('should handle multiple test assertions in one function', () => {
