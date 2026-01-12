@@ -723,7 +723,8 @@ export const ossSchema = {
         thead: {
           type: 'object',
           properties: {
-            color: { type: 'string' }
+            color: { type: 'string' },
+            bg: { type: 'string' }
           },
           required: ['color'],
           additionalProperties: false
@@ -1183,6 +1184,16 @@ export const ossSchema = {
       },
       required: ['collection'],
       additionalProperties: false
+    },
+    kbd: {
+      type: 'object',
+      properties: {
+        bg: { type: 'string' },
+        color: { type: 'string' },
+        border: { type: 'string' }
+      },
+      required: ['bg', 'color', 'border'],
+      additionalProperties: false
     }
   },
   required: [
@@ -1190,7 +1201,7 @@ export const ossSchema = {
     'sidebar', 'dropdown', 'workspace', 'request',
     'requestTabPanel', 'notifications', 'modal', 'button', 'button2', 'tabs',
     'requestTabs', 'codemirror', 'table', 'plainGrid', 'scrollbar', 'dragAndDrop',
-    'infoTip', 'statusBar', 'console', 'grpc', 'deprecationWarning', 'examples', 'app'
+    'infoTip', 'statusBar', 'console', 'grpc', 'deprecationWarning', 'examples', 'app', 'kbd'
   ],
   additionalProperties: false
 };

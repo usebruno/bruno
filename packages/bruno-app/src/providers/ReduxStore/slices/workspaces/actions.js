@@ -267,7 +267,8 @@ export const switchWorkspace = (workspaceUid) => {
 
     const permanentTabs = [
       { type: 'overview', label: 'Overview' },
-      { type: 'environments', label: 'Global Environments' }
+      { type: 'environments', label: 'Global Environments' },
+      { type: 'preferences', label: 'Preferences' }
     ];
     dispatch(initializeWorkspaceTabs({ workspaceUid, permanentTabs }));
     dispatch(setActiveWorkspaceTab({ workspaceUid, type: 'overview' }));

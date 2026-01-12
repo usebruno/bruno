@@ -417,7 +417,8 @@ const lightMonochromeTheme = {
   table: {
     border: '#efefef',
     thead: {
-      color: '#616161'
+      color: '#616161',
+      bg: colors.GRAY_1
     },
     striped: '#f3f3f3',
     input: {
@@ -634,6 +635,11 @@ const lightMonochromeTheme = {
           }
         }
       }
+    },
+    kbd: {
+      bg: '#f3f3f3',
+      color: colors.TEXT,
+      border: colors.GRAY_4
     }
   }
 };

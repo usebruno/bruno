@@ -429,7 +429,8 @@ const catppuccinLatteTheme = {
   table: {
     border: colors.SURFACE1,
     thead: {
-      color: colors.SUBTEXT1
+      color: colors.SUBTEXT1,
+      bg: colors.MANTLE
     },
     striped: colors.MANTLE,
     input: {
@@ -647,6 +648,11 @@ const catppuccinLatteTheme = {
           }
         }
       }
+    },
+    kbd: {
+      bg: colors.SURFACE0,
+      color: colors.TEXT,
+      border: colors.SURFACE1
     }
   }
 };

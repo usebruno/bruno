@@ -9,7 +9,8 @@ import StyledWrapper from './StyledWrapper';
 
 const PERMANENT_TABS = [
   { type: 'overview', label: 'Overview' },
-  { type: 'environments', label: 'Global Environments' }
+  { type: 'environments', label: 'Global Environments' },
+  { type: 'preferences', label: 'Preferences' }
 ];
 
 const WorkspaceTabs = ({ workspaceUid }) => {

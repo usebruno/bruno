@@ -44,7 +44,7 @@ const RequestTabs = () => {
   }, []);
 
   const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-  const activeCollection = find(collections, (c) => c.uid === activeTab?.collectionUid);
+  const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
 
   useEffect(() => {
@@ -116,7 +116,7 @@ const RequestTabs = () => {
       )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
-          <CollectionToolBar collection={activeCollection} />
+          {activeCollection && <CollectionToolBar collection={activeCollection} />}
           <div className="flex items-center gap-2 pl-2" ref={collectionTabsRef}>
 
             {showChevrons ? (

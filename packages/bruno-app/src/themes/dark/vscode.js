@@ -438,7 +438,8 @@ const vscodeDarkTheme = {
   table: {
     border: colors.BORDER_LIGHT,
     thead: {
-      color: colors.TEXT
+      color: colors.TEXT,
+      bg: colors.GRAY_2
     },
     striped: colors.GRAY_1,
     input: {
@@ -656,6 +657,11 @@ const vscodeDarkTheme = {
           }
         }
       }
+    },
+    kbd: {
+      bg: '#3f3f3f',
+      color: colors.TEXT,
+      border: colors.BORDER
     }
   }
 };

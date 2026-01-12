@@ -33,6 +33,7 @@ import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
 import ResponseExample from 'components/ResponseExample';
 import WorkspaceHome from 'components/WorkspaceHome';
+import Preferences from 'components/Preferences';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 
@@ -171,11 +172,16 @@ const RequestTabPanel = () => {
   }, [isConsoleOpen, isVerticalLayout]);
 
   if (!activeTabUid || !focusedTab) {
-    return <WorkspaceHome />;
+    return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
   if (focusedTab.type === 'global-environment-settings') {
     return <GlobalEnvironmentSettings />;
+  }
+
+  if (focusedTab.type === 'preferences') {
+    // TODO: Add a preferences tab panel to the request tab panel
+    return <Preferences />;
   }
 
   if (!focusedTab.uid || !focusedTab.collectionUid) {

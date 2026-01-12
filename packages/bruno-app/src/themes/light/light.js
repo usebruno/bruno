@@ -453,7 +453,8 @@ const lightTheme = {
   table: {
     border: palette.border.BORDER0,
     thead: {
-      color: palette.text.SUBTEXT2
+      color: palette.text.SUBTEXT2,
+      bg: '#f8f9fa'
     },
     striped: palette.background.SURFACE0,
     input: {
@@ -670,6 +671,11 @@ const lightTheme = {
           }
         }
       }
+    },
+    kbd: {
+      bg: '#f3f3f3',
+      color: palette.text.BASE,
+      border: palette.border.BORDER2
     }
   }
 };

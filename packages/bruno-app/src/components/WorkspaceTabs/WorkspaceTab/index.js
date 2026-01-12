@@ -1,12 +1,13 @@
 import React from 'react';
-import { IconX, IconHome, IconWorld } from '@tabler/icons';
+import { IconX, IconHome, IconWorld, IconSettings } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { closeWorkspaceTab } from 'providers/ReduxStore/slices/workspaceTabs';
 import StyledWrapper from './StyledWrapper';
 
 const TAB_ICONS = {
   overview: IconHome,
-  environments: IconWorld
+  environments: IconWorld,
+  preferences: IconSettings
 };
 
 const WorkspaceTab = ({ tab, isActive }) => {

@@ -150,6 +150,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const hasFolderDraft = tab.type === 'folder-settings' && folder?.draft;
   const hasEnvironmentDraft = tab.type === 'environment-settings' && collection?.environmentsDraft;
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
+  const preferences = useSelector((state) => state.app.preferences);
   const hasGlobalEnvironmentDraft = tab.type === 'global-environment-settings' && globalEnvironmentDraft;
 
   const handleCloseEnvironmentSettings = (event) => {
@@ -172,7 +173,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     setShowConfirmGlobalEnvironmentClose(true);
   };
 
-  if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'environment-settings', 'global-environment-settings'].includes(tab.type)) {
+  if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'environment-settings', 'global-environment-settings', 'preferences'].includes(tab.type)) {
     return (
       <StyledWrapper
         className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
