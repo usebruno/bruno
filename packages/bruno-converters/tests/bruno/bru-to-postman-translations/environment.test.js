@@ -31,13 +31,6 @@ describe('Bruno to Postman Environment Variable Translation', () => {
     expect(translatedCode).toBe('const envName = pm.environment.name;');
   });
 
-  it('should translate pm.environment.has pattern back to pm.environment.has', () => {
-    // The Bruno pattern: bru.getEnvVar("test") !== undefined && bru.getEnvVar("test") !== null
-    const code = 'bru.getEnvVar("test") !== undefined && bru.getEnvVar("test") !== null';
-    const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('pm.environment.has("test")');
-  });
-
   it('should handle nested Postman API calls with environment', () => {
     const code = 'bru.setEnvVar("computed", bru.getVar("base") + "-suffix");';
     const translatedCode = translateBruToPostman(code);

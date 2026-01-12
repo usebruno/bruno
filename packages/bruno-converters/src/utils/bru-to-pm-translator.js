@@ -1,11 +1,8 @@
 import {
   getMemberExpressionString,
-  buildMemberExpressionFromString,
-  isIdentifierNamed,
-  isNullLiteral
+  buildMemberExpressionFromString
 } from './ast-utils';
 const j = require('jscodeshift');
-const cloneDeep = require('lodash/cloneDeep');
 
 // =============================================================================
 // SIMPLE TRANSLATIONS
@@ -294,72 +291,6 @@ function transformCookieJarMethods(ast, changeTracker) {
 }
 
 /**
- * Check if a call expression matches bru.getEnvVar pattern.
- *
- * @param {Object} node - The AST node to check
- * @returns {boolean} - True if node is a bru.getEnvVar call
- */
-function isGetEnvVarCall(node) {
-  if (!node || node.type !== 'CallExpression') return false;
-  if (!node.callee || node.callee.type !== 'MemberExpression') return false;
-  return getMemberExpressionString(node.callee) === 'bru.getEnvVar';
-}
-
-/**
- * Compare argument arrays by comparing their source representation.
- *
- * @param {Array} args1 - First argument array
- * @param {Array} args2 - Second argument array
- * @returns {boolean} - True if arguments are equivalent
- */
-function argsAreEqual(args1, args2) {
-  if (args1.length !== args2.length) return false;
-  for (let i = 0; i < args1.length; i++) {
-    const source1 = j(args1[i]).toSource();
-    const source2 = j(args2[i]).toSource();
-    if (source1 !== source2) return false;
-  }
-  return true;
-}
-
-/**
- * Transform the Bruno env.has pattern back to pm.environment.has.
- * Pattern: bru.getEnvVar("x") !== undefined && bru.getEnvVar("x") !== null
- *       -> pm.environment.has("x")
- *
- * @param {Object} ast - jscodeshift AST
- * @param {Object} changeTracker - Object to track if changes were made
- */
-function transformEnvHas(ast, changeTracker) {
-  ast.find(j.LogicalExpression, { operator: '&&' }).forEach((path) => {
-    const { left, right } = path.value;
-
-    // Both sides must be binary expressions with !==
-    if (left.type !== 'BinaryExpression' || left.operator !== '!==') return;
-    if (right.type !== 'BinaryExpression' || right.operator !== '!==') return;
-
-    // Left side: bru.getEnvVar(...) !== undefined
-    if (!isGetEnvVarCall(left.left) || !isIdentifierNamed(left.right, 'undefined')) return;
-
-    // Right side: bru.getEnvVar(...) !== null
-    if (!isGetEnvVarCall(right.left) || !isNullLiteral(right.right)) return;
-
-    // Arguments must be the same
-    const leftArgs = left.left.arguments || [];
-    const rightArgs = right.left.arguments || [];
-    if (!argsAreEqual(leftArgs, rightArgs)) return;
-
-    // Replace with pm.environment.has(...)
-    const newCall = j.callExpression(
-      buildMemberExpressionFromString('pm.environment.has'),
-      cloneDeep(leftArgs)
-    );
-    j(path).replaceWith(newCall);
-    changeTracker.changed = true;
-  });
-}
-
-/**
  * Transform test() -> pm.test() and expect() -> pm.expect()
  *
  * @param {Object} ast - jscodeshift AST
@@ -415,19 +346,13 @@ function translateBruToPostman(code) {
     const ast = j(code);
     const changeTracker = { changed: false };
 
-    // Order matters: complex transformations that detect bru.* patterns
-    // must run BEFORE simple translations that would replace those patterns
-
-    // 1. Transform env.has pattern (detects bru.getEnvVar)
-    transformEnvHas(ast, changeTracker);
-
-    // 2. Process all member expression transformations (simple + complex)
+    // 1. Process all member expression transformations (simple + complex)
     processAllTransformations(ast, changeTracker);
 
-    // 3. Transform cookie jar methods
+    // 2. Transform cookie jar methods
     transformCookieJarMethods(ast, changeTracker);
 
-    // 4. Transform test/expect (must run after other transformations)
+    // 3. Transform test/expect (must run after other transformations)
     transformTestsAndExpect(ast, changeTracker);
 
     // If no changes were made, return original to preserve formatting
