@@ -176,7 +176,9 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
 
 const WSMessagesList = ({ messages = [] }) => {
   const virtuosoRef = useRef(null);
+  const [scrollerElement, setScrollerElement] = useState(null);
   const [openMessages, setOpenMessages] = useState(new Set());
+  const userScrolledAwayRef = useRef(false);
 
   // Toggle message open/closed state by timestamp
   const handleMessageToggle = useCallback((timestamp) => {
@@ -191,8 +193,36 @@ const WSMessagesList = ({ messages = [] }) => {
     });
   }, []);
 
+  useEffect(() => {
+    if (!scrollerElement) return;
+
+    const handleWheel = (e) => {
+      // deltaY < 0 means scrolling up
+      if (e.deltaY < 0) {
+        userScrolledAwayRef.current = true;
+      }
+    };
+
+    scrollerElement.addEventListener('wheel', handleWheel, { passive: true });
+
+    return () => {
+      scrollerElement.removeEventListener('wheel', handleWheel);
+    };
+  }, [scrollerElement]);
+
+  const handleAtBottomStateChange = useCallback((atBottom) => {
+    if (atBottom) {
+      // User scrolled back to bottom, re-enable auto-scroll
+      userScrolledAwayRef.current = false;
+    }
+  }, []);
+
   const followOutput = useCallback((isAtBottom) => {
-    if (openMessages.size === 0 && isAtBottom) {
+    // Don't auto-scroll if user has scrolled away or has messages open
+    if (userScrolledAwayRef.current || openMessages.size > 0) {
+      return false;
+    }
+    if (isAtBottom) {
       return 'smooth';
     }
     return false;
@@ -215,11 +245,13 @@ const WSMessagesList = ({ messages = [] }) => {
     <StyledWrapper className="ws-messages-list flex flex-col">
       <Virtuoso
         ref={virtuosoRef}
+        scrollerRef={setScrollerElement}
         data={messages}
         itemContent={renderItem}
         computeItemKey={computeItemKey}
         followOutput={followOutput}
         initialTopMostItemIndex={messages.length - 1}
+        atBottomStateChange={handleAtBottomStateChange}
       />
     </StyledWrapper>
   );
