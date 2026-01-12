@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import find from 'lodash/find';
-import isEqual from 'lodash/isEqual';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
