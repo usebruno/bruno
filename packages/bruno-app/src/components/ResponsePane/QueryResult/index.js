@@ -49,11 +49,11 @@ export const useInitialResponseFormat = (dataBuffer, headers) => {
 
     // Wait until both content types are available
     if (detectedContentType === null || contentType === undefined) {
-      return { initialFormat: null, initialTab: null };
+      return { initialFormat: null, initialTab: null, contentType: contentType };
     }
 
     const initial = getDefaultResponseFormat(contentType);
-    return { initialFormat: initial.format, initialTab: initial.tab };
+    return { initialFormat: initial.format, initialTab: initial.tab, contentType: contentType };
   }, [dataBuffer, headers]);
 };
 

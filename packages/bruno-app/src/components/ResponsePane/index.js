@@ -42,12 +42,12 @@ const ResponsePane = ({ item, collection }) => {
   // Get the focused tab for reading persisted format/view state
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
 
-  // Track previous response headers to detect when content-type changes
-  const previousHeadersRef = useRef(null);
-
   // Initialize format and tab only once when data loads.
-  const { initialFormat, initialTab } = useInitialResponseFormat(response?.dataBuffer, response?.headers);
+  const { initialFormat, initialTab, contentType } = useInitialResponseFormat(response?.dataBuffer, response?.headers);
   const previewFormatOptions = useResponsePreviewFormatOptions(response?.dataBuffer, response?.headers);
+
+  // Track previous response headers to detect when content-type changes
+  const previousContentRef = useRef(contentType);
 
   const persistedFormat = focusedTab?.responseFormat;
   const persistedViewTab = focusedTab?.responseViewTab;
@@ -62,17 +62,17 @@ const ResponsePane = ({ item, collection }) => {
     }
 
     // Check if response headers (content-type) changed using deep comparison
-    const headersChanged = !isEqual(previousHeadersRef.current, response?.headers);
-
-    if (headersChanged) {
-      // Update ref to track current response headers
-      previousHeadersRef.current = response?.headers;
-
-      // Always auto-update format/tab when content-type changes (new response)
+    const contentTypeChanged = contentType !== previousContentRef.current;
+    if (contentTypeChanged) {
+      previousContentRef.current = contentType;
+    }
+    if (contentTypeChanged || persistedFormat === null) {
       dispatch(updateResponseFormat({ uid: item.uid, responseFormat: initialFormat }));
+    }
+    if (contentTypeChanged || persistedViewTab === null) {
       dispatch(updateResponseViewTab({ uid: item.uid, responseViewTab: initialTab }));
     }
-  }, [response?.headers, initialFormat, initialTab, persistedFormat, persistedViewTab, focusedTab, item.uid, dispatch]);
+  }, [contentType, initialFormat, initialTab, persistedFormat, persistedViewTab, focusedTab, item.uid, dispatch]);
 
   const handleFormatChange = useCallback((newFormat) => {
     dispatch(updateResponseFormat({ uid: item.uid, responseFormat: newFormat }));
