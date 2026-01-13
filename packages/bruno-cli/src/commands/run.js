@@ -4,7 +4,7 @@ const path = require('path');
 const yaml = require('js-yaml');
 const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
-const { exists, isFile, isDirectory, stripExtension } = require('../utils/filesystem');
+const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
 const { parseEnvironmentJson } = require('../utils/environment');
@@ -17,6 +17,7 @@ const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
 const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
+const { createSkippedResult } = require('../utils/run');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -597,42 +598,6 @@ const handler = async function (argv) {
       return isRequestTagsIncluded(item.tags, includeTags, excludeTags);
     });
 
-    const skippedFiles = global.brunoSkippedFiles || [];
-    const skippedResults = skippedFiles.map((skippedFile) => {
-      const relativePath = path.relative(collectionPath, skippedFile.path);
-      const result = {
-        test: {
-          filename: relativePath
-        },
-        request: {
-          method: null,
-          url: null,
-          headers: null,
-          data: null
-        },
-        response: {
-          status: 'skipped',
-          statusText: skippedFile.error,
-          data: null,
-          responseTime: 0
-        },
-        error: skippedFile.error,
-        status: 'skipped',
-        skipped: true,
-        assertionResults: [],
-        testResults: [],
-        preRequestTestResults: [],
-        postResponseTestResults: []
-      };
-      return {
-        ...result,
-        runDuration: 0,
-        suitename: stripExtension(relativePath),
-        name: path.basename(skippedFile.path),
-        path: relativePath
-      };
-    });
-
     const runtime = getJsSandboxRuntime(sandbox);
 
     const runSingleRequestByPathname = async (relativeItemPathname) => {
@@ -770,6 +735,9 @@ const handler = async function (argv) {
         currentRequestIndex++;
       }
     }
+
+    const skippedFiles = global.brunoSkippedFiles || [];
+    const skippedResults = skippedFiles.map((skippedFile) => createSkippedResult(skippedFile, collectionPath));
 
     results.push(...skippedResults);
 
