@@ -403,8 +403,9 @@ const parseFileMeta = (data, format = 'bru') => {
 const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = getRequestUid(pathname);
 
-  // Set default isTransient to false if not already set
-  if (request.isTransient === undefined) {
+  if (pathname.startsWith(os.tmpdir())) {
+    request.isTransient = true;
+  } else {
     request.isTransient = false;
   }
 

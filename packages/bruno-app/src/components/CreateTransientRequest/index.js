@@ -21,18 +21,14 @@ const REQUEST_TYPE = {
  * @param {Object} collection - The collection object
  * @returns {string} A request name like "Untitled 1", "Untitled 2", etc.
  */
-const generateTransientRequestName = (collection) => {
+const generateTransientRequestName = (collection, tempDirectory) => {
   if (!collection || !collection.items) {
     return 'Untitled 1';
   }
-
-  // Flatten all items to include nested items in folders
   const allItems = flattenItems(collection.items);
-
-  // Filter to get only transient requests
-  const transientRequests = filter(allItems, (item) =>
-    isItemARequest(item) && item.isTransient === true
-  );
+  const transientRequests = filter(allItems, (item) => {
+    return isItemARequest(item) && item.pathname.startsWith(tempDirectory);
+  });
 
   // Find the highest "Untitled X" number among transient requests
   let maxNumber = 0;
@@ -58,7 +54,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
   const dispatch = useDispatch();
   const collections = useSelector((state) => state.collections.collections);
   const collection = collections?.find((c) => c.uid === collectionUid);
-
+  const tempDirectory = useSelector((state) => state.collections.tempDirectories?.[collectionUid]);
   const onDropdownCreate = (ref) => {
     dropdownTippyRef.current = ref;
     if (ref) {
@@ -86,7 +82,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
   const handleCreateHttpRequest = useCallback(() => {
     if (!collection) return;
 
-    const uniqueName = generateTransientRequestName(collection);
+    const uniqueName = generateTransientRequestName(collection, tempDirectory);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -110,7 +106,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
   const handleCreateGraphQLRequest = useCallback(() => {
     if (!collection) return;
 
-    const uniqueName = generateTransientRequestName(collection);
+    const uniqueName = generateTransientRequestName(collection, tempDirectory);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -141,7 +137,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
   const handleCreateWebSocketRequest = useCallback(() => {
     if (!collection) return;
 
-    const uniqueName = generateTransientRequestName(collection);
+    const uniqueName = generateTransientRequestName(collection, tempDirectory);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -164,7 +160,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
   const handleCreateGrpcRequest = useCallback(() => {
     if (!collection) return;
 
-    const uniqueName = generateTransientRequestName(collection);
+    const uniqueName = generateTransientRequestName(collection, tempDirectory);
     const filename = sanitizeName(uniqueName);
 
     dispatch(

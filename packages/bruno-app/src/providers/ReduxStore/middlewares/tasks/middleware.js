@@ -22,19 +22,21 @@ taskMiddleware.startListening({
   effect: (action, listenerApi) => {
     const state = listenerApi.getState();
     const collectionUid = get(action, 'payload.file.meta.collectionUid');
-
+    const tempDirectory = state.collections.tempDirectories?.[collectionUid];
     const openRequestTasks = filter(state.app.taskQueue, { type: taskTypes.OPEN_REQUEST });
     each(openRequestTasks, (task) => {
       if (collectionUid === task.collectionUid) {
         const collection = findCollectionByUid(state.collections.collections, collectionUid);
         if (collection && collection.mountStatus === 'mounted' && !collection.isLoading) {
           const item = findItemInCollectionByPathname(collection, task.itemPathname);
+          const isTransient = tempDirectory && task.itemPathname.startsWith(tempDirectory);
           if (item) {
             listenerApi.dispatch(
               addTab({
                 uid: item.uid,
                 collectionUid: collection.uid,
-                requestPaneTab: getDefaultRequestPaneTab(item)
+                requestPaneTab: getDefaultRequestPaneTab(item),
+                preview: !isTransient
               })
             );
           }
