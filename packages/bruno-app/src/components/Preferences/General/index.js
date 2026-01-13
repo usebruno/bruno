@@ -60,8 +60,7 @@ const General = ({ close }) => {
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()
     }),
-    defaultCollectionLocation: Yup.string().max(1024),
-    singleInstance: Yup.boolean()
+    defaultCollectionLocation: Yup.string().max(1024)
   });
 
   const formik = useFormik({
@@ -84,8 +83,7 @@ const General = ({ close }) => {
       oauth2: {
         useSystemBrowser: get(preferences, 'request.oauth2.useSystemBrowser', false)
       },
-      defaultCollectionLocation: get(preferences, 'general.defaultCollectionLocation', ''),
-      singleInstance: get(preferences, 'general.singleInstance', true)
+      defaultCollectionLocation: get(preferences, 'general.defaultCollectionLocation', '')
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -123,8 +121,7 @@ const General = ({ close }) => {
           interval: newPreferences.autoSave.interval
         },
         general: {
-          defaultCollectionLocation: newPreferences.defaultCollectionLocation,
-          singleInstance: newPreferences.singleInstance
+          defaultCollectionLocation: newPreferences.defaultCollectionLocation
         }
       }))
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
@@ -299,19 +296,6 @@ const General = ({ close }) => {
           />
           <label className="block ml-2 select-none" htmlFor="oauth2.useSystemBrowser">
             Use System Browser for OAuth2 Authorization
-          </label>
-        </div>
-        <div className="flex items-center mt-2">
-          <input
-            id="singleInstance"
-            type="checkbox"
-            name="singleInstance"
-            checked={formik.values.singleInstance}
-            onChange={formik.handleChange}
-            className="mousetrap mr-0"
-          />
-          <label className="block ml-2 select-none" htmlFor="singleInstance">
-            Allow only one instance of Bruno (requires restart)
           </label>
         </div>
         <div className="flex flex-col mt-6">

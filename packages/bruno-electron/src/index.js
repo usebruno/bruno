@@ -105,7 +105,7 @@ const focusMainWindow = () => {
 appProtocolUrl = getAppProtocolUrlFromArgv(process.argv);
 
 // Single instance lock - ensures only one instance of Bruno runs at a time (if enabled)
-const useSingleInstance = preferencesUtil.shouldUseSingleInstance();
+const useSingleInstance = process.env.USE_SINGLE_INSTANCE === 'true';
 const gotTheLock = useSingleInstance ? app.requestSingleInstanceLock() : true;
 
 if (useSingleInstance && !gotTheLock) {

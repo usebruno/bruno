@@ -51,8 +51,7 @@ const defaultPreferences = {
   },
   general: {
     defaultCollectionLocation: '',
-    defaultWorkspacePath: '',
-    singleInstance: true
+    defaultWorkspacePath: ''
   },
   autoSave: {
     enabled: false,
@@ -106,8 +105,7 @@ const preferencesSchema = Yup.object().shape({
   }),
   general: Yup.object({
     defaultCollectionLocation: Yup.string().max(1024).nullable(),
-    defaultWorkspacePath: Yup.string().max(1024).nullable(),
-    singleInstance: Yup.boolean()
+    defaultWorkspacePath: Yup.string().max(1024).nullable()
   }),
   autoSave: Yup.object({
     enabled: Yup.boolean(),
@@ -299,9 +297,6 @@ const preferencesUtil = {
     } catch (err) {
       console.error('Failed to save preferences in markAsLaunched:', err);
     }
-  },
-  shouldUseSingleInstance: () => {
-    return get(getPreferences(), 'general.singleInstance', true);
   }
 };
 
