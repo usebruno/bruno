@@ -257,6 +257,7 @@ class AssertRuntime {
 
     const promptVariables = request?.promptVariables || {};
     const bru = new Bru(
+      this.runtime,
       envVariables,
       runtimeVariables,
       processEnvVars,
