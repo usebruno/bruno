@@ -17,7 +17,6 @@ const DeleteWorkspace = ({ onClose, workspace }) => {
       setIsDeleting(true);
       await dispatch(closeWorkspaceAction(workspace.uid));
       onClose();
-      toast.success('Workspace removed successfully');
     } catch (error) {
       toast.error(error?.message || 'An error occurred while removing the workspace');
       setIsDeleting(false);
