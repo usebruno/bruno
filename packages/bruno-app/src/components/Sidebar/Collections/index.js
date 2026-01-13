@@ -7,6 +7,7 @@ import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import { useMemo } from 'react';
 import { normalizePath } from 'utils/common/path';
+import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 
 const Collections = ({ showSearch }) => {
   const [searchText, setSearchText] = useState('');
@@ -22,6 +23,14 @@ const Collections = ({ showSearch }) => {
       activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
     );
   }, [activeWorkspace, collections]);
+
+  const hasSearchResults = useMemo(() => {
+    if (!searchText) return true;
+
+    return workspaceCollections.some((collection) =>
+      doesCollectionHaveItemsMatchingSearchText(collection, searchText)
+    );
+  }, [workspaceCollections, searchText]);
 
   if (!workspaceCollections || !workspaceCollections.length) {
     return (
@@ -44,13 +53,19 @@ const Collections = ({ showSearch }) => {
       )}
 
       <div className="collections-list">
-        {workspaceCollections && workspaceCollections.length
-          ? workspaceCollections.map((c) => {
-              return (
-                <Collection searchText={searchText} collection={c} key={c.uid} />
-              );
-            })
-          : null}
+        {!hasSearchResults ? (
+          <div className="no-results-found">
+            No results found
+          </div>
+        ) : (
+          workspaceCollections && workspaceCollections.length
+            ? workspaceCollections.map((c) => {
+                return (
+                  <Collection searchText={searchText} collection={c} key={c.uid} />
+                );
+              })
+            : null
+        )}
       </div>
     </StyledWrapper>
   );
