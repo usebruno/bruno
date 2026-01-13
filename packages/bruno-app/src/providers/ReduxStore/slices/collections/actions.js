@@ -1322,16 +1322,13 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         ipcRenderer
           .invoke('renderer:new-request', fullName, item)
           .then(() => {
-            dispatch(newItem({
-              collectionUid,
-              item
-            }));
+            // task middleware will track this and open the new request in a new tab once request is created
             dispatch(
-              addTab({
-                uid: item.uid,
+              insertTaskIntoQueue({
+                uid: uuid(),
+                type: 'OPEN_REQUEST',
                 collectionUid,
-                requestPaneTab: getDefaultRequestPaneTab(item),
-                preview: false
+                itemPathname: fullName
               })
             );
             resolve();
@@ -1478,18 +1475,13 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
       ipcRenderer
         .invoke('renderer:new-request', fullName, item)
         .then(() => {
-          dispatch(newItem({
+          // task middleware will track this and open the new request in a new tab once request is created
+          dispatch(insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
             collectionUid,
-            item
+            itemPathname: fullName
           }));
-          dispatch(
-            addTab({
-              uid: item.uid,
-              collectionUid,
-              requestPaneTab: getDefaultRequestPaneTab(item),
-              preview: false
-            })
-          );
           resolve();
         })
         .catch(reject);
@@ -1601,16 +1593,13 @@ export const newWsRequest = (params) => (dispatch, getState) => {
       ipcRenderer
         .invoke('renderer:new-request', fullName, item)
         .then(() => {
-          dispatch(newItem({
-            collectionUid,
-            item
-          }));
+          // task middleware will track this and open the new request in a new tab once request is created
           dispatch(
-            addTab({
-              uid: item.uid,
+            insertTaskIntoQueue({
+              uid: uuid(),
+              type: 'OPEN_REQUEST',
               collectionUid,
-              requestPaneTab: getDefaultRequestPaneTab(item),
-              preview: false
+              itemPathname: fullName
             })
           );
           resolve();
