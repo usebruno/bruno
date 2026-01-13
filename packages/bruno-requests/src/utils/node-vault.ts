@@ -164,8 +164,10 @@ function createVaultClient(config: VaultConfig = {}): VaultClient {
       ...requestOptions
     };
 
+    const endpointOrigin = client.endpoint?.endsWith('/') ? client.endpoint : `${client.endpoint}/`;
+
     // Build URL
-    const uri = `${client.endpoint}/${client.apiVersion}${path}`;
+    const uri = `${endpointOrigin}${client.apiVersion}${path}`;
     debug(method, uri);
 
     // Build headers
@@ -263,8 +265,9 @@ function createVaultClient(config: VaultConfig = {}): VaultClient {
      * @param requestOptions - Optional request options
      */
     async read(path: string, requestOptions?: VaultRequestOptions): Promise<any> {
+      path = path.startsWith('/') ? path : `/${path}`;
       debug('read', path);
-      return request('GET', `/${path}`, undefined, requestOptions);
+      return request('GET', path, undefined, requestOptions);
     },
 
     /**
@@ -274,8 +277,9 @@ function createVaultClient(config: VaultConfig = {}): VaultClient {
      * @param requestOptions - Optional request options
      */
     async write(path: string, data: any, requestOptions?: VaultRequestOptions): Promise<any> {
+      path = path.startsWith('/') ? path : `/${path}`;
       debug('write', path, data);
-      return request('POST', `/${path}`, data, requestOptions);
+      return request('POST', path, data, requestOptions);
     },
 
     /**

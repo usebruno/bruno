@@ -167,6 +167,48 @@ describe('node-vault', () => {
       const result = await vault.read('secret/data/empty');
       expect(result).toBeNull();
     });
+
+    it('should handle paths with leading slash without creating double slashes', async () => {
+      const responseData = { data: { value: 'secret-value' } };
+      mockedAxios.mockResolvedValueOnce({
+        status: 200,
+        data: responseData
+      });
+
+      const result = await vault.read('/secret/data/hello');
+
+      expect(mockedAxios).toHaveBeenCalledTimes(1);
+      expect(mockedAxios).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'GET',
+          url: 'http://localhost:8200/v1/secret/data/hello',
+          headers: expect.objectContaining({
+            'X-Vault-Token': 'test-token'
+          })
+        })
+      );
+      expect(result).toEqual(responseData);
+    });
+
+    it('should handle endpoint with trailing slash', async () => {
+      vault.endpoint = 'http://localhost:8200/';
+      const responseData = { data: { value: 'secret-value' } };
+      mockedAxios.mockResolvedValueOnce({
+        status: 200,
+        data: responseData
+      });
+
+      const result = await vault.read('secret/data/hello');
+
+      expect(mockedAxios).toHaveBeenCalledTimes(1);
+      expect(mockedAxios).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'GET',
+          url: 'http://localhost:8200/v1/secret/data/hello'
+        })
+      );
+      expect(result).toEqual(responseData);
+    });
   });
 
   describe('write(path, data, requestOptions)', () => {
