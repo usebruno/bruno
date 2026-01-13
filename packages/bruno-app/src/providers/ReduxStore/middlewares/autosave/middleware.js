@@ -93,11 +93,6 @@ const actionsToIntercept = [
   'globalEnvironments/setGlobalEnvironmentDraft'
 ];
 
-// Create a Set for efficient folder action lookup
-const folderActions = new Set(
-  actionsToIntercept.filter((action) => action.includes('Folder'))
-);
-
 // Simple object to track pending save timers
 const pendingTimers = {};
 
@@ -194,26 +189,19 @@ const determineSaveHandler = (actionType, payload, dispatch, getState) => {
     };
   }
 
-  // Handle item-based actions (request or folder)
-  if (itemUid) {
-    const isFolderAction = folderActions.has(actionType);
-    if (isFolderAction) {
-      return {
-        key: `folder-${itemUid}`,
-        save: () => dispatch(saveFolderRoot(collectionUid, itemUid, true))
-      };
-    }
-    return {
-      key: `request-${itemUid}`,
-      save: () => dispatch(saveRequest(itemUid, collectionUid, true))
-    };
-  }
-
-  // Handle folder with explicit folderUid
+  // Handle folder actions
   if (folderUid) {
     return {
       key: `folder-${folderUid}`,
       save: () => dispatch(saveFolderRoot(collectionUid, folderUid, true))
+    };
+  }
+
+  // Handle request actions
+  if (itemUid) {
+    return {
+      key: `request-${itemUid}`,
+      save: () => dispatch(saveRequest(itemUid, collectionUid, true))
     };
   }
 
