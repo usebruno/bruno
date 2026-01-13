@@ -46,6 +46,11 @@ const actionsToIntercept = [
   'collections/updateRequestDocs',
   'collections/runRequestEvent',
   'collections/updateCollectionPresets',
+  'collections/setRequestVars',
+  'collections/setRequestAssertions',
+  'collections/updateItemSettings',
+  'collections/addRequestTag',
+  'collections/deleteRequestTag',
 
   // Folder-level actions
   'collections/addFolderHeader',

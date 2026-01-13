@@ -12,8 +12,8 @@ test.describe('Default Workspace', () => {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
       // Verify the workspace name is "My Workspace" in the title bar
-      const workspaceName = page.locator('.workspace-name');
-      await expect(workspaceName).toContainText('My Workspace');
+      const workspaceName = page.getByTestId('workspace-name');
+      await expect(workspaceName).toHaveText('My Workspace');
 
       await app.context().close();
       await app.close();
@@ -28,7 +28,7 @@ test.describe('Default Workspace', () => {
       const app1 = await launchElectronApp({ userDataPath });
       const page1 = await app1.firstWindow();
       await page1.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
-      await expect(page1.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page1.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       await app1.close();
 
@@ -36,7 +36,7 @@ test.describe('Default Workspace', () => {
       const app2 = await launchElectronApp({ userDataPath });
       const page2 = await app2.firstWindow();
       await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
-      await expect(page2.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page2.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       await app2.context().close();
       await app2.close();
@@ -69,7 +69,7 @@ test.describe('Default Workspace', () => {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
       // Should show "My Workspace"
-      await expect(page.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // Old directory should still exist (never deleted)
       expect(fs.existsSync(defaultWorkspacePath)).toBe(true);
@@ -106,7 +106,7 @@ test.describe('Default Workspace', () => {
       const page = await app.firstWindow();
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
-      await expect(page.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // Old corrupted file should still exist (never deleted)
       const oldContent = fs.readFileSync(path.join(defaultWorkspacePath, 'workspace.yml'), 'utf8');
@@ -150,7 +150,7 @@ docs: ''
       const page = await app.firstWindow();
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
-      await expect(page.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // New workspace should have been created
       const newWorkspacePath = path.join(userDataPath, 'default-workspace-1');
@@ -179,7 +179,7 @@ docs: ''
       const page = await app.firstWindow();
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
-      await expect(page.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // New workspace should have been created (default-workspace since non-existent doesn't block)
       const newWorkspacePath = path.join(userDataPath, 'default-workspace');
