@@ -1,4 +1,4 @@
-import translateCode from '../../../../src/utils/pm-to-bru-translator';
+import translateCode from '../../../../src/utils/postman-to-bruno-translator';
 
 describe('Postman to PM References Conversion', () => {
   // Basic conversions

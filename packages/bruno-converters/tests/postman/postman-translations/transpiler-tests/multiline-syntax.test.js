@@ -1,4 +1,4 @@
-import translateCode from '../../../../src/utils/pm-to-bru-translator';
+import translateCode from '../../../../src/utils/postman-to-bruno-translator';
 
 describe('Multiline Syntax Handling', () => {
   it('should handle basic multiline variable syntax with indentation', () => {
