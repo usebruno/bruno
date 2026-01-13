@@ -1,4 +1,5 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef } from 'react';
+import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
@@ -26,9 +27,17 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
     (state) => state.globalEnvironments
   );
 
-  const [activeEditorUid, setActiveEditorUid] = useState(null);
-
   const hasDraftForThisEnv = globalEnvironmentDraft?.environmentUid === environment.uid;
+  const MIN_H = 50;
+  const MAX_H = 650;
+
+  const tableContainerRef = React.useRef(null);
+  const [tableHeight, setTableHeight] = React.useState(MIN_H);
+
+  const handleTotalHeightChanged = React.useCallback((h) => {
+    const next = Math.max(MIN_H, Math.min(MAX_H, h));
+    setTableHeight(next);
+  }, []);
 
   // Track environment changes for draft restoration
   const prevEnvUidRef = React.useRef(null);
@@ -239,28 +248,6 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
     if (e.key === 'Enter') {
       e.preventDefault();
       formik.setFieldTouched(`${index}.name`, true, true);
-    } else if (e.key === 'Tab' && !e.shiftKey) {
-      // Tab key: move focus to Value field
-      e.preventDefault();
-      const variable = formik.values[index];
-      if (variable) {
-        setActiveEditorUid(variable.uid);
-        // Wait for editor to initialize, then focus the CodeMirror input directly
-        setTimeout(() => {
-          // Find the CodeMirror editor input element for this variable
-          const valueCell = document.querySelector(`[data-value-cell-id="${variable.uid}"]`);
-          if (valueCell) {
-            // Look for the CodeMirror input/textarea inside the editor
-            const codeMirrorInput = valueCell.querySelector('.CodeMirror textarea, .CodeMirror-input');
-            if (codeMirrorInput) {
-              codeMirrorInput.focus();
-            } else {
-              // Fallback: focus the cell if editor not ready yet
-              valueCell.focus();
-            }
-          }
-        }, 50);
-      }
     }
   };
 
@@ -347,24 +334,28 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
   return (
     <StyledWrapper>
       <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <td className="text-center"></td>
-              <td>Name</td>
-              <td>Value</td>
-              <td className="text-center">Secret</td>
-              <td></td>
-            </tr>
-          </thead>
-          <tbody>
-            {formik.values.map((variable, index) => {
+        <div>
+          <TableVirtuoso
+            style={{ height: tableHeight, minHeight: MIN_H, maxHeight: MAX_H, overflowY: 'hidden' }}
+            totalListHeightChanged={handleTotalHeightChanged}
+            data={formik.values}
+            scrollerRef={(ref) => (tableContainerRef.current = ref)}
+            fixedHeaderContent={() => (
+              <tr>
+                <td className="text-center"></td>
+                <td>Name</td>
+                <td>Value</td>
+                <td className="text-center">Secret</td>
+                <td></td>
+              </tr>
+            )}
+            itemContent={(index, variable) => {
               const isLastRow = index === formik.values.length - 1;
               const isEmptyRow = !variable.name || variable.name.trim() === '';
               const isLastEmptyRow = isLastRow && isEmptyRow;
 
               return (
-                <tr key={variable.uid}>
+                <>
                   <td className="text-center">
                     {!isLastEmptyRow && (
                       <input
@@ -396,17 +387,9 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                       <ErrorMessage name={`${index}.name`} index={index} />
                     </div>
                   </td>
-                  <td
-                    className="p-0 align-middle"
-                    onMouseDown={() => setActiveEditorUid(variable.uid)}
-                    onFocusCapture={() => setActiveEditorUid(variable.uid)}
-                    tabIndex={0}
-                    data-value-cell-id={variable.uid}
-                  >
-                    <div className="flex-1 min-w-0 overflow-hidden">
+                  <td className="flex flex-row flex-nowrap items-center">
+                    <div className="overflow-hidden grow w-full relative">
                       <MultiLineEditor
-                        isActive={activeEditorUid === variable.uid}
-                        tabFocus={activeEditorUid === variable.uid}
                         theme={storedTheme}
                         collection={_collection}
                         name={`${index}.value`}
@@ -447,11 +430,11 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                       </button>
                     )}
                   </td>
-                </tr>
+                </>
               );
-            })}
-          </tbody>
-        </table>
+            }}
+          />
+        </div>
       </div>
 
       <div className="button-container mt-5">
