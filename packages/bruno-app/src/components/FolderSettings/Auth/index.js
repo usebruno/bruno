@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import StyledWrapper from './StyledWrapper';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import OAuth2AuthorizationCode from 'components/RequestPane/Auth/OAuth2/AuthorizationCode/index';
-import { updateFolderAuth } from 'providers/ReduxStore/slices/collections';
+import { updateFolderAuth as _updateFolderAuth } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
 import OAuth2PasswordCredentials from 'components/RequestPane/Auth/OAuth2/PasswordCredentials/index';
 import OAuth2ClientCredentials from 'components/RequestPane/Auth/OAuth2/ClientCredentials/index';
@@ -20,7 +20,7 @@ import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
 import { humanizeRequestAuthMode, getTreePathFromCollectionToItem } from 'utils/collections/index';
 import Button from 'ui/Button';
 
-const GrantTypeComponentMap = ({ collection, folder, updateAuth }) => {
+const GrantTypeComponentMap = ({ collection, folder, updateFolderAuth }) => {
   const dispatch = useDispatch();
 
   const save = () => {
@@ -33,13 +33,13 @@ const GrantTypeComponentMap = ({ collection, folder, updateAuth }) => {
 
   switch (grantType) {
     case 'password':
-      return <OAuth2PasswordCredentials save={save} item={folder} request={request} updateAuth={updateAuth} collection={collection} folder={folder} />;
+      return <OAuth2PasswordCredentials save={save} item={folder} request={request} updateAuth={updateFolderAuth} collection={collection} folder={folder} />;
     case 'authorization_code':
-      return <OAuth2AuthorizationCode save={save} item={folder} request={request} updateAuth={updateAuth} collection={collection} folder={folder} />;
+      return <OAuth2AuthorizationCode save={save} item={folder} request={request} updateAuth={updateFolderAuth} collection={collection} folder={folder} />;
     case 'client_credentials':
-      return <OAuth2ClientCredentials save={save} item={folder} request={request} updateAuth={updateAuth} collection={collection} folder={folder} />;
+      return <OAuth2ClientCredentials save={save} item={folder} request={request} updateAuth={updateFolderAuth} collection={collection} folder={folder} />;
     case 'implicit':
-      return <OAuth2Implicit save={save} item={folder} request={request} updateAuth={updateAuth} collection={collection} folder={folder} />;
+      return <OAuth2Implicit save={save} item={folder} request={request} updateAuth={updateFolderAuth} collection={collection} folder={folder} />;
     default:
       return <div>TBD</div>;
   }
@@ -90,9 +90,8 @@ const Auth = ({ collection, folder }) => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
   };
 
-  const wrappedUpdateAuth = (payload) => {
-    const { itemUid, ...rest } = payload;
-    return updateFolderAuth({
+  const updateFolderAuth = ({ itemUid, ...rest }) => {
+    return _updateFolderAuth({
       ...rest,
       folderUid: folder.uid
     });
@@ -105,7 +104,7 @@ const Auth = ({ collection, folder }) => {
           <BasicAuth
             collection={collection}
             item={folder}
-            updateAuth={wrappedUpdateAuth}
+            updateAuth={updateFolderAuth}
             request={request}
             save={() => handleSave()}
           />
@@ -116,7 +115,7 @@ const Auth = ({ collection, folder }) => {
           <BearerAuth
             collection={collection}
             item={folder}
-            updateAuth={wrappedUpdateAuth}
+            updateAuth={updateFolderAuth}
             request={request}
             save={() => handleSave()}
           />
@@ -127,7 +126,7 @@ const Auth = ({ collection, folder }) => {
           <DigestAuth
             collection={collection}
             item={folder}
-            updateAuth={wrappedUpdateAuth}
+            updateAuth={updateFolderAuth}
             request={request}
             save={() => handleSave()}
           />
@@ -138,7 +137,7 @@ const Auth = ({ collection, folder }) => {
           <NTLMAuth
             collection={collection}
             item={folder}
-            updateAuth={wrappedUpdateAuth}
+            updateAuth={updateFolderAuth}
             request={request}
             save={() => handleSave()}
           />
@@ -149,7 +148,7 @@ const Auth = ({ collection, folder }) => {
           <WsseAuth
             collection={collection}
             item={folder}
-            updateAuth={wrappedUpdateAuth}
+            updateAuth={updateFolderAuth}
             request={request}
             save={() => handleSave()}
           />
@@ -160,7 +159,7 @@ const Auth = ({ collection, folder }) => {
           <ApiKeyAuth
             collection={collection}
             item={folder}
-            updateAuth={wrappedUpdateAuth}
+            updateAuth={updateFolderAuth}
             request={request}
             save={() => handleSave()}
           />
@@ -171,7 +170,7 @@ const Auth = ({ collection, folder }) => {
           <AwsV4Auth
             collection={collection}
             item={folder}
-            updateAuth={wrappedUpdateAuth}
+            updateAuth={updateFolderAuth}
             request={request}
             save={() => handleSave()}
           />
@@ -182,11 +181,11 @@ const Auth = ({ collection, folder }) => {
           <>
             <GrantTypeSelector
               request={request}
-              updateAuth={wrappedUpdateAuth}
+              updateAuth={updateFolderAuth}
               collection={collection}
               item={folder}
             />
-            <GrantTypeComponentMap collection={collection} folder={folder} updateAuth={wrappedUpdateAuth} />
+            <GrantTypeComponentMap collection={collection} folder={folder} updateFolderAuth={updateFolderAuth} />
           </>
         );
       }
