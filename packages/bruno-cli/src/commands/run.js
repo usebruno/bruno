@@ -4,7 +4,7 @@ const path = require('path');
 const yaml = require('js-yaml');
 const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
-const { exists, isFile, isDirectory } = require('../utils/filesystem');
+const { exists, isFile, isDirectory, stripExtension } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
 const { parseEnvironmentJson } = require('../utils/environment');
@@ -737,9 +737,17 @@ const handler = async function (argv) {
     }
 
     const skippedFiles = global.brunoSkippedFiles || [];
-    const skippedResults = skippedFiles.map((skippedFile) => createSkippedResult(skippedFile, collectionPath));
-
-    results.push(...skippedResults);
+    skippedFiles.forEach((skippedFile) => {
+      const result = createSkippedResult(skippedFile, collectionPath);
+      const relativePath = path.relative(collectionPath, skippedFile.path);
+      results.push({
+        ...result,
+        runDuration: 0,
+        suitename: stripExtension(relativePath),
+        name: path.basename(skippedFile.path),
+        path: relativePath
+      });
+    });
 
     const summary = printRunSummary(results);
     const runCompletionTime = new Date().toISOString();

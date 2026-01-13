@@ -1,9 +1,8 @@
 const path = require('path');
-const { stripExtension } = require('./filesystem');
 
 const createSkippedResult = (skippedFile, collectionPath) => {
   const relativePath = path.relative(collectionPath, skippedFile.path);
-  const result = {
+  return {
     test: {
       filename: relativePath
     },
@@ -26,13 +25,6 @@ const createSkippedResult = (skippedFile, collectionPath) => {
     testResults: [],
     preRequestTestResults: [],
     postResponseTestResults: []
-  };
-  return {
-    ...result,
-    runDuration: 0,
-    suitename: stripExtension(relativePath),
-    name: path.basename(skippedFile.path),
-    path: relativePath
   };
 };
 
