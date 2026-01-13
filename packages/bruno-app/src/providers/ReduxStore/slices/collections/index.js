@@ -3154,13 +3154,13 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, itemUid);
         if (data.data) {
           item.response.data ||= [];
-          item.response.data = [{
+          item.response.data.push({
             type: 'incoming',
             seq,
             message: data.data,
             messageHexdump: hexdump(data.data),
             timestamp: timestamp || Date.now()
-          }].concat(item.response.data);
+          });
         }
         if (item.response.dataBuffer && item.response.dataBuffer.length && data.dataBuffer) {
           item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
