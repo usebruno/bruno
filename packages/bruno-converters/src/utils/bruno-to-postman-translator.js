@@ -65,6 +65,7 @@ const simpleTranslations = {
   'res.body': 'pm.response.body',
   'res.getBody': 'pm.response.json',
   'res.getHeader': 'pm.response.headers.get',
+  'res.getSize': 'pm.response.size',
 
   // Cookies jar
   'bru.cookies.jar': 'pm.cookies.jar',
@@ -92,16 +93,6 @@ const complexTransformations = [
         buildMemberExpressionFromString('pm.execution.setNextRequest'),
         [j.literal(null)]
       );
-    }
-  },
-
-  // res.getSize() -> pm.response.size()
-  {
-    pattern: 'res.getSize',
-    transform: (path) => {
-      // Just replace the callee, keep the call structure
-      path.get('callee').replace(buildMemberExpressionFromString('pm.response.size'));
-      return null; // Signal that we modified in place
     }
   },
 
