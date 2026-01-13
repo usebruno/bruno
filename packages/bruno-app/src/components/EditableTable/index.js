@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import { uuid } from 'utils/common';
@@ -22,6 +22,7 @@ const EditableTable = ({
 }) => {
   const tableRef = useRef(null);
   const emptyRowUidRef = useRef(null);
+  const focusedInputRef = useRef({ rowIndex: null, columnKey: null, cursorStart: null, cursorEnd: null });
   const [hoveredRow, setHoveredRow] = useState(null);
   const [dragStart, setDragStart] = useState(null);
 
@@ -66,6 +67,32 @@ const EditableTable = ({
       ...defaultRow
     }];
   }, [rows, columns, defaultRow, checkboxKey, createEmptyRow, showAddRow]);
+
+  // Restore focus after re-renders
+  useEffect(() => {
+    const { rowIndex, columnKey, cursorStart, cursorEnd } = focusedInputRef.current;
+
+    if (rowIndex !== null && columnKey && tableRef.current) {
+      // Find the input by row index and column key
+      const input = tableRef.current.querySelector(
+        `input[data-row-index="${rowIndex}"][data-column-key="${columnKey}"]`
+      );
+
+      if (input && document.activeElement !== input) {
+        // Restore focus
+        input.focus();
+
+        // Restore cursor position
+        if (cursorStart !== null && cursorEnd !== null) {
+          try {
+            input.setSelectionRange(cursorStart, cursorEnd);
+          } catch (e) {
+            // Silently fail if setSelectionRange is not supported
+          }
+        }
+      }
+    }
+  }, [rowsWithEmpty]);
 
   const isEmptyRow = useCallback((row) => {
     const keyColumn = columns.find((col) => col.isKeyField);
@@ -178,6 +205,7 @@ const EditableTable = ({
     const isEmpty = isLastEmptyRow(row, rowIndex);
     const value = column.getValue ? column.getValue(row) : row[column.key];
     const error = getRowError?.(row, rowIndex, column.key);
+    const showPlaceholder = !value || (typeof value === 'string' && value.trim() === '');
 
     if (column.render) {
       return column.render({
@@ -185,6 +213,7 @@ const EditableTable = ({
         value,
         rowIndex,
         isLastEmptyRow: isEmpty,
+        showPlaceholder,
         onChange: (newValue) => handleValueChange(row.uid, column.key, newValue),
         error
       });
@@ -201,8 +230,28 @@ const EditableTable = ({
           className="mousetrap"
           value={value || ''}
           readOnly={column.readOnly}
-          placeholder={isEmpty ? column.placeholder || column.name : ''}
+          placeholder={showPlaceholder ? column.placeholder || column.name : ''}
           onChange={(e) => handleValueChange(row.uid, column.key, e.target.value)}
+          data-row-index={rowIndex}
+          data-column-key={column.key}
+          onFocus={(e) => {
+            focusedInputRef.current = {
+              rowIndex: rowIndex,
+              columnKey: column.key,
+              cursorStart: e.target.selectionStart,
+              cursorEnd: e.target.selectionEnd
+            };
+          }}
+          onBlur={() => {
+            focusedInputRef.current = { rowIndex: null, columnKey: null, cursorStart: null, cursorEnd: null };
+          }}
+          onSelect={(e) => {
+            // Update cursor position when user moves cursor
+            if (focusedInputRef.current.rowIndex === rowIndex && focusedInputRef.current.columnKey === column.key) {
+              focusedInputRef.current.cursorStart = e.target.selectionStart;
+              focusedInputRef.current.cursorEnd = e.target.selectionEnd;
+            }
+          }}
         />
         {error && !isEmpty && (
           <span>

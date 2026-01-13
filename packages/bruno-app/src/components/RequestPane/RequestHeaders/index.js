@@ -49,7 +49,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       isKeyField: true,
       placeholder: 'Name',
       width: '30%',
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange, showPlaceholder }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -59,7 +59,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
-          placeholder={isLastEmptyRow ? 'Name' : ''}
+          placeholder={showPlaceholder ? 'Name' : ''}
         />
       )
     },
@@ -67,7 +67,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange, showPlaceholder }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -77,7 +77,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
           autocomplete={MimeTypes}
           collection={collection}
           item={item}
-          placeholder={isLastEmptyRow ? 'Value' : ''}
+          placeholder={showPlaceholder ? 'Value' : ''}
         />
       )
     }
