@@ -75,6 +75,7 @@ const uiStateSnapshotStore = new UiStateSnapshotStore();
 const MAX_COLLECTION_SIZE_IN_MB = 20;
 const MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB = 5;
 const MAX_COLLECTION_FILES_COUNT = 2000;
+const MAX_FILE_SIZE = 2.5 * 1024 * 1024; // 2.5MB threshold for using parseLargeRequestWithRedaction
 
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
@@ -1571,6 +1572,58 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
 
     watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
+  });
+
+  ipcMain.handle('renderer:load-request-on-demand', async (event, { collectionUid, pathname }) => {
+    try {
+      // Find collection path from the request pathname
+      const collectionPath = findCollectionPathByItemPath(pathname);
+      if (!collectionPath) {
+        throw new Error(`Collection path not found for request: ${pathname}`);
+      }
+
+      // Get collection format
+      const format = getCollectionFormat(collectionPath);
+
+      // Verify it's a request file
+      if (!hasRequestExtension(pathname, format)) {
+        throw new Error(`Path is not a valid request file: ${pathname}`);
+      }
+
+      // Read file content and stats
+      const fileStats = fs.statSync(pathname);
+      const content = fs.readFileSync(pathname, 'utf8');
+
+      // Create file object structure
+      const file = {
+        meta: {
+          collectionUid,
+          pathname,
+          name: path.basename(pathname)
+        }
+      };
+
+      // Parse request based on file size and format
+      // For large bru files (>= 2.5MB), use parseLargeRequestWithRedaction
+      // For smaller files or yml format, use regular parsing
+      if (fileStats.size >= MAX_FILE_SIZE && format === 'bru') {
+        file.data = await parseLargeRequestWithRedaction(content);
+      } else {
+        file.data = await parseRequest(content, { format });
+      }
+
+      // Set file properties
+      file.partial = false;
+      file.size = sizeInMB(fileStats?.size);
+
+      // Hydrate request with UUIDs
+      hydrateRequestWithUuid(file.data, pathname);
+
+      return file;
+    } catch (error) {
+      console.error('Error loading request on demand:', error);
+      return Promise.reject(error);
+    }
   });
 
   ipcMain.handle('renderer:show-in-folder', async (event, filePath) => {

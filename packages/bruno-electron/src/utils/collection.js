@@ -281,6 +281,119 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
+// Helper function to extract HTTP method from bru file content
+const extractBruHttpMethod = (data) => {
+  // Standard HTTP methods that appear as keywords
+  const standardMethods = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options', 'connect', 'trace'];
+
+  // Check for standard method keywords (e.g., "get {", "post {")
+  for (const method of standardMethods) {
+    const regex = new RegExp(`^${method}\\s*{`, 'm');
+    if (regex.test(data)) {
+      return method.toUpperCase();
+    }
+  }
+
+  // Check for custom method in http block (e.g., "http { method: CUSTOM }")
+  const httpBlockRegex = /http\s*{\s*([\s\S]*?)\s*}/;
+  const httpMatch = data.match(httpBlockRegex);
+  if (httpMatch) {
+    const httpContent = httpMatch[1];
+    const methodLine = httpContent.split('\n').find((line) => {
+      const trimmed = line.trim();
+      // Ignore comments and empty lines
+      return trimmed && !trimmed.startsWith('#') && trimmed.startsWith('method:');
+    });
+    if (methodLine) {
+      // Extract method value, handling potential comments after the value
+      const methodMatch = methodLine.match(/method:\s*([^\s#]+)/);
+      if (methodMatch) {
+        return methodMatch[1].trim().toUpperCase();
+      }
+    }
+  }
+
+  return '';
+};
+
+// Helper function to extract URL from a block content
+const extractUrlFromBlockContent = (blockContent, data) => {
+  const urlLine = blockContent.split('\n').find((line) => {
+    const trimmed = line.trim();
+    // Ignore comments and empty lines
+    return trimmed && !trimmed.startsWith('#') && trimmed.startsWith('url:');
+  });
+  if (urlLine) {
+    // Extract URL value, handling potential comments after the value
+    // URL can be on the same line or multiline with '''
+    const urlMatch = urlLine.match(/url:\s*(.+)/);
+    if (urlMatch) {
+      let urlValue = urlMatch[1].trim();
+      // Remove trailing comment if present
+      urlValue = urlValue.split('#')[0].trim();
+
+      // Check if it's a multiline URL (starts with ''')
+      if (urlValue.startsWith('\'\'\'')) {
+        // Extract multiline URL content
+        const multilineMatch = data.match(/url:\s*'''([\s\S]*?)'''/);
+        if (multilineMatch) {
+          return multilineMatch[1].trim();
+        }
+      }
+
+      return urlValue;
+    }
+  }
+  return null;
+};
+
+// Helper function to extract URL from bru file content
+const extractBruUrl = (data, requestType) => {
+  // For HTTP/GraphQL requests, first check for shorthand method blocks (e.g., "get { url: ... }")
+  if (requestType === 'http-request' || requestType === 'graphql-request') {
+    const standardMethods = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options', 'connect', 'trace'];
+
+    // Check for standard method keywords (e.g., "get {", "post {")
+    for (const method of standardMethods) {
+      const methodBlockRegex = new RegExp(`^${method}\\s*{\\s*([\\s\\S]*?)\\s*}`, 'm');
+      const methodBlockMatch = data.match(methodBlockRegex);
+      if (methodBlockMatch) {
+        const url = extractUrlFromBlockContent(methodBlockMatch[1], data);
+        if (url !== null) {
+          return url;
+        }
+      }
+    }
+
+    // If not found in shorthand format, check explicit http block
+    const httpBlockRegex = /http\s*{\s*([\s\S]*?)\s*}/m;
+    const httpBlockMatch = data.match(httpBlockRegex);
+    if (httpBlockMatch) {
+      const url = extractUrlFromBlockContent(httpBlockMatch[1], data);
+      if (url !== null) {
+        return url;
+      }
+    }
+  } else {
+    // For gRPC and WebSocket, check the appropriate block
+    let blockName = 'grpc';
+    if (requestType === 'ws-request') {
+      blockName = 'ws';
+    }
+
+    const blockRegex = new RegExp(`${blockName}\\s*{\\s*([\\s\\S]*?)\\s*}`, 'm');
+    const blockMatch = data.match(blockRegex);
+    if (blockMatch) {
+      const url = extractUrlFromBlockContent(blockMatch[1], data);
+      if (url !== null) {
+        return url;
+      }
+    }
+  }
+
+  return '';
+};
+
 const parseBruFileMeta = (data) => {
   try {
     const metaRegex = /meta\s*{\s*([\s\S]*?)\s*}/;
@@ -298,15 +411,26 @@ const parseBruFileMeta = (data) => {
 
       // Transform to the format expected by bruno-app
       let requestType = metaJson.type;
-      if (requestType === 'http') {
-        requestType = 'http-request';
-      } else if (requestType === 'graphql') {
-        requestType = 'graphql-request';
-      } else {
-        requestType = 'http-request';
-      }
+      const typeMap = {
+        http: 'http-request',
+        graphql: 'graphql-request',
+        grpc: 'grpc-request',
+        ws: 'ws-request'
+      };
+      requestType = typeMap[requestType] || 'http-request';
 
       const sequence = metaJson.seq;
+
+      // Extract HTTP method for http-request and graphql-request types
+      // Both use the same format (shorthand method blocks or http block)
+      let httpMethod = '';
+      if (requestType === 'http-request' || requestType === 'graphql-request') {
+        httpMethod = extractBruHttpMethod(data);
+      }
+
+      // Extract URL for all request types
+      const url = extractBruUrl(data, requestType);
+
       const transformedJson = {
         type: requestType,
         name: metaJson.name,
@@ -314,8 +438,8 @@ const parseBruFileMeta = (data) => {
         settings: {},
         tags: metaJson.tags || [],
         request: {
-          method: '',
-          url: '',
+          method: httpMethod, // Set the extracted method
+          url: url, // Set the extracted URL
           params: [],
           headers: [],
           auth: { mode: 'none' },
@@ -363,6 +487,24 @@ const parseYmlFileMeta = (data) => {
     requestType = typeMap[requestType] || 'http-request';
 
     const sequence = metaJson.seq;
+
+    // Extract HTTP method for http-request and graphql-request types from YAML
+    // Both use the http block in YAML format
+    let httpMethod = '';
+    if ((requestType === 'http-request' || requestType === 'graphql-request') && parsed.http && parsed.http.method) {
+      httpMethod = String(parsed.http.method).toUpperCase();
+    }
+
+    // Extract URL based on request type
+    let url = '';
+    if (requestType === 'grpc-request' && parsed.grpc && parsed.grpc.url) {
+      url = String(parsed.grpc.url);
+    } else if (requestType === 'ws-request' && parsed.ws && parsed.ws.url) {
+      url = String(parsed.ws.url);
+    } else if ((requestType === 'http-request' || requestType === 'graphql-request') && parsed.http && parsed.http.url) {
+      url = String(parsed.http.url);
+    }
+
     const transformedJson = {
       type: requestType,
       name: metaJson.name,
@@ -370,8 +512,8 @@ const parseYmlFileMeta = (data) => {
       settings: {},
       tags: metaJson.tags || [],
       request: {
-        method: '',
-        url: '',
+        method: httpMethod, // Set the extracted method
+        url: url, // Set the extracted URL
         params: [],
         headers: [],
         auth: { mode: 'none' },
