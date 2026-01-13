@@ -60,7 +60,6 @@ const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/dee
 const lastOpenedCollections = new LastOpenedCollections();
 const systemMonitor = new SystemMonitor();
 const terminalManager = new TerminalManager();
-const { preferencesUtil } = require('./store/preferences');
 
 const workspaceWatcher = new WorkspaceWatcher();
 const apiSpecWatcher = new ApiSpecWatcher();
@@ -104,8 +103,8 @@ const focusMainWindow = () => {
 // Parse protocol URL from command line arguments (if any)
 appProtocolUrl = getAppProtocolUrlFromArgv(process.argv);
 
-// Single instance lock - ensures only one instance of Bruno runs at a time (if enabled)
-const useSingleInstance = process.env.USE_SINGLE_INSTANCE === 'true';
+// Single instance lock - ensures only one instance of Bruno runs at a time (enabled by default)
+const useSingleInstance = process.env.DISABLE_SINGLE_INSTANCE !== 'true';
 const gotTheLock = useSingleInstance ? app.requestSingleInstanceLock() : true;
 
 if (useSingleInstance && !gotTheLock) {
@@ -129,9 +128,14 @@ if (useSingleInstance && !gotTheLock) {
   if (isMac) {
     app.on('open-url', (event, url) => {
       event.preventDefault();
-      focusMainWindow();
       if (url) {
-        handleAppProtocolUrl(url, mainWindow);
+        if (mainWindow) {
+          focusMainWindow();
+          handleAppProtocolUrl(url);
+        } else {
+          // Store for handling after window is ready
+          appProtocolUrl = url;
+        }
       }
     });
   }
@@ -142,7 +146,7 @@ if (useSingleInstance && !gotTheLock) {
     // Extract and handle protocol URL from the second instance attempt
     const url = getAppProtocolUrlFromArgv(commandLine);
     if (url) {
-      handleAppProtocolUrl(url, mainWindow);
+      handleAppProtocolUrl(url);
     }
   });
 }
@@ -290,7 +294,7 @@ app.on('ready', async () => {
 
   mainWindow.webContents.once('did-finish-load', () => {
     if (appProtocolUrl) {
-      handleAppProtocolUrl(appProtocolUrl, mainWindow);
+      handleAppProtocolUrl(appProtocolUrl);
     }
   });
 
