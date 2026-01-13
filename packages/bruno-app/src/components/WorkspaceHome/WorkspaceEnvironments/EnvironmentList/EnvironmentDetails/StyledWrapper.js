@@ -91,7 +91,40 @@ const StyledWrapper = styled.div`
       border-radius: 4px;
       white-space: nowrap;
     }
-    
+
+    .right-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-container {
+      position: relative;
+      left: 13px;
+      transform: translateY(13%);
+
+      .search-icon {
+        position: absolute;
+        color: ${(props) => props.theme.sidebar.muted};
+      }
+
+      .search-input {
+        width: 100%;
+        height: 28px;
+        padding: 0 32px;
+        color: ${(props) => props.theme.sidebar.color};
+        background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+        border: 1px solid transparent;
+        border-radius: 5px;
+        outline: none;
+
+        &:hover, &:focus {
+          background: ${(props) => props.theme.input.bg};
+          border-color: ${(props) => props.theme.input.border};
+        }
+      }
+    }
+
     .actions {
       display: flex;
       gap: 2px;
