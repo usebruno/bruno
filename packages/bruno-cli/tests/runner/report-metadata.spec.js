@@ -106,8 +106,8 @@ describe('HTML Report Generation', () => {
       runCompletionTime: '2024-01-15T14:30:45.123Z'
     });
 
-    expect(htmlString).toContain('invalid-request.bru');
     expect(htmlString).toContain('Request Skipped');
-    expect(htmlString).toContain('Unexpected token');
+    expect(htmlString).toContain('summarySkippedRequests');
+    expect(htmlString).toContain('result.response.status === \'skipped\'');
   });
 });
