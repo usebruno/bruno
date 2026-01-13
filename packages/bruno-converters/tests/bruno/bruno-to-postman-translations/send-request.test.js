@@ -600,7 +600,7 @@ describe('Bruno to Postman Send Request Translation', () => {
         pm.sendRequest({
             url: 'https://echo.usebruno.com',
             method: 'GET'
-        }, function(error, response) {
+        }, async function(error, response) {
             await new Promise(resolve => {
                 setTimeout(() => {
                     resolve();

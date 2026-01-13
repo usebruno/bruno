@@ -188,11 +188,15 @@ const transformCallback = (callback) => {
 
   // Create the callback - Postman uses regular functions
   const bodyStatements = callbackBody.type === 'BlockStatement' ? callbackBody.body : [j.returnStatement(callbackBody)];
-  return j.functionExpression(
+  const functionExpr = j.functionExpression(
     null,
     [j.identifier(errorVarName), j.identifier(responseVarName)],
     j.blockStatement(bodyStatements)
   );
+
+  functionExpr.async = callback.async;
+
+  return functionExpr;
 };
 
 /**
