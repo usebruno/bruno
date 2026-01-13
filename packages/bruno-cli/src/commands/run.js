@@ -17,6 +17,7 @@ const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
 const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
+const { createSkippedFileResults } = require('../utils/run');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -661,7 +662,8 @@ const handler = async function (argv) {
         ...result,
         runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: pathname.replace('.bru', ''),
-        name
+        name,
+        path: result.test?.filename || path.relative(collectionPath, pathname)
       });
 
       if (reporterSkipAllHeaders) {
@@ -733,6 +735,9 @@ const handler = async function (argv) {
         currentRequestIndex++;
       }
     }
+
+    const skippedFileResults = createSkippedFileResults(global.brunoSkippedFiles || [], collectionPath);
+    results.push(...skippedFileResults);
 
     const summary = printRunSummary(results);
     const runCompletionTime = new Date().toISOString();
