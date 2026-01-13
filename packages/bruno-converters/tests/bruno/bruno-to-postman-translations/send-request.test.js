@@ -984,6 +984,207 @@ describe('Bruno to Postman Send Request Translation', () => {
         });
       `);
     });
+
+    it('should transform urlencoded body mode with variable config', () => {
+      const code = `
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            data: {
+                "firstName": "John",
+                "lastName": "Doe"
+            }
+        };
+        bru.sendRequest(requestConfig, function (error, response) {
+            console.log(response.data);
+        });
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toBe(`
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: {
+                mode: "urlencoded",
+
+                urlencoded: [{
+                    key: "firstName",
+                    value: "John"
+                }, {
+                    key: "lastName",
+                    value: "Doe"
+                }]
+            }
+        };
+        pm.sendRequest(requestConfig, function(error, response) {
+            console.log(response.json());
+        });
+      `);
+    });
+
+    it('should transform formdata body mode with variable config', () => {
+      const code = `
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+            data: {
+                "firstName": "John",
+                "lastName": "Doe"
+            }
+        };
+        bru.sendRequest(requestConfig, function (error, response) {
+            console.log(response.data);
+        });
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toBe(`
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Content-Type': 'multipart/form-data',
+            },
+            body: {
+                mode: "formdata",
+
+                formdata: [{
+                    key: "firstName",
+                    value: "John"
+                }, {
+                    key: "lastName",
+                    value: "Doe"
+                }]
+            }
+        };
+        pm.sendRequest(requestConfig, function(error, response) {
+            console.log(response.json());
+        });
+      `);
+    });
+
+    it('should transform variable config without callback', () => {
+      const code = `
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        };
+        bru.sendRequest(requestConfig);
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toBe(`
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'GET',
+            header: {
+                'Accept': 'application/json'
+            }
+        };
+        pm.sendRequest(requestConfig);
+      `);
+    });
+
+    it('should transform variable config with raw text body', () => {
+      const code = `
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain',
+            },
+            data: 'Hello World'
+        };
+        bru.sendRequest(requestConfig, function (error, response) {
+            console.log(response.data);
+        });
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toBe(`
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Content-Type': 'text/plain',
+            },
+            body: {
+                mode: "raw",
+                raw: 'Hello World'
+            }
+        };
+        pm.sendRequest(requestConfig, function(error, response) {
+            console.log(response.json());
+        });
+      `);
+    });
+
+    it('should transform variable config with arrow function callback', () => {
+      const code = `
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        };
+        bru.sendRequest(requestConfig, (error, response) => {
+            console.log(response.data);
+        });
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toBe(`
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'GET',
+            header: {
+                'Accept': 'application/json'
+            }
+        };
+        pm.sendRequest(requestConfig, function(error, response) {
+            console.log(response.json());
+        });
+      `);
+    });
+
+    it('should transform variable config with async arrow function callback', () => {
+      const code = `
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        };
+        bru.sendRequest(requestConfig, async (error, response) => {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            console.log(response.data);
+        });
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toBe(`
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'GET',
+            header: {
+                'Accept': 'application/json'
+            }
+        };
+        pm.sendRequest(requestConfig, async function(error, response) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            console.log(response.json());
+        });
+      `);
+    });
   });
 
   describe('Without Callback', () => {

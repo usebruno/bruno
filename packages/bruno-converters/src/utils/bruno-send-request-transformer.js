@@ -1,6 +1,25 @@
 const j = require('jscodeshift');
 
 /**
+ * Content-Type constants for body mode detection
+ * @readonly
+ */
+const CONTENT_TYPES = Object.freeze({
+  URLENCODED: 'application/x-www-form-urlencoded',
+  FORMDATA: 'multipart/form-data'
+});
+
+/**
+ * Body mode constants
+ * @readonly
+ */
+const BODY_MODES = Object.freeze({
+  RAW: 'raw',
+  URLENCODED: 'urlencoded',
+  FORMDATA: 'formdata'
+});
+
+/**
  * Convert Bruno object format to Postman array format for body
  * @param {Object} objectValue - Object expression with key-value pairs
  * @returns {Object} - Array expression of key-value pair objects
@@ -107,7 +126,7 @@ const transformHeaders = (requestOptions) => {
  */
 const createRawBody = (dataValue) => {
   return j.objectExpression([
-    j.property('init', j.identifier('mode'), j.literal('raw')),
+    j.property('init', j.identifier('mode'), j.literal(BODY_MODES.RAW)),
     j.property('init', j.identifier('raw'), dataValue)
   ]);
 };
@@ -118,16 +137,16 @@ const createRawBody = (dataValue) => {
  * @returns {string} - Body mode: 'urlencoded', 'formdata', or 'raw'
  */
 const determineBodyMode = (contentType) => {
-  if (!contentType) return 'raw';
+  if (!contentType) return BODY_MODES.RAW;
 
   const normalizedContentType = contentType.toLowerCase();
-  if (normalizedContentType.includes('application/x-www-form-urlencoded')) {
-    return 'urlencoded';
+  if (normalizedContentType.includes(CONTENT_TYPES.URLENCODED)) {
+    return BODY_MODES.URLENCODED;
   }
-  if (normalizedContentType.includes('multipart/form-data')) {
-    return 'formdata';
+  if (normalizedContentType.includes(CONTENT_TYPES.FORMDATA)) {
+    return BODY_MODES.FORMDATA;
   }
-  return 'raw';
+  return BODY_MODES.RAW;
 };
 
 /**
@@ -147,14 +166,14 @@ const transformBody = (requestOptions, contentType) => {
       prop.key = j.identifier('body');
 
       // Convert to Postman body format based on mode
-      if (bodyMode === 'urlencoded' && dataValue.type === 'ObjectExpression') {
+      if (bodyMode === BODY_MODES.URLENCODED && dataValue.type === 'ObjectExpression') {
         prop.value = j.objectExpression([
-          j.property('init', j.identifier('mode'), j.literal('urlencoded')),
+          j.property('init', j.identifier('mode'), j.literal(BODY_MODES.URLENCODED)),
           j.property('init', j.identifier('urlencoded'), convertObjectToArray(dataValue))
         ]);
-      } else if (bodyMode === 'formdata' && dataValue.type === 'ObjectExpression') {
+      } else if (bodyMode === BODY_MODES.FORMDATA && dataValue.type === 'ObjectExpression') {
         prop.value = j.objectExpression([
-          j.property('init', j.identifier('mode'), j.literal('formdata')),
+          j.property('init', j.identifier('mode'), j.literal(BODY_MODES.FORMDATA)),
           j.property('init', j.identifier('formdata'), convertObjectToArray(dataValue))
         ]);
       } else {
