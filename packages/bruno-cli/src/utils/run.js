@@ -1,7 +1,7 @@
 const path = require('path');
 const { stripExtension } = require('./filesystem');
 
-const createSkippedResults = (skippedFiles, collectionPath) => {
+const createSkippedFileResults = (skippedFiles, collectionPath) => {
   return skippedFiles.map((skippedFile) => {
     const relativePath = path.relative(collectionPath, skippedFile.path);
     return {
@@ -36,5 +36,5 @@ const createSkippedResults = (skippedFiles, collectionPath) => {
 };
 
 module.exports = {
-  createSkippedResults
+  createSkippedFileResults
 };

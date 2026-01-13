@@ -17,7 +17,7 @@ const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
 const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
-const { createSkippedResults } = require('../utils/run');
+const { createSkippedFileResults } = require('../utils/run');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -736,8 +736,8 @@ const handler = async function (argv) {
       }
     }
 
-    const skippedFiles = global.brunoSkippedFiles || [];
-    results.push(...createSkippedResults(skippedFiles, collectionPath));
+    const skippedFileResults = createSkippedFileResults(global.brunoSkippedFiles || [], collectionPath);
+    results.push(...skippedFileResults);
 
     const summary = printRunSummary(results);
     const runCompletionTime = new Date().toISOString();
