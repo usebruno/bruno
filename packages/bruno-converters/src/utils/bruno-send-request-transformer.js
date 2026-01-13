@@ -101,6 +101,36 @@ const transformHeaders = (requestOptions) => {
 };
 
 /**
+ * Create a raw body object expression
+ * @param {Object} dataValue - The data value to wrap
+ * @returns {Object} - Object expression with raw mode
+ */
+const createRawBody = (dataValue) => {
+  return j.objectExpression([
+    j.property('init', j.identifier('mode'), j.literal('raw')),
+    j.property('init', j.identifier('raw'), dataValue)
+  ]);
+};
+
+/**
+ * Determine body mode based on Content-Type header
+ * @param {string|null} contentType - Content-Type header value
+ * @returns {string} - Body mode: 'urlencoded', 'formdata', or 'raw'
+ */
+const determineBodyMode = (contentType) => {
+  if (!contentType) return 'raw';
+
+  const normalizedContentType = contentType.toLowerCase();
+  if (normalizedContentType.includes('application/x-www-form-urlencoded')) {
+    return 'urlencoded';
+  }
+  if (normalizedContentType.includes('multipart/form-data')) {
+    return 'formdata';
+  }
+  return 'raw';
+};
+
+/**
  * Transform body/data property from Bruno format to Postman format
  * @param {Object} requestOptions - Request options object
  * @param {string|null} contentType - Content-Type header value (passed in because headers may be renamed)
@@ -111,45 +141,25 @@ const transformBody = (requestOptions, contentType) => {
   requestOptions.properties.forEach((prop) => {
     if (prop.key.name === 'data' || prop.key.value === 'data') {
       const dataValue = prop.value;
+      const bodyMode = determineBodyMode(contentType);
 
       // Rename 'data' to 'body'
       prop.key = j.identifier('body');
 
-      // Determine body mode based on Content-Type
-      if (contentType && contentType.includes('application/x-www-form-urlencoded')) {
-        // Convert to urlencoded format
-        if (dataValue.type === 'ObjectExpression') {
-          prop.value = j.objectExpression([
-            j.property('init', j.identifier('mode'), j.literal('urlencoded')),
-            j.property('init', j.identifier('urlencoded'), convertObjectToArray(dataValue))
-          ]);
-        } else {
-          // Keep as raw if not an object
-          prop.value = j.objectExpression([
-            j.property('init', j.identifier('mode'), j.literal('raw')),
-            j.property('init', j.identifier('raw'), dataValue)
-          ]);
-        }
-      } else if (contentType && contentType.includes('multipart/form-data')) {
-        // Convert to formdata format
-        if (dataValue.type === 'ObjectExpression') {
-          prop.value = j.objectExpression([
-            j.property('init', j.identifier('mode'), j.literal('formdata')),
-            j.property('init', j.identifier('formdata'), convertObjectToArray(dataValue))
-          ]);
-        } else {
-          // Keep as raw if not an object
-          prop.value = j.objectExpression([
-            j.property('init', j.identifier('mode'), j.literal('raw')),
-            j.property('init', j.identifier('raw'), dataValue)
-          ]);
-        }
-      } else {
-        // Default to raw mode (JSON, text, etc.)
+      // Convert to Postman body format based on mode
+      if (bodyMode === 'urlencoded' && dataValue.type === 'ObjectExpression') {
         prop.value = j.objectExpression([
-          j.property('init', j.identifier('mode'), j.literal('raw')),
-          j.property('init', j.identifier('raw'), dataValue)
+          j.property('init', j.identifier('mode'), j.literal('urlencoded')),
+          j.property('init', j.identifier('urlencoded'), convertObjectToArray(dataValue))
         ]);
+      } else if (bodyMode === 'formdata' && dataValue.type === 'ObjectExpression') {
+        prop.value = j.objectExpression([
+          j.property('init', j.identifier('mode'), j.literal('formdata')),
+          j.property('init', j.identifier('formdata'), convertObjectToArray(dataValue))
+        ]);
+      } else {
+        // Default to raw mode (for non-object values or unrecognized Content-Type)
+        prop.value = createRawBody(dataValue);
       }
     }
   });
