@@ -69,7 +69,8 @@ const wsStatusCodes = {
 const initialState = {
   collections: [],
   collectionSortOrder: 'default',
-  activeConnections: []
+  activeConnections: [],
+  tempDirectories: {}
 };
 
 const initiatedGrpcResponse = {
@@ -3363,6 +3364,9 @@ export const collectionsSlice = createSlice({
       }
     },
 
+    addTransientDirectory: (state, action) => {
+      state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
+    },
     /* Response Example Actions */
     addResponseExample: exampleReducers.addResponseExample,
     cloneResponseExample: exampleReducers.cloneResponseExample,
@@ -3588,8 +3592,9 @@ export const {
   deleteResponseExampleRequestHeader,
   moveResponseExampleRequestHeader,
   setResponseExampleRequestHeaders,
-  setResponseExampleParams
+  setResponseExampleParams,
   /* Response Example Actions - End */
+  addTransientDirectory
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
