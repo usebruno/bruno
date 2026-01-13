@@ -610,6 +610,7 @@ const collectionSchema = Yup.object({
     items: Yup.array()
   }),
   runtimeVariables: Yup.object(),
+  workspaceProcessEnvVariables: Yup.object().default({}),
   brunoConfig: Yup.object(),
   root: folderRootSchema
 })

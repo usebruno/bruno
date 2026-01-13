@@ -66,6 +66,7 @@ export const useResponsePreviewFormatOptions = (dataBuffer, headers) => {
     const byteFormatTypes = ['image', 'video', 'audio', 'pdf', 'zip'];
 
     const isByteFormatType = (contentType) => {
+      if (contentType.toLowerCase().includes('svg')) return false; // SVG is text-based
       return byteFormatTypes.some((type) => contentType.includes(type));
     };
 
@@ -203,7 +204,7 @@ const QueryResult = ({
                 dataBuffer={dataBuffer}
                 formattedData={formattedData}
                 item={item}
-                contentType={contentType}
+                contentType={detectedContentType ?? contentType}
                 previewMode={previewMode}
                 codeMirrorMode={codeMirrorMode}
                 collection={collection}
