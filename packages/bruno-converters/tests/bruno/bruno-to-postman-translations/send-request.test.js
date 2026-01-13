@@ -140,6 +140,43 @@ describe('Bruno to Postman Send Request Translation', () => {
         });
       `);
     });
+
+    it('should transform raw body with spread operator (preserved as-is)', () => {
+      const code = `
+        const additionalData = { "y": 2, "z": 3 };
+        bru.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            data: {
+                "x": 1,
+                ...additionalData
+            }
+        });
+      `;
+      const translatedCode = translateBruToPostman(code);
+      // In raw mode, spread operators are preserved as-is in the object
+      expect(translatedCode).toBe(`
+        const additionalData = { "y": 2, "z": 3 };
+        pm.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Content-Type': 'application/json',
+            },
+            body: {
+                mode: "raw",
+
+                raw: {
+                    "x": 1,
+                    ...additionalData
+                }
+            }
+        });
+      `);
+    });
   });
 
   describe('URL-encoded Body Mode', () => {
@@ -292,6 +329,129 @@ describe('Bruno to Postman Send Request Translation', () => {
                     "key1": "value1",
                     "key2": "value2"
                 }
+            }
+        });
+      `);
+    });
+
+    it('should transform urlencoded body with spread operator', () => {
+      const code = `
+        const rest = { "key3": "value3", "key4": "value4" };
+        bru.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            data: {
+                "key1": "value1",
+                "key2": "value2",
+                ...rest
+            }
+        });
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toBe(`
+        const rest = { "key3": "value3", "key4": "value4" };
+        pm.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: {
+                mode: "urlencoded",
+
+                urlencoded: [{
+                    key: "key1",
+                    value: "value1"
+                }, {
+                    key: "key2",
+                    value: "value2"
+                }, ...Object.entries(rest).map(([key, value]) => ({
+                    key: key,
+                    value: value
+                }))]
+            }
+        });
+      `);
+    });
+
+    it('should transform urlencoded body with only spread operator', () => {
+      const code = `
+        const rest = { "key1": "value1", "key2": "value2" };
+        bru.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            data: {
+                ...rest
+            }
+        });
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toBe(`
+        const rest = { "key1": "value1", "key2": "value2" };
+        pm.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: {
+                mode: "urlencoded",
+
+                urlencoded: [...Object.entries(rest).map(([key, value]) => ({
+                    key: key,
+                    value: value
+                }))]
+            }
+        });
+      `);
+    });
+
+    it('should transform urlencoded body with multiple spread operators', () => {
+      const code = `
+        const rest1 = { "key1": "value1" };
+        const rest2 = { "key2": "value2" };
+        bru.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            data: {
+                ...rest1,
+                "key3": "value3",
+                ...rest2
+            }
+        });
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toBe(`
+        const rest1 = { "key1": "value1" };
+        const rest2 = { "key2": "value2" };
+        pm.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: {
+                mode: "urlencoded",
+
+                urlencoded: [...Object.entries(rest1).map(([key, value]) => ({
+                    key: key,
+                    value: value
+                })), {
+                    key: "key3",
+                    value: "value3"
+                }, ...Object.entries(rest2).map(([key, value]) => ({
+                    key: key,
+                    value: value
+                }))]
             }
         });
       `);
@@ -472,6 +632,135 @@ describe('Bruno to Postman Send Request Translation', () => {
             if (response) {
                 const response_body = response.json();
                 console.log(response_body);
+            }
+        });
+      `);
+    });
+
+    it('should transform formdata body with spread operator', () => {
+      const code = `
+        const additionalFields = { "email": "john@example.com", "phone": "123-456-7890" };
+        bru.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+            data: {
+                "firstName": "John",
+                "lastName": "Doe",
+                ...additionalFields
+            }
+        }, function (error, response) {
+            if (response) {
+                const response_body = response.data;
+                console.log(response_body);
+            }
+        });
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toBe(`
+        const additionalFields = { "email": "john@example.com", "phone": "123-456-7890" };
+        pm.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Content-Type': 'multipart/form-data',
+            },
+            body: {
+                mode: "formdata",
+
+                formdata: [{
+                    key: "firstName",
+                    value: "John"
+                }, {
+                    key: "lastName",
+                    value: "Doe"
+                }, ...Object.entries(additionalFields).map(([key, value]) => ({
+                    key: key,
+                    value: value
+                }))]
+            }
+        }, function(error, response) {
+            if (response) {
+                const response_body = response.json();
+                console.log(response_body);
+            }
+        });
+      `);
+    });
+
+    it('should transform formdata body with only spread operator', () => {
+      const code = `
+        const formData = { "name": "John", "age": "30" };
+        bru.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+            data: {
+                ...formData
+            }
+        });
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toBe(`
+        const formData = { "name": "John", "age": "30" };
+        pm.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Content-Type': 'multipart/form-data',
+            },
+            body: {
+                mode: "formdata",
+
+                formdata: [...Object.entries(formData).map(([key, value]) => ({
+                    key: key,
+                    value: value
+                }))]
+            }
+        });
+      `);
+    });
+
+    it('should transform formdata body with spread operator using computed property', () => {
+      const code = `
+        const dynamicKey = "dynamicField";
+        const rest = { [dynamicKey]: "dynamicValue", "staticField": "staticValue" };
+        bru.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+            data: {
+                "key1": "value1",
+                ...rest
+            }
+        });
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toBe(`
+        const dynamicKey = "dynamicField";
+        const rest = { [dynamicKey]: "dynamicValue", "staticField": "staticValue" };
+        pm.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Content-Type': 'multipart/form-data',
+            },
+            body: {
+                mode: "formdata",
+
+                formdata: [{
+                    key: "key1",
+                    value: "value1"
+                }, ...Object.entries(rest).map(([key, value]) => ({
+                    key: key,
+                    value: value
+                }))]
             }
         });
       `);

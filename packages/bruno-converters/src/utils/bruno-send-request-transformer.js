@@ -10,14 +10,48 @@ const convertObjectToArray = (objectValue) => {
 
   if (objectValue.type === 'ObjectExpression') {
     objectValue.properties.forEach((prop) => {
-      const keyValue = prop.key.type === 'Literal' ? prop.key.value : prop.key.name;
+      // Handle spread operators (e.g., ...rest)
+      if (prop.type === 'SpreadElement' || prop.type === 'SpreadProperty') {
+        // For spread operators, we need to spread the array at runtime
+        // Convert the spread expression to spread the result of Object.entries().map()
+        // This preserves the spread behavior in Postman format
+        // Object.entries(rest).map(([key, value]) => ({key, value}))
+        arr.elements.push(
+          j.spreadElement(
+            j.callExpression(
+              j.memberExpression(
+                j.callExpression(
+                  j.memberExpression(j.identifier('Object'), j.identifier('entries')),
+                  [prop.argument]
+                ),
+                j.identifier('map')
+              ),
+              [
+                j.arrowFunctionExpression(
+                  [j.arrayPattern([j.identifier('key'), j.identifier('value')])],
+                  j.objectExpression([
+                    j.property('init', j.identifier('key'), j.identifier('key')),
+                    j.property('init', j.identifier('value'), j.identifier('value'))
+                  ])
+                )
+              ]
+            )
+          )
+        );
+      } else {
+        // Handle regular key-value properties
+        // Skip if prop doesn't have a key (shouldn't happen, but defensive)
+        if (!prop.key) return;
 
-      arr.elements.push(
-        j.objectExpression([
-          j.property('init', j.identifier('key'), j.literal(keyValue)),
-          j.property('init', j.identifier('value'), prop.value)
-        ])
-      );
+        const keyValue = prop.key.type === 'Literal' ? prop.key.value : prop.key.name;
+
+        arr.elements.push(
+          j.objectExpression([
+            j.property('init', j.identifier('key'), j.literal(keyValue)),
+            j.property('init', j.identifier('value'), prop.value)
+          ])
+        );
+      }
     });
   }
 
