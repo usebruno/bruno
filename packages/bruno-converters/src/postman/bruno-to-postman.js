@@ -1,6 +1,6 @@
 import map from 'lodash/map';
 import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems, isItemARequest } from '../common';
-import translateBruToPostman from '../utils/bru-to-pm-translator';
+import translateBruToPostman from '../utils/bruno-to-postman-translator';
 
 /**
  * Transforms a given URL string into an object representing the protocol, host, path, query, and variables.

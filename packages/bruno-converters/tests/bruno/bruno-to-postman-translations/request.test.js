@@ -1,4 +1,4 @@
-import translateBruToPostman from '../../../src/utils/bru-to-pm-translator';
+import translateBruToPostman from '../../../src/utils/bruno-to-postman-translator';
 
 describe('Bruno to Postman Request Translation', () => {
   it('should translate req.getUrl() to pm.request.url (function to property)', () => {
