@@ -20,6 +20,7 @@ import Devtools from 'components/Devtools';
 import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
 import useWsEventListeners from 'utils/network/ws-event-listeners';
 import Portal from 'components/Portal';
+import SaveTransientRequestContainer from 'components/SaveTransientRequest/Container';
 
 require('codemirror/mode/javascript/javascript');
 require('codemirror/mode/xml/xml');
@@ -137,6 +138,7 @@ export default function Main() {
 
       <Devtools mainSectionRef={mainSectionRef} />
       <StatusBar />
+      <SaveTransientRequestContainer />
     </div>
     // </ErrorCapture>
   );

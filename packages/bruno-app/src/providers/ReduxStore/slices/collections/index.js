@@ -70,7 +70,8 @@ const initialState = {
   collections: [],
   collectionSortOrder: 'default',
   activeConnections: [],
-  tempDirectories: {}
+  tempDirectories: {},
+  saveTransientRequestModals: {}
 };
 
 const initiatedGrpcResponse = {
@@ -3384,6 +3385,18 @@ export const collectionsSlice = createSlice({
     addTransientDirectory: (state, action) => {
       state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
     },
+    openSaveTransientRequestModal: (state, action) => {
+      const { modalId, item, collection, isOpen } = action.payload;
+      state.saveTransientRequestModals[modalId] = {
+        item,
+        collection,
+        isOpen
+      };
+    },
+    closeSaveTransientRequestModal: (state, action) => {
+      const { modalId } = action.payload;
+      delete state.saveTransientRequestModals[modalId];
+    },
     /* Response Example Actions */
     addResponseExample: exampleReducers.addResponseExample,
     cloneResponseExample: exampleReducers.cloneResponseExample,
@@ -3611,7 +3624,9 @@ export const {
   setResponseExampleRequestHeaders,
   setResponseExampleParams,
   /* Response Example Actions - End */
-  addTransientDirectory
+  addTransientDirectory,
+  openSaveTransientRequestModal,
+  closeSaveTransientRequestModal
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

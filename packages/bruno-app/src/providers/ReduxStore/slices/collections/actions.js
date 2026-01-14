@@ -57,7 +57,9 @@ import {
   addCollectionVar,
   updateCollectionVar,
   addTransientDirectory,
-  newItem
+  newItem,
+  openSaveTransientRequestModal,
+  closeSaveTransientRequestModal
 } from './index';
 
 import { each } from 'lodash';
@@ -153,8 +155,8 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
 
     const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
     if (isTransient) {
-      // TODO_CHIRAG: Implement modal opening here
-      toast.success('Transient request saved successfully');
+      const modalId = uuid();
+      dispatch(openSaveTransientRequestModal({ modalId, item, collection }));
       return resolve();
     }
 

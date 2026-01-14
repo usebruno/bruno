@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
 import SearchInput from 'components/SearchInput';
 import Button from 'ui/Button';
@@ -8,8 +9,19 @@ import NewFolder from 'components/Sidebar/NewFolder';
 import Portal from 'components/Portal';
 import StyledWrapper from './StyledWrapper';
 import useCollectionFolderTree from 'hooks/useCollectionFolderTree';
+import { closeSaveTransientRequestModal } from 'providers/ReduxStore/slices/collections';
 
-const SaveTransientRequest = ({ item, collection, isOpen, onClose }) => {
+const SaveTransientRequest = ({ modalId }) => {
+  const dispatch = useDispatch();
+  const modalState = useSelector((state) => state.collections.saveTransientRequestModals[modalId]);
+
+  const item = modalState?.item;
+  const collection = modalState?.collection;
+  const isOpen = modalState?.isOpen || false;
+
+  const handleClose = () => {
+    dispatch(closeSaveTransientRequestModal({ modalId }));
+  };
   const [requestName, setRequestName] = useState(item?.name || '');
   const [searchText, setSearchText] = useState('');
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
@@ -50,7 +62,7 @@ const SaveTransientRequest = ({ item, collection, isOpen, onClose }) => {
     setRequestName(item?.name || '');
     setSearchText('');
     reset();
-    onClose();
+    handleClose();
   };
 
   const handleConfirm = () => {
@@ -60,7 +72,7 @@ const SaveTransientRequest = ({ item, collection, isOpen, onClose }) => {
     // 2. Use the requestName for the saved request
     // 3. Delete the transient request from temp directory
     console.log('Save request:', { requestName, selectedFolderUid, item, collection });
-    onClose();
+    handleClose();
   };
 
   const handleNewFolder = () => {
