@@ -220,9 +220,15 @@ app.on('ready', async () => {
     }
   });
 
+  let boundsTimeout;
   const handleBoundsChange = () => {
     if (!mainWindow.isMaximized()) {
-      saveBounds(mainWindow);
+      if (boundsTimeout) {
+        clearTimeout(boundsTimeout);
+      }
+      boundsTimeout = setTimeout(() => {
+        saveBounds(mainWindow);
+      }, 100);
     }
   };
 
