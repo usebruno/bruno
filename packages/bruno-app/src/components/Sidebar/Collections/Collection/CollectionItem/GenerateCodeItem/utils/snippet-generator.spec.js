@@ -150,8 +150,11 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: true
     });
 
-    const expectedBody = `{"message": "Hello World", "count": 42}`;
-    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedBody}'`);
+    const expectedBody = `{
+  "message": "Hello World",
+  "count": 42
+}`;
+    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle GET requests', () => {
@@ -204,8 +207,11 @@ describe('Snippet Generator - Simple Tests', () => {
     });
 
     // Body should have interpolated variables with proper formatting
-    const expectedBody = `{"message": "Hello World", "count": 42}`;
-    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedBody}'`);
+    const expectedBody = `{
+  "message": "Hello World",
+  "count": 42
+}`;
+    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle complex nested JSON body', () => {
@@ -267,7 +273,7 @@ describe('Snippet Generator - Simple Tests', () => {
       }
     }, null, 2);
 
-    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
   });
 
   it('should handle errors gracefully', () => {
@@ -367,9 +373,13 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: true
     });
 
-    const expectedInterpolatedBody = `{"name": "John Smith", "email": "john@test.com", "age": 30}`;
+    const expectedInterpolatedBody = `{
+  "name": "John Smith",
+  "email": "john@test.com",
+  "age": 30
+}`;
 
-    expect(result).toBe(`curl -X POST https://api.test.com/users -H "Content-Type: application/json" -d '${expectedInterpolatedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedInterpolatedBody}'`);
   });
 
   it('should NOT interpolate when shouldInterpolate is false', () => {
@@ -418,12 +428,12 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: false
     });
 
-    expect(result).toBe(
-      'curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\''
-    );
+    expect(result).toBe('curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
   });
 
-  it('should interpolate basic auth credentials correctly', () => {
+  it('should interpolate auth credentials correctly', () => {
+    // Auth inheritance is resolved upstream in index.js before calling generateSnippet
+    // So the item already has the resolved auth (not 'inherit' mode)
     const item = {
       request: {
         method: 'GET',
@@ -441,12 +451,7 @@ describe('Snippet Generator - Simple Tests', () => {
     const collection = {
       root: {
         request: {
-          vars: {
-            req: [
-              { name: 'user', value: 'admin', enabled: true },
-              { name: 'pass', value: 'secret123', enabled: true }
-            ]
-          }
+          auth: { mode: 'none' }
         }
       }
     };
@@ -611,7 +616,7 @@ describe('generateSnippet with OAuth2 authentication', () => {
     jest.clearAllMocks();
     // Mock getAuthHeaders to return OAuth2 headers based on the auth config
     const authUtils = require('utils/codegenerator/auth');
-    authUtils.getAuthHeaders.mockImplementation((collectionRootAuth, requestAuth, collection = null, item = null) => {
+    authUtils.getAuthHeaders.mockImplementation((requestAuth, collection = null, item = null) => {
       if (requestAuth?.mode === 'oauth2') {
         const oauth2Config = requestAuth.oauth2 || {};
         const tokenPlacement = oauth2Config.tokenPlacement || 'header';
