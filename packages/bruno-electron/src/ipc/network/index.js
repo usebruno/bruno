@@ -935,9 +935,9 @@ const registerNetworkIpc = (mainWindow) => {
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
-        dataBuffer: response.dataBuffer.toString('base64'),
         stream: isResponseStream ? axiosDataStream : null,
         cancelTokenUid: cancelTokenUid,
+        dataBuffer: response.dataBuffer.toString('base64'),
         size: Buffer.byteLength(response.dataBuffer),
         duration: responseTime ?? 0,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
@@ -1717,7 +1717,9 @@ const registerNetworkIpc = (mainWindow) => {
         } else {
           await writeFile(filePath, data, true);
         }
+        return { success: true, filePath };
       }
+      return { success: false, cancelled: true };
     } catch (error) {
       return Promise.reject(error);
     }

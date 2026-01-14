@@ -48,6 +48,7 @@ yarn-error.log*
 bruno.iml
 .idea
 .vscode
+.cursor
 
 # Playwright
 /blob-report/

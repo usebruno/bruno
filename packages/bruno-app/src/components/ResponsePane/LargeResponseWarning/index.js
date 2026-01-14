@@ -10,12 +10,14 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
   const { ipcRenderer } = window;
   const response = item.response || {};
 
-  const saveResponseToFile = () => {
+  const downloadResponseToFile = () => {
     return new Promise((resolve, reject) => {
       ipcRenderer
-        .invoke('renderer:save-response-to-file', response, item.requestSent.url)
-        .then(() => {
-          toast.success('Response saved to file');
+        .invoke('renderer:save-response-to-file', response, item.requestSent.url, item.pathname)
+        .then((result) => {
+          if (result && result.success) {
+            toast.success('Response downloaded to file');
+          }
           resolve();
         })
         .catch((err) => {
@@ -72,13 +74,13 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
         <Button
           icon={<IconDownload size={18} strokeWidth={1.5} />}
           iconPosition="left"
-          onClick={saveResponseToFile}
+          onClick={downloadResponseToFile}
           disabled={!response.dataBuffer}
-          title="Save response to file"
+          title="Download response to file"
           color="secondary"
           size="sm"
         >
-          Save
+          Download
         </Button>
         <Button
           icon={<IconCopy size={18} strokeWidth={1.5} />}

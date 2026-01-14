@@ -1,4 +1,4 @@
-import translateCode from '../../../../src/utils/jscode-shift-translator.js';
+import translateCode from '../../../../src/utils/postman-to-bruno-translator';
 
 describe('Legacy Postman API Translation', () => {
   describe('handleLegacyGlobalAPIs - No Conflicts', () => {

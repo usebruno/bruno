@@ -10,10 +10,10 @@ const CALCULATION_DELAY_EXTENDED = 150;
 const GAP_BETWEEN_LEFT_AND_RIGHT_CONTENT = 80;
 const EXPANDABLE_HYSTERESIS = 20; // Buffer to prevent flickering at boundary
 
-// Compare two tab arrays by their keys
-const areTabArraysEqual = (a, b) => {
-  if (a.length !== b.length) return false;
-  return a.every((tab, index) => tab.key === b[index].key);
+// Compare two key arrays for equality
+const areKeysEqual = (prevKeys, newKeys) => {
+  if (prevKeys.length !== newKeys.length) return false;
+  return prevKeys.every((key, i) => key === newKeys[i]);
 };
 
 const ResponsiveTabs = ({
@@ -26,8 +26,8 @@ const ResponsiveTabs = ({
   rightContentExpandedWidth, // Optional: width of the expandable element when expanded
   expandableElementIndex = -1 // Optional: index of the expandable child element (-1 means last child)
 }) => {
-  const [visibleTabs, setVisibleTabs] = useState([]);
-  const [overflowTabs, setOverflowTabs] = useState([]);
+  const [visibleTabKeys, setVisibleTabKeys] = useState([]);
+  const [overflowTabKeys, setOverflowTabKeys] = useState([]);
   const [rightSideExpandable, setRightSideExpandable] = useState(false);
 
   const tabsContainerRef = useRef(null);
@@ -79,9 +79,16 @@ const ResponsiveTabs = ({
       }
     }
 
-    // Only update state if arrays actually changed (prevents infinite loops)
-    setVisibleTabs((prev) => (areTabArraysEqual(prev, visible) ? prev : visible));
-    setOverflowTabs((prev) => (areTabArraysEqual(prev, overflow) ? prev : overflow));
+    // Extract keys and update state only if changed (prevents infinite loops)
+    const visibleKeys = visible.map((t) => t.key);
+    const overflowKeys = overflow.map((t) => t.key);
+
+    setVisibleTabKeys((prev) => {
+      return areKeysEqual(prev, visibleKeys) ? prev : visibleKeys;
+    });
+    setOverflowTabKeys((prev) => {
+      return areKeysEqual(prev, overflowKeys) ? prev : overflowKeys;
+    });
 
     // Only calculate expandibility if rightContentExpandedWidth is provided
     if (rightContentExpandedWidth && rightContentRef?.current) {
@@ -205,6 +212,10 @@ const ResponsiveTabs = ({
   const rightContentClassName = classnames('flex justify-end items-center', {
     expandable: rightSideExpandable
   });
+
+  // Map stored keys to fresh tab objects from props (ensures indicators stay up-to-date)
+  const visibleTabs = visibleTabKeys.map((key) => tabs.find((t) => t.key === key)).filter(Boolean);
+  const overflowTabs = overflowTabKeys.map((key) => tabs.find((t) => t.key === key)).filter(Boolean);
 
   // Convert overflow tabs to MenuDropdown items format
   const overflowMenuItems = useMemo(() => {

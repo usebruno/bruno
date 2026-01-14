@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
-import WSAuthMode from './WSAuthMode';
 import BearerAuth from '../../Auth/BearerAuth';
 import BasicAuth from '../../Auth/BasicAuth';
 import ApiKeyAuth from '../../Auth/ApiKeyAuth';
@@ -68,6 +67,9 @@ const WSAuth = ({ item, collection }) => {
 
   const getAuthView = () => {
     switch (authMode) {
+      case 'none': {
+        return <div>No Auth</div>;
+      }
       case 'basic': {
         return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
@@ -80,7 +82,7 @@ const WSAuth = ({ item, collection }) => {
       case 'oauth2': {
         return (
           <>
-            <div className="flex flex-row w-full mt-2 gap-2">
+            <div className="flex flex-row w-full gap-2">
               <div>
                 OAuth 2 not <strong>yet</strong> supported by WebSockets. Using no auth instead.
               </div>
@@ -95,7 +97,7 @@ const WSAuth = ({ item, collection }) => {
         if (source && supportedAuthModes.includes(source.auth?.mode)) {
           return (
             <>
-              <div className="flex flex-row w-full mt-2 gap-2">
+              <div className="flex flex-row w-full gap-2">
                 <div> Auth inherited from {source.name}: </div>
                 <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
               </div>
@@ -104,7 +106,7 @@ const WSAuth = ({ item, collection }) => {
         } else {
           return (
             <>
-              <div className="flex flex-row w-full mt-2 gap-2">
+              <div className="flex flex-row w-full gap-2">
                 <div>Inherited auth not supported by WebSockets. Using no auth instead.</div>
               </div>
             </>
@@ -119,9 +121,6 @@ const WSAuth = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
-      <div className="flex flex-grow justify-start items-center">
-        <WSAuthMode item={item} collection={collection} />
-      </div>
       {getAuthView()}
     </StyledWrapper>
   );

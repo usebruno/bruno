@@ -379,6 +379,17 @@ const prepareRequest = async (item = {}, collection = {}) => {
     axiosRequest.data = graphqlQuery;
   }
 
+  // if the mode is 'none' then set the content-type header to null to prevent axios from adding default. #1693
+  // AWS SigV4 requires Content-Type header in canonical request for signature calculation,
+  // even with no body. Omitting it would cause authentication failures.
+  if (request.body.mode === 'none' && (!request.auth || request.auth.mode !== 'awsv4')) {
+    if (!contentTypeDefined) {
+      // Setting to null tells axios not to add a default Content-Type header
+      // Use lowercase to match what scripts use, avoiding duplicate headers
+      axiosRequest.headers['content-type'] = null;
+    }
+  }
+
   if (request.script) {
     axiosRequest.script = request.script;
   }
