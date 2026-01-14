@@ -105,7 +105,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
       placeholder: 'Name',
       width: '40%',
       readOnly: !editMode,
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange, showPlaceholder, rowIndex, columnKey }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -116,6 +116,8 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
           variablesAutocomplete={true}
           readOnly={!editMode}
           placeholder={showPlaceholder ? 'Name' : ''}
+          rowIndex={rowIndex}
+          columnKey={columnKey}
         />
       )
     },
@@ -125,7 +127,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
       placeholder: 'Value',
       width: '60%',
       readOnly: !editMode,
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange, showPlaceholder, rowIndex, columnKey }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -136,6 +138,8 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
           variablesAutocomplete={true}
           readOnly={!editMode}
           placeholder={showPlaceholder ? 'Value' : ''}
+          rowIndex={rowIndex}
+          columnKey={columnKey}
         />
       )
     }
@@ -154,7 +158,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
       placeholder: 'Value',
       width: '60%',
       readOnly: !editMode,
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange, showPlaceholder, rowIndex, columnKey }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -165,6 +169,8 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
           variablesAutocomplete={true}
           readOnly={!editMode}
           placeholder={showPlaceholder ? 'Value' : ''}
+          rowIndex={rowIndex}
+          columnKey={columnKey}
         />
       )
     }

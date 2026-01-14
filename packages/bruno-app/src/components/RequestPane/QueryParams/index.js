@@ -70,7 +70,7 @@ const QueryParams = ({ item, collection }) => {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange, showPlaceholder, rowIndex, columnKey }) => (
         <MultiLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -81,6 +81,8 @@ const QueryParams = ({ item, collection }) => {
           item={item}
           variablesAutocomplete={true}
           placeholder={showPlaceholder ? 'Value' : ''}
+          rowIndex={rowIndex}
+          columnKey={columnKey}
         />
       )
     }
@@ -98,7 +100,7 @@ const QueryParams = ({ item, collection }) => {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ row, value, onChange }) => (
+      render: ({ row, value, onChange, rowIndex, columnKey }) => (
         <MultiLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -107,6 +109,8 @@ const QueryParams = ({ item, collection }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          rowIndex={rowIndex}
+          columnKey={columnKey}
         />
       )
     }

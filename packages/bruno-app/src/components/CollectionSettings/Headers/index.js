@@ -39,7 +39,7 @@ const Headers = ({ collection }) => {
       isKeyField: true,
       placeholder: 'Name',
       width: '30%',
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange, showPlaceholder, rowIndex, columnKey }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -48,6 +48,8 @@ const Headers = ({ collection }) => {
           autocomplete={headerAutoCompleteList}
           collection={collection}
           placeholder={showPlaceholder ? 'Name' : ''}
+          rowIndex={rowIndex}
+          columnKey={columnKey}
         />
       )
     },
@@ -55,7 +57,7 @@ const Headers = ({ collection }) => {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange, showPlaceholder, rowIndex, columnKey }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -64,6 +66,8 @@ const Headers = ({ collection }) => {
           collection={collection}
           autocomplete={MimeTypes}
           placeholder={showPlaceholder ? 'Value' : ''}
+          rowIndex={rowIndex}
+          columnKey={columnKey}
         />
       )
     }

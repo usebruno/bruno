@@ -68,7 +68,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
       placeholder: 'Key',
       width: '40%',
       readOnly: !editMode,
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange, showPlaceholder, rowIndex, columnKey }) => (
         <SingleLineEditor
           value={value || ''}
           readOnly={!editMode}
@@ -79,6 +79,8 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
           onRun={() => {}}
           collection={collection}
           placeholder={showPlaceholder ? 'Key' : ''}
+          rowIndex={rowIndex}
+          columnKey={columnKey}
         />
       )
     },
@@ -88,7 +90,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
       placeholder: 'Value',
       width: '60%',
       readOnly: !editMode,
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange, showPlaceholder, rowIndex, columnKey }) => (
         <SingleLineEditor
           value={value || ''}
           readOnly={!editMode}
@@ -101,6 +103,8 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
           collection={collection}
           item={item}
           placeholder={showPlaceholder ? 'Value' : ''}
+          rowIndex={rowIndex}
+          columnKey={columnKey}
         />
       )
     }

@@ -130,7 +130,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
       placeholder: 'Auto',
       width: '30%',
       readOnly: !editMode,
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange, showPlaceholder, rowIndex, columnKey }) => (
         <SingleLineEditor
           className="flex items-center justify-center"
           onSave={() => {}}
@@ -141,6 +141,8 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
           onRun={() => {}}
           collection={collection}
           readOnly={!editMode}
+          rowIndex={rowIndex}
+          columnKey={columnKey}
         />
       )
     },

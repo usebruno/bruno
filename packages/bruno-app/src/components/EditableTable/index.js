@@ -22,7 +22,15 @@ const EditableTable = ({
 }) => {
   const tableRef = useRef(null);
   const emptyRowUidRef = useRef(null);
-  const focusedInputRef = useRef({ rowIndex: null, columnKey: null, cursorStart: null, cursorEnd: null });
+  const focusedInputRef = useRef({
+    rowIndex: null,
+    columnKey: null,
+    cursorStart: null,
+    cursorEnd: null,
+    cursorLine: null,
+    cursorCh: null,
+    isCodeMirror: false
+  });
   const [hoveredRow, setHoveredRow] = useState(null);
   const [dragStart, setDragStart] = useState(null);
 
@@ -73,16 +81,13 @@ const EditableTable = ({
     const { rowIndex, columnKey, cursorStart, cursorEnd } = focusedInputRef.current;
 
     if (rowIndex !== null && columnKey && tableRef.current) {
-      // Find the input by row index and column key
       const input = tableRef.current.querySelector(
         `input[data-row-index="${rowIndex}"][data-column-key="${columnKey}"]`
       );
 
       if (input && document.activeElement !== input) {
-        // Restore focus
         input.focus();
 
-        // Restore cursor position
         if (cursorStart !== null && cursorEnd !== null) {
           try {
             input.setSelectionRange(cursorStart, cursorEnd);
@@ -212,10 +217,34 @@ const EditableTable = ({
         row,
         value,
         rowIndex,
+        columnKey: column.key,
         isLastEmptyRow: isEmpty,
         showPlaceholder,
         onChange: (newValue) => handleValueChange(row.uid, column.key, newValue),
-        error
+        error,
+        // Focus tracking callbacks for CodeMirror editors
+        onEditorFocus: (cursor) => {
+          focusedInputRef.current = {
+            rowIndex,
+            columnKey: column.key,
+            cursorLine: cursor?.line ?? null,
+            cursorCh: cursor?.ch ?? null,
+            cursorStart: null,
+            cursorEnd: null,
+            isCodeMirror: true
+          };
+        },
+        onEditorBlur: () => {
+          focusedInputRef.current = {
+            rowIndex: null,
+            columnKey: null,
+            cursorStart: null,
+            cursorEnd: null,
+            cursorLine: null,
+            cursorCh: null,
+            isCodeMirror: false
+          };
+        }
       });
     }
 
@@ -239,11 +268,22 @@ const EditableTable = ({
               rowIndex: rowIndex,
               columnKey: column.key,
               cursorStart: e.target.selectionStart,
-              cursorEnd: e.target.selectionEnd
+              cursorEnd: e.target.selectionEnd,
+              cursorLine: null,
+              cursorCh: null,
+              isCodeMirror: false
             };
           }}
           onBlur={() => {
-            focusedInputRef.current = { rowIndex: null, columnKey: null, cursorStart: null, cursorEnd: null };
+            focusedInputRef.current = {
+              rowIndex: null,
+              columnKey: null,
+              cursorStart: null,
+              cursorEnd: null,
+              cursorLine: null,
+              cursorCh: null,
+              isCodeMirror: false
+            };
           }}
           onSelect={(e) => {
             // Update cursor position when user moves cursor
