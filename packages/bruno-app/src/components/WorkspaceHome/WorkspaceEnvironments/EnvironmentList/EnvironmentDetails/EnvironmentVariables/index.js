@@ -344,6 +344,7 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
         data={formik.values}
         fixedItemHeight={35}
         components={{ TableRow }}
+        computeItemKey={(index, variable) => variable.uid}
         fixedHeaderContent={() => (
           <tr>
             <td className="text-center"></td>
