@@ -122,7 +122,7 @@ const MultipartFormParams = ({ item, collection }) => {
       name: 'Value',
       placeholder: 'Value',
       width: '35%',
-      render: ({ row, value, onChange, isLastEmptyRow, showPlaceholder, rowIndex, columnKey }) => {
+      render: ({ row, value, onChange, isLastEmptyRow, showPlaceholder }) => {
         const isFile = row.type === 'file';
         const fileName = isFile ? getFileName(value) : null;
         const hasTextValue = !isFile && value && value.length > 0;
@@ -158,8 +158,6 @@ const MultipartFormParams = ({ item, collection }) => {
                 collection={collection}
                 item={item}
                 placeholder={showPlaceholder ? 'Value' : ''}
-                rowIndex={rowIndex}
-                columnKey={columnKey}
               />
             </div>
             {!hasTextValue && !isLastEmptyRow && (
@@ -180,7 +178,7 @@ const MultipartFormParams = ({ item, collection }) => {
       name: 'Content-Type',
       placeholder: 'Auto',
       width: '20%',
-      render: ({ value, onChange, showPlaceholder, rowIndex, columnKey }) => (
+      render: ({ value, onChange, showPlaceholder }) => (
         <SingleLineEditor
           onSave={onSave}
           theme={storedTheme}
@@ -189,8 +187,6 @@ const MultipartFormParams = ({ item, collection }) => {
           onChange={onChange}
           onRun={handleRun}
           collection={collection}
-          rowIndex={rowIndex}
-          columnKey={columnKey}
         />
       )
     }

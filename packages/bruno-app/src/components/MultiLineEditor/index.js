@@ -10,9 +10,6 @@ import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
 
-// Module-level variable to track the last focused editor's position
-let lastFocusedEditor = null;
-
 class MultiLineEditor extends Component {
   constructor(props) {
     super(props);
@@ -100,26 +97,6 @@ class MultiLineEditor extends Component {
     // Initialize masking if this is a secret field
     this.setState({ maskInput: this.props.isSecret });
     this._enableMaskedEditor(this.props.isSecret);
-
-    // Setup focus tracking for EditableTable integration
-    this.editor.on('focus', this._onFocus);
-    this.editor.on('blur', this._onBlur);
-    this.editor.on('cursorActivity', this._onCursorActivity);
-
-    // Auto-focus if this editor matches the last focused position (handles remount)
-    if (lastFocusedEditor
-      && lastFocusedEditor.rowIndex === this.props.rowIndex
-      && lastFocusedEditor.columnKey === this.props.columnKey) {
-      const savedCursor = lastFocusedEditor.cursor;
-      setTimeout(() => {
-        if (this.editor) {
-          this.editor.focus();
-          if (savedCursor) {
-            this.editor.setCursor(savedCursor);
-          }
-        }
-      }, 0);
-    }
   }
 
   _onEdit = () => {
@@ -128,34 +105,6 @@ class MultiLineEditor extends Component {
       if (this.props.onChange) {
         this.props.onChange(this.cachedValue);
       }
-    }
-  };
-
-  _onFocus = () => {
-    // Store this editor's position for focus restoration after remount
-    lastFocusedEditor = {
-      rowIndex: this.props.rowIndex,
-      columnKey: this.props.columnKey,
-      cursor: this.editor.getCursor()
-    };
-    if (this.props.onEditorFocus) {
-      this.props.onEditorFocus(this.editor.getCursor());
-    }
-  };
-
-  _onBlur = () => {
-    if (this.props.onEditorBlur) {
-      this.props.onEditorBlur();
-    }
-  };
-
-  _onCursorActivity = () => {
-    // Update cursor position in the stored state
-    if (this.editor.hasFocus() && lastFocusedEditor) {
-      lastFocusedEditor.cursor = this.editor.getCursor();
-    }
-    if (this.props.onEditorFocus && this.editor.hasFocus()) {
-      this.props.onEditorFocus(this.editor.getCursor());
     }
   };
 
@@ -226,20 +175,14 @@ class MultiLineEditor extends Component {
     if (this.brunoAutoCompleteCleanup) {
       this.brunoAutoCompleteCleanup();
     }
-    if (this.editor) {
-      if (this.editor._destroyLinkAware) {
-        this.editor._destroyLinkAware();
-      }
-      this.editor.off('change', this._onEdit);
-      this.editor.off('focus', this._onFocus);
-      this.editor.off('blur', this._onBlur);
-      this.editor.off('cursorActivity', this._onCursorActivity);
-      this.editor.getWrapperElement().remove();
+    if (this.editor?._destroyLinkAware) {
+      this.editor._destroyLinkAware();
     }
     if (this.maskedEditor) {
       this.maskedEditor.destroy();
       this.maskedEditor = null;
     }
+    this.editor.getWrapperElement().remove();
   }
 
   addOverlay = (variables) => {

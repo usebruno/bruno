@@ -51,7 +51,7 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
-      render: ({ value, onChange, showPlaceholder, rowIndex, columnKey }) => (
+      render: ({ value, onChange, showPlaceholder }) => (
         <MultiLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -60,8 +60,6 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
           collection={collection}
           item={folder}
           placeholder={showPlaceholder ? (varType === 'request' ? 'Value' : 'Expr') : ''}
-          rowIndex={rowIndex}
-          columnKey={columnKey}
         />
       )
     }

@@ -10,9 +10,6 @@ import { setupLinkAware } from 'utils/codemirror/linkAware';
 
 const CodeMirror = require('codemirror');
 
-// Module-level variable to track the last focused editor's position
-let lastFocusedEditor = null;
-
 class SingleLineEditor extends Component {
   constructor(props) {
     super(props);
@@ -111,26 +108,6 @@ class SingleLineEditor extends Component {
       this._updateNewlineMarkers();
     }
     setupLinkAware(this.editor);
-
-    // Setup focus tracking for EditableTable integration
-    this.editor.on('focus', this._onFocus);
-    this.editor.on('blur', this._onBlur);
-    this.editor.on('cursorActivity', this._onCursorActivity);
-
-    // Auto-focus if this editor matches the last focused position (handles remount)
-    if (lastFocusedEditor
-      && lastFocusedEditor.rowIndex === this.props.rowIndex
-      && lastFocusedEditor.columnKey === this.props.columnKey) {
-      const savedCursor = lastFocusedEditor.cursor;
-      setTimeout(() => {
-        if (this.editor) {
-          this.editor.focus();
-          if (savedCursor) {
-            this.editor.setCursor(savedCursor);
-          }
-        }
-      }, 0);
-    }
   }
 
   /** Enable or disable masking the rendered content of the editor */
@@ -164,34 +141,6 @@ class SingleLineEditor extends Component {
   };
 
   _onPaste = (_, event) => this.props.onPaste?.(event);
-
-  _onFocus = () => {
-    // Store this editor's position for focus restoration after remount
-    lastFocusedEditor = {
-      rowIndex: this.props.rowIndex,
-      columnKey: this.props.columnKey,
-      cursor: this.editor.getCursor()
-    };
-    if (this.props.onEditorFocus) {
-      this.props.onEditorFocus(this.editor.getCursor());
-    }
-  };
-
-  _onBlur = () => {
-    if (this.props.onEditorBlur) {
-      this.props.onEditorBlur();
-    }
-  };
-
-  _onCursorActivity = () => {
-    // Update cursor position in the stored state
-    if (this.editor.hasFocus() && lastFocusedEditor) {
-      lastFocusedEditor.cursor = this.editor.getCursor();
-    }
-    if (this.props.onEditorFocus && this.editor.hasFocus()) {
-      this.props.onEditorFocus(this.editor.getCursor());
-    }
-  };
 
   componentDidUpdate(prevProps) {
     // Ensure the changes caused by this update are not interpreted as
@@ -252,9 +201,6 @@ class SingleLineEditor extends Component {
       }
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
-      this.editor.off('focus', this._onFocus);
-      this.editor.off('blur', this._onBlur);
-      this.editor.off('cursorActivity', this._onCursorActivity);
       this._clearNewlineMarkers();
       this.editor.getWrapperElement().remove();
       this.editor = null;
