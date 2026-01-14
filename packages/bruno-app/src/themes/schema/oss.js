@@ -1180,19 +1180,19 @@ export const ossSchema = {
           },
           required: ['toolbar'],
           additionalProperties: false
+        },
+        kbd: {
+          type: 'object',
+          properties: {
+            bg: { type: 'string' },
+            color: { type: 'string' },
+            border: { type: 'string' }
+          },
+          required: ['bg', 'color', 'border'],
+          additionalProperties: false
         }
       },
-      required: ['collection'],
-      additionalProperties: false
-    },
-    kbd: {
-      type: 'object',
-      properties: {
-        bg: { type: 'string' },
-        color: { type: 'string' },
-        border: { type: 'string' }
-      },
-      required: ['bg', 'color', 'border'],
+      required: ['collection', 'kbd'],
       additionalProperties: false
     }
   },
@@ -1201,7 +1201,7 @@ export const ossSchema = {
     'sidebar', 'dropdown', 'workspace', 'request',
     'requestTabPanel', 'notifications', 'modal', 'button', 'button2', 'tabs',
     'requestTabs', 'codemirror', 'table', 'plainGrid', 'scrollbar', 'dragAndDrop',
-    'infoTip', 'statusBar', 'console', 'grpc', 'deprecationWarning', 'examples', 'app', 'kbd'
+    'infoTip', 'statusBar', 'console', 'grpc', 'deprecationWarning', 'examples', 'app'
   ],
   additionalProperties: false
 };

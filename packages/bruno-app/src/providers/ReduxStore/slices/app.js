@@ -140,13 +140,6 @@ export const appSlice = createSlice({
         state.showHomePage = false;
         state.showApiSpecPage = false;
         state.showManageWorkspacePage = false;
-      })
-      .addCase(closeTabs, (state, action) => {
-        // We don't have access to the tabs state here easily to check if it's empty
-        // but the RequestTabPanel handles showing WorkspaceHome if tabs are empty.
-        // However, to ensure logic in StatusBar and useIpcEvents works correctly,
-        // we should probably let the UI handle switching to showHomePage if needed,
-        // or just rely on !activeTabUid check which I added.
       });
   }
 });
