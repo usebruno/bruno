@@ -170,7 +170,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
       placeholder: 'Value',
       width: '40%',
       readOnly: !editMode,
-      render: ({ row, value, onChange, isLastEmptyRow, showPlaceholder }) => {
+      render: ({ row, value, onChange, isLastEmptyRow }) => {
         const isFile = row.type === 'file';
         const fileName = isFile ? getFileName(value) : null;
         const hasTextValue = !isFile && value && value.length > 0;
@@ -206,7 +206,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
                 collection={collection}
                 item={item}
                 readOnly={!editMode}
-                placeholder={showPlaceholder ? 'Value' : ''}
+                placeholder={!value ? 'Value' : ''}
               />
             </div>
             {!hasTextValue && !isLastEmptyRow && (
@@ -228,11 +228,11 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
       placeholder: 'Auto',
       width: '30%',
       readOnly: !editMode,
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           onSave={() => {}}
           theme={storedTheme}
-          placeholder={showPlaceholder ? 'Auto' : ''}
+          placeholder={!value ? 'Auto' : ''}
           value={value || ''}
           onChange={onChange}
           onRun={() => {}}

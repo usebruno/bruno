@@ -130,12 +130,12 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
       placeholder: 'Auto',
       width: '30%',
       readOnly: !editMode,
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           className="flex items-center justify-center"
           onSave={() => {}}
           theme={storedTheme}
-          placeholder={showPlaceholder ? 'Auto' : ''}
+          placeholder={!value ? 'Auto' : ''}
           value={value || ''}
           onChange={onChange}
           onRun={() => {}}

@@ -47,7 +47,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -57,7 +57,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
-          placeholder={showPlaceholder ? 'Value' : ''}
+          placeholder={!value ? 'Value' : ''}
         />
       )
     }

@@ -178,7 +178,6 @@ const EditableTable = ({
     const isEmpty = isLastEmptyRow(row, rowIndex);
     const value = column.getValue ? column.getValue(row) : row[column.key];
     const error = getRowError?.(row, rowIndex, column.key);
-    const showPlaceholder = !value || (typeof value === 'string' && value.trim() === '');
 
     if (column.render) {
       return column.render({
@@ -186,7 +185,6 @@ const EditableTable = ({
         value,
         rowIndex,
         isLastEmptyRow: isEmpty,
-        showPlaceholder,
         onChange: (newValue) => handleValueChange(row.uid, column.key, newValue),
         error
       });
@@ -203,7 +201,7 @@ const EditableTable = ({
           className="mousetrap"
           value={value || ''}
           readOnly={column.readOnly}
-          placeholder={showPlaceholder ? column.placeholder || column.name : ''}
+          placeholder={!value ? column.placeholder || column.name : ''}
           onChange={(e) => handleValueChange(row.uid, column.key, e.target.value)}
         />
         {error && !isEmpty && (

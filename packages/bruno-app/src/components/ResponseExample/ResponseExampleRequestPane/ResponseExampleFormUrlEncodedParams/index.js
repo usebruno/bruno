@@ -58,7 +58,7 @@ const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, edi
       placeholder: 'Value',
       width: '60%',
       readOnly: !editMode,
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -68,7 +68,7 @@ const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, edi
           onRun={() => {}}
           collection={collection}
           item={item}
-          placeholder={showPlaceholder ? 'Value' : ''}
+          placeholder={!value ? 'Value' : ''}
         />
       )
     }

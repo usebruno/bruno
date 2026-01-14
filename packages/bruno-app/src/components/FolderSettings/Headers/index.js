@@ -43,7 +43,7 @@ const Headers = ({ collection, folder }) => {
       isKeyField: true,
       placeholder: 'Name',
       width: '30%',
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -51,7 +51,7 @@ const Headers = ({ collection, folder }) => {
           onChange={(newValue) => onChange(newValue.replace(/[\r\n]/g, ''))}
           autocomplete={headerAutoCompleteList}
           collection={collection}
-          placeholder={showPlaceholder ? 'Name' : ''}
+          placeholder={!value ? 'Name' : ''}
         />
       )
     },
@@ -59,7 +59,7 @@ const Headers = ({ collection, folder }) => {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ value, onChange, showPlaceholder }) => (
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -68,7 +68,7 @@ const Headers = ({ collection, folder }) => {
           collection={collection}
           item={folder}
           autocomplete={MimeTypes}
-          placeholder={showPlaceholder ? 'Value' : ''}
+          placeholder={!value ? 'Value' : ''}
         />
       )
     }
