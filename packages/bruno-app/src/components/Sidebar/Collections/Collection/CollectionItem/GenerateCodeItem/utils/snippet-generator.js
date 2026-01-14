@@ -46,8 +46,9 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
 
     // Generate snippet using HTTPSnippet
     const snippet = new HTTPSnippet(harRequest);
+    const result = snippet.convert(language.target, language.client);
 
-    return snippet.convert(language.target, language.client);
+    return result;
   } catch (error) {
     console.error('Error generating code snippet:', error);
     return 'Error generating code snippet';

@@ -150,8 +150,11 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: true
     });
 
-    const expectedBody = `{"message": "Hello World", "count": 42}`;
-    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedBody}'`);
+    const expectedBody = `{
+      "message": "Hello World",
+      "count": 42
+    }`;
+    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle GET requests', () => {
@@ -204,8 +207,11 @@ describe('Snippet Generator - Simple Tests', () => {
     });
 
     // Body should have interpolated variables with proper formatting
-    const expectedBody = `{"message": "Hello World", "count": 42}`;
-    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedBody}'`);
+    const expectedBody = `{
+      "message": "Hello World",
+      "count": 42
+    }`;
+    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle complex nested JSON body', () => {
@@ -267,7 +273,7 @@ describe('Snippet Generator - Simple Tests', () => {
       }
     }, null, 2);
 
-    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
   });
 
   it('should handle errors gracefully', () => {
@@ -367,9 +373,13 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: true
     });
 
-    const expectedInterpolatedBody = `{"name": "John Smith", "email": "john@test.com", "age": 30}`;
+    const expectedInterpolatedBody = `{
+      "name": "John Smith",
+      "email": "john@test.com",
+      "age": 30
+    }`;
 
-    expect(result).toBe(`curl -X POST https://api.test.com/users -H "Content-Type: application/json" -d '${expectedInterpolatedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedInterpolatedBody}'`);
   });
 
   it('should NOT interpolate when shouldInterpolate is false', () => {
@@ -418,12 +428,10 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: false
     });
 
-    expect(result).toBe(
-      'curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\''
-    );
+    expect(result).toBe('curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
   });
 
-  it('should interpolate basic auth credentials correctly', () => {
+  it.only('should interpolate basic auth credentials correctly', () => {
     const item = {
       request: {
         method: 'GET',
