@@ -683,8 +683,15 @@ if (!SERVER_RENDERED) {
     const line = cm.getLine(pos.line);
     if (!line) return;
 
-    // Use cursor position (pos.ch) instead of token boundaries.
-    // This fixes cases like "{{123}}" and "{{val1}}" inside strings.
+    // If the line doesn't even contain both braces, no need to run loops
+    if (!line.includes('{{') || !line.includes('}}')) {
+      return;
+    }
+
+    // lastIndexOf searches backward from the cursor indexOf searches forward
+    if (line.lastIndexOf('{{', pos.ch) === -1 || line.indexOf('}}', pos.ch) === -1) {
+      return;
+    }
     let start = pos.ch;
     let end = pos.ch;
 
@@ -706,7 +713,7 @@ if (!SERVER_RENDERED) {
       start--;
     }
 
-    // If we reached the start of the line and didn't match '{{', bail
+    // If we reached the start of the line and didn't match '{{', return
     if (start < 0 || line.substring(start, start + 2) !== '{{') {
       return;
     }
@@ -728,7 +735,7 @@ if (!SERVER_RENDERED) {
 
       end++;
     }
-    // If we reached end-of-line without finding '}}', bail
+    // If we reached end-of-line without finding '}}', return
     if (end > line.length || line.substring(end - 2, end) !== '}}') {
       return;
     }
