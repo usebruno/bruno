@@ -106,12 +106,6 @@ const validatePathIsInsideCollection = (filePath) => {
   }
 };
 
-// Helper: Get collection format from file pathname
-const getFormatFromPathname = (pathname) => {
-  const collectionPath = findCollectionPathByItemPath(pathname);
-  return collectionPath ? getCollectionFormat(collectionPath) : 'bru';
-};
-
 const registerRendererEventHandlers = (mainWindow, watcher) => {
   // create collection
   ipcMain.handle(
@@ -1435,8 +1429,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        const format = getFormatFromPathname(pathname);
-        file.data = await parseRequestViaWorker(bruContent, { format });
+        file.data = await parseRequestViaWorker(bruContent, { format: 'bru' });
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);
@@ -1543,8 +1536,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       await mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
 
       try {
-        const format = getFormatFromPathname(pathname);
-        const parsedData = await parseLargeRequestWithRedaction(bruContent, format);
+        const parsedData = await parseLargeRequestWithRedaction(bruContent, 'bru');
 
         file.data = parsedData;
         file.loading = false;
