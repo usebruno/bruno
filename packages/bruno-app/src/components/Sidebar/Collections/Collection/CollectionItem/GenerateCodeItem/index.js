@@ -116,6 +116,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
     request: {
       ...requestData.request,
       ...(isExample ? { auth: resolvedRequest.auth } : resolvedRequest),
+      // auth: resolvedRequest.auth,
       url: finalUrl
     }
   };
