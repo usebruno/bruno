@@ -68,7 +68,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
       placeholder: 'Key',
       width: '40%',
       readOnly: !editMode,
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange, showPlaceholder }) => (
         <SingleLineEditor
           value={value || ''}
           readOnly={!editMode}
@@ -78,7 +78,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
           autocomplete={headerAutoCompleteList}
           onRun={() => {}}
           collection={collection}
-          placeholder={isLastEmptyRow ? 'Key' : ''}
+          placeholder={showPlaceholder ? 'Key' : ''}
         />
       )
     },
@@ -88,7 +88,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
       placeholder: 'Value',
       width: '60%',
       readOnly: !editMode,
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange, showPlaceholder }) => (
         <SingleLineEditor
           value={value || ''}
           readOnly={!editMode}
@@ -100,7 +100,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
           allowNewlines={true}
           collection={collection}
           item={item}
-          placeholder={isLastEmptyRow ? 'Value' : ''}
+          placeholder={showPlaceholder ? 'Value' : ''}
         />
       )
     }
