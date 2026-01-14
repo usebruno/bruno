@@ -652,11 +652,6 @@ const lightPastelTheme = {
           }
         }
       }
-    },
-    kbd: {
-      bg: '#f3f3f3',
-      color: colors.TEXT,
-      border: colors.GRAY_3
     }
   }
 };

@@ -682,11 +682,6 @@ const darkTheme = {
           }
         }
       }
-    },
-    kbd: {
-      bg: '#3f3f3f',
-      color: palette.text.BASE,
-      border: palette.border.BORDER2
     }
   }
 };

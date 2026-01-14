@@ -648,11 +648,6 @@ const catppuccinLatteTheme = {
           }
         }
       }
-    },
-    kbd: {
-      bg: colors.SURFACE0,
-      color: colors.TEXT,
-      border: colors.SURFACE1
     }
   }
 };

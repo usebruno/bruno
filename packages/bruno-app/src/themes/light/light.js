@@ -671,11 +671,6 @@ const lightTheme = {
           }
         }
       }
-    },
-    kbd: {
-      bg: '#f3f3f3',
-      color: palette.text.BASE,
-      border: palette.border.BORDER2
     }
   }
 };

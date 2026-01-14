@@ -654,11 +654,6 @@ const nordTheme = {
           }
         }
       }
-    },
-    kbd: {
-      bg: '#3f3f3f',
-      color: colors.TEXT,
-      border: colors.NORD2
     }
   }
 };

@@ -656,11 +656,6 @@ const vscodeLightTheme = {
           }
         }
       }
-    },
-    kbd: {
-      bg: '#f3f3f3',
-      color: colors.TEXT,
-      border: colors.BORDER
     }
   }
 };

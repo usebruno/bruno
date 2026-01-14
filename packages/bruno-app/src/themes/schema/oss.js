@@ -1180,19 +1180,9 @@ export const ossSchema = {
           },
           required: ['toolbar'],
           additionalProperties: false
-        },
-        kbd: {
-          type: 'object',
-          properties: {
-            bg: { type: 'string' },
-            color: { type: 'string' },
-            border: { type: 'string' }
-          },
-          required: ['bg', 'color', 'border'],
-          additionalProperties: false
         }
       },
-      required: ['collection', 'kbd'],
+      required: ['collection'],
       additionalProperties: false
     }
   },

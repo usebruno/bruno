@@ -657,11 +657,6 @@ const vscodeDarkTheme = {
           }
         }
       }
-    },
-    kbd: {
-      bg: '#3f3f3f',
-      color: colors.TEXT,
-      border: colors.BORDER
     }
   }
 };
