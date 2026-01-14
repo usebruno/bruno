@@ -139,7 +139,7 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
 export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
+  const tempDirectory = state.collections.tempDirectories?.[collectionUid];
   return new Promise((resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
@@ -149,6 +149,13 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
     const item = findItemInCollection(collectionCopy, itemUid);
     if (!item) {
       return reject(new Error('Not able to locate item'));
+    }
+
+    const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
+    if (isTransient) {
+      // TODO_CHIRAG: Implement modal opening here
+      toast.success('Transient request saved successfully');
+      return resolve();
     }
 
     const itemToSave = transformRequestToSaveToFilesystem(item);
