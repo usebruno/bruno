@@ -19,22 +19,26 @@ import { getGlobalEnvironmentVariables, flattenItems, isItemARequest } from 'uti
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { sensitiveFields } from './constants';
 
+const TableRow = React.memo(({ children, item }) => <tr key={item.uid} data-testid={`env-var-row-${item.name}`}>{children}</tr>, (prevProps, nextProps) => {
+  const prevUid = prevProps?.item?.uid;
+  const nextUid = nextProps?.item?.uid;
+  return prevUid === nextUid && prevProps.children === nextProps.children;
+});
+
+const MIN_H = 35 * 2; // 2 rows worth of height
+
 const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
 
-  const environmentsDraft = collection?.environmentsDraft;
-  const hasDraftForThisEnv = environmentsDraft?.environmentUid === environment.uid;
-  const MIN_H = 50;
-  const MAX_H = 650;
-
-  const tableContainerRef = React.useRef(null);
   const [tableHeight, setTableHeight] = React.useState(MIN_H);
 
+  const environmentsDraft = collection?.environmentsDraft;
+  const hasDraftForThisEnv = environmentsDraft?.environmentUid === environment.uid;
+
   const handleTotalHeightChanged = React.useCallback((h) => {
-    const next = Math.max(MIN_H, Math.min(MAX_H, h));
-    setTableHeight(next);
+    setTableHeight(h);
   }, []);
 
   // Track environment changes for draft restoration
@@ -395,115 +399,114 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
 
   return (
     <StyledWrapper>
-      <div className="table-container">
-        <div>
-          <TableVirtuoso
-            style={{ height: tableHeight, minHeight: MIN_H, maxHeight: MAX_H, overflowY: 'hidden' }}
-            totalListHeightChanged={handleTotalHeightChanged}
-            data={formik.values}
-            scrollerRef={(ref) => (tableContainerRef.current = ref)}
-            fixedHeaderContent={() => (
-              <tr>
-                <td className="text-center"></td>
-                <td>Name</td>
-                <td>Value</td>
-                <td className="text-center">Secret</td>
-                <td></td>
-              </tr>
-            )}
-            itemContent={(index, variable) => {
-              const isLastRow = index === formik.values.length - 1;
-              const isEmptyRow = !variable.name || variable.name.trim() === '';
-              const isLastEmptyRow = isLastRow && isEmptyRow;
+      <TableVirtuoso
+        className="table-container"
+        style={{ height: tableHeight }}
+        components={{ TableRow }}
+        data={formik.values}
+        totalListHeightChanged={handleTotalHeightChanged}
+        fixedHeaderContent={() => (
+          <tr>
+            <td className="text-center"></td>
+            <td>Name</td>
+            <td>Value</td>
+            <td className="text-center">Secret</td>
+            <td></td>
+          </tr>
+        )}
+        fixedItemHeight={35}
+        computeItemKey={(index, variable) => variable.uid}
+        itemContent={(index, variable) => {
+          const isLastRow = index === formik.values.length - 1;
+          const isEmptyRow = !variable.name || variable.name.trim() === '';
+          const isLastEmptyRow = isLastRow && isEmptyRow;
 
-              return (
-                <>
-                  <td className="text-center">
-                    {!isLastEmptyRow && (
-                      <input
-                        type="checkbox"
-                        className="mousetrap"
-                        name={`${index}.enabled`}
-                        checked={variable.enabled}
-                        onChange={formik.handleChange}
-                      />
-                    )}
-                  </td>
-                  <td>
-                    <div className="flex items-center">
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        className="mousetrap"
-                        id={`${index}.name`}
-                        name={`${index}.name`}
-                        value={variable.name}
-                        placeholder={isLastEmptyRow ? 'Name' : ''}
-                        onChange={(e) => handleNameChange(index, e)}
-                        onBlur={() => handleNameBlur(index)}
-                        onKeyDown={(e) => handleNameKeyDown(index, e)}
-                      />
-                      <ErrorMessage name={`${index}.name`} index={index} />
-                    </div>
-                  </td>
-                  <td className="flex flex-row flex-nowrap items-center">
-                    <div className="overflow-hidden grow w-full relative">
-                      <MultiLineEditor
-                        theme={storedTheme}
-                        collection={_collection}
-                        name={`${index}.value`}
-                        value={variable.value}
-                        placeholder={isLastEmptyRow ? 'Value' : ''}
-                        isSecret={variable.secret}
-                        readOnly={typeof variable.value !== 'string'}
-                        onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
-                        onSave={handleSave}
-                      />
-                    </div>
-                    {typeof variable.value !== 'string' && (
-                      <span className="ml-2 flex items-center">
-                        <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
-                        <Tooltip
-                          anchorId={`${variable.uid}-disabled-info-icon`}
-                          content="Non-string values set via scripts are read-only and can only be updated through scripts."
-                          place="top"
-                        />
-                      </span>
-                    )}
-                    {!variable.secret && hasSensitiveUsage(variable.name) && (
-                      <SensitiveFieldWarning
-                        fieldName={variable.name}
-                        warningMessage="This variable is used in sensitive fields. Mark it as a secret for security"
-                      />
-                    )}
-                  </td>
-                  <td className="text-center">
-                    {!isLastEmptyRow && (
-                      <input
-                        type="checkbox"
-                        className="mousetrap"
-                        name={`${index}.secret`}
-                        checked={variable.secret}
-                        onChange={formik.handleChange}
-                      />
-                    )}
-                  </td>
-                  <td>
-                    {!isLastEmptyRow && (
-                      <button onClick={() => handleRemoveVar(variable.uid)}>
-                        <IconTrash strokeWidth={1.5} size={18} />
-                      </button>
-                    )}
-                  </td>
-                </>
-              );
-            }}
-          />
-        </div>
-      </div>
+          return (
+            <>
+              <td className="text-center">
+                {!isLastEmptyRow && (
+                  <input
+                    type="checkbox"
+                    className="mousetrap"
+                    name={`${index}.enabled`}
+                    checked={variable.enabled}
+                    onChange={formik.handleChange}
+                  />
+                )}
+              </td>
+              <td>
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    className="mousetrap"
+                    id={`${index}.name`}
+                    name={`${index}.name`}
+                    value={variable.name}
+                    placeholder={isLastEmptyRow ? 'Name' : ''}
+                    onChange={(e) => handleNameChange(index, e)}
+                    onBlur={() => handleNameBlur(index)}
+                    onKeyDown={(e) => handleNameKeyDown(index, e)}
+                  />
+                  <ErrorMessage name={`${index}.name`} index={index} />
+                </div>
+              </td>
+              <td className="flex flex-row flex-nowrap items-center">
+                <div className="overflow-hidden grow w-full relative">
+                  <MultiLineEditor
+                    theme={storedTheme}
+                    collection={_collection}
+                    name={`${index}.value`}
+                    value={variable.value}
+                    placeholder={isLastEmptyRow ? 'Value' : ''}
+                    isSecret={variable.secret}
+                    readOnly={typeof variable.value !== 'string'}
+                    onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                    onSave={handleSave}
+                  />
+                </div>
+                {typeof variable.value !== 'string' && (
+                  <span className="ml-2 flex items-center">
+                    <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
+                    <Tooltip
+                      anchorId={`${variable.uid}-disabled-info-icon`}
+                      content="Non-string values set via scripts are read-only and can only be updated through scripts."
+                      place="top"
+                    />
+                  </span>
+                )}
+                {!variable.secret && hasSensitiveUsage(variable.name) && (
+                  <SensitiveFieldWarning
+                    fieldName={variable.name}
+                    warningMessage="This variable is used in sensitive fields. Mark it as a secret for security"
+                  />
+                )}
+              </td>
+              <td className="text-center">
+                {!isLastEmptyRow && (
+                  <input
+                    type="checkbox"
+                    className="mousetrap"
+                    name={`${index}.secret`}
+                    checked={variable.secret}
+                    onChange={formik.handleChange}
+                  />
+                )}
+              </td>
+              <td>
+                {!isLastEmptyRow && (
+                  <button onClick={() => handleRemoveVar(variable.uid)}>
+                    <IconTrash strokeWidth={1.5} size={18} />
+                  </button>
+                )}
+              </td>
+            </>
+          );
+        }}
+      />
 
       <div className="button-container">
         <div className="flex items-center">
