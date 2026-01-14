@@ -17,18 +17,21 @@ import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables, flattenItems, isItemARequest } from 'utils/collections';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { sensitiveFields } from './constants';
+import useLocalStorage from 'hooks/useLocalStorage';
 
 const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const [nameColumnWidth, setNameColumnWidth] = useLocalStorage('bruno.environmentVariables.columnWidths.name', 25);
+  const columnWidthRef = useRef(nameColumnWidth);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
 
   const environmentsDraft = collection?.environmentsDraft;
   const hasDraftForThisEnv = environmentsDraft?.environmentUid === environment.uid;
 
   // Track environment changes for draft restoration
-  const prevEnvUidRef = React.useRef(null);
-  const mountedRef = React.useRef(false);
+  const prevEnvUidRef = useRef(null);
+  const mountedRef = useRef(false);
 
   let _collection = collection ? cloneDeep(collection) : {};
 
@@ -86,7 +89,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
 
   // Initial values based only on saved environment variables (not draft)
   // Draft restoration happens in a separate effect to avoid infinite loops
-  const initialValues = React.useMemo(() => {
+  const initialValues = useMemo(() => {
     const vars = environment.variables || [];
     return [
       ...vars,
@@ -149,6 +152,10 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
     },
     onSubmit: () => {}
   });
+
+  useEffect(() => {
+    columnWidthRef.current = nameColumnWidth;
+  }, [nameColumnWidth]);
 
   // Restore draft values on mount or environment switch
   useEffect(() => {
@@ -367,6 +374,61 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
     setIsModified(false);
   };
 
+  const handleResize = useCallback((e) => {
+    e.preventDefault();
+    const table = e.currentTarget.closest('table');
+    if (!table) return;
+
+    const nameColumnCells = table.querySelectorAll('.name-column');
+    const tableBounds = table.getBoundingClientRect();
+    const startX = e.clientX;
+    const initialWidth = columnWidthRef.current;
+    const tableWidth = tableBounds.width;
+
+    const handleMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaPercent = (deltaX / tableWidth) * 100;
+      const newWidth = Math.max(15, Math.min(60, initialWidth + deltaPercent));
+
+      columnWidthRef.current = newWidth;
+      nameColumnCells.forEach((cell) => {
+        cell.style.width = `${newWidth}%`;
+      });
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      setNameColumnWidth(columnWidthRef.current);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [setNameColumnWidth]);
+
+  const handleKeyboardResize = useCallback((e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+      return;
+    }
+
+    e.preventDefault();
+    const step = e.shiftKey ? 5 : 1; // Larger steps when holding shift
+    const delta = e.key === 'ArrowLeft' ? -step : step;
+    const newWidth = Math.max(15, Math.min(60, columnWidthRef.current + delta));
+
+    if (newWidth !== columnWidthRef.current) {
+      columnWidthRef.current = newWidth;
+      const table = e.currentTarget.closest('table');
+      if (table) {
+        const nameColumnCells = table.querySelectorAll('.name-column');
+        nameColumnCells.forEach((cell) => {
+          cell.style.width = `${newWidth}%`;
+        });
+      }
+      setNameColumnWidth(newWidth);
+    }
+  }, [setNameColumnWidth]);
+
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
 
@@ -383,13 +445,23 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
   }, []);
 
   return (
-    <StyledWrapper>
+    <StyledWrapper nameColumnWidth={nameColumnWidth}>
       <div className="table-container">
         <table>
           <thead>
             <tr>
               <td className="text-center"></td>
-              <td>Name</td>
+              <td className="name-column">
+                Name
+                <div
+                  className="resize-handle"
+                  onMouseDown={handleResize}
+                  onKeyDown={handleKeyboardResize}
+                  tabIndex={0}
+                  role="separator"
+                  aria-label="Resize Name column"
+                />
+              </td>
               <td>Value</td>
               <td className="text-center">Secret</td>
               <td></td>
@@ -414,7 +486,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
                       />
                     )}
                   </td>
-                  <td>
+                  <td className="name-column">
                     <div className="flex items-center">
                       <input
                         type="text"
@@ -433,6 +505,14 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
                       />
                       <ErrorMessage name={`${index}.name`} index={index} />
                     </div>
+                    <div
+                      className="resize-handle"
+                      onMouseDown={handleResize}
+                      onKeyDown={handleKeyboardResize}
+                      tabIndex={0}
+                      role="separator"
+                      aria-label="Resize Name column"
+                    />
                   </td>
                   <td className="flex flex-row flex-nowrap items-center">
                     <div className="overflow-hidden grow w-full relative">
