@@ -20,9 +20,11 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     if (request.auth && request.auth.mode !== 'none') {
       let collectionAuth = collection?.draft?.root ? get(collection, 'draft.root.request.auth', null) : get(collection, 'root.request.auth', null);
 
-      // Interpolate collectionAuth if it will be used (when auth mode is inherit)
-      if (shouldInterpolate && collectionAuth && request.auth.mode === 'inherit') {
-        collectionAuth = interpolateAuth(collectionAuth, variables);
+      if (shouldInterpolate) {
+        if (collectionAuth && request.auth.mode === 'inherit') {
+          collectionAuth = interpolateAuth(collectionAuth, variables);
+        }
+        request.auth = interpolateAuth(request.auth, variables);
       }
 
       const authHeaders = getAuthHeaders(collectionAuth, request.auth);
@@ -37,7 +39,10 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     }
 
     // Build HAR request
-    const harRequest = buildHarRequest({ request, headers });
+    const harRequest = buildHarRequest({
+      request,
+      headers
+    });
 
     // Generate snippet using HTTPSnippet
     const snippet = new HTTPSnippet(harRequest);

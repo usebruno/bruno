@@ -431,17 +431,13 @@ describe('Snippet Generator - Simple Tests', () => {
     expect(result).toBe('curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
   });
 
-  it('should interpolate basic auth credentials correctly', () => {
+  it('should interpolate inherited collection auth credentials correctly', () => {
     const item = {
       request: {
         method: 'GET',
         url: 'https://api.example.com',
         auth: {
-          mode: 'basic',
-          basic: {
-            username: '{{user}}',
-            password: '{{pass}}'
-          }
+          mode: 'inherit'
         }
       }
     };
@@ -449,11 +445,12 @@ describe('Snippet Generator - Simple Tests', () => {
     const collection = {
       root: {
         request: {
-          vars: {
-            req: [
-              { name: 'user', value: 'admin', enabled: true },
-              { name: 'pass', value: 'secret123', enabled: true }
-            ]
+          auth: {
+            mode: 'basic',
+            basic: {
+              username: '{{user}}',
+              password: '{{pass}}'
+            }
           }
         }
       }
