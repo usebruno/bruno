@@ -59,7 +59,18 @@ function markUrls(editor, linkify, linkClass, linkHint) {
       const matches = linkify.match(lineContent);
       if (!matches) continue;
 
+      const variablePatterns = [];
+      const variablePattern = /\{\{[^}]*\}\}/g;
+      let varMatch;
+      while ((varMatch = variablePattern.exec(lineContent)) !== null) {
+        variablePatterns.push({ start: varMatch.index, end: varMatch.index + varMatch[0].length });
+      }
       matches.forEach(({ index, lastIndex, url }) => {
+        const isInVariable = variablePatterns.some(
+          ({ start, end }) => index < end && lastIndex > start
+        );
+        if (isInVariable) return;
+
         try {
           editor.markText(
             { line: lineNum, ch: index },
