@@ -151,9 +151,9 @@ describe('Snippet Generator - Simple Tests', () => {
     });
 
     const expectedBody = `{
-      "message": "Hello World",
-      "count": 42
-    }`;
+  "message": "Hello World",
+  "count": 42
+}`;
     expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
@@ -208,9 +208,9 @@ describe('Snippet Generator - Simple Tests', () => {
 
     // Body should have interpolated variables with proper formatting
     const expectedBody = `{
-      "message": "Hello World",
-      "count": 42
-    }`;
+  "message": "Hello World",
+  "count": 42
+}`;
     expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
@@ -374,10 +374,10 @@ describe('Snippet Generator - Simple Tests', () => {
     });
 
     const expectedInterpolatedBody = `{
-      "name": "John Smith",
-      "email": "john@test.com",
-      "age": 30
-    }`;
+  "name": "John Smith",
+  "email": "john@test.com",
+  "age": 30
+}`;
 
     expect(result).toBe(`curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedInterpolatedBody}'`);
   });
