@@ -8,3 +8,5 @@ export { default as createVaultClient, VaultError } from './utils/node-vault';
 export type { VaultClient, VaultConfig, VaultRequestOptions } from './utils/node-vault';
 
 export * as scripting from './scripting';
+
+export { getSystemProxy } from './network';
