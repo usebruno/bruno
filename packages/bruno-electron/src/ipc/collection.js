@@ -106,6 +106,12 @@ const validatePathIsInsideCollection = (filePath) => {
   }
 };
 
+// Helper: Get collection format from file pathname
+const getFormatFromPathname = (pathname) => {
+  const collectionPath = findCollectionPathByItemPath(pathname);
+  return collectionPath ? getCollectionFormat(collectionPath) : 'bru';
+};
+
 const registerRendererEventHandlers = (mainWindow, watcher) => {
   // create collection
   ipcMain.handle(
@@ -382,14 +388,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // Helper: Parse file content based on scope type
-  const parseFileByType = async (fileContent, scopeType) => {
+  const parseFileByType = async (fileContent, scopeType, format) => {
     switch (scopeType) {
       case 'request':
-        return await parseRequestViaWorker(fileContent);
+        return await parseRequestViaWorker(fileContent, { format });
       case 'folder':
-        return parseFolder(fileContent);
+        return parseFolder(fileContent, { format });
       case 'collection':
-        return parseCollection(fileContent);
+        return parseCollection(fileContent, { format });
       default:
         throw new Error(`Invalid scope type: ${scopeType}`);
     }
@@ -430,7 +436,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       // Read and parse the file
       const fileContent = fs.readFileSync(pathname, 'utf8');
-      const parsedData = await parseFileByType(fileContent, scopeType);
+      const parsedData = await parseFileByType(fileContent, scopeType, format);
 
       // Update the specific variable or create it if it doesn't exist
       const varsPath = 'request.vars.req';
@@ -1429,7 +1435,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = await parseRequestViaWorker(bruContent);
+        const format = getFormatFromPathname(pathname);
+        file.data = await parseRequestViaWorker(bruContent, { format });
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);
@@ -1536,7 +1543,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       await mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
 
       try {
-        const parsedData = await parseLargeRequestWithRedaction(bruContent);
+        const format = getFormatFromPathname(pathname);
+        const parsedData = await parseLargeRequestWithRedaction(bruContent, format);
 
         file.data = parsedData;
         file.loading = false;
