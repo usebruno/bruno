@@ -8,7 +8,6 @@ import {
   addTab
 } from 'providers/ReduxStore/slices/tabs';
 import {
-  focusWorkspaceTab,
   setActiveWorkspaceTab
 } from 'providers/ReduxStore/slices/workspaceTabs';
 import {

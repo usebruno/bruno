@@ -43,7 +43,7 @@ const StyledWrapper = styled.div`
     font-family: monospace;
     margin-right: 8px;
     border: 1px solid #ccc;
-    border-bottom: ${(props) => props.theme.table.input.border} 1.44px solid;
+    border-bottom: 1.44px solid ${(props) => props.theme.table.input.border};
   }
 `;
 

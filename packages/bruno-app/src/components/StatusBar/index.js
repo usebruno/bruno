@@ -10,7 +10,7 @@ import Notifications from 'components/Notifications';
 import Portal from 'components/Portal';
 import ThemeDropdown from './ThemeDropdown';
 import { openConsole } from 'providers/ReduxStore/slices/logs';
-import { focusWorkspaceTab, setActiveWorkspaceTab } from 'providers/ReduxStore/slices/workspaceTabs';
+import { setActiveWorkspaceTab } from 'providers/ReduxStore/slices/workspaceTabs';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useApp } from 'providers/App';
 import StyledWrapper from './StyledWrapper';
