@@ -431,7 +431,7 @@ describe('Snippet Generator - Simple Tests', () => {
     expect(result).toBe('curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
   });
 
-  it.only('should interpolate basic auth credentials correctly', () => {
+  it('should interpolate basic auth credentials correctly', () => {
     const item = {
       request: {
         method: 'GET',
