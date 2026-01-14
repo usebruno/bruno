@@ -84,6 +84,7 @@
     "react-player": "^2.16.0",
     "react-redux": "^7.2.9",
     "react-tooltip": "^5.5.2",
+    "react-virtuoso": "^4.18.1",
     "sass": "^1.46.0",
     "semver": "^7.7.1",
     "shell-quote": "^1.8.3",

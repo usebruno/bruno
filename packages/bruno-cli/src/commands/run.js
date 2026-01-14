@@ -17,6 +17,7 @@ const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
 const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
+const { createSkippedFileResults } = require('../utils/run');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -353,50 +354,63 @@ const handler = async function (argv) {
     const runtimeVariables = {};
     let envVars = {};
 
-    if (env && envFile) {
-      console.error(chalk.red(`Cannot use both --env and --env-file options together`));
-      process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
-    }
+    // Helper to load environment variables from a file
+    const loadEnvFromFile = (filePath, nameOverride) => {
+      const fileExt = path.extname(filePath).toLowerCase();
+      let result = {};
 
-    if (envFile || env) {
-      const envExt = FORMAT_CONFIG[collection.format].ext;
-      const envFilePath = envFile
-        ? path.resolve(collectionPath, envFile)
-        : path.join(collectionPath, 'environments', `${env}${envExt}`);
-
-      const envFileExists = await exists(envFilePath);
-      if (!envFileExists) {
-        const errorPath = envFile || `environments/${env}${envExt}`;
-        console.error(chalk.red(`Environment file not found: `) + chalk.dim(errorPath));
-
-        process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+      if (fileExt === '.json') {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const parsed = JSON.parse(content);
+        const normalizedEnv = parseEnvironmentJson(parsed);
+        result = getEnvVars(normalizedEnv);
+        const rawName = normalizedEnv?.name;
+        const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
+        result.__name__ = trimmedName || path.basename(filePath, '.json');
+      } else if (fileExt === '.yml' || fileExt === '.yaml') {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const envJson = parseEnvironment(content, { format: 'yml' });
+        result = getEnvVars(envJson);
+        result.__name__ = nameOverride || path.basename(filePath, fileExt);
+      } else {
+        const content = fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
+        const envJson = parseEnvironment(content);
+        result = getEnvVars(envJson);
+        result.__name__ = nameOverride || path.basename(filePath, '.bru');
       }
 
-      const fileExt = path.extname(envFilePath).toLowerCase();
-      if (fileExt === '.json') {
-        let envJsonContent;
-        try {
-          envJsonContent = fs.readFileSync(envFilePath, 'utf8');
-          const parsed = JSON.parse(envJsonContent);
-          const normalizedEnv = parseEnvironmentJson(parsed);
-          envVars = getEnvVars(normalizedEnv);
-          const rawName = normalizedEnv?.name;
-          const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
-          envVars.__name__ = trimmedName || path.basename(envFilePath, '.json');
-        } catch (err) {
-          console.error(chalk.red(`Failed to parse Environment JSON: ${err.message}`));
-          process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
-        }
-      } else if (fileExt === '.yml' || fileExt === '.yaml') {
-        const envContent = fs.readFileSync(envFilePath, 'utf8');
-        const envJson = parseEnvironment(envContent, { format: 'yml' });
-        envVars = getEnvVars(envJson);
-        envVars.__name__ = envFile ? path.basename(envFilePath, fileExt) : env;
-      } else {
-        const envBruContent = fs.readFileSync(envFilePath, 'utf8').replace(/\r\n/g, '\n');
-        const envJson = parseEnvironment(envBruContent);
-        envVars = getEnvVars(envJson);
-        envVars.__name__ = envFile ? path.basename(envFilePath, '.bru') : env;
+      return result;
+    };
+
+    // Load --env-file if provided
+    if (envFile) {
+      const envFilePath = path.resolve(collectionPath, envFile);
+      if (!(await exists(envFilePath))) {
+        console.error(chalk.red(`Environment file not found: `) + chalk.dim(envFile));
+        process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+      }
+      try {
+        envVars = loadEnvFromFile(envFilePath);
+      } catch (err) {
+        console.error(chalk.red(`Failed to parse environment file: ${err.message}`));
+        process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+      }
+    }
+
+    // Load --env and merge (collection env takes precedence)
+    if (env) {
+      const envExt = FORMAT_CONFIG[collection.format].ext;
+      const collectionEnvFilePath = path.join(collectionPath, 'environments', `${env}${envExt}`);
+      if (!(await exists(collectionEnvFilePath))) {
+        console.error(chalk.red(`Environment file not found: `) + chalk.dim(`environments/${env}${envExt}`));
+        process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+      }
+      try {
+        const collectionEnvVars = loadEnvFromFile(collectionEnvFilePath, env);
+        envVars = { ...envVars, ...collectionEnvVars };
+      } catch (err) {
+        console.error(chalk.red(`Failed to parse Environment file: ${err.message}`));
+        process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
       }
     }
 
@@ -661,7 +675,8 @@ const handler = async function (argv) {
         ...result,
         runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: pathname.replace('.bru', ''),
-        name
+        name,
+        path: result.test?.filename || path.relative(collectionPath, pathname)
       });
 
       if (reporterSkipAllHeaders) {
@@ -733,6 +748,9 @@ const handler = async function (argv) {
         currentRequestIndex++;
       }
     }
+
+    const skippedFileResults = createSkippedFileResults(global.brunoSkippedFiles || [], collectionPath);
+    results.push(...skippedFileResults);
 
     const summary = printRunSummary(results);
     const runCompletionTime = new Date().toISOString();
