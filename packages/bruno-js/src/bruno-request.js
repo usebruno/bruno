@@ -28,7 +28,14 @@ class BrunoRequest {
      */
     const isJson = this.hasJSONContentType(this.req.headers);
     if (isJson) {
-      this.body = this.__safeParseJSON(req.data);
+      // For GraphQL requests, data is already an object with {query, variables}
+      // where variables is still a string that hasn't been interpolated yet
+      // We should not try to parse it here
+      if (typeof req.data === 'string') {
+        this.body = this.__safeParseJSON(req.data);
+      } else if (typeof req.data === 'object' && req.data !== null) {
+        this.body = req.data;
+      }
     }
   }
 
@@ -104,6 +111,10 @@ class BrunoRequest {
 
     const isJson = this.hasJSONContentType(this.req.headers);
     if (isJson) {
+      // If data is already an object (e.g., GraphQL), return as-is
+      if (typeof this.req.data === 'object') {
+        return this.req.data;
+      }
       return this.__safeParseJSON(this.req.data);
     }
 
