@@ -18,6 +18,7 @@ const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-requ
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { makeAxiosInstance } = require('./axios-instance');
+const { applyInvalidHeaderToleranceToRequest, normalizeObsFoldedResponseHeaders } = require('./invalid-header-tolerance');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
@@ -234,6 +235,7 @@ const configureRequest = async (
   // Get timeout from request settings, fallback to global preference
   const resolvedSettings = resolveInheritedSettings(request.settings || {});
   request.timeout = resolvedSettings.timeout;
+  applyInvalidHeaderToleranceToRequest(request);
 
   // add cookies to request
   if (preferencesUtil.shouldSendCookies()) {
@@ -348,6 +350,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     );
 
     const response = await axiosInstance(request);
+    normalizeObsFoldedResponseHeaders(response.headers, request);
 
     return {
       status: response.status,
@@ -728,6 +731,8 @@ const registerNetworkIpc = (mainWindow) => {
           response.data = await promisifyStream(response.data);
         }
 
+        normalizeObsFoldedResponseHeaders(response.headers, request);
+
         // Prevents the duration on leaking to the actual result
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
@@ -755,6 +760,8 @@ const registerNetworkIpc = (mainWindow) => {
           if (!isResponseStream) {
             response.data = await promisifyStream(response.data);
           }
+
+          normalizeObsFoldedResponseHeaders(response.headers, request);
         } else {
           await executeRequestOnFailHandler(request, error);
 
@@ -1384,6 +1391,8 @@ const registerNetworkIpc = (mainWindow) => {
               response.data = await promisifyStream(response.data, currentAbortController, false);
               timeEnd = Date.now();
 
+              normalizeObsFoldedResponseHeaders(response.headers, request);
+
               const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.dataBuffer = dataBuffer;
@@ -1429,6 +1438,7 @@ const registerNetworkIpc = (mainWindow) => {
                 error.response.headers.delete('request-duration');
                 error.response.data = data;
                 error.response.dataBuffer = dataBuffer;
+                normalizeObsFoldedResponseHeaders(error.response.headers, request);
 
                 timeEnd = Date.now();
                 response = {
