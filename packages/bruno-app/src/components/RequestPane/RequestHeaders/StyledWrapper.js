@@ -24,6 +24,7 @@ const Wrapper = styled.div`
       color: ${(props) => props.theme.colors?.text?.muted || 'inherit'};
       opacity: 0.7;
       background-color: ${(props) => props.theme.table?.row?.readonly?.bg || 'transparent'};
+      
       .single-line-editor {
         font-style: italic;
       }

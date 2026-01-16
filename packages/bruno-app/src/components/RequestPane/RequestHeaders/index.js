@@ -28,7 +28,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     for (const pathItem of requestTreePath) {
       if (pathItem.type === 'folder') {
         const fHeaders = pathItem.draft ? get(pathItem, 'draft.request.headers', []) : get(pathItem, 'root.request.headers', []);
-        folderHeaders.push(...fHeaders);
+        fHeaders.forEach((h) => folderHeaders.push({ header: h, folder: pathItem }));
       }
     }
 
@@ -41,25 +41,25 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         ...h,
         source: 'request',
         editable: true,
-        description: 'Request',
+        description: `Request: ${item.name}`,
         rowKey: `request-${h.uid}`
       })),
-      folder: (folderHeaders || []).map((h) => ({
-        ...h,
+      folder: (folderHeaders || []).map(({ header, folder }) => ({
+        ...header,
         source: 'folder',
         editable: false,
-        description: 'Folder',
-        rowKey: `folder-${h.uid}`
+        description: `Folder: ${folder.name}`,
+        rowKey: `folder-${header.uid}`
       })),
       collection: (collectionHeaders || []).map((h) => ({
         ...h,
         source: 'collection',
         editable: false,
-        description: 'Collection',
+        description: `Collection: ${collection.name}`,
         rowKey: `collection-${h.uid}`
       }))
     };
-
+    console.log('categorizedHeaders', categorizedHeaders);
     return Object.values(categorizedHeaders).flat();
   }, [headers, collection, item]);
 
@@ -90,7 +90,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
 
   const handleHeaderDrag = useCallback(
     ({ updateReorderedItem }) => {
-      // Filter to only include request header UIDs - folder and collection headers
+      // Filter to only include request header UIDs - excluding folder and collection headers
       const requestHeaderUids = new Set(
         allHeaders.filter((h) => h.source === 'request').map((h) => h.uid)
       );
@@ -117,7 +117,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '40%',
+      width: '50%',
       render: ({ row, value, onChange, isLastEmptyRow }) => (
         <div className="flex items-center w-full">
           <SingleLineEditor
@@ -133,10 +133,15 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
             placeholder={isLastEmptyRow ? 'Name' : ''}
           />
           {row.editable === false && (
-            <div className="ml-1 flex items-center text-muted" aria-label={`Inherited from ${row.description}`}>
+            <button
+              type="button"
+              className="ml-1 flex items-center text-muted"
+              aria-label={`Inherited from ${row.description}`}
+              aria-describedby={`row-info-${row.source}-${row.uid}`}
+            >
               <IconInfoCircle size={16} strokeWidth={1.5} data-tooltip-id={`row-info-${row.source}-${row.uid}`} />
               <Tooltip className="tooltip-mod" id={`row-info-${row.source}-${row.uid}`} html={`Inherited from ${row.description}`} />
-            </div>
+            </button>
           )}
         </div>
       )
@@ -172,6 +177,12 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   if (isBulkEditMode) {
     return (
       <StyledWrapper className="w-full mt-3">
+        <div className="mb-2 text-xs text-muted flex items-center">
+          <IconInfoCircle size={14} strokeWidth={1.5} className="mr-1" />
+          <span>
+            Bulk edit applies only to request-level headers. Headers inherited from folders and collections are not shown here.
+          </span>
+        </div>
         <BulkEditor params={headers} onChange={handleHeadersChange} onToggle={toggleBulkEditMode} onSave={onSave} onRun={handleRun} />
       </StyledWrapper>
     );
