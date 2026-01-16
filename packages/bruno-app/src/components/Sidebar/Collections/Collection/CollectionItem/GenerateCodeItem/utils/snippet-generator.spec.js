@@ -554,3 +554,58 @@ describe('generateSnippet with edge-case bodies', () => {
     expect(result).toMatch(/^curl -X POST/);
   });
 });
+
+describe('generateSnippet with URL-encoded path parameters', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation((harRequest) => ({
+      convert: jest.fn(() => {
+        const method = harRequest?.method || 'GET';
+        const url = harRequest?.url || 'http://example.com';
+        return `curl --request ${method} --url ${url}`;
+      })
+    }));
+  });
+
+  it('should handle URLs with encoded spaces (%20) in path parameters', () => {
+    const item = {
+      uid: 'req-with-spaces',
+      request: {
+        method: 'GET',
+        url: 'https://example.com/api/v1/roles/test%20-%20test',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      }
+    };
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    // Should successfully generate code without throwing an error
+    expect(result).not.toBe('Error generating code snippet');
+    expect(result).toContain('test%20-%20test');
+  });
+
+  it('should not throw error for URLs with other encoded characters', () => {
+    const item = {
+      uid: 'req-with-encoded',
+      request: {
+        method: 'GET',
+        url: 'https://example.com/api/search/hello%20world%26stuff',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      }
+    };
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    expect(result).not.toBe('Error generating code snippet');
+    expect(result).toContain('hello%20world%26stuff');
+  });
+});
