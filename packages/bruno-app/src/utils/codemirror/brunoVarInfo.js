@@ -252,8 +252,10 @@ export const renderVarInfo = (token, options) => {
     }
   }
 
+  // Check if a runtime variable exists with the same name (even if scope is detected as collection/folder/environment)
+  const hasRuntimeVariable = collection && collection.runtimeVariables && collection.runtimeVariables[variableName];
   // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, and undefined variables cannot be edited)
-  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined';
+  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined' || hasRuntimeVariable;
 
   // Get raw value from scope
   const rawValue = scopeInfo.value || '';
@@ -279,8 +281,10 @@ export const renderVarInfo = (token, options) => {
   const scopeBadge = document.createElement('span');
   scopeBadge.className = 'var-scope-badge';
 
+  // Check if a runtime variable exists - if so, show Runtime scope (even if detected as collection/folder/environment)
+  const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
   // Show scope label with indication if it's a new variable
-  const scopeLabel = scopeInfo ? getScopeLabel(scopeInfo.type) : 'Unknown';
+  const scopeLabel = getScopeLabel(displayScopeType);
   const isNewVariable = scopeInfo && scopeInfo.data && scopeInfo.data.variable === null;
   scopeBadge.textContent = isNewVariable ? `${scopeLabel}` : scopeLabel;
 
@@ -578,7 +582,7 @@ export const renderVarInfo = (token, options) => {
       readOnlyNote.className = 'var-readonly-note';
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
-    } else if (scopeInfo.type === 'runtime') {
+    } else if (scopeInfo.type === 'runtime' || hasRuntimeVariable) {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
       readOnlyNote.textContent = 'Set by scripts (read-only)';

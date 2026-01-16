@@ -1870,7 +1870,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
         return reject(new Error('Process environment variables are read-only'));
       }
 
-      if (type === 'runtime') {
+      if (type === 'runtime' || (collection && collection.runtimeVariables && collection.runtimeVariables[variableName])) {
         toast.error('Runtime variables are set by scripts and cannot be edited');
         return reject(new Error('Runtime variables are read-only'));
       }
