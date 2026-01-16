@@ -1,6 +1,6 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables } from '@usebruno/common/utils';
-import { REQUEST_TYPES } from 'utils/common/constants';
+import { REQUEST_TYPES, LOCAL_VAR_SENTINEL } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
@@ -85,6 +85,21 @@ import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
 // generate a unique names
+const prepareVarsForSave = (itemToSave) => {
+  const allPreRequestVars = get(itemToSave, 'request.vars.req', []);
+  const nonPersistentVars = filter(allPreRequestVars, (v) => v.persist === false);
+
+  const varsForBruFile = allPreRequestVars.map((v) => {
+    const { persist, ...rest } = v;
+    if (persist === false) {
+      return { ...rest, value: LOCAL_VAR_SENTINEL };
+    }
+    return rest;
+  });
+
+  return { nonPersistentVars, varsForBruFile };
+};
+
 const generateUniqueName = (originalName, existingItems, isFolder) => {
   // Extract base name by removing any existing " (number)" suffix
   const baseName = originalName.replace(/\s*\(\d+\)$/, '');
@@ -151,9 +166,16 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
     const itemToSave = transformRequestToSaveToFilesystem(item);
     const { ipcRenderer } = window;
 
+    const { nonPersistentVars, varsForBruFile } = prepareVarsForSave(itemToSave);
+    set(itemToSave, 'request.vars.req', varsForBruFile);
+
     itemSchema
       .validate(itemToSave)
       .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave, collection.format))
+      .then(() => {
+        // Save non-persistent var values to local storage
+        return ipcRenderer.invoke('renderer:save-local-vars', item.pathname, nonPersistentVars);
+      })
       .then(() => {
         if (!silent) {
           toast.success('Request saved successfully');
@@ -179,16 +201,29 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
 
   return new Promise((resolve, reject) => {
     const itemsToSave = [];
+    const localVarsToSave = [];
+
     each(items, (item) => {
       const collection = findCollectionByUid(collections, item.collectionUid);
       if (collection) {
-        const itemToSave = transformRequestToSaveToFilesystem(item);
+        // Clone to prevent mutating Redux state
+        const itemToSave = cloneDeep(transformRequestToSaveToFilesystem(item));
+
+        const { nonPersistentVars, varsForBruFile } = prepareVarsForSave(itemToSave);
+        set(itemToSave, 'request.vars.req', varsForBruFile);
+
         const itemIsValid = itemSchema.validateSync(itemToSave);
         if (itemIsValid) {
           itemsToSave.push({
             item: itemToSave,
             pathname: item.pathname,
             format: collection.format
+          });
+
+          // Always push to ensure cleanup of local vars if they became persistent
+          localVarsToSave.push({
+            pathname: item.pathname,
+            vars: nonPersistentVars
           });
         }
       }
@@ -198,6 +233,23 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:save-multiple-requests', itemsToSave)
+      .then(() => {
+        // Save local vars for all items
+        const localVarsPromises = localVarsToSave.map((lv) =>
+          ipcRenderer
+            .invoke('renderer:save-local-vars', lv.pathname, lv.vars)
+            .then(() => ({ status: 'fulfilled', pathname: lv.pathname }))
+            .catch((err) => ({ status: 'rejected', pathname: lv.pathname, error: err }))
+        );
+
+        return Promise.all(localVarsPromises).then((results) => {
+          const failures = results.filter((r) => r.status === 'rejected');
+          if (failures.length > 0) {
+            console.error('Failed to save local variables for some requests:', failures);
+            toast.error(`Failed to save local variables for ${failures.length} request(s). Check console for details.`);
+          }
+        });
+      })
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save requests!');
@@ -880,6 +932,10 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
     const parentItem = findParentItemInCollection(collectionCopy, itemUid);
     const filename = resolveRequestFilename(newFilename, collection.format);
     const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(item));
+
+    const { nonPersistentVars, varsForBruFile } = prepareVarsForSave(itemToSave);
+    set(itemToSave, 'request.vars.req', varsForBruFile);
+
     set(itemToSave, 'name', trim(newName));
     set(itemToSave, 'filename', trim(filename));
     if (!parentItem) {
@@ -896,6 +952,11 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
         itemSchema
           .validate(itemToSave)
           .then(() => ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave))
+          .then(() => {
+            if (nonPersistentVars.length > 0) {
+              return ipcRenderer.invoke('renderer:save-local-vars', fullPathname, nonPersistentVars);
+            }
+          })
           .then(resolve)
           .catch(reject);
 
@@ -925,6 +986,11 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
         itemSchema
           .validate(itemToSave)
           .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
+          .then(() => {
+            if (nonPersistentVars.length > 0) {
+              return ipcRenderer.invoke('renderer:save-local-vars', fullName, nonPersistentVars);
+            }
+          })
           .then(resolve)
           .catch(reject);
 
@@ -1002,6 +1068,10 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
           const filename = resolveRequestFilename(newFilename, targetCollection.format);
           const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
+
+          const { nonPersistentVars, varsForBruFile } = prepareVarsForSave(itemToSave);
+          set(itemToSave, 'request.vars.req', varsForBruFile);
+
           set(itemToSave, 'name', trim(newName));
           set(itemToSave, 'filename', trim(filename));
 
@@ -1012,6 +1082,10 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
           await itemSchema.validate(itemToSave);
           await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave, targetCollection.format);
+
+          if (nonPersistentVars.length > 0) {
+            await ipcRenderer.invoke('renderer:save-local-vars', fullPathname, nonPersistentVars);
+          }
 
           dispatch(insertTaskIntoQueue({
             uid: uuid(),
