@@ -29,9 +29,20 @@ jest.mock('grpc-js-reflection-client', () => ({
 
 // Mock @grpc/grpc-js
 jest.mock('@grpc/grpc-js', () => {
-  const mockMetadata = {
-    add: jest.fn(),
-    getMap: jest.fn().mockReturnValue({})
+  const createMockMetadata = () => {
+    const map = {};
+    return {
+      add: jest.fn((key, value) => {
+        if (map[key] === undefined) {
+          map[key] = value;
+        } else if (Array.isArray(map[key])) {
+          map[key].push(value);
+        } else {
+          map[key] = [map[key], value];
+        }
+      }),
+      getMap: jest.fn(() => map)
+    };
   };
 
   // Create a mock RPC object with event emitter interface
@@ -44,7 +55,10 @@ jest.mock('@grpc/grpc-js', () => {
       }),
       write: jest.fn(),
       end: jest.fn(),
-      cancel: jest.fn()
+      cancel: jest.fn(),
+      call: {
+        channel: { close: jest.fn() }
+      }
     };
     return mockRpc;
   };
@@ -68,7 +82,7 @@ jest.mock('@grpc/grpc-js', () => {
       createSsl: jest.fn().mockReturnValue('ssl-credentials'),
       createFromSecureContext: jest.fn().mockReturnValue('secure-context-credentials')
     },
-    Metadata: jest.fn().mockImplementation(() => mockMetadata),
+    Metadata: jest.fn().mockImplementation(() => createMockMetadata()),
     status: {},
     credentials: {},
     CallCredentials: {
@@ -203,6 +217,23 @@ describe('GrpcClient', () => {
         // Use array notation for keys containing dots to avoid Jest interpreting as nested path
         expect(capturedChannelOptions).toHaveProperty(['grpc.primary_user_agent'], 'Bruno/1.0');
         expect(capturedChannelOptions).toHaveProperty(['grpc.other_option'], 'value');
+      });
+
+      test('should allow channelOptions to override grpc.primary_user_agent', async () => {
+        const request = {
+          ...baseRequest,
+          headers: { 'User-Agent': 'Bruno/1.0' }
+        };
+
+        await grpcClient.loadMethodsFromReflection({
+          request,
+          ...baseParams,
+          channelOptions: {
+            'grpc.primary_user_agent': 'ExistingUA'
+          }
+        });
+
+        expect(capturedChannelOptions['grpc.primary_user_agent']).toBe('ExistingUA');
       });
     });
 
@@ -399,6 +430,23 @@ describe('GrpcClient', () => {
         // Use array notation for keys containing dots to avoid Jest interpreting as nested path
         expect(capturedChannelOptions).toHaveProperty(['grpc.primary_user_agent'], 'Bruno/1.0');
         expect(capturedChannelOptions).toHaveProperty(['grpc.other_option'], 'value');
+      });
+
+      test('should allow channelOptions to override grpc.primary_user_agent', async () => {
+        const request = {
+          ...baseRequest,
+          headers: { 'User-Agent': 'Bruno/1.0' }
+        };
+
+        await grpcClient.startConnection({
+          request,
+          collection: baseCollection,
+          channelOptions: {
+            'grpc.primary_user_agent': 'ExistingUA'
+          }
+        });
+
+        expect(capturedChannelOptions['grpc.primary_user_agent']).toBe('ExistingUA');
       });
     });
 

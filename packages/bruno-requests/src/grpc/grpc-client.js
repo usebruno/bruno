@@ -624,7 +624,7 @@ class GrpcClient {
     pfx,
     verifyOptions,
     sendEvent,
-    channelOptions
+    channelOptions = {}
   }) {
     const { host, path } = getParsedGrpcUrlObject(request.url);
 
