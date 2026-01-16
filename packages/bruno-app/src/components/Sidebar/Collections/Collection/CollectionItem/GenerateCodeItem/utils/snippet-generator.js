@@ -2,7 +2,6 @@ import { buildHarRequest } from 'utils/codegenerator/har';
 import { getAuthHeaders } from 'utils/codegenerator/auth';
 import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
 import { interpolateAuth, interpolateHeaders, interpolateBody, interpolateParams } from './interpolation';
-import { get, cloneDeep } from 'lodash';
 
 const generateSnippet = ({ language, item, collection, shouldInterpolate = false }) => {
   try {
@@ -10,24 +9,19 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     const { HTTPSnippet } = require('httpsnippet');
 
     const variables = getAllVariables(collection, item);
-    const request = cloneDeep(item.request);
+    const request = item.request;
 
     // Get the request tree path and merge headers
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
     let headers = mergeHeaders(collection, request, requestTreePath);
 
-    // Add auth headers if needed
+    // Add auth headers if needed (auth inheritance is resolved upstream)
     if (request.auth && request.auth.mode !== 'none') {
-      let collectionAuth = collection?.draft?.root ? get(collection, 'draft.root.request.auth', null) : get(collection, 'root.request.auth', null);
-
       if (shouldInterpolate) {
-        if (collectionAuth && request.auth.mode === 'inherit') {
-          collectionAuth = interpolateAuth(collectionAuth, variables);
-        }
         request.auth = interpolateAuth(request.auth, variables);
       }
 
-      const authHeaders = getAuthHeaders(collectionAuth, request.auth);
+      const authHeaders = getAuthHeaders(null, request.auth);
       headers = [...headers, ...authHeaders];
     }
 
