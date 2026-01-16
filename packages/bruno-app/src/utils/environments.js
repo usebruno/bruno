@@ -1,7 +1,15 @@
 import { uuid } from './common/index';
 
 const isPersistableEnvVarForMerge = (persistedNames) => (v) => {
-  return !v?.ephemeral || v?.persistedValue !== undefined || (v?.name && persistedNames.has(v.name));
+  // Keep variable if:
+  // 1. It's ephemeral with persistedValue (was modified by script, restore original)
+  // 2. It's in persistedNames (explicitly persisted this run or non-ephemeral that wasn't deleted)
+  // 3. It's non-ephemeral AND in persistedNames (exclude deleted non-ephemeral variables)
+  if (v?.ephemeral) {
+    return v?.persistedValue !== undefined || (v?.name && persistedNames.has(v.name));
+  }
+  // Non-ephemeral variables: only keep if in persistedNames (not deleted)
+  return v?.name && persistedNames.has(v.name);
 };
 
 const toPersistedEnvVarForMerge = (persistedNames) => (v) => {
