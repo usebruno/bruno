@@ -431,13 +431,19 @@ describe('Snippet Generator - Simple Tests', () => {
     expect(result).toBe('curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
   });
 
-  it('should interpolate inherited collection auth credentials correctly', () => {
+  it('should interpolate auth credentials correctly', () => {
+    // Auth inheritance is resolved upstream in index.js before calling generateSnippet
+    // So the item already has the resolved auth (not 'inherit' mode)
     const item = {
       request: {
         method: 'GET',
         url: 'https://api.example.com',
         auth: {
-          mode: 'inherit'
+          mode: 'basic',
+          basic: {
+            username: '{{user}}',
+            password: '{{pass}}'
+          }
         }
       }
     };
@@ -445,13 +451,7 @@ describe('Snippet Generator - Simple Tests', () => {
     const collection = {
       root: {
         request: {
-          auth: {
-            mode: 'basic',
-            basic: {
-              username: '{{user}}',
-              password: '{{pass}}'
-            }
-          }
+          auth: { mode: 'none' }
         }
       }
     };
