@@ -59,7 +59,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         rowKey: `collection-${h.uid}`
       }))
     };
-    console.log('categorizedHeaders', categorizedHeaders);
+
     return Object.values(categorizedHeaders).flat();
   }, [headers, collection, item]);
 
