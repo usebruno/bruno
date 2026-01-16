@@ -1,5 +1,10 @@
 import { interpolate } from '@usebruno/common';
-import { cloneDeep } from 'lodash';
+import { cloneDeep } from 'lodash-es';
+
+export const interpolateAuth = (auth, variables = {}) => {
+  if (!auth) return auth;
+  return JSON.parse(interpolate(JSON.stringify(auth), variables));
+};
 
 export const interpolateHeaders = (headers = [], variables = {}) => {
   return headers.map((header) => ({
@@ -68,4 +73,12 @@ export const interpolateBody = (body, variables = {}) => {
   }
 
   return interpolatedBody;
+};
+
+export const interpolateParams = (params = [], variables = {}) => {
+  return params.map((param) => ({
+    ...param,
+    name: interpolate(param.name, variables),
+    value: param.enabled ? interpolate(param.value, variables) : param.value
+  }));
 };
