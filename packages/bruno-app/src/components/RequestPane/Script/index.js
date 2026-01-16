@@ -67,6 +67,7 @@ const Script = ({ item, collection }) => {
           <CodeEditor
             ref={preRequestEditorRef}
             collection={collection}
+            item={item}
             value={requestScript || ''}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}
@@ -76,6 +77,7 @@ const Script = ({ item, collection }) => {
             onRun={onRun}
             onSave={onSave}
             showHintsFor={['req', 'bru']}
+            scriptType="pre-request"
           />
         </TabsContent>
 
@@ -83,6 +85,7 @@ const Script = ({ item, collection }) => {
           <CodeEditor
             ref={postResponseEditorRef}
             collection={collection}
+            item={item}
             value={responseScript || ''}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}
@@ -92,6 +95,7 @@ const Script = ({ item, collection }) => {
             onRun={onRun}
             onSave={onSave}
             showHintsFor={['req', 'res', 'bru']}
+            scriptType="post-response"
           />
         </TabsContent>
       </Tabs>

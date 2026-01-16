@@ -56,6 +56,10 @@ const defaultPreferences = {
   autoSave: {
     enabled: false,
     interval: 1000
+  },
+  ai: {
+    enabled: false,
+    apiKey: ''
   }
 };
 
@@ -110,6 +114,10 @@ const preferencesSchema = Yup.object().shape({
   autoSave: Yup.object({
     enabled: Yup.boolean(),
     interval: Yup.number().min(100)
+  }),
+  ai: Yup.object({
+    enabled: Yup.boolean(),
+    apiKey: Yup.string().max(256)
   })
 });
 
@@ -297,6 +305,12 @@ const preferencesUtil = {
     } catch (err) {
       console.error('Failed to save preferences in markAsLaunched:', err);
     }
+  },
+  isAIEnabled: () => {
+    return get(getPreferences(), 'ai.enabled', false);
+  },
+  getAIApiKey: () => {
+    return get(getPreferences(), 'ai.apiKey', '');
   }
 };
 
