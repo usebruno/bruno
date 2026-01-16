@@ -464,7 +464,8 @@ const darkTheme = {
   table: {
     border: '#333',
     thead: {
-      color: 'rgb(204, 204, 204)'
+      color: 'rgb(204, 204, 204)',
+      bg: '#292929'
     },
     striped: '#1e1e1e',
     input: {

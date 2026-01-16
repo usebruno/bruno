@@ -419,7 +419,8 @@ const darkMonochromeTheme = {
   table: {
     border: '#333',
     thead: {
-      color: 'rgb(204, 204, 204)'
+      color: 'rgb(204, 204, 204)',
+      bg: colors.GRAY_1
     },
     striped: '#2A2D2F',
     input: {

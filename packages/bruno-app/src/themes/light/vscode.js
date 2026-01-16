@@ -437,7 +437,8 @@ const vscodeLightTheme = {
   table: {
     border: colors.BORDER,
     thead: {
-      color: colors.TEXT_SECONDARY
+      color: colors.TEXT_SECONDARY,
+      bg: colors.GRAY_1
     },
     striped: colors.GRAY_1,
     input: {

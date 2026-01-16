@@ -12,6 +12,10 @@ import ActionIcon from 'ui/ActionIcon';
 const CollectionToolBar = ({ collection }) => {
   const dispatch = useDispatch();
 
+  if (!collection) {
+    return null;
+  }
+
   const handleRun = () => {
     dispatch(
       addTab({

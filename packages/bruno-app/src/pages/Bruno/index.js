@@ -123,7 +123,7 @@ export default function Main() {
               <ApiSpecPanel key={activeApiSpecUid} />
             ) : showManageWorkspacePage ? (
               <ManageWorkspace />
-            ) : showHomePage ? (
+            ) : showHomePage || !activeTabUid ? (
               <WorkspaceHome />
             ) : (
               <>
