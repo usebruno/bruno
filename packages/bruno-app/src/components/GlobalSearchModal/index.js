@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   IconSearch,
@@ -6,7 +6,8 @@ import {
   IconFolder,
   IconBox,
   IconFileText,
-  IconBook
+  IconBook,
+  IconPlug
 } from '@tabler/icons';
 import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection } from 'utils/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
@@ -15,12 +16,15 @@ import { mountCollection } from 'providers/ReduxStore/slices/collections/actions
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, getItemPath } from './utils/searchUtils';
 import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG, DOCUMENTATION_RESULT } from './constants';
+import { useSearchSlots } from 'integrations/hooks/useIntegrationSlot';
 import StyledWrapper from './StyledWrapper';
 
 const GlobalSearchModal = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [results, setResults] = useState([]);
+  const [externalResults, setExternalResults] = useState([]);
+  const [loadingExternal, setLoadingExternal] = useState(false);
   const inputRef = useRef(null);
   const resultsRef = useRef(null);
   const debounceTimeoutRef = useRef(null);
@@ -28,6 +32,11 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
   const collections = useSelector((state) => state.collections.collections);
   const tabs = useSelector((state) => state.tabs.tabs);
+  const searchSlots = useSearchSlots();
+  console.log({ searchSlots });
+
+  // Combine internal and external results
+  const allResults = useMemo(() => [...results, ...externalResults], [results, externalResults]);
 
   const createCollectionResults = () => {
     const collectionResults = collections.map((collection) => ({
@@ -120,22 +129,57 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     return results;
   };
 
+  const searchExternalProviders = async (searchQuery) => {
+    if (!searchSlots.length || !searchQuery.trim()) {
+      setExternalResults([]);
+      return;
+    }
+
+    setLoadingExternal(true);
+    try {
+      const externalPromises = searchSlots.map(async (slot) => {
+        try {
+          const results = await slot.search(searchQuery);
+          return results.map((r) => ({
+            ...r,
+            type: SEARCH_TYPES.EXTERNAL,
+            integrationId: slot.integrationId,
+            providerLabel: slot.label
+          }));
+        } catch (err) {
+          console.error(`Search provider ${slot.id} failed:`, err);
+          return [];
+        }
+      });
+      const allExternal = await Promise.all(externalPromises);
+      setExternalResults(allExternal.flat());
+    } catch (err) {
+      console.error('External search failed:', err);
+      setExternalResults([]);
+    } finally {
+      setLoadingExternal(false);
+    }
+  };
+
   const performSearch = (searchQuery) => {
     const normalizedQuery = normalizeQuery(searchQuery);
 
     if (!normalizedQuery) {
       setResults(createCollectionResults());
+      setExternalResults([]);
       return;
     }
 
     if (!isValidQuery(normalizedQuery)) {
       setResults([]);
+      setExternalResults([]);
       return;
     }
 
     const searchTerms = normalizedQuery.toLowerCase().split(/[\s\/]+/).filter(Boolean);
     if (!searchTerms.length) {
       setResults([]);
+      setExternalResults([]);
       return;
     }
 
@@ -145,6 +189,9 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
     setResults(sortedResults);
     setSelectedIndex(0);
+
+    // Also search external providers
+    searchExternalProviders(searchQuery);
   };
 
   const debouncedSearch = useCallback((searchQuery) => {
@@ -194,16 +241,16 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     const handlers = {
       ArrowDown: () => {
         e.preventDefault();
-        setSelectedIndex((prev) => prev < results.length - 1 ? prev + 1 : 0);
+        setSelectedIndex((prev) => prev < allResults.length - 1 ? prev + 1 : 0);
       },
       ArrowUp: () => {
         e.preventDefault();
-        setSelectedIndex((prev) => prev > 0 ? prev - 1 : results.length - 1);
+        setSelectedIndex((prev) => prev > 0 ? prev - 1 : allResults.length - 1);
       },
       Enter: () => {
         e.preventDefault();
-        if (results[selectedIndex]) {
-          handleResultSelection(results[selectedIndex]);
+        if (allResults[selectedIndex]) {
+          handleResultSelection(allResults[selectedIndex]);
         }
       },
       Escape: () => {
@@ -212,7 +259,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       },
       PageDown: () => {
         e.preventDefault();
-        setSelectedIndex((prev) => Math.min(prev + 5, results.length - 1));
+        setSelectedIndex((prev) => Math.min(prev + 5, allResults.length - 1));
       },
       PageUp: () => {
         e.preventDefault();
@@ -224,7 +271,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       },
       End: () => {
         e.preventDefault();
-        setSelectedIndex(results.length - 1);
+        setSelectedIndex(allResults.length - 1);
       }
     };
 
@@ -233,6 +280,15 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   };
 
   const handleResultSelection = (result) => {
+    // Handle external integration results
+    if (result.type === SEARCH_TYPES.EXTERNAL) {
+      if (result.onSelect && typeof result.onSelect === 'function') {
+        result.onSelect(result);
+      }
+      onClose();
+      return;
+    }
+
     const targetCollection = collections.find((c) => c.uid === result.collectionUid);
     ensureCollectionIsMounted(targetCollection);
 
@@ -294,6 +350,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
     setQuery('');
     setResults([]);
+    setExternalResults([]);
   };
 
   // Initialize modal when opened
@@ -315,14 +372,14 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
   // Auto-scroll selected item into view
   useEffect(() => {
-    if (resultsRef.current && results.length > 0) {
+    if (resultsRef.current && allResults.length > 0) {
       const selectedElement = resultsRef.current.children[selectedIndex];
       selectedElement?.scrollIntoView({
         behavior: SEARCH_CONFIG.SCROLL_BEHAVIOR,
         block: SEARCH_CONFIG.SCROLL_BLOCK
       });
     }
-  }, [selectedIndex, results]);
+  }, [selectedIndex, allResults]);
 
   // Cleanup debounce timeout on unmount or modal close
   useEffect(() => {
@@ -338,7 +395,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       [SEARCH_TYPES.DOCUMENTATION]: IconBook,
       [SEARCH_TYPES.COLLECTION]: IconBox,
       [SEARCH_TYPES.FOLDER]: IconFolder,
-      [SEARCH_TYPES.REQUEST]: IconFileText
+      [SEARCH_TYPES.REQUEST]: IconFileText,
+      [SEARCH_TYPES.EXTERNAL]: IconPlug
     };
     const IconComponent = iconMap[type] || IconFileText;
     return <IconComponent size={18} stroke={1.5} />;
@@ -362,9 +420,9 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
             Search through collections, requests, folders, and documentation. Use arrow keys to navigate results and Enter to select.
           </p>
           <div aria-live="polite" aria-atomic="true" className="sr-only">
-            {results.length > 0 && query
-              ? `${results.length} result${results.length === 1 ? '' : 's'} found`
-              : query && results.length === 0
+            {allResults.length > 0 && query
+              ? `${allResults.length} result${allResults.length === 1 ? '' : 's'} found${loadingExternal ? ' (loading more...)' : ''}`
+              : query && allResults.length === 0
                 ? 'No results found'
                 : ''}
           </div>
@@ -384,9 +442,9 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                 autoCapitalize="off"
                 spellCheck="false"
                 aria-label="Search collections, requests, or documentation"
-                aria-expanded={results.length > 0}
+                aria-expanded={allResults.length > 0}
                 aria-controls="search-results"
-                aria-activedescendant={results.length > 0 ? `search-result-${selectedIndex}` : undefined}
+                aria-activedescendant={allResults.length > 0 ? `search-result-${selectedIndex}` : undefined}
                 role="combobox"
                 aria-autocomplete="list"
               />
@@ -410,17 +468,17 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
             role="listbox"
             aria-label="Search results"
           >
-            {results.length === 0 && query ? (
+            {allResults.length === 0 && query && !loadingExternal ? (
               <div className="no-results">
                 <p>
                   No results found for "{query}".
                   <br />
                   <span className="block mt-2">
-                    The item might not exist yet, or its collection isn’t mounted. Press <strong>Enter</strong> here (or open it from the sidebar) to mount the collection automatically.
+                    The item might not exist yet, or its collection isn't mounted. Press <strong>Enter</strong> here (or open it from the sidebar) to mount the collection automatically.
                   </span>
                 </p>
               </div>
-            ) : results.length === 0 ? (
+            ) : allResults.length === 0 ? (
               <div className="empty-state">
                 <p>
                   No collections are currently mounted or visible.
@@ -431,13 +489,13 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                 </p>
               </div>
             ) : (
-              results.map((result, index) => {
+              allResults.map((result, index) => {
                 const isSelected = index === selectedIndex;
                 const typeLabel = getTypeLabel(result.type);
 
                 return (
                   <div
-                    key={`${result.type}-${result.item.id || result.item.uid}-${index}`}
+                    key={`${result.type}-${result.item?.id || result.item?.uid || result.integrationId}-${index}`}
                     id={`search-result-${index}`}
                     className={`result-item ${isSelected ? 'selected' : ''}`}
                     onClick={() => handleResultSelection(result)}
@@ -445,7 +503,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                     data-type={result.type}
                     role="option"
                     aria-selected={isSelected}
-                    aria-label={`${result.name}, ${typeLabel || result.type}${result.method ? `, ${result.method}` : ''}`}
+                    aria-label={`${result.name}, ${typeLabel || result.providerLabel || result.type}${result.method ? `, ${result.method}` : ''}`}
                     tabIndex={-1}
                   >
                     <div className="result-icon">
@@ -459,9 +517,11 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                         <div className="result-path">
                           {result.type === SEARCH_TYPES.DOCUMENTATION
                             ? result.description
-                            : result.type === SEARCH_TYPES.REQUEST
-                              ? highlightText(result.item.request?.url || '', query)
-                              : highlightText(result.path, query)}
+                            : result.type === SEARCH_TYPES.EXTERNAL
+                              ? result.description || result.path || result.providerLabel
+                              : result.type === SEARCH_TYPES.REQUEST
+                                ? highlightText(result.item.request?.url || '', query)
+                                : highlightText(result.path, query)}
                         </div>
                       </div>
                       <div className="result-badges">

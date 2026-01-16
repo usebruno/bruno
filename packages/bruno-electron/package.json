@@ -37,6 +37,7 @@
     "@usebruno/common": "0.1.0",
     "@usebruno/converters": "^0.1.0",
     "@usebruno/filestore": "^0.1.0",
+    "@usebruno/integration-github": "0.1.0",
     "@usebruno/js": "0.12.0",
     "@usebruno/lang": "0.12.0",
     "@usebruno/node-machine-id": "^2.0.0",

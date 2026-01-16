@@ -176,6 +176,11 @@ function startDevelopment() {
       prefixColor: '#FA8072'
     },
     {
+      command: 'npm run watch --workspace=packages/bruno-integration-github',
+      name: 'github',
+      prefixColor: '#FA2183'
+    },
+    {
       command: 'npm run dev:web',
       name: 'react',
       prefixColor: 'cyan'

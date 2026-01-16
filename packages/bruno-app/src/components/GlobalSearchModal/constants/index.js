@@ -2,7 +2,8 @@ export const SEARCH_TYPES = {
   DOCUMENTATION: 'documentation',
   COLLECTION: 'collection',
   FOLDER: 'folder',
-  REQUEST: 'request'
+  REQUEST: 'request',
+  EXTERNAL: 'external'
 };
 
 export const MATCH_TYPES = {

@@ -7,6 +7,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { updateLeftSidebarWidth, updateIsDragging } from 'providers/ReduxStore/slices/app';
 import CollectionsSection from './Sections/CollectionsSection/index';
 import ApiSpecsSection from './Sections/ApiSpecsSection/index';
+import IntegrationsSection from './Sections/IntegrationsSection/index';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 220;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
@@ -19,6 +20,10 @@ const SIDEBAR_SECTIONS = [
   {
     id: 'api-specs',
     component: ApiSpecsSection
+  },
+  {
+    id: 'integrations',
+    component: IntegrationsSection
   }
 ];
 

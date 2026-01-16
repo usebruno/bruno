@@ -49,6 +49,7 @@ const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 const TerminalManager = require('./ipc/terminal');
+const { initializeIntegrationIpc } = require('./ipc/integrations');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
 const { cookiesStore } = require('./store/cookies');
@@ -312,6 +313,9 @@ app.on('ready', async () => {
   registerNotificationsIpc(mainWindow, collectionWatcher);
   registerFilesystemIpc(mainWindow);
   registerSystemMonitorIpc(mainWindow, systemMonitor);
+
+  // Register integration IPC handlers
+  initializeIntegrationIpc(mainWindow);
 });
 
 // Quit the app once all windows are closed

@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { get } from 'lodash';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
 import ConfirmAppClose from './ConfirmAppClose';
 import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
 import useIntegrations from 'providers/Integrations/useIntegrations';
+import { initializeIntegrations } from 'integrations/loader';
 import StyledWrapper from './StyledWrapper';
 import { version } from '../../../package.json';
 
@@ -14,12 +15,27 @@ export const AppContext = React.createContext();
 export const AppProvider = (props) => {
   useTelemetry({ version });
   useIpcEvents();
-  const integrationContext = useMemo(() => ({}), []);
+
+  const preferences = useSelector((state) => state.app.preferences);
+
+  const integrationContext = useMemo(() => ({
+    ipc: window.ipcRenderer,
+    logger: {
+      info: (...args) => console.log('[Integration]', ...args),
+      error: (...args) => console.error('[Integration]', ...args),
+      warn: (...args) => console.warn('[Integration]', ...args)
+    }
+  }), []);
+
   useIntegrations(integrationContext);
   const dispatch = useDispatch();
 
   useEffect(() => {
     dispatch(refreshScreenWidth());
+  }, []);
+
+  useEffect(() => {
+    initializeIntegrations(preferences);
   }, []);
 
   useEffect(() => {

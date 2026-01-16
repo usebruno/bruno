@@ -91,6 +91,24 @@ const initWithPreferences = async (preferences = {}, context = {}) => {
   }
 };
 
+// Query enabled integrations that provide a specific slot
+const getSlot = (slotName) => {
+  return Array.from(enabledIntegrations.values())
+    .map(({ metadata }) => metadata)
+    .filter((meta) => {
+      return meta.slots?.[slotName];
+    })
+    .map((meta) => ({
+      integrationId: meta.id,
+      ...meta.slots[slotName]
+    }));
+};
+
+// Convenience methods for common slots
+const getSidebarSlots = () => getSlot('sidebar');
+const getSearchSlots = () => getSlot('search');
+const getMenuSlots = () => getSlot('menu');
+
 // Test helper to reset internal state
 const unregisterAll = () => {
   registry.clear();
@@ -106,7 +124,11 @@ const api = {
   getRegistered,
   getRegisteredMetadata,
   initWithPreferences,
-  unregisterAll
+  unregisterAll,
+  getSlot,
+  getSidebarSlots,
+  getSearchSlots,
+  getMenuSlots
 };
 
 export default api;
@@ -119,5 +141,9 @@ export {
   getRegistered,
   getRegisteredMetadata,
   initWithPreferences,
-  unregisterAll
+  unregisterAll,
+  getSlot,
+  getSidebarSlots,
+  getSearchSlots,
+  getMenuSlots
 };

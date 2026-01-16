@@ -16,7 +16,8 @@
     "packages/bruno-toml",
     "packages/bruno-graphql-docs",
     "packages/bruno-requests",
-    "packages/bruno-filestore"
+    "packages/bruno-filestore",
+    "packages/bruno-integration-github"
   ],
   "homepage": "https://usebruno.com",
   "devDependencies": {
