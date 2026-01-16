@@ -6,6 +6,7 @@ import { IconLoader2, IconX } from '@tabler/icons';
 import { interpolate } from '@usebruno/common';
 import { fetchOauth2Credentials, clearOauth2Cache, refreshOauth2Credentials, cancelOauth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } from 'providers/ReduxStore/slices/collections/actions';
 import { getAllVariables } from 'utils/collections/index';
+import Button from 'ui/Button';
 
 const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, credentialsId }) => {
   const { uid: collectionUid } = collection;
@@ -132,38 +133,49 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
   };
 
   return (
-    <div className="flex flex-row gap-4 mt-4">
-      <button
+    <div className="flex flex-row gap-2 mt-4">
+      <Button
+        size="sm"
+        color="secondary"
         onClick={handleFetchOauth2Credentials}
-        className="submit btn btn-sm btn-secondary w-fit flex flex-row"
         disabled={fetchingToken || refreshingToken}
+        loading={fetchingToken}
       >
-        Get Access Token{fetchingToken ? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ''}
-      </button>
+        Get Access Token
+      </Button>
       {creds?.refresh_token
         ? (
-            <button
+            <Button
+              size="sm"
+              color="secondary"
               onClick={handleRefreshAccessToken}
-              className="submit btn btn-sm btn-secondary w-fit flex flex-row"
               disabled={fetchingToken || refreshingToken}
+              loading={refreshingToken}
             >
-              Refresh Token{refreshingToken ? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ''}
-            </button>
+              Refresh Token
+            </Button>
           )
         : null}
       {useSystemBrowser && fetchingAuthorizationCode
         ? (
-            <button
+            <Button
+              size="sm"
+              color="secondary"
               onClick={handleCancelAuthorization}
-              className="submit btn btn-sm btn-secondary w-fit flex flex-row items-center"
+              icon={<IconX size={16} />}
+              iconPosition="left"
             >
-              <IconX size={16} className="mr-1" />
               Cancel Authorization
-            </button>
+            </Button>
           ) : null}
-      <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
+      <Button
+        size="sm"
+        color="secondary"
+        variant="ghost"
+        onClick={handleClearCache}
+      >
         Clear Cache
-      </button>
+      </Button>
     </div>
   );
 };

@@ -120,6 +120,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
           onChange={(newPath) => handleFilePathChange(row, newPath, onChange)}
           collection={collection}
           readOnly={!editMode}
+          displayMode="labelAndIcon"
         />
       )
     },
@@ -187,6 +188,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
         onReorder={handleParamDrag}
         showAddRow={editMode}
         showCheckbox={false}
+        showDelete={editMode}
       />
     </StyledWrapper>
   );

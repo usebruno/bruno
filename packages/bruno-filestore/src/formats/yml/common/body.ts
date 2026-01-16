@@ -81,6 +81,10 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
           value: entry.value || (entry.type === 'file' ? [] : '')
         };
 
+        if (entry?.contentType?.trim().length) {
+          multipartEntry.contentType = entry.contentType;
+        }
+
         if (entry?.description?.trim().length) {
           multipartEntry.description = entry.description;
         }
@@ -200,7 +204,7 @@ export const toBrunoBody = (body: HttpRequestBody | null | undefined): BrunoHttp
           type: entry.type,
           name: entry.name || '',
           value: entry.value || (entry.type === 'file' ? [] : ''),
-          contentType: null,
+          contentType: entry.contentType || null,
           enabled: entry.disabled !== true
         };
 

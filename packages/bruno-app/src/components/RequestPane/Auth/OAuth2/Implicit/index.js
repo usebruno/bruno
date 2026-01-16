@@ -108,10 +108,10 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
     <Wrapper className="mt-2 flex w-full gap-4 flex-col">
       <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={authorizationUrl} credentialsId={credentialsId} />
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconSettings size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium">
+        <span className="oauth2-section-label">
           Configuration
         </span>
       </div>
@@ -127,7 +127,8 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
               onRun={handleRun}
               collection={collection}
               item={item}
-              placeholder={useSystemBrowser ? 'https://oauth2.usebruno.com/callback' : undefined}
+              placeholder={useSystemBrowser ? 'https://oauth.usebruno.com/callback' : undefined}
+              isCompact
             />
           </div>
         </div>
@@ -167,6 +168,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
                 collection={collection}
                 item={item}
                 isSecret={isSecret}
+                isCompact
               />
             </div>
           </div>
@@ -174,10 +176,10 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
       })}
 
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconKey size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium text-gray-800 dark:text-gray-200">
+        <span className="oauth2-section-label">
           Token
         </span>
       </div>
@@ -193,6 +195,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
             onRun={handleRun}
             collection={collection}
             item={item}
+            isCompact
           />
         </div>
       </div>
@@ -235,6 +238,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
               onRun={handleRun}
               collection={collection}
               item={item}
+              isCompact
             />
           </div>
         </div>
@@ -250,16 +254,17 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
               onRun={handleRun}
               collection={collection}
               item={item}
+              isCompact
             />
           </div>
         </div>
       )}
 
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium">
+        <span className="oauth2-section-label">
           Advanced Options
         </span>
       </div>

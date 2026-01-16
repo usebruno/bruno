@@ -103,7 +103,7 @@ const Auth = ({ item, collection }) => {
         const source = getEffectiveAuthSource();
         return (
           <>
-            <div className="flex flex-row w-full mt-2 gap-2">
+            <div className="flex flex-row w-full gap-2">
               <div>Auth inherited from {source.name}: </div>
               <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
             </div>
@@ -114,7 +114,7 @@ const Auth = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full mt-1 overflow-auto">
+    <StyledWrapper className="w-full overflow-auto">
       {getAuthView()}
     </StyledWrapper>
   );

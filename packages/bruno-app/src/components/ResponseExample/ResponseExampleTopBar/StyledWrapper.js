@@ -16,10 +16,6 @@ const StyledWrapper = styled.div`
     background-color: ${(props) => props.theme.examples.buttonColor};
     border: 1px solid ${(props) => props.theme.examples.buttonColor};
     color: white;
-
-    svg {
-      color: ${(props) => props.theme.text} !important;
-    }
   }
 
   .secondary-btn {

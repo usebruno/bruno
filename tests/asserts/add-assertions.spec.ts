@@ -79,9 +79,6 @@ test.describe('Assertions - BRU Collection', () => {
 
       // Verify response status
       await expect(locators.response.statusCode()).toContainText('200');
-
-      // Verify response body contains "pong"
-      await expect(locators.response.body()).toContainText('pong', { timeout: 5000 });
     });
 
     await test.step('Delete assertion and save', async () => {

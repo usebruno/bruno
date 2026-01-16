@@ -178,6 +178,7 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
         onReorder={handleHeaderDrag}
         showAddRow={editMode}
         showCheckbox={false}
+        showDelete={editMode}
       />
       {editMode && (
         <div className="flex justify-end mt-2 flex-shrink-0">

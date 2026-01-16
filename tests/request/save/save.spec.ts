@@ -1,24 +1,16 @@
 import { test, expect, Locator, Page } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, createCollection } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { waitForPredicate } from '../../utils/wait';
 
 const isRequestSaved = async (saveButton: Locator) => {
-  const savedColor = '#9f9f9f';
-  return (await saveButton.evaluate((d) => d.querySelector('svg')?.getAttribute('stroke') ?? '#invalid')) === savedColor;
+  // Saved state uses the className cursor-default; unsaved uses cursor-pointer.
+  return await saveButton.locator('svg').evaluate((node) => (node as HTMLElement).classList.contains('cursor-default'));
 };
 
 const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Promise<string>) => {
-  await page.getByTestId('collections-header-add-menu').click();
-  await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
-  await page.getByLabel('Name').fill('source-collection');
-  const locationInput = page.getByLabel('Location');
-  if (await locationInput.isVisible()) {
-    await locationInput.fill(await createTmpDir('source-collection'));
-  }
-  await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
-  await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
-  await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
+  await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
+
   const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection' });
   await sourceCollection.hover();
   await sourceCollection.locator('.collection-actions .icon').click();
@@ -61,13 +53,13 @@ test.describe.serial('save requests', () => {
     await page.keyboard.insertText(replacementUrl);
 
     // check if the request is now unsaved
-    expect(await isRequestSaved(locators.saveButton())).toBe(false);
+    await expect(await isRequestSaved(locators.saveButton())).toBe(false);
 
     // trigger a save
     locators.saveButton().click();
 
     // Wait for it to be saved
     const result = await waitForPredicate(() => isRequestSaved(locators.saveButton()));
-    expect(result).toBe(true);
+    await expect(result).toBe(true);
   });
 });

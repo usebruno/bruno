@@ -316,10 +316,11 @@ class GrpcClient {
    * @param {string} [options.collectionUid] - Collection UID
    * @param {Object} [options.certificates] - Certificate configuration
    * @param {Object} [options.verifyOptions] - Additional options for verifying the server certificate
+   * @param {string[]} [options.includeDirs] - Include directories for proto file resolution
    * @returns {Promise<boolean>} Whether methods were successfully refreshed
    * @private
    */
-  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions }) {
+  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions, includeDirs = [] }) {
     try {
       // Try reflection first if no proto path is specified
       if (!protoPath) {
@@ -339,8 +340,8 @@ class GrpcClient {
 
       // Try proto file if available
       if (protoPath) {
-        const absoluteProtoPath = nodePath.join(collectionPath, protoPath);
-        await this.loadMethodsFromProtoFile(absoluteProtoPath, []);
+        const absoluteProtoPath = nodePath.resolve(collectionPath, protoPath);
+        await this.loadMethodsFromProtoFile(absoluteProtoPath, includeDirs);
         return true;
       }
 
@@ -463,6 +464,7 @@ class GrpcClient {
    * @param {string} [params.pfx] - The PFX/P12 certificate data
    * @param {Object} [params.verifyOptions] - Additional options for verifying the server certificate
    * @param {import('@grpc/grpc-js').ChannelOptions} [params.channelOptions] - Additional options for the gRPC channel
+   * @param {string[]} [params.includeDirs] - Include directories for proto file resolution
    */
   async startConnection({
     request,
@@ -473,7 +475,8 @@ class GrpcClient {
     passphrase,
     pfx,
     verifyOptions,
-    channelOptions = {}
+    channelOptions = {},
+    includeDirs = []
   }) {
     const credentials = this.#getChannelCredentials({
       url: request.url,
@@ -509,7 +512,8 @@ class GrpcClient {
           passphrase,
           pfx
         },
-        verifyOptions
+        verifyOptions,
+        includeDirs
       });
 
       if (!refreshSuccess) {

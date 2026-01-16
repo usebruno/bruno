@@ -7,8 +7,10 @@ import { saveWorkspaceDocs } from 'providers/ReduxStore/slices/workspaces/action
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { IconFileText, IconEdit, IconX } from '@tabler/icons';
+import { IconFileText, IconEdit, IconX, IconPlus } from '@tabler/icons';
+import Button from 'ui/Button';
 import toast from 'react-hot-toast';
+import ActionIcon from 'ui/ActionIcon/index';
 
 const WorkspaceDocs = ({ workspace }) => {
   const dispatch = useDispatch();
@@ -65,14 +67,14 @@ const WorkspaceDocs = ({ workspace }) => {
           <span>Documentation</span>
         </div>
         {hasDocs && !isEditing && (
-          <button className="edit-btn" onClick={toggleViewMode}>
-            <IconEdit size={14} strokeWidth={1.5} />
-          </button>
+          <ActionIcon className="edit-btn" onClick={toggleViewMode}>
+            <IconEdit size={16} strokeWidth={1.5} />
+          </ActionIcon>
         )}
         {isEditing && (
-          <button className="edit-btn" onClick={handleDiscardChanges}>
-            <IconX size={14} strokeWidth={1.5} />
-          </button>
+          <ActionIcon className="edit-btn" onClick={handleDiscardChanges}>
+            <IconX size={16} strokeWidth={1.5} />
+          </ActionIcon>
         )}
       </div>
 
@@ -89,9 +91,9 @@ const WorkspaceDocs = ({ workspace }) => {
               fontSize={get(preferences, 'font.codeFontSize')}
             />
             <div className="editor-actions">
-              <button className="save-btn" onClick={onSave}>
+              <Button onClick={onSave}>
                 Save
-              </button>
+              </Button>
             </div>
           </div>
         ) : hasDocs ? (
@@ -101,7 +103,7 @@ const WorkspaceDocs = ({ workspace }) => {
         ) : (
           <div className="empty-state">
             <div className="empty-icon-wrapper">
-              <IconFileText size={28} strokeWidth={1} />
+              <IconFileText size={52} strokeWidth={1} />
             </div>
             <p className="empty-text">
               Add documentation to help your team work smoothly.
@@ -113,9 +115,9 @@ const WorkspaceDocs = ({ workspace }) => {
               <li>Key workflows</li>
               <li>Resources & FAQs</li>
             </ul>
-            <button className="add-docs-btn" onClick={handleAddDocumentation}>
+            <Button color="light" size="sm" icon={<IconPlus size={14} strokeWidth={1.5} />} onClick={handleAddDocumentation}>
               Add Documentation
-            </button>
+            </Button>
           </div>
         )}
       </div>

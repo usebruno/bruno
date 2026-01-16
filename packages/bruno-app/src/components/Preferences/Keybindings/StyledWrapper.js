@@ -29,8 +29,7 @@ const StyledWrapper = styled.div`
   }
 
   .table-container {
-    max-height: 400px;
-    overflow-y: scroll;
+    overflow-y: auto;
   }
 
   .key-button {

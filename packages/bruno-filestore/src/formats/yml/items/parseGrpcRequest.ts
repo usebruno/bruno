@@ -38,7 +38,7 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
     methodType: grpc?.methodType || '',
     protoPath: grpc?.protoFilePath || null,
     headers: toBrunoGrpcMetadata(grpc?.metadata) || [],
-    auth: toBrunoAuth(runtime?.auth),
+    auth: toBrunoAuth(grpc?.auth),
     body: {
       mode: 'grpc',
       grpc: []

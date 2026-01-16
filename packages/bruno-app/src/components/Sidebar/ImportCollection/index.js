@@ -8,7 +8,9 @@ import { isInsomniaCollection } from 'utils/importers/insomnia-collection';
 import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { isWSDLCollection } from 'utils/importers/wsdl-collection';
 import { isBrunoCollection } from 'utils/importers/bruno-collection';
+import { isOpenCollection } from 'utils/importers/opencollection';
 import FullscreenLoader from './FullscreenLoader/index';
+import { useTheme } from 'providers/Theme';
 
 const convertFileToObject = async (file) => {
   const text = await file.text();
@@ -34,6 +36,7 @@ const convertFileToObject = async (file) => {
 };
 
 const ImportCollection = ({ onClose, handleSubmit }) => {
+  const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
@@ -72,6 +75,8 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         type = 'postman';
       } else if (isInsomniaCollection(data)) {
         type = 'insomnia';
+      } else if (isOpenCollection(data)) {
+        type = 'opencollection';
       } else if (isBrunoCollection(data)) {
         type = 'bruno';
       } else {
@@ -152,14 +157,15 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
               <p className="text-gray-600 dark:text-gray-300 mb-2">
                 Drop file to import or{' '}
                 <button
-                  className="text-blue-500 underline cursor-pointer"
+                  className="underline cursor-pointer"
                   onClick={handleBrowseFiles}
+                  style={{ color: theme.textLink }}
                 >
                   choose a file
                 </button>
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Supports Bruno, Postman, Insomnia, OpenAPI v3, and WSDL formats
+                Supports Bruno, OpenCollection, Postman, Insomnia, OpenAPI v3, and WSDL formats
               </p>
             </div>
           </div>

@@ -3,7 +3,6 @@ const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
 const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
-const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString } = require('./interpolate-string');
@@ -25,7 +24,7 @@ const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
 const { getCACertificates } = require('@usebruno/requests');
 const { getOAuth2Token } = require('../utils/oauth2');
-const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -429,7 +428,7 @@ const runSingleRequest = async function (
     }
 
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
-      if (!(request?.data instanceof FormData)) {
+      if (!isFormData(request?.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);

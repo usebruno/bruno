@@ -25,6 +25,7 @@ const { wsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 
 const {
+  DEFAULT_GITIGNORE,
   writeFile,
   hasBruExtension,
   isDirectory,
@@ -51,7 +52,7 @@ const {
 } = require('../utils/filesystem');
 const { openCollectionDialog, openCollectionsByPathname } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
-const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
+const { moveRequestUid, deleteRequestUid, syncExampleUidsCache } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
@@ -62,7 +63,7 @@ const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
-const { transformBrunoConfigBeforeSave } = require('../utils/transfomBrunoConfig');
+const { transformBrunoConfigBeforeSave } = require('../utils/transformBrunoConfig');
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
 
@@ -159,6 +160,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         } else {
           throw new Error(`Invalid format: ${format}`);
         }
+
+        await writeFile(path.join(dirPath, '.gitignore'), DEFAULT_GITIGNORE);
 
         const { size, filesCount } = await getCollectionStats(dirPath);
         brunoConfig.size = size;
@@ -349,6 +352,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`path: ${pathname} does not exist`);
       }
 
+      // Sync example UIDs cache to maintain consistency when examples are added/deleted/reordered
+      syncExampleUidsCache(pathname, request.examples);
+
       const content = await stringifyRequestViaWorker(request, { format });
       await writeFile(pathname, content);
     } catch (error) {
@@ -376,14 +382,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // Helper: Parse file content based on scope type
-  const parseFileByType = async (fileContent, scopeType) => {
+  const parseFileByType = async (fileContent, scopeType, format) => {
     switch (scopeType) {
       case 'request':
-        return await parseRequestViaWorker(fileContent);
+        return await parseRequestViaWorker(fileContent, { format });
       case 'folder':
-        return parseFolder(fileContent);
+        return parseFolder(fileContent, { format });
       case 'collection':
-        return parseCollection(fileContent);
+        return parseCollection(fileContent, { format });
       default:
         throw new Error(`Invalid scope type: ${scopeType}`);
     }
@@ -424,7 +430,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       // Read and parse the file
       const fileContent = fs.readFileSync(pathname, 'utf8');
-      const parsedData = await parseFileByType(fileContent, scopeType);
+      const parsedData = await parseFileByType(fileContent, scopeType, format);
 
       // Update the specific variable or create it if it doesn't exist
       const varsPath = 'request.vars.req';
@@ -817,9 +823,24 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths) => {
+  ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths, options = {}) => {
     if (watcher && mainWindow) {
       await openCollectionsByPathname(mainWindow, watcher, collectionPaths);
+      if (options.workspacePath) {
+        const { setCollectionWorkspace } = require('../store/process-env');
+        const { generateUidBasedOnHash } = require('../utils/common');
+        for (const collectionPath of collectionPaths) {
+          const collectionUid = generateUidBasedOnHash(collectionPath);
+          setCollectionWorkspace(collectionUid, options.workspacePath);
+        }
+      }
+    }
+  });
+
+  ipcMain.handle('renderer:set-collection-workspace', (event, collectionUid, workspacePath) => {
+    if (workspacePath) {
+      const { setCollectionWorkspace } = require('../store/process-env');
+      setCollectionWorkspace(collectionUid, workspacePath);
     }
   });
 
@@ -831,6 +852,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         wsClient.closeForCollection(collectionUid);
       }
     }
+
+    // Clean up
+    const { clearCollectionWorkspace } = require('../store/process-env');
+    clearCollectionWorkspace(collectionUid);
 
     if (workspacePath && workspacePath !== 'default') {
       try {
@@ -851,11 +876,22 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`collection: ${collectionPath} already exists`);
       }
 
+      const getFilenameWithFormat = (item, format) => {
+        if (item?.filename) {
+          const ext = path.extname(item.filename);
+          if (ext === '.bru' || ext === '.yml') {
+            return item.filename.replace(ext, `.${format}`);
+          }
+          return item.filename;
+        }
+        return `${item.name}.${format}`;
+      };
+
       // Recursive function to parse the collection items and create files/folders
       const parseCollectionItems = async (items = [], currentPath) => {
         await Promise.all(items.map(async (item) => {
           if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-            let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.${format}`);
+            let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
             const content = await stringifyRequestViaWorker(item, { format });
             const filePath = path.join(currentPath, sanitizedFilename);
             safeWriteFileSync(filePath, content);
@@ -920,6 +956,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       let brunoConfig = getBrunoJsonConfig(collection);
 
       if (format === 'yml') {
+        brunoConfig.opencollection = '1.0.0';
         const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
         await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
       } else if (format === 'bru') {
@@ -1392,7 +1429,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = await parseRequestViaWorker(bruContent);
+        file.data = await parseRequestViaWorker(bruContent, { format: 'bru' });
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);
@@ -1499,7 +1536,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       await mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
 
       try {
-        const parsedData = await parseLargeRequestWithRedaction(bruContent);
+        const parsedData = await parseLargeRequestWithRedaction(bruContent, 'bru');
 
         file.data = parsedData;
         file.loading = false;

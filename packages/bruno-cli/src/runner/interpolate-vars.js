@@ -1,6 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
-const FormData = require('form-data');
+const { isFormData } = require('@usebruno/common').utils;
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -10,7 +10,8 @@ const getContentType = (headers = {}) => {
     }
   });
 
-  return contentType;
+  // Return empty string if contentType is not a string (e.g., null/false for no body requests)
+  return typeof contentType === 'string' ? contentType : '';
 };
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
@@ -87,7 +88,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }));
     }
   } else if (contentType === 'multipart/form-data') {
-    if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
+    if (Array.isArray(request?.data) && !isFormData(request.data)) {
       try {
         request.data = request?.data?.map((d) => ({
           ...d,

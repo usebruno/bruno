@@ -88,7 +88,7 @@ test.describe('make grpc requests', () => {
     await test.step('verify response items are rendered', async () => {
       await expect(locators.response.content()).toBeVisible();
       await expect(locators.response.container()).toBeVisible();
-      await expect(locators.response.accordion()).toBeVisible();
+      await expect(locators.response.list()).toBeVisible();
       await expect(locators.response.responseItems()).toHaveCount(10);
     });
 
@@ -190,7 +190,7 @@ test.describe('make grpc requests', () => {
     await test.step('verify response items are rendered', async () => {
       await expect(locators.response.content()).toBeVisible();
       await expect(locators.response.container()).toBeVisible();
-      await expect(locators.response.accordion()).toBeVisible();
+      await expect(locators.response.list()).toBeVisible();
       await expect(locators.response.responseItems()).toHaveCount(2);
     });
 

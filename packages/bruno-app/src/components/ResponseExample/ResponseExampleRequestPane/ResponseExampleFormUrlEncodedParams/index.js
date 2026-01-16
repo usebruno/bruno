@@ -94,6 +94,8 @@ const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, edi
         reorderable={editMode}
         onReorder={handleParamDrag}
         showAddRow={editMode}
+        showDelete={editMode}
+        disableCheckbox={!editMode}
       />
     </StyledWrapper>
   );

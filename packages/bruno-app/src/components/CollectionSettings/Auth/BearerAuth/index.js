@@ -33,7 +33,7 @@ const BearerAuth = ({ collection }) => {
 
   return (
     <StyledWrapper className="mt-2 w-full">
-      <label className="block font-medium mb-2">Token</label>
+      <label className="block mb-1">Token</label>
       <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
           value={bearerToken}
@@ -42,6 +42,7 @@ const BearerAuth = ({ collection }) => {
           onChange={(val) => handleTokenChange(val)}
           collection={collection}
           isSecret={true}
+          isCompact
         />
         {showWarning && <SensitiveFieldWarning fieldName="bearer-token" warningMessage={warningMessage} />}
       </div>

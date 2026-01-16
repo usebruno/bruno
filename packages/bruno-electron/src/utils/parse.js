@@ -4,11 +4,12 @@ const { parseRequestAndRedactBody, parseRequestViaWorker } = require('@usebruno/
  * Parses a large BRU request string by redacting body blocks, parsing the remainder,
  * and then reinserting extracted body content into the parsed structure.
  * @param {string} bruContent
+ * @param {string} format - Collection format, defaults to 'bru'
  * @returns {Promise<any>} parsed request JSON
  */
-async function parseLargeRequestWithRedaction(bruContent) {
-  const { bruFileStringWithRedactedBody, extractedBodyContent } = parseRequestAndRedactBody(bruContent);
-  const parsedData = await parseRequestViaWorker(bruFileStringWithRedactedBody);
+async function parseLargeRequestWithRedaction(bruContent, format = 'bru') {
+  const { bruFileStringWithRedactedBody, extractedBodyContent } = parseRequestAndRedactBody(bruContent, { format });
+  const parsedData = await parseRequestViaWorker(bruFileStringWithRedactedBody, { format });
 
   if (!parsedData.request) {
     parsedData.request = {};

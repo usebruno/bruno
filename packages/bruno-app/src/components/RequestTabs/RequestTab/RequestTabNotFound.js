@@ -20,7 +20,7 @@ const RequestTabNotFound = ({ handleCloseClick }) => {
 
   return (
     <>
-      <div className="flex items-center tab-label pl-2">
+      <div className="flex items-center tab-label px-3">
         {showErrorMessage ? (
           <>
             <IconAlertTriangle size={18} strokeWidth={1.5} className="text-yellow-600" />

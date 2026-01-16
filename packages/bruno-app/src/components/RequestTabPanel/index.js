@@ -19,7 +19,6 @@ import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import StyledWrapper from './StyledWrapper';
-import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
 import { produce } from 'immer';
@@ -38,7 +37,7 @@ import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 
 const MIN_LEFT_PANE_WIDTH = 300;
-const MIN_RIGHT_PANE_WIDTH = 480;
+const MIN_RIGHT_PANE_WIDTH = 490;
 const MIN_TOP_PANE_HEIGHT = 150;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 
@@ -224,10 +223,6 @@ const RequestTabPanel = () => {
     }
 
     return <FolderSettings collection={collection} folder={folder} />;
-  }
-
-  if (focusedTab.type === 'security-settings') {
-    return <SecuritySettings collection={collection} />;
   }
 
   if (focusedTab.type === 'environment-settings') {

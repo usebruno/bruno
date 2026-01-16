@@ -166,7 +166,7 @@ const CodeMirrorSearch = ({ visible, editor, onClose }) => {
 
   return (
     <StyledWrapper>
-      <div className="bruno-search-bar compact">
+      <div className="bruno-search-bar">
         <input
           autoFocus
           type="text"

@@ -41,6 +41,7 @@ const QueryResponse = ({
               setSelectedTab((prev) => prev === 'editor' ? 'preview' : 'editor');
             }}
             selectedTab={selectedTab}
+            isActiveTab={true}
           />
         </div>
       )}

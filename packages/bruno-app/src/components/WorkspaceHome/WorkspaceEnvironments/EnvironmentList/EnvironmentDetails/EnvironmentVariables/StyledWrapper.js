@@ -9,7 +9,7 @@ const Wrapper = styled.div`
   .table-container {
     overflow-y: auto;
     border-radius: 8px;
-    border: ${(props) => props.theme.workspace.environments.indentBorder};
+    border: solid 1px ${(props) => props.theme.border.border0};
   }
 
   table {
@@ -45,8 +45,8 @@ const Wrapper = styled.div`
       
       td {
         padding: 5px 10px !important;
-        border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
-        border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+        border-bottom: solid 1px ${(props) => props.theme.border.border0};
+        border-right: solid 1px ${(props) => props.theme.border.border0};
         
         &:last-child {
           border-right: none;
@@ -63,8 +63,8 @@ const Wrapper = styled.div`
         }
         
         td {
-          border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
-          border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+          border-bottom: solid 1px ${(props) => props.theme.border.border0};
+          border-right: solid 1px ${(props) => props.theme.border.border0};
           
           &:last-child {
             border-right: none;
@@ -74,28 +74,7 @@ const Wrapper = styled.div`
     }
   }
 
-  .btn-add-param {
-    font-size: 12px;
-    color: ${(props) => props.theme.textLink};
-    font-weight: 500;
-    padding: 7px 14px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border-radius: 6px;
-    border: ${(props) => props.theme.sidebar.collection.item.indentBorder};
-    background: transparent;
-    transition: all 0.15s ease;
-    
-    &:hover {
-      background: ${(props) => props.theme.listItem.hoverBg};
-      border-color: ${(props) => props.theme.textLink};
-    }
-  }
-
   .tooltip-mod {
-    font-size: 11px !important;
     max-width: 200px !important;
   }
 
@@ -123,64 +102,10 @@ const Wrapper = styled.div`
     margin: 0;
   }
   
-  button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px;
-    color: ${(props) => props.theme.colors.text.muted};
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: color 0.15s ease, background 0.15s ease;
-  }
-  
   .button-container {
-    padding: 12px 2px;
-    background: ${(props) => props.theme.bg};
     flex-shrink: 0;
     display: flex;
     gap: 8px;
-  }
-  
-  .submit {
-    padding: 6px 16px;
-    font-size: ${(props) => props.theme.font.size.sm};
-    border-radius: ${(props) => props.theme.border.radius.base};
-    border: none;
-    background: ${(props) => props.theme.brand};
-    color: ${(props) => props.theme.bg};
-    cursor: pointer;
-    transition: opacity 0.15s ease;
-    
-    &:hover {
-      opacity: 0.9;
-    }
-  }
-
-  .reset {
-    background: transparent;
-    padding: 6px 16px;
-    color: ${(props) => props.theme.brand};
-    &:hover {
-      opacity: 0.9;
-    }
-  }
-  
-  .discard {
-    padding: 6px 16px;
-    font-size: ${(props) => props.theme.font.size.sm};
-    border-radius: ${(props) => props.theme.border.radius.base};
-    background: transparent;
-    color: ${(props) => props.theme.text};
-    border: ${(props) => props.theme.sidebar.collection.item.indentBorder};
-    cursor: pointer;
-    transition: all 0.15s ease;
-    
-    &:hover {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-    }
   }
 `;
 

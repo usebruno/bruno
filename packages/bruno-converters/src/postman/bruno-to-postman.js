@@ -1,5 +1,6 @@
 import map from 'lodash/map';
 import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems, isItemARequest } from '../common';
+import translateBruToPostman from '../utils/bruno-to-postman-translator';
 
 /**
  * Transforms a given URL string into an object representing the protocol, host, path, query, and variables.
@@ -167,6 +168,15 @@ export const brunoToPostman = (collection) => {
 
     return Array.from(finalVarsMap.values());
   };
+  const translateScriptSafely = (script = '') => {
+    try {
+      return translateBruToPostman(script);
+    } catch (err) {
+      console.warn('Bru→Postman script translation failed, leaving script as-is', err);
+      return script;
+    }
+  };
+
   const generateEventSection = (item) => {
     const eventArray = [];
     // Request: item.script, Folder: item.root.request.script, Collection: item.request.script
@@ -175,13 +185,14 @@ export const brunoToPostman = (collection) => {
     const testsBlock = item?.tests || item?.root?.request?.tests || item?.request?.tests;
 
     if (scriptBlock.req && typeof scriptBlock.req === 'string') {
+      const translated = translateScriptSafely(scriptBlock.req);
       eventArray.push({
         listen: 'prerequest',
         script: {
           type: 'text/javascript',
           packages: {},
           requests: {},
-          exec: scriptBlock.req.split('\n')
+          exec: translated.split('\n')
         }
       });
     }
@@ -189,14 +200,16 @@ export const brunoToPostman = (collection) => {
     if (scriptBlock.res || testsBlock) {
       const exec = [];
       if (scriptBlock.res && typeof scriptBlock.res === 'string') {
-        exec.push(...scriptBlock.res.split('\n'));
+        const translated = translateScriptSafely(scriptBlock.res);
+        exec.push(...translated.split('\n'));
       }
       if (testsBlock && typeof testsBlock === 'string') {
+        const translatedTests = translateScriptSafely(testsBlock);
         if (exec.length > 0) {
           exec.push('');
         }
         exec.push('// Tests');
-        exec.push(...testsBlock.split('\n'));
+        exec.push(...translatedTests.split('\n'));
       }
 
       // Only push the event if exec has content

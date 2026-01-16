@@ -1,52 +1,56 @@
+import StyledWrapper from './StyledWrapper';
+
 const Network = ({ logs }) => {
   return (
-    <div className="bg-black/5 text-white network-logs rounded overflow-auto h-96">
-      <pre className="whitespace-pre-wrap">
-        {logs.map((currentLog, index) => {
-          if (index > 0 && currentLog?.type === 'separator') {
-            return <div className="border-t-2 border-gray-500 w-full my-2" key={index} />;
-          }
-          const nextLog = logs[index + 1];
-          const isSameLogType = nextLog?.type === currentLog?.type;
-          return (
-            <>
-              <NetworkLogsEntry key={index} entry={currentLog} />
-              {!isSameLogType && <div className="mt-4" />}
-            </>
-          );
-        })}
-      </pre>
-    </div>
+    <StyledWrapper>
+      <div className="network-logs-container">
+        <pre className="network-logs-pre">
+          {logs.map((currentLog, index) => {
+            if (index > 0 && currentLog?.type === 'separator') {
+              return <div className="network-logs-separator" key={index} />;
+            }
+            const nextLog = logs[index + 1];
+            const isSameLogType = nextLog?.type === currentLog?.type;
+            return (
+              <div key={index}>
+                <NetworkLogsEntry entry={currentLog} />
+                {!isSameLogType && <div className="network-logs-spacing" />}
+              </div>
+            );
+          })}
+        </pre>
+      </div>
+    </StyledWrapper>
   );
 };
 
 const NetworkLogsEntry = ({ entry }) => {
   const { type, message } = entry;
-  let className = '';
+  let className = 'network-logs-entry';
 
   switch (type) {
     case 'request':
-      className = 'text-blue-500';
+      className = 'network-logs-entry network-logs-entry--request';
       break;
     case 'response':
-      className = 'text-green-500';
+      className = 'network-logs-entry network-logs-entry--response';
       break;
     case 'error':
-      className = 'text-red-500';
+      className = 'network-logs-entry network-logs-entry--error';
       break;
     case 'tls':
-      className = 'text-purple-500';
+      className = 'network-logs-entry network-logs-entry--tls';
       break;
     case 'info':
-      className = 'text-yellow-500';
+      className = 'network-logs-entry network-logs-entry--info';
       break;
     default:
-      className = 'text-gray-400';
+      className = 'network-logs-entry';
       break;
   }
 
   return (
-    <div className={`${className}`}>
+    <div className={className}>
       <div>{message}</div>
     </div>
   );

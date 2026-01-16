@@ -209,28 +209,31 @@ const ImportWorkspace = ({ onClose }) => {
               </p>
             </Help>
           </label>
-          <div className="flex gap-2 mt-2">
-            <input
-              id="workspace-location"
-              type="text"
-              name="workspaceLocation"
-              ref={locationInputRef}
-              readOnly={true}
-              className="block textbox flex-1 bg-gray-50 cursor-pointer"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              value={formik.values.workspaceLocation || ''}
-              onClick={browse}
-            />
-            <button type="button" className="btn btn-sm btn-secondary" onClick={browse}>
-              Browse
-            </button>
-          </div>
+          <input
+            id="workspace-location"
+            type="text"
+            name="workspaceLocation"
+            ref={locationInputRef}
+            readOnly={true}
+            className="block textbox mt-2 w-full cursor-pointer"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            value={formik.values.workspaceLocation || ''}
+            onClick={browse}
+          />
           {formik.touched.workspaceLocation && formik.errors.workspaceLocation ? (
             <div className="text-red-500 text-sm mt-1">{formik.errors.workspaceLocation}</div>
           ) : null}
+          <div className="mt-1">
+            <span
+              className="text-link cursor-pointer hover:underline"
+              onClick={browse}
+            >
+              Browse
+            </span>
+          </div>
         </div>
       </div>
     </Modal>

@@ -1,4 +1,4 @@
-import ErrorAlert from 'ui/ErrorAlert/index';
+import ErrorBanner from 'ui/ErrorBanner';
 import React, { useState, useMemo } from 'react';
 import StyledWrapper from './StyledWrapper';
 
@@ -21,7 +21,7 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
   if (parsedData && typeof parsedData === 'object' && parsedData.error) {
     return (
       <div className="px-2">
-        <ErrorAlert title="Cannot preview as XML" message={parsedData.error} />
+        <ErrorBanner errors={[{ title: 'Cannot preview as XML', message: parsedData.error }]} />
       </div>
     );
   }
@@ -37,7 +37,7 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
   if (!isValidTreeData(parsedData)) {
     return (
       <div className="px-2">
-        <ErrorAlert title="Cannot preview as XML" message="Data cannot be rendered as a tree. Expected a valid XML string." />
+        <ErrorBanner errors={[{ title: 'Cannot preview as XML', message: 'Data cannot be rendered as a tree. Expected a valid XML string.' }]} />
       </div>
     );
   }
@@ -55,7 +55,7 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
       // Empty object with no children
       return (
         <div className="px-2">
-          <ErrorAlert title="Cannot preview as XML" message="Cannot render XML tree. Root object is empty." />
+          <ErrorBanner errors={[{ title: 'Cannot preview as XML', message: 'Cannot render XML tree. Root object is empty.' }]} />
         </div>
       );
     }

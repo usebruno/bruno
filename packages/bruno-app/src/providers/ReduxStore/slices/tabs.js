@@ -24,7 +24,6 @@ export const tabsSlice = createSlice({
       const nonReplaceableTabTypes = [
         'variables',
         'collection-runner',
-        'security-settings',
         'environment-settings',
         'global-environment-settings'
       ];
@@ -59,6 +58,8 @@ export const tabsSlice = createSlice({
           requestPaneWidth: null,
           requestPaneTab: requestPaneTab || defaultRequestPaneTab,
           responsePaneTab: 'response',
+          responseFormat: null,
+          responseViewTab: null,
           type: type || 'request',
           preview: preview !== undefined
             ? preview
@@ -79,6 +80,8 @@ export const tabsSlice = createSlice({
         requestPaneTab: requestPaneTab || defaultRequestPaneTab,
         responsePaneTab: 'response',
         responsePaneScrollPosition: null,
+        responseFormat: null,
+        responseViewTab: null,
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
@@ -145,6 +148,20 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.responsePaneScrollPosition = action.payload.scrollY;
+      }
+    },
+    updateResponseFormat: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseFormat = action.payload.responseFormat;
+      }
+    },
+    updateResponseViewTab: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseViewTab = action.payload.responseViewTab;
       }
     },
     closeTabs: (state, action) => {
@@ -231,6 +248,8 @@ export const {
   updateRequestPaneTab,
   updateResponsePaneTab,
   updateResponsePaneScrollPosition,
+  updateResponseFormat,
+  updateResponseViewTab,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,

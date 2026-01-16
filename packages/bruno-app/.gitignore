@@ -22,6 +22,7 @@ build
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 # local env files
 .env.local
@@ -34,3 +35,4 @@ yarn-error.log*
 dist/
 
 .env
+storybook-static/

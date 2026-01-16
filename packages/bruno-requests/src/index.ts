@@ -4,5 +4,7 @@ export { WsClient } from './ws/ws-client';
 export { default as cookies } from './cookies';
 
 export { getCACertificates } from './utils/ca-cert';
+export { default as createVaultClient, VaultError } from './utils/node-vault';
+export type { VaultClient, VaultConfig, VaultRequestOptions } from './utils/node-vault';
 
 export * as scripting from './scripting';

@@ -43,10 +43,11 @@ test.describe('Autosave', () => {
       const autoSaveCheckbox = preferencesModal.locator('#autoSaveEnabled');
       await autoSaveCheckbox.check();
 
-      // Save preferences
-      await preferencesModal.locator('button[type="submit"]').click();
+      // Wait for auto-save to complete (debounce is 500ms)
+      await page.waitForTimeout(1000);
 
-      // Wait for preferences to close
+      // Close preferences modal
+      await preferencesModal.locator('[data-testid="modal-close-button"]').click();
       await expect(preferencesModal).not.toBeVisible();
     });
 
@@ -92,10 +93,11 @@ test.describe('Autosave', () => {
       const autoSaveCheckbox = preferencesModal.locator('#autoSaveEnabled');
       await autoSaveCheckbox.uncheck();
 
-      // Save preferences
-      await preferencesModal.locator('button[type="submit"]').click();
+      // Wait for auto-save to complete (debounce is 500ms)
+      await page.waitForTimeout(1000);
 
-      // Wait for preferences to close
+      // Close preferences modal
+      await preferencesModal.locator('[data-testid="modal-close-button"]').click();
       await expect(preferencesModal).not.toBeVisible();
     });
 
@@ -168,10 +170,11 @@ test.describe('Autosave', () => {
       const autoSaveCheckbox = preferencesModal.locator('#autoSaveEnabled');
       await autoSaveCheckbox.check();
 
-      // Save preferences
-      await preferencesModal.locator('button[type="submit"]').click();
+      // Wait for auto-save to complete (debounce is 500ms)
+      await page.waitForTimeout(1000);
 
-      // Wait for preferences to close
+      // Close preferences modal
+      await preferencesModal.locator('[data-testid="modal-close-button"]').click();
       await expect(preferencesModal).not.toBeVisible();
 
       await page.waitForTimeout(1000);

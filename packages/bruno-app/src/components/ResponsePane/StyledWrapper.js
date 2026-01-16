@@ -25,7 +25,7 @@ const StyledWrapper = styled.div`
       border: none;
       border-bottom: solid 2px transparent;
       margin-right: ${(props) => props.theme.tabs.marginRight};
-      color: var(--color-tab-inactive);
+      color: ${(props) => props.theme.colors.text.subtext0};
       cursor: pointer;
       flex-shrink: 1;
       overflow: hidden;
@@ -75,10 +75,31 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.green} !important;
   }
 
-  .separator {
-    height: 16px;
-    border-left: 1px solid ${(props) => props.theme.preferences.sidebar.border};
-    margin: 0 8px;
+  .result-view-tabs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 8px;
+
+    .button-dropdown-button {
+      border: 1px solid transparent !important;
+      background-color: transparent;
+      border-radius: 5px;
+      font-size: ${(props) => props.theme.font.size.sm};
+
+      &:hover {
+        border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.border} !important;
+      }
+    }
+
+    .tab-active .button-dropdown-button {
+      border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.border} !important;
+
+      &:hover {
+        border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBorder} !important;
+      }
+    }
   }
 `;
 

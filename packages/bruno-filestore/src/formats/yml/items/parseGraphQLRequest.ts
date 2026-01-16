@@ -20,7 +20,7 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
     method: graphql?.method || 'POST',
     headers: toBrunoHttpHeaders(graphql?.headers) || [],
     params: toBrunoParams(graphql?.params) || [],
-    auth: toBrunoAuth(runtime?.auth),
+    auth: toBrunoAuth(graphql?.auth),
     body: {
       mode: 'graphql',
       json: null,

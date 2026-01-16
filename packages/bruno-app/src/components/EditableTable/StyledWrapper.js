@@ -9,7 +9,7 @@ const StyledWrapper = styled.div`
   .table-container {
     overflow-y: auto;
     border-radius: ${(props) => props.theme.border.radius.base};
-    border: ${(props) => props.theme.workspace.environments.indentBorder};
+    border: solid 1px ${(props) => props.theme.border.border0};
   }
 
   table {
@@ -31,8 +31,8 @@ const StyledWrapper = styled.div`
       padding: 5px 10px !important;
       border-top: none !important;
       border-left: none !important;
-      border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
-      border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+      border-bottom: solid 1px ${(props) => props.theme.border.border0};
+      border-right: solid 1px ${(props) => props.theme.border.border0};
       vertical-align: middle;
 
       &:last-child {
@@ -58,8 +58,8 @@ const StyledWrapper = styled.div`
         padding: 1px 10px !important;
         border-top: none !important;
         border-left: none !important;
-        border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
-        border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+        border-bottom: solid 1px ${(props) => props.theme.border.border0};
+        border-right: solid 1px ${(props) => props.theme.border.border0};
         vertical-align: middle;
 
         &:last-child {
@@ -83,7 +83,6 @@ const StyledWrapper = styled.div`
   }
 
   .tooltip-mod {
-    font-size: 11px !important;
     max-width: 200px !important;
   }
 

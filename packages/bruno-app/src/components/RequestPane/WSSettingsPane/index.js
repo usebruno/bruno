@@ -53,7 +53,7 @@ const WSSettingsPane = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="flex flex-col mt-4 gap-4 w-full">
+    <StyledWrapper className="flex flex-col gap-4 w-full">
       <section className="grid gap-4 items-center grid-cols-2">
         <div>
           <label className="font-medium mb-2">Timeout</label>

@@ -182,19 +182,6 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
   const allFiltersEnabled = Object.values(filters).every((f) => f);
   const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
 
-  const getMethodColor = (method) => {
-    switch (method?.toUpperCase()) {
-      case 'GET': return '#10b981';
-      case 'POST': return '#8b5cf6';
-      case 'PUT': return '#f59e0b';
-      case 'DELETE': return '#ef4444';
-      case 'PATCH': return '#06b6d4';
-      case 'HEAD': return '#6b7280';
-      case 'OPTIONS': return '#84cc16';
-      default: return '#6b7280';
-    }
-  };
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -241,9 +228,6 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
                   onChange={(e) => onFilterToggle(method, e.target.checked)}
                 />
                 <div className="filter-option-content">
-                  <span className="method-badge" style={{ backgroundColor: getMethodColor(method) }}>
-                    {method}
-                  </span>
                   <span className="filter-option-label">{method}</span>
                   <span className="filter-option-count">({requestCounts[method] || 0})</span>
                 </div>

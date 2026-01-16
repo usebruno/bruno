@@ -1,17 +1,14 @@
 import { get } from 'lodash';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { IconPlus } from '@tabler/icons';
-import React, { useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import ToolHint from 'components/ToolHint/index';
+import React, { useEffect, useRef } from 'react';
+import { useDispatch } from 'react-redux';
+import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import { SingleWSMessage } from './SingleWSMessage/index';
 
 const WSBody = ({ item, collection, handleRun }) => {
-  const preferences = useSelector((state) => state.app.preferences);
-  const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const dispatch = useDispatch();
-  const [collapsedMessages, setCollapsedMessages] = useState([]);
   const messagesContainerRef = useRef(null);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
 
@@ -25,16 +22,6 @@ const WSBody = ({ item, collection, handleRun }) => {
       container.scrollTop = container.scrollHeight;
     }
   }, [body?.ws?.length]);
-
-  const toggleMessageCollapse = (index) => {
-    setCollapsedMessages((prev) => {
-      if (prev.includes(index)) {
-        return prev.filter((i) => i !== index);
-      } else {
-        return [...prev, index];
-      }
-    });
-  };
 
   const addNewMessage = () => {
     const currentMessages = Array.isArray(body.ws) ? [...body.ws] : [];
@@ -53,60 +40,58 @@ const WSBody = ({ item, collection, handleRun }) => {
 
   if (!body?.ws || !Array.isArray(body.ws)) {
     return (
-      <StyledWrapper isVerticalLayout={isVerticalLayout}>
-        <div className="flex flex-col items-center justify-center py-8">
-          <p className="text-zinc-500 dark:text-zinc-400 mb-4">No WebSocket messages available</p>
-          <ToolHint text="Add the first message to your WebSocket request" toolhintId="add-first-msg">
-            <button
-              onClick={addNewMessage}
-              className="flex items-center justify-center gap-2 py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
-            >
-              <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
-              <span className="font-medium text-neutral-700 dark:text-neutral-300">Add First Message</span>
-            </button>
-          </ToolHint>
+      <StyledWrapper>
+        <div className="empty-state">
+          <p>No WebSocket messages available</p>
+          <Button
+            onClick={addNewMessage}
+            variant="filled"
+            color="secondary"
+            size="sm"
+            icon={<IconPlus size={14} strokeWidth={1.5} />}
+          >
+            Add Message
+          </Button>
         </div>
       </StyledWrapper>
     );
   }
 
+  const messagesToShow = body.ws.filter((_, index) => canClientSendMultipleMessages || index === 0);
+
   return (
-    <StyledWrapper isVerticalLayout={isVerticalLayout}>
+    <StyledWrapper>
       <div
         ref={messagesContainerRef}
-        id="ws-messages-container"
-        className={`flex-1 ${body.ws.length === 1 || !canClientSendMultipleMessages ? 'h-full' : 'overflow-y-auto'} ${canClientSendMultipleMessages && 'pb-16'
-        }`}
+        className={`messages-container ${canClientSendMultipleMessages && messagesToShow.length > 1 ? 'multi' : 'single'}`}
       >
-        {body.ws
-          .filter((_, index) => canClientSendMultipleMessages || index === 0)
-          .map((message, index) => (
-            <SingleWSMessage
-              key={index}
-              message={message}
-              item={item}
-              collection={collection}
-              index={index}
-              methodType={methodType}
-              isCollapsed={collapsedMessages.includes(index)}
-              onToggleCollapse={() => toggleMessageCollapse(index)}
-              handleRun={handleRun}
-              canClientSendMultipleMessages={canClientSendMultipleMessages}
-            />
-          ))}
+        {messagesToShow.map((message, index) => (
+          <SingleWSMessage
+            key={index}
+            message={message}
+            item={item}
+            collection={collection}
+            index={index}
+            methodType={methodType}
+            handleRun={handleRun}
+            canClientSendMultipleMessages={canClientSendMultipleMessages}
+            isLast={index === messagesToShow.length - 1}
+          />
+        ))}
       </div>
 
       {canClientSendMultipleMessages && (
-        <div className="add-message-btn-container">
-          <ToolHint text="Add a new WebSocket message to the request" toolhintId="add-msg-fixed">
-            <button
-              onClick={addNewMessage}
-              className="add-message-btn flex items-center justify-center gap-2 py-2 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors shadow-md"
-            >
-              <IconPlus size={16} strokeWidth={1.5} className="text-neutral-700 dark:text-neutral-300" />
-              <span className="font-medium text-neutral-700 dark:text-neutral-300">Add Message</span>
-            </button>
-          </ToolHint>
+        <div className="add-message-footer">
+          <Button
+            onClick={addNewMessage}
+            variant="filled"
+            color="secondary"
+            size="sm"
+            fullWidth
+            icon={<IconPlus size={14} strokeWidth={1.5} />}
+          >
+            Add Message
+          </Button>
         </div>
       )}
     </StyledWrapper>

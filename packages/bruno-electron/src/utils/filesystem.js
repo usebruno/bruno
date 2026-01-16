@@ -5,6 +5,18 @@ const { dialog } = require('electron');
 const isValidPathname = require('is-valid-path');
 const os = require('os');
 
+const DEFAULT_GITIGNORE = [
+  '# Secrets',
+  '.env*',
+  '',
+  '# Dependencies',
+  'node_modules',
+  '',
+  '# OS files',
+  '.DS_Store',
+  'Thumbs.db'
+].join('\n');
+
 const exists = async (p) => {
   try {
     await fsPromises.access(p);
@@ -36,6 +48,15 @@ const isDirectory = (dirPath) => {
   } catch (_) {
     return false;
   }
+};
+
+const isValidCollectionDirectory = (dirPath) => {
+  if (!isDirectory(dirPath)) {
+    return false;
+  }
+  const brunoJsonPath = path.join(dirPath, 'bruno.json');
+  const opencollectionYmlPath = path.join(dirPath, 'opencollection.yml');
+  return fs.existsSync(brunoJsonPath) || fs.existsSync(opencollectionYmlPath);
 };
 
 const hasSubDirectories = (dir) => {
@@ -447,11 +468,13 @@ const isCollectionRootBruFile = (pathname, collectionPath) => {
 };
 
 module.exports = {
+  DEFAULT_GITIGNORE,
   isValidPathname,
   exists,
   isSymbolicLink,
   isFile,
   isDirectory,
+  isValidCollectionDirectory,
   normalizeAndResolvePath,
   isWSLPath,
   normalizeWSLPath,

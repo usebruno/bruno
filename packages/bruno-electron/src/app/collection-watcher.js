@@ -27,7 +27,7 @@ const EnvironmentSecretsStore = require('../store/env-secrets');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
 const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
-const { transformBrunoConfigAfterRead } = require('../utils/transfomBrunoConfig');
+const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
@@ -583,7 +583,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       const fileStats = fs.statSync(pathname);
 
       if (fileStats.size >= MAX_FILE_SIZE && format === 'bru') {
-        file.data = await parseLargeRequestWithRedaction(content);
+        file.data = await parseLargeRequestWithRedaction(content, 'bru');
       } else {
         file.data = await parseRequest(content, { format });
       }

@@ -59,7 +59,7 @@ const CreateEnvironment = ({ collection, onClose, onEnvironmentCreated }) => {
   return (
     <Portal>
       <Modal
-        size="sm"
+        size="md"
         title="Create Environment"
         confirmText="Create"
         handleConfirm={onSubmit}

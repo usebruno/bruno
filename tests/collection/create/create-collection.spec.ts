@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createRequest } from '../../utils/page';
+import { closeAllCollections, createCollection, createRequest } from '../../utils/page';
 
 test.describe('Create collection', () => {
   test.afterEach(async ({ page }) => {
@@ -11,17 +11,7 @@ test.describe('Create collection', () => {
     const collectionName = 'test-collection';
     const requestName = 'ping';
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
-    await page.getByLabel('Name').click();
-    await page.getByLabel('Name').fill(collectionName);
-    await page.getByLabel('Name').press('Tab');
-    const locationInput = page.locator('.bruno-modal').getByLabel('Location');
-    if (await locationInput.isVisible()) {
-      await locationInput.fill(await createTmpDir(collectionName));
-    }
-    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
-    await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
+    await createCollection(page, collectionName, await createTmpDir(collectionName));
 
     // Create a new request using the dialog/modal flow
     await createRequest(page, requestName, collectionName);

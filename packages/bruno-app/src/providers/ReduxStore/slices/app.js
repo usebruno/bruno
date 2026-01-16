@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import brunoClipboard from 'utils/bruno-clipboard';
+import { addTab, focusTab } from './tabs';
 
 const initialState = {
   isDragging: false,
@@ -127,6 +128,20 @@ export const appSlice = createSlice({
       // Update clipboard UI state
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
     }
+  },
+  extraReducers: (builder) => {
+    // Automatically hide special pages when any tab is added or focused
+    builder
+      .addCase(addTab, (state) => {
+        state.showHomePage = false;
+        state.showApiSpecPage = false;
+        state.showManageWorkspacePage = false;
+      })
+      .addCase(focusTab, (state) => {
+        state.showHomePage = false;
+        state.showApiSpecPage = false;
+        state.showManageWorkspacePage = false;
+      });
   }
 });
 

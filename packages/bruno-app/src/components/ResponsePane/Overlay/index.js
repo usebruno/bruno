@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { cancelRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StopWatch from '../../StopWatch';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button/index';
 
 const ResponseLoadingOverlay = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -23,13 +24,14 @@ const ResponseLoadingOverlay = ({ item, collection }) => {
           </div>
         </div>
         <IconRefresh size={24} className="loading-icon" />
-        <button
+        <Button
+          color="secondary"
+          size="sm"
           onClick={handleCancelRequest}
-          className="mt-4 uppercase btn-sm rounded btn-secondary ease-linear transition-all duration-150 relative z-50"
-          type="button"
+          className="mt-4"
         >
           Cancel Request
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

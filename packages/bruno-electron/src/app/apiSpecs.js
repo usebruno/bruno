@@ -1,7 +1,15 @@
+const fs = require('fs');
+const path = require('path');
 const { dialog, ipcMain } = require('electron');
 const { normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
-const { generateYamlContent, getWorkspaceUid } = require('../utils/workspace-config');
+const {
+  addApiSpecToWorkspace,
+  readWorkspaceConfig,
+  getWorkspaceUid
+} = require('../utils/workspace-config');
+
+const DEFAULT_WORKSPACE_NAME = 'My Workspace';
 
 const normalizeWorkspaceConfig = (config) => {
   return {
@@ -13,6 +21,17 @@ const normalizeWorkspaceConfig = (config) => {
   };
 };
 
+const prepareWorkspaceConfigForClient = (workspaceConfig, isDefault) => {
+  if (isDefault) {
+    return {
+      ...workspaceConfig,
+      name: DEFAULT_WORKSPACE_NAME,
+      type: 'default'
+    };
+  }
+  return workspaceConfig;
+};
+
 const openApiSpecDialog = async (win, watcher, options = {}) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
     properties: ['openFile', 'createFile']
@@ -21,7 +40,7 @@ const openApiSpecDialog = async (win, watcher, options = {}) => {
   if (filePaths && filePaths[0]) {
     const resolvedPath = normalizeAndResolvePath(filePaths[0]);
     try {
-      openApiSpec(win, watcher, resolvedPath, options);
+      await openApiSpec(win, watcher, resolvedPath, options);
     } catch (err) {
       console.error(`[ERROR] Cannot open API spec: "${resolvedPath}"`);
     }
@@ -33,35 +52,16 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
     const uid = generateUidBasedOnHash(apiSpecPath);
 
     if (options.workspacePath) {
-      const fs = require('fs');
-      const path = require('path');
-      const yaml = require('js-yaml');
-
       const workspaceFilePath = path.join(options.workspacePath, 'workspace.yml');
 
       if (fs.existsSync(workspaceFilePath)) {
-        const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-        const workspaceConfig = yaml.load(yamlContent);
-
+        const workspaceConfig = readWorkspaceConfig(options.workspacePath);
         const specs = workspaceConfig.specs || [];
 
-        let relativePath = apiSpecPath;
-        try {
-          const relPath = path.relative(options.workspacePath, apiSpecPath);
-          if (!relPath.startsWith('..') && !path.isAbsolute(relPath)) {
-            relativePath = relPath;
-          }
-        } catch (error) {
-          console.log('Using absolute path for API spec:', error.message);
-        }
-
         const specName = path.basename(apiSpecPath, path.extname(apiSpecPath));
-        const specEntry = {
-          name: specName,
-          path: relativePath
-        };
 
         const existingSpec = specs.find((a) => {
+          if (!a.path) return false;
           const existingPath = path.isAbsolute(a.path)
             ? a.path
             : path.resolve(options.workspacePath, a.path);
@@ -69,18 +69,17 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
         });
 
         if (!existingSpec) {
-          workspaceConfig.specs = [...specs, specEntry];
+          await addApiSpecToWorkspace(options.workspacePath, {
+            name: specName,
+            path: apiSpecPath
+          });
 
-          const updatedYamlContent = generateYamlContent(workspaceConfig);
-          fs.writeFileSync(workspaceFilePath, updatedYamlContent);
-
-          const normalizedConfig = normalizeWorkspaceConfig(workspaceConfig);
+          const updatedConfig = readWorkspaceConfig(options.workspacePath);
+          const normalizedConfig = normalizeWorkspaceConfig(updatedConfig);
           const workspaceUid = getWorkspaceUid(options.workspacePath);
           const isDefault = workspaceUid === 'default';
-          win.webContents.send('main:workspace-config-updated', options.workspacePath, workspaceUid, {
-            ...normalizedConfig,
-            type: isDefault ? 'default' : normalizedConfig.type
-          });
+          const configForClient = prepareWorkspaceConfigForClient(normalizedConfig, isDefault);
+          win.webContents.send('main:workspace-config-updated', options.workspacePath, workspaceUid, configForClient);
         }
       }
     }

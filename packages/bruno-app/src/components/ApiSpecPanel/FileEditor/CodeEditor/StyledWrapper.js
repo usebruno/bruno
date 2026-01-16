@@ -55,10 +55,10 @@ const StyledWrapper = styled.div`
   }
 
   .cm-variable-valid {
-    color: green;
+    color: ${(props) => props.theme.codemirror.variable.valid};
   }
   .cm-variable-invalid {
-    color: red;
+    color: ${(props) => props.theme.codemirror.variable.invalid};
   }
 `;
 

@@ -36,12 +36,12 @@ const StyledWrapper = styled.div`
 
   /* Style line numbers when there's a lint issue */
   .CodeMirror-lint-line-error .CodeMirror-linenumber {
-    color: #d32f2f !important;
+    color: ${(props) => props.theme.colors.text.danger} !important;
     text-decoration: underline;
   }
 
   .CodeMirror-lint-line-warning .CodeMirror-linenumber {
-    color: #f57c00 !important;
+    color: ${(props) => props.theme.colors.text.warning} !important;
     text-decoration: underline;
   }
 
@@ -116,7 +116,7 @@ const StyledWrapper = styled.div`
     span.cm-atom {
       color: ${(props) => props.theme.codemirror.tokens.atom} !important;
     }
-    span.cm-variable {
+    span.cm-variable, span.cm-variable-2 {
       color: ${(props) => props.theme.codemirror.tokens.variable} !important;
     }
     span.cm-keyword {
@@ -128,14 +128,20 @@ const StyledWrapper = styled.div`
     span.cm-operator {
       color: ${(props) => props.theme.codemirror.tokens.operator} !important;
     }
+    span.cm-tag {
+      color: ${(props) => props.theme.codemirror.tokens.tag} !important;
+    }
+    span.cm-tag.cm-bracket {
+      color: ${(props) => props.theme.codemirror.tokens.tagBracket} !important;
+    }
   }
 
   /* Variable validation colors */
   .cm-variable-valid {
-    color: #5fad89 !important; /* Soft sage */
+    color: ${(props) => props.theme.codemirror.variable.valid} !important;
   }
   .cm-variable-invalid {
-    color: #d17b7b !important; /* Soft coral */
+    color: ${(props) => props.theme.codemirror.variable.invalid} !important;
   }
 
   .CodeMirror-search-hint {

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import get from 'lodash/get';
 import CodeEditor from 'components/CodeEditor';
 import { useTheme } from 'providers/Theme';
 import { useSelector } from 'react-redux';
@@ -21,7 +22,8 @@ const BulkEditor = ({ params, onChange, onToggle, onSave, onRun }) => {
         <CodeEditor
           mode="text/plain"
           theme={displayedTheme}
-          font={preferences.codeFont || 'default'}
+          font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
           value={parsedParams}
           onEdit={handleEdit}
           onSave={onSave}

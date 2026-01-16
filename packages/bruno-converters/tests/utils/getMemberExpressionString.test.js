@@ -1,5 +1,5 @@
-import { describe, it, expect } from '@jest/globals';
-import { getMemberExpressionString } from '../../src/utils/jscode-shift-translator';
+const { describe, it, expect } = require('@jest/globals');
+const { getMemberExpressionString } = require('../../src/utils/ast-utils');
 const j = require('jscodeshift');
 
 describe('getMemberExpressionString', () => {

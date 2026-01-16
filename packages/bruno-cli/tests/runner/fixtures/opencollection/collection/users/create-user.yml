@@ -1,0 +1,14 @@
+info:
+  name: Create User
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: https://api.example.com/users
+  body:
+    mode: json
+    json: |
+      {
+        "name": "John Doe"
+      }

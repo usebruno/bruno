@@ -60,6 +60,12 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
       http.body = body;
     }
 
+    // auth
+    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
+    if (auth) {
+      http.auth = auth;
+    }
+
     ocRequest.http = http;
 
     // runtime block
@@ -92,13 +98,6 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     const actions: Action[] | undefined = toOpenCollectionActions(resVars);
     if (actions) {
       runtime.actions = actions;
-      hasRuntime = true;
-    }
-
-    // auth
-    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
-    if (auth) {
-      runtime.auth = auth;
       hasRuntime = true;
     }
 
@@ -189,9 +188,12 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
           }
 
           if (example.response.body && example.response.body.type && example.response.body.content !== undefined) {
+            const content = example.response.body.content;
+            const contentString = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+
             ocExample.response.body = {
               type: example.response.body.type as 'json' | 'text' | 'xml' | 'html' | 'binary',
-              data: String(example.response.body.content || '')
+              data: contentString
             };
           }
         }

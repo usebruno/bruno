@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   width: 100%;
-  height: 30px;
+  height: ${(props) => (props.$isCompact ? '1.375rem' : '1.875rem')};
   overflow-y: hidden;
   overflow-x: hidden;
 
@@ -14,14 +14,14 @@ const StyledWrapper = styled.div`
 
   .CodeMirror {
     background: transparent;
-    height: 34px;
+    height: ${(props) => (props.$isCompact ? '1.375rem' : '2.125rem')};
     font-size: ${(props) => props.theme.font.size.base};
-    line-height: 30px;
+    line-height: ${(props) => (props.$isCompact ? '1.375rem' : '1.875rem')};
     overflow: hidden;
 
     .CodeMirror-scroll {
       overflow: hidden !important;
-      padding-bottom: 50px !important;
+      padding-bottom: 3.125rem !important;
     }
 
     .CodeMirror-vscrollbar,
@@ -40,8 +40,8 @@ const StyledWrapper = styled.div`
     }
 
     .CodeMirror-cursor {
-      height: 20px !important;
-      margin-top: 5px !important;
+      height: ${(props) => (props.$isCompact ? '0.875rem' : '1.25rem')} !important;
+      margin-top: ${(props) => (props.$isCompact ? '0.25rem' : '0.3125rem')} !important;
       border-left: 1px solid ${(props) => props.theme.text} !important;
     }
 

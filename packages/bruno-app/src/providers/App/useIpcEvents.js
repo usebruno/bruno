@@ -15,6 +15,7 @@ import {
   collectionUnlinkEnvFileEvent,
   collectionUnlinkFileEvent,
   processEnvUpdateEvent,
+  workspaceEnvUpdateEvent,
   requestCancelled,
   runFolderEvent,
   runRequestEvent,
@@ -23,6 +24,7 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { workspaceOpenedEvent, workspaceConfigUpdatedEvent } from 'providers/ReduxStore/slices/workspaces/actions';
+import { workspaceDotEnvUpdateEvent } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
@@ -177,10 +179,6 @@ const useIpcEvents = () => {
       }
     });
 
-    const removeCollectionAlreadyOpenedListener = ipcRenderer.on('main:collection-already-opened', (pathname) => {
-      toast.success('Collection is already opened');
-    });
-
     const removeDisplayErrorListener = ipcRenderer.on('main:display-error', (error) => {
       if (typeof error === 'string') {
         return toast.error(error || 'Something went wrong!');
@@ -216,6 +214,11 @@ const useIpcEvents = () => {
 
     const removeProcessEnvUpdatesListener = ipcRenderer.on('main:process-env-update', (val) => {
       dispatch(processEnvUpdateEvent(val));
+    });
+
+    const removeWorkspaceDotEnvUpdatesListener = ipcRenderer.on('main:workspace-dotenv-update', (val) => {
+      dispatch(workspaceDotEnvUpdateEvent(val));
+      dispatch(workspaceEnvUpdateEvent({ processEnvVariables: val.processEnvVariables }));
     });
 
     const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => {
@@ -290,7 +293,6 @@ const useIpcEvents = () => {
       removeWorkspaceEnvironmentAddedListener();
       removeWorkspaceEnvironmentChangedListener();
       removeWorkspaceEnvironmentDeletedListener();
-      removeCollectionAlreadyOpenedListener();
       removeDisplayErrorListener();
       removeScriptEnvUpdateListener();
       removeGlobalEnvironmentVariablesUpdateListener();
@@ -298,6 +300,7 @@ const useIpcEvents = () => {
       removeRunFolderEventListener();
       removeRunRequestEventListener();
       removeProcessEnvUpdatesListener();
+      removeWorkspaceDotEnvUpdatesListener();
       removeConsoleLogListener();
       removeConfigUpdatesListener();
       removeShowPreferencesListener();

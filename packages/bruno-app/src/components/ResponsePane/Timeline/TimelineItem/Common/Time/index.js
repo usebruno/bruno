@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTheme } from 'providers/Theme';
 
 const getRelativeTime = (date) => {
   const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
@@ -23,6 +24,7 @@ const getRelativeTime = (date) => {
 
 export const RelativeTime = ({ timestamp }) => {
   const [relativeTime, setRelativeTime] = useState(getRelativeTime(new Date(timestamp)));
+  const { theme } = useTheme();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -32,5 +34,15 @@ export const RelativeTime = ({ timestamp }) => {
     return () => clearInterval(interval);
   }, [timestamp]);
 
-  return <pre className="text-xs">{relativeTime}</pre>;
+  return (
+    <span
+      title={new Date(timestamp).toLocaleString()}
+      style={{
+        fontSize: theme.font.size.xs,
+        color: theme.colors.text.muted
+      }}
+    >
+      {relativeTime}
+    </span>
+  );
 };

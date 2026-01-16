@@ -7,6 +7,7 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const Script = ({ collection }) => {
   const dispatch = useDispatch();
@@ -55,7 +56,7 @@ const Script = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full flex flex-col h-full pt-4">
+    <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">
         Write pre and post-request scripts that will run before and after any request in this collection is sent.
       </div>
@@ -98,9 +99,9 @@ const Script = ({ collection }) => {
       </Tabs>
 
       <div className="mt-12">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

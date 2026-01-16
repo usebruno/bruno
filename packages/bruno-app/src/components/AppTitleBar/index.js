@@ -18,14 +18,21 @@ import ImportWorkspace from 'components/WorkspaceSidebar/ImportWorkspace';
 
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
 import StyledWrapper from './StyledWrapper';
-import { toTitleCase } from 'utils/common/index';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
-import { isMacOS, isWindowsOS } from 'utils/common/platform';
+import { isMacOS, isWindowsOS, isLinuxOS } from 'utils/common/platform';
+import classNames from 'classnames';
 
 const getOsClass = () => {
   if (isMacOS()) return 'os-mac';
   if (isWindowsOS()) return 'os-windows';
+  if (isLinuxOS()) return 'os-linux';
   return 'os-other';
+};
+
+// Helper to get display name for workspace
+export const getWorkspaceDisplayName = (name) => {
+  if (!name) return 'Untitled Workspace';
+  return name;
 };
 
 const AppTitleBar = () => {
@@ -34,6 +41,8 @@ const AppTitleBar = () => {
   const [isMaximized, setIsMaximized] = useState(false);
   const osClass = getOsClass();
   const isWindows = osClass === 'os-windows';
+  const isLinux = osClass === 'os-linux';
+  const showWindowControls = isWindows || isLinux;
 
   // Listen for fullscreen changes
   useEffect(() => {
@@ -54,13 +63,11 @@ const AppTitleBar = () => {
     };
   }, []);
 
-  // Check initial maximized state and listen for changes (Windows only)
   useEffect(() => {
-    if (!isWindows) return;
+    if (!showWindowControls) return;
     const { ipcRenderer } = window;
     if (!ipcRenderer) return;
 
-    // Get initial state
     ipcRenderer.invoke('renderer:window-is-maximized')
       .then((maximized) => {
         setIsMaximized(maximized);
@@ -69,7 +76,6 @@ const AppTitleBar = () => {
         console.error('Error getting initial maximized state:', error);
       });
 
-    // Listen for maximize/unmaximize events from main process
     const removeMaximizedListener = ipcRenderer.on('main:window-maximized', () => {
       setIsMaximized(true);
     });
@@ -82,9 +88,8 @@ const AppTitleBar = () => {
       removeMaximizedListener();
       removeUnmaximizedListener();
     };
-  }, [isWindows]);
+  }, [showWindowControls]);
 
-  // Window control handlers (Windows only) - these always work, even with modals open
   const handleMinimize = useCallback(() => {
     window.ipcRenderer?.send('renderer:window-minimize');
   }, []);
@@ -116,7 +121,7 @@ const AppTitleBar = () => {
   const WorkspaceName = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="workspace-name-container" {...props}>
-        <span className="workspace-name">{toTitleCase(activeWorkspace?.name) || 'Default Workspace'}</span>
+        <span data-testid="workspace-name" className={classNames('workspace-name', { 'italic text-muted': !activeWorkspace?.name })}>{getWorkspaceDisplayName(activeWorkspace?.name)}</span>
         <IconChevronDown size={14} stroke={1.5} className="chevron-icon" />
       </div>
     );
@@ -128,7 +133,7 @@ const AppTitleBar = () => {
 
   const handleWorkspaceSwitch = (workspaceUid) => {
     dispatch(switchWorkspace(workspaceUid));
-    toast.success(`Switched to ${workspaces.find((w) => w.uid === workspaceUid)?.name}`);
+    toast.success(`Switched to ${getWorkspaceDisplayName(workspaces.find((w) => w.uid === workspaceUid)?.name)}`);
   };
 
   const handleOpenWorkspace = async () => {
@@ -179,7 +184,7 @@ const AppTitleBar = () => {
 
       return {
         id: workspace.uid,
-        label: toTitleCase(workspace.name),
+        label: getWorkspaceDisplayName(workspace.name),
         onClick: () => handleWorkspaceSwitch(workspace.uid),
         className: `workspace-item ${isActive ? 'active' : ''}`,
         rightSection: (
@@ -191,11 +196,7 @@ const AppTitleBar = () => {
                 label={isPinned ? 'Unpin workspace' : 'Pin workspace'}
                 size="sm"
               >
-                {isPinned ? (
-                  <IconPinned size={14} stroke={1.5} />
-                ) : (
-                  <IconPin size={14} stroke={1.5} />
-                )}
+                {isPinned ? <IconPinned size={14} stroke={1.5} /> : <IconPin size={14} stroke={1.5} />}
               </ActionIcon>
             )}
             {isActive && <IconCheck size={16} stroke={1.5} className="check-icon" />}
@@ -248,12 +249,7 @@ const AppTitleBar = () => {
       <div className="titlebar-content">
         {/* Left section: Home + Workspace */}
         <div className="titlebar-left">
-          <ActionIcon
-            onClick={handleHomeClick}
-            label="Home"
-            size="lg"
-            className="home-button"
-          >
+          <ActionIcon onClick={handleHomeClick} label="Home" size="lg" className="home-button">
             <IconHome size={16} stroke={1.5} />
           </ActionIcon>
 
@@ -300,7 +296,7 @@ const AppTitleBar = () => {
             <ResponseLayoutToggle />
           </div>
 
-          {isWindows && (
+          {showWindowControls && (
             <div className="window-controls">
               <button
                 className="window-control-btn minimize"

@@ -118,6 +118,18 @@ module.exports = runESMImports().then(() => defineConfig([
     }
   },
   {
+    // Storybook config files use CommonJS with __dirname and module.exports
+    files: ['packages/bruno-app/storybook/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node
+      }
+    },
+    rules: {
+      'no-undef': 'error'
+    }
+  },
+  {
     files: ['packages/bruno-cli/**/*.js'],
     ignores: ['**/*.config.js'],
     languageOptions: {

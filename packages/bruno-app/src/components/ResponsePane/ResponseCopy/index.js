@@ -1,13 +1,26 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef, useCallback } from 'react';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { IconCopy, IconCheck } from '@tabler/icons';
 import classnames from 'classnames';
 import ActionIcon from 'ui/ActionIcon/index';
+import { formatResponse } from 'utils/common';
+
+// Helper function to get text to copy
+const getTextToCopy = (selectedTab, selectedFormat, data, dataBuffer) => {
+  // If preview is on, copy raw data (what's shown in TextPreview)
+  if (selectedTab === 'preview') {
+    return typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  }
+  // If editor is on, copy formatted data based on selected format
+  if (selectedFormat && data && dataBuffer) {
+    return formatResponse(data, dataBuffer, selectedFormat, null);
+  }
+  return typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+};
 
 // Hook to get copy response function
-export const useResponseCopy = (item) => {
-  const response = item.response || {};
+export const useResponseCopy = (item, selectedFormat, selectedTab, data, dataBuffer) => {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -19,25 +32,22 @@ export const useResponseCopy = (item) => {
     }
   }, [copied]);
 
-  const copyResponse = async () => {
+  const copyResponse = useCallback(async () => {
     try {
-      const textToCopy = typeof response.data === 'string'
-        ? response.data
-        : JSON.stringify(response.data, null, 2);
-
+      const textToCopy = getTextToCopy(selectedTab, selectedFormat, data, dataBuffer);
       await navigator.clipboard.writeText(textToCopy);
       toast.success('Response copied to clipboard');
       setCopied(true);
     } catch (error) {
       toast.error('Failed to copy response');
     }
-  };
+  }, [selectedTab, selectedFormat, data, dataBuffer]);
 
-  return { copyResponse, copied, hasData: !!response.data };
+  return { copyResponse, copied, hasData: !!data };
 };
 
-const ResponseCopy = forwardRef(({ item, children }, ref) => {
-  const { copyResponse, copied, hasData } = useResponseCopy(item);
+const ResponseCopy = forwardRef(({ item, children, selectedFormat, selectedTab, data, dataBuffer }, ref) => {
+  const { copyResponse, copied, hasData } = useResponseCopy(item, selectedFormat, selectedTab, data, dataBuffer);
   const elementRef = useRef(null);
 
   const isDisabled = !hasData ? true : false;

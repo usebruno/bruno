@@ -506,12 +506,6 @@ export function prettifyJavaScriptString(jsString) {
   }
 };
 
-// Check if string contains valid HTML structure
-export const isValidHtml = (str) => {
-  if (typeof str !== 'string' || !str.trim()) return false;
-  return /<\s*html[\s>]/i.test(str);
-};
-
 export function formatHexView(buffer) {
   const width = 16;
   let output = '';

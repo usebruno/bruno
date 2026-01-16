@@ -10,6 +10,9 @@ import WorkspaceEnvironments from './WorkspaceEnvironments';
 import WorkspaceTabs from 'components/WorkspaceTabs';
 import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
+import { getRevealInFolderLabel } from 'utils/common/platform';
+import { getWorkspaceDisplayName } from 'components/AppTitleBar';
+import classNames from 'classnames';
 
 const WorkspaceHome = () => {
   const dispatch = useDispatch();
@@ -207,7 +210,7 @@ const WorkspaceHome = () => {
                   </div>
                 </div>
               ) : (
-                <span>{activeWorkspace.name}</span>
+                <span className={classNames('workspace-name', { 'italic text-muted': !activeWorkspace?.name })}>{getWorkspaceDisplayName(activeWorkspace.name)}</span>
               )}
             </div>
 
@@ -225,7 +228,7 @@ const WorkspaceHome = () => {
                   </div>
                   <div className="dropdown-item" onClick={handleShowInFolder}>
                     <IconFolder size={16} strokeWidth={1.5} />
-                    <span>Show in Folder</span>
+                    <span>{getRevealInFolderLabel()}</span>
                   </div>
                   <div className="dropdown-item" onClick={handleExportWorkspace}>
                     <IconUpload size={16} strokeWidth={1.5} />

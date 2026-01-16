@@ -86,7 +86,8 @@ const StyledWrapper = styled.div`
       padding: 4px 8px;
       font-size: 11px;
       color: ${(props) => props.theme.colors.text.danger};
-      background: ${(props) => `${props.theme.colors.text.danger}15`};
+      background: ${(props) => props.theme.bg};
+      border: 1px solid ${(props) => props.theme.colors.text.danger};
       border-radius: 4px;
       white-space: nowrap;
     }

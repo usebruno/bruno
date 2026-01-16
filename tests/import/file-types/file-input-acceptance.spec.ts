@@ -16,6 +16,6 @@ test.describe('File Input Acceptance', () => {
     expect(acceptValue).toContain('.yml');
 
     // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
   });
 });

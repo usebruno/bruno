@@ -318,7 +318,8 @@ function setupProxyAgents({
       const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
       const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
       const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
-      const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
+      const proxyAuthDisabled = get(proxyConfig, 'auth.disabled', false);
+      const proxyAuthEnabled = !proxyAuthDisabled;
       const socksEnabled = proxyProtocol.includes('socks');
 
       let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;

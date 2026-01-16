@@ -93,81 +93,33 @@ const isLikelyText = (buffer) => {
 };
 
 /**
- * Helper to detect if snippet is valid HTML
+ * Helper to detect SVG content from text buffer
+ * SVG files may start with XML declaration, comments, or whitespace before the <svg tag
+ * @param {Buffer} buffer - The data buffer to analyze
+ * @returns {boolean} - true if buffer contains SVG content
  */
-export const isValidHtmlSnippet = (snippet) => {
-  if (!snippet || typeof snippet !== 'string') {
-    return false;
-  }
+const isSvgContent = (buffer) => {
+  const length = buffer.length;
+  if (length < 4 || buffer[0] !== 0x3C) return false;
 
-  const trimmed = snippet.trim();
-
-  // Check for XML declaration
-  if (trimmed.startsWith('<?xml')) {
-    return false;
-  }
-
-  // Check for XML namespaces
-  if (/xmlns(:\w+)?=/.test(trimmed)) {
-    return false;
-  }
-
-  // Extract all tag names from the snippet
-  const tagMatches = trimmed.matchAll(/<\s*\/?([a-zA-Z][a-zA-Z0-9]*)/g);
-  const tags = [...tagMatches].map((match) => match[1].toLowerCase());
-
-  if (tags.length === 0) {
-    return false; // No tags found
-  }
-
-  // Define recognized HTML tags
-  const validHtmlTags = new Set([
-    'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio',
-    'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button',
-    'canvas', 'caption', 'cite', 'code', 'col', 'colgroup',
-    'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt',
-    'em', 'embed',
-    'fieldset', 'figcaption', 'figure', 'footer', 'form',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html',
-    'i', 'iframe', 'img', 'input', 'ins',
-    'kbd',
-    'label', 'legend', 'li', 'link',
-    'main', 'map', 'mark', 'meta', 'meter',
-    'nav', 'noscript',
-    'object', 'ol', 'optgroup', 'option', 'output',
-    'p', 'param', 'picture', 'pre', 'progress',
-    'q',
-    'rp', 'rt', 'ruby',
-    's', 'samp', 'script', 'section', 'select', 'slot', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup', 'svg',
-    'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track',
-    'u', 'ul',
-    'var', 'video',
-    'wbr'
-  ]);
-
-  // Check if all tags are valid HTML tags
-  const allTagsValid = tags.every((tag) => validHtmlTags.has(tag));
-
-  if (!allTagsValid) {
-    return false; // Contains non-HTML tags
-  }
-
-  try {
-    // Parse with DOMParser
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(trimmed, 'text/html');
-
-    // Check for parsing errors
-    const parseError = doc.querySelector('parsererror');
-    if (parseError) {
-      return false;
-    }
-
-    // HTML parser is lenient; if we reach here with valid tags, consider it valid
+  // Fast path: <svg
+  if (buffer[1] === 0x73 && buffer[2] === 0x76 && buffer[3] === 0x67) {
     return true;
-  } catch (error) {
-    return false;
   }
+
+  // Slow path: <?xml or <!DOCTYPE or <!--
+  if (buffer[1] !== 0x3F && buffer[1] !== 0x21) return false;
+
+  // Search for <svg in first 512 bytes
+  const limit = Math.min(512, length - 3);
+  for (let i = 2; i < limit; i++) {
+    if (buffer[i] === 0x3C && buffer[i + 1] === 0x73
+      && buffer[i + 2] === 0x76 && buffer[i + 3] === 0x67) {
+      return true;
+    }
+  }
+
+  return false;
 };
 
 /**
@@ -237,6 +189,10 @@ export const detectContentTypeFromBuffer = (buffer) => {
   if (bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
     return 'image/webp';
   }
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70
+    && bytes[8] === 0x61 && bytes[9] === 0x76 && bytes[10] === 0x69 && bytes[11] === 0x66) {
+    return 'image/avif';
+  }
   if (bytes[0] === 0x42 && bytes[1] === 0x4D) {
     return 'image/bmp';
   }
@@ -247,7 +203,9 @@ export const detectContentTypeFromBuffer = (buffer) => {
   if (bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0x01 && bytes[3] === 0x00) {
     return 'image/x-icon';
   }
-
+  if (bytes[0] === 0x3C && bytes[1] === 0x73 && bytes[2] === 0x76 && bytes[3] === 0x67 && bytes[4] === 0x20) {
+    return 'image/svg+xml';
+  }
   // PDF
   if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
     return 'application/pdf';
@@ -314,6 +272,10 @@ export const detectContentTypeFromBase64 = (base64) => {
 
   // 2. If not binary → decode up to 512 bytes for text detection
   const textHead = decodeBase64Head(base64, 512);
+
+  if (isSvgContent(textHead)) {
+    return 'image/svg+xml';
+  }
 
   if (isLikelyText(textHead)) return 'text/plain';
 

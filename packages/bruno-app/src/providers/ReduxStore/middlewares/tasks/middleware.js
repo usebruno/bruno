@@ -2,7 +2,7 @@ import get from 'lodash/get';
 import each from 'lodash/each';
 import filter from 'lodash/filter';
 import { createListenerMiddleware } from '@reduxjs/toolkit';
-import { removeTaskFromQueue, hideHomePage } from 'providers/ReduxStore/slices/app';
+import { removeTaskFromQueue } from 'providers/ReduxStore/slices/app';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { collectionAddFileEvent, collectionChangeFileEvent } from 'providers/ReduxStore/slices/collections';
 import { findCollectionByUid, findItemInCollectionByPathname, getDefaultRequestPaneTab, findItemInCollectionByItemUid } from 'utils/collections/index';
@@ -37,7 +37,6 @@ taskMiddleware.startListening({
                 requestPaneTab: getDefaultRequestPaneTab(item)
               })
             );
-            listenerApi.dispatch(hideHomePage());
           }
         }
 
@@ -80,7 +79,6 @@ taskMiddleware.startListening({
                 type: 'response-example',
                 itemUid: item.uid
               }));
-              listenerApi.dispatch(hideHomePage());
             }
           }
         }

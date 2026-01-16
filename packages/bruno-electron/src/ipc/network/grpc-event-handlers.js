@@ -8,10 +8,29 @@ const { getCertsAndProxyConfig } = require('./cert-utils');
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
 const prepareGrpcRequest = require('./prepare-grpc-request');
+const { normalizeAndResolvePath } = require('../../utils/filesystem');
 const { configureRequest } = require('./prepare-grpc-request');
 
 // Creating grpcClient at module level so it can be accessed from window-all-closed event
 let grpcClient;
+
+/**
+ * Extract protobuf include directories from collection config
+ * @param {Object} collection - The collection object
+ * @returns {string[]} Array of resolved include directory paths
+ */
+const getProtobufIncludeDirs = (collection) => {
+  if (!collection) {
+    return [];
+  }
+
+  const brunoConfig = collection.draft?.brunoConfig || collection.brunoConfig;
+  const importPaths = brunoConfig?.protobuf?.importPaths ?? [];
+
+  return importPaths
+    .filter(({ enabled }) => Boolean(enabled))
+    .map(({ path: relativePath }) => normalizeAndResolvePath(path.resolve(collection.pathname, relativePath)));
+};
 
 /**
  * Register IPC handlers for gRPC
@@ -89,6 +108,9 @@ const registerGrpcEventHandlers = (window) => {
         body: preparedRequest.body,
         timestamp: Date.now()
       };
+
+      const includeDirs = getProtobufIncludeDirs(collection);
+
       // Start gRPC connection with the processed request and certificates
       await grpcClient.startConnection({
         request: preparedRequest,
@@ -98,7 +120,8 @@ const registerGrpcEventHandlers = (window) => {
         certificateChain,
         passphrase,
         pfx,
-        verifyOptions
+        verifyOptions,
+        includeDirs
       });
 
       sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);
@@ -260,8 +283,10 @@ const registerGrpcEventHandlers = (window) => {
   });
 
   // Load methods from proto file
-  ipcMain.handle('grpc:load-methods-proto', async (event, { filePath, includeDirs }) => {
+  ipcMain.handle('grpc:load-methods-proto', async (event, { filePath, collection }) => {
     try {
+      const includeDirs = getProtobufIncludeDirs(collection);
+
       const methods = await grpcClient.loadMethodsFromProtoFile(filePath, includeDirs);
       return { success: true, methods: safeParseJSON(safeStringifyJSON(methods)) };
     } catch (error) {

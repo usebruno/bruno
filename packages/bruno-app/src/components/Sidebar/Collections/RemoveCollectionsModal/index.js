@@ -19,6 +19,7 @@ import {
 } from 'utils/collections/index';
 import { IconAlertTriangle } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const MAX_COLLECTIONS_WIDTH = 530;
 const CHARACTER_WIDTH = 8;
@@ -226,17 +227,17 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
 
               <div className="flex justify-between mt-6">
                 <div>
-                  <button className="btn btn-sm btn-danger" onClick={handleDiscard}>
+                  <Button color="danger" onClick={handleDiscard}>
                     Discard and Close
-                  </button>
+                  </Button>
                 </div>
                 <div>
-                  <button className="btn btn-close btn-sm mr-2" onClick={handleCancel}>
+                  <Button className="mr-2" color="secondary" variant="ghost" onClick={handleCancel}>
                     Cancel
-                  </button>
-                  <button className="btn btn-secondary btn-sm" onClick={handleSave}>
+                  </Button>
+                  <Button onClick={handleSave}>
                     Save and Close
-                  </button>
+                  </Button>
                 </div>
               </div>
             </>
@@ -255,12 +256,12 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
                 Collections will be removed from the current workspace but will still be available in the file system and can be re-opened later.
               </div>
               <div className="flex justify-end mt-6">
-                <button className="btn btn-close btn-sm mr-2" onClick={handleCancel}>
+                <Button className="mr-2" color="secondary" variant="ghost" onClick={handleCancel} data-testid="modal-close-button">
                   Cancel
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={handleCloseAllCollections}>
+                </Button>
+                <Button color="warning" onClick={handleCloseAllCollections}>
                   {hasMultipleCollections ? 'Close All' : 'Close'}
-                </button>
+                </Button>
               </div>
             </>
           )}

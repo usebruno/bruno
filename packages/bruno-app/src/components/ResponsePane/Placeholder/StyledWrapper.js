@@ -7,7 +7,7 @@ const StyledWrapper = styled.div`
   width: 100%;
 
   .send-icon {
-    color: ${(props) => props.theme.requestTabPanel.responseSendIcon};
+    color: ${(props) => props.theme.background.surface2};
   }
 
   &.vertical-layout {

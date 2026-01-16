@@ -24,7 +24,7 @@ const GrpcResponseHeaders = ({ metadata }) => {
             ))
           ) : (
             <tr>
-              <td colSpan="2" className="text-center py-4 text-gray-500">
+              <td colSpan="2" className="text-center py-4 empty-message">
                 No metadata received
               </td>
             </tr>

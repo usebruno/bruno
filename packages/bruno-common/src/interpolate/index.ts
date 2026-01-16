@@ -12,7 +12,58 @@
  */
 
 import { mockDataFunctions } from '../utils/faker-functions';
-import { get } from 'lodash-es';
+import { get, isPlainObject } from 'lodash-es';
+
+// regex to match {{$keyword}}
+const MOCK_PATTERN = /\{\{\$(\w+)\}\}/g;
+const JSON_SPECIAL_CHARS = /[\\\n\r\t\"]/;
+
+const escapeJSONString = (str: string): string => {
+  if (!JSON_SPECIAL_CHARS.test(str)) {
+    return str;
+  }
+
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
+    .replace(/\"/g, '\\"');
+};
+
+const prepareMock = (str: string, escapeJSONStrings: boolean): string => {
+  return str.replace(MOCK_PATTERN, (match, keyword) => {
+    let generatedValue = mockDataFunctions[keyword as keyof typeof mockDataFunctions]?.();
+
+    if (generatedValue === undefined) {
+      return match;
+    }
+
+    generatedValue = String(generatedValue);
+
+    return escapeJSONStrings ? escapeJSONString(generatedValue) : generatedValue;
+  });
+};
+
+const prepareMockObj = (
+  obj: Record<string, any>,
+  escapeJSONStrings: boolean
+): Record<string, any> => {
+  const processed: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === 'string') {
+      processed[key] = prepareMock(value, escapeJSONStrings);
+    } else if (isPlainObject(value)) {
+      // plain object is used to skip special objects like Date, RegExp, etc.
+      processed[key] = prepareMockObj(value, escapeJSONStrings);
+    } else {
+      processed[key] = value;
+    }
+  }
+
+  return processed;
+};
 
 const interpolate = (
   str: string,
@@ -25,32 +76,14 @@ const interpolate = (
 
   const { escapeJSONStrings } = options;
 
-  const patternRegex = /\{\{\$(\w+)\}\}/g;
-  str = str.replace(patternRegex, (match, keyword) => {
-    let replacement = mockDataFunctions[keyword as keyof typeof mockDataFunctions]?.();
-
-    if (replacement === undefined) return match;
-    replacement = String(replacement);
-
-    if (!escapeJSONStrings) return replacement;
-
-    // All the below chars inside of a JSON String field
-    // will make it invalid JSON. So we will have to escape them with `\`.
-    // This is not exhaustive but selective to what faker-js can output.
-    if (!/[\\\n\r\t\"]/.test(replacement)) return replacement;
-    return replacement
-      .replace(/\\/g, '\\\\')
-      .replace(/\n/g, '\\n')
-      .replace(/\r/g, '\\r')
-      .replace(/\t/g, '\\t')
-      .replace(/\"/g, '\\"');
-  });
+  const preparedStr = prepareMock(str, escapeJSONStrings ?? false);
 
   if (!obj || typeof obj !== 'object') {
-    return str;
+    return preparedStr;
   }
-
-  return replace(str, obj);
+  // process the object with the mock data functions
+  const preparedObj = prepareMockObj(obj, escapeJSONStrings ?? false);
+  return replace(preparedStr, preparedObj);
 };
 
 const replace = (

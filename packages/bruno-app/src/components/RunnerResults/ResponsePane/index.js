@@ -129,7 +129,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           <ResponseSize size={size} />
         </div>
       </div>
-      <section className="flex flex-col flex-grow overflow-auto">
+      <section className="flex flex-col pt-3 flex-grow overflow-auto">
         {hasScriptError && showScriptErrorCard && (
           <ScriptError
             item={item}

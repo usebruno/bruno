@@ -1,125 +1,30 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
-  IconFilter,
-  IconChevronDown,
   IconNetwork
 } from '@tabler/icons';
 import {
-  updateNetworkFilter,
-  toggleAllNetworkFilters,
   setSelectedRequest
 } from 'providers/ReduxStore/slices/logs';
 import StyledWrapper from './StyledWrapper';
 
 const MethodBadge = ({ method }) => {
-  const getMethodColor = (method) => {
-    switch (method?.toUpperCase()) {
-      case 'GET': return '#10b981';
-      case 'POST': return '#8b5cf6';
-      case 'PUT': return '#f59e0b';
-      case 'DELETE': return '#ef4444';
-      case 'PATCH': return '#06b6d4';
-      case 'HEAD': return '#6b7280';
-      case 'OPTIONS': return '#84cc16';
-      default: return '#6b7280';
-    }
-  };
+  const methodLower = method?.toLowerCase() || 'get';
 
   return (
-    <span
-      className="method-badge"
-      style={{ backgroundColor: getMethodColor(method) }}
-    >
+    <span className={`method-badge ${methodLower}`}>
       {method?.toUpperCase() || 'GET'}
     </span>
   );
 };
 
 const StatusBadge = ({ status, statusCode }) => {
-  const getStatusColor = (code) => {
-    if (code >= 200 && code < 300) return '#10b981';
-    if (code >= 300 && code < 400) return '#f59e0b';
-    if (code >= 400 && code < 500) return '#ef4444';
-    if (code >= 500) return '#dc2626';
-    return '#6b7280';
-  };
-
   const displayStatus = statusCode || status;
 
   return (
-    <span
-      className="status-badge"
-      style={{ color: getStatusColor(statusCode) }}
-    >
+    <span className="status-badge">
       {displayStatus}
     </span>
-  );
-};
-
-const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggleAll }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  const allFiltersEnabled = Object.values(filters).every((f) => f);
-  const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div className="filter-dropdown" ref={dropdownRef}>
-      <button
-        className="filter-dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        title="Filter requests by method"
-      >
-        <IconFilter size={16} strokeWidth={1.5} />
-        <span className="filter-summary">
-          {activeFilters.length === Object.keys(filters).length ? 'All' : `${activeFilters.length}/${Object.keys(filters).length}`}
-        </span>
-        <IconChevronDown size={14} strokeWidth={1.5} />
-      </button>
-
-      {isOpen && (
-        <div className="filter-dropdown-menu right">
-          <div className="filter-dropdown-header">
-            <span>Filter by Method</span>
-            <button
-              className="filter-toggle-all"
-              onClick={() => onToggleAll(!allFiltersEnabled)}
-            >
-              {allFiltersEnabled ? 'Hide All' : 'Show All'}
-            </button>
-          </div>
-
-          <div className="filter-dropdown-options">
-            {Object.keys(filters).map((method) => (
-              <label key={method} className="filter-option">
-                <input
-                  type="checkbox"
-                  checked={filters[method]}
-                  onChange={(e) => onFilterToggle(method, e.target.checked)}
-                />
-                <div className="filter-option-content">
-                  <MethodBadge method={method} />
-                  <span className="filter-option-label">{method}</span>
-                  <span className="filter-option-count">({requestCounts[method] || 0})</span>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
   );
 };
 
@@ -240,22 +145,6 @@ const NetworkTab = () => {
       return networkFilters[method];
     });
   }, [allRequests, networkFilters]);
-
-  const requestCounts = useMemo(() => {
-    return allRequests.reduce((counts, request) => {
-      const method = request.data?.request?.method?.toUpperCase() || 'GET';
-      counts[method] = (counts[method] || 0) + 1;
-      return counts;
-    }, {});
-  }, [allRequests]);
-
-  const handleFilterToggle = (method, enabled) => {
-    dispatch(updateNetworkFilter({ method, enabled }));
-  };
-
-  const handleToggleAllFilters = (enabled) => {
-    dispatch(toggleAllNetworkFilters(enabled));
-  };
 
   const handleRequestClick = (request) => {
     dispatch(setSelectedRequest(request));

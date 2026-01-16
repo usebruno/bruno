@@ -16,11 +16,11 @@ const StyledMenuIcon = styled.button`
   height: 1.25rem;
   width: 1.5rem;
   border: 1px solid ${(props) => props.theme.workspace.border};
-  color: ${(props) => props.theme.codemirror.variable.info.iconColor};
+  color: ${(props) => props.theme.dropdown.iconColor};
   border-radius: 4px;
 
   &:hover {
-    background-color: ${(props) => props.theme.workspace.button.bg};
+    border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBorder} !important;
     color: ${(props) => props.theme.text};
   }
 `;
@@ -37,7 +37,7 @@ const MenuIcon = forwardRef((props, ref) => (
 
 MenuIcon.displayName = 'MenuIcon';
 
-const ResponsePaneActions = ({ item, collection, responseSize }) => {
+const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, selectedTab, data, dataBuffer }) => {
   const { orientation } = useResponseLayoutToggle();
 
   // Refs to access child component imperative handles (click, isDisabled)
@@ -111,13 +111,19 @@ const ResponsePaneActions = ({ item, collection, responseSize }) => {
         </MenuDropdown>
       </div>
       <div className="actions-buttons flex items-center gap-[2px]">
-        <ResponseCopy ref={copyButtonRef} item={item} />
+        <ResponseCopy
+          ref={copyButtonRef}
+          item={item}
+          selectedFormat={selectedFormat}
+          selectedTab={selectedTab}
+          data={data}
+          dataBuffer={dataBuffer}
+        />
         <ResponseBookmark ref={bookmarkButtonRef} item={item} collection={collection} responseSize={responseSize} />
         <ResponseDownload ref={downloadButtonRef} item={item} />
         <ResponseClear ref={clearButtonRef} item={item} collection={collection} />
         <ResponseLayoutToggle ref={layoutToggleButtonRef} />
       </div>
-
     </StyledWrapper>
   );
 };

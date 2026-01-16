@@ -193,7 +193,7 @@ export const toBrunoAuth = (auth: Auth | null | undefined): BrunoAuth | null => 
     case 'bearer':
       brunoAuth.mode = 'bearer';
       brunoAuth.bearer = {
-        token: auth.token || null
+        token: auth.token || ''
       };
       break;
 

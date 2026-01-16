@@ -310,7 +310,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             :bordered="false"
           >
             <template #header>
-              {{result.path}} - {{result.response.status === 'skipped' ? 'Request Skipped' : (totalPassed + '/' + total + ' Passed')}} {{hasError ? " - (request failed)" : "" }}
+              {{result.path}} - {{result.response.status === 'skipped' ? 'Request Skipped' : (totalPassed + '/' + total + ' Passed')}} {{hasError && result.response.status !== 'skipped' ? " - (request failed)" : "" }}
             </template>
           </n-alert>
         </template>
@@ -365,7 +365,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
               </n-card>
             </n-gi>
           </n-grid>
-          <n-alert v-if="hasError" title="Error" type="error">
+          <n-alert v-if="hasError || (result.response.status === 'skipped' && result.error)" title="Error" type="error">
             {{result.error}}
           </n-alert>
           <n-card title="REQUEST HEADERS">
@@ -757,7 +757,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             return (props?.result?.testResults?.length || 0) + (props?.result?.assertionResults?.length || 0);
           });
 
-          const hasError = computed(() => !!props?.result?.error || props?.result?.status === 'error');
+          const hasError = computed(() => !!props?.result?.error || props?.result?.status === 'error' || (props?.result?.response?.status === 'skipped' && props?.result?.error));
           const hasFailure = computed(() => total.value !== totalPassed.value);
           const testDuration = computed(() => Math.round(props?.result?.runDuration * 1000) + ' ms');
           const resultTitle = computed(() => props?.result?.path + ' ' + props?.result?.response?.status + ' ' + props?.result?.response?.statusText);

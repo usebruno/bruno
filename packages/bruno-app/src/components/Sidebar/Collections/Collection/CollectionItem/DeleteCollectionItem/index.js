@@ -40,9 +40,10 @@ const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
   return (
     <StyledWrapper>
       <Modal
-        size="sm"
+        size="md"
         title={`Delete ${isFolder ? 'Folder' : 'Request'}`}
         confirmText="Delete"
+        confirmButtonColor="danger"
         handleConfirm={onConfirm}
         handleCancel={onClose}
       >

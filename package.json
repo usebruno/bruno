@@ -23,9 +23,13 @@
     "@eslint/compat": "^1.3.2",
     "@faker-js/faker": "^7.6.0",
     "@jest/globals": "^29.2.0",
-    "@opencollection/types": "0.3.0",
+    "@opencollection/types": "~0.7.0",
     "@playwright/test": "^1.51.1",
     "@rollup/plugin-json": "^6.1.0",
+    "@storybook/addon-webpack5-compiler-babel": "^4.0.0",
+    "@storybook/builder-webpack5": "^10.1.10",
+    "@storybook/react": "^10.1.10",
+    "@storybook/react-webpack5": "^10.1.10",
     "@stylistic/eslint-plugin": "^5.3.1",
     "@types/jest": "^29.5.11",
     "@types/lodash-es": "^4.17.12",
@@ -44,12 +48,13 @@
     "pretty-quick": "^3.1.3",
     "randomstring": "^1.2.2",
     "rimraf": "^6.0.1",
+    "storybook": "^10.1.10",
     "ts-jest": "^29.2.6"
   },
   "scripts": {
     "setup": "node ./scripts/setup.js",
     "watch:converters": "npm run watch --workspace=packages/bruno-converters",
-    "dev": "concurrently --kill-others \"npm run dev:web\" \"npm run dev:electron\"",
+    "dev": "node ./scripts/dev.js",
     "watch": "npm run dev:watch",
     "dev:watch": "node ./scripts/dev-hot-reload.js",
     "dev:web": "npm run dev --workspace=packages/bruno-app",
@@ -57,6 +62,7 @@
     "prettier:web": "npm run prettier --workspace=packages/bruno-app",
     "dev:electron": "npm run dev --workspace=packages/bruno-electron",
     "dev:electron:debug": "npm run debug --workspace=packages/bruno-electron",
+    "storybook": "npm run storybook --workspace=packages/bruno-app",
     "build:bruno-common": "npm run build --workspace=packages/bruno-common",
     "build:bruno-requests": "npm run build --workspace=packages/bruno-requests",
     "build:bruno-filestore": "npm run build --workspace=packages/bruno-filestore",
@@ -92,5 +98,8 @@
         "json-schema-typed": "8.0.1"
       }
     }
+  },
+  "dependencies": {
+    "ajv": "^8.17.1"
   }
 }

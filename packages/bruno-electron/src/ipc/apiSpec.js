@@ -2,10 +2,9 @@ const { ipcMain } = require('electron');
 const { openApiSpecDialog, openApiSpec } = require('../app/apiSpecs');
 const { writeFile } = require('../utils/filesystem');
 const { removeApiSpecUid } = require('../cache/apiSpecUids');
-const { generateYamlContent } = require('../utils/workspace-config');
+const { removeApiSpecFromWorkspace } = require('../utils/workspace-config');
 const path = require('path');
 const fs = require('fs');
-const yaml = require('js-yaml');
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) => {
   ipcMain.handle('renderer:open-api-spec', (event, workspacePath = null) => {
@@ -52,26 +51,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) 
           const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
 
           if (fs.existsSync(workspaceFilePath)) {
-            const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-            const workspaceConfig = yaml.load(yamlContent);
-
-            const specs = workspaceConfig.specs || [];
-
-            const filteredSpecs = specs.filter((a) => {
-              const specPathFromYml = a.path;
-              if (!specPathFromYml) return true;
-
-              const absoluteSpecPath = path.isAbsolute(specPathFromYml)
-                ? specPathFromYml
-                : path.resolve(workspacePath, specPathFromYml);
-
-              return absoluteSpecPath !== pathname;
-            });
-
-            workspaceConfig.specs = filteredSpecs;
-
-            const updatedYamlContent = generateYamlContent(workspaceConfig);
-            fs.writeFileSync(workspaceFilePath, updatedYamlContent);
+            await removeApiSpecFromWorkspace(workspacePath, pathname);
           }
         }
       }

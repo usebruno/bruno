@@ -23,9 +23,48 @@ const getItemType = (item: Item): string | undefined => {
   return undefined;
 };
 
+/**
+ * In v3.0.0-rc1 release auth was present under runtime property for all requests
+ * This has now been moved to the respective request properties
+ * This backward compatibility has been put in place for folks who tried out our early preview
+ * Should be safe to remove this in 3 months. Delete after 5 Apr 2026
+ */
+const ensureAuthV3Rc1BackwardsCompatibility = (parsedItemYml: any): any => {
+  const itemType = parsedItemYml?.info?.type;
+
+  switch (itemType) {
+    case 'http':
+      if (parsedItemYml.runtime?.auth && !parsedItemYml.http?.auth) {
+        parsedItemYml.http.auth = parsedItemYml.runtime.auth;
+      }
+      break;
+    case 'graphql':
+      if (parsedItemYml.runtime?.auth && !parsedItemYml.graphql?.auth) {
+        parsedItemYml.graphql.auth = parsedItemYml.runtime.auth;
+      }
+      break;
+    case 'grpc':
+      if (parsedItemYml.runtime?.auth && !parsedItemYml.grpc?.auth) {
+        parsedItemYml.grpc.auth = parsedItemYml.runtime.auth;
+      }
+      break;
+    case 'websocket':
+      if (parsedItemYml.runtime?.auth && !parsedItemYml.websocket?.auth) {
+        parsedItemYml.websocket.auth = parsedItemYml.runtime.auth;
+      }
+      break;
+    default:
+      break;
+  }
+
+  return parsedItemYml;
+};
+
 const parseItem = (ymlString: string): BrunoItem => {
   try {
-    const ocItem: Item = parseYml(ymlString);
+    const parsedYml = parseYml(ymlString);
+
+    const ocItem: Item = ensureAuthV3Rc1BackwardsCompatibility(parsedYml);
     const itemType = getItemType(ocItem);
 
     if (!ocItem || !itemType) {

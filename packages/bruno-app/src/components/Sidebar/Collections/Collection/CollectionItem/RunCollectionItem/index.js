@@ -10,6 +10,7 @@ import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
 import RunnerTags from 'components/RunnerResults/RunnerTags/index';
 import { getRequestItemsForCollectionRun } from 'utils/collections/index';
+import Button from 'ui/Button';
 
 const RunCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
@@ -80,32 +81,24 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
           <RunnerTags collectionUid={collection.uid} className="mb-6" />
 
           <div className="flex justify-end bruno-modal-footer">
-            <span className="mr-3">
-              <button type="button" onClick={onClose} className="btn btn-md btn-close">
-                Cancel
-              </button>
-            </span>
+            <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-3">
+              Cancel
+            </Button>
             {
               isCollectionRunInProgress
                 ? (
-                    <span>
-                      <button type="submit" className="submit btn btn-md btn-secondary mr-3" onClick={handleViewRunner}>
-                        View Run
-                      </button>
-                    </span>
+                    <Button type="submit" onClick={handleViewRunner}>
+                      View Run
+                    </Button>
                   )
                 : (
                     <>
-                      <span>
-                        <button type="submit" disabled={shouldDisableRecursiveFolderRun} className="submit btn btn-md btn-secondary mr-3" onClick={() => onSubmit(true)}>
-                          Recursive Run
-                        </button>
-                      </span>
-                      <span>
-                        <button type="submit" disabled={shouldDisableFolderRun} className="submit btn btn-md btn-secondary" onClick={() => onSubmit(false)}>
-                          Run
-                        </button>
-                      </span>
+                      <Button type="submit" disabled={shouldDisableRecursiveFolderRun} onClick={() => onSubmit(true)} className="mr-3">
+                        Recursive Run
+                      </Button>
+                      <Button type="submit" disabled={shouldDisableFolderRun} onClick={() => onSubmit(false)}>
+                        Run
+                      </Button>
                     </>
                   )
             }

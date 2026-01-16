@@ -10,6 +10,7 @@ import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import RunnerTags from './RunnerTags/index';
 import RunConfigurationPanel from './RunConfigurationPanel';
+import Button from 'ui/Button/index';
 
 const getDisplayName = (fullPath, pathname, name = '') => {
   let relativePath = path.relative(fullPath, pathname);
@@ -67,20 +68,10 @@ const FILTERS = {
 const FilterButton = ({ label, count, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`font-medium transition-colors cursor-pointer flex items-center gap-1.5 border-b-2 pb-2 ${
-      active
-        ? 'text-[#343434] dark:text-[#CCCCCC] border-[#F59E0B]'
-        : 'text-[#989898] dark:text-[#CCCCCC80] border-transparent'
-    }`}
-    style={{ fontFamily: 'Inter', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
+    className={`filter-button ${active ? 'active' : ''}`}
   >
     {label}
-    <span
-      className="px-[4.5px] py-[2px] rounded-[2px] bg-[#F7F7F7] dark:bg-[#242424] border border-[#EFEFEF] dark:border-[#92929233] text-[#989898] dark:text-inherit"
-      style={{ borderWidth: '1px', fontFamily: 'Inter', fontSize: '10px', fontWeight: 500, lineHeight: '100%', letterSpacing: '0%' }}
-    >
-      {count}
-    </span>
+    <span className="filter-count">{count}</span>
   </button>
 );
 
@@ -278,7 +269,7 @@ export default function RunnerResults({ collection }) {
             <div className="mt-6">
               You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
               {isCollectionLoading && (
-                <span className="ml-2 text-gray-500">
+                <span className="ml-2 text-muted">
                   (Loading...)
                 </span>
               )}
@@ -302,7 +293,7 @@ export default function RunnerResults({ collection }) {
             <RunnerTags collectionUid={collection.uid} className="mb-6" />
 
             {/* Configure requests option */}
-            <div className="flex flex-col border-b pb-6 mb-6 border-gray-200 dark:border-gray-700">
+            <div className="run-config-option flex flex-col border-b pb-6 mb-6">
               <div className="flex gap-2">
                 <input
                   className="cursor-pointer"
@@ -317,25 +308,24 @@ export default function RunnerResults({ collection }) {
             </div>
 
             <div className="flex flex-row gap-2">
-              <button
+              <Button
                 type="submit"
-                className="submit btn btn-sm btn-secondary"
                 disabled={shouldDisableCollectionRun || (configureMode && selectedRequestItems.length === 0) || isCollectionLoading}
                 onClick={runCollection}
               >
                 {configureMode && selectedRequestItems.length > 0
                   ? `Run ${selectedRequestItems.length} Selected Request${selectedRequestItems.length > 1 ? 's' : ''}`
                   : 'Run Collection'}
-              </button>
+              </Button>
 
-              <button className="submit btn btn-sm btn-close" onClick={resetRunner}>
+              <Button type="button" variant="ghost" onClick={resetRunner}>
                 Reset
-              </button>
+              </Button>
             </div>
           </div>
 
           {configureMode && (
-            <div className="w-1/2 border-l border-gray-200 dark:border-gray-700">
+            <div className="run-config-panel w-1/2 border-l">
               <RunConfigurationPanel
                 collection={collection}
                 selectedItems={selectedRequestItems}
@@ -352,13 +342,11 @@ export default function RunnerResults({ collection }) {
     <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
       {/* Filter Bar and Actions */}
       <div className="flex items-center justify-between mb-4 pt-[14px] gap-4">
-        <div className="flex items-stretch rounded-lg border border-[#EFEFEF] dark:border-[#92929233] max-h-[35px] flex-shrink-0" style={{ borderWidth: '1px' }}>
-          <div className="flex items-center px-3 py-2 rounded-l-lg bg-[#F3F3F3] dark:bg-[#2B2D2F]">
-            <span className="text-gray-600 dark:text-gray-400" style={{ fontFamily: 'Inter', fontWeight: 400 }}>
-              Filter by:
-            </span>
+        <div className="filter-bar">
+          <div className="filter-label">
+            <span>Filter by:</span>
           </div>
-          <div className="flex items-center gap-5 px-3 pt-2 pb-0 rounded-r-lg bg-transparent dark:bg-transparent">
+          <div className="filter-buttons">
             {Object.entries(FILTERS).map(([key, { label }]) => (
               <FilterButton
                 key={key}
@@ -373,26 +361,36 @@ export default function RunnerResults({ collection }) {
 
         {runnerInfo.status !== 'ended' && runnerInfo.cancelTokenUid ? (
           <div className="flex items-center flex-shrink-0">
-            <button className="btn btn-sm btn-danger" onClick={cancelExecution}>Cancel Execution</button>
+            <Button
+              type="button"
+              onClick={cancelExecution}
+              size="sm"
+              variant="filled"
+              color="danger"
+            >
+              Cancel Execution
+            </Button>
           </div>
         ) : runnerInfo.status === 'ended' ? (
           <div className="flex items-center gap-3 flex-shrink-0">
-            <button
+            <Button
               type="button"
-              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors button-sm"
-              style={{ fontFamily: 'Inter', fontWeight: 500 }}
               onClick={runAgain}
+              size="sm"
+              variant="filled"
+              color="secondary"
             >
               Run Again
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="px-3 py-1.5 rounded-md bg-transparent border border-[#989898] dark:border-[#444444] text-[#989898] hover:opacity-80 transition-colors button-sm"
-              style={{ fontFamily: 'Inter', fontWeight: 500 }}
               onClick={resetRunner}
+              size="sm"
+              variant="filled"
+              color="secondary"
             >
               Reset
-            </button>
+            </Button>
           </div>
         ) : null}
       </div>
@@ -405,10 +403,10 @@ export default function RunnerResults({ collection }) {
             <div className="pb-2 text-xs flex flex-row gap-1">
               Tags:
               <div className="flex flex-row items-center gap-x-2">
-                <div className="text-green-500">
+                <div className="text-green">
                   {tags.include.join(', ')}
                 </div>
-                <div className="text-gray-500">
+                <div className="text-muted">
                   {tags.exclude.join(', ')}
                 </div>
               </div>
@@ -460,7 +458,7 @@ export default function RunnerResults({ collection }) {
                       )}
                     </div>
                     {tagsEnabled && areTagsAdded && item?.tags?.length > 0 && (
-                      <div className="pl-7 text-xs text-gray-500">
+                      <div className="pl-7 text-xs text-muted">
                         Tags: {item.tags.filter((t) => tags.include.includes(t)).join(', ')}
                       </div>
                     )}
@@ -573,7 +571,7 @@ export default function RunnerResults({ collection }) {
                 </div>
                 <button
                   onClick={() => setSelectedItem(null)}
-                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer flex items-center justify-center"
+                  className="p-1 rounded hover-bg-surface transition-colors cursor-pointer flex items-center justify-center"
                   title="Close"
                   aria-label="Close response view"
                 >
@@ -586,10 +584,10 @@ export default function RunnerResults({ collection }) {
         ) : (
           <div className="flex flex-1 w-[50%] overflow-y-auto">
             <div className="flex flex-col w-full h-full items-center justify-center text-center">
-              <div className="mb-4 text-gray-400 dark:text-gray-500">
+              <div className="mb-4 text-subtext0">
                 <IconExternalLink size={64} strokeWidth={1.5} />
               </div>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-subtext1">
                 Click on the status code to view the response
               </p>
             </div>

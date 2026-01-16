@@ -35,6 +35,7 @@ import {
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
   moveCollection,
+  workspaceEnvUpdateEvent,
   requestCancelled,
   resetRunResults,
   responseReceived,
@@ -816,7 +817,6 @@ export const renameItem
           return ipcRenderer
             .invoke('renderer:rename-item-filename', { oldPath: item.pathname, newPath, newName, newFilename, collectionPathname: collection.pathname })
             .catch((err) => {
-              toast.error('Failed to rename the file');
               console.error(err);
               throw new Error('Failed to rename the file');
             });
@@ -1129,7 +1129,7 @@ export const handleCollectionItemDrop
 
         // Update sequences in the target directory (if dropping adjacent)
         if (dropType === 'adjacent') {
-          const targetItemSequence = targetItemDirectoryItems.findIndex((i) => i.uid === targetItemUid)?.seq;
+          const targetItemSequence = targetItemDirectoryItems.find((i) => i.uid === targetItemUid)?.seq;
 
           const draggedItemWithNewPathAndSequence = {
             ...draggedItem,
@@ -1176,6 +1176,14 @@ export const handleCollectionItemDrop
           });
           if (!newPathname) return;
           if (targetItemPathname?.startsWith(draggedItemPathname)) return;
+
+          // Discard operation if dragging a root item to the collection name (same location)
+          const isTargetTheCollection = targetItemPathname === collection.pathname;
+          const isDraggedItemAtRoot = draggedItemDirectory === sourceCollection;
+          if (isTargetTheCollection && isDraggedItemAtRoot && !isCrossCollectionMove) {
+            return;
+          }
+
           if (newPathname !== draggedItemPathname) {
             await handleMoveToNewLocation({
               targetItem,
@@ -1755,8 +1763,8 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
      Modal Save writes what the user sees:
      - Non-ephemeral vars are saved as-is (without metadata)
      - Ephemeral vars:
-       - if persistedValue exists, save that (explicit persisted case)
-       - otherwise save the current UI value (treat as user-authored)
+       - if persistedValue exists, save that (restore original value)
+       - otherwise filter out (don't save script-created ephemeral vars)
      */
     const persisted = buildPersistedEnvVariables(variables, { mode: 'save' });
     environment.variables = persisted;
@@ -2242,43 +2250,101 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
 };
 
 export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
-  const collection = {
-    version: '1',
-    uid: uid,
-    name: brunoConfig.name,
-    pathname: pathname,
-    items: [],
-    runtimeVariables: {},
-    brunoConfig: brunoConfig
-  };
-
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
+    const state = getState();
+    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+    const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables || {};
+
+    // Check if collection already exists in Redux state
+    const existingCollection = state.collections.collections.find(
+      (c) => normalizePath(c.pathname) === normalizePath(pathname)
+    );
+
+    // Check if collection is already in the current workspace
+    const isAlreadyInWorkspace = activeWorkspace?.collections?.some(
+      (c) => normalizePath(c.path) === normalizePath(pathname)
+    );
+
+    // If collection already exists in Redux AND in current workspace, show toast and return
+    if (existingCollection && isAlreadyInWorkspace) {
+      toast.success('Collection is already opened');
+      resolve();
+      return;
+    }
+
+    // If collection exists in Redux but not in workspace, add to workspace
+    if (existingCollection) {
+      if (state.app.sidebarCollapsed) {
+        dispatch(toggleSidebarCollapse());
+      }
+
+      if (activeWorkspace) {
+        const workspaceCollection = {
+          name: brunoConfig.name,
+          path: pathname
+        };
+
+        ipcRenderer
+          .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
+          .then(() => {
+            toast.success('Collection added to workspace');
+          })
+          .catch((err) => {
+            console.error('Failed to add collection to workspace', err);
+            toast.error('Failed to add collection to workspace');
+          });
+      }
+
+      dispatch(workspaceEnvUpdateEvent({ processEnvVariables: workspaceProcessEnvVariables }));
+
+      resolve();
+      return;
+    }
+
+    // Collection doesn't exist - create it
+    const collection = {
+      version: '1',
+      uid: uid,
+      name: brunoConfig.name,
+      pathname: pathname,
+      items: [],
+      runtimeVariables: {},
+      workspaceProcessEnvVariables,
+      brunoConfig: brunoConfig
+    };
+
     ipcRenderer.invoke('renderer:get-collection-security-config', pathname).then((securityConfig) => {
       collectionSchema
         .validate(collection)
         .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
         .then(() => {
-          const state = getState();
-          if (state.app.sidebarCollapsed) {
+          const currentState = getState();
+          if (currentState.app.sidebarCollapsed) {
             dispatch(toggleSidebarCollapse());
           }
 
-          const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
-          if (activeWorkspace) {
-            const isAlreadyInWorkspace = activeWorkspace.collections?.some(
+          const currentWorkspace = currentState.workspaces.workspaces.find(
+            (w) => w.uid === currentState.workspaces.activeWorkspaceUid
+          );
+
+          if (currentWorkspace) {
+            // Set collection-workspace mapping for workspace env vars
+            ipcRenderer.invoke('renderer:set-collection-workspace', uid, currentWorkspace.pathname);
+
+            const alreadyInWorkspace = currentWorkspace.collections?.some(
               (c) => normalizePath(c.path) === normalizePath(pathname)
             );
 
-            if (!isAlreadyInWorkspace) {
+            if (!alreadyInWorkspace) {
               const workspaceCollection = {
                 name: brunoConfig.name,
                 path: pathname
               };
 
               ipcRenderer
-                .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
+                .invoke('renderer:add-collection-to-workspace', currentWorkspace.pathname, workspaceCollection)
                 .catch((err) => {
                   console.error('Failed to add collection to workspace', err);
                   toast.error('Failed to add collection to workspace');
@@ -2389,7 +2455,7 @@ export const importCollection = (collection, collectionLocation, options = {}) =
       const state = getState();
       const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
 
-      const collectionPath = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation);
+      const collectionPath = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, options.format || 'bru');
 
       if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
         const workspaceCollection = {

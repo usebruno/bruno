@@ -19,8 +19,10 @@ import DeleteResponseExampleModal from './DeleteResponseExampleModal';
 import GenerateCodeItem from '../GenerateCodeItem';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
+import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 
 const ExampleItem = ({ example, item, collection }) => {
+  const { dropdownContainerRef } = useSidebarAccordion();
   const dispatch = useDispatch();
   // Check if this example is the active tab
   const activeTabUid = useSelector((state) => state.tabs?.activeTabUid);
@@ -206,6 +208,8 @@ const ExampleItem = ({ example, item, collection }) => {
           ref={menuDropdownRef}
           items={buildMenuItems()}
           placement="bottom-start"
+          appendTo={dropdownContainerRef?.current || document.body}
+          popperOptions={{ strategy: 'fixed' }}
           data-testid="response-example-menu"
         >
           <IconDots size={22} data-testid="response-example-menu-icon" />

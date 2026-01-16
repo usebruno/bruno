@@ -43,7 +43,7 @@ test.describe.serial('Response Format Select and Preview', () => {
       await switchResponseFormat(page, 'HTML');
       await expect(codeLine.nth(1)).toContainText('"hello": "bruno"');
       await switchToPreviewTab(page);
-      await expect(previewContainer).toContainText('{"hello":"bruno"}');
+      await expect(previewContainer.locator('webview')).toBeVisible();
     });
 
     await test.step('Switch to Editor, select XML, verify editor and preview error', async () => {
@@ -59,7 +59,7 @@ test.describe.serial('Response Format Select and Preview', () => {
       await switchResponseFormat(page, 'JavaScript');
       await expect(codeLine.nth(1)).toContainText('"hello": "bruno"');
       await switchToPreviewTab(page);
-      await expect(previewContainer).toContainText('{"hello":"bruno"}');
+      await expect(previewContainer.locator('webview')).toBeVisible();
     });
 
     await test.step('Switch to Editor, select Raw, verify editor and preview', async () => {

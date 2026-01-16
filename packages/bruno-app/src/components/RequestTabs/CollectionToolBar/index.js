@@ -65,9 +65,8 @@ const CollectionToolBar = ({ collection }) => {
               <IconSettings size={16} strokeWidth={1.5} />
             </ActionIcon>
           </ToolHint>
-          <ToolHint text="Javascript Sandbox" toolhintId="JavascriptSandboxToolhintId" place="bottom">
-            <JsSandboxMode collection={collection} />
-          </ToolHint>
+          {/* ToolHint is present within the JsSandboxMode component */}
+          <JsSandboxMode collection={collection} />
           <span className="ml-2">
             <EnvironmentSelector collection={collection} />
           </span>

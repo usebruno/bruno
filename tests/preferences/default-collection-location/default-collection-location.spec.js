@@ -10,7 +10,7 @@ test.describe('Default Collection Location Feature', () => {
     await expect(defaultLocationInput).toHaveValue('/tmp/bruno-collections');
 
     // close the preferences
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
 
     // wait for 2 seconds
     await page.waitForTimeout(2000);
@@ -20,38 +20,46 @@ test.describe('Default Collection Location Feature', () => {
     // open preferences
     await page.locator('.preferences-button').click();
 
-    // clear the default location field
+    // clear the default location field (readonly input, remove readonly then clear)
     const defaultLocationInput = page.locator('.default-collection-location-input');
+    await defaultLocationInput.evaluate((el) => {
+      const input = el;
+      input.removeAttribute('readonly');
+      input.readOnly = false;
+    });
     await defaultLocationInput.clear();
 
-    // save preferences
-    await page.getByRole('button', { name: 'Save' }).click();
+    // wait for auto-save to complete (debounce is 500ms)
+    await page.waitForTimeout(1000);
 
-    // verify success message
-    await expect(page.locator('text=Preferences saved successfully').first()).toBeVisible();
+    // close the preferences
+    await page.getByTestId('modal-close-button').click();
 
-    // wait for 2 seconds
-    await page.waitForTimeout(2000);
+    // wait for modal to close
+    await page.waitForTimeout(500);
   });
 
   test('Should save a valid default location', async ({ pageWithUserData: page }) => {
     // open preferences
     await page.locator('.preferences-button').click();
 
-    // set a default location
+    // set a default location (readonly input, remove readonly then fill)
     const defaultLocationInput = page.locator('.default-collection-location-input');
-
-    // fill the default location input
+    await defaultLocationInput.evaluate((el) => {
+      const input = el;
+      input.removeAttribute('readonly');
+      input.readOnly = false;
+    });
     await defaultLocationInput.fill('/tmp/bruno-collections');
 
-    // save preferences
-    await page.getByRole('button', { name: 'Save' }).click();
+    // wait for auto-save to complete (debounce is 500ms)
+    await page.waitForTimeout(1000);
 
-    // verify success message
-    await expect(page.locator('text=Preferences saved successfully').first()).toBeVisible();
+    // close the preferences
+    await page.getByTestId('modal-close-button').click();
 
-    // wait for 2 seconds
-    await page.waitForTimeout(2000);
+    // wait for modal to close
+    await page.waitForTimeout(500);
   });
 
   test('Should use default location in Create Collection modal', async ({ pageWithUserData: page }) => {

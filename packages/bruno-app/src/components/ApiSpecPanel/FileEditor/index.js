@@ -37,7 +37,7 @@ const FileEditor = ({ apiSpec }) => {
       />
       <IconDeviceFloppy
         onClick={onSave}
-        color={hasChanges ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+        color={hasChanges ? theme.draftColor : theme.requestTabs.icon.color}
         strokeWidth={1.5}
         size={22}
         className={`absolute right-0 top-0 m-4 ${

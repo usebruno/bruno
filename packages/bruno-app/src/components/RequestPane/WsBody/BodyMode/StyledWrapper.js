@@ -17,13 +17,13 @@ const Wrapper = styled.div`
     }
 
     .selected-body-mode {
-      color: ${(props) => props.theme.colors.text.yellow};
+      color: ${(props) => props.theme.primary.text};
     }
   }
 
   .caret {
-    color: rgb(140, 140, 140);
-    fill: rgb(140 140 140);
+    color: ${(props) => props.theme.colors.text.muted};
+    fill: ${(props) => props.theme.colors.text.muted};
   }
 `;
 

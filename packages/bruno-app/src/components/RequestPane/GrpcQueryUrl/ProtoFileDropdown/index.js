@@ -10,6 +10,7 @@ import Dropdown from 'components/Dropdown/index';
 import ToggleSwitch from 'components/ToggleSwitch/index';
 import { TabNavigation, ProtoFilesTab, ImportPathsTab } from '../Tabs';
 import useProtoFileManagement from 'hooks/useProtoFileManagement/index';
+import StyledWrapper from './StyledWrapper';
 
 const ProtoFileDropdown = ({
   collection,
@@ -121,96 +122,95 @@ const ProtoFileDropdown = ({
 
   const ProtoFileDropdownIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-center cursor-pointer select-none" onClick={() => setShowProtoDropdown((prev) => !prev)} data-testid="grpc-proto-file-dropdown-icon">
-        {isReflectionMode ? (<></>
-        ) : (
-          <IconFile size={20} strokeWidth={1.5} className="mr-1 text-neutral-400" />
+      <div ref={ref} className="proto-file-dropdown-container" onClick={() => setShowProtoDropdown((prev) => !prev)} data-testid="grpc-proto-file-dropdown-icon">
+        {!isReflectionMode && (
+          <IconFile size={20} strokeWidth={1.5} className="proto-file-dropdown-icon" />
         )}
-        <span className="text-xs dark:text-neutral-300 text-neutral-700 text-nowrap">
+        <span className="proto-file-dropdown-text">
           {isReflectionMode ? 'Using Reflection' : (protoFilePath ? getBasename(collection.pathname, protoFilePath) : 'Select Proto File')}
         </span>
-        <IconChevronDown className="caret ml-1" size={14} strokeWidth={2} />
+        <IconChevronDown className="proto-file-dropdown-caret" size={14} strokeWidth={2} />
       </div>
     );
   });
 
   return (
-    <div className="proto-file-dropdown">
-      <Dropdown
-        onCreate={onProtoDropdownCreate}
-        icon={<ProtoFileDropdownIcon />}
-        placement="bottom-end"
-        visible={showProtoDropdown}
-        onClickOutside={() => setShowProtoDropdown(false)}
-        data-testid="grpc-proto-file-dropdown"
-      >
-        <div className="max-h-fit overflow-y-auto w-[30rem]">
-          <div className="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700" data-testid="grpc-mode-toggle">
-            <div className="flex items-center justify-between">
-              <span>Mode</span>
-              <div className="flex items-center gap-2">
-                <span className={`text-xs ${!isReflectionMode ? 'font-medium' : 'text-neutral-500'}`} style={{ color: !isReflectionMode ? theme.colors.text.yellow : undefined }}>
-                  Proto File
-                </span>
-                <ToggleSwitch
-                  isOn={isReflectionMode}
-                  handleToggle={onReflectionModeToggle}
-                  size="2xs"
-                  activeColor={theme.colors.text.yellow}
-                />
-                <span className={`text-xs ${isReflectionMode ? 'font-medium' : 'text-neutral-500'}`} style={{ color: isReflectionMode ? theme.colors.text.yellow : undefined }}>
-                  Reflection
-                </span>
+    <StyledWrapper>
+      <div className="proto-file-dropdown">
+        <Dropdown
+          onCreate={onProtoDropdownCreate}
+          icon={<ProtoFileDropdownIcon />}
+          placement="bottom-end"
+          visible={showProtoDropdown}
+          onClickOutside={() => setShowProtoDropdown(false)}
+          data-testid="grpc-proto-file-dropdown"
+        >
+          <div className="proto-file-dropdown-content">
+            <div className="proto-file-dropdown-mode-section" data-testid="grpc-mode-toggle">
+              <div className="proto-file-dropdown-mode-controls">
+                <span>Mode</span>
+                <div className="proto-file-dropdown-mode-options">
+                  <span className={`proto-file-dropdown-mode-option ${!isReflectionMode ? 'proto-file-dropdown-mode-option--active' : ''}`} style={{ color: !isReflectionMode ? theme.primary.text : undefined }}>
+                    Proto File
+                  </span>
+                  <ToggleSwitch
+                    isOn={isReflectionMode}
+                    handleToggle={onReflectionModeToggle}
+                    size="2xs"
+                    activeColor={theme.primary.solid}
+                  />
+                  <span className={`proto-file-dropdown-mode-option ${isReflectionMode ? 'proto-file-dropdown-mode-option--active' : ''}`} style={{ color: isReflectionMode ? theme.primary.text : undefined }}>
+                    Reflection
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {!isReflectionMode && (
-            <TabNavigation
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              collectionProtoFiles={protoFileManagement.protoFiles}
-              collectionImportPaths={protoFileManagement.importPaths}
-            />
-          )}
+            {!isReflectionMode && (
+              <TabNavigation
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                collectionProtoFiles={protoFileManagement.protoFiles}
+                collectionImportPaths={protoFileManagement.importPaths}
+              />
+            )}
 
-          {!isReflectionMode && (
-            <>
-              {activeTab === 'protofiles' && (
-                <ProtoFilesTab
-                  collectionProtoFiles={protoFileManagement.protoFiles}
-                  invalidProtoFiles={invalidProtoFiles}
-                  protoFilePath={protoFilePath}
-                  collection={collection}
-                  onSelectCollectionProtoFile={handleSelectCollectionProtoFile}
-                  onOpenCollectionProtobufSettings={handleOpenCollectionProtobufSettings}
-                  onSelectProtoFile={handleSelectProtoFile}
-                  setShowProtoDropdown={setShowProtoDropdown}
-                />
-              )}
+            {!isReflectionMode && (
+              <>
+                {activeTab === 'protofiles' && (
+                  <ProtoFilesTab
+                    collectionProtoFiles={protoFileManagement.protoFiles}
+                    invalidProtoFiles={invalidProtoFiles}
+                    protoFilePath={protoFilePath}
+                    collection={collection}
+                    onSelectCollectionProtoFile={handleSelectCollectionProtoFile}
+                    onOpenCollectionProtobufSettings={handleOpenCollectionProtobufSettings}
+                    onSelectProtoFile={handleSelectProtoFile}
+                    setShowProtoDropdown={setShowProtoDropdown}
+                  />
+                )}
 
-              {activeTab === 'importpaths' && (
-                <ImportPathsTab
-                  collectionImportPaths={protoFileManagement.importPaths}
-                  invalidImportPaths={invalidImportPaths}
-                  onOpenCollectionProtobufSettings={handleOpenCollectionProtobufSettings}
-                  onBrowseImportPath={handleBrowseImportPath}
-                  onToggleImportPath={handleToggleImportPath}
-                />
-              )}
-            </>
-          )}
+                {activeTab === 'importpaths' && (
+                  <ImportPathsTab
+                    collectionImportPaths={protoFileManagement.importPaths}
+                    invalidImportPaths={invalidImportPaths}
+                    onOpenCollectionProtobufSettings={handleOpenCollectionProtobufSettings}
+                    onBrowseImportPath={handleBrowseImportPath}
+                    onToggleImportPath={handleToggleImportPath}
+                  />
+                )}
+              </>
+            )}
 
-          {isReflectionMode && (
-            <div className="px-3 py-2">
-              <div className="text-neutral-600 dark:text-neutral-400 mb-2">
+            {isReflectionMode && (
+              <div className="proto-file-dropdown-reflection-message">
                 Using server reflection to discover gRPC methods.
               </div>
-            </div>
-          )}
-        </div>
-      </Dropdown>
-    </div>
+            )}
+          </div>
+        </Dropdown>
+      </div>
+    </StyledWrapper>
   );
 };
 

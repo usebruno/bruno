@@ -26,6 +26,7 @@ const DeleteEnvironment = ({ onClose, environment, collection }) => {
           confirmText="Delete"
           handleConfirm={onConfirm}
           handleCancel={onClose}
+          confirmButtonColor="danger"
         >
           Are you sure you want to delete <span className="font-medium">{environment.name}</span> ?
         </Modal>

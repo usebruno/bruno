@@ -12,6 +12,7 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import StyledWrapper from './StyledWrapper';
 import OAuth2 from './OAuth2';
 import NTLMAuth from './NTLMAuth';
+import Button from 'ui/Button';
 
 const Auth = ({ collection }) => {
   const authMode = collection.draft?.root ? get(collection, 'draft.root.request.auth.mode') : get(collection, 'root.request.auth.mode');
@@ -59,9 +60,9 @@ const Auth = ({ collection }) => {
       </div>
       {getAuthView()}
       <div className="mt-6">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

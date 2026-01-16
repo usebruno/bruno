@@ -9,6 +9,8 @@ import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { IconEdit, IconX, IconFileText } from '@tabler/icons';
+import Button from 'ui/Button/index';
+import ActionIcon from 'ui/ActionIcon/index';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
@@ -55,17 +57,17 @@ const Docs = ({ collection }) => {
         <div className="flex flex-row gap-2 items-center justify-center">
           {isEditing ? (
             <>
-              <div className="editing-mode" role="tab" onClick={handleDiscardChanges}>
-                <IconX className="cursor-pointer" size={20} strokeWidth={1.5} />
-              </div>
-              <button type="submit" className="submit btn btn-sm btn-secondary" onClick={onSave}>
+              <Button type="button" color="secondary" onClick={handleDiscardChanges}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={onSave}>
                 Save
-              </button>
+              </Button>
             </>
           ) : (
-            <div className="editing-mode" role="tab" onClick={toggleViewMode}>
-              <IconEdit className="cursor-pointer" size={20} strokeWidth={1.5} />
-            </div>
+            <ActionIcon className="editing-mode" onClick={toggleViewMode}>
+              <IconEdit className="cursor-pointer" size={16} strokeWidth={1.5} />
+            </ActionIcon>
           )}
         </div>
       </div>

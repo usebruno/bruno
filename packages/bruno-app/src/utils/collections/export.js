@@ -93,17 +93,21 @@ export const deleteSecretsInEnvs = (envs) => {
   });
 };
 
-export const exportCollection = (collection) => {
+export const exportCollection = (collection, version) => {
   // delete uids
   delete collection.uid;
 
   // delete process variables
   delete collection.processEnvVariables;
+  delete collection.workspaceProcessEnvVariables;
 
   deleteUidsInItems(collection.items);
   deleteUidsInEnvs(collection.environments);
   deleteSecretsInEnvs(collection.environments);
   transformItem(collection.items);
+
+  collection.exportedAt = new Date().toISOString();
+  collection.exportedUsing = version ? `Bruno/${version}` : 'Bruno';
 
   const fileName = `${collection.name}.json`;
   const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });

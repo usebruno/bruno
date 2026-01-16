@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   button {
-    color: var(--color-tab-inactive);
+    color: ${(props) => props.theme.colors.text.subtext0};
     cursor: pointer;
 
     &:hover {
@@ -18,7 +18,7 @@ const StyledWrapper = styled.div`
   .cursor-pointer {
     display: flex;
     align-items: center;
-    color: var(--color-tab-inactive);
+    color: ${(props) => props.theme.colors.text.subtext0};
 
     &:hover {
       color: var(--color-tab-active);

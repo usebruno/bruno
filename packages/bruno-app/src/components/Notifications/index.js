@@ -113,7 +113,7 @@ const Notifications = () => {
             size={16}
             aria-hidden
             strokeWidth={1.5}
-            className={`mr-2 ${unreadNotifications?.length > 0 ? 'bell' : ''}`}
+            className={`${unreadNotifications?.length > 0 ? 'bell' : ''}`}
           />
           {unreadNotifications.length > 0 && (
             <span className="notification-count text-xs">{unreadNotifications.length}</span>

@@ -12,6 +12,7 @@ const EditableTable = ({
   getRowError,
   showCheckbox = true,
   showDelete = true,
+  disableCheckbox = false,
   checkboxLabel = '',
   checkboxKey = 'enabled',
   reorderable = false,
@@ -288,6 +289,7 @@ const EditableTable = ({
                           className="mousetrap"
                           data-testid="column-checkbox"
                           checked={row[checkboxKey] ?? true}
+                          disabled={disableCheckbox}
                           onChange={(e) => handleCheckboxChange(row.uid, e.target.checked)}
                         />
                       )}
