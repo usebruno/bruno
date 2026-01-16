@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import find from 'lodash/find';
 import { IconSettings, IconCookie, IconTool, IconSearch } from '@tabler/icons';
 import Mousetrap from 'mousetrap';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
+import FeatureTip from 'components/FeatureTip';
 import Preferences from 'components/Preferences';
 import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
 import Cookies from 'components/Cookies';
@@ -18,10 +20,21 @@ const StatusBar = () => {
   const dispatch = useDispatch();
   const preferencesOpen = useSelector((state) => state.app.showPreferences);
   const logs = useSelector((state) => state.logs.logs);
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const [cookiesOpen, setCookiesOpen] = useState(false);
   const { version } = useApp();
 
   const errorCount = logs.filter((log) => log.type === 'error').length;
+
+  // Check if active tab is a request type
+  const isRequestTabActive = useMemo(() => {
+    if (!activeTabUid || !tabs.length) return false;
+    const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+    if (!activeTab) return false;
+    const requestTypes = ['http-request', 'graphql-request', 'grpc-request', 'ws-request'];
+    return requestTypes.includes(activeTab.type) || !activeTab.type || activeTab.type === 'request';
+  }, [tabs, activeTabUid]);
 
   const handleConsoleClick = () => {
     dispatch(openConsole());
@@ -117,21 +130,29 @@ const StatusBar = () => {
               </div>
             </button>
 
-            <button
-              className={`status-bar-button ${errorCount > 0 ? 'has-errors' : ''}`}
-              data-trigger="dev-tools"
-              onClick={handleConsoleClick}
-              tabIndex={0}
-              aria-label={`Open Dev Tools${errorCount > 0 ? ` (${errorCount} errors)` : ''}`}
+            <FeatureTip
+              tipId="dev-tools-intro"
+              title="Dev Tools"
+              description="View console logs, network requests, and performance metrics from your API calls. Great for debugging scripts and inspecting responses."
+              placement="top"
+              disabled={!isRequestTabActive}
             >
-              <div className="console-button-content">
-                <IconTool size={16} strokeWidth={1.5} aria-hidden="true" />
-                <span className="console-label">Dev Tools</span>
-                {errorCount > 0 && (
-                  <span className="error-count-inline">{errorCount}</span>
-                )}
-              </div>
-            </button>
+              <button
+                className={`status-bar-button ${errorCount > 0 ? 'has-errors' : ''}`}
+                data-trigger="dev-tools"
+                onClick={handleConsoleClick}
+                tabIndex={0}
+                aria-label={`Open Dev Tools${errorCount > 0 ? ` (${errorCount} errors)` : ''}`}
+              >
+                <div className="console-button-content">
+                  <IconTool size={16} strokeWidth={1.5} aria-hidden="true" />
+                  <span className="console-label">Dev Tools</span>
+                  {errorCount > 0 && (
+                    <span className="error-count-inline">{errorCount}</span>
+                  )}
+                </div>
+              </button>
+            </FeatureTip>
 
             <div className="status-bar-divider"></div>
 

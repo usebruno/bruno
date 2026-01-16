@@ -14,6 +14,7 @@ import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
 import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
+import FeatureTip from 'components/FeatureTip';
 
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
 import StyledWrapper from './StyledWrapper';
@@ -192,14 +193,21 @@ const AppTitleBar = () => {
           </ActionIcon>
 
           {/* Workspace Dropdown */}
-          <MenuDropdown
-            data-testid="workspace-menu"
-            items={workspaceMenuItems}
+          <FeatureTip
+            tipId="workspace-intro"
+            title="Workspaces"
+            description="Workspaces help you organize your collections. Each workspace can contain multiple collections, and you can create separate workspaces for different projects or teams."
             placement="bottom-start"
-            selectedItemId={activeWorkspaceUid}
           >
-            <WorkspaceName />
-          </MenuDropdown>
+            <MenuDropdown
+              data-testid="workspace-menu"
+              items={workspaceMenuItems}
+              placement="bottom-start"
+              selectedItemId={activeWorkspaceUid}
+            >
+              <WorkspaceName />
+            </MenuDropdown>
+          </FeatureTip>
         </div>
 
         {/* Center section: Bruno logo + text */}

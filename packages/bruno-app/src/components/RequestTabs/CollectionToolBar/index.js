@@ -5,6 +5,7 @@ import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
 import ToolHint from 'components/ToolHint';
+import FeatureTip from 'components/FeatureTip';
 import StyledWrapper from './StyledWrapper';
 import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
 
@@ -60,9 +61,17 @@ const CollectionToolBar = ({ collection }) => {
             </ToolHint>
           </span>
           <span className="mr-3">
-            <ToolHint text="Collection Settings" toolhintId="CollectionSettingsToolhintId">
-              <IconSettings className="cursor-pointer" size={16} strokeWidth={1.5} onClick={viewCollectionSettings} />
-            </ToolHint>
+            <FeatureTip
+              tipId="collection-settings-intro"
+              title="Collection Settings"
+              description="Configure headers, auth, scripts, and more for your entire collection. Settings here apply to all requests."
+              placement="bottom"
+              dependsOn="workspace-intro"
+            >
+              <ToolHint text="Collection Settings" toolhintId="CollectionSettingsToolhintId">
+                <IconSettings className="cursor-pointer" size={16} strokeWidth={1.5} onClick={viewCollectionSettings} />
+              </ToolHint>
+            </FeatureTip>
           </span>
           <span className="mr-2">
             <ToolHint text="Javascript Sandbox" toolhintId="JavascriptSandboxToolhintId" place="bottom">
@@ -70,7 +79,15 @@ const CollectionToolBar = ({ collection }) => {
             </ToolHint>
           </span>
           <span>
-            <EnvironmentSelector collection={collection} />
+            <FeatureTip
+              tipId="environment-selector-intro"
+              title="Environments"
+              description="Switch between Collection and Global environments. Collection environments are specific to this collection, while Global environments are shared across all collections."
+              placement="bottom"
+              dependsOn="collection-settings-intro"
+            >
+              <EnvironmentSelector collection={collection} />
+            </FeatureTip>
           </span>
         </div>
       </div>
