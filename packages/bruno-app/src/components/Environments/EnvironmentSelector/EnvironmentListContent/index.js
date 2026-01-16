@@ -6,11 +6,16 @@ const EnvironmentListContent = ({
   environments,
   activeEnvironmentUid,
   description,
+  searchText,
   onEnvironmentSelect,
   onSettingsClick,
   onCreateClick,
   onImportClick
 }) => {
+  const getFilteredEnvs = () => {
+    return environments.filter((env) => env.name.toLowerCase().includes((searchText || '').toLowerCase()));
+  };
+
   return (
     <div>
       {environments && environments.length > 0 ? (
@@ -30,7 +35,7 @@ const EnvironmentListContent = ({
               delayShow={1000}
             >
               <div>
-                {environments.map((env) => (
+                {getFilteredEnvs().map((env) => (
                   <div
                     key={env.uid}
                     className={`dropdown-item ${env.uid === activeEnvironmentUid ? 'dropdown-item-active' : ''}`}

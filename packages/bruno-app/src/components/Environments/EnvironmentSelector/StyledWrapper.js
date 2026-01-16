@@ -56,7 +56,7 @@ const Wrapper = styled.div`
 
   .tippy-box {
     width: ${(props) => props.width}px;
-    min-width: 12rem;
+    min-width: 14rem;
     max-width: 650px !important;
     min-height: 15.5rem;
     max-height: 75vh;
@@ -205,6 +205,56 @@ const Wrapper = styled.div`
       margin: 0 auto 1rem auto;
       color: ${(props) => props.theme.text};
       opacity: 0.5;
+    }
+  }
+  
+  .search-container {
+    position: relative;
+    padding: 0 12px 6px 12px;
+    display: flex;
+    align-items: center;
+
+    .clear-icon {
+      position: absolute;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: ${(props) => props.theme.dropdown.hoverBg + ' !important'};
+      }
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 20px;
+      color: ${(props) => props.theme.colors.text.muted};
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 6px 8px 6px 28px;
+      font-size: 12px;
+      background: transparent;
+      border: 1px solid ${(props) => props.theme.border.border1};
+      border-radius: 5px;
+      color: ${(props) => props.theme.text};
+      transition: all 0.15s ease;
+
+      &::placeholder {
+        color: ${(props) => props.theme.colors.text.muted};
+      }
+
+      &:focus {
+        outline: none;
+      }
     }
   }
 `;
