@@ -125,7 +125,7 @@ const Assertions = ({ item, collection }) => {
       key: 'value',
       name: 'Value',
       width: '30%',
-      render: ({ row, value, onChange, isLastEmptyRow }) => {
+      render: ({ row, value, onChange }) => {
         const { operator, value: assertionValue } = parseAssertionOperator(value);
 
         if (isUnaryOperator(operator)) {
@@ -141,7 +141,7 @@ const Assertions = ({ item, collection }) => {
             onRun={handleRun}
             collection={collection}
             item={item}
-            placeholder={isLastEmptyRow ? 'Value' : ''}
+            placeholder={!value ? 'Value' : ''}
           />
         );
       }
