@@ -1,4 +1,8 @@
-const { buildPersistedEnvVariables } = require('./environments');
+const { buildPersistedEnvVariables, mergeEnvVariables, buildPersistedNames } = require('./environments');
+
+jest.mock('./common/index', () => ({
+  uuid: () => 'mock-uid'
+}));
 
 describe('buildPersistedEnvVariables', () => {
   describe('mode: save', () => {
@@ -80,5 +84,68 @@ describe('buildPersistedEnvVariables', () => {
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('disk');
     });
+  });
+});
+
+describe('mergeEnvVariables', () => {
+  test('updates existing var value, preserves metadata', () => {
+    const existing = [{ uid: '1', name: 'foo', value: 'old', enabled: false, secret: true }];
+    const newVars = { foo: 'new' };
+    const result = mergeEnvVariables(existing, newVars);
+    expect(result).toHaveLength(1);
+    expect(result[0].value).toBe('new');
+    expect(result[0].uid).toBe('1');
+    expect(result[0].enabled).toBe(false);
+    expect(result[0].secret).toBe(true);
+  });
+
+  test('adds new vars not in existing', () => {
+    const existing = [{ uid: '1', name: 'a', value: '1' }];
+    const newVars = { b: '2' };
+    const result = mergeEnvVariables(existing, newVars);
+    expect(result).toHaveLength(2);
+    expect(result[1].name).toBe('b');
+    expect(result[1].value).toBe('2');
+  });
+
+  test('handles empty existing', () => {
+    const result = mergeEnvVariables([], { x: 'y' });
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('x');
+  });
+
+  test('handles empty newVars', () => {
+    const existing = [{ name: 'a', value: '1' }];
+    const result = mergeEnvVariables(existing, {});
+    expect(result).toEqual(existing);
+  });
+});
+
+describe('buildPersistedNames', () => {
+  test('includes all keys from persistentEnvVariables', () => {
+    const result = buildPersistedNames({ a: '1', b: '2' }, [], {});
+    expect(result.has('a')).toBe(true);
+    expect(result.has('b')).toBe(true);
+  });
+
+  test('includes non-ephemeral vars that exist in envVariables', () => {
+    const existing = [{ name: 'disk', value: 'v' }];
+    const envVars = { disk: 'v' };
+    const result = buildPersistedNames({}, existing, envVars);
+    expect(result.has('disk')).toBe(true);
+  });
+
+  test('excludes non-ephemeral vars deleted from envVariables', () => {
+    const existing = [{ name: 'deleted', value: 'v' }];
+    const envVars = {};
+    const result = buildPersistedNames({}, existing, envVars);
+    expect(result.has('deleted')).toBe(false);
+  });
+
+  test('excludes ephemeral vars', () => {
+    const existing = [{ name: 'eph', value: 'v', ephemeral: true }];
+    const envVars = { eph: 'v' };
+    const result = buildPersistedNames({}, existing, envVars);
+    expect(result.has('eph')).toBe(false);
   });
 });
