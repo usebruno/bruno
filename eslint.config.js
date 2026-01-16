@@ -52,7 +52,7 @@ module.exports = runESMImports().then(() => defineConfig([
       'packages/bruno-requests/**/*.ts',
       'packages/bruno-requests/**/*.js',
       'packages/bruno-tests/**/*.{js,ts}',
-      'packages/bruno-integration-github/**/*.{js,ts}'
+      'packages/integrations/**/*.{js,ts}'
     ],
     rules: {
       ...stylistic.configs.customize({
@@ -83,7 +83,7 @@ module.exports = runESMImports().then(() => defineConfig([
     }
   },
   {
-    files: ['packages/bruno-app/**/*.{js,jsx,ts}', 'packages/bruno-integration-github/**/*.{js,ts}'],
+    files: ['packages/bruno-app/**/*.{js,jsx,ts}', 'packages/integrations/**/*.{js,ts}'],
     ignores: ['**/*.config.js', '**/public/**/*'],
     languageOptions: {
       globals: {
