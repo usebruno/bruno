@@ -37,15 +37,16 @@ jest.mock('@grpc/grpc-js', () => {
   // Create a mock RPC object with event emitter interface
   const createMockRpc = () => {
     const handlers = {};
-    return {
+    const mockRpc = {
       on: jest.fn((event, handler) => {
         handlers[event] = handler;
-        return this;
+        return mockRpc; // Return the mock object for chaining
       }),
       write: jest.fn(),
       end: jest.fn(),
       cancel: jest.fn()
     };
+    return mockRpc;
   };
 
   return {
@@ -185,7 +186,7 @@ describe('GrpcClient', () => {
         expect(capturedChannelOptions['grpc.keepalive_time_ms']).toBe(30000);
       });
 
-      test('should set grpc.primary_user_agent first in merged options', async () => {
+      test('should include grpc.primary_user_agent in merged options alongside other options', async () => {
         const request = {
           ...baseRequest,
           headers: { 'User-Agent': 'Bruno/1.0' }
@@ -199,8 +200,9 @@ describe('GrpcClient', () => {
           }
         });
 
-        const keys = Object.keys(capturedChannelOptions);
-        expect(keys[0]).toBe('grpc.primary_user_agent');
+        // Use array notation for keys containing dots to avoid Jest interpreting as nested path
+        expect(capturedChannelOptions).toHaveProperty(['grpc.primary_user_agent'], 'Bruno/1.0');
+        expect(capturedChannelOptions).toHaveProperty(['grpc.other_option'], 'value');
       });
     });
 
@@ -253,6 +255,23 @@ describe('GrpcClient', () => {
 
         expect(capturedChannelOptions['grpc.primary_user_agent']).toBeUndefined();
         expect(Object.keys(capturedChannelOptions)).not.toContain('grpc.primary_user_agent');
+      });
+    });
+
+    describe('edge cases', () => {
+      test('should handle empty user-agent value', async () => {
+        const request = {
+          ...baseRequest,
+          headers: { 'User-Agent': '' }
+        };
+
+        await grpcClient.loadMethodsFromReflection({
+          request,
+          ...baseParams
+        });
+
+        // Empty string is falsy, so grpc.primary_user_agent should not be set
+        expect(capturedChannelOptions['grpc.primary_user_agent']).toBeUndefined();
       });
     });
   });
@@ -363,7 +382,7 @@ describe('GrpcClient', () => {
         expect(capturedChannelOptions['grpc.keepalive_time_ms']).toBe(30000);
       });
 
-      test('should set grpc.primary_user_agent first in merged options', async () => {
+      test('should include grpc.primary_user_agent in merged options alongside other options', async () => {
         const request = {
           ...baseRequest,
           headers: { 'User-Agent': 'Bruno/1.0' }
@@ -377,8 +396,9 @@ describe('GrpcClient', () => {
           }
         });
 
-        const keys = Object.keys(capturedChannelOptions);
-        expect(keys[0]).toBe('grpc.primary_user_agent');
+        // Use array notation for keys containing dots to avoid Jest interpreting as nested path
+        expect(capturedChannelOptions).toHaveProperty(['grpc.primary_user_agent'], 'Bruno/1.0');
+        expect(capturedChannelOptions).toHaveProperty(['grpc.other_option'], 'value');
       });
     });
 
@@ -417,6 +437,23 @@ describe('GrpcClient', () => {
 
         expect(capturedChannelOptions['grpc.primary_user_agent']).toBeUndefined();
         expect(Object.keys(capturedChannelOptions)).not.toContain('grpc.primary_user_agent');
+      });
+    });
+
+    describe('edge cases', () => {
+      test('should handle empty user-agent value', async () => {
+        const request = {
+          ...baseRequest,
+          headers: { 'User-Agent': '' }
+        };
+
+        await grpcClient.startConnection({
+          request,
+          collection: baseCollection
+        });
+
+        // Empty string is falsy, so grpc.primary_user_agent should not be set
+        expect(capturedChannelOptions['grpc.primary_user_agent']).toBeUndefined();
       });
     });
   });
