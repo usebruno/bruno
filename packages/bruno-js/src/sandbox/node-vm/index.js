@@ -36,8 +36,6 @@ async function runScriptInNodeVm({
   }
 
   try {
-    const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
-
     // Compute additional context roots
     const additionalContextRoots = get(scriptingConfig, 'additionalContextRoots', []);
     const additionalContextRootsAbsolute = lodash
@@ -88,7 +86,6 @@ async function runScriptInNodeVm({
       scriptContext,
       currentModuleDir: collectionPath,
       localModuleCache,
-      allowScriptFilesystemAccess,
       additionalContextRootsAbsolute
     });
 
@@ -116,7 +113,6 @@ async function runScriptInNodeVm({
  * @param {Object} options.scriptContext - Script execution context
  * @param {string} options.currentModuleDir - Current module directory for relative imports
  * @param {Map} options.localModuleCache - Cache for loaded local modules
- * @param {boolean} options.allowScriptFilesystemAccess - Whether to allow fs module access
  * @param {Array<string>} options.additionalContextRootsAbsolute - Pre-computed absolute context roots
  * @returns {Function} Custom require function
  */
@@ -126,7 +122,6 @@ function createCustomRequire({
   scriptContext,
   currentModuleDir = collectionPath,
   localModuleCache = new Map(),
-  allowScriptFilesystemAccess = false,
   additionalContextRootsAbsolute = []
 }) {
   return (moduleName) => {
@@ -137,40 +132,11 @@ function createCustomRequire({
       return loadLocalModule({ moduleName: normalizedModuleName, collectionPath, scriptContext, localModuleCache, currentModuleDir, additionalContextRootsAbsolute });
     }
 
-    // Helper function to check if a module is the fs module or a submodule
-    const isFsModule = (module) => {
-      if (!module) return false;
-      const fsModule = require('fs');
-      // Check if it's the fs module itself
-      if (module === fsModule) return true;
-      // Check if it's fs/promises submodule
-      if (module === fsModule.promises) return true;
-      // Check if it's fs/promises by comparing with require('fs/promises')
-      try {
-        if (module === require('fs/promises')) return true;
-      } catch {
-        // fs/promises might not be available in all Node versions
-      }
-      return false;
-    };
-
     // First try to require as a native/npm module
     try {
       const requiredModulePath = require.resolve(moduleName, { paths: [...additionalContextRootsAbsolute, ...module.paths] });
-      const requiredModule = require(requiredModulePath);
-
-      // Block filesystem module access if filesystem access is not allowed
-      if (!allowScriptFilesystemAccess && isFsModule(requiredModule)) {
-        throw new Error('Filesystem access is not allowed. Enable "filesystemAccess.allow" in scripting config to use the fs module.');
-      }
-
-      return requiredModule;
+      return require(requiredModulePath);
     } catch (requireError) {
-      // Re-throw if it's our filesystem access error
-      if (requireError.message && requireError.message.includes('Enable "filesystemAccess.allow"')) {
-        throw requireError;
-      }
-
       // If that fails, try to resolve from additionalContextRoots
       throw new Error(`Could not resolve module "${moduleName}": ${requireError.message}\n\nThis most likely means you did not install the module under the collection or the "additionalContextRoots" using a package manager like npm.\n\nThese are your current "additionalContextRoots":\n${additionalContextRootsAbsolute.map((root) => `  - ${root}`).join('\n') || '  - No "additionalContextRoots" defined'}`);
     }
@@ -251,7 +217,6 @@ function loadLocalModule({
       scriptContext,
       currentModuleDir: moduleDir,
       localModuleCache,
-      allowScriptFilesystemAccess: get(scriptContext.scriptingConfig, 'filesystemAccess.allow', false),
       additionalContextRootsAbsolute
     })
   };
