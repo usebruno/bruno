@@ -255,7 +255,13 @@ export const collectionsSlice = createSlice({
         const environment = findEnvironmentInCollection(collection, environmentUid);
 
         if (environment) {
-          environment.variables = variables;
+          // Preserve ephemeral variables that aren't in the new persisted set
+          const newVarNames = new Set(variables.map((v) => v.name));
+          const ephemeralsToKeep = (environment.variables || []).filter(
+            (v) => v.ephemeral && !newVarNames.has(v.name)
+          );
+
+          environment.variables = [...variables, ...ephemeralsToKeep];
         }
       }
     },
@@ -2765,11 +2771,15 @@ export const collectionsSlice = createSlice({
           prevEphemerals.forEach((ev) => {
             const target = existingEnv.variables?.find((v) => v.name === ev.name);
             if (target) {
+              // Overlay: variable exists in file, apply ephemeral value
               if (target.value !== ev.value) {
                 if (target.persistedValue === undefined) target.persistedValue = target.value;
                 target.value = ev.value;
               }
               target.ephemeral = true;
+            } else {
+              // Purely ephemeral: variable doesn't exist in file, re-add it
+              existingEnv.variables.push(ev);
             }
           });
         } else {

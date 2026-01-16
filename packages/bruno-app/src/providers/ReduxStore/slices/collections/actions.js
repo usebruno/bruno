@@ -2019,7 +2019,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 };
 
 export const mergeAndPersistEnvironment
-  = ({ persistentEnvVariables, collectionUid }) =>
+  = ({ persistentEnvVariables, envVariables, collectionUid }) =>
     (_dispatch, getState) => {
       return new Promise((resolve, reject) => {
         const state = getState();
@@ -2072,9 +2072,10 @@ export const mergeAndPersistEnvironment
         // Save all non-ephemeral vars and all variables that were previously persisted
         const persistedNames = new Set(Object.keys(persistentEnvVariables));
 
-        // Add all existing non-ephemeral variables to persistedNames so they are preserved
+        // Only preserve non-ephemeral variables if they still exist in envVariables
+        const currentVarNames = new Set(Object.keys(envVariables || {}));
         existingVars.forEach((v) => {
-          if (!v.ephemeral) {
+          if (!v.ephemeral && currentVarNames.has(v.name)) {
             persistedNames.add(v.name);
           }
         });

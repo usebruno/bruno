@@ -488,6 +488,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:persistent-env-variables-update', {
         persistentEnvVariables: scriptResult.persistentEnvVariables,
+        envVariables: scriptResult.envVariables,
         collectionUid
       });
 
@@ -577,6 +578,7 @@ const registerNetworkIpc = (mainWindow) => {
 
         mainWindow.webContents.send('main:persistent-env-variables-update', {
           persistentEnvVariables: result.persistentEnvVariables,
+          envVariables: result.envVariables,
           collectionUid
         });
 
@@ -622,6 +624,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:persistent-env-variables-update', {
         persistentEnvVariables: scriptResult.persistentEnvVariables,
+        envVariables: scriptResult.envVariables,
         collectionUid
       });
 
@@ -957,6 +960,7 @@ const registerNetworkIpc = (mainWindow) => {
 
           mainWindow.webContents.send('main:persistent-env-variables-update', {
             persistentEnvVariables: testResults.persistentEnvVariables,
+            envVariables: testResults.envVariables,
             collectionUid
           });
 
