@@ -2,6 +2,7 @@ import {
   getMemberExpressionString,
   buildMemberExpressionFromString
 } from './ast-utils';
+import brunoSendRequestTransformer from './bruno-send-request-transformer';
 const j = require('jscodeshift');
 
 // =============================================================================
@@ -85,6 +86,12 @@ const simpleTranslations = {
  * Note: These are processed in order, so more specific patterns should come first.
  */
 const complexTransformations = [
+  // bru.sendRequest transformation
+  {
+    pattern: 'bru.sendRequest',
+    transform: brunoSendRequestTransformer
+  },
+
   // bru.runner.stopExecution() -> pm.execution.setNextRequest(null)
   {
     pattern: 'bru.runner.stopExecution',
