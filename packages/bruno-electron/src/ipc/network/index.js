@@ -159,12 +159,66 @@ const configureRequest = async (
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
-    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy || {};
+    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
+
+    // Get cert/proxy configs for token and refresh URLs
+    let certsAndProxyConfigForTokenUrl = certsAndProxyConfig;
+    let certsAndProxyConfigForRefreshUrl = certsAndProxyConfig;
+
+    if (accessTokenUrl && grantType !== 'implicit') {
+      const interpolatedTokenUrl = interpolateString(accessTokenUrl, {
+        globalEnvironmentVariables,
+        collectionVariables,
+        envVars,
+        folderVariables,
+        requestVariables,
+        runtimeVariables,
+        processEnvVars,
+        promptVariables
+      });
+      const tokenRequestForConfig = { ...requestCopy, url: interpolatedTokenUrl };
+      certsAndProxyConfigForTokenUrl = await getCertsAndProxyConfig({
+        collectionUid,
+        collection,
+        request: tokenRequestForConfig,
+        envVars,
+        runtimeVariables,
+        processEnvVars,
+        collectionPath,
+        globalEnvironmentVariables
+      });
+    }
+
+    const tokenUrlForRefresh = refreshTokenUrl || accessTokenUrl;
+    if (tokenUrlForRefresh && grantType !== 'implicit') {
+      const interpolatedRefreshUrl = interpolateString(tokenUrlForRefresh, {
+        globalEnvironmentVariables,
+        collectionVariables,
+        envVars,
+        folderVariables,
+        requestVariables,
+        runtimeVariables,
+        processEnvVars,
+        promptVariables
+      });
+      const refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
+      certsAndProxyConfigForRefreshUrl = await getCertsAndProxyConfig({
+        collectionUid,
+        collection,
+        request: refreshRequestForConfig,
+        envVars,
+        runtimeVariables,
+        processEnvVars,
+        collectionPath,
+        globalEnvironmentVariables
+      });
+    }
+
     let credentials, credentialsId, oauth2Url, debugInfo;
     switch (grantType) {
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfig }));
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
@@ -192,7 +246,7 @@ const configureRequest = async (
         break;
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
@@ -206,7 +260,7 @@ const configureRequest = async (
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
