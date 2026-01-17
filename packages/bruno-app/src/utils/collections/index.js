@@ -4,6 +4,7 @@ import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
+import { loadRequestOnDemand } from 'providers/ReduxStore/slices/collections/actions';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -170,7 +171,7 @@ export const getItemsLoadStats = (folder) => {
   };
 };
 
-export const transformCollectionToSaveToExportAsFile = (collection, options = {}) => {
+export const transformCollectionToSaveToExportAsFile = async (collection, options = {}, dispatch, getState) => {
   const copyHeaders = (headers) => {
     return map(headers, (header) => {
       return {
@@ -285,188 +286,206 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     return filename.replace(/\.(yml|yaml)$/i, '.bru');
   };
 
-  const copyItems = (sourceItems, destItems) => {
-    each(sourceItems, (si) => {
+  const copyItems = async (sourceItems, destItems, collection, dispatch, getState) => {
+    for (const si of sourceItems) {
       if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
-        return;
+        continue;
       }
 
-      const isGrpcRequest = si.type === 'grpc-request';
+      // Load partial requests if dispatch/getState are provided
+      let itemToProcess = si;
+      if (isItemARequest(si) && (si.partial || !si.request) && dispatch && getState && si.pathname) {
+        try {
+          itemToProcess = await ensureRequestLoaded(si, collection, dispatch, getState);
+          // If loading failed, skip this request
+          if (itemToProcess.partial || !itemToProcess.request) {
+            console.warn(`Skipping request "${si.name || si.uid}" - failed to load for export`);
+            continue;
+          }
+        } catch (error) {
+          console.error(`Error loading request "${si.name || si.uid}" for export:`, error);
+          // Skip this request if loading fails
+          continue;
+        }
+      }
+
+      const isGrpcRequest = itemToProcess.type === 'grpc-request';
 
       const di = {
-        uid: si.uid,
-        type: si.type,
-        name: si.name,
-        filename: isItemARequest(si) ? normalizeFilenameToBru(si.filename) : si.filename,
-        seq: si.seq,
-        settings: si.settings,
-        tags: si.tags,
-        examples: copyExamples(si.examples || [])
+        uid: itemToProcess.uid,
+        type: itemToProcess.type,
+        name: itemToProcess.name,
+        filename: isItemARequest(itemToProcess) ? normalizeFilenameToBru(itemToProcess.filename) : itemToProcess.filename,
+        seq: itemToProcess.seq,
+        settings: itemToProcess.settings,
+        tags: itemToProcess.tags,
+        examples: copyExamples(itemToProcess.examples || [])
       };
 
-      if (si.request) {
+      // Export request data if available
+      if (itemToProcess.request && !itemToProcess.partial) {
         di.request = {
-          url: si.request.url,
-          method: si.request.method,
-          headers: copyHeaders(si.request.headers),
-          params: copyParams(si.request.params),
+          url: itemToProcess.request.url,
+          method: itemToProcess.request.method,
+          headers: copyHeaders(itemToProcess.request.headers),
+          params: copyParams(itemToProcess.request.params),
           body: {
-            mode: si.request.body.mode,
-            json: si.request.body.json,
-            text: si.request.body.text,
-            xml: si.request.body.xml,
-            graphql: si.request.body.graphql,
-            sparql: si.request.body.sparql,
-            formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
-            multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
-            file: copyFileParams(si.request.body.file),
-            grpc: si.request.body.grpc,
-            ws: si.request.body.ws
+            mode: itemToProcess.request.body.mode,
+            json: itemToProcess.request.body.json,
+            text: itemToProcess.request.body.text,
+            xml: itemToProcess.request.body.xml,
+            graphql: itemToProcess.request.body.graphql,
+            sparql: itemToProcess.request.body.sparql,
+            formUrlEncoded: copyFormUrlEncodedParams(itemToProcess.request.body.formUrlEncoded),
+            multipartForm: copyMultipartFormParams(itemToProcess.request.body.multipartForm),
+            file: copyFileParams(itemToProcess.request.body.file),
+            grpc: itemToProcess.request.body.grpc,
+            ws: itemToProcess.request.body.ws
           },
-          script: si.request.script,
-          vars: si.request.vars,
-          assertions: si.request.assertions,
-          tests: si.request.tests,
-          docs: si.request.docs
+          script: itemToProcess.request.script,
+          vars: itemToProcess.request.vars,
+          assertions: itemToProcess.request.assertions,
+          tests: itemToProcess.request.tests,
+          docs: itemToProcess.request.docs
         };
 
         if (isGrpcRequest) {
-          di.request.methodType = si.request.methodType;
-          di.request.protoPath = si.request.protoPath;
+          di.request.methodType = itemToProcess.request.methodType;
+          di.request.protoPath = itemToProcess.request.protoPath;
           delete di.request.params;
         }
 
         // Handle auth object dynamically
         di.request.auth = {
-          mode: get(si.request, 'auth.mode', 'none')
+          mode: get(itemToProcess.request, 'auth.mode', 'none')
         };
 
         switch (di.request.auth.mode) {
           case 'awsv4':
             di.request.auth.awsv4 = {
-              accessKeyId: get(si.request, 'auth.awsv4.accessKeyId', ''),
-              secretAccessKey: get(si.request, 'auth.awsv4.secretAccessKey', ''),
-              sessionToken: get(si.request, 'auth.awsv4.sessionToken', ''),
-              service: get(si.request, 'auth.awsv4.service', ''),
-              region: get(si.request, 'auth.awsv4.region', ''),
-              profileName: get(si.request, 'auth.awsv4.profileName', '')
+              accessKeyId: get(itemToProcess.request, 'auth.awsv4.accessKeyId', ''),
+              secretAccessKey: get(itemToProcess.request, 'auth.awsv4.secretAccessKey', ''),
+              sessionToken: get(itemToProcess.request, 'auth.awsv4.sessionToken', ''),
+              service: get(itemToProcess.request, 'auth.awsv4.service', ''),
+              region: get(itemToProcess.request, 'auth.awsv4.region', ''),
+              profileName: get(itemToProcess.request, 'auth.awsv4.profileName', '')
             };
             break;
           case 'basic':
             di.request.auth.basic = {
-              username: get(si.request, 'auth.basic.username', ''),
-              password: get(si.request, 'auth.basic.password', '')
+              username: get(itemToProcess.request, 'auth.basic.username', ''),
+              password: get(itemToProcess.request, 'auth.basic.password', '')
             };
             break;
           case 'bearer':
             di.request.auth.bearer = {
-              token: get(si.request, 'auth.bearer.token', '')
+              token: get(itemToProcess.request, 'auth.bearer.token', '')
             };
             break;
           case 'digest':
             di.request.auth.digest = {
-              username: get(si.request, 'auth.digest.username', ''),
-              password: get(si.request, 'auth.digest.password', '')
+              username: get(itemToProcess.request, 'auth.digest.username', ''),
+              password: get(itemToProcess.request, 'auth.digest.password', '')
             };
             break;
           case 'ntlm':
             di.request.auth.ntlm = {
-              username: get(si.request, 'auth.ntlm.username', ''),
-              password: get(si.request, 'auth.ntlm.password', ''),
-              domain: get(si.request, 'auth.ntlm.domain', '')
+              username: get(itemToProcess.request, 'auth.ntlm.username', ''),
+              password: get(itemToProcess.request, 'auth.ntlm.password', ''),
+              domain: get(itemToProcess.request, 'auth.ntlm.domain', '')
             };
             break;
           case 'oauth2':
-            let grantType = get(si.request, 'auth.oauth2.grantType', '');
+            let grantType = get(itemToProcess.request, 'auth.oauth2.grantType', '');
             switch (grantType) {
               case 'password':
                 di.request.auth.oauth2 = {
                   grantType: grantType,
-                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
-                  refreshTokenUrl: get(si.request, 'auth.oauth2.refreshTokenUrl', ''),
-                  username: get(si.request, 'auth.oauth2.username', ''),
-                  password: get(si.request, 'auth.oauth2.password', ''),
-                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
-                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
-                  scope: get(si.request, 'auth.oauth2.scope', ''),
-                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
-                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
-                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
-                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
-                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
-                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
-                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
+                  accessTokenUrl: get(itemToProcess.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshTokenUrl: get(itemToProcess.request, 'auth.oauth2.refreshTokenUrl', ''),
+                  username: get(itemToProcess.request, 'auth.oauth2.username', ''),
+                  password: get(itemToProcess.request, 'auth.oauth2.password', ''),
+                  clientId: get(itemToProcess.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(itemToProcess.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(itemToProcess.request, 'auth.oauth2.scope', ''),
+                  credentialsPlacement: get(itemToProcess.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  credentialsId: get(itemToProcess.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(itemToProcess.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(itemToProcess.request, 'auth.oauth2.tokenHeaderPrefix', ''),
+                  tokenQueryKey: get(itemToProcess.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(itemToProcess.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(itemToProcess.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(itemToProcess.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
               case 'authorization_code':
                 di.request.auth.oauth2 = {
                   grantType: grantType,
-                  callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
-                  authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
-                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
-                  refreshTokenUrl: get(si.request, 'auth.oauth2.refreshTokenUrl', ''),
-                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
-                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
-                  scope: get(si.request, 'auth.oauth2.scope', ''),
-                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
-                  pkce: get(si.request, 'auth.oauth2.pkce', false),
-                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
-                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
-                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
-                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
-                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
-                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
+                  callbackUrl: get(itemToProcess.request, 'auth.oauth2.callbackUrl', ''),
+                  authorizationUrl: get(itemToProcess.request, 'auth.oauth2.authorizationUrl', ''),
+                  accessTokenUrl: get(itemToProcess.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshTokenUrl: get(itemToProcess.request, 'auth.oauth2.refreshTokenUrl', ''),
+                  clientId: get(itemToProcess.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(itemToProcess.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(itemToProcess.request, 'auth.oauth2.scope', ''),
+                  credentialsPlacement: get(itemToProcess.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  pkce: get(itemToProcess.request, 'auth.oauth2.pkce', false),
+                  credentialsId: get(itemToProcess.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(itemToProcess.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(itemToProcess.request, 'auth.oauth2.tokenHeaderPrefix', ''),
+                  tokenQueryKey: get(itemToProcess.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(itemToProcess.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(itemToProcess.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(itemToProcess.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
               case 'implicit':
                 di.request.auth.oauth2 = {
                   grantType: grantType,
-                  callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
-                  authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
-                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
-                  scope: get(si.request, 'auth.oauth2.scope', ''),
-                  state: get(si.request, 'auth.oauth2.state', ''),
-                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
-                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
-                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
-                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
-                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
+                  callbackUrl: get(itemToProcess.request, 'auth.oauth2.callbackUrl', ''),
+                  authorizationUrl: get(itemToProcess.request, 'auth.oauth2.authorizationUrl', ''),
+                  clientId: get(itemToProcess.request, 'auth.oauth2.clientId', ''),
+                  scope: get(itemToProcess.request, 'auth.oauth2.scope', ''),
+                  state: get(itemToProcess.request, 'auth.oauth2.state', ''),
+                  credentialsId: get(itemToProcess.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(itemToProcess.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(itemToProcess.request, 'auth.oauth2.tokenHeaderPrefix', 'Bearer'),
+                  tokenQueryKey: get(itemToProcess.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(itemToProcess.request, 'auth.oauth2.autoFetchToken', true),
+                  additionalParameters: get(itemToProcess.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
               case 'client_credentials':
                 di.request.auth.oauth2 = {
                   grantType: grantType,
-                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
-                  refreshTokenUrl: get(si.request, 'auth.oauth2.refreshTokenUrl', ''),
-                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
-                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
-                  scope: get(si.request, 'auth.oauth2.scope', ''),
-                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
-                  credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
-                  tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
-                  tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
-                  tokenQueryKey: get(si.request, 'auth.oauth2.tokenQueryKey', ''),
-                  autoFetchToken: get(si.request, 'auth.oauth2.autoFetchToken', true),
-                  autoRefreshToken: get(si.request, 'auth.oauth2.autoRefreshToken', true),
-                  additionalParameters: get(si.request, 'auth.oauth2.additionalParameters', {})
+                  accessTokenUrl: get(itemToProcess.request, 'auth.oauth2.accessTokenUrl', ''),
+                  refreshTokenUrl: get(itemToProcess.request, 'auth.oauth2.refreshTokenUrl', ''),
+                  clientId: get(itemToProcess.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(itemToProcess.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(itemToProcess.request, 'auth.oauth2.scope', ''),
+                  credentialsPlacement: get(itemToProcess.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  credentialsId: get(itemToProcess.request, 'auth.oauth2.credentialsId', 'credentials'),
+                  tokenPlacement: get(itemToProcess.request, 'auth.oauth2.tokenPlacement', 'header'),
+                  tokenHeaderPrefix: get(itemToProcess.request, 'auth.oauth2.tokenHeaderPrefix', ''),
+                  tokenQueryKey: get(itemToProcess.request, 'auth.oauth2.tokenQueryKey', ''),
+                  autoFetchToken: get(itemToProcess.request, 'auth.oauth2.autoFetchToken', true),
+                  autoRefreshToken: get(itemToProcess.request, 'auth.oauth2.autoRefreshToken', true),
+                  additionalParameters: get(itemToProcess.request, 'auth.oauth2.additionalParameters', {})
                 };
                 break;
             }
             break;
           case 'apikey':
             di.request.auth.apikey = {
-              key: get(si.request, 'auth.apikey.key', ''),
-              value: get(si.request, 'auth.apikey.value', ''),
-              placement: get(si.request, 'auth.apikey.placement', 'header')
+              key: get(itemToProcess.request, 'auth.apikey.key', ''),
+              value: get(itemToProcess.request, 'auth.apikey.value', ''),
+              placement: get(itemToProcess.request, 'auth.apikey.placement', 'header')
             };
             break;
           case 'wsse':
             di.request.auth.wsse = {
-              username: get(si.request, 'auth.wsse.username', ''),
-              password: get(si.request, 'auth.wsse.password', '')
+              username: get(itemToProcess.request, 'auth.wsse.username', ''),
+              password: get(itemToProcess.request, 'auth.wsse.password', '')
             };
             break;
           default:
@@ -493,12 +512,12 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         }
       }
 
-      if (si.type == 'folder' && si?.root) {
+      if (itemToProcess.type == 'folder' && itemToProcess?.root) {
         di.root = {
           request: {}
         };
 
-        let { request, meta, docs } = si?.root || {};
+        let { request, meta, docs } = itemToProcess?.root || {};
         let { auth, headers, script = {}, vars = {}, tests } = request || {};
 
         // folder level auth
@@ -553,17 +572,17 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         }
       }
 
-      if (si.type === 'js') {
-        di.fileContent = si.raw;
+      if (itemToProcess.type === 'js') {
+        di.fileContent = itemToProcess.raw;
       }
 
       destItems.push(di);
 
-      if (si.items && si.items.length) {
+      if (itemToProcess.items && itemToProcess.items.length) {
         di.items = [];
-        copyItems(si.items, di.items);
+        await copyItems(itemToProcess.items, di.items, collection, dispatch, getState);
       }
-    });
+    }
   };
 
   const collectionToSave = {};
@@ -655,12 +674,19 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   }
 
-  copyItems(collection.items, collectionToSave.items);
+  await copyItems(collection.items, collectionToSave.items, collection, dispatch, getState);
   return collectionToSave;
 };
 
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
+
+  // Check if request is partial (not fully loaded)
+  if (_item.partial || !_item.request) {
+    throw new Error(
+      `Cannot transform partial request to filesystem format. Request "${_item.name || _item.uid}" must be fully loaded before saving.`
+    );
+  }
 
   const itemToSave = {
     uid: _item.uid,
@@ -1539,21 +1565,50 @@ export const getInitialExampleName = (item) => {
 };
 
 // Get the scope and raw value of a variable by checking all scopes in priority order
-export const getVariableScope = (variableName, collection, item) => {
+export const getVariableScope = async (variableName, collection, item, dispatch, getState) => {
   if (!variableName || !collection) {
     return null;
   }
 
   // 1. Check Request Variables (highest priority)
   if (item) {
-    const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
-    const requestVar = requestVars.find((v) => v.name === variableName && v.enabled);
-    if (requestVar) {
-      return {
-        type: 'request',
-        value: requestVar.value,
-        data: { item, variable: requestVar }
-      };
+    // Check if item is a request and if it's partial
+    // If partial, we need to load it before accessing request variables
+    if (item.type === 'request' && (item.partial === true || !item.request)) {
+      // Only load if dispatch and getState are provided
+      if (dispatch && getState) {
+        try {
+          // Load the request on demand
+          const loadedItem = await ensureRequestLoaded(item, collection, dispatch, getState);
+          // Use the loaded item for variable resolution
+          const requestVars = loadedItem.draft ? get(loadedItem, 'draft.request.vars.req', []) : get(loadedItem, 'request.vars.req', []);
+          const requestVar = requestVars.find((v) => v.name === variableName && v.enabled);
+          if (requestVar) {
+            return {
+              type: 'request',
+              value: requestVar.value,
+              data: { item: loadedItem, variable: requestVar }
+            };
+          }
+        } catch (error) {
+          console.error('Error loading request for variable resolution:', error);
+          // Continue to check other scopes if loading fails
+        }
+      } else {
+        // If dispatch/getState not provided, skip request variable check for partial requests
+        // This maintains backward compatibility for synchronous callers
+      }
+    } else {
+      // Request is already loaded or item is not a request, proceed normally
+      const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
+      const requestVar = requestVars.find((v) => v.name === variableName && v.enabled);
+      if (requestVar) {
+        return {
+          type: 'request',
+          value: requestVar.value,
+          data: { item, variable: requestVar }
+        };
+      }
     }
   }
 
@@ -1633,6 +1688,62 @@ export const getVariableScope = (variableName, collection, item) => {
   return null;
 };
 
+/**
+ * Ensure a request is fully loaded in Redux state.
+ * If the request is partial, loads it on demand and returns the updated item.
+ * @param {Object} item - The request item (may be partial)
+ * @param {Object} collection - The collection containing the item
+ * @param {Function} dispatch - Redux dispatch function
+ * @param {Function} getState - Redux getState function
+ * @returns {Promise<Object>} - The fully loaded request item
+ */
+export const ensureRequestLoaded = async (item, collection, dispatch, getState) => {
+  // Check if request is already fully loaded
+  // A request is considered loaded if:
+  // 1. partial is explicitly false (or undefined for backwards compatibility)
+  // 2. request object exists
+  if (item.partial !== true && item.request) {
+    return item;
+  }
+
+  // Check if pathname exists (required for loading)
+  if (!item.pathname) {
+    console.warn('Cannot load request: missing pathname');
+    return item;
+  }
+
+  try {
+    // Load the request on demand
+    await dispatch(loadRequestOnDemand({
+      collectionUid: collection.uid,
+      pathname: item.pathname
+    }));
+
+    // Get the updated state and find the loaded item
+    const state = getState();
+    const updatedCollection = findCollectionByUid(state.collections.collections, collection.uid);
+
+    if (!updatedCollection) {
+      console.warn('Collection not found after loading request');
+      return item;
+    }
+
+    // Find the updated item by pathname
+    const loadedItem = findItemInCollectionByPathname(updatedCollection, item.pathname);
+
+    if (!loadedItem) {
+      console.warn('Request item not found after loading');
+      return item;
+    }
+
+    return loadedItem;
+  } catch (error) {
+    console.error('Error loading request on demand:', error);
+    // Return original item on error
+    return item;
+  }
+};
+
 // Check if a variable is marked as secret
 export const isVariableSecret = (scopeInfo) => {
   if (!scopeInfo) {
@@ -1650,6 +1761,30 @@ export const isVariableSecret = (scopeInfo) => {
   }
 
   return false;
+};
+
+/**
+ * Recursively collect all requests from a folder
+ * @param {Object} folder - The folder object
+ * @param {boolean} recursive - Whether to collect requests recursively
+ * @returns {Array} - Array of request items
+ */
+export const getAllRequestsInFolder = (folder = {}, recursive = false) => {
+  let requests = [];
+
+  if (!folder.items || !folder.items.length) {
+    return requests;
+  }
+
+  folder.items.forEach((item) => {
+    if (isItemARequest(item)) {
+      requests.push(item);
+    } else if (isItemAFolder(item) && recursive) {
+      requests = requests.concat(getAllRequestsInFolder(item, recursive));
+    }
+  });
+
+  return requests;
 };
 
 /**

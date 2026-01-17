@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useSelector, useDispatch, useStore } from 'react-redux';
 import { cloneDeep } from 'lodash';
 import * as FileSaver from 'file-saver';
 import jsyaml from 'js-yaml';
@@ -63,19 +63,24 @@ const CollectionNotFound = ({ onClose }) => (
 
 const GenerateDocumentation = ({ onClose, collectionUid }) => {
   const { version } = useApp();
+  const dispatch = useDispatch();
+  const store = useStore();
   const collection = useSelector((state) =>
     findCollectionByUid(state.collections.collections, collectionUid)
   );
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const isLoading = useMemo(
     () => (collection ? areItemsLoading(collection) : false),
     [collection]
   );
 
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = useCallback(async () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
     try {
       const collectionCopy = cloneDeep(collection);
-      const transformedCollection = transformCollectionToSaveToExportAsFile(collectionCopy);
+      const transformedCollection = await transformCollectionToSaveToExportAsFile(collectionCopy, {}, dispatch, store.getState);
       const openCollection = brunoToOpenCollection(transformedCollection);
 
       openCollection.extensions = {
@@ -112,9 +117,11 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
       onClose();
     } catch (error) {
       console.error('Error generating documentation:', error);
-      toast.error('Failed to generate documentation');
+      toast.error('Failed to generate documentation. Some requests may not have loaded.');
+    } finally {
+      setIsGenerating(false);
     }
-  }, [collection, version, onClose]);
+  }, [collection, version, onClose, dispatch, store, isGenerating]);
 
   if (!collection) {
     return <CollectionNotFound onClose={onClose} />;
@@ -124,17 +131,17 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
     <Modal
       size="md"
       title="Generate Documentation"
-      confirmText={isLoading ? 'Loading...' : 'Generate'}
+      confirmText={isLoading || isGenerating ? (isLoading ? 'Loading...' : 'Generating...') : 'Generate'}
       cancelText="Cancel"
-      handleConfirm={isLoading ? undefined : handleGenerate}
+      handleConfirm={isLoading || isGenerating ? undefined : handleGenerate}
       handleCancel={onClose}
-      confirmDisabled={isLoading}
+      confirmDisabled={isLoading || isGenerating}
     >
       <StyledWrapper className="w-[500px]">
-        {isLoading ? (
+        {isLoading || isGenerating ? (
           <div className="flex items-center justify-center gap-3 py-8">
             <IconLoader2 size={20} className="animate-spin" />
-            <span>Loading collection...</span>
+            <span>{isLoading ? 'Loading collection...' : 'Generating documentation...'}</span>
           </div>
         ) : (
           <div className="content">

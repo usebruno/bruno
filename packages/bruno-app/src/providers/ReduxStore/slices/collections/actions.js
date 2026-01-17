@@ -20,7 +20,9 @@ import {
   isItemARequest,
   getAllVariables,
   transformRequestToSaveToFilesystem,
-  transformCollectionRootToSave
+  transformCollectionRootToSave,
+  ensureRequestLoaded,
+  getAllRequestsInFolder
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -29,6 +31,7 @@ import brunoClipboard from 'utils/bruno-clipboard';
 
 import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
+  collectionAddFileEvent,
   createCollection as _createCollection,
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
@@ -516,9 +519,38 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
-    let collectionCopy = cloneDeep(collection);
+    // Check if request is partial and load it on demand if needed
+    let loadedItem = item;
+    let collectionToUse = collection;
+    if (item.partial || !item.request) {
+      try {
+        loadedItem = await ensureRequestLoaded(item, collection, dispatch, getState);
 
-    const itemCopy = cloneDeep(item);
+        // If loading failed and item is still partial, reject with user-friendly message
+        if (loadedItem.partial || !loadedItem.request) {
+          const errorMessage = item.pathname
+            ? 'Failed to load request: request data is not available. The file may be corrupted or inaccessible.'
+            : 'Failed to load request: missing file path.';
+          return reject(new Error(errorMessage));
+        }
+
+        // Refresh collection reference from state after loading (collection may have been updated)
+        const updatedState = getState();
+        const updatedCollection = findCollectionByUid(updatedState.collections.collections, collectionUid);
+        if (updatedCollection) {
+          collectionToUse = updatedCollection;
+        }
+      } catch (error) {
+        console.error('Error loading request on demand:', error);
+        // Use user-friendly error message if available
+        const errorMessage = error?.message || 'Failed to load request. Please try again.';
+        return reject(new Error(errorMessage));
+      }
+    }
+
+    let collectionCopy = cloneDeep(collectionToUse);
+
+    const itemCopy = cloneDeep(loadedItem);
 
     // add selected global env variables to the collection object
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({
@@ -641,12 +673,12 @@ export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
 };
 
 export const runCollectionFolder
-  = (collectionUid, folderUid, recursive, delay, tags, selectedRequestUids) => (dispatch, getState) => {
+  = (collectionUid, folderUid, recursive, delay, tags, selectedRequestUids) => async (dispatch, getState) => {
     const state = getState();
     const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       if (!collection) {
         return reject(new Error('Collection not found'));
       }
@@ -660,38 +692,119 @@ export const runCollectionFolder
       });
       collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
-      const folder = findItemInCollection(collectionCopy, folderUid);
+      const folder = folderUid ? findItemInCollection(collectionCopy, folderUid) : collectionCopy;
 
       if (folderUid && !folder) {
         return reject(new Error('Folder not found'));
       }
 
-      const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+      // Collect all requests that will be run (before filtering by tags/selectedRequestUids)
+      // This ensures we load all potentially needed requests
+      const allRequests = getAllRequestsInFolder(folder, recursive);
 
-      dispatch(
-        resetRunResults({
-          collectionUid: collection.uid
-        })
-      );
+      // Load all partial requests before execution
+      try {
+        const loadResults = await Promise.allSettled(
+          allRequests.map(async (request) => {
+            // Check if request is partial and needs loading
+            if (request.partial === true || !request.request) {
+              try {
+                const loadedRequest = await ensureRequestLoaded(request, collectionCopy, dispatch, getState);
 
-      const { ipcRenderer } = window;
-      ipcRenderer
-        .invoke(
-          'renderer:run-collection-folder',
-          folder,
-          collectionCopy,
-          environment,
-          collectionCopy.runtimeVariables,
-          recursive,
-          delay,
-          tags,
-          selectedRequestUids
-        )
-        .then(resolve)
-        .catch((err) => {
-          toast.error(get(err, 'error.message') || 'Something went wrong!');
-          reject(err);
-        });
+                // Verify request was actually loaded
+                if (loadedRequest.partial || !loadedRequest.request) {
+                  throw new Error(`Request ${request.name || request.pathname} failed to load: data not available`);
+                }
+
+                return { success: true, request: loadedRequest };
+              } catch (error) {
+                console.warn(`Failed to load request ${request.pathname}:`, error);
+                return {
+                  success: false,
+                  request,
+                  error: error?.message || 'Failed to load request'
+                };
+              }
+            }
+            return { success: true, request };
+          })
+        );
+
+        // Check for failed loads and provide user feedback
+        const failedLoads = loadResults
+          .filter((result) => result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success))
+          .map((result) => {
+            if (result.status === 'rejected') {
+              return result.reason?.message || 'Unknown error';
+            }
+            return result.value.error || 'Failed to load request';
+          });
+
+        if (failedLoads.length > 0) {
+          const failedCount = failedLoads.length;
+          const totalCount = allRequests.length;
+          console.warn(`Failed to load ${failedCount} out of ${totalCount} requests:`, failedLoads);
+
+          // Show warning toast but continue execution
+          if (failedCount === totalCount) {
+            // All requests failed - reject
+            return reject(new Error(`Failed to load all ${totalCount} request(s). Please check the files and try again.`));
+          } else {
+            // Some requests failed - warn but continue
+            toast.error(`Failed to load ${failedCount} out of ${totalCount} request(s). These will be skipped.`);
+          }
+        }
+
+        // After loading, get the updated collection from state
+        // This ensures we have the latest loaded request data
+        const updatedState = getState();
+        const updatedCollection = findCollectionByUid(updatedState.collections.collections, collectionUid);
+
+        if (!updatedCollection) {
+          return reject(new Error('Collection not found after loading requests'));
+        }
+
+        // Rebuild collectionCopy and folder with updated data
+        collectionCopy = cloneDeep(updatedCollection);
+        collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+
+        const updatedFolder = folderUid ? findItemInCollection(collectionCopy, folderUid) : collectionCopy;
+
+        if (folderUid && !updatedFolder) {
+          return reject(new Error('Folder not found after loading requests'));
+        }
+
+        const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+
+        dispatch(
+          resetRunResults({
+            collectionUid: collection.uid
+          })
+        );
+
+        const { ipcRenderer } = window;
+        ipcRenderer
+          .invoke(
+            'renderer:run-collection-folder',
+            updatedFolder,
+            collectionCopy,
+            environment,
+            collectionCopy.runtimeVariables,
+            recursive,
+            delay,
+            tags,
+            selectedRequestUids
+          )
+          .then(resolve)
+          .catch((err) => {
+            toast.error(get(err, 'error.message') || 'Something went wrong!');
+            reject(err);
+          });
+      } catch (error) {
+        console.error('Error loading requests for collection runner:', error);
+        toast.error('Failed to load some requests. Please try again.');
+        reject(error);
+      }
     });
   };
 
@@ -843,7 +956,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (!collection) {
       throw new Error('Collection not found');
     }
@@ -879,7 +992,22 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
 
     const parentItem = findParentItemInCollection(collectionCopy, itemUid);
     const filename = resolveRequestFilename(newFilename, collection.format);
-    const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(item));
+
+    // Ensure request is loaded before cloning
+    let itemToClone = item;
+    if (isItemARequest(item) && (item.partial || !item.request)) {
+      try {
+        itemToClone = await ensureRequestLoaded(item, collection, dispatch, getState);
+        if (itemToClone.partial || !itemToClone.request) {
+          return reject(new Error('Failed to load request for cloning. The request may be corrupted or inaccessible.'));
+        }
+      } catch (error) {
+        console.error('Error loading request for cloning:', error);
+        return reject(new Error(`Failed to load request for cloning: ${error.message || 'Unknown error'}`));
+      }
+    }
+
+    const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(itemToClone));
     set(itemToSave, 'name', trim(newName));
     set(itemToSave, 'filename', trim(filename));
     if (!parentItem) {
@@ -1000,8 +1128,34 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
           // Generate unique name for request
           const { newName, newFilename } = generateUniqueName(copiedItem.name, existingItems, false);
 
+          // Ensure request is loaded before pasting
+          let itemToPaste = copiedItem;
+          if (isItemARequest(copiedItem) && (copiedItem.partial || !copiedItem.request)) {
+            // For pasting, we need to load from the source collection
+            // Find the source collection by checking if the item has a pathname
+            if (copiedItem.pathname) {
+              // Try to find the collection that contains this item
+              const sourceCollection = findCollectionByPathname(state.collections.collections, path.dirname(copiedItem.pathname));
+              if (sourceCollection) {
+                try {
+                  itemToPaste = await ensureRequestLoaded(copiedItem, sourceCollection, dispatch, getState);
+                  if (itemToPaste.partial || !itemToPaste.request) {
+                    return reject(new Error('Failed to load request for pasting. The request may be corrupted or inaccessible.'));
+                  }
+                } catch (error) {
+                  console.error('Error loading request for pasting:', error);
+                  return reject(new Error(`Failed to load request for pasting: ${error.message || 'Unknown error'}`));
+                }
+              } else {
+                return reject(new Error('Cannot paste request: source collection not found.'));
+              }
+            } else {
+              return reject(new Error('Cannot paste request: missing file path information.'));
+            }
+          }
+
           const filename = resolveRequestFilename(newFilename, targetCollection.format);
-          const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
+          const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(itemToPaste));
           set(itemToSave, 'name', trim(newName));
           set(itemToSave, 'filename', trim(filename));
 
@@ -2631,6 +2785,72 @@ export const loadRequest
       return new Promise(async (resolve, reject) => {
         const { ipcRenderer } = window;
         ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname }).then(resolve).catch(reject);
+      });
+    };
+
+export const loadRequestOnDemand
+  = ({ collectionUid, pathname }) =>
+    (dispatch, getState) => {
+      return new Promise(async (resolve, reject) => {
+        // Validate inputs
+        if (!collectionUid) {
+          const error = new Error('Collection UID is required');
+          console.error('Error loading request on demand:', error);
+          return reject(error);
+        }
+
+        if (!pathname) {
+          const error = new Error('Request pathname is required');
+          console.error('Error loading request on demand:', error);
+          return reject(error);
+        }
+
+        try {
+          const { ipcRenderer } = window;
+          const file = await ipcRenderer.invoke('renderer:load-request-on-demand', { collectionUid, pathname });
+
+          // Validate file was returned
+          if (!file) {
+            const error = new Error('Failed to load request: No data returned');
+            console.error('Error loading request on demand:', error);
+            return reject(error);
+          }
+
+          // Dispatch collectionAddFileEvent to update Redux state with the loaded request
+          dispatch(collectionAddFileEvent({ file }));
+
+          resolve(file);
+        } catch (error) {
+          console.error('Error loading request on demand:', error);
+
+          // Create user-friendly error message
+          let userMessage = 'Failed to load request';
+
+          if (error.message) {
+            // Use the error message if it's already user-friendly
+            if (error.message.includes('Collection path not found')) {
+              userMessage = 'Request file not found. The file may have been moved or deleted.';
+            } else if (error.message.includes('not a valid request file')) {
+              userMessage = 'Invalid request file format.';
+            } else if (error.message.includes('ENOENT') || error.message.includes('no such file')) {
+              userMessage = 'Request file not found. The file may have been moved or deleted.';
+            } else if (error.message.includes('EACCES') || error.message.includes('permission denied')) {
+              userMessage = 'Permission denied. Unable to read the request file.';
+            } else if (error.message.includes('parse') || error.message.includes('syntax')) {
+              userMessage = 'Failed to parse request file. The file may be corrupted or invalid.';
+            } else {
+              userMessage = `Failed to load request: ${error.message}`;
+            }
+          }
+
+          // Create enhanced error object with user-friendly message
+          const enhancedError = new Error(userMessage);
+          enhancedError.originalError = error;
+          enhancedError.pathname = pathname;
+          enhancedError.collectionUid = collectionUid;
+
+          reject(enhancedError);
+        }
       });
     };
 

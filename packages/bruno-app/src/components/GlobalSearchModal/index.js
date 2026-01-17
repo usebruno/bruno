@@ -72,15 +72,18 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
         const itemPathLower = itemPath.toLowerCase();
 
         if (isItemARequest(item)) {
-          // add an optional check for the item name to prevent a crash if it doesn’t exist.
+          // add an optional check for the item name to prevent a crash if it doesn't exist.
           const nameMatch = searchTerms.every((term) => (item.name || '').toLowerCase().includes(term));
+          // URL matching now works for partial requests since URL is included in metadata
           const urlMatch = searchTerms.every((term) => (item.request?.url || '').toLowerCase().includes(term));
           const pathMatch = enablePathMatch && searchTerms.every((term) => itemPathLower.includes(term));
 
           if (nameMatch || urlMatch || pathMatch) {
             // Check if this is a gRPC request and get the method type
-            const isGrpcRequest = item.request?.type === 'grpc';
+            // For partial requests, methodType might not be available in metadata
+            const isGrpcRequest = !item.partial && item.request?.type === 'grpc';
 
+            // Method is available in metadata for partial requests
             let method = item.request?.method || '';
 
             if (isGrpcRequest) {

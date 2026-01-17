@@ -2588,27 +2588,64 @@ export const collectionsSlice = createSlice({
           currentSubItems = childItem.items;
         }
 
-        if (file.meta.name != 'folder.bru' && !currentSubItems.find((f) => f.name === file.meta.name)) {
-          // this happens when you rename a file
-          // the add event might get triggered first, before the unlink event
-          // this results in duplicate uids causing react renderer to go mad
-          const currentItem = find(currentSubItems, (i) => i.uid === file.data.uid);
+        if (file.meta.name != 'folder.bru') {
+          // First, try to find existing item by pathname (for partial to full transitions)
+          let currentItem = find(currentSubItems, (i) => i.pathname === file.meta.pathname);
+
+          // If not found by pathname, try by UID (for rename scenarios)
+          // This happens when you rename a file - the add event might get triggered first,
+          // before the unlink event, which results in duplicate uids causing react renderer to go mad
+          if (!currentItem) {
+            currentItem = find(currentSubItems, (i) => i.uid === file.data.uid);
+          }
+
+          // If not found by name either, check if item with same name exists (shouldn't happen, but handle it)
+          if (!currentItem) {
+            currentItem = find(currentSubItems, (i) => i.name === file.meta.name);
+          }
+
           if (currentItem) {
+            // Update existing item - merge full request data into partial item
+            // Preserve properties that shouldn't be overwritten (like collapsed, items for folders)
             currentItem.name = file.data.name;
             currentItem.type = file.data.type;
             currentItem.seq = file.data.seq;
             currentItem.tags = file.data.tags;
-            currentItem.request = file.data.request;
+
+            // For partial to full transitions: merge request data properly
+            // If transitioning from partial to full, ensure request data is fully set
+            if (file.data.request) {
+              currentItem.request = file.data.request;
+            }
+
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
-            currentItem.settings = file.data.settings;
-            currentItem.examples = file.data.examples;
+
+            // Update settings and examples if provided
+            if (file.data.settings !== undefined) {
+              currentItem.settings = file.data.settings;
+            }
+            if (file.data.examples !== undefined) {
+              currentItem.examples = file.data.examples;
+            }
+
+            // Clear draft when updating from file system
             currentItem.draft = null;
-            currentItem.partial = file.partial;
-            currentItem.loading = file.loading;
-            currentItem.size = file.size;
-            currentItem.error = file.error;
+
+            // Update partial flag - this is critical for partial to full transitions
+            // When loading on demand, partial should be set to false
+            currentItem.partial = file.partial !== undefined ? file.partial : false;
+            currentItem.loading = file.loading !== undefined ? file.loading : false;
+
+            // Update size and error if provided
+            if (file.size !== undefined) {
+              currentItem.size = file.size;
+            }
+            if (file.error !== undefined) {
+              currentItem.error = file.error;
+            }
           } else {
+            // Item doesn't exist, create new one
             currentSubItems.push({
               uid: file.data.uid,
               name: file.data.name,
@@ -2621,8 +2658,8 @@ export const collectionsSlice = createSlice({
               filename: file.meta.name,
               pathname: file.meta.pathname,
               draft: null,
-              partial: file.partial,
-              loading: file.loading,
+              partial: file.partial !== undefined ? file.partial : false,
+              loading: file.loading !== undefined ? file.loading : false,
               size: file.size,
               error: file.error
             });

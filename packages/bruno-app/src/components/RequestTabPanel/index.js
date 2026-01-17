@@ -7,8 +7,8 @@ import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
 import GrpcRequestPane from 'components/RequestPane/GrpcRequestPane/index';
 import ResponsePane from 'components/ResponsePane';
 import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
-import { findItemInCollection } from 'utils/collections';
-import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { findItemInCollection, isItemARequest } from 'utils/collections';
+import { cancelRequest, sendRequest, loadRequestOnDemand } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl/index';
 import GrpcQueryUrl from 'components/RequestPane/GrpcQueryUrl/index';
@@ -91,6 +91,9 @@ const RequestTabPanel = () => {
 
   const [schema, setSchema] = useState(null);
   const [showGqlDocs, setShowGqlDocs] = useState(false);
+  const [loadingRequestUid, setLoadingRequestUid] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const loadingRequestRef = useRef(null);
   const onSchemaLoad = useCallback((schema) => setSchema(schema), []);
   const toggleDocs = useCallback(() => setShowGqlDocs((prev) => !prev), []);
 
@@ -170,6 +173,87 @@ const RequestTabPanel = () => {
     }
   }, [isConsoleOpen, isVerticalLayout]);
 
+  // Auto-load request when tab is focused (Phase 9)
+  useEffect(() => {
+    // Only proceed if we have a focused tab and collection
+    if (!focusedTab || !collection || !activeTabUid) {
+      loadingRequestRef.current = null;
+      setLoadingRequestUid(null);
+      setLoadError(null);
+      return;
+    }
+
+    // Only handle request tabs
+    if (focusedTab.type !== 'request') {
+      loadingRequestRef.current = null;
+      setLoadingRequestUid(null);
+      setLoadError(null);
+      return;
+    }
+
+    // Find the item for the focused tab
+    const item = findItemInCollection(collection, activeTabUid);
+
+    // Check if item exists and is a request
+    if (!item || !isItemARequest(item)) {
+      loadingRequestRef.current = null;
+      setLoadingRequestUid(null);
+      setLoadError(null);
+      return;
+    }
+
+    // Clear loading state if request is now fully loaded
+    if (!item.partial && loadingRequestRef.current === item.uid) {
+      loadingRequestRef.current = null;
+      setLoadingRequestUid(null);
+      setLoadError(null);
+      return;
+    }
+
+    // Check if request is partial and needs to be loaded
+    // Only load if not already loading and not the same request we're currently loading
+    if (item.partial && !item.loading && loadingRequestRef.current !== item.uid) {
+      // Check if pathname exists (required for loading)
+      if (!item.pathname) {
+        const errorMessage = 'Cannot load request: missing pathname';
+        console.warn(errorMessage);
+        setLoadError(errorMessage);
+        return;
+      }
+
+      // Set loading state
+      loadingRequestRef.current = item.uid;
+      setLoadingRequestUid(item.uid);
+      setLoadError(null);
+
+      // Load request on demand
+      dispatch(loadRequestOnDemand({
+        collectionUid: collection.uid,
+        pathname: item.pathname
+      }))
+        .then(() => {
+          // Clear loading state on success
+          if (loadingRequestRef.current === item.uid) {
+            loadingRequestRef.current = null;
+            setLoadingRequestUid(null);
+            setLoadError(null);
+          }
+        })
+        .catch((error) => {
+          console.error('Error loading request on demand:', error);
+          // Set error state
+          const errorMessage = error?.message || 'Failed to load request';
+          if (loadingRequestRef.current === item.uid) {
+            setLoadError(errorMessage);
+            loadingRequestRef.current = null;
+            setLoadingRequestUid(null);
+          }
+          // Show toast notification
+          toast.error(errorMessage);
+        });
+    }
+  }, [focusedTab, activeTabUid, collection, dispatch]);
+
   if (!activeTabUid || !focusedTab) {
     return <WorkspaceHome />;
   }
@@ -233,12 +317,14 @@ const RequestTabPanel = () => {
     return <RequestNotFound itemUid={activeTabUid} />;
   }
 
-  if (item?.partial) {
-    return <RequestNotLoaded item={item} collection={collection} />;
+  // Show loading state if request is being loaded
+  if (loadingRequestUid === item.uid || item?.loading) {
+    return <RequestIsLoading item={item} />;
   }
 
-  if (item?.loading) {
-    return <RequestIsLoading item={item} />;
+  // Show not loaded state if request is partial or has load error
+  if (item?.partial || loadError) {
+    return <RequestNotLoaded item={{ ...item, loadError }} collection={collection} />;
   }
 
   const handleRun = async () => {
