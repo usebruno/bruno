@@ -130,7 +130,13 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
     return interpolate(url, variables);
   }, [collection, item, url]);
 
-  const credentialsData = find(collection?.oauth2Credentials, (creds) => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
+  const activeEnvironmentUid = collection?.activeEnvironmentUid ?? null;
+  const credentialsData = find(collection?.oauth2Credentials, (creds) =>
+    creds?.url == interpolatedUrl
+    && creds?.collectionUid == collectionUid
+    && creds?.credentialsId == credentialsId
+    && (creds?.activeEnvironmentUid ?? null) == activeEnvironmentUid
+  );
   const creds = credentialsData?.credentials || {};
 
   return (

@@ -1318,7 +1318,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               request: requestCopy,
               collectionUid,
               forceFetch: true,
-              certsAndProxyConfig
+              certsAndProxyConfig,
+              activeEnvironmentUid
             }).then(handleOAuth2Response);
 
           case 'client_credentials':
@@ -1327,7 +1328,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               request: requestCopy,
               collectionUid,
               forceFetch: true,
-              certsAndProxyConfig
+              certsAndProxyConfig,
+              activeEnvironmentUid
             }).then(handleOAuth2Response);
 
           case 'password':
@@ -1336,7 +1338,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               request: requestCopy,
               collectionUid,
               forceFetch: true,
-              certsAndProxyConfig
+              certsAndProxyConfig,
+              activeEnvironmentUid
             }).then(handleOAuth2Response);
 
           case 'implicit':
@@ -1344,7 +1347,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             return await getOAuth2TokenUsingImplicitGrant({
               request: requestCopy,
               collectionUid,
-              forceFetch: true
+              forceFetch: true,
+              activeEnvironmentUid
             }).then(handleOAuth2Response);
 
           default:
@@ -1387,7 +1391,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           globalEnvironmentVariables
         });
 
-        let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+        let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig, activeEnvironmentUid });
         return { credentials, url, collectionUid, credentialsId, debugInfo };
       }
     } catch (error) {

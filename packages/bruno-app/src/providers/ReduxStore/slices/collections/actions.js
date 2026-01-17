@@ -2529,6 +2529,7 @@ export const fetchOauth2Credentials = (payload) => async (dispatch, getState) =>
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  const activeEnvironmentUid = collection?.activeEnvironmentUid ?? null;
   request.globalEnvironmentVariables = globalEnvironmentVariables;
   return new Promise((resolve, reject) => {
     window.ipcRenderer
@@ -2540,6 +2541,7 @@ export const fetchOauth2Credentials = (payload) => async (dispatch, getState) =>
             url,
             collectionUid,
             credentialsId,
+            activeEnvironmentUid,
             debugInfo: safeParseJSON(safeStringifyJSON(debugInfo)),
             folderUid: folderUid || null,
             itemUid: !folderUid ? itemUid : null
@@ -2556,6 +2558,7 @@ export const refreshOauth2Credentials = (payload) => async (dispatch, getState) 
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  const activeEnvironmentUid = collection?.activeEnvironmentUid ?? null;
   request.globalEnvironmentVariables = globalEnvironmentVariables;
   return new Promise((resolve, reject) => {
     window.ipcRenderer
@@ -2567,6 +2570,7 @@ export const refreshOauth2Credentials = (payload) => async (dispatch, getState) 
             url,
             collectionUid,
             credentialsId,
+            activeEnvironmentUid,
             debugInfo: safeParseJSON(safeStringifyJSON(debugInfo)),
             folderUid: folderUid || null,
             itemUid: !folderUid ? itemUid : null

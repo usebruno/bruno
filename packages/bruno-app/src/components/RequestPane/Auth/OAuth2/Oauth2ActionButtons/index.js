@@ -38,7 +38,13 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
     return interpolate(accessTokenUrl, variables);
   }, [collection, item, accessTokenUrl]);
 
-  const credentialsData = find(collection?.oauth2Credentials, (creds) => creds?.url == interpolatedAccessTokenUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
+  const activeEnvironmentUid = collection?.activeEnvironmentUid ?? null;
+  const credentialsData = find(collection?.oauth2Credentials, (creds) =>
+    creds?.url == interpolatedAccessTokenUrl
+    && creds?.collectionUid == collectionUid
+    && creds?.credentialsId == credentialsId
+    && (creds?.activeEnvironmentUid ?? null) == activeEnvironmentUid
+  );
   const creds = credentialsData?.credentials || {};
 
   const handleFetchOauth2Credentials = async () => {
