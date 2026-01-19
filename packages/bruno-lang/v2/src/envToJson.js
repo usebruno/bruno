@@ -12,7 +12,7 @@ const _ = require('lodash');
 // }
 const indentLevel = 4;
 const grammar = ohm.grammar(`Bru {
-  BruEnvFile = (vars | secretvars)*
+  BruEnvFile = (comment | vars | secretvars)*
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -21,6 +21,10 @@ const grammar = ohm.grammar(`Bru {
   optionalnl = ~tagend nl
   keychar = ~(tagend | st | nl | ":") any
   valuechar = ~(nl | tagend | multilinetextblockstart) any
+
+  // Comments
+  comment = st* commentstart (~nl any)* nl
+  commentstart = "#" | "//"
 
   multilinetextblockdelimiter = "'''"
   multilinetextblockstart = "'''" nl
@@ -111,6 +115,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       },
       {}
     );
+  },
+  comment(_1, _2, _3, _4) {
+    return null;
   },
   array(_1, _2, _3, valuelist, _4, _5) {
     return valuelist.ast;

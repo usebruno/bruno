@@ -13,6 +13,22 @@ describe('Examples functionality', () => {
       expect(output).toEqual(expected);
     });
 
+    it('should parse example-with-comments.bru correctly', () => {
+      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'example-with-comments.bru'), 'utf8');
+      const expected = require('./fixtures/json/example-with-comments.json');
+      const output = bruToJson(input);
+
+      expect(output).toEqual(expected);
+    });
+
+    it('should parse test-comments-in-blocks.bru correctly', () => {
+      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'test-comments-in-blocks.bru'), 'utf8');
+      const expected = require('./fixtures/json/test-comments-in-blocks.json');
+      const output = bruToJson(input);
+
+      expect(output).toEqual(expected);
+    });
+
     it('should parse examples-complex.bru correctly', () => {
       const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'examples-complex.bru'), 'utf8');
       const output = bruToJson(input);

@@ -1,0 +1,86 @@
+{
+  "meta": {
+    "name": "Get User Profile",
+    "type": "http",
+    "seq": "1"
+  },
+  "http": {
+    "method": "get",
+    "url": "https://api.example.com/users/{{userId}}"
+  },
+  "headers": [
+    {
+      "name": "Authorization",
+      "value": "Bearer {{token}}",
+      "enabled": true
+    },
+    {
+      "name": "Content-Type",
+      "value": "application/json",
+      "enabled": true
+    }
+  ],
+  "params": [
+    {
+      "name": "include",
+      "value": "profile,settings",
+      "enabled": true,
+      "type": "query"
+    },
+    {
+      "name": "format",
+      "value": "json",
+      "enabled": true,
+      "type": "query"
+    }
+  ],
+  "vars": {
+    "req": [
+      {
+        "name": "userId",
+        "value": "123",
+        "enabled": true,
+        "local": false
+      },
+      {
+        "name": "timestamp",
+        "value": "{{new Date().getTime()}}",
+        "enabled": true,
+        "local": false
+      }
+    ],
+    "res": [
+      {
+        "name": "userName",
+        "value": "res.body.name",
+        "enabled": true,
+        "local": false
+      },
+      {
+        "name": "userEmail",
+        "value": "res.body.email",
+        "enabled": true,
+        "local": false
+      }
+    ]
+  },
+  "assertions": [
+    {
+      "name": "res.status",
+      "value": "eq 200",
+      "enabled": true
+    },
+    {
+      "name": "res.body.id",
+      "value": "eq {{userId}}",
+      "enabled": true
+    },
+    {
+      "name": "res.body.email",
+      "value": "isString",
+      "enabled": true
+    }
+  ],
+  "tests": "test(\"Status should be 200\", function() {\n  expect(res.status).to.equal(200);\n});\n\ntest(\"Response should have user data\", function() {\n  expect(res.body).to.have.property('name');\n  expect(res.body).to.have.property('email');\n});",
+  "docs": "This endpoint retrieves a user's profile information.\n\nRequired permissions:\n- read:users\n\nRate limit: 100 requests per minute"
+}

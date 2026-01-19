@@ -3,7 +3,7 @@ const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
 
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
+  BruFile = (comment | meta | query | headers | auth | auths | vars | script | tests | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM |authOAuth2 | authwsse | authapikey | authOauth2Configs
 
   // Oauth2 additional parameters
@@ -19,6 +19,10 @@ const grammar = ohm.grammar(`Bru {
   optionalnl = ~tagend nl
   keychar = ~(tagend | st | nl | ":") any
   valuechar = ~(nl | tagend) any
+
+  // Comments
+  comment = st* commentstart (~nl any)* nl
+  commentstart = "#" | "//"
 
   // Multiline text block surrounded by '''
   multilinetextblockdelimiter = "'''"
@@ -135,6 +139,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       },
       {}
     );
+  },
+  comment(_1, _2, _3, _4) {
+    return null;
   },
   dictionary(_1, _2, pairlist, _3) {
     return pairlist.ast;

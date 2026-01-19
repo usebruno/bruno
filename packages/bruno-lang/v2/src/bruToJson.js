@@ -30,7 +30,7 @@ const parseExample = require('./example/bruToJson');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | example)*
+  BruFile = (comment | meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
@@ -50,6 +50,10 @@ const grammar = ohm.grammar(`Bru {
   keychar = ~(tagend | st | nl | ":") any
   valuechar = ~(nl | tagend) any
 
+  // Comments
+  comment = st* commentstart (~nl any)* nl
+  commentstart = "#" | "//"
+
    // Multiline text block surrounded by '''
   multilinetextblockdelimiter = "'''"
   multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter st* contenttypeannotation?
@@ -57,7 +61,8 @@ const grammar = ohm.grammar(`Bru {
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
-  pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
+  pairlist = optionalnl* pairitem (~tagend stnl* pairitem)* (~tagend space)*
+  pairitem = comment | pair
   pair = st* (quoted_key | key) st* ":" st* value st*
   disable_char = "~"
   quote_char = "\\""
@@ -71,7 +76,8 @@ const grammar = ohm.grammar(`Bru {
 
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
-  assertpairlist = optionalnl* assertpair (~tagend stnl* assertpair)* (~tagend space)*
+  assertpairlist = optionalnl* assertpairitem (~tagend stnl* assertpairitem)* (~tagend space)*
+  assertpairitem = comment | assertpair
   assertpair = st* assertkey st* ":" st* value st*
   assertkey = ~tagend assertkeychar*
   assertkeychar = ~(tagend | nl | ":") any
@@ -83,7 +89,8 @@ const grammar = ohm.grammar(`Bru {
 
   // List
   list = st* "[" nl+ listitems? st* nl+ st* "]"
-  listitems = listitem (nl+ listitem)*
+  listitems = listentry (nl+ listentry)*
+  listentry = comment | listitem
   listitem = st+ (alnum | "_" | "-")+ st*
 
   meta = "meta" dictionary
@@ -345,11 +352,17 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       {}
     );
   },
+  comment(_1, _2, _3, _4) {
+    return null;
+  },
   dictionary(_1, _2, pairlist, _3) {
     return pairlist.ast;
   },
-  pairlist(_1, pair, _2, rest, _3) {
-    return [pair.ast, ...rest.ast];
+  pairlist(_1, pairitem, _2, rest, _3) {
+    return [pairitem.ast, ...rest.ast].filter((item) => item !== null);
+  },
+  pairitem(item) {
+    return item.ast;
   },
   pair(_1, key, _2, _3, _4, value, _5) {
     let res = {};
@@ -374,8 +387,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   assertdictionary(_1, _2, pairlist, _3) {
     return pairlist.ast;
   },
-  assertpairlist(_1, pair, _2, rest, _3) {
-    return [pair.ast, ...rest.ast];
+  assertpairlist(_1, assertpairitem, _2, rest, _3) {
+    return [assertpairitem.ast, ...rest.ast].filter((item) => item !== null);
+  },
+  assertpairitem(item) {
+    return item.ast;
   },
   assertpair(_1, key, _2, _3, _4, value, _5) {
     let res = {};
@@ -388,8 +404,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   list(_1, _2, _3, listitems, _4, _5, _6, _7) {
     return listitems.ast.flat();
   },
-  listitems(listitem, _1, rest) {
-    return [listitem.ast, ...rest.ast];
+  listitems(listentry, _1, rest) {
+    return [listentry.ast, ...rest.ast].filter((item) => item !== null);
+  },
+  listentry(item) {
+    return item.ast;
   },
   listitem(_1, textchar, _2) {
     return textchar.sourceString;
