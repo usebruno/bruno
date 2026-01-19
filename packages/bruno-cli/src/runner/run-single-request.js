@@ -22,7 +22,7 @@ const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor } = require('@usebruno/requests');
-const { getCACertificates } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
 const { getOAuth2Token } = require('../utils/oauth2');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData } = require('@usebruno/common').utils;
 
@@ -288,25 +288,27 @@ const runSingleRequest = async function (
     let proxyMode = 'off';
     let proxyConfig = {};
 
-    const collectionProxyConfig = get(brunoConfig, 'proxy', {});
-    const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', false);
+    const collectionProxyConfig = transformProxyConfig(get(brunoConfig, 'proxy', {}));
+    const collectionProxyDisabled = get(collectionProxyConfig, 'disabled', false);
+    const collectionProxyInherit = get(collectionProxyConfig, 'inherit', true);
+    const collectionProxyConfigData = get(collectionProxyConfig, 'config', {});
 
-    if (noproxy) {
-      // If noproxy flag is set, don't use any proxy
+    if (noproxy || collectionProxyDisabled) {
+      // If noproxy flag is set or collection proxy is disabled, don't use any proxy
       proxyMode = 'off';
-    } else if (collectionProxyEnabled === true) {
-      // If collection proxy is enabled, use it
-      proxyConfig = collectionProxyConfig;
+    } else if (!collectionProxyDisabled && !collectionProxyInherit) {
+      // Use collection-specific proxy
+      proxyConfig = collectionProxyConfigData;
       proxyMode = 'on';
-    } else if (collectionProxyEnabled === 'global') {
-      // If collection proxy is set to 'global', use system proxy
+    } else if (!collectionProxyDisabled && collectionProxyInherit) {
+      // Inherit from system proxy
       const { http_proxy, https_proxy } = getSystemProxyEnvVariables();
       if (http_proxy?.length || https_proxy?.length) {
         proxyMode = 'system';
       }
-    } else {
-      proxyMode = 'off';
+      // else: no system proxy available, proxyMode stays 'off'
     }
+    // else: collection proxy is disabled, proxyMode stays 'off'
 
     if (proxyMode === 'on') {
       const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
@@ -314,7 +316,7 @@ const runSingleRequest = async function (
         const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
         const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
         const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
-        const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
+        const proxyAuthEnabled = !get(proxyConfig, 'auth.disabled', false);
         const socksEnabled = proxyProtocol.includes('socks');
         let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
         let proxyUri;
