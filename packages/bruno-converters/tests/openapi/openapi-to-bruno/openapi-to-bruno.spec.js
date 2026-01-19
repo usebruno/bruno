@@ -353,9 +353,9 @@ const expectedOutput = {
       uid: 'mockeduuidvalue123456'
     }
   ],
-  "name": "Hello World OpenAPI",
-  "uid": "mockeduuidvalue123456",
-  "version": "1",
+  name: 'Hello World OpenAPI',
+  uid: 'mockeduuidvalue123456',
+  version: '1'
 };
 
 describe('openapi-collection: object schema parameters', () => {
