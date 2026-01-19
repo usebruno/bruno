@@ -1,21 +1,24 @@
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
+import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
 import { IconFlask } from '@tabler/icons';
 import get from 'lodash/get';
 
-// Beta features configuration
-const BETA_FEATURES = [
-  {
-    id: 'nodevm',
-    label: 'Node VM Runtime',
-    description: 'Enable Node VM runtime for JavaScript execution in Developer Mode'
-  }
-];
+/**
+ * Add beta features here.
+ * Example:
+ * {
+ *   id: 'nodevm',
+ *   label: 'Node VM Runtime',
+ *   description: 'Enable Node VM runtime for JavaScript execution in Developer Mode'
+ * }
+ */
+const BETA_FEATURES = [];
 
 const Beta = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -54,19 +57,37 @@ const Beta = ({ close }) => {
     }
   });
 
-  const handleSave = (newBetaPreferences) => {
+  const handleSave = useCallback((newBetaPreferences) => {
     dispatch(
       savePreferences({
         ...preferences,
         beta: newBetaPreferences
       })
     )
-      .then(() => {
-        toast.success('Beta preferences saved successfully');
-        close();
-      })
       .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
-  };
+  }, [dispatch, preferences]);
+
+  const debouncedSave = useCallback(
+    debounce((values) => {
+      betaSchema.validate(values, { abortEarly: true })
+        .then((validatedValues) => {
+          handleSave(validatedValues);
+        })
+        .catch((error) => {
+        });
+    }, 500),
+    [handleSave, betaSchema]
+  );
+
+  // Auto-save when form values change
+  useEffect(() => {
+    if (formik.dirty && formik.isValid) {
+      debouncedSave(formik.values);
+    }
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 
   const hasAnyBetaFeatures = BETA_FEATURES.length > 0;
 
@@ -111,12 +132,6 @@ const Beta = ({ close }) => {
             <p>No beta features are currently available</p>
           </div>
         )}
-
-        <div className="mt-10">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
-            Save
-          </button>
-        </div>
       </form>
     </StyledWrapper>
   );

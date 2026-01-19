@@ -5,7 +5,7 @@ describe('insomnia-collection', () => {
   it('should correctly import a valid Insomnia v5 collection file', async () => {
     const brunoCollection = insomniaToBruno(insomniaCollection);
 
-    expect(brunoCollection).toMatchObject(expectedOutput)
+    expect(brunoCollection).toMatchObject(expectedOutput);
   });
 });
 
@@ -81,7 +81,7 @@ environments:
   data:
     var1: value1
     var2: value2
-`
+`;
 
 const expectedOutput = {
   environments: [
@@ -105,81 +105,81 @@ const expectedOutput = {
       ]
     }
   ],
-  "items": [
+  items: [
     {
-      "items": [
+      items: [
         {
-          "name": "Request1",
-          "request": {
-            "auth": {
-              "basic": null,
-              "bearer": null,
-              "digest": null,
-              "mode": "none",
+          name: 'Request1',
+          request: {
+            auth: {
+              basic: null,
+              bearer: null,
+              digest: null,
+              mode: 'none'
             },
-            "body": {
-              "formUrlEncoded": [],
-              "json": null,
-              "mode": "none",
-              "multipartForm": [],
-              "text": null,
-              "xml": null,
+            body: {
+              formUrlEncoded: [],
+              json: null,
+              mode: 'none',
+              multipartForm: [],
+              text: null,
+              xml: null
             },
-            "headers": [],
-            "method": "GET",
-            "params": [],
-            "url": "https://testbench-sanity.usebruno.com/ping"
+            headers: [],
+            method: 'GET',
+            params: [],
+            url: 'https://testbench-sanity.usebruno.com/ping'
           },
-          "seq": 1,
-          "type": "http-request",
-          "uid": "mockeduuidvalue123456",
-          "settings": {
-            "encodeUrl": true,
-          },
-        },
+          seq: 1,
+          type: 'http-request',
+          uid: 'mockeduuidvalue123456',
+          settings: {
+            encodeUrl: true
+          }
+        }
       ],
-      "name": "Folder1",
-      "type": "folder",
-      "uid": "mockeduuidvalue123456",
+      name: 'Folder1',
+      type: 'folder',
+      uid: 'mockeduuidvalue123456'
     },
     {
-      "items": [
+      items: [
         {
-          "name": "Request2",
-          "request": {
-            "auth": {
-              "basic": null,
-              "bearer": null,
-              "digest": null,
-              "mode": "none",
+          name: 'Request2',
+          request: {
+            auth: {
+              basic: null,
+              bearer: null,
+              digest: null,
+              mode: 'none'
             },
-            "body": {
-              "formUrlEncoded": [],
-              "json": null,
-              "mode": "none",
-              "multipartForm": [],
-              "text": null,
-              "xml": null,
+            body: {
+              formUrlEncoded: [],
+              json: null,
+              mode: 'none',
+              multipartForm: [],
+              text: null,
+              xml: null
             },
-            "headers": [],
-            "method": "GET",
-            "params": [],
-            "url": "https://testbench-sanity.usebruno.com/ping"
+            headers: [],
+            method: 'GET',
+            params: [],
+            url: 'https://testbench-sanity.usebruno.com/ping'
           },
-          "seq": 1,
-          "type": "http-request",
-          "uid": "mockeduuidvalue123456",
-          "settings": {
-            "encodeUrl": false,
-          },
-        },
+          seq: 1,
+          type: 'http-request',
+          uid: 'mockeduuidvalue123456',
+          settings: {
+            encodeUrl: false
+          }
+        }
       ],
-      "name": "Folder2",
-      "type": "folder",
-      "uid": "mockeduuidvalue123456",
-    },
+      name: 'Folder2',
+      type: 'folder',
+      uid: 'mockeduuidvalue123456'
+    }
   ],
-  "name": "Hello World Workspace Insomnia",
-  "uid": "mockeduuidvalue123456",
-  "version": "1",
+  name: 'Hello World Workspace Insomnia',
+  uid: 'mockeduuidvalue123456',
+  version: '1'
 };

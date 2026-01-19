@@ -13,7 +13,7 @@ const {
  */
 async function setup() {
   console.log('🔧 Setting up CA certificates for test server');
-  
+
   const certsDir = path.join(__dirname, '..', 'certs');
 
   try {

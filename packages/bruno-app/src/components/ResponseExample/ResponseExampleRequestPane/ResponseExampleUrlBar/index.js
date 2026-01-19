@@ -61,7 +61,7 @@ const ResponseExampleUrlBar = ({ item, collection, editMode, onSave, exampleUid 
 
         <div
           id="response-example-url"
-          className="response-example-url flex items-center flex-1 h-6"
+          className="response-example-url flex items-center flex-1 h-6 min-w-0 overflow-hidden"
         >
           <SingleLineEditor
             value={url}

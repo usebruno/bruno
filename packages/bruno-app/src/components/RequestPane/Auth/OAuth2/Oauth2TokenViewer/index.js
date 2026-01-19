@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
-import { find } from "lodash";
-import StyledWrapper from "./StyledWrapper";
+import { useState, useEffect, useMemo } from 'react';
+import { find } from 'lodash';
+import StyledWrapper from './StyledWrapper';
 import { IconChevronDown, IconChevronRight, IconCopy, IconCheck } from '@tabler/icons';
 import { getAllVariables } from 'utils/collections/index';
 import { interpolate } from '@usebruno/common';
@@ -39,10 +39,9 @@ const TokenSection = ({ title, token }) => {
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center space-x-2 w-full">
-          {isExpanded ?
-            <IconChevronDown size={18} className="text-gray-500" /> :
-            <IconChevronRight size={18} className="text-gray-500" />
-          }
+          {isExpanded
+            ? <IconChevronDown size={18} className="text-gray-500" />
+            : <IconChevronRight size={18} className="text-gray-500" />}
           <div className="flex flex-row justify-between w-full">
             <h3 className="font-medium">{title}</h3>
             {decodedToken?.exp && <ExpiryTimer expiresIn={decodedToken?.exp} />}
@@ -55,13 +54,12 @@ const TokenSection = ({ title, token }) => {
             <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={() => handleCopy(token)}
-                className="p-1 bg-indigo-100 dark:hover:bg-indigo-200 rounded"
+                className="p-1 oauth2-copy-button rounded"
                 title="Copy token"
               >
-                {copied ?
-                  <IconCheck size={16} className="text-green-700" /> :
-                  <IconCopy size={16} className="text-gray-500" />
-                }
+                {copied
+                  ? <IconCheck size={16} className="text-green-700" />
+                  : <IconCopy size={16} className="text-gray-500" />}
               </button>
             </div>
             <div className="font-mono text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded break-all">
@@ -115,15 +113,14 @@ const ExpiryTimer = ({ expiresIn }) => {
   return (
     <div
       className={`text-xs px-2 py-1 rounded-full min-w-[120px] text-center ${timeLeft <= 30
-          ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-          : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-        }`}
+        ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+        : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+      }`}
     >
       {timeLeft > 0 ? `Expires in ${formatExpiryTime(timeLeft)}` : `Expired`}
     </div>
   );
 };
-
 
 const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) => {
   const { uid: collectionUid } = collection;
@@ -133,7 +130,7 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
     return interpolate(url, variables);
   }, [collection, item, url]);
 
-  const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
+  const credentialsData = find(collection?.oauth2Credentials, (creds) => creds?.url == interpolatedUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
   const creds = credentialsData?.credentials || {};
 
   return (
@@ -146,22 +143,28 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
             <TokenSection title="Access Token" token={creds.access_token} />
             <TokenSection title="Refresh Token" token={creds.refresh_token} />
             <TokenSection title="ID Token" token={creds.id_token} />
-            {(creds.token_type || creds.scope) ? <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs">
-              <div className="grid grid-cols-2 gap-2">
-                {creds.token_type ? <div className="flex items-center space-x-1">
-                  <span className="font-medium">Token Type:</span>
-                  <span className="text-gray-600 dark:text-gray-300">{creds.token_type}</span>
-                </div> : null}
-                {creds?.scope ? <div className="flex items-center space-x-1 min-w-0">
-                  <span className="font-medium flex-shrink-0">Scope:</span>
-                  <span className="text-gray-600 dark:text-gray-300 truncate" title={creds.scope}>
-                    {creds.scope}
-                  </span>
-                </div> : null}
+            {(creds.token_type || creds.scope) ? (
+              <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs">
+                <div className="grid grid-cols-2 gap-2">
+                  {creds.token_type ? (
+                    <div className="flex items-center space-x-1">
+                      <span className="font-medium">Token Type:</span>
+                      <span className="text-gray-600 dark:text-gray-300">{creds.token_type}</span>
+                    </div>
+                  ) : null}
+                  {creds?.scope ? (
+                    <div className="flex items-center space-x-1 min-w-0">
+                      <span className="font-medium flex-shrink-0">Scope:</span>
+                      <span className="text-gray-600 dark:text-gray-300 truncate" title={creds.scope}>
+                        {creds.scope}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            </div> : null}
+            ) : null}
           </div>
-        )     
+        )
       ) : (
         <div className="text-gray-500 dark:text-gray-400">No token found</div>
       )}

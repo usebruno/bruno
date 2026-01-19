@@ -25,6 +25,7 @@ class MultiLineEditor extends Component {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
     };
   }
+
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
@@ -67,15 +68,14 @@ class MultiLineEditor extends Component {
         'Cmd-F': () => {},
         'Ctrl-F': () => {},
         // Tabbing disabled to make tabindex work
-        Tab: false,
+        'Tab': false,
         'Shift-Tab': false
       }
     });
 
-
     const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
     const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
-    
+
     // Setup AutoComplete Helper
     const autoCompleteOptions = {
       showHintsFor: ['variables'],
@@ -89,7 +89,7 @@ class MultiLineEditor extends Component {
     );
 
     setupLinkAware(this.editor);
-    
+
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);
@@ -154,8 +154,10 @@ class MultiLineEditor extends Component {
       this.editor.setOption('readOnly', this.props.readOnly);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
+      const cursor = this.editor.getCursor();
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value) || '');
+      this.editor.setCursor(cursor);
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
       // If the secret flag has changed, update the editor to reflect the change

@@ -22,17 +22,18 @@ const StyledWrapper = styled.div`
   table tr {
     display: contents;
   }
-
+ 
   table th {
     position: relative;
-    border-bottom: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder}77;
+    font-weight: 400;
+    border-bottom: 1px solid ${(props) => props.theme.table.border};
   }
 
   table tr td {
     padding: 0.5rem;
     text-align: left;
-    border-top: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder}77;
-    border-right: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder}77;
+    border-top: 1px solid ${(props) => props.theme.table.border};
+    border-right: 1px solid ${(props) => props.theme.table.border};
   }
 
   tr {
@@ -50,11 +51,11 @@ const StyledWrapper = styled.div`
   table tr th {
     padding: 0.5rem;
     text-align: left;
-    border-top: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder}77;
-    border-right: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder}77;
+    border-top: 1px solid ${(props) => props.theme.table.border};
+    border-right: 1px solid ${(props) => props.theme.table.border};
 
     &:nth-child(1) {
-      border-left: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder}77;
+      border-left: 1px solid ${(props) => props.theme.table.border};
     }
   }
 `;

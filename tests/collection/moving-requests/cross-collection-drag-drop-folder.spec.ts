@@ -9,12 +9,12 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
 
   test('Verify cross-collection folder drag and drop', async ({ page, createTmpDir }) => {
     // Create first collection - open with sandbox mode
-    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
 
     // Create a folder in the first collection
     // Look for the collection menu button for the source collection specifically
     const sourceCollectionContainer1 = page.locator('.collection-name').filter({ hasText: 'source-collection' });
-    await sourceCollectionContainer1.locator('.collection-actions').hover();
+    await sourceCollectionContainer1.hover();
     await sourceCollectionContainer1.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 
@@ -45,7 +45,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })).toBeVisible();
 
     // Create second collection - open with sandbox mode
-    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     // Wait for both collections to be visible in sidebar
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
@@ -66,10 +66,6 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await page.waitForTimeout(200);
 
     // Verify the folder has been moved to the target collection
-    // Click on target collection to expand it if needed
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-    await page.waitForTimeout(200);
-
     // Check that the folder now appears under target collection
     const targetCollectionContainer = page
       .locator('.collection-name')
@@ -106,7 +102,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     createTmpDir
   }) => {
     // Create first collection (source) - use unique names for this test
-    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
 
     // Create a folder in the first collection
     await page
@@ -141,7 +137,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await expect(page.locator('.collection-item-name').filter({ hasText: 'http-request' })).toBeVisible();
 
     // Create second collection (target)
-    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     // Create a folder with the same name in the target collection
     await page
@@ -160,9 +156,6 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await expect(page.locator('#folder-name')).toBeVisible();
     await page.locator('#folder-name').fill('folder-1');
     await page.getByRole('button', { name: 'Create' }).click();
-
-    // Go back to source collection to drag the folder
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
 
     // Verify we have the folder to drag in the source collection
     const sourceFolder = page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).first();

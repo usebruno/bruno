@@ -7,6 +7,7 @@ import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions'
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const Script = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -57,7 +58,7 @@ const Script = ({ collection, folder }) => {
   };
 
   return (
-    <StyledWrapper className="w-full flex flex-col h-full pt-4">
+    <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">
         Pre and post-request scripts that will run before and after any request inside this folder is sent.
       </div>
@@ -100,9 +101,9 @@ const Script = ({ collection, folder }) => {
       </Tabs>
 
       <div className="mt-12">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

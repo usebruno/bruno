@@ -4,7 +4,6 @@
 const parser = require('../src/bruToJson');
 
 describe('List Support in BruFile Blocks', () => {
-
   describe('Basic List Functionality', () => {
     describe('Valid List Syntax', () => {
       it('should parse simple list with proper indentation', () => {
@@ -21,7 +20,7 @@ meta {
           meta: {
             seq: 1,
             tags: ['tag_1', 'tag_2'],
-            type: "http"
+            type: 'http'
           }
         };
         expect(output).toEqual(expected);
@@ -42,9 +41,9 @@ meta {
         const expected = {
           meta: {
             seq: 1,
-            name: "request_name",
+            name: 'request_name',
             tags: ['regression', 'smoke_test'],
-            type: "http"
+            type: 'http'
           }
         };
         expect(output).toEqual(expected);
@@ -65,7 +64,7 @@ meta {
           meta: {
             seq: 1,
             tags: ['tag_1', 'tag_2', 'tag_3'],
-            type: "http"
+            type: 'http'
           }
         };
         expect(output).toEqual(expected);
@@ -87,7 +86,7 @@ meta {
           meta: {
             seq: 1,
             tags: ['tag-with-hyphens', 'tag_with_underscores', 'tag123numbers', 'CamelCaseTag'],
-            type: "http"
+            type: 'http'
           }
         };
         expect(output).toEqual(expected);
@@ -227,9 +226,9 @@ meta {
         const expected = {
           meta: {
             seq: 1,
-            name: "[some name]",
+            name: '[some name]',
             tags: ['actual_list_item'],
-            type: "http"
+            type: 'http'
           }
         };
         expect(output).toEqual(expected);
@@ -249,9 +248,9 @@ meta {
         const expected = {
           meta: {
             seq: 1,
-            name: "[ this is the name ]",
+            name: '[ this is the name ]',
             tags: ['tag_1', 'tag_2'],
-            type: "http"
+            type: 'http'
           }
         };
         expect(output).toEqual(expected);
@@ -285,10 +284,10 @@ meta {
       const output = parser(input);
       const expected = {
         meta: {
-          name: "API Test",
+          name: 'API Test',
           tags: ['api', 'integration', 'v1'],
           seq: 1,
-          type: "http"
+          type: 'http'
         }
       };
       expect(output).toEqual(expected);
@@ -313,7 +312,7 @@ meta {
           seq: 1,
           categories: ['user-management', 'auth'],
           environments: ['staging', 'production'],
-          type: "http"
+          type: 'http'
         }
       };
       expect(output).toEqual(expected);
@@ -344,10 +343,10 @@ body:text {
 
       const expected = {
         meta: {
-          name: "[name]",
+          name: '[name]',
           tags: [
-            "tag_1",
-            "tag_2"
+            'tag_1',
+            'tag_2'
           ],
           seq: 1,
           type: 'http'
@@ -388,10 +387,10 @@ body:text {
 
       const expected = {
         meta: {
-          name: "[name]",
+          name: '[name]',
           tags: [
-            "tag_1",
-            "tag_2"
+            'tag_1',
+            'tag_2'
           ],
           seq: 1,
           type: 'http'
@@ -432,10 +431,10 @@ body:json {
 
       const expected = {
         meta: {
-          name: "[name]",
+          name: '[name]',
           tags: [
-            "tag_1",
-            "tag_2"
+            'tag_1',
+            'tag_2'
           ],
           seq: 1,
           type: 'http'
@@ -476,10 +475,10 @@ body:json {
 
       const expected = {
         meta: {
-          name: "[name]",
+          name: '[name]',
           tags: [
-            "tag_1",
-            "tag_2"
+            'tag_1',
+            'tag_2'
           ],
           seq: 1,
           type: 'http'
@@ -520,10 +519,10 @@ body:json {
 
       const expected = {
         meta: {
-          name: "[name]",
+          name: '[name]',
           tags: [
-            "tag_1",
-            "tag_2"
+            'tag_1',
+            'tag_2'
           ],
           seq: 1,
           type: 'http'
@@ -570,10 +569,10 @@ body:json {
 
       const expected = {
         meta: {
-          name: "[name]",
+          name: '[name]',
           tags: [
-            "tag_1",
-            "tag_2"
+            'tag_1',
+            'tag_2'
           ],
           seq: 1,
           type: 'http'
@@ -616,10 +615,10 @@ body:json {
 
       const expected = {
         meta: {
-          name: "[name]",
+          name: '[name]',
           tags: [
-            "tag_1",
-            "tag_2"
+            'tag_1',
+            'tag_2'
           ],
           seq: 1,
           type: 'http'
@@ -650,10 +649,10 @@ body:json {
 
       const expected = {
         meta: {
-          name: "[name]",
+          name: '[name]',
           tags: [
-            "tag_1",
-            "tag_2"
+            'tag_1',
+            'tag_2'
           ],
           seq: 1,
           type: 'http'
@@ -696,10 +695,10 @@ body:json {
 
       const expected = {
         meta: {
-          name: "[name]",
+          name: '[name]',
           tags: [
-            "tag_1",
-            "tag_2"
+            'tag_1',
+            'tag_2'
           ],
           seq: 1,
           type: 'http'
@@ -761,10 +760,10 @@ body:json {
 
       const expected = {
         meta: {
-          name: "[name]",
+          name: '[name]',
           tags: [
-            "tag_1",
-            "tag_2"
+            'tag_1',
+            'tag_2'
           ],
           seq: 1,
           type: 'http'

@@ -2,7 +2,6 @@ import React from 'react';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseSize = ({ size }) => {
-
   if (!Number.isFinite(size)) {
     return null;
   }
@@ -20,7 +19,7 @@ const ResponseSize = ({ size }) => {
   }
 
   return (
-    <StyledWrapper title={(size?.toLocaleString() || '0') + 'B'} className="ml-4">
+    <StyledWrapper title={(size?.toLocaleString() || '0') + 'B'} className="ml-2">
       {sizeToDisplay}
     </StyledWrapper>
   );

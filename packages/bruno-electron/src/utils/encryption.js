@@ -67,7 +67,6 @@ function aes256Decrypt(data, passkey = null) {
   }
 }
 
-
 // electron safe storage encryption and decryption functions
 function safeStorageEncrypt(str) {
   let encryptedStringBuffer = safeStorage.encryptString(str);

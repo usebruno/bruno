@@ -6,7 +6,7 @@ import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
 import { cloneItem } from 'providers/ReduxStore/slices/collections/actions';
-import { IconArrowBackUp, IconEdit, IconCaretDown } from "@tabler/icons";
+import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import Help from 'components/Help';
 import PathDisplay from 'components/PathDisplay/index';
@@ -14,6 +14,7 @@ import path from 'utils/common/path';
 import Portal from 'components/Portal';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
@@ -42,11 +43,11 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
         .min(1, 'must be at least 1 character')
         .max(255, 'must be 255 characters or less')
         .required('name is required')
-        .test('is-valid-name', function(value) {
+        .test('is-valid-name', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
-        .test('not-reserved', `The file names "collection" and "folder" are reserved in bruno`, value => !['collection', 'folder'].includes(value))
+        .test('not-reserved', `The file names "collection" and "folder" are reserved in bruno`, (value) => !['collection', 'folder'].includes(value))
     }),
     onSubmit: (values) => {
       dispatch(cloneItem(values.name, values.filename, item.uid, collectionUid))
@@ -75,7 +76,7 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
         >
           Options
         </button>
-        <IconCaretDown className="caret ml-1" size={14} strokeWidth={2}/>
+        <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
       </div>
     );
   });
@@ -98,14 +99,14 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
                 id="collection-item-name"
                 type="text"
                 name="name"
-                placeholder='Enter Item name'
+                placeholder="Enter Item name"
                 ref={inputRef}
                 className="block textbox mt-2 w-full"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
-                onChange={e => {
+                onChange={(e) => {
                   formik.setFieldValue('name', e.target.value);
                   !isEditing && formik.setFieldValue('filename', sanitizeName(e.target.value));
                 }}
@@ -113,12 +114,12 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
               />
               {formik.touched.name && formik.errors.name ? <div className="text-red-500">{formik.errors.name}</div> : null}
             </div>
-            
+
             {showFilesystemName && (
               <div className="mt-4">
                 <div className="flex items-center justify-between">
                   <label htmlFor="filename" className="flex items-center font-medium">
-                    {isFolder ? 'Folder' : 'File'} Name <small className='font-normal text-muted ml-1'>(on filesystem)</small>
+                    {isFolder ? 'Folder' : 'File'} Name <small className="font-normal text-muted ml-1">(on filesystem)</small>
                     { isFolder ? (
                       <Help width="300">
                         <p>
@@ -137,29 +138,29 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
                     )}
                   </label>
                   {isEditing ? (
-                    <IconArrowBackUp 
-                      className="cursor-pointer opacity-50 hover:opacity-80" 
-                      size={16} 
-                      strokeWidth={1.5} 
-                      onClick={() => toggleEditing(false)} 
+                    <IconArrowBackUp
+                      className="cursor-pointer opacity-50 hover:opacity-80"
+                      size={16}
+                      strokeWidth={1.5}
+                      onClick={() => toggleEditing(false)}
                     />
                   ) : (
                     <IconEdit
-                        className="cursor-pointer opacity-50 hover:opacity-80" 
-                        size={16} 
-                        strokeWidth={1.5}
-                        onClick={() => toggleEditing(true)} 
-                      />
+                      className="cursor-pointer opacity-50 hover:opacity-80"
+                      size={16}
+                      strokeWidth={1.5}
+                      onClick={() => toggleEditing(true)}
+                    />
                   )}
                 </div>
                 {isEditing ? (
-                  <div className='relative flex flex-row gap-1 items-center justify-between'>
+                  <div className="relative flex flex-row gap-1 items-center justify-between">
                     <input
                       id="file-name"
                       type="text"
                       name="filename"
                       placeholder={isFolder ? 'Folder Name' : 'File Name'}
-                      className={`!pr-10 block textbox mt-2 w-full`}
+                      className="!pr-10 block textbox mt-2 w-full"
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -167,10 +168,10 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
                       onChange={formik.handleChange}
                       value={formik.values.filename || ''}
                     />
-                    {itemType !== 'folder' && <span className='absolute right-2 top-4 flex justify-center items-center file-extension'>.bru</span>}
+                    {itemType !== 'folder' && <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.bru</span>}
                   </div>
                 ) : (
-                  <div className='relative flex flex-row gap-1 items-center justify-between'>
+                  <div className="relative flex flex-row gap-1 items-center justify-between">
                     <PathDisplay
                       baseName={formik.values.filename}
                     />
@@ -183,9 +184,9 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
             )}
 
             <div className="flex justify-between items-center mt-8 bruno-modal-footer">
-              <div className='flex advanced-options'>
+              <div className="flex advanced-options">
                 <Dropdown onCreate={onDropdownCreate} icon={<AdvancedOptions />} placement="bottom-start">
-                  <div 
+                  <div
                     className="dropdown-item"
                     key="show-filesystem-name"
                     onClick={(e) => {
@@ -197,20 +198,13 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
                   </div>
                 </Dropdown>
               </div>
-              <div className='flex justify-end'>
-                <span className='mr-2'>
-                  <button type="button" onClick={onClose} className="btn btn-md btn-close">
-                    Cancel
-                  </button>
-                </span>
-                <span>
-                  <button
-                    type="submit"
-                    className="submit btn btn-md btn-secondary"
-                  >
-                    Clone
-                  </button>
-                </span>
+              <div className="flex justify-end">
+                <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Clone
+                </Button>
               </div>
             </div>
           </form>

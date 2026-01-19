@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconSettings, IconCookie, IconTool, IconSearch } from '@tabler/icons';
+import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
 import Mousetrap from 'mousetrap';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
 import Preferences from 'components/Preferences';
-import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
 import Cookies from 'components/Cookies';
 import Notifications from 'components/Notifications';
 import Portal from 'components/Portal';
-import { showPreferences, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import ThemeDropdown from './ThemeDropdown';
+import { showPreferences } from 'providers/ReduxStore/slices/app';
 import { openConsole } from 'providers/ReduxStore/slices/logs';
 import { useApp } from 'providers/App';
 import StyledWrapper from './StyledWrapper';
@@ -18,11 +18,10 @@ const StatusBar = () => {
   const dispatch = useDispatch();
   const preferencesOpen = useSelector((state) => state.app.showPreferences);
   const logs = useSelector((state) => state.logs.logs);
-  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const [cookiesOpen, setCookiesOpen] = useState(false);
   const { version } = useApp();
 
-  const errorCount = logs.filter(log => log.type === 'error').length;
+  const errorCount = logs.filter((log) => log.type === 'error').length;
 
   const handleConsoleClick = () => {
     dispatch(openConsole());
@@ -51,7 +50,7 @@ const StatusBar = () => {
           />
         </Portal>
       )}
-      
+
       {cookiesOpen && (
         <Portal>
           <Cookies
@@ -70,16 +69,6 @@ const StatusBar = () => {
       <div className="status-bar">
         <div className="status-bar-section">
           <div className="status-bar-group">
-            <ToolHint text="Toggle Sidebar" toolhintId="Toggle Sidebar" place="top-start" offset={10}>
-              <button
-                className="status-bar-button"
-                aria-label="Toggle Sidebar"
-                onClick={() => dispatch(toggleSidebarCollapse())}
-              >
-                <IconSidebarToggle collapsed={sidebarCollapsed} size={16} strokeWidth={1.5} aria-hidden="true" />
-              </button>
-            </ToolHint>
-
             <ToolHint text="Preferences" toolhintId="Preferences" place="top-start" offset={10}>
               <button
                 className="status-bar-button preferences-button"
@@ -91,11 +80,35 @@ const StatusBar = () => {
                 <IconSettings size={16} strokeWidth={1.5} aria-hidden="true" />
               </button>
             </ToolHint>
-            
+
+            <ThemeDropdown>
+              <button
+                className="status-bar-button"
+                data-trigger="theme"
+                tabIndex={0}
+                aria-label="Change Theme"
+              >
+                <IconPalette size={16} strokeWidth={1.5} aria-hidden="true" />
+              </button>
+            </ThemeDropdown>
+
             <ToolHint text="Notifications" toolhintId="Notifications" place="top" offset={10}>
               <div className="status-bar-button">
                 <Notifications />
               </div>
+            </ToolHint>
+
+            <ToolHint text="GitHub Repository" toolhintId="GitHub" place="top" offset={10}>
+              <button
+                className="status-bar-button"
+                onClick={() => {
+                  window?.ipcRenderer?.openExternal('https://github.com/usebruno/bruno');
+                }}
+                tabIndex={0}
+                aria-label="Open GitHub Repository"
+              >
+                <IconBrandGithub size={16} strokeWidth={1.5} aria-hidden="true" />
+              </button>
             </ToolHint>
           </div>
         </div>
@@ -114,7 +127,7 @@ const StatusBar = () => {
                 <span className="console-label">Search</span>
               </div>
             </button>
-            
+
             <button
               className="status-bar-button"
               data-trigger="cookies"
@@ -127,7 +140,7 @@ const StatusBar = () => {
                 <span className="console-label">Cookies</span>
               </div>
             </button>
-            
+
             <button
               className={`status-bar-button ${errorCount > 0 ? 'has-errors' : ''}`}
               data-trigger="dev-tools"
@@ -143,9 +156,9 @@ const StatusBar = () => {
                 )}
               </div>
             </button>
-            
+
             <div className="status-bar-divider"></div>
-            
+
             <div className="status-bar-version">
               v{version}
             </div>
@@ -156,4 +169,4 @@ const StatusBar = () => {
   );
 };
 
-export default StatusBar; 
+export default StatusBar;

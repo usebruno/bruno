@@ -27,7 +27,7 @@ describe('crypto-utils shims tests', () => {
     const handle = vm.unwrapResult(result);
     const type = vm.dump(handle);
     handle.dispose();
-  
+
     expect(type).toBe('function');
   });
 
@@ -36,7 +36,7 @@ describe('crypto-utils shims tests', () => {
     const handle = vm.unwrapResult(result);
     const type = vm.dump(handle);
     handle.dispose();
-    
+
     expect(type).toBe('function');
   });
 
@@ -45,7 +45,7 @@ describe('crypto-utils shims tests', () => {
     const handle = vm.unwrapResult(result);
     const length = vm.dump(handle);
     handle.dispose();
-    
+
     expect(length).toBe(8);
   });
 
@@ -54,7 +54,7 @@ describe('crypto-utils shims tests', () => {
     const handle = vm.unwrapResult(result);
     const hexLength = vm.dump(handle);
     handle.dispose();
-    
+
     expect(hexLength).toBe(8); // 4 bytes = 8 hex chars
   });
 
@@ -67,7 +67,7 @@ describe('crypto-utils shims tests', () => {
     const handle = vm.unwrapResult(result);
     const length = vm.dump(handle);
     handle.dispose();
-    
+
     expect(length).toBe(5);
   });
 });

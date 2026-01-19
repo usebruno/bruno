@@ -66,7 +66,7 @@ const safeJsonParse = (jsonString, context = 'JSON string') => {
     console.error(errorMessage, { originalString: jsonString, parseError: error });
     throw new Error(errorMessage);
   }
-}
+};
 
 const processGrpcMetadata = (metadata) => {
   return Object.entries(metadata).map(([name, value]) => {
@@ -92,16 +92,16 @@ const processGrpcMetadata = (metadata) => {
 
 const getParsedGrpcUrlObject = (url) => {
   const isUnixSocket = (str) => str.startsWith('unix:');
-  //const isXdsUrl = str => str.startsWith('xds:');
+  // const isXdsUrl = str => str.startsWith('xds:');
   // By default, secure protocol grpcs is set if not specified, localhost is set to insecure (grpc://)
   const addProtocolIfMissing = (str) => {
     if (str.includes('://')) return str;
-    
+
     // For localhost, default to insecure (grpc://) for local development
     if (str.includes('localhost') || str.includes('127.0.0.1')) {
       return `grpc://${str}`;
     }
-    
+
     // For other hosts, default to secure
     return `grpcs://${str}`;
   };
@@ -316,10 +316,11 @@ class GrpcClient {
    * @param {string} [options.collectionUid] - Collection UID
    * @param {Object} [options.certificates] - Certificate configuration
    * @param {Object} [options.verifyOptions] - Additional options for verifying the server certificate
+   * @param {string[]} [options.includeDirs] - Include directories for proto file resolution
    * @returns {Promise<boolean>} Whether methods were successfully refreshed
    * @private
    */
-  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions }) {
+  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions, includeDirs = [] }) {
     try {
       // Try reflection first if no proto path is specified
       if (!protoPath) {
@@ -339,8 +340,8 @@ class GrpcClient {
 
       // Try proto file if available
       if (protoPath) {
-        const absoluteProtoPath = nodePath.join(collectionPath, protoPath);
-        await this.loadMethodsFromProtoFile(absoluteProtoPath, []);
+        const absoluteProtoPath = nodePath.resolve(collectionPath, protoPath);
+        await this.loadMethodsFromProtoFile(absoluteProtoPath, includeDirs);
         return true;
       }
 
@@ -463,6 +464,7 @@ class GrpcClient {
    * @param {string} [params.pfx] - The PFX/P12 certificate data
    * @param {Object} [params.verifyOptions] - Additional options for verifying the server certificate
    * @param {import('@grpc/grpc-js').ChannelOptions} [params.channelOptions] - Additional options for the gRPC channel
+   * @param {string[]} [params.includeDirs] - Include directories for proto file resolution
    */
   async startConnection({
     request,
@@ -473,7 +475,8 @@ class GrpcClient {
     passphrase,
     pfx,
     verifyOptions,
-    channelOptions = {}
+    channelOptions = {},
+    includeDirs = []
   }) {
     const credentials = this.#getChannelCredentials({
       url: request.url,
@@ -491,9 +494,8 @@ class GrpcClient {
     try {
       method = this.#getMethodFromPath(methodPath);
     } catch (error) {
-
       /* Attempt to refresh methods as fallback
-      * In an ideal case, the stored metadata from local storage should be received from the client side, 
+      * In an ideal case, the stored metadata from local storage should be received from the client side,
       * however, this approach causes serialization failure as the method definition loses its requestSerialize function while saving to local storage
       * so we are using reflection as a fallback
       */
@@ -510,7 +512,8 @@ class GrpcClient {
           passphrase,
           pfx
         },
-        verifyOptions
+        verifyOptions,
+        includeDirs
       });
 
       if (!refreshSuccess) {
@@ -536,8 +539,8 @@ class GrpcClient {
       messages = messages.map(({ content }) => safeJsonParse(content, 'message content'));
     } catch (parseError) {
       console.error('Failed to parse gRPC message content:', parseError);
-      this.eventCallback('grpc:error', request.uid, collection.uid, { 
-        error: parseError 
+      this.eventCallback('grpc:error', request.uid, collection.uid, {
+        error: parseError
       });
       return; // Exit early to prevent sending invalid data
     }
@@ -572,7 +575,7 @@ class GrpcClient {
 
     if (connection) {
       let parsedBody;
-      
+
       // Parse the body if it's a string, with error handling
       if (typeof body === 'string') {
         try {
@@ -580,8 +583,8 @@ class GrpcClient {
         } catch (parseError) {
           // Log the error and notify the client
           console.error('Failed to parse message body:', parseError);
-          this.eventCallback('grpc:error', requestId, collectionUid, { 
-            error: parseError 
+          this.eventCallback('grpc:error', requestId, collectionUid, {
+            error: parseError
           });
           return; // Exit early to prevent sending invalid data
         }
@@ -730,7 +733,7 @@ class GrpcClient {
   generateSampleMessage(methodPath, options = {}) {
     try {
       let method;
-      
+
       // First, try to use the methodMetadata from options if provided
       if (options.methodMetadata) {
         method = options.methodMetadata;
@@ -742,7 +745,7 @@ class GrpcClient {
             error: `Method ${methodPath} not found in cache, please refresh the methods`
           };
         }
-        
+
         // Get the method definition from cache
         method = this.methods.get(methodPath);
       }

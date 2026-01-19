@@ -10,7 +10,6 @@ import {
 } from '@tabler/icons';
 import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection } from 'utils/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import { toggleCollectionItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { getDefaultRequestPaneTab } from 'utils/collections';
@@ -31,7 +30,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
 
   const createCollectionResults = () => {
-    const collectionResults = collections.map(collection => ({
+    const collectionResults = collections.map((collection) => ({
       type: SEARCH_TYPES.COLLECTION,
       item: collection,
       name: collection.name,
@@ -49,13 +48,13 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
     // Check for documentation match
     const queryLower = searchTerms.join(' ');
-    if (['documentation', 'docs', 'bruno docs'].some(term => term.includes(queryLower))) {
+    if (['documentation', 'docs', 'bruno docs'].some((term) => term.includes(queryLower))) {
       results.push(DOCUMENTATION_RESULT);
     }
 
-    collections.forEach(collection => {
+    collections.forEach((collection) => {
       // Search collection name
-      if (searchTerms.every(term => collection.name.toLowerCase().includes(term))) {
+      if (searchTerms.every((term) => collection.name.toLowerCase().includes(term))) {
         results.push({
           type: SEARCH_TYPES.COLLECTION,
           item: collection,
@@ -68,28 +67,28 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
       // Search collection items
       const flattenedItems = flattenItems(collection.items);
-      flattenedItems.forEach(item => {
+      flattenedItems.forEach((item) => {
         const itemPath = getItemPath(item, collection, findParentItemInCollection);
         const itemPathLower = itemPath.toLowerCase();
 
         if (isItemARequest(item)) {
           // add an optional check for the item name to prevent a crash if it doesn’t exist.
           const nameMatch = searchTerms.every((term) => (item.name || '').toLowerCase().includes(term));
-          const urlMatch = searchTerms.every(term => (item.request?.url || '').toLowerCase().includes(term));
-          const pathMatch = enablePathMatch && searchTerms.every(term => itemPathLower.includes(term));
+          const urlMatch = searchTerms.every((term) => (item.request?.url || '').toLowerCase().includes(term));
+          const pathMatch = enablePathMatch && searchTerms.every((term) => itemPathLower.includes(term));
 
           if (nameMatch || urlMatch || pathMatch) {
             // Check if this is a gRPC request and get the method type
             const isGrpcRequest = item.request?.type === 'grpc';
-            
+
             let method = item.request?.method || '';
-            
+
             if (isGrpcRequest) {
               // For gRPC requests, use the methodType
               const methodType = item.request?.methodType || 'UNARY';
               method = methodType.toLowerCase().replace(/[_]/g, '-');
             }
-            
+
             results.push({
               type: SEARCH_TYPES.REQUEST,
               item,
@@ -101,8 +100,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
             });
           }
         } else if (isItemAFolder(item)) {
-          const nameMatch = searchTerms.every(term => item.name.toLowerCase().includes(term));
-          const pathMatch = enablePathMatch && searchTerms.every(term => itemPathLower.includes(term));
+          const nameMatch = searchTerms.every((term) => item.name.toLowerCase().includes(term));
+          const pathMatch = enablePathMatch && searchTerms.every((term) => itemPathLower.includes(term));
 
           if (nameMatch || pathMatch) {
             results.push({
@@ -161,7 +160,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   }, [collections]); // Depend on collections to recreate when they change
 
   const expandItemPath = (result) => {
-    const collection = collections.find(c => c.uid === result.collectionUid);
+    const collection = collections.find((c) => c.uid === result.collectionUid);
     if (!collection) return;
 
     ensureCollectionIsMounted(collection);
@@ -170,8 +169,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       dispatch(toggleCollection(collection.uid));
     }
 
-    let currentItem = result.type === SEARCH_TYPES.FOLDER 
-      ? result.item 
+    let currentItem = result.type === SEARCH_TYPES.FOLDER
+      ? result.item
       : findParentItemInCollection(collection, result.item.uid);
 
     while (currentItem?.type === 'folder') {
@@ -195,11 +194,11 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     const handlers = {
       ArrowDown: () => {
         e.preventDefault();
-        setSelectedIndex(prev => prev < results.length - 1 ? prev + 1 : 0);
+        setSelectedIndex((prev) => prev < results.length - 1 ? prev + 1 : 0);
       },
       ArrowUp: () => {
         e.preventDefault();
-        setSelectedIndex(prev => prev > 0 ? prev - 1 : results.length - 1);
+        setSelectedIndex((prev) => prev > 0 ? prev - 1 : results.length - 1);
       },
       Enter: () => {
         e.preventDefault();
@@ -213,11 +212,11 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       },
       PageDown: () => {
         e.preventDefault();
-        setSelectedIndex(prev => Math.min(prev + 5, results.length - 1));
+        setSelectedIndex((prev) => Math.min(prev + 5, results.length - 1));
       },
       PageUp: () => {
         e.preventDefault();
-        setSelectedIndex(prev => Math.max(prev - 5, 0));
+        setSelectedIndex((prev) => Math.max(prev - 5, 0));
       },
       Home: () => {
         e.preventDefault();
@@ -234,7 +233,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   };
 
   const handleResultSelection = (result) => {
-    const targetCollection = collections.find(c => c.uid === result.collectionUid);
+    const targetCollection = collections.find((c) => c.uid === result.collectionUid);
     ensureCollectionIsMounted(targetCollection);
 
     if (result.type === SEARCH_TYPES.DOCUMENTATION) {
@@ -246,9 +245,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     expandItemPath(result);
 
     if (result.type === SEARCH_TYPES.REQUEST) {
-      dispatch(hideHomePage());
-
-      const existingTab = tabs.find(tab => tab.uid === result.item.uid);
+      const existingTab = tabs.find((tab) => tab.uid === result.item.uid);
 
       if (existingTab) {
         dispatch(focusTab({ uid: result.item.uid }));
@@ -257,20 +254,20 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
           uid: result.item.uid,
           collectionUid: result.collectionUid,
           requestPaneTab: getDefaultRequestPaneTab(result.item),
-          type: 'request',
+          type: 'request'
         }));
       }
     } else if (result.type === SEARCH_TYPES.FOLDER) {
       dispatch(addTab({
         uid: result.item.uid,
         collectionUid: result.collectionUid,
-        type: 'folder-settings',
+        type: 'folder-settings'
       }));
     } else if (result.type === SEARCH_TYPES.COLLECTION) {
       dispatch(addTab({
         uid: result.item.uid,
         collectionUid: result.collectionUid,
-        type: 'collection-settings',
+        type: 'collection-settings'
       }));
     }
 
@@ -280,7 +277,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const handleQueryChange = (e) => {
     const newQuery = e.target.value;
     setQuery(newQuery);
-    
+
     if (newQuery.trim()) {
       debouncedSearch(newQuery);
     } else {
@@ -294,7 +291,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
-    
+
     setQuery('');
     setResults([]);
   };
@@ -306,7 +303,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       setQuery('');
       performSearch('');
       setSelectedIndex(0);
-      
+
       return () => clearTimeout(timeoutId);
     } else {
       // Clear any pending debounced search when modal closes
@@ -351,8 +348,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
   return (
     <StyledWrapper>
-      <div 
-        className="command-k-overlay" 
+      <div
+        className="command-k-overlay"
         onClick={onClose}
         role="dialog"
         aria-modal="true"
@@ -365,12 +362,11 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
             Search through collections, requests, folders, and documentation. Use arrow keys to navigate results and Enter to select.
           </p>
           <div aria-live="polite" aria-atomic="true" className="sr-only">
-            {results.length > 0 && query 
+            {results.length > 0 && query
               ? `${results.length} result${results.length === 1 ? '' : 's'} found`
-              : query && results.length === 0 
+              : query && results.length === 0
                 ? 'No results found'
-                : ''
-            }
+                : ''}
           </div>
           <div className="command-k-header">
             <div className="search-input-container">
@@ -395,8 +391,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                 aria-autocomplete="list"
               />
               {query && (
-                <button 
-                  onClick={clearSearch} 
+                <button
+                  onClick={clearSearch}
                   className="clear-button"
                   aria-label="Clear search query"
                   type="button"
@@ -407,8 +403,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          <div 
-            className="command-k-results" 
+          <div
+            className="command-k-results"
             ref={resultsRef}
             id="search-results"
             role="listbox"
@@ -470,7 +466,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                       </div>
                       <div className="result-badges">
                         {result.type === SEARCH_TYPES.REQUEST && result.method && (
-                          <span 
+                          <span
                             className={`method-badge ${result.method.toLowerCase()}`}
                             aria-label={`HTTP method ${result.method.toUpperCase().replace(/-/g, ' ')}`}
                           >

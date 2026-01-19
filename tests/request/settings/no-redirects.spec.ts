@@ -1,4 +1,5 @@
 import { test, expect } from '../../../playwright';
+import { selectRequestPaneTab } from '../../utils/page';
 
 test.describe('No Redirects Settings Tests', () => {
   test('should configure and test no redirects settings', async ({
@@ -13,7 +14,7 @@ test.describe('No Redirects Settings Tests', () => {
     await page.getByRole('complementary').getByText('no-redirects').click();
 
     // Go to Settings tab
-    await page.getByRole('tab', { name: 'Settings' }).click();
+    await selectRequestPaneTab(page, 'Settings');
 
     // Test No Redirects Settings
     const maxRedirectsInput = page.locator('input[id="maxRedirects"]');

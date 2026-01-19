@@ -1,16 +1,20 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import brunoClipboard from 'utils/bruno-clipboard';
+import { addTab, focusTab } from './tabs';
 
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
-  leftSidebarWidth: 222,
+  leftSidebarWidth: 250,
   sidebarCollapsed: false,
   screenWidth: 500,
   showHomePage: false,
   showPreferences: false,
+  showApiSpecPage: false,
+  showManageWorkspacePage: false,
   isEnvironmentSettingsModalOpen: false,
+  isGlobalEnvironmentSettingsModalOpen: false,
   preferences: {
     request: {
       sslVerification: true,
@@ -21,13 +25,20 @@ const initialState = {
       keepDefaultCaCertificates: {
         enabled: true
       },
-      timeout: 0
+      timeout: 0,
+      oauth2: {
+        useSystemBrowser: false
+      }
     },
     font: {
       codeFont: 'default'
     },
     general: {
       defaultCollectionLocation: ''
+    },
+    autoSave: {
+      enabled: false,
+      interval: 1000
     }
   },
   generateCode: {
@@ -59,14 +70,29 @@ export const appSlice = createSlice({
     updateIsDragging: (state, action) => {
       state.isDragging = action.payload.isDragging;
     },
-    updateEnvironmentSettingsModalVisibility: (state, action) => {
-      state.isEnvironmentSettingsModalOpen = action.payload;
-    },
     showHomePage: (state) => {
       state.showHomePage = true;
+      state.showApiSpecPage = false;
+      state.showManageWorkspacePage = false;
     },
     hideHomePage: (state) => {
       state.showHomePage = false;
+    },
+    showManageWorkspacePage: (state) => {
+      state.showManageWorkspacePage = true;
+      state.showHomePage = false;
+      state.showApiSpecPage = false;
+    },
+    hideManageWorkspacePage: (state) => {
+      state.showManageWorkspacePage = false;
+    },
+    showApiSpecPage: (state) => {
+      state.showHomePage = false;
+      state.showPreferences = false;
+      state.showApiSpecPage = true;
+    },
+    hideApiSpecPage: (state) => {
+      state.showApiSpecPage = false;
     },
     showPreferences: (state, action) => {
       state.showPreferences = action.payload;
@@ -102,6 +128,20 @@ export const appSlice = createSlice({
       // Update clipboard UI state
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
     }
+  },
+  extraReducers: (builder) => {
+    // Automatically hide special pages when any tab is added or focused
+    builder
+      .addCase(addTab, (state) => {
+        state.showHomePage = false;
+        state.showApiSpecPage = false;
+        state.showManageWorkspacePage = false;
+      })
+      .addCase(focusTab, (state) => {
+        state.showHomePage = false;
+        state.showApiSpecPage = false;
+        state.showManageWorkspacePage = false;
+      });
   }
 });
 
@@ -110,9 +150,12 @@ export const {
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateIsDragging,
-  updateEnvironmentSettingsModalVisibility,
   showHomePage,
   hideHomePage,
+  showManageWorkspacePage,
+  hideManageWorkspacePage,
+  showApiSpecPage,
+  hideApiSpecPage,
   showPreferences,
   updatePreferences,
   updateCookies,

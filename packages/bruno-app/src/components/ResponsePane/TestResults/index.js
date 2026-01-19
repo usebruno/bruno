@@ -32,8 +32,7 @@ const ResultItem = ({ result, type }) => (
     <span className={result.status === 'pass' ? 'test-success' : 'test-failure'}>
       {type === 'assertion'
         ? `${result.lhsExpr}: ${result.rhsExpr}`
-        : result.description
-      }
+        : result.description}
     </span>
     <ErrorMessage error={result.error} />
   </div>
@@ -52,16 +51,15 @@ const TestSection = ({
   if (results.length === 0) return null;
 
   return (
-    <div className='mb-4'>
+    <div className="mb-4">
       <div
         className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2"
         onClick={onToggle}
       >
         <span className="dropdown-icon mr-2 flex items-center">
-          {isExpanded ?
-            <IconChevronDown size={18} stroke={1.5} /> :
-            <IconChevronRight size={18} stroke={1.5} />
-          }
+          {isExpanded
+            ? <IconChevronDown size={18} stroke={1.5} />
+            : <IconChevronRight size={18} stroke={1.5} />}
         </span>
         <span className="flex-grow">
           {title} ({results.length}), Passed: {passedResults.length}, Failed: {failedResults.length}

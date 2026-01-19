@@ -1,4 +1,4 @@
-import { IconChevronDown, IconChevronUp, IconTrash, IconWand } from '@tabler/icons';
+import { IconTrash, IconWand } from '@tabler/icons';
 import CodeEditor from 'components/CodeEditor/index';
 import ToolHint from 'components/ToolHint/index';
 import { get } from 'lodash';
@@ -13,6 +13,7 @@ import { toastError } from 'utils/common/error';
 import { prettifyJsonString } from 'utils/common/index';
 import xmlFormat from 'xml-formatter';
 import WSRequestBodyMode from '../BodyMode/index';
+import StyledWrapper from './StyledWrapper';
 
 export const TYPE_BY_DECODER = {
   base64: 'binary',
@@ -28,10 +29,9 @@ export const SingleWSMessage = ({
   collection,
   index,
   methodType,
-  isCollapsed,
-  onToggleCollapse,
   handleRun,
-  canClientSendMultipleMessages
+  canClientSendMultipleMessages,
+  isLast
 }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
@@ -88,9 +88,6 @@ export const SingleWSMessage = ({
     }));
   };
 
-  const getContainerHeight
-    = canClientSendMultipleMessages && body.ws.length > 1 ? `${isCollapsed ? '' : 'h-80'}` : 'h-full';
-
   let codeType = messageFormat;
   if (TYPE_BY_DECODER[type]) {
     codeType = TYPE_BY_DECODER[type];
@@ -144,60 +141,44 @@ export const SingleWSMessage = ({
     }
   };
 
+  const isSingleMessage = !canClientSendMultipleMessages || body.ws.length === 1;
+
   return (
-    <div
-      className={`flex flex-col mb-3 border border-neutral-200 dark:border-neutral-800 rounded-md overflow-hidden ${getContainerHeight} relative`}
-    >
-      <div
-        className="ws-message-header flex items-center justify-between px-3 py-2 bg-neutral-100 dark:bg-neutral-700 cursor-pointer"
-        onClick={onToggleCollapse}
-      >
-        <div className="flex items-center gap-2">
-          {isCollapsed ? (
-            <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-          ) : (
-            <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-          )}
-        </div>
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+    <StyledWrapper className={`message-container ${isSingleMessage ? 'single' : ''} ${isLast ? 'last' : ''}`}>
+      <div className="message-toolbar">
+        <span className="message-label">Message {index + 1}</span>
+        <div className="toolbar-actions">
           <WSRequestBodyMode mode={messageFormat} onModeChange={onUpdateMessageType} />
-          <ToolHint text="Prettify" toolhintId={`prettify-msg-${index}`}>
-            <button
-              onClick={onPrettify}
-              className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
-            >
-              <IconWand size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+
+          <ToolHint text="Format" toolhintId={`prettify-msg-${index}`}>
+            <button onClick={onPrettify} className="toolbar-btn">
+              <IconWand size={16} strokeWidth={1.5} />
             </button>
           </ToolHint>
 
           {index > 0 && (
-            <ToolHint text="Delete this message" toolhintId={`delete-msg-${index}`}>
-              <button
-                onClick={onDeleteMessage}
-                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
-              >
-                <IconTrash size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+            <ToolHint text="Delete message" toolhintId={`delete-msg-${index}`}>
+              <button onClick={onDeleteMessage} className="toolbar-btn delete">
+                <IconTrash size={16} strokeWidth={1.5} />
               </button>
             </ToolHint>
           )}
         </div>
       </div>
-      {!isCollapsed && (
-        <div className={`flex ${body.ws.length === 1 || !canClientSendMultipleMessages ? 'h-full' : 'h-80'} relative`}>
-          <CodeEditor
-            collection={collection}
-            theme={displayedTheme}
-            font={get(preferences, 'font.codeFont', 'default')}
-            fontSize={get(preferences, 'font.codeFontSize')}
-            value={content}
-            onEdit={onEdit}
-            onRun={handleRun}
-            onSave={onSave}
-            mode={codemirrorMode[codeType] ?? 'text/plain'}
-            enableVariableHighlighting={true}
-          />
-        </div>
-      )}
-    </div>
+      <div className="editor-container">
+        <CodeEditor
+          collection={collection}
+          theme={displayedTheme}
+          font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
+          value={content}
+          onEdit={onEdit}
+          onRun={handleRun}
+          onSave={onSave}
+          mode={codemirrorMode[codeType] ?? 'text/plain'}
+          enableVariableHighlighting={true}
+        />
+      </div>
+    </StyledWrapper>
   );
 };

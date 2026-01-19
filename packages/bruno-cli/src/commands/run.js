@@ -1,21 +1,23 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
+const yaml = require('js-yaml');
 const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
 const { parseEnvironmentJson } = require('../utils/environment');
-const { isRequestTagsIncluded } = require("@usebruno/common")
+const { isRequestTagsIncluded } = require('@usebruno/common');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
 const { getOptions } = require('../utils/bru');
 const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
-const { findItemInCollection, createCollectionJsonFromPathname, getCallStack } = require('../utils/collection');
+const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
+const { createSkippedFileResults } = require('../utils/run');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -98,11 +100,11 @@ const printRunSummary = (results) => {
     totalPostResponseTests,
     passedPostResponseTests,
     failedPostResponseTests
-  }
+  };
 };
 
 const getJsSandboxRuntime = (sandbox) => {
-  return sandbox === 'safe' ? 'quickjs' : 'vm2';
+  return sandbox === 'safe' ? 'quickjs' : 'nodevm';
 };
 
 const builder = async (yargs) => {
@@ -135,13 +137,21 @@ const builder = async (yargs) => {
       describe: 'Path to environment file (.bru or .json) - absolute or relative',
       type: 'string'
     })
+    .option('global-env', {
+      describe: 'Global environment name (requires collection to be in a workspace)',
+      type: 'string'
+    })
+    .option('workspace-path', {
+      describe: 'Path to workspace directory (auto-detected if not provided)',
+      type: 'string'
+    })
     .option('env-var', {
       describe: 'Overwrite a single environment variable, multiple usages possible',
       type: 'string'
     })
     .option('sandbox', {
-      describe: 'Javascript sandbox to use; available sandboxes are "developer" (default) or "safe"',
-      default: 'developer',
+      describe: 'Javascript sandbox to use; available sandboxes are "safe" (default) or "developer"',
+      default: 'safe',
       type: 'string'
     })
     .option('output', {
@@ -199,8 +209,8 @@ const builder = async (yargs) => {
       default: false
     })
     .option('delay', {
-      type:"number",
-      description: "Delay between each requests (in miliseconds)"
+      type: 'number',
+      description: 'Delay between each requests (in miliseconds)'
     })
     .option('tags', {
       type: 'string',
@@ -260,6 +270,14 @@ const builder = async (yargs) => {
     .example(
       '$0 run folder --tags=hello,world --exclude-tags=skip',
       'Run only requests with tags "hello" or "world" and exclude any request with tag "skip".'
+    )
+    .example(
+      '$0 run request.bru --global-env production',
+      'Run a request with the global environment set to production'
+    )
+    .example(
+      '$0 run request.bru --global-env production --workspace-path /path/to/workspace',
+      'Run a request with a global environment from the specified workspace'
     );
 };
 
@@ -272,6 +290,8 @@ const handler = async function (argv) {
       disableCookies,
       env,
       envFile,
+      globalEnv,
+      workspacePath,
       envVar,
       insecure,
       r: recursive,
@@ -327,53 +347,130 @@ const handler = async function (argv) {
         }
       } catch (err) {
         console.error(chalk.red(`Unexpected error: ${err.message}`));
-        process.exit(constants.EXIT_STATUS.ERROR_UNKNOWN);
+        process.exit(constants.EXIT_STATUS.ERROR_GENERIC);
       }
     }
 
     const runtimeVariables = {};
     let envVars = {};
 
-    if (env && envFile) {
-      console.error(chalk.red(`Cannot use both --env and --env-file options together`));
-      process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
-    }
+    // Helper to load environment variables from a file
+    const loadEnvFromFile = (filePath, nameOverride) => {
+      const fileExt = path.extname(filePath).toLowerCase();
+      let result = {};
 
-    if (envFile || env) {
-      const envFilePath = envFile
-        ? path.resolve(collectionPath, envFile)
-        : path.join(collectionPath, 'environments', `${env}.bru`);
-
-      const envFileExists = await exists(envFilePath);
-      if (!envFileExists) {
-        const errorPath = envFile || `environments/${env}.bru`;
-        console.error(chalk.red(`Environment file not found: `) + chalk.dim(errorPath));
-
-        process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+      if (fileExt === '.json') {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const parsed = JSON.parse(content);
+        const normalizedEnv = parseEnvironmentJson(parsed);
+        result = getEnvVars(normalizedEnv);
+        const rawName = normalizedEnv?.name;
+        const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
+        result.__name__ = trimmedName || path.basename(filePath, '.json');
+      } else if (fileExt === '.yml' || fileExt === '.yaml') {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const envJson = parseEnvironment(content, { format: 'yml' });
+        result = getEnvVars(envJson);
+        result.__name__ = nameOverride || path.basename(filePath, fileExt);
+      } else {
+        const content = fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
+        const envJson = parseEnvironment(content);
+        result = getEnvVars(envJson);
+        result.__name__ = nameOverride || path.basename(filePath, '.bru');
       }
 
-      const ext = path.extname(envFilePath).toLowerCase();
-      if (ext === '.json') {
-        // Parse Bruno schema JSON environment
-        let envJsonContent;
-        try {
-          envJsonContent = fs.readFileSync(envFilePath, 'utf8');
-          const parsed = JSON.parse(envJsonContent);
-          const normalizedEnv = parseEnvironmentJson(parsed);
-          envVars = getEnvVars(normalizedEnv);
-          const rawName = normalizedEnv?.name;
-          const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
-          envVars.__name__ = trimmedName || path.basename(envFilePath, '.json');
-        } catch (err) {
-          console.error(chalk.red(`Failed to parse Environment JSON: ${err.message}`));
-          process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+      return result;
+    };
+
+    // Load --env-file if provided
+    if (envFile) {
+      const envFilePath = path.resolve(collectionPath, envFile);
+      if (!(await exists(envFilePath))) {
+        console.error(chalk.red(`Environment file not found: `) + chalk.dim(envFile));
+        process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+      }
+      try {
+        envVars = loadEnvFromFile(envFilePath);
+      } catch (err) {
+        console.error(chalk.red(`Failed to parse environment file: ${err.message}`));
+        process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+      }
+    }
+
+    // Load --env and merge (collection env takes precedence)
+    if (env) {
+      const envExt = FORMAT_CONFIG[collection.format].ext;
+      const collectionEnvFilePath = path.join(collectionPath, 'environments', `${env}${envExt}`);
+      if (!(await exists(collectionEnvFilePath))) {
+        console.error(chalk.red(`Environment file not found: `) + chalk.dim(`environments/${env}${envExt}`));
+        process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+      }
+      try {
+        const collectionEnvVars = loadEnvFromFile(collectionEnvFilePath, env);
+        envVars = { ...envVars, ...collectionEnvVars };
+      } catch (err) {
+        console.error(chalk.red(`Failed to parse Environment file: ${err.message}`));
+        process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+      }
+    }
+
+    let globalEnvVars = {};
+    if (globalEnv) {
+      const findWorkspacePath = (startPath) => {
+        let currentPath = startPath;
+        while (currentPath !== path.dirname(currentPath)) {
+          const workspaceYmlPath = path.join(currentPath, 'workspace.yml');
+          if (fs.existsSync(workspaceYmlPath)) {
+            return currentPath;
+          }
+          currentPath = path.dirname(currentPath);
         }
-      } else {
-        // Default to .bru parsing
-        const envBruContent = fs.readFileSync(envFilePath, 'utf8').replace(/\r\n/g, '\n');
-        const envJson = parseEnvironment(envBruContent);
-        envVars = getEnvVars(envJson);
-        envVars.__name__ = envFile ? path.basename(envFilePath, '.bru') : env;
+        return null;
+      };
+
+      if (!workspacePath) {
+        workspacePath = findWorkspacePath(collectionPath);
+      }
+
+      if (!workspacePath) {
+        console.error(chalk.red(`Workspace not found. Please specify a workspace path using --workspace-path or ensure the collection is inside a workspace directory.`));
+        process.exit(constants.EXIT_STATUS.ERROR_GLOBAL_ENV_REQUIRES_WORKSPACE);
+      }
+
+      const workspaceExists = await exists(workspacePath);
+      if (!workspaceExists) {
+        console.error(chalk.red(`Workspace path not found: `) + chalk.dim(workspacePath));
+        process.exit(constants.EXIT_STATUS.ERROR_WORKSPACE_NOT_FOUND);
+      }
+
+      const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
+      const workspaceYmlExists = await exists(workspaceYmlPath);
+      if (!workspaceYmlExists) {
+        console.error(chalk.red(`Invalid workspace: workspace.yml not found in `) + chalk.dim(workspacePath));
+        process.exit(constants.EXIT_STATUS.ERROR_WORKSPACE_NOT_FOUND);
+      }
+
+      const globalEnvFilePath = path.join(workspacePath, 'environments', `${globalEnv}.yml`);
+      const globalEnvFileExists = await exists(globalEnvFilePath);
+      if (!globalEnvFileExists) {
+        console.error(chalk.red(`Global environment not found: `) + chalk.dim(`environments/${globalEnv}.yml`));
+        console.error(chalk.dim(`Workspace: ${workspacePath}`));
+        process.exit(constants.EXIT_STATUS.ERROR_GLOBAL_ENV_NOT_FOUND);
+      }
+
+      try {
+        const globalEnvContent = fs.readFileSync(globalEnvFilePath, 'utf8');
+        const globalEnvJson = parseEnvironment(globalEnvContent, { format: 'yml' });
+        globalEnvVars = getEnvVars(globalEnvJson);
+        globalEnvVars.__name__ = globalEnv;
+      } catch (err) {
+        console.error(chalk.red(`Failed to parse global environment: ${err.message}`));
+        process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+      }
+
+      envVars = { ...globalEnvVars, ...envVars };
+      if (!envVars.__name__ && globalEnvVars.__name__) {
+        envVars.__name__ = globalEnvVars.__name__;
       }
     }
 
@@ -393,8 +490,8 @@ const handler = async function (argv) {
           const match = value.match(/^([^=]+)=(.*)$/);
           if (!match) {
             console.error(
-              chalk.red(`Overridable environment variable not correct: use name=value - presented: `) +
-              chalk.dim(`${value}`)
+              chalk.red(`Overridable environment variable not correct: use name=value - presented: `)
+              + chalk.dim(`${value}`)
             );
             process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
@@ -483,7 +580,7 @@ const handler = async function (argv) {
       recursive = true;
     }
 
-    const resolvedPaths = paths.map(p => path.resolve(process.cwd(), p));
+    const resolvedPaths = paths.map((p) => path.resolve(process.cwd(), p));
 
     for (const resolvedPath of resolvedPaths) {
       const pathExists = await exists(resolvedPath);
@@ -499,13 +596,13 @@ const handler = async function (argv) {
       requestItems = requestItems.filter((item) => {
         const requestHasTests = hasExecutableTestInScript(item.request?.tests);
         const requestHasActiveAsserts = item.request?.assertions.some((x) => x.enabled) || false;
-        
+
         const preRequestScript = item.request?.script?.req;
         const requestHasPreRequestTests = hasExecutableTestInScript(preRequestScript);
-        
+
         const postResponseScript = item.request?.script?.res;
         const requestHasPostResponseTests = hasExecutableTestInScript(postResponseScript);
-        
+
         return requestHasTests || requestHasActiveAsserts || requestHasPreRequestTests || requestHasPostResponseTests;
       });
     }
@@ -517,10 +614,11 @@ const handler = async function (argv) {
     const runtime = getJsSandboxRuntime(sandbox);
 
     const runSingleRequestByPathname = async (relativeItemPathname) => {
+      const ext = FORMAT_CONFIG[collection.format].ext;
       return new Promise(async (resolve, reject) => {
         let itemPathname = path.join(collectionPath, relativeItemPathname);
-        if (itemPathname && !itemPathname?.endsWith('.bru')) {
-          itemPathname = `${itemPathname}.bru`;
+        if (itemPathname && !itemPathname?.endsWith(ext)) {
+          itemPathname = `${itemPathname}${ext}`;
         }
         const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
         if (requestItem) {
@@ -540,7 +638,7 @@ const handler = async function (argv) {
         }
         reject(`bru.runRequest: invalid request path - ${itemPathname}`);
       });
-    }
+    };
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
@@ -564,20 +662,21 @@ const handler = async function (argv) {
 
       const isLastRun = currentRequestIndex === requestItems.length - 1;
       const isValidDelay = !Number.isNaN(delay) && delay > 0;
-      if(isValidDelay && !isLastRun){
-        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay/1000).toFixed(3)}s before next request.`));
+      if (isValidDelay && !isLastRun) {
+        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay / 1000).toFixed(3)}s before next request.`));
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
 
-      if(Number.isNaN(delay) && !isLastRun){
+      if (Number.isNaN(delay) && !isLastRun) {
         console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
       }
 
       results.push({
         ...result,
-        runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
+        runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: pathname.replace('.bru', ''),
-        name
+        name,
+        path: result.test?.filename || path.relative(collectionPath, pathname)
       });
 
       if (reporterSkipAllHeaders) {
@@ -609,7 +708,6 @@ const handler = async function (argv) {
           }
         });
       }
-
 
       // bail if option is set and there is a failure
       if (bail) {
@@ -643,13 +741,16 @@ const handler = async function (argv) {
         if (nextRequestIdx >= 0) {
           currentRequestIndex = nextRequestIdx;
         } else {
-          console.error("Could not find request with name '" + nextRequestName + "'");
+          console.error('Could not find request with name \'' + nextRequestName + '\'');
           currentRequestIndex++;
         }
       } else {
         currentRequestIndex++;
       }
     }
+
+    const skippedFileResults = createSkippedFileResults(global.brunoSkippedFiles || [], collectionPath);
+    results.push(...skippedFileResults);
 
     const summary = printRunSummary(results);
     const runCompletionTime = new Date().toISOString();
@@ -667,13 +768,12 @@ const handler = async function (argv) {
       };
 
       const reporters = {
-        'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
-        'junit': (path) => makeJUnitOutput(results, path),
+        json: (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
+        junit: (path) => makeJUnitOutput(results, path),
         html: (path) => makeHtmlOutput(outputJson, path, runCompletionTime, environmentName)
-      }
+      };
 
-      for (const formatter of Object.keys(formats))
-      {
+      for (const formatter of Object.keys(formats)) {
         const reportPath = formats[formatter];
         const reporter = reporters[formatter];
 

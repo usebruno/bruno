@@ -1,8 +1,8 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
-import type { Script } from '@opencollection/types/collection/item';
+import type { ScriptFile } from '@opencollection/types/collection/item';
 import { uuid } from '../../../utils';
 
-const parseScript = (ocScript: Script): BrunoItem => {
+const parseScript = (ocScript: ScriptFile): BrunoItem => {
   const brunoItem: BrunoItem = {
     uid: uuid(),
     type: 'js',

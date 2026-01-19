@@ -3,33 +3,28 @@ import { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/coll
 import { Variable as BrunoVariable, Variables as BrunoVariables } from '@usebruno/schema-types/common/variables';
 import { uuid } from '../../../utils';
 
+/**
+ * Convert Bruno pre-request variables to OpenCollection variables format.
+ * Note: Post-response variables are now converted to actions (see actions.ts).
+ */
 export const toOpenCollectionVariables = (variables: BrunoFolderRequest['vars'] | BrunoVariables | null | undefined): Variable[] | undefined => {
-  // Handle folder variables (has req/res structure)
+  // Handle folder variables (has req/res structure) - only use req vars
   const hasReqRes = variables && 'req' in variables;
   const reqVars = hasReqRes ? variables.req : variables as BrunoVariables;
-  const resVars = hasReqRes && 'res' in variables ? variables.res : [];
 
-  const allVars = [...(reqVars || []), ...(resVars || [])];
+  const reqVarsArray = Array.isArray(reqVars) ? reqVars : [];
 
-  if (!allVars.length) {
+  if (!reqVarsArray.length) {
     return undefined;
   }
 
-  const ocVariables: Variable[] = allVars.map((v: BrunoVariable, index: number): Variable => {
-    const isResVar = reqVars && index >= (reqVars?.length || 0);
+  const ocVariables: Variable[] = reqVarsArray.map((v: BrunoVariable): Variable => {
     const variable: Variable = {
       name: v.name || '',
       value: v.value || ''
     };
 
-    if (isResVar) {
-      const scopeMarker = '[post-response]';
-      if (v?.description?.trim().length) {
-        variable.description = `${scopeMarker} ${v.description}`;
-      } else {
-        variable.description = scopeMarker;
-      }
-    } else if (v?.description?.trim().length) {
+    if (v?.description?.trim().length) {
       variable.description = v.description;
     }
 
@@ -42,18 +37,18 @@ export const toOpenCollectionVariables = (variables: BrunoFolderRequest['vars'] 
   return ocVariables.length > 0 ? ocVariables : undefined;
 };
 
+/**
+ * Convert OpenCollection variables to Bruno pre-request variables format.
+ * Note: Post-response variables come from actions (see actions.ts).
+ */
 export const toBrunoVariables = (variables: Variable[] | null | undefined): { req: BrunoVariables; res: BrunoVariables } => {
   if (!variables?.length) {
     return { req: [], res: [] };
   }
 
-  const scopeMarker = '[post-response]';
   const reqVars: BrunoVariables = [];
-  const resVars: BrunoVariables = [];
 
   variables.forEach((v: Variable) => {
-    const isPostResponse = typeof v.description === 'string' && v.description.startsWith(scopeMarker);
-
     const variable: BrunoVariable = {
       uid: uuid(),
       name: v.name || '',
@@ -62,19 +57,12 @@ export const toBrunoVariables = (variables: Variable[] | null | undefined): { re
       local: false
     };
 
-    if (isPostResponse) {
-      const cleanDesc = (v.description as string).substring(scopeMarker.length).trim();
-      if (cleanDesc) {
-        variable.description = cleanDesc;
-      }
-      resVars.push(variable);
-    } else {
-      if (v.description) {
-        variable.description = typeof v.description === 'string' ? v.description : (v.description as any)?.content || '';
-      }
-      reqVars.push(variable);
+    if (v.description) {
+      variable.description = typeof v.description === 'string' ? v.description : (v.description as any)?.content || '';
     }
+
+    reqVars.push(variable);
   });
 
-  return { req: reqVars, res: resVars };
+  return { req: reqVars, res: [] };
 };

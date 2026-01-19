@@ -9,6 +9,8 @@ import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { IconEdit, IconX, IconFileText } from '@tabler/icons';
+import Button from 'ui/Button/index';
+import ActionIcon from 'ui/ActionIcon/index';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
@@ -38,34 +40,34 @@ const Docs = ({ collection }) => {
       }))
     );
     toggleViewMode();
-  }
+  };
 
   const onSave = () => {
     dispatch(saveCollectionSettings(collection.uid));
     toggleViewMode();
-  }
+  };
 
   return (
     <StyledWrapper className="h-full w-full relative flex flex-col">
-      <div className='flex flex-row w-full justify-between items-center mb-4'>
-        <div className='text-lg font-medium flex items-center gap-2'>
+      <div className="flex flex-row w-full justify-between items-center mb-4">
+        <div className="text-lg font-medium flex items-center gap-2">
           <IconFileText size={20} strokeWidth={1.5} />
           Documentation
         </div>
-        <div className='flex flex-row gap-2 items-center justify-center'>
+        <div className="flex flex-row gap-2 items-center justify-center">
           {isEditing ? (
             <>
-              <div className="editing-mode" role="tab" onClick={handleDiscardChanges}>
-                <IconX className="cursor-pointer" size={20} strokeWidth={1.5} />
-              </div>
-              <button type="submit" className="submit btn btn-sm btn-secondary" onClick={onSave}>
+              <Button type="button" color="secondary" onClick={handleDiscardChanges}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={onSave}>
                 Save
-              </button>
+              </Button>
             </>
           ) : (
-            <div className="editing-mode" role="tab" onClick={toggleViewMode}>
-              <IconEdit className="cursor-pointer" size={20} strokeWidth={1.5} />
-            </div>
+            <ActionIcon className="editing-mode" onClick={toggleViewMode}>
+              <IconEdit className="cursor-pointer" size={16} strokeWidth={1.5} />
+            </ActionIcon>
           )}
         </div>
       </div>
@@ -81,14 +83,13 @@ const Docs = ({ collection }) => {
           fontSize={get(preferences, 'font.codeFontSize')}
         />
       ) : (
-        <div className='h-full overflow-auto pl-1'>
-          <div className='h-[1px] min-h-[500px]'>
+        <div className="h-full overflow-auto pl-1">
+          <div className="h-[1px] min-h-[500px]">
             {
-              docs?.length > 0 ?
-                <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
-                :
-                <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={documentationPlaceholder} />
-            }         
+              docs?.length > 0
+                ? <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
+                : <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={documentationPlaceholder} />
+            }
           </div>
         </div>
       )}
@@ -97,7 +98,6 @@ const Docs = ({ collection }) => {
 };
 
 export default Docs;
-
 
 const documentationPlaceholder = `
 Welcome to your collection documentation! This space is designed to help you document your API collection effectively.

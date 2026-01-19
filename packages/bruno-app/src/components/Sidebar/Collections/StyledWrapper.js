@@ -1,12 +1,22 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  span.close-icon {
-    color: ${(props) => props.theme.colors.text.muted};
-  }
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 4px;
+  padding-bottom: 4px;
 
-  &:hover .collections-badge .collections-header-actions .collection-action-button {
-    opacity: 1;
+  .collections-list {
+    flex: 1 1 0%;
+    min-height: 0;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    overflow-y: auto;
+    overflow-x: hidden;
+
   }
 `;
 

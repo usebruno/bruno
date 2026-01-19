@@ -1,41 +1,41 @@
-import React, { useRef, useEffect, forwardRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
-import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { browseDirectory, createCollection } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import PathDisplay from 'components/PathDisplay/index';
 import { useState } from 'react';
-import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
+import { IconArrowBackUp, IconEdit, IconExternalLink } from '@tabler/icons';
 import Help from 'components/Help';
-import { multiLineMsg } from "utils/common";
-import { formatIpcError } from "utils/common/error";
-import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
-import Dropdown from 'components/Dropdown';
+import { multiLineMsg } from 'utils/common';
+import { formatIpcError } from 'utils/common/error';
 import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
+import Button from 'ui/Button';
 
-const CreateCollection = ({ onClose }) => {
+const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
+  const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
+  const workspaceUid = useSelector((state) => state.workspaces?.activeWorkspaceUid);
   const [isEditing, toggleEditing] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
-  const defaultLocation = get(preferences, 'general.defaultCollectionLocation', '');
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const dropdownTippyRef = useRef();
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+  const activeWorkspace = workspaces.find((w) => w.uid === workspaceUid);
+  const isDefaultWorkspace = activeWorkspace?.type === 'default';
+
+  const defaultLocation = isDefaultWorkspace ? get(preferences, 'general.defaultCollectionLocation', '') : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       collectionName: '',
       collectionFolderName: '',
-      collectionLocation: defaultLocation,
-      format: 'yml'
+      collectionLocation: defaultLocation || '',
+      format: 'bru'
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
@@ -53,28 +53,30 @@ const CreateCollection = ({ onClose }) => {
       collectionLocation: Yup.string().min(1, 'location is required').required('location is required'),
       format: Yup.string().oneOf(['bru', 'yml'], 'invalid format').required('format is required')
     }),
-    onSubmit: (values) => {
-      dispatch(createCollection(values.collectionName, values.collectionFolderName, values.collectionLocation, values.format))
-        .then(() => {
-          toast.success('Collection created!');
-          dispatch(toggleSidebarCollapse());
-          onClose();
-        })
-        .catch((e) => toast.error(multiLineMsg('An error occurred while creating the collection', formatIpcError(e))));
+    onSubmit: async (values) => {
+      try {
+        await dispatch(createCollection(values.collectionName,
+          values.collectionFolderName,
+          values.collectionLocation,
+          { format: values.format }));
+
+        toast.success('Collection created!');
+        onClose();
+      } catch (e) {
+        toast.error(multiLineMsg('An error occurred while creating the collection', formatIpcError(e)));
+      }
     }
   });
 
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
-        // When the user closes the dialog without selecting anything dirPath will be false
         if (typeof dirPath === 'string') {
           formik.setFieldValue('collectionLocation', dirPath);
         }
       })
-      .catch((error) => {
+      .catch(() => {
         formik.setFieldValue('collectionLocation', '');
-        console.error(error);
       });
   };
 
@@ -84,26 +86,10 @@ const CreateCollection = ({ onClose }) => {
     }
   }, [inputRef]);
 
-  const onSubmit = () => formik.handleSubmit();
-
-  const AdvancedOptions = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex mr-2 text-link cursor-pointer items-center">
-        <button
-          className="btn-advanced"
-          type="button"
-        >
-          Options
-        </button>
-        <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
-      </div>
-    );
-  });
-
   return (
     <Portal>
       <StyledWrapper>
-        <Modal size="sm" title="Create Collection" hideFooter={true} handleCancel={onClose}>
+        <Modal size="md" title="Create Collection" hideFooter={true} handleCancel={onClose}>
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
             <div>
               <label htmlFor="collection-name" className="flex items-center font-medium">
@@ -149,6 +135,7 @@ const CreateCollection = ({ onClose }) => {
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
+                readOnly={true}
                 value={formik.values.collectionLocation || ''}
                 onClick={browse}
                 onChange={(e) => {
@@ -222,68 +209,62 @@ const CreateCollection = ({ onClose }) => {
                 </div>
               )}
 
-              {showAdvanced && (
-                <div className="mt-4">
-                  <label htmlFor="format" className="flex items-center font-medium">
-                    File Format
-                    <Help width="300">
-                      <p>
-                        Choose the file format for storing requests in this collection.
-                      </p>
-                      <p className="mt-2">
-                        <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
-                      </p>
-                      <p className="mt-1">
-                        <strong>BRU:</strong> Bruno's native file format (.bru files)
-                      </p>
-                    </Help>
-                  </label>
-                  <select
-                    id="format"
-                    name="format"
-                    className="block textbox mt-2 w-full"
-                    value={formik.values.format}
-                    onChange={formik.handleChange}
-                  >
-                    <option value="yml">OpenCollection (YAML)</option>
-                    <option value="bru">BRU Format (.bru)</option>
-                  </select>
-                  {formik.touched.format && formik.errors.format ? (
-                    <div className="text-red-500">{formik.errors.format}</div>
-                  ) : null}
-                </div>
-              )}
+              <div className="mt-4">
+                <label htmlFor="format" className="flex items-center font-medium">
+                  File Format
+                  <Help width="300">
+                    <p>
+                      Choose the file format for storing requests in this collection.
+                    </p>
+                    <p className="mt-2">
+                      <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
+                    </p>
+                    <p className="mt-1">
+                      <strong>BRU:</strong> Bruno's native file format (.bru files)
+                    </p>
+                  </Help>
+                  {formik.values.format === 'yml' && (
+                    <>
+                      <span className="beta-badge">Beta</span>
+                      <a
+                        href="#"
+                        className="discussion-link"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.open('https://github.com/usebruno/bruno/discussions/6634', '_blank', 'noopener,noreferrer');
+                        }}
+                      >
+                        Join the discussion
+                      </a>
+                    </>
+                  )}
+                </label>
+                <select
+                  id="format"
+                  name="format"
+                  className="block textbox mt-2 w-full"
+                  value={formik.values.format}
+                  onChange={formik.handleChange}
+                >
+                  <option value="yml">OpenCollection (YAML)</option>
+                  <option value="bru">BRU Format (.bru)</option>
+                </select>
+                {formik.touched.format && formik.errors.format ? (
+                  <div className="text-red-500">{formik.errors.format}</div>
+                ) : null}
+              </div>
             </div>
-            <div className="flex justify-between items-center mt-8 bruno-modal-footer">
-              <div className="flex advanced-options">
-                <Dropdown onCreate={onDropdownCreate} icon={<AdvancedOptions />} placement="bottom-start">
-                  <div
-                    className="dropdown-item"
-                    key="show-file-format"
-                    onClick={(e) => {
-                      dropdownTippyRef.current.hide();
-                      setShowAdvanced(!showAdvanced);
-                    }}
-                  >
-                    {showAdvanced ? 'Hide File Format' : 'Show File Format'}
-                  </div>
-                </Dropdown>
-              </div>
-              <div className="flex justify-end">
-                <span className="mr-2">
-                  <button type="button" onClick={onClose} className="btn btn-md btn-close">
-                    Cancel
-                  </button>
-                </span>
-                <span>
-                  <button
-                    type="submit"
-                    className="submit btn btn-md btn-secondary"
-                  >
-                    Create
-                  </button>
-                </span>
-              </div>
+            <div className="flex justify-end items-center mt-8 bruno-modal-footer">
+              <span className="mr-2">
+                <Button type="button" color="secondary" variant="ghost" onClick={onClose}>
+                  Cancel
+                </Button>
+              </span>
+              <span>
+                <Button type="submit">
+                  Create
+                </Button>
+              </span>
             </div>
           </form>
         </Modal>

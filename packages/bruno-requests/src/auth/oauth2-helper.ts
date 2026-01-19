@@ -145,7 +145,8 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
   }
 
   if (credentialsPlacement === 'basic_auth_header') {
-    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret!)}`).toString('base64')}`;
+    const secret = clientSecret ?? '';
+    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
   }
 
   if (credentialsPlacement !== 'basic_auth_header') {
@@ -246,7 +247,8 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config) => {
   }
 
   if (credentialsPlacement === 'basic_auth_header') {
-    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret!)}`).toString('base64')}`;
+    const secret = clientSecret ?? '';
+    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
   }
 
   if (credentialsPlacement !== 'basic_auth_header') {
@@ -337,7 +339,7 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
 
   // Check if we already have credentials stored
   const existingToken = await tokenStore.getCredential({ url: accessTokenUrl, credentialsId });
-  
+
   if (existingToken) {
     // Check if token is expired
     if (!isTokenExpired(existingToken)) {

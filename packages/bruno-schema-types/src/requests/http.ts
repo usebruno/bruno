@@ -14,16 +14,16 @@ export interface HttpRequestParam extends KeyValue {
   type: HttpRequestParamType;
 }
 
-export type HttpRequestBodyMode =
-  | 'none'
-  | 'json'
-  | 'text'
-  | 'xml'
-  | 'formUrlEncoded'
-  | 'multipartForm'
-  | 'graphql'
-  | 'sparql'
-  | 'file';
+export type HttpRequestBodyMode
+  = | 'none'
+    | 'json'
+    | 'text'
+    | 'xml'
+    | 'formUrlEncoded'
+    | 'multipartForm'
+    | 'graphql'
+    | 'sparql'
+    | 'file';
 
 export interface HttpRequestBody {
   mode: HttpRequestBodyMode;
@@ -53,4 +53,3 @@ export interface HttpRequest {
   tests?: string | null;
   docs?: string | null;
 }
-

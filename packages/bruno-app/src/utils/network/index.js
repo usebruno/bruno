@@ -1,6 +1,3 @@
-import cloneDeep from 'lodash/cloneDeep';
-import { resolvePath } from 'utils/filesystem';
-
 export const sendNetworkRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
@@ -8,7 +5,7 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
         .then((response) => {
           // if there is an error, we return the response object as is
           if (response?.error) {
-            resolve(response)
+            resolve(response);
           }
 
           resolve({
@@ -33,19 +30,17 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
 export const sendGrpcRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     startGrpcRequest(item, collection, environment, runtimeVariables)
-        .then((initialState) => {
-          // Return an initial state object to update the UI
-          // The real response data will be handled by event listeners
-          resolve({
-            ...initialState,
-            timeline: []
-          });
-        })
-        .catch((err) => reject(err));
+      .then((initialState) => {
+        // Return an initial state object to update the UI
+        // The real response data will be handled by event listeners
+        resolve({
+          ...initialState,
+          timeline: []
+        });
+      })
+      .catch((err) => reject(err));
   });
-}
-
-
+};
 
 const sendHttpRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
@@ -85,19 +80,19 @@ export const startGrpcRequest = async (item, collection, environment, runtimeVar
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     const request = item.draft ? item.draft : item;
-    
+
     ipcRenderer.invoke('grpc:start-connection', {
-      request, 
-      collection, 
-      environment, 
+      request,
+      collection,
+      environment,
       runtimeVariables
     })
-    .then(() => {
-      resolve();
-    })
-    .catch(err => {
-      reject(err);
-    });
+      .then(() => {
+        resolve();
+      })
+      .catch((err) => {
+        reject(err);
+      });
   });
 };
 
@@ -145,25 +140,10 @@ export const endGrpcStream = async (requestId) => {
 };
 
 export const loadGrpcMethodsFromProtoFile = async (filePath, collection = null) => {
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
-    // Extract import paths from collection's gRPC config if available
-    let importPaths = [];
-
-    if (collection) {
-      const config = cloneDeep(collection.brunoConfig);
-
-      if (config.protobuf && config.protobuf.importPaths) {
-        // Use Promise.all to wait for all resolvePath calls to complete
-        const enabledImportPaths = config.protobuf.importPaths.filter((importPath) => importPath.enabled);
-        importPaths = await Promise.all(enabledImportPaths.map((importPath) => {
-          return resolvePath(importPath.path, collection.pathname);
-        }));
-      }
-    }
-
-    ipcRenderer.invoke('grpc:load-methods-proto', { filePath, includeDirs: importPaths }).then(resolve).catch(reject);
+    ipcRenderer.invoke('grpc:load-methods-proto', { filePath, collection }).then(resolve).catch(reject);
   });
 };
 
@@ -190,7 +170,7 @@ export const isGrpcConnectionActive = async (connectionId) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     ipcRenderer.invoke('grpc:is-connection-active', connectionId)
-      .then(response => {
+      .then((response) => {
         if (response.success) {
           resolve(response.isActive);
         } else {
@@ -199,7 +179,7 @@ export const isGrpcConnectionActive = async (connectionId) => {
           resolve(false);
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.error('Failed to check connection status:', err);
         // On error, assume the connection is not active
         resolve(false);
@@ -217,14 +197,14 @@ export const isGrpcConnectionActive = async (connectionId) => {
 export const generateGrpcSampleMessage = async (methodPath, existingMessage = null, options = {}) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    
-    ipcRenderer.invoke('grpc:generate-sample-message', { 
-      methodPath, 
-      existingMessage, 
-      options 
+
+    ipcRenderer.invoke('grpc:generate-sample-message', {
+      methodPath,
+      existingMessage,
+      options
     })
-    .then(resolve)
-    .catch(reject);
+      .then(resolve)
+      .catch(reject);
   });
 };
 
@@ -343,5 +323,17 @@ export const isWsConnectionActive = async (requestId) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     ipcRenderer.invoke('renderer:ws:is-connection-active', requestId).then(resolve).catch(reject);
+  });
+};
+
+/**
+ * Get the connection status of a WebSocket connection
+ * @param {string} requestId - The request ID to get the connection status of
+ * @returns {Promise<Object>} - The result of the get operation
+ */
+export const getWsConnectionStatus = async (requestId) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:ws:connection-status', requestId).then(resolve).catch(reject);
   });
 };

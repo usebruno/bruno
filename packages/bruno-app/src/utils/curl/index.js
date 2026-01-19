@@ -40,9 +40,9 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
     }
 
     const parsedHeaders = request?.headers;
-    const headers =
-      parsedHeaders &&
-      Object.keys(parsedHeaders).map((key) => ({ name: key, value: parsedHeaders[key], enabled: true }));
+    const headers
+      = parsedHeaders
+        && Object.keys(parsedHeaders).map((key) => ({ name: key, value: parsedHeaders[key], enabled: true }));
 
     const contentType = headers?.find((h) => h.name.toLowerCase() === 'content-type')?.value;
     const parsedBody = request.data;

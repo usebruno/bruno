@@ -1,4 +1,5 @@
 import { createGlobalStyle } from 'styled-components';
+import { rgba } from 'polished';
 
 const GlobalStyle = createGlobalStyle`
 
@@ -16,6 +17,18 @@ const GlobalStyle = createGlobalStyle`
   }
   .text-muted {
     color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .tooltip-mod {
+    background-color: ${(props) => props.theme.infoTip.bg} !important;
+    color: ${(props) => props.theme.text} !important;
+    border: 1px solid ${(props) => props.theme.infoTip.border} !important;
+    box-shadow: ${(props) => props.theme.infoTip.boxShadow} !important;
+    font-size: ${(props) => props.theme.font.size.xs} !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    opacity: 1 !important;
+    z-index: 9999 !important;
   }
 
   .btn {
@@ -180,16 +193,16 @@ const GlobalStyle = createGlobalStyle`
     * {
       scrollbar-color: ${(props) => props.theme.scrollbar.color};
     }
-    
+
     *::-webkit-scrollbar {
       width: 5px;
     }
-    
+
     *::-webkit-scrollbar-track {
       background: transparent;
       border-radius: 5px;
     }
-    
+
     *::-webkit-scrollbar-thumb {
       background-color: ${(props) => props.theme.scrollbar.color};
       border-radius: 14px;
@@ -221,7 +234,7 @@ const GlobalStyle = createGlobalStyle`
 
     &:hover {
       scrollbar-color: ${(props) => props.theme.scrollbar.color} transparent;
-      
+
       &::-webkit-scrollbar-thumb {
         background-color: ${(props) => props.theme.scrollbar.color};
       }
@@ -247,11 +260,17 @@ const GlobalStyle = createGlobalStyle`
     }
   }
   .CodeMirror-brunoVarInfo {
-    color: ${(props) => props.theme.codemirror.variable.info.color};
-    background: ${(props) => props.theme.codemirror.variable.info.bg};
-    border: 0.0625rem solid ${(props) => props.theme.codemirror.variable.info.border};
-    border-radius: 0.375rem;
-    box-shadow: ${(props) => props.theme.codemirror.variable.info.boxShadow};
+    color: ${(props) => props.theme.text};
+    background: ${(props) => props.theme.dropdown.bg};
+    ${(props) =>
+      props.theme.dropdown.shadow && props.theme.dropdown.shadow !== 'none'
+        ? `box-shadow: ${props.theme.dropdown.shadow};`
+        : ''}
+    border-radius: ${(props) => props.theme.border.radius.base};
+    ${(props) =>
+      props.theme.dropdown.border && props.theme.dropdown.border !== 'none'
+        ? `border: 1px solid ${props.theme.dropdown.border};`
+        : ''}
     box-sizing: border-box;
     font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.25rem;
@@ -266,8 +285,31 @@ const GlobalStyle = createGlobalStyle`
     z-index: 10;
   }
 
+  // Autocomplete hints dropdown container
   .CodeMirror-hints {
     z-index: 50 !important;
+    background: ${(props) => props.theme.dropdown.bg};
+    ${(props) =>
+      props.theme.dropdown.border !== 'none'
+        ? `border: 1px solid ${props.theme.dropdown.border};`
+        : ''}
+    ${(props) =>
+      props.theme.dropdown.shadow !== 'none'
+        ? `box-shadow: ${props.theme.dropdown.shadow};`
+        : ''}
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 0.25rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    font-family: inherit;
+  }
+
+  // Individual hint items
+  .CodeMirror-hint {
+    color: ${(props) => props.theme.dropdown.color};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    line-height: 1.5rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    cursor: pointer;
   }
 
   .CodeMirror-brunoVarInfo :first-child {
@@ -282,6 +324,27 @@ const GlobalStyle = createGlobalStyle`
     margin: 1em 0;
   }
 
+  .CodeMirror-lint-tooltip {
+    padding: 4px 8px;
+    background-color: ${(props) => props.theme.infoTip.bg};
+    border: 1px solid ${(props) => props.theme.infoTip.border};
+    box-shadow: ${(props) => props.theme.infoTip.boxShadow};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+  }
+
+  .CodeMirror-lint-message {
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.text};
+  }
+
+  .CodeMirror-lint-message-warning {
+    color: ${(props) => props.theme.status.warning.text};
+  }
+
+  .CodeMirror-lint-message-error {
+    color: ${(props) => props.theme.status.danger.text};
+  }
+
   /* Header */
   .CodeMirror-brunoVarInfo .var-info-header {
     display: flex;
@@ -292,27 +355,34 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .var-name {
     font-size: ${(props) => props.theme.font.size.base};
-    color: ${(props) => props.theme.codemirror.variable.info.color};
+    color: ${(props) => props.theme.dropdown.color};
     font-weight: 500;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Scope Badge */
   .CodeMirror-brunoVarInfo .var-scope-badge {
     display: inline-block;
     padding: 0.125rem 0.375rem;
-    background: #D977061A;
-    border-radius: 0.25rem;
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: #D97706;
+    background: ${(props) => rgba(props.theme.brand, 0.07)};
+    border: 1px solid ${(props) => rgba(props.theme.brand, 0.08)};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.brand};
     letter-spacing: 0.03125rem;
+    flex-shrink: 0;
   }
 
   /* Value Container */
   .CodeMirror-brunoVarInfo .var-value-container {
     position: relative;
-    border: 0.0625rem solid ${(props) => props.theme.codemirror.variable.info.editorBorder};
-    border-radius: 0.375rem;
-    background: ${(props) => props.theme.codemirror.variable.info.editorBg};
+    border: 1px solid ${(props) => props.theme.border.border2};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    background: ${(props) => props.theme.dropdown.hoverBg};
     overflow-y: auto;
     overflow-x: hidden;
     min-width: 17.3125rem;
@@ -327,7 +397,7 @@ const GlobalStyle = createGlobalStyle`
     font-weight: 400;
     word-break: break-word;
     line-height: 1.25rem;
-    color: ${(props) => props.theme.codemirror.variable.info.color};
+    color: ${(props) => props.theme.dropdown.color};
     min-height: 1.75rem;
     max-width: 13.1875rem;
   }
@@ -349,10 +419,10 @@ const GlobalStyle = createGlobalStyle`
     font-family: Inter, sans-serif;
     font-weight: 400;
     line-height: 1.25rem;
-    border: 0.0625rem solid ${(props) => props.theme.codemirror.variable.info.editorBorder};
-    border-radius: 0.375rem;
-    background: ${(props) => props.theme.codemirror.variable.info.editorBg};
-    color: ${(props) => props.theme.codemirror.variable.info.color};
+    border: 1px solid ${(props) => props.theme.input.focusBorder};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    background: ${(props) => props.theme.dropdown.hoverBg};
+    color: ${(props) => props.theme.dropdown.color};
     transition: border-color 0.15s;
   }
 
@@ -364,8 +434,8 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-focused {
-    background: ${(props) => props.theme.codemirror.variable.info.editorBg};
-    border-color: ${(props) => props.theme.codemirror.variable.info.editorFocusBorder};
+    background: ${(props) => props.theme.input.bg};
+    border-color: ${(props) => props.theme.input.focusBorder};
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-lines {
@@ -388,7 +458,7 @@ const GlobalStyle = createGlobalStyle`
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
-    color: ${(props) => props.theme.codemirror.variable.info.color};
+    color: ${(props) => props.theme.dropdown.color};
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-line {
@@ -401,7 +471,7 @@ const GlobalStyle = createGlobalStyle`
     word-break: break-all;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    color: ${(props) => props.theme.codemirror.variable.info.color};
+    color: ${(props) => props.theme.dropdown.color};
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-sizer {
@@ -423,10 +493,10 @@ const GlobalStyle = createGlobalStyle`
     overflow-wrap: break-word;
     white-space: pre-wrap;
     line-height: 1.25rem;
-    color: ${(props) => props.theme.codemirror.variable.info.color};
+    color: ${(props) => props.theme.dropdown.color};
     min-height: 1.75rem;
     cursor: text;
-    border-radius: 0.375rem;
+    border-radius: ${(props) => props.theme.border.radius.base};
   }
 
   /* Icons Container */
@@ -447,7 +517,8 @@ const GlobalStyle = createGlobalStyle`
     padding: 0.125rem;
     opacity: 1;
     transition: opacity 0.2s;
-    color: ${(props) => props.theme.codemirror.variable.info.iconColor};
+    color: ${(props) => props.theme.dropdown.iconColor};
+    opacity: 0.7;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -455,39 +526,59 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .secret-toggle-button:hover,
   .CodeMirror-brunoVarInfo .copy-button:hover {
-    opacity: 0.7;
+    opacity: 1;
   }
 
   .CodeMirror-brunoVarInfo .copy-success {
-    color: #22c55e !important;
+    color: ${(props) => props.theme.colors.text.green} !important;
   }
 
   /* Read-only Note */
   .CodeMirror-brunoVarInfo .var-readonly-note {
     font-size: ${(props) => props.theme.font.size.xs};
-    color: ${(props) => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.dropdown.mutedText};
     opacity: 0.6;
     margin-top: 0.25rem;
   }
 
   .CodeMirror-brunoVarInfo .var-warning-note {
     font-size: 0.75rem;
-    color: #ef4444;
+    color: ${(props) => props.theme.colors.text.danger};
     margin-top: 0.375rem;
     line-height: 1.25rem;
   }
 
+  // Active/selected hint - using theme colors instead of hardcoded blue
   .CodeMirror-hint-active {
-    background: #08f !important;
-    color: #fff !important;
+    background: ${(props) => props.theme.dropdown.hoverBg} !important;
+    color: ${(props) => props.theme.dropdown.color} !important;
   }
-  
+
   .hovered-link.CodeMirror-link {
     text-decoration: underline !important;
   }
   .cmd-ctrl-pressed .hovered-link.CodeMirror-link[data-url] {
     cursor: pointer;
     color: ${(props) => props.theme.textLink} !important;
+  }
+
+  // Native select styling
+  select {
+    background-color: ${(props) => props.theme.input.bg};
+    color: ${(props) => props.theme.text};
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: 400;
+  }
+
+  select option {
+    background-color: ${(props) => props.theme.dropdown.bg};
+    color: ${(props) => props.theme.dropdown.color};
+  }
+
+  select option:hover,
+  select option:focus {
+    background-color: ${(props) => props.theme.dropdown.hoverBg} !important;
+    color: ${(props) => props.theme.dropdown.color} !important;
   }
 `;
 

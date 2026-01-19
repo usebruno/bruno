@@ -1,16 +1,14 @@
-import React, { useState, useMemo } from 'react';
-import { get, cloneDeep } from 'lodash';
-import { IconTrash } from '@tabler/icons';
+import React, { useState, useMemo, useCallback } from 'react';
+import { get } from 'lodash';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { updateResponseExampleFileBodyParams } from 'providers/ReduxStore/slices/collections';
 import mime from 'mime-types';
 import path from 'utils/common/path';
+import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
-import Table from 'components/Table-v2';
-import ReorderTable from 'components/ReorderTable';
 import RadioButton from 'components/RadioButton';
 
 const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = false }) => {
@@ -25,16 +23,8 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
     return Array.isArray(_params) ? _params : [];
   }, [item.draft, item.examples, item, exampleUid]);
 
-  const [enabledFileUid, setEnableFileUid] = useState(params.length > 0 ? params[0].uid : '');
-
-  const addFile = () => {
-    const newParam = {
-      filePath: '',
-      contentType: '',
-      selected: true
-    };
-
-    const updatedParams = [...params, newParam];
+  const handleParamsChange = useCallback((updatedParams) => {
+    if (!editMode) return;
 
     dispatch(updateResponseExampleFileBodyParams({
       itemUid: item.uid,
@@ -42,75 +32,70 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
       exampleUid: exampleUid,
       params: updatedParams
     }));
-  };
+  }, [editMode, dispatch, item.uid, collection.uid, exampleUid]);
 
-  const handleParamChange = (e, _param, type) => {
+  const handleFilePathChange = useCallback((row, newFilePath, onChange) => {
     if (!editMode) return;
 
-    const param = cloneDeep(_param);
-    switch (type) {
-      case 'filePath': {
-        param.filePath = e.target.filePath;
-        // Auto-detect content type from file extension using mime library (same as updateFile)
-        const contentType = mime.contentType(path.extname(e.target.filePath));
-        param.contentType = contentType || '';
-        break;
-      }
-      case 'contentType': {
-        param.contentType = e.target.contentType;
-        break;
-      }
-      case 'selected': {
-        // When a file is selected, deselect all others and select this one
-        const updatedParams = params.map((p) => ({
-          ...p,
-          selected: p.uid === param.uid ? e.target.checked : false
-        }));
+    const currentParams = params || [];
+    const existingParam = currentParams.find((p) => p.uid === row.uid);
 
-        dispatch(updateResponseExampleFileBodyParams({
-          itemUid: item.uid,
-          collectionUid: collection.uid,
-          exampleUid: exampleUid,
-          params: updatedParams
-        }));
-
-        // Update the enabled file UID state
-        if (e.target.checked) {
-          setEnableFileUid(param.uid);
+    let updatedParams;
+    if (existingParam) {
+      // Update existing param
+      updatedParams = currentParams.map((p) => {
+        if (p.uid === row.uid) {
+          const updated = { ...p, filePath: newFilePath };
+          // Auto-detect content type from file extension
+          if (newFilePath) {
+            const contentType = mime.contentType(path.extname(newFilePath));
+            updated.contentType = contentType || '';
+          } else {
+            updated.contentType = '';
+          }
+          return updated;
         }
-        return; // Early return since we already dispatched
+        return p;
+      });
+    } else {
+      // Add new param (from EditableTable's empty row)
+      // Deselect all existing params and select the new one
+      const deselectedParams = currentParams.map((p) => ({ ...p, selected: false }));
+      const newParam = {
+        uid: row.uid,
+        filePath: newFilePath,
+        contentType: '',
+        selected: true
+      };
+      // Auto-detect content type from file extension
+      if (newFilePath) {
+        const contentType = mime.contentType(path.extname(newFilePath));
+        newParam.contentType = contentType || '';
       }
+      updatedParams = [...deselectedParams, newParam];
     }
 
-    const updatedParams = params.map((p) => p.uid === param.uid ? param : p);
+    handleParamsChange(updatedParams);
+  }, [editMode, params, handleParamsChange]);
 
-    dispatch(updateResponseExampleFileBodyParams({
-      itemUid: item.uid,
-      collectionUid: collection.uid,
-      exampleUid: exampleUid,
-      params: updatedParams
-    }));
-  };
-
-  const handleRemoveParams = (param) => {
+  const handleSelectedChange = useCallback((row, checked) => {
     if (!editMode) return;
 
-    const updatedParams = params.filter((p) => p.uid !== param.uid);
-
-    dispatch(updateResponseExampleFileBodyParams({
-      itemUid: item.uid,
-      collectionUid: collection.uid,
-      exampleUid: exampleUid,
-      params: updatedParams
+    // When a file is selected, deselect all others and select this one
+    const updatedParams = params.map((p) => ({
+      ...p,
+      selected: p.uid === row.uid ? checked : false
     }));
-  };
 
-  const handleParamDrag = ({ updateReorderedItem }) => {
+    handleParamsChange(updatedParams);
+  }, [editMode, params, handleParamsChange]);
+
+  const handleParamDrag = useCallback(({ updateReorderedItem }) => {
     if (!editMode) return;
 
     const reorderedParams = updateReorderedItem.map((uid) => {
       return params.find((p) => p.uid === uid);
-    });
+    }).filter(Boolean);
 
     dispatch(updateResponseExampleFileBodyParams({
       itemUid: item.uid,
@@ -118,6 +103,74 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
       exampleUid: exampleUid,
       params: reorderedParams
     }));
+  }, [editMode, dispatch, item.uid, collection.uid, exampleUid, params]);
+
+  const columns = [
+    {
+      key: 'filePath',
+      name: 'File',
+      isKeyField: true,
+      placeholder: 'File',
+      width: '50%',
+      readOnly: !editMode,
+      render: ({ row, value, onChange, isLastEmptyRow }) => (
+        <FilePickerEditor
+          isSingleFilePicker={true}
+          value={value || ''}
+          onChange={(newPath) => handleFilePathChange(row, newPath, onChange)}
+          collection={collection}
+          readOnly={!editMode}
+          displayMode="labelAndIcon"
+        />
+      )
+    },
+    {
+      key: 'contentType',
+      name: 'Content-Type',
+      placeholder: 'Auto',
+      width: '30%',
+      readOnly: !editMode,
+      render: ({ row, value, onChange, isLastEmptyRow }) => (
+        <SingleLineEditor
+          className="flex items-center justify-center"
+          onSave={() => {}}
+          theme={storedTheme}
+          placeholder={isLastEmptyRow ? 'Auto' : ''}
+          value={value || ''}
+          onChange={onChange}
+          onRun={() => {}}
+          collection={collection}
+          readOnly={!editMode}
+        />
+      )
+    },
+    {
+      key: 'selected',
+      name: 'Selected',
+      width: '20%',
+      readOnly: !editMode,
+      render: ({ row, value, onChange, isLastEmptyRow, rowIndex }) => (
+        <div className="flex items-center justify-center pl-4">
+          <RadioButton
+            key={row.uid}
+            id={`file-${row.uid}`}
+            name="selectedFile"
+            value={row.uid}
+            checked={row.selected}
+            onChange={(e) => handleSelectedChange(row, e.target.checked)}
+            disabled={!editMode}
+            className="mr-1 mousetrap"
+            dataTestId={`file-radio-button-${rowIndex}`}
+          />
+        </div>
+      )
+    }
+  ];
+
+  const defaultRow = {
+    filePath: '',
+    contentType: '',
+    selected: false
   };
 
   if (params.length === 0 && !editMode) {
@@ -126,95 +179,17 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
 
   return (
     <StyledWrapper className="w-full mt-4">
-      <Table
-        headers={[
-          { name: 'File', accessor: 'file', width: '50%' },
-          { name: 'Content-Type', accessor: 'contentType', width: '30%' },
-          { name: 'Selected', accessor: 'selected', width: '20%' }
-        ]}
-      >
-        <ReorderTable updateReorderedItem={handleParamDrag}>
-          {params && params.length
-            ? params.map((param, index) => {
-                return (
-                  <tr key={param.uid} data-uid={param.uid}>
-                    <td className="flex relative">
-                      <FilePickerEditor
-                        isSingleFilePicker={true}
-                        value={param.filePath}
-                        onChange={editMode ? (path) =>
-                          handleParamChange({
-                            target: {
-                              filePath: path
-                            }
-                          },
-                          param,
-                          'filePath') : () => {}}
-                        collection={collection}
-                        readOnly={!editMode}
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center justify-center pl-4">
-                        <SingleLineEditor
-                          className="flex items-center justify-center"
-                          onSave={() => {}}
-                          theme={storedTheme}
-                          placeholder="Auto"
-                          value={param.contentType}
-                          onChange={editMode ? (newValue) =>
-                            handleParamChange({
-                              target: {
-                                contentType: newValue
-                              }
-                            },
-                            param,
-                            'contentType') : () => {}}
-                          onRun={() => {}}
-                          collection={collection}
-                        />
-                      </div>
-                    </td>
-                    <td>
-                      <div className="flex items-center justify-center pl-4">
-                        <RadioButton
-                          key={param.uid}
-                          id={`file-${param.uid}`}
-                          name="selectedFile"
-                          value={param.uid}
-                          checked={enabledFileUid === param.uid || param.selected}
-                          onChange={editMode ? (e) => handleParamChange(e, param, 'selected') : () => {}}
-                          disabled={!editMode}
-                          className="mr-1 mousetrap"
-                          dataTestId={`file-radio-button-${index}`}
-                        />
-                        <button
-                          tabIndex="-1"
-                          onClick={() => handleRemoveParams(param)}
-                          className={`delete-button ${editMode ? 'edit-mode' : ''}`}
-                          disabled={!editMode}
-                        >
-                          <IconTrash strokeWidth={1.5} size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            : null}
-        </ReorderTable>
-      </Table>
-
-      {editMode && (
-        <div className="flex justify-between mt-2">
-          <button
-            className="btn-action pr-2 py-3 select-none"
-            onClick={addFile}
-          >
-            + Add File
-          </button>
-        </div>
-      )}
+      <EditableTable
+        columns={columns}
+        rows={params || []}
+        onChange={handleParamsChange}
+        defaultRow={defaultRow}
+        reorderable={editMode}
+        onReorder={handleParamDrag}
+        showAddRow={editMode}
+        showCheckbox={false}
+        showDelete={editMode}
+      />
     </StyledWrapper>
   );
 };
