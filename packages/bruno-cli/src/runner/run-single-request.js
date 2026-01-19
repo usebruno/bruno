@@ -291,7 +291,7 @@ const runSingleRequest = async function (
     const collectionProxyConfig = transformProxyConfig(get(brunoConfig, 'proxy', {}));
     const collectionProxyDisabled = get(collectionProxyConfig, 'disabled', false);
     const collectionProxyInherit = get(collectionProxyConfig, 'inherit', true);
-    const collectionProxyConfigData = get(collectionProxyConfig, 'config', collectionProxyConfig);
+    const collectionProxyConfigData = get(collectionProxyConfig, 'config', {});
 
     if (noproxy || collectionProxyDisabled) {
       // If noproxy flag is set or collection proxy is disabled, don't use any proxy
@@ -353,7 +353,6 @@ const runSingleRequest = async function (
         try {
           if (http_proxy?.length) {
             new URL(http_proxy);
-            console.log({ http_proxy });
             request.httpAgent = new HttpProxyAgent(http_proxy);
           }
         } catch (error) {
