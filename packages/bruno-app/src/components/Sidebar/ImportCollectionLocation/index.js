@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import get from 'lodash/get';
-import { IconCaretDown } from '@tabler/icons';
+import { IconCaretDown, IconArrowBackUp, IconEdit } from '@tabler/icons';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
@@ -93,6 +93,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
   const dispatch = useDispatch();
   const [groupingType, setGroupingType] = useState('tags');
   const [collectionFormat, setCollectionFormat] = useState('bru');
+  const [isLocationEditing, setIsLocationEditing] = useState(false);
   const dropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
 
@@ -101,9 +102,10 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
 
+  const workspaceCollectionsPath = activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '';
   const defaultLocation = isDefaultWorkspace
     ? get(preferences, 'general.defaultCollectionLocation', '')
-    : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
+    : workspaceCollectionsPath;
 
   const collectionName = getCollectionName(format, rawData);
 
@@ -177,39 +179,71 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
             </label>
             <div className="mt-2">{collectionName}</div>
 
-            <>
-              <label htmlFor="collectionLocation" className="font-medium mt-4 flex items-center">
+            <div className="flex items-center justify-between mt-4">
+              <label htmlFor="collectionLocation" className="font-medium flex items-center">
                 Location
                 <Help>
                   <p>Bruno stores your collections on your computer's filesystem.</p>
                   <p className="mt-2">Choose the location where you want to store this collection.</p>
                 </Help>
               </label>
+              {!isDefaultWorkspace && workspaceCollectionsPath && (
+                isLocationEditing ? (
+                  <IconArrowBackUp
+                    className="cursor-pointer opacity-50 hover:opacity-80"
+                    size={16}
+                    strokeWidth={1.5}
+                    onClick={() => {
+                      setIsLocationEditing(false);
+                      formik.setFieldValue('collectionLocation', workspaceCollectionsPath);
+                    }}
+                  />
+                ) : (
+                  <IconEdit
+                    className="cursor-pointer opacity-50 hover:opacity-80"
+                    size={16}
+                    strokeWidth={1.5}
+                    onClick={() => setIsLocationEditing(true)}
+                  />
+                )
+              )}
+            </div>
+            {!isDefaultWorkspace && workspaceCollectionsPath && !isLocationEditing ? (
               <input
                 id="collection-location"
                 type="text"
                 name="collectionLocation"
-                className="block textbox mt-2 w-full cursor-pointer"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
+                className="block textbox mt-2 w-full"
+                readOnly={true}
                 value={formik.values.collectionLocation || ''}
-                onClick={browse}
-                onChange={(e) => {
-                  formik.setFieldValue('collectionLocation', e.target.value);
-                }}
               />
-            </>
+            ) : (
+              <>
+                <input
+                  id="collection-location"
+                  type="text"
+                  name="collectionLocation"
+                  className="block textbox mt-2 w-full cursor-pointer"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  value={formik.values.collectionLocation || ''}
+                  onClick={browse}
+                  onChange={(e) => {
+                    formik.setFieldValue('collectionLocation', e.target.value);
+                  }}
+                />
+                <div className="mt-1">
+                  <span className="text-link cursor-pointer hover:underline" onClick={browse}>
+                    Browse
+                  </span>
+                </div>
+              </>
+            )}
             {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
               <div className="text-red-500">{formik.errors.collectionLocation}</div>
             ) : null}
-
-            <div className="mt-1">
-              <span className="text-link cursor-pointer hover:underline" onClick={browse}>
-                Browse
-              </span>
-            </div>
 
             <div className="mt-4">
               <label htmlFor="format" className="flex items-center font-medium">
