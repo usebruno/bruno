@@ -208,8 +208,8 @@ const setUserAgent = (request, value) => {
 };
 
 /**
- * Set authentication
- * Supports basic, digest, and NTLM auth based on --digest/--ntlm flags
+ * Set authentication credentials
+ * Stores credentials temporarily for finalization in post-processing
  */
 const setAuth = (request, value) => {
   if (typeof value !== 'string') {
@@ -217,6 +217,23 @@ const setAuth = (request, value) => {
   }
 
   const [username, password] = value.split(':');
+
+  // Store credentials temporarily for finalization in post-processing
+  request.authCredentials = {
+    username: username || '',
+    password: password || ''
+  };
+};
+
+/**
+ * Finalize authentication object based on credentials and auth type flags
+ */
+const finalizeAuth = (request) => {
+  if (!request.authCredentials) {
+    return;
+  }
+
+  const { username, password } = request.authCredentials;
 
   // Determine auth mode based on flags
   let mode = 'basic';
@@ -228,11 +245,13 @@ const setAuth = (request, value) => {
 
   request.auth = {
     mode: mode,
-    [mode]: {
-      username: username || '',
-      password: password || ''
-    }
+    [mode]: { username, password }
   };
+
+  // Clean up temporary properties
+  delete request.authCredentials;
+  delete request.isDigestAuth;
+  delete request.isNtlmAuth;
 };
 
 /**
@@ -453,7 +472,7 @@ const convertDataToQueryString = (request) => {
 
 /**
  * Post-build processing of request
- * Handles method conversion, query parameter processing, and auth mode correction
+ * Handles method conversion, query parameter processing, and auth finalization
  */
 const postBuildProcessRequest = (request) => {
   if (request.isQuery && request.data) {
@@ -468,21 +487,7 @@ const postBuildProcessRequest = (request) => {
     }
   }
 
-  // Fix auth mode if digest/ntlm flag was set after -u flag
-  // (handles case where -u comes before --digest/--ntlm in the command)
-  if (request.auth && request.isDigestAuth && request.auth.mode !== 'digest') {
-    const { username, password } = request.auth[request.auth.mode] || {};
-    request.auth = {
-      mode: 'digest',
-      digest: { username: username || '', password: password || '' }
-    };
-  } else if (request.auth && request.isNtlmAuth && request.auth.mode !== 'ntlm') {
-    const { username, password } = request.auth[request.auth.mode] || {};
-    request.auth = {
-      mode: 'ntlm',
-      ntlm: { username: username || '', password: password || '' }
-    };
-  }
+  finalizeAuth(request);
 
   // if method is not set, set it to GET
   if (!request.method) {

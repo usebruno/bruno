@@ -287,7 +287,6 @@ describe('parseCurlCommand', () => {
             password: 'mypass'
           }
         },
-        isDigestAuth: true,
         url: 'https://api.example.com/digest',
         urlWithoutQuery: 'https://api.example.com/digest'
       });
@@ -307,7 +306,6 @@ describe('parseCurlCommand', () => {
             password: 'secret'
           }
         },
-        isDigestAuth: true,
         url: 'https://api.example.com/secure',
         urlWithoutQuery: 'https://api.example.com/secure'
       });
@@ -327,7 +325,6 @@ describe('parseCurlCommand', () => {
             password: 'mypass'
           }
         },
-        isNtlmAuth: true,
         url: 'https://api.example.com/ntlm',
         urlWithoutQuery: 'https://api.example.com/ntlm'
       });
@@ -347,7 +344,6 @@ describe('parseCurlCommand', () => {
             password: 'password'
           }
         },
-        isNtlmAuth: true,
         url: 'https://api.example.com/ntlm',
         urlWithoutQuery: 'https://api.example.com/ntlm'
       });
@@ -367,7 +363,6 @@ describe('parseCurlCommand', () => {
             password: 'pass'
           }
         },
-        isDigestAuth: true,
         url: 'https://api.example.com',
         urlWithoutQuery: 'https://api.example.com'
       });
