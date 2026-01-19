@@ -231,7 +231,7 @@ class Bru {
       );
     }
 
-    this.runtimeVariables[key] = this.interpolate(value);
+    this.runtimeVariables[key] = value;
   }
 
   getVar(key) {
