@@ -230,6 +230,8 @@ const setAuth = (request, value) => {
  */
 const finalizeAuth = (request) => {
   if (!request.authCredentials) {
+    delete request.isDigestAuth;
+    delete request.isNtlmAuth;
     return;
   }
 
