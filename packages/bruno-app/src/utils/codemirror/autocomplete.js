@@ -295,9 +295,14 @@ const calculateWordReplacementPositions = (cursor, start, end, word) => {
  * @returns {string} The determined context
  */
 const determineWordContext = (word) => {
-  if (word.startsWith('req') || word.startsWith('res') || word.startsWith('bru')) {
+  const isApiHint = Object.keys(STATIC_API_HINTS).some(
+    (apiRoot) => apiRoot.toLowerCase().startsWith(word.toLowerCase()) || word.toLowerCase().startsWith(apiRoot.toLowerCase())
+  );
+
+  if (isApiHint) {
     return 'api';
   }
+
   return 'anyword';
 };
 
@@ -515,6 +520,34 @@ const createStandardHintList = (filteredHints, from, to) => {
 };
 
 /**
+ * Show root-level API hints when the editor is empty
+ * @param {Object} cm - CodeMirror instance
+ * @param {string[]} showHintsFor - Array of hint types to show (e.g., ['req', 'res', 'bru'])
+ * @returns {boolean} True if hints were shown, false otherwise
+ */
+export const showRootHints = (cm, showHintsFor = []) => {
+  const wordInfo = getCurrentWordWithContext(cm);
+  // If user is currently typing a word, let handleKeyupForAutocomplete
+  // handle it instead of showing root hints.
+  if (wordInfo) {
+    return false;
+  }
+
+  const hints = Object.keys(STATIC_API_HINTS).filter((rootHint) => showHintsFor.includes(rootHint));
+
+  if (hints.length === 0) return false;
+
+  const cursor = cm.getCursor();
+  const hintList = createStandardHintList(hints, cursor, cursor);
+
+  cm.showHint({
+    hint: () => hintList,
+    completeSingle: false
+  });
+  return true;
+};
+
+/**
  * Bruno AutoComplete Helper - Main function with context awareness
  * @param {Object} cm - CodeMirror instance
  * @param {Object} allVariables - All available variables
@@ -625,7 +658,8 @@ const handleKeyupForAutocomplete = (cm, event, options) => {
   const hints = getAutoCompleteHints(cm, allVariables, anywordAutocompleteHints, options);
 
   if (!hints) {
-    if (cm.state.completionActive) {
+    const wordInfo = getCurrentWordWithContext(cm);
+    if (cm.state.completionActive && wordInfo) {
       cm.state.completionActive.close();
     }
     return;
