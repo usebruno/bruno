@@ -191,6 +191,13 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.warning};
     }
   }
+
+  .cm-ghost-text {
+    opacity: 0.4;
+    pointer-events: none;
+    font-style: italic;
+    color: ${(props) => props.theme.text};
+  }
 `;
 
 export default StyledWrapper;

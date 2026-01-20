@@ -1,0 +1,1 @@
+export { getAISuggestion } from './suggestions';

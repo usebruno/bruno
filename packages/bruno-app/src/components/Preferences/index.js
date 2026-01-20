@@ -1,7 +1,7 @@
 import Modal from 'components/Modal/index';
 import classnames from 'classnames';
 import React, { useState } from 'react';
-import { IconSettings, IconPalette, IconBrowser, IconUserCircle, IconKeyboard, IconZoomQuestion, IconSquareLetterB } from '@tabler/icons';
+import { IconSettings, IconPalette, IconBrowser, IconUserCircle, IconKeyboard, IconZoomQuestion, IconSquareLetterB, IconBolt } from '@tabler/icons';
 
 import Support from './Support';
 import General from './General';
@@ -10,6 +10,7 @@ import Proxy from './ProxySettings';
 import Display from './Display';
 import Keybindings from './Keybindings';
 import Beta from './Beta';
+import AISettings from './AISettings';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -51,6 +52,10 @@ const Preferences = ({ onClose }) => {
       case 'support': {
         return <Support />;
       }
+
+      case 'ai': {
+        return <AISettings close={onClose} />;
+      }
     }
   };
 
@@ -78,6 +83,10 @@ const Preferences = ({ onClose }) => {
             <div className={getTabClassname('keybindings')} role="tab" onClick={() => setTab('keybindings')}>
               <IconKeyboard size={16} strokeWidth={1.5} />
               Keybindings
+            </div>
+            <div className={getTabClassname('ai')} role="tab" onClick={() => setTab('ai')}>
+              <IconBolt size={16} strokeWidth={1.5} />
+              AI
             </div>
             <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
               <IconZoomQuestion size={16} strokeWidth={1.5} />
