@@ -24,14 +24,16 @@ const { decryptStringSafe } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
+const LocalVarsStore = require('../store/local-vars');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
-const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
+const { parseFileMeta, hydrateRequestWithUuid, hydrateRequestWithLocalVars } = require('../utils/collection');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
+const localVarsStore = new LocalVarsStore();
 
 const isDotEnvFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
@@ -346,6 +348,9 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
+        // Merge local (non-persistent) vars
+        const localVars = localVarsStore.getLocalVars(pathname);
+        hydrateRequestWithLocalVars(file.data, localVars);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       } catch (error) {
         console.error(error);
@@ -387,6 +392,9 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.partial = false;
         file.loading = false;
         hydrateRequestWithUuid(file.data, pathname);
+        // Merge local (non-persistent) vars
+        const localVars = localVarsStore.getLocalVars(pathname);
+        hydrateRequestWithLocalVars(file.data, localVars);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
     } catch (error) {
@@ -590,6 +598,9 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
+      // Merge local (non-persistent) vars
+      const localVars = localVarsStore.getLocalVars(pathname);
+      hydrateRequestWithLocalVars(file.data, localVars);
       win.webContents.send('main:collection-tree-updated', 'change', file);
     } catch (err) {
       console.error(err);
@@ -620,6 +631,7 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
         name: basename
       }
     };
+    localVarsStore.deleteLocalVars(pathname);
     win.webContents.send('main:collection-tree-updated', 'unlink', file);
   }
 };
@@ -649,6 +661,7 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
       name
     }
   };
+  localVarsStore.deleteLocalVarsForCollection(pathname);
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
 };
 

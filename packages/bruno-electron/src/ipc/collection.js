@@ -57,6 +57,7 @@ const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modif
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
+const LocalVarsStore = require('../store/local-vars');
 const interpolateVars = require('./network/interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
@@ -70,6 +71,7 @@ const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
 const uiStateSnapshotStore = new UiStateSnapshotStore();
+const localVarsStore = new LocalVarsStore();
 
 // size and file count limits to determine whether the bru files in the collection should be loaded asynchronously or not.
 const MAX_COLLECTION_SIZE_IN_MB = 20;
@@ -357,6 +359,42 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const content = await stringifyRequestViaWorker(request, { format });
       await writeFile(pathname, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // save local (non-persistent) pre-request variables
+  ipcMain.handle('renderer:save-local-vars', (event, pathname, vars) => {
+    try {
+      return localVarsStore.storeLocalVars(pathname, vars);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // get local (non-persistent) pre-request variables
+  ipcMain.handle('renderer:get-local-vars', (event, pathname) => {
+    try {
+      return localVarsStore.getLocalVars(pathname);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // delete local vars when a request is deleted
+  ipcMain.handle('renderer:delete-local-vars', (event, pathname) => {
+    try {
+      return localVarsStore.deleteLocalVars(pathname);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // move local vars when a request is renamed/moved
+  ipcMain.handle('renderer:move-local-vars', (event, oldPathname, newPathname) => {
+    try {
+      return localVarsStore.moveLocalVars(oldPathname, newPathname);
     } catch (error) {
       return Promise.reject(error);
     }

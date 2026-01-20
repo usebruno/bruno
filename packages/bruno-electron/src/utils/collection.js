@@ -4,6 +4,7 @@ const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
+const { LOCAL_VAR_SENTINEL } = require('./constants');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
@@ -415,7 +416,10 @@ const hydrateRequestWithUuid = (request, pathname) => {
 
   params.forEach((param) => (param.uid = uuid()));
   headers.forEach((header) => (header.uid = uuid()));
-  requestVars.forEach((variable) => (variable.uid = uuid()));
+  // Add UIDs to request vars
+  requestVars.forEach((variable) => {
+    variable.uid = uuid();
+  });
   responseVars.forEach((variable) => (variable.uid = uuid()));
   assertions.forEach((assertion) => (assertion.uid = uuid()));
   bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
@@ -437,6 +441,66 @@ const hydrateRequestWithUuid = (request, pathname) => {
     bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
     file.forEach((param) => (param.uid = uuid()));
   });
+
+  return request;
+};
+
+/**
+ * Merge local (non-persistent) pre-request var values into a request.
+ * Vars from .bru file with empty values are hydrated with values from local storage.
+ * @param {Object} request - The request object to hydrate
+ * @param {Array} localVars - Array of local variable objects from LocalVarsStore
+ */
+const hydrateRequestWithLocalVars = (request, localVars = []) => {
+  // Create a map of local vars by name for quick lookup
+  const localVarsByName = {};
+  if (localVars && localVars.length > 0) {
+    localVars.forEach((v) => {
+      localVarsByName[v.name] = v;
+    });
+  }
+
+  // Get existing request vars from the .bru file
+  const existingVars = get(request, 'request.vars.req', []);
+
+  // Hydrate vars
+  const hydratedVars = existingVars.map((v) => {
+    const localVar = localVarsByName[v.name];
+
+    // Check if this is a marked non-persistent var (sentinel value)
+    const isSentinel = v.value === LOCAL_VAR_SENTINEL;
+
+    if (localVar) {
+      // This var has a local value - hydrate it and mark as non-persistent
+      return {
+        ...v,
+        value: localVar.value,
+        enabled: localVar.enabled !== undefined ? localVar.enabled : v.enabled,
+        persist: false
+      };
+    }
+
+    if (isSentinel) {
+      // Marked as non-persistent but no local value found (e.g. another user)
+      // Set persist: false and clear the sentinel value
+      return {
+        ...v,
+        value: '',
+        persist: false
+      };
+    }
+
+    // No local var and not a sentinel - keep as is (persistent)
+    return {
+      ...v,
+      persist: true
+    };
+  });
+
+  if (!request.request.vars) {
+    request.request.vars = {};
+  }
+  request.request.vars.req = hydratedVars;
 
   return request;
 };
@@ -745,6 +809,7 @@ module.exports = {
   parseBruFileMeta,
   parseFileMeta,
   hydrateRequestWithUuid,
+  hydrateRequestWithLocalVars,
   transformRequestToSaveToFilesystem,
   sortCollection,
   sortFolder,

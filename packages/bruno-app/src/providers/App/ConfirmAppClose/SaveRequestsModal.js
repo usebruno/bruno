@@ -30,7 +30,7 @@ const SaveRequestsModal = ({ onClose }) => {
         // Check for collection draft
         if (collection.draft) {
           collectionDrafts.push({
-            type: 'collection',
+            draftType: 'collection',
             name: collection.name,
             collectionUid: collectionUid
           });
@@ -43,7 +43,7 @@ const SaveRequestsModal = ({ onClose }) => {
         const requests = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item));
         each(requests, (draft) => {
           requestDrafts.push({
-            type: 'request',
+            draftType: 'request',
             ...draft,
             collectionUid: collectionUid
           });
@@ -53,7 +53,7 @@ const SaveRequestsModal = ({ onClose }) => {
         const folders = filter(items, (item) => item.type === 'folder' && item.draft);
         each(folders, (folder) => {
           folderDrafts.push({
-            type: 'folder',
+            draftType: 'folder',
             name: folder.name,
             folderUid: folder.uid,
             collectionUid: collectionUid
@@ -81,9 +81,9 @@ const SaveRequestsModal = ({ onClose }) => {
   const closeWithSave = async () => {
     try {
       // Separate drafts by type
-      const collectionDrafts = allDrafts.filter((d) => d.type === 'collection');
-      const folderDrafts = allDrafts.filter((d) => d.type === 'folder');
-      const requestDrafts = allDrafts.filter((d) => d.type === 'request');
+      const collectionDrafts = allDrafts.filter((d) => d.draftType === 'collection');
+      const folderDrafts = allDrafts.filter((d) => d.draftType === 'folder');
+      const requestDrafts = allDrafts.filter((d) => d.draftType === 'request');
 
       // Save all collection drafts
       if (collectionDrafts.length > 0) {
@@ -135,13 +135,13 @@ const SaveRequestsModal = ({ onClose }) => {
       <ul className="mt-4">
         {allDrafts.slice(0, MAX_UNSAVED_ITEMS_TO_SHOW).map((item, index) => {
           const prefix
-            = item.type === 'collection'
+            = item.draftType === 'collection'
               ? 'Collection: '
-              : item.type === 'folder'
+              : item.draftType === 'folder'
                 ? 'Folder: '
                 : 'Request: ';
           return (
-            <li key={`${item.type}-${item.collectionUid || item.uid}-${index}`} className="mt-1 text-xs">
+            <li key={`${item.draftType}-${item.collectionUid || item.uid}-${index}`} className="mt-1 text-xs">
               {prefix}
               {item.name || item.filename}
             </li>
