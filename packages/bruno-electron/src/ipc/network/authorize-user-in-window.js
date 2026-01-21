@@ -2,7 +2,13 @@ const { BrowserWindow } = require('electron');
 const { preferencesUtil } = require('../../store/preferences');
 
 const matchesCallbackUrl = (url, callbackUrl) => {
-  return url ? url.href.startsWith(callbackUrl.href) : false;
+  const removeTrailingSlashRegex = /\/$/;
+  return url
+    && url.origin === callbackUrl.origin
+    && url.pathname.replace(removeTrailingSlashRegex, '') === callbackUrl.pathname.replace(removeTrailingSlashRegex, '')
+    && url.username === callbackUrl.username
+    && url.password === callbackUrl.password
+    && url.search.startsWith(callbackUrl.search);
 };
 
 const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalHeaders = {}, grantType = 'authorization_code' }) => {
