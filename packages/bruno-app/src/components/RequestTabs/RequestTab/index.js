@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
-import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, makeTabPermanent, createTabGroup, addTabToGroup, removeTabFromGroup } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
@@ -8,6 +8,7 @@ import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-enviro
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { findItemInCollection, hasRequestChanges } from 'utils/collections';
+import { nanoid } from 'nanoid';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import ConfirmCollectionClose from './ConfirmCollectionClose';
 import ConfirmFolderClose from './ConfirmFolderClose';
@@ -423,6 +424,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, tabIndex, collection, dispatch, dropdownContainerRef }) {
   const [showCloneRequestModal, setShowCloneRequestModal] = useState(false);
   const [showAddNewRequestModal, setShowAddNewRequestModal] = useState(false);
+  const tabGroups = useSelector((state) => state.tabs.tabGroups);
+  const collectionGroups = tabGroups.filter((g) => g.collectionUid === collection.uid);
 
   // Returns the tab-label's position for dropdown positioning.
   // Returns zero-sized rect if element isn't mounted yet (prevents Tippy errors).
@@ -500,57 +503,125 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     await Promise.all(collectionRequestTabs.map((tab) => handleCloseTab(tab.uid)));
   }
 
-  const menuItems = useMemo(() => [
-    {
-      id: 'new-request',
-      label: 'New Request',
-      onClick: () => setShowAddNewRequestModal(true)
-    },
-    {
-      id: 'clone-request',
-      label: 'Clone Request',
-      onClick: () => setShowCloneRequestModal(true)
-    },
-    {
-      id: 'revert-changes',
-      label: 'Revert Changes',
-      onClick: handleRevertChanges,
-      disabled: !currentTabItem?.draft
-    },
-    {
-      id: 'close',
-      label: 'Close',
-      onClick: () => handleCloseTab(currentTabUid)
-    },
-    {
-      id: 'close-others',
-      label: 'Close Others',
-      onClick: handleCloseOtherTabs,
-      disabled: !hasOtherTabs
-    },
-    {
-      id: 'close-left',
-      label: 'Close to the Left',
-      onClick: handleCloseTabsToTheLeft,
-      disabled: !hasLeftTabs
-    },
-    {
-      id: 'close-right',
-      label: 'Close to the Right',
-      onClick: handleCloseTabsToTheRight,
-      disabled: !hasRightTabs
-    },
-    {
-      id: 'close-saved',
-      label: 'Close Saved',
-      onClick: handleCloseSavedTabs
-    },
-    {
-      id: 'close-all',
-      label: 'Close All',
-      onClick: handleCloseAllTabs
+  function handleAddToNewGroup() {
+    const groupId = nanoid();
+    const currentTab = collectionRequestTabs[tabIndex];
+
+    dispatch(createTabGroup({
+      groupId,
+      name: 'New Group',
+      color: '#5B9BD5',
+      tabUids: [currentTab.uid],
+      collectionUid: collection.uid
+    }));
+
+    toast.success('Tab added to new group');
+  }
+
+  function handleAddToExistingGroup(groupId) {
+    const currentTab = collectionRequestTabs[tabIndex];
+    dispatch(addTabToGroup({ tabUid: currentTab.uid, groupId }));
+    toast.success('Tab added to group');
+  }
+
+  function handleRemoveFromGroup() {
+    const currentTab = collectionRequestTabs[tabIndex];
+    dispatch(removeTabFromGroup({ tabUid: currentTab.uid }));
+    toast.success('Tab removed from group');
+  }
+
+  const currentTab = collectionRequestTabs[tabIndex];
+  const isInGroup = currentTab?.groupId !== undefined;
+
+  const menuItems = useMemo(() => {
+    const items = [
+      {
+        id: 'new-request',
+        label: 'New Request',
+        onClick: () => setShowAddNewRequestModal(true)
+      },
+      {
+        id: 'clone-request',
+        label: 'Clone Request',
+        onClick: () => setShowCloneRequestModal(true)
+      },
+      {
+        id: 'revert-changes',
+        label: 'Revert Changes',
+        onClick: handleRevertChanges,
+        disabled: !currentTabItem?.draft
+      }
+    ];
+
+    // Add grouping options
+    if (isInGroup) {
+      items.push({
+        id: 'remove-from-group',
+        label: 'Remove from Group',
+        onClick: handleRemoveFromGroup
+      });
+    } else {
+      items.push({
+        id: 'add-to-new-group',
+        label: 'Add to New Group',
+        onClick: handleAddToNewGroup
+      });
+
+      // Add individual items for each group (since MenuDropdown doesn't support submenus)
+      if (collectionGroups.length > 0) {
+        items.push({
+          type: 'label',
+          label: 'Add to Group'
+        });
+
+        collectionGroups.forEach((group) => {
+          items.push({
+            id: `add-to-group-${group.id}`,
+            label: `  ${group.name}`,
+            onClick: () => handleAddToExistingGroup(group.id)
+          });
+        });
+      }
     }
-  ], [currentTabUid, currentTabItem, hasOtherTabs, hasLeftTabs, hasRightTabs, collection, collectionRequestTabs, tabIndex, dispatch]);
+
+    items.push(
+      {
+        id: 'close',
+        label: 'Close',
+        onClick: () => handleCloseTab(currentTabUid)
+      },
+      {
+        id: 'close-others',
+        label: 'Close Others',
+        onClick: handleCloseOtherTabs,
+        disabled: !hasOtherTabs
+      },
+      {
+        id: 'close-left',
+        label: 'Close to the Left',
+        onClick: handleCloseTabsToTheLeft,
+        disabled: !hasLeftTabs
+      },
+      {
+        id: 'close-right',
+        label: 'Close to the Right',
+        onClick: handleCloseTabsToTheRight,
+        disabled: !hasRightTabs
+      },
+      {
+        id: 'close-saved',
+        label: 'Close Saved',
+        onClick: handleCloseSavedTabs
+      },
+      {
+        id: 'close-all',
+        label: 'Close All',
+        onClick: handleCloseAllTabs
+      }
+    );
+
+    return items;
+  }, [currentTabUid, currentTabItem, hasOtherTabs, hasLeftTabs, hasRightTabs, collection, collectionRequestTabs, tabIndex, dispatch, isInGroup, collectionGroups]);
 
   const menuDropdown = (
     <MenuDropdown
