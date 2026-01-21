@@ -240,11 +240,13 @@ class BrunoRequest {
   }
 
   getPathParams() {
-    return this.req.pathParams.map((param) => ({
+    const params = Array.isArray(this.req.pathParams) ? this.req.pathParams : [];
+
+    return params.map((param) => ({
       name: param.name,
       value: param.value,
       type: param.type
-    })) || [];
+    }));
   }
 
   /**
