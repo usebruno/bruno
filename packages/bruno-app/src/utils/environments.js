@@ -39,54 +39,6 @@ export const buildPersistedEnvVariables = (variables, { mode, persistedNames } =
     .map(toPersistedEnvVarForSave);
 };
 
-/**
- * Merge new persistent vars (from script) with existing vars (from file)
- * - If var exists in both: update value, preserve metadata (uid, secret, enabled)
- * - If var only in file: keep unchanged
- * - If var only in script: add as new
- */
-export const mergeEnvVariables = (existingVars, newPersistentVars) => {
-  const normalized = Object.entries(newPersistentVars || {}).map(([name, value]) => ({
-    uid: uuid(),
-    name,
-    value,
-    type: 'text',
-    enabled: true,
-    secret: false
-  }));
-
-  // Update existing vars with new values, preserving metadata (uid, secret, enabled)
-  const merged = (existingVars || []).map((v) => {
-    const found = normalized.find((nv) => nv.name === v.name);
-    return found ? { ...v, value: found.value } : v;
-  });
-
-  // Add new vars that don't exist in the file yet
-  normalized.forEach((nv) => {
-    if (!merged.some((v) => v.name === nv.name)) {
-      merged.push(nv);
-    }
-  });
-
-  return merged;
-};
-
-/**
- * Build set of variable names that should be persisted
- */
-export const buildPersistedNames = (persistentEnvVariables, existingVars, envVariables) => {
-  const persistedNames = new Set(Object.keys(persistentEnvVariables || {}));
-  const currentVarNames = new Set(Object.keys(envVariables || {}));
-
-  (existingVars || []).forEach((v) => {
-    if (!v.ephemeral && currentVarNames.has(v.name)) {
-      persistedNames.add(v.name);
-    }
-  });
-
-  return persistedNames;
-};
-
 export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
   let envVariable = {
     name: obj.name ?? '',
