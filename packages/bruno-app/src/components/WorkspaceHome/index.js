@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import CloseWorkspace from 'components/Sidebar/CloseWorkspace';
 import WorkspaceOverview from './WorkspaceOverview';
 import WorkspaceEnvironments from './WorkspaceEnvironments';
+import Preferences from 'components/Preferences';
 import WorkspaceTabs from 'components/WorkspaceTabs';
 import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
@@ -157,6 +158,8 @@ const WorkspaceHome = () => {
         return <WorkspaceOverview workspace={activeWorkspace} />;
       case 'environments':
         return <WorkspaceEnvironments workspace={activeWorkspace} />;
+      case 'preferences':
+        return <Preferences />;
       default:
         return null;
     }
