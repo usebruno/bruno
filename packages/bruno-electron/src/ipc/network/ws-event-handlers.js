@@ -249,6 +249,34 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
     }
   }
 
+  // Add API key to the URL if placement is queryparams
+  if (wsRequest.apiKeyAuthValueForQueryParams && wsRequest.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
+    try {
+      const urlObj = new URL(wsRequest.url);
+
+      const globalEnvironmentVariables = request.globalEnvironmentVariables;
+      const promptVariables = collection?.promptVariables || {};
+
+      const interpolationOptions = {
+        globalEnvironmentVariables,
+        envVars,
+        runtimeVariables,
+        promptVariables,
+        processEnvVars
+      };
+
+      const key = interpolateString(wsRequest.apiKeyAuthValueForQueryParams.key, interpolationOptions);
+      const value = interpolateString(wsRequest.apiKeyAuthValueForQueryParams.value, interpolationOptions);
+
+      urlObj.searchParams.set(key, value);
+      wsRequest.url = urlObj.toString();
+    } catch (error) {
+      console.error('Error adding API key to WebSocket URL:', error);
+    }
+  }
+
+  delete wsRequest.apiKeyAuthValueForQueryParams;
+
   interpolateVars(wsRequest, envVars, runtimeVariables, processEnvVars);
 
   return wsRequest;
@@ -462,5 +490,6 @@ const registerWsEventHandlers = (window) => {
 
 module.exports = {
   registerWsEventHandlers,
-  wsClient
+  wsClient,
+  prepareWsRequest
 };
