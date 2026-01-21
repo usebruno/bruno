@@ -31,7 +31,7 @@
         }
       },
       "response": {
-        "status": "201",
+        "status": 201,
         "statusText": "Created",
         "body": {
           "type": "json",
@@ -51,7 +51,7 @@
         }
       },
       "response": {
-        "status": "201",
+        "status": 201,
         "statusText": "Created",
         "body": {
           "type": "xml",
@@ -71,7 +71,7 @@
         }
       },
       "response": {
-        "status": "201",
+        "status": 201,
         "statusText": "Created",
         "body": {
           "type": "text",

@@ -130,7 +130,7 @@
         ]
       },
       "response": {
-        "status": "201",
+        "status": 201,
         "statusText": "OK",
         "body": {
           "type": "json",
@@ -167,7 +167,7 @@
         ]
       },
       "response": {
-        "status": "201",
+        "status": 201,
         "statusText": "OK",
         "body": {
           "type": "json",
@@ -199,7 +199,7 @@
         ]
       },
       "response": {
-        "status": "201",
+        "status": 201,
         "statusText": "OK",
         "body": {
           "type": "xml",
