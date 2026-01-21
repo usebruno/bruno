@@ -436,8 +436,7 @@ const darkPastelTheme = {
   table: {
     border: colors.GRAY_3,
     thead: {
-      color: colors.TEXT_MUTED,
-      bg: colors.GRAY_1
+      color: colors.TEXT_MUTED
     },
     striped: colors.GRAY_1,
     input: {

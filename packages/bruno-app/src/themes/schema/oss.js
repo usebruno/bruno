@@ -723,8 +723,7 @@ export const ossSchema = {
         thead: {
           type: 'object',
           properties: {
-            color: { type: 'string' },
-            bg: { type: 'string' }
+            color: { type: 'string' }
           },
           required: ['color'],
           additionalProperties: false

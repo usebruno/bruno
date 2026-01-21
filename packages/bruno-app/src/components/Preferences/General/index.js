@@ -5,7 +5,6 @@ import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
-import Checkbox from 'components/Checkbox';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
@@ -177,22 +176,26 @@ const General = () => {
     <StyledWrapper className="w-full">
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="flex items-center my-2">
-          <Checkbox
+          <input
             id="sslVerification"
+            type="checkbox"
             name="sslVerification"
             checked={formik.values.sslVerification}
             onChange={formik.handleChange}
+            className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="sslVerification">
             SSL/TLS Certificate Verification
           </label>
         </div>
         <div className="flex items-center mt-2">
-          <Checkbox
+          <input
             id="customCaCertificateEnabled"
+            type="checkbox"
             name="customCaCertificate.enabled"
             checked={formik.values.customCaCertificate.enabled}
             onChange={formik.handleChange}
+            className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="customCaCertificateEnabled">
             Use Custom CA Certificate
@@ -240,12 +243,14 @@ const General = () => {
           </div>
         )}
         <div className="flex items-center mt-2">
-          <Checkbox
+          <input
             id="keepDefaultCaCertificatesEnabled"
+            type="checkbox"
             name="keepDefaultCaCertificates.enabled"
             checked={formik.values.keepDefaultCaCertificates.enabled}
             onChange={formik.handleChange}
-            disabled={!(formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath)}
+            className={`mousetrap mr-0 ${formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath ? '' : 'opacity-25'}`}
+            disabled={formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath ? false : true}
           />
           <label
             className={`block ml-2 select-none ${formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath ? '' : 'opacity-25'}`}
@@ -255,33 +260,39 @@ const General = () => {
           </label>
         </div>
         <div className="flex items-center mt-2">
-          <Checkbox
+          <input
             id="storeCookies"
+            type="checkbox"
             name="storeCookies"
             checked={formik.values.storeCookies}
             onChange={formik.handleChange}
+            className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="storeCookies">
             Store Cookies automatically
           </label>
         </div>
         <div className="flex items-center mt-2">
-          <Checkbox
+          <input
             id="sendCookies"
+            type="checkbox"
             name="sendCookies"
             checked={formik.values.sendCookies}
             onChange={formik.handleChange}
+            className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="sendCookies">
             Send Cookies automatically
           </label>
         </div>
         <div className="flex items-center mt-2">
-          <Checkbox
+          <input
             id="oauth2.useSystemBrowser"
+            type="checkbox"
             name="oauth2.useSystemBrowser"
             checked={formik.values.oauth2.useSystemBrowser}
             onChange={formik.handleChange}
+            className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="oauth2.useSystemBrowser">
             Use System Browser for OAuth2 Authorization
@@ -307,11 +318,13 @@ const General = () => {
           <div className="text-red-500">{formik.errors.timeout}</div>
         ) : null}
         <div className="flex items-center mt-6">
-          <Checkbox
+          <input
             id="autoSaveEnabled"
+            type="checkbox"
             name="autoSave.enabled"
             checked={formik.values.autoSave.enabled}
             onChange={formik.handleChange}
+            className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="autoSaveEnabled">
             Enable Auto Save

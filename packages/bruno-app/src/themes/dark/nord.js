@@ -435,8 +435,7 @@ const nordTheme = {
   table: {
     border: colors.NORD2,
     thead: {
-      color: colors.NORD4,
-      bg: colors.NORD1
+      color: colors.NORD4
     },
     striped: colors.NORD1,
     input: {

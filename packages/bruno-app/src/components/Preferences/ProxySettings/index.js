@@ -4,7 +4,6 @@ import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
-import Checkbox from 'components/Checkbox';
 
 import StyledWrapper from './StyledWrapper';
 import { useDispatch, useSelector } from 'react-redux';
@@ -291,12 +290,15 @@ const ProxySettings = ({ close }) => {
               <label className="settings-label" htmlFor="config.auth.disabled">
                 Auth
               </label>
-              <Checkbox
+              <input
+                id="config.auth.disabled"
+                type="checkbox"
                 name="config.auth.disabled"
                 checked={!formik.values.config.auth.disabled}
                 onChange={(e) => {
                   formik.setFieldValue('config.auth.disabled', !e.target.checked);
                 }}
+                className="mousetrap mr-0"
               />
             </div>
             <div>

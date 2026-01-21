@@ -27,7 +27,6 @@ const StyledWrapper = styled.div`
     position: relative;
     font-weight: 400;
     border-bottom: 1px solid ${(props) => props.theme.table.border};
-    background-color: ${(props) => props.theme.table.thead.bg || 'transparent'};
   }
 
   table tr td {

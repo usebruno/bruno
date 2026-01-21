@@ -14,7 +14,6 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.table.thead.color};
       font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
-      background-color: ${(props) => props.theme.table.thead.bg || 'transparent'};
     }
 
     td {

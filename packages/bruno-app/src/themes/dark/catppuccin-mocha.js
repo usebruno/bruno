@@ -432,8 +432,7 @@ const catppuccinMochaTheme = {
   table: {
     border: colors.SURFACE0,
     thead: {
-      color: colors.TEXT,
-      bg: colors.MANTLE
+      color: colors.TEXT
     },
     striped: rgba(colors.SURFACE0, 0.2),
     input: {

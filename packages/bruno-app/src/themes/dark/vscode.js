@@ -438,8 +438,7 @@ const vscodeDarkTheme = {
   table: {
     border: colors.BORDER_LIGHT,
     thead: {
-      color: colors.TEXT,
-      bg: colors.GRAY_2
+      color: colors.TEXT
     },
     striped: colors.GRAY_1,
     input: {
