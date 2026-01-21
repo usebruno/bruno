@@ -1,4 +1,4 @@
-import translateCode from '../utils/jscode-shift-translator';
+import translateCode from '../utils/postman-to-bruno-translator';
 
 const replacements = {
   'pm\\.environment\\.get\\(': 'bru.getEnvVar(',

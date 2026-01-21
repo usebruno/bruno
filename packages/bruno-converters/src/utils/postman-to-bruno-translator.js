@@ -1,46 +1,7 @@
 import sendRequestTransformer from './send-request-transformer';
+import { getMemberExpressionString } from './ast-utils';
 const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
-
-/**
- * Efficiently builds a string representation of a member expression without using toSource()
- *
- * @param {Object} node - The member expression node from the AST
- * @return {string} - String representation of the member expression (e.g., "pm.environment.get")
- */
-function getMemberExpressionString(node) {
-  // Handle base case: if this is an Identifier
-  if (node.type === 'Identifier') {
-    return node.name;
-  }
-
-  if (node.type === 'CallExpression') {
-    const calleeStr = getMemberExpressionString(node.callee);
-    return `${calleeStr}()`;
-  }
-
-  // Handle member expressions
-  if (node.type === 'MemberExpression') {
-    const objectStr = getMemberExpressionString(node.object);
-
-    // For computed properties like obj[prop], we need special handling
-    if (node.computed) {
-      // For literals like obj["prop"], we can include them in the string
-      if (node.property.type === 'Literal' && typeof node.property.value === 'string') {
-        return `${objectStr}.${node.property.value}`;
-      }
-      // For other computed properties, we can't reliably represent them as a simple string
-      return `${objectStr}.[computed]`;
-    }
-
-    // For regular property access like obj.prop
-    if (node.property.type === 'Identifier') {
-      return `${objectStr}.${node.property.name}`;
-    }
-  }
-
-  return '[unsupported]';
-}
 
 // Simple 1:1 translations for straightforward replacements
 const simpleTranslations = {

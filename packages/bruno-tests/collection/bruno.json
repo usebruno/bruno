@@ -15,10 +15,7 @@
     "bypassProxy": ""
   },
   "scripts": {
-    "moduleWhitelist": ["crypto", "buffer", "form-data"],
-    "filesystemAccess": {
-      "allow": true
-    }
+    "moduleWhitelist": ["crypto", "buffer", "form-data"]
   },
   "clientCertificates": {
     "enabled": true,

@@ -35,6 +35,7 @@ import {
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
   moveCollection,
+  workspaceEnvUpdateEvent,
   requestCancelled,
   resetRunResults,
   responseReceived,
@@ -816,7 +817,6 @@ export const renameItem
           return ipcRenderer
             .invoke('renderer:rename-item-filename', { oldPath: item.pathname, newPath, newName, newFilename, collectionPathname: collection.pathname })
             .catch((err) => {
-              toast.error('Failed to rename the file');
               console.error(err);
               throw new Error('Failed to rename the file');
             });
@@ -2255,6 +2255,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
   return new Promise((resolve, reject) => {
     const state = getState();
     const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+    const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables || {};
 
     // Check if collection already exists in Redux state
     const existingCollection = state.collections.collections.find(
@@ -2296,6 +2297,8 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
           });
       }
 
+      dispatch(workspaceEnvUpdateEvent({ processEnvVariables: workspaceProcessEnvVariables }));
+
       resolve();
       return;
     }
@@ -2308,6 +2311,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
       pathname: pathname,
       items: [],
       runtimeVariables: {},
+      workspaceProcessEnvVariables,
       brunoConfig: brunoConfig
     };
 
@@ -2326,6 +2330,9 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
           );
 
           if (currentWorkspace) {
+            // Set collection-workspace mapping for workspace env vars
+            ipcRenderer.invoke('renderer:set-collection-workspace', uid, currentWorkspace.pathname);
+
             const alreadyInWorkspace = currentWorkspace.collections?.some(
               (c) => normalizePath(c.path) === normalizePath(pathname)
             );

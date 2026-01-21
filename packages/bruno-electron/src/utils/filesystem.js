@@ -5,6 +5,18 @@ const { dialog } = require('electron');
 const isValidPathname = require('is-valid-path');
 const os = require('os');
 
+const DEFAULT_GITIGNORE = [
+  '# Secrets',
+  '.env*',
+  '',
+  '# Dependencies',
+  'node_modules',
+  '',
+  '# OS files',
+  '.DS_Store',
+  'Thumbs.db'
+].join('\n');
+
 const exists = async (p) => {
   try {
     await fsPromises.access(p);
@@ -456,6 +468,7 @@ const isCollectionRootBruFile = (pathname, collectionPath) => {
 };
 
 module.exports = {
+  DEFAULT_GITIGNORE,
   isValidPathname,
   exists,
   isSymbolicLink,

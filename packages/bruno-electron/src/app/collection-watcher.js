@@ -583,7 +583,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       const fileStats = fs.statSync(pathname);
 
       if (fileStats.size >= MAX_FILE_SIZE && format === 'bru') {
-        file.data = await parseLargeRequestWithRedaction(content);
+        file.data = await parseLargeRequestWithRedaction(content, 'bru');
       } else {
         file.data = await parseRequest(content, { format });
       }
