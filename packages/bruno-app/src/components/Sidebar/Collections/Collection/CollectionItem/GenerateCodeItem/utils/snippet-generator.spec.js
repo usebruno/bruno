@@ -1,3 +1,5 @@
+import { getAuthHeaders } from 'utils/codegenerator/auth';
+
 jest.mock('httpsnippet', () => {
   return {
     HTTPSnippet: jest.fn().mockImplementation((harRequest) => ({
@@ -56,7 +58,9 @@ jest.mock('utils/collections/index', () => {
       ...collection?.processEnvVariables,
       baseUrl: 'https://api.example.com',
       apiKey: 'secret-key-123',
-      userId: '12345'
+      userId: '12345',
+      user: 'admin',
+      pass: 'secret123'
     })),
     getTreePathFromCollectionToItem: jest.fn(() => [])
   };
@@ -426,6 +430,55 @@ describe('Snippet Generator - Simple Tests', () => {
 
     expect(result).toBe('curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
   });
+
+  it('should interpolate auth credentials correctly', () => {
+    // Auth inheritance is resolved upstream in index.js before calling generateSnippet
+    // So the item already has the resolved auth (not 'inherit' mode)
+    const item = {
+      request: {
+        method: 'GET',
+        url: 'https://api.example.com',
+        auth: {
+          mode: 'basic',
+          basic: {
+            username: '{{user}}',
+            password: '{{pass}}'
+          }
+        }
+      }
+    };
+
+    const collection = {
+      root: {
+        request: {
+          auth: { mode: 'none' }
+        }
+      }
+    };
+
+    const { HTTPSnippet: mockedHTTPSnippet } = require('httpsnippet');
+    const { getAuthHeaders: actualGetAuthHeaders } = jest.requireActual('utils/codegenerator/auth');
+    getAuthHeaders.mockImplementation(actualGetAuthHeaders);
+
+    const language = { target: 'shell', client: 'curl' };
+
+    generateSnippet({
+      language,
+      item,
+      collection,
+      shouldInterpolate: true
+    });
+
+    const harRequest = mockedHTTPSnippet.mock.calls[0][0];
+
+    // "admin:secret123" encoded is "YWRtaW46c2VjcmV0MTIz"
+    expect(harRequest.headers).toContainEqual(
+      expect.objectContaining({
+        name: 'Authorization',
+        value: 'Basic YWRtaW46c2VjcmV0MTIz'
+      })
+    );
+  });
 });
 
 // Snippet should include inherited headers
@@ -563,7 +616,7 @@ describe('generateSnippet with OAuth2 authentication', () => {
     jest.clearAllMocks();
     // Mock getAuthHeaders to return OAuth2 headers based on the auth config
     const authUtils = require('utils/codegenerator/auth');
-    authUtils.getAuthHeaders.mockImplementation((collectionRootAuth, requestAuth, collection = null, item = null) => {
+    authUtils.getAuthHeaders.mockImplementation((requestAuth, collection = null, item = null) => {
       if (requestAuth?.mode === 'oauth2') {
         const oauth2Config = requestAuth.oauth2 || {};
         const tokenPlacement = oauth2Config.tokenPlacement || 'header';
