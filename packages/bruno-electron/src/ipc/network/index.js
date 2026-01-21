@@ -1477,7 +1477,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
 
               if (error?.response) {
-                error.response.data = await promisifyStream(error.response.data, currentAbortController, true);
+                error.response.data = await promisifyStream(error.response.data, currentAbortController, false);
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
                 error.response.responseTime = error.response.headers.get('request-duration');
                 error.response.headers.delete('request-duration');
