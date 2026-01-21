@@ -513,7 +513,7 @@ const selectEnvironment = async (
  */
 const sendRequest = async (
   page: Page,
-  expectedStatusCode?: number | string,
+  expectedStatusCode?: number,
   timeout: number = 30000
 ) => {
   await test.step('Send request', async () => {
@@ -576,11 +576,11 @@ const openFolderRequest = async (page: Page, folderName: string, requestName: st
 /**
 * Send a request and wait for the response
  * @param page - The page object
- * @param expectedStatusCode - The expected status code (default: '200')
+ * @param expectedStatusCode - The expected status code (default: 200)
  * @param options - The options for sending the request (default: { timeout: 15000 })
  */
 const sendRequestAndWaitForResponse = async (page: Page,
-  expectedStatusCode: string = '200',
+  expectedStatusCode: number = 200,
   options: {
     ignoreCase?: boolean;
     timeout?: number;

@@ -12,7 +12,7 @@ paths:
       summary: 'Get all users'
       operationId: 'getUsers'
       responses:
-        '200':
+        200:
           description: 'Successful response'
           content:
             application/json:
@@ -128,7 +128,7 @@ paths:
             type: integer
           example: 123
       responses:
-        '200':
+        200:
           description: 'User found'
           content:
             application/json:

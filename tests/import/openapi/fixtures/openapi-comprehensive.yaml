@@ -48,7 +48,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        200:
           description: List of users retrieved successfully
           content:
             application/json:
@@ -102,7 +102,7 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        200:
           description: User retrieved successfully
           content:
             application/json:
@@ -130,7 +130,7 @@ paths:
             schema:
               $ref: '#/components/schemas/UpdateUserRequest'
       responses:
-        '200':
+       200:
           description: User updated successfully
           content:
             application/json:
@@ -180,7 +180,7 @@ paths:
                   type: string
                   minLength: 8
       responses:
-        '200':
+        200:
           description: Login successful
           content:
             application/json:
@@ -213,7 +213,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        200:
           description: List of posts
           content:
             application/json:

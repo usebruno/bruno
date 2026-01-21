@@ -13,7 +13,7 @@ paths:
       description: 'Get all users'
       operationId: getUsers
       responses:
-        '200':
+        200:
           description: Success
           content:
             application/json:
@@ -36,7 +36,7 @@ paths:
       description: 'Get all products (same summary as users GET)'
       operationId: getProducts
       responses:
-        '200':
+        200:
           description: Success
           content:
             application/json:

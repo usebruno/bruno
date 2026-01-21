@@ -100,7 +100,7 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/loginForm'
       responses:
-        '200':
+        200:
           description: "Login successful"
 components:
   requestBodies:
@@ -145,7 +145,7 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/fileUpload'
       responses:
-        '200':
+        200:
           description: "Upload successful"
 components:
   requestBodies:

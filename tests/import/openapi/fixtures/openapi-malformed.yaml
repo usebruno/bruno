@@ -7,10 +7,10 @@ paths:
     get:
       summary: Test endpoint
       responses:
-        '200':
+        200:
           description: Success
         # Missing closing quotes and malformed YAML
-        '400':
+        400:
           description: Bad request
             malformed: yaml here
               extra: indentation

@@ -44,7 +44,7 @@ describe('Bruno to Postman Converter with Examples', () => {
                 }
               },
               response: {
-                status: '200',
+                status: 200,
                 statusText: 'OK',
                 headers: [
                   {
@@ -343,7 +343,7 @@ describe('Bruno to Postman Converter with Examples', () => {
                 body: { mode: 'none' }
               },
               response: {
-                status: '200',
+                status: 200,
                 statusText: 'OK',
                 headers: [
                   {
@@ -369,7 +369,7 @@ describe('Bruno to Postman Converter with Examples', () => {
                 body: { mode: 'none' }
               },
               response: {
-                status: '200',
+                status: 200,
                 statusText: 'OK',
                 headers: [
                   {
@@ -440,7 +440,7 @@ describe('Bruno to Postman Converter with Examples', () => {
                     body: { mode: 'none' }
                   },
                   response: {
-                    status: '200',
+                    status: 200,
                     statusText: 'OK',
                     headers: [
                       {

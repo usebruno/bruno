@@ -54,7 +54,7 @@ describe('transformRequestToSaveToFilesystem', () => {
             uid: 'assert-uid-1',
             name: 'Status Code',
             operator: 'equals',
-            expected: '200'
+            expected: 200
           }
         ],
         tests: [

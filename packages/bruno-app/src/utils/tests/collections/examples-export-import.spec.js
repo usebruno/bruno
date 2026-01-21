@@ -45,7 +45,7 @@ describe('Examples Export/Import', () => {
                   }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [
                     { uid: 'res-header-1', name: 'Content-Type', value: 'application/json', enabled: true }
@@ -103,7 +103,7 @@ describe('Examples Export/Import', () => {
                   body: { mode: 'none' }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [],
                   body: '{"success": true}'
@@ -123,7 +123,7 @@ describe('Examples Export/Import', () => {
                   body: { mode: 'none' }
                 },
                 response: {
-                  status: '400',
+                  status: 400,
                   statusText: 'Bad Request',
                   headers: [],
                   body: '{"error": "Invalid request"}'
@@ -191,7 +191,7 @@ describe('Examples Export/Import', () => {
                   }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [
                     { uid: 'res-header-1', name: 'Content-Type', value: 'application/json', enabled: true }
@@ -268,7 +268,7 @@ describe('Examples Export/Import', () => {
               body: { mode: 'json', json: '{}' }
             },
             response: {
-              status: '200',
+              status: 200,
               statusText: 'OK',
               headers: [],
               body: '{"success": true}'
@@ -321,7 +321,7 @@ describe('Examples Export/Import', () => {
                   body: { mode: 'json', json: '{}' }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [
                     { uid: 'res-header-1', name: 'Content-Type', value: 'application/json', enabled: true }
@@ -378,7 +378,7 @@ describe('Examples Export/Import', () => {
                   body: { mode: 'json', json: '{}' }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [],
                   body: '{"success": true}'
@@ -430,7 +430,7 @@ describe('Examples Export/Import', () => {
                   body: { mode: 'json', json: '{}' }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [],
                   body: '{"success": true}'
@@ -476,7 +476,7 @@ describe('Examples Export/Import', () => {
                   body: { mode: 'json', json: '{}' }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [],
                   body: '{"success": true}'
@@ -536,7 +536,7 @@ describe('Examples Export/Import', () => {
                   }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [
                     { uid: 'res-header-1', name: 'Content-Type', value: 'application/json', enabled: true }

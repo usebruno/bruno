@@ -13,7 +13,7 @@ paths:
       description: 'This operation has newlines in the summary'
       operationId: getUsersWithNewline
       responses:
-        '200':
+        200:
           description: Success
           content:
             application/json:

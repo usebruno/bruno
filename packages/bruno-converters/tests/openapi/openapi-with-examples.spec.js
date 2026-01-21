@@ -36,7 +36,7 @@ describe('OpenAPI with Examples', () => {
     });
 
     const emptyExample = getUsersRequest.examples.find((ex) => ex.name === 'Empty Response');
-    expect(emptyExample.response.status).toBe('200');
+    expect(emptyExample.response.status).toBe(200);
     expect(JSON.parse(emptyExample.response.body.content)).toEqual({ users: [] });
 
     const validationErrorExample = getUsersRequest.examples.find((ex) => ex.name === 'Validation Error');
@@ -80,7 +80,7 @@ paths:
       summary: 'Get data'
       operationId: 'getData'
       responses:
-        '200':
+        200:
           description: 'Successful response'
           content:
             application/json:
@@ -126,7 +126,7 @@ paths:
       summary: 'Test endpoint'
       operationId: 'test'
       responses:
-        '200':
+        200:
           description: 'OK'
           content:
             application/json:
@@ -161,7 +161,7 @@ paths:
       summary: 'Test endpoint'
       operationId: 'test'
       responses:
-        '200':
+        200:
           description: 'OK'
           content:
             application/json:
@@ -193,7 +193,7 @@ paths:
       summary: 'Get all users'
       operationId: 'getUsers'
       responses:
-        '200':
+        200:
           description: 'OK'
           content:
             application/json:
@@ -220,7 +220,7 @@ paths:
       summary: 'Get all products'
       operationId: 'getProducts'
       responses:
-        '200':
+        200:
           description: 'OK'
           content:
             application/json:
@@ -272,7 +272,7 @@ paths:
       operationId: 'getUsers'
       tags: ['Users']
       responses:
-        '200':
+        200:
           description: 'OK'
   /products:
     get:
@@ -280,7 +280,7 @@ paths:
       operationId: 'getProducts'
       tags: ['Products']
       responses:
-        '200':
+        200:
           description: 'OK'
 servers:
   - url: 'https://api.example.com'
@@ -615,7 +615,7 @@ paths:
                 summary: 'Text Data'
                 value: 'Hello World'
       responses:
-        '200':
+        200:
           description: 'OK'
           content:
             application/json:
@@ -725,7 +725,7 @@ paths:
       summary: 'Get users'
       operationId: 'getUsers'
       responses:
-        '200':
+        200:
           description: 'OK'
           content:
             application/json:
