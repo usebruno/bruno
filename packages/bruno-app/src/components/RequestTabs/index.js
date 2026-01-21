@@ -43,7 +43,7 @@ const RequestTabs = () => {
   }, []);
 
   const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-  const activeCollection = find(collections, (c) => c.uid === activeTab?.collectionUid);
+  const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
 
   useEffect(() => {
@@ -51,7 +51,7 @@ const RequestTabs = () => {
 
     const checkOverflow = () => {
       if (tabsRef.current && scrollContainerRef.current) {
-        const hasOverflow = tabsRef.current.scrollWidth > scrollContainerRef.current.clientWidth;
+        const hasOverflow = tabsRef.current.scrollWidth > scrollContainerRef.current.clientWidth + 1;
         setShowChevrons(hasOverflow);
       }
     };
@@ -102,27 +102,21 @@ const RequestTabs = () => {
     });
   };
 
-  const getRootClassname = () => {
-    return classnames({
-      'has-chevrons': showChevrons
-    });
-  };
   // Todo: Must support ephemeral requests
   return (
-    <StyledWrapper className={getRootClassname()}>
+    <StyledWrapper>
       {newRequestModalOpen && (
         <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
-          <CollectionToolBar collection={activeCollection} />
+          {activeCollection && <CollectionToolBar collection={activeCollection} />}
           <div className="flex items-center gap-2 pl-2" ref={collectionTabsRef}>
-
-            {showChevrons ? (
+            <div className={classnames('scroll-chevrons', { hidden: !showChevrons })}>
               <ActionIcon size="lg" onClick={leftSlide} aria-label="Left Chevron" style={{ marginBottom: '3px' }}>
                 <IconChevronLeft size={18} strokeWidth={1.5} />
               </ActionIcon>
-            ) : null}
+            </div>
             {/* Moved to post mvp */}
             {/* <li className="select-none new-tab mr-1" onClick={createNewTab}>
               <div className="flex items-center home-icon-container">
@@ -169,11 +163,11 @@ const RequestTabs = () => {
               <CreateTransientRequest collectionUid={activeCollection.uid} />
             )}
 
-            {showChevrons ? (
+            <div className={classnames('scroll-chevrons', { hidden: !showChevrons })}>
               <ActionIcon size="lg" onClick={rightSlide} aria-label="Right Chevron" style={{ marginBottom: '3px' }}>
                 <IconChevronRight size={18} strokeWidth={1.5} />
               </ActionIcon>
-            ) : null}
+            </div>
             {/* Moved to post mvp */}
             {/* <li className="select-none new-tab choose-request">
                 <div className="flex items-center">

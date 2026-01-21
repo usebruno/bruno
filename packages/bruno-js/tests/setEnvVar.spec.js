@@ -3,6 +3,7 @@ const Bru = require('../src/bru');
 describe('Bru.setEnvVar', () => {
   const makeBru = () =>
     new Bru(
+      /* runtime */ 'quickjs',
       /* envVariables */ {},
       /* runtimeVariables */ {},
       /* processEnvVars */ {},

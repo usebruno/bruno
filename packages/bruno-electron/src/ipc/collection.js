@@ -58,6 +58,7 @@ const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 const interpolateVars = require('./network/interpolate-vars');
+const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
@@ -404,14 +405,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // Helper: Parse file content based on scope type
-  const parseFileByType = async (fileContent, scopeType) => {
+  const parseFileByType = async (fileContent, scopeType, format) => {
     switch (scopeType) {
       case 'request':
-        return await parseRequestViaWorker(fileContent);
+        return await parseRequestViaWorker(fileContent, { format });
       case 'folder':
-        return parseFolder(fileContent);
+        return parseFolder(fileContent, { format });
       case 'collection':
-        return parseCollection(fileContent);
+        return parseCollection(fileContent, { format });
       default:
         throw new Error(`Invalid scope type: ${scopeType}`);
     }
@@ -452,7 +453,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       // Read and parse the file
       const fileContent = fs.readFileSync(pathname, 'utf8');
-      const parsedData = await parseFileByType(fileContent, scopeType);
+      const parsedData = await parseFileByType(fileContent, scopeType, format);
 
       // Update the specific variable or create it if it doesn't exist
       const varsPath = 'request.vars.req';
@@ -1312,19 +1313,63 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
         mergeVars(collection, requestCopy, requestTreePath);
         const globalEnvironmentVariables = collection.globalEnvironmentVariables;
-
+        const promptVariables = collection.promptVariables;
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const certsAndProxyConfig = await getCertsAndProxyConfig({
-          collectionUid,
-          collection,
-          request: requestCopy,
-          envVars,
-          runtimeVariables,
-          processEnvVars,
-          collectionPath,
-          globalEnvironmentVariables
-        });
-        const { oauth2: { grantType } } = requestCopy || {};
+        const { oauth2: { grantType, accessTokenUrl, refreshTokenUrl }, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
+
+        // For OAuth2 token requests, use accessTokenUrl for cert/proxy config instead of main request URL
+        let certsAndProxyConfigForTokenUrl = null;
+        let certsAndProxyConfigForRefreshUrl = null;
+
+        if (accessTokenUrl && grantType !== 'implicit') {
+          const interpolatedTokenUrl = interpolateString(accessTokenUrl, {
+            globalEnvironmentVariables,
+            collectionVariables,
+            envVars,
+            folderVariables,
+            requestVariables,
+            runtimeVariables,
+            processEnvVars,
+            promptVariables
+          });
+          let tokenRequestForConfig = { ...requestCopy, url: interpolatedTokenUrl };
+          certsAndProxyConfigForTokenUrl = await getCertsAndProxyConfig({
+            collectionUid,
+            collection,
+            request: tokenRequestForConfig,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath,
+            globalEnvironmentVariables
+          });
+        }
+
+        // For refresh token requests, use refreshTokenUrl if available, otherwise accessTokenUrl
+        const tokenUrlForRefresh = refreshTokenUrl || accessTokenUrl;
+        if (tokenUrlForRefresh && grantType !== 'implicit') {
+          const interpolatedRefreshUrl = interpolateString(tokenUrlForRefresh, {
+            globalEnvironmentVariables,
+            collectionVariables,
+            envVars,
+            folderVariables,
+            requestVariables,
+            runtimeVariables,
+            processEnvVars,
+            promptVariables
+          });
+          let refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
+          certsAndProxyConfigForRefreshUrl = await getCertsAndProxyConfig({
+            collectionUid,
+            collection,
+            request: refreshRequestForConfig,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath,
+            globalEnvironmentVariables
+          });
+        }
 
         const handleOAuth2Response = (response) => {
           if (response.error && !response.debugInfo) {
@@ -1340,7 +1385,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               request: requestCopy,
               collectionUid,
               forceFetch: true,
-              certsAndProxyConfig
+              certsAndProxyConfigForTokenUrl,
+              certsAndProxyConfigForRefreshUrl
             }).then(handleOAuth2Response);
 
           case 'client_credentials':
@@ -1349,7 +1395,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               request: requestCopy,
               collectionUid,
               forceFetch: true,
-              certsAndProxyConfig
+              certsAndProxyConfigForTokenUrl,
+              certsAndProxyConfigForRefreshUrl
             }).then(handleOAuth2Response);
 
           case 'password':
@@ -1358,7 +1405,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               request: requestCopy,
               collectionUid,
               forceFetch: true,
-              certsAndProxyConfig
+              certsAndProxyConfigForTokenUrl,
+              certsAndProxyConfigForRefreshUrl
             }).then(handleOAuth2Response);
 
           case 'implicit':
@@ -1451,7 +1499,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = await parseRequestViaWorker(bruContent);
+        file.data = await parseRequestViaWorker(bruContent, { format: 'bru' });
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);
@@ -1558,7 +1606,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       await mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
 
       try {
-        const parsedData = await parseLargeRequestWithRedaction(bruContent);
+        const parsedData = await parseLargeRequestWithRedaction(bruContent, 'bru');
 
         file.data = parsedData;
         file.loading = false;
