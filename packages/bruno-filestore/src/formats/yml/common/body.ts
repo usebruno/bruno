@@ -10,7 +10,7 @@ import type {
   FileBodyEntry
 } from '@opencollection/types/requests/http';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
-import { uuid } from '../../../utils';
+import { uuid, ensureString } from '../../../utils';
 
 export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefined): HttpRequestBody | undefined => {
   if (!body) {
@@ -179,8 +179,8 @@ export const toBrunoBody = (body: HttpRequestBody | null | undefined): BrunoHttp
       brunoBody.formUrlEncoded = body.data?.map((entry): BrunoKeyValue => {
         const formEntry: BrunoKeyValue = {
           uid: uuid(),
-          name: entry.name || '',
-          value: entry.value || '',
+          name: ensureString(entry.name),
+          value: ensureString(entry.value),
           enabled: entry.disabled !== true
         };
 
@@ -202,8 +202,8 @@ export const toBrunoBody = (body: HttpRequestBody | null | undefined): BrunoHttp
         const multipartEntry: any = {
           uid: uuid(),
           type: entry.type,
-          name: entry.name || '',
-          value: entry.value || (entry.type === 'file' ? [] : ''),
+          name: ensureString(entry.name),
+          value: entry.type === 'file' ? (entry.value || []) : ensureString(entry.value),
           contentType: entry.contentType || null,
           enabled: entry.disabled !== true
         };
