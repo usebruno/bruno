@@ -84,7 +84,7 @@ describe('Bruno to Postman Converter with Examples', () => {
                 }
               },
               response: {
-                status: '500',
+                status: 500,
                 statusText: 'Internal Server Error',
                 headers: [
                   {
@@ -151,7 +151,7 @@ describe('Bruno to Postman Converter with Examples', () => {
                 }
               },
               response: {
-                status: '201',
+                status: 201,
                 statusText: 'Created',
                 headers: [
                   {

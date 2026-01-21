@@ -23,7 +23,7 @@ describe('OpenAPI with Examples', () => {
     // Check specific examples
     const successExample = getUsersRequest.examples.find((ex) => ex.name === 'Success Response');
     expect(successExample).toBeDefined();
-    expect(successExample.response.status).toBe('200');
+    expect(successExample.response.status).toBe(200);
     expect(successExample.response.statusText).toBe('OK');
     expect(successExample.response.headers).toHaveLength(1);
     expect(successExample.response.headers[0].name).toBe('Content-Type');
@@ -41,12 +41,12 @@ describe('OpenAPI with Examples', () => {
 
     const validationErrorExample = getUsersRequest.examples.find((ex) => ex.name === 'Validation Error');
     expect(validationErrorExample).toBeDefined();
-    expect(validationErrorExample.response.status).toBe('400');
+    expect(validationErrorExample.response.status).toBe(400);
     expect(validationErrorExample.response.statusText).toBe('Bad Request');
 
     const serverErrorExample = getUsersRequest.examples.find((ex) => ex.name === 'Server Error');
     expect(serverErrorExample).toBeDefined();
-    expect(serverErrorExample.response.status).toBe('500');
+    expect(serverErrorExample.response.status).toBe(500);
     expect(serverErrorExample.response.statusText).toBe('Internal Server Error');
 
     // Test POST /users endpoint
@@ -58,7 +58,7 @@ describe('OpenAPI with Examples', () => {
     // Check response examples
     const createdExample = createUserRequest.examples.find((ex) => ex.name === 'User Created (Valid User)');
     expect(createdExample).toBeDefined();
-    expect(createdExample.response.status).toBe('201');
+    expect(createdExample.response.status).toBe(201);
     expect(createdExample.response.statusText).toBe('Created');
     expect(JSON.parse(createdExample.response.body.content)).toEqual({
       id: 123,
@@ -441,7 +441,7 @@ servers:
       // Check combinations for 201 response
       const createdWithValid = request.examples.find((ex) => ex.name === 'User Created (Valid User)');
       expect(createdWithValid).toBeDefined();
-      expect(createdWithValid.response.status).toBe('201');
+      expect(createdWithValid.response.status).toBe(201);
       expect(JSON.parse(createdWithValid.request.body.json)).toEqual({
         name: 'John Doe',
         email: 'john@example.com'
@@ -449,7 +449,7 @@ servers:
 
       const createdWithInvalid = request.examples.find((ex) => ex.name === 'User Created (Invalid User)');
       expect(createdWithInvalid).toBeDefined();
-      expect(createdWithInvalid.response.status).toBe('201');
+      expect(createdWithInvalid.response.status).toBe(201);
       expect(JSON.parse(createdWithInvalid.request.body.json)).toEqual({
         name: '',
         email: 'invalid'
@@ -458,11 +458,11 @@ servers:
       // Check combinations for 400 response
       const errorWithValid = request.examples.find((ex) => ex.name === 'Validation Error (Valid User)');
       expect(errorWithValid).toBeDefined();
-      expect(errorWithValid.response.status).toBe('400');
+      expect(errorWithValid.response.status).toBe(400);
 
       const errorWithInvalid = request.examples.find((ex) => ex.name === 'Validation Error (Invalid User)');
       expect(errorWithInvalid).toBeDefined();
-      expect(errorWithInvalid.response.status).toBe('400');
+      expect(errorWithInvalid.response.status).toBe(400);
     });
 
     it('should use single request body example for all response examples', () => {
