@@ -156,7 +156,7 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
     const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
     if (isTransient) {
       const modalId = uuid();
-      dispatch(openSaveTransientRequestModal({ modalId, item, collection }));
+      dispatch(openSaveTransientRequestModal({ modalId, item, collection, isOpen: true }));
       return resolve();
     }
 
