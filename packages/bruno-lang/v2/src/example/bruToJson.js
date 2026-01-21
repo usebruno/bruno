@@ -12,6 +12,8 @@ const astBaseAttribute = require('../common/attributes');
  * No meta block - everything is at root level: name, description, type, url, etc.
  * Supports all body types from request side but response body stays as simple text.
  */
+
+const indentLevel = 2;
 const exampleGrammar = ohm.grammar(`Example {
   ExampleFile = (name | description | request | response)*
   
@@ -54,7 +56,8 @@ const exampleGrammar = ohm.grammar(`Example {
 
   // Root level properties
   name =  "name" st* ":" st* valuechar* st*
-  description = "description" st* ":" st* valuechar* st*
+  description = "description" st* ":" st* descriptionvalue st*
+  descriptionvalue = multilinetextblock | singlelinevalue
 
   // Request block
   request = nl* "request" st* ":" st* "{" nl* requestcontent+ nl* "}" nl*
@@ -85,8 +88,22 @@ const astExampleAttribute = {
   },
   description(_1, _2, _3, _4, value, _6) {
     return {
-      description: value.sourceString ? value.sourceString.trim() : ''
+      description: value.ast ? value.ast.trim() : ''
     };
+  },
+  descriptionvalue(content) {
+    return content.ast;
+  },
+  multilinetextblock(_1, content, _2, _3, contentType) {
+    const multilineString = content.sourceString
+      .split('\n')
+      .map((line) => line.slice(indentLevel))
+      .join('\n');
+
+    if (!contentType.sourceString) {
+      return multilineString;
+    }
+    return `${multilineString} ${contentType.sourceString}`;
   },
   request(_1, _2, _3, _4, _5, _6, _7, requestcontent, _8, _9, _10) {
     if (!requestcontent || !requestcontent.ast || !requestcontent.ast.length) {

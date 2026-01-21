@@ -309,6 +309,16 @@ example {
     });
   });
 
+  describe('Examples with multiline descriptions', () => {
+    it('should parse examples with multiline descriptions', () => {
+      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'examples-multiline-description.bru'), 'utf8');
+      const expected = require('./fixtures/json/examples-multiline-description.json');
+      const output = bruToJson(input);
+
+      expect(output).toEqual(expected);
+    });
+  });
+
   describe('Examples with multiline strings and contentType', () => {
     it('should parse examples with multiline strings and @contentType annotations', () => {
       const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'examples-multiline-contenttype.bru'), 'utf8');
