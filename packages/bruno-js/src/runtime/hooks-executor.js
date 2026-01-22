@@ -157,6 +157,15 @@ const executeConsolidatedHooks = async (extractedHooks, hookEvent, eventData, op
 
     if (result?.hookManager) {
       await result.hookManager.call(hookEvent, eventData);
+
+      // IMPORTANT: Re-capture runner control values AFTER hooks have been called
+      // The hooks may have called bru.runner.setNextRequest(), bru.runner.skipRequest(), etc.
+      // These values are stored on the bru instance which is returned in result.__bru
+      if (result.__bru) {
+        result.nextRequestName = result.__bru.nextRequest;
+        result.skipRequest = result.__bru.skipRequest;
+        result.stopExecution = result.__bru.stopExecution;
+      }
     }
 
     return result;

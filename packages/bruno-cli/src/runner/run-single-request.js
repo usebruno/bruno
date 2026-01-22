@@ -39,6 +39,71 @@ const getCACertHostRegex = (domain) => {
 };
 
 /**
+ * Apply runner control signals from a script/hook result
+ * @param {object} result - Result from script/hook execution
+ * @param {object} state - Current runner state (modified in place)
+ * @param {string|undefined} state.nextRequestName - Current next request name
+ * @param {boolean} state.shouldStopRunnerExecution - Current stop flag
+ * @returns {object} Updated state with nextRequestName and shouldStopRunnerExecution
+ */
+const applyRunnerControlFromResult = (result, state) => {
+  if (result?.nextRequestName !== undefined) {
+    state.nextRequestName = result.nextRequestName;
+  }
+  if (result?.stopExecution) {
+    state.shouldStopRunnerExecution = true;
+  }
+  return state;
+};
+
+/**
+ * Create a standardized skipped response object
+ * @param {object} options - Options for creating the response
+ * @param {string} options.filename - The relative file pathname
+ * @param {object} options.request - The request object
+ * @param {string} options.statusText - The reason for skipping
+ * @param {array} [options.preRequestTestResults] - Pre-request test results
+ * @param {array} [options.postResponseTestResults] - Post-response test results
+ * @param {string} [options.nextRequestName] - Next request name if set
+ * @param {boolean} [options.shouldStopRunnerExecution] - Stop execution flag
+ * @returns {object} Standardized skipped response object
+ */
+const createSkippedResponse = ({
+  filename,
+  request,
+  statusText,
+  preRequestTestResults = [],
+  postResponseTestResults = [],
+  nextRequestName,
+  shouldStopRunnerExecution = false
+}) => {
+  return {
+    test: { filename },
+    request: {
+      method: request.method,
+      url: request.url,
+      headers: request.headers,
+      data: request.data
+    },
+    response: {
+      status: 'skipped',
+      statusText,
+      data: null,
+      responseTime: 0
+    },
+    error: null,
+    status: 'skipped',
+    skipped: true,
+    assertionResults: [],
+    testResults: [],
+    preRequestTestResults,
+    postResponseTestResults,
+    nextRequestName,
+    shouldStopRunnerExecution
+  };
+};
+
+/**
  * Extract prompt variables from a request
  * Tries to respect the hierarchy of the variables and avoid unnecessary prompts as much as possible
  * Note: TO BE CALLED ONLY AFTER THE PREPARE REQUEST
@@ -136,31 +201,12 @@ const runSingleRequest = async function (
     if (promptVars.length > 0) {
       const errorMsg = `Prompt variables detected in request. CLI execution is not supported for requests with prompt variables. \nPrompts: ${promptVars.join(', ')}`;
       console.log(chalk.yellow(stripExtension(relativeItemPathname) + ' Skipped:') + chalk.dim(` (${errorMsg})`));
-      return {
-        test: {
-          filename: relativeItemPathname
-        },
-        request: {
-          method: request.method,
-          url: request.url,
-          headers: request.headers,
-          data: request.data
-        },
-        response: {
-          status: 'skipped',
-          statusText: errorMsg,
-          data: null,
-          responseTime: 0
-        },
-        error: null,
-        status: 'skipped',
-        skipped: true,
-        assertionResults: [],
-        testResults: [],
-        preRequestTestResults: [],
-        postResponseTestResults: [],
+      return createSkippedResponse({
+        filename: relativeItemPathname,
+        request,
+        statusText: errorMsg,
         shouldStopRunnerExecution
-      };
+      });
     }
 
     request.__bruno__executionMode = 'cli';
@@ -194,11 +240,27 @@ const runSingleRequest = async function (
     // Hooks are called in registration order: collection -> folder(s) -> request
     const beforeRequestEventData = { request, req: new BrunoRequest(request), collection };
 
-    await executeAllHooksConsolidated(
+    const beforeRequestHooksResult = await executeAllHooksConsolidated(
       { collectionHooks, folderHooks, requestHooks },
       HOOK_EVENTS.HTTP_BEFORE_REQUEST,
       beforeRequestEventData
     );
+
+    // Check runner control from hooks
+    const runnerState = { nextRequestName, shouldStopRunnerExecution };
+    applyRunnerControlFromResult(beforeRequestHooksResult, runnerState);
+    nextRequestName = runnerState.nextRequestName;
+    shouldStopRunnerExecution = runnerState.shouldStopRunnerExecution;
+
+    if (beforeRequestHooksResult?.skipRequest) {
+      return createSkippedResponse({
+        filename: relativeItemPathname,
+        request,
+        statusText: 'request skipped via beforeRequest hook',
+        nextRequestName,
+        shouldStopRunnerExecution
+      });
+    }
 
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
@@ -216,40 +278,18 @@ const runSingleRequest = async function (
         runSingleRequestByPathname,
         collectionName
       );
-      if (result?.nextRequestName !== undefined) {
-        nextRequestName = result.nextRequestName;
-      }
-
-      if (result?.stopExecution) {
-        shouldStopRunnerExecution = true;
-      }
+      applyRunnerControlFromResult(result, runnerState);
+      nextRequestName = runnerState.nextRequestName;
+      shouldStopRunnerExecution = runnerState.shouldStopRunnerExecution;
 
       if (result?.skipRequest) {
-        return {
-          test: {
-            filename: relativeItemPathname
-          },
-          request: {
-            method: request.method,
-            url: request.url,
-            headers: request.headers,
-            data: request.data
-          },
-          response: {
-            status: 'skipped',
-            statusText: 'request skipped via pre-request script',
-            data: null,
-            responseTime: 0
-          },
-          error: null,
-          status: 'skipped',
-          skipped: true,
-          assertionResults: [],
-          testResults: [],
+        return createSkippedResponse({
+          filename: relativeItemPathname,
+          request,
+          statusText: 'request skipped via pre-request script',
           preRequestTestResults: result?.results || [],
-          postResponseTestResults: [],
           shouldStopRunnerExecution
-        };
+        });
       }
 
       preRequestTestResults = result?.results || [];
@@ -685,11 +725,16 @@ const runSingleRequest = async function (
       collection
     };
 
-    await executeAllHooksConsolidated(
+    const afterResponseHooksResult = await executeAllHooksConsolidated(
       { collectionHooks, folderHooks, requestHooks },
       HOOK_EVENTS.HTTP_AFTER_RESPONSE,
       afterResponseEventData
     );
+
+    // Check runner control from hooks
+    applyRunnerControlFromResult(afterResponseHooksResult, runnerState);
+    nextRequestName = runnerState.nextRequestName;
+    shouldStopRunnerExecution = runnerState.shouldStopRunnerExecution;
 
     // run post-response vars
     const postResponseVars = get(item, 'request.vars.res');
@@ -724,13 +769,9 @@ const runSingleRequest = async function (
           runSingleRequestByPathname,
           collectionName
         );
-        if (result?.nextRequestName !== undefined) {
-          nextRequestName = result.nextRequestName;
-        }
-
-        if (result?.stopExecution) {
-          shouldStopRunnerExecution = true;
-        }
+        applyRunnerControlFromResult(result, runnerState);
+        nextRequestName = runnerState.nextRequestName;
+        shouldStopRunnerExecution = runnerState.shouldStopRunnerExecution;
 
         postResponseTestResults = result?.results || [];
         logResults(postResponseTestResults, 'Post-Response Tests');
@@ -774,13 +815,9 @@ const runSingleRequest = async function (
         );
         testResults = get(result, 'results', []);
 
-        if (result?.nextRequestName !== undefined) {
-          nextRequestName = result.nextRequestName;
-        }
-
-        if (result?.stopExecution) {
-          shouldStopRunnerExecution = true;
-        }
+        applyRunnerControlFromResult(result, runnerState);
+        nextRequestName = runnerState.nextRequestName;
+        shouldStopRunnerExecution = runnerState.shouldStopRunnerExecution;
 
         logResults(testResults, 'Tests');
       } catch (error) {

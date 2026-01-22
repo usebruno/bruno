@@ -1,0 +1,30 @@
+meta {
+  name: legacy-set-next-request-skipped
+  type: http
+  seq: 301
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] ERROR: This request should have been skipped by legacy setNextRequest!');
+    
+    // If this request runs, set an error marker
+    bru.setVar('legacy-set-next-skipped-ran', 'true');
+    
+    console.log('[beforeRequest] Setting error marker - legacy setNextRequest jump failed');
+  });
+}
+
+tests {
+  test("this request should be skipped due to legacy setNextRequest jump", function() {
+    // If we get here, the request ran when it should have been skipped
+    const ran = bru.getVar('legacy-set-next-skipped-ran');
+    expect(ran).to.be.undefined;
+  });
+}

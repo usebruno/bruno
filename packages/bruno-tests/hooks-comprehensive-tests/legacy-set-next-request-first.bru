@@ -1,0 +1,45 @@
+meta {
+  name: legacy-set-next-request-first
+  type: http
+  seq: 300
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] Testing legacy bru.setNextRequest() API');
+    
+    // Clear any previous markers
+    bru.deleteVar('legacy-set-next-skipped-ran');
+    
+    // Mark that this request started
+    bru.setVar('legacy-set-next-first-ran', 'true');
+    
+    console.log('[beforeRequest] Legacy first request starting');
+  });
+  
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    console.log('[afterResponse] Using legacy bru.setNextRequest() to jump to target');
+    
+    // Use the legacy API to jump to the target request
+    bru.setNextRequest('legacy-set-next-request-target');
+    
+    console.log('[afterResponse] Called bru.setNextRequest("legacy-set-next-request-target")');
+  });
+}
+
+tests {
+  test("first request should execute successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("first request marker should be set", function() {
+    const ran = bru.getVar('legacy-set-next-first-ran');
+    expect(ran).to.equal('true');
+  });
+}

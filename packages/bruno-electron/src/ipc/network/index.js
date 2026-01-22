@@ -1478,12 +1478,36 @@ const registerNetworkIpc = (mainWindow) => {
             // Call beforeRequest hooks using consolidated approach when multiple levels have hooks
             const beforeRequestEventData = { request, req: new BrunoRequest(request), collection, collectionUid };
 
-            await executeAllHooksConsolidated(
+            const beforeRequestHooksResult = await executeAllHooksConsolidated(
               { collectionHooks, folderHooks, requestHooks },
               HOOK_EVENTS.HTTP_BEFORE_REQUEST,
               beforeRequestEventData,
               hookOptions
             );
+
+            // Check runner control from hooks
+            if (beforeRequestHooksResult?.nextRequestName !== undefined) {
+              nextRequestName = beforeRequestHooksResult.nextRequestName;
+            }
+            if (beforeRequestHooksResult?.stopExecution) {
+              stopRunnerExecution = true;
+            }
+            if (beforeRequestHooksResult?.skipRequest) {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'runner-request-skipped',
+                error: 'Request has been skipped from beforeRequest hook',
+                responseReceived: {
+                  status: 'skipped',
+                  statusText: 'request skipped via beforeRequest hook',
+                  data: null,
+                  responseTime: 0,
+                  headers: null
+                },
+                ...eventData
+              });
+              currentRequestIndex++;
+              continue;
+            }
 
             let preRequestScriptResult;
             let preRequestError = null;
@@ -1716,12 +1740,20 @@ const registerNetworkIpc = (mainWindow) => {
               collectionUid
             };
 
-            await executeAllHooksConsolidated(
+            const afterResponseHooksResult = await executeAllHooksConsolidated(
               { collectionHooks, folderHooks, requestHooks },
               HOOK_EVENTS.HTTP_AFTER_RESPONSE,
               afterResponseEventData,
               hookOptions
             );
+
+            // Check runner control from hooks
+            if (afterResponseHooksResult?.nextRequestName !== undefined) {
+              nextRequestName = afterResponseHooksResult.nextRequestName;
+            }
+            if (afterResponseHooksResult?.stopExecution) {
+              stopRunnerExecution = true;
+            }
 
             let postResponseScriptResult;
             let postResponseError = null;

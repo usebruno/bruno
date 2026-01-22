@@ -153,7 +153,11 @@ class HooksRuntime {
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
         persistentEnvVariables: bru.persistentEnvVariables,
-        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables)
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution,
+        __bru: bru
       };
     }
 
@@ -176,7 +180,11 @@ class HooksRuntime {
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
         persistentEnvVariables: bru.persistentEnvVariables,
-        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables)
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution,
+        __bru: bru
       };
     }
 
@@ -199,7 +207,11 @@ class HooksRuntime {
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       persistentEnvVariables: bru.persistentEnvVariables,
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables)
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      nextRequestName: bru.nextRequest,
+      skipRequest: bru.skipRequest,
+      stopExecution: bru.stopExecution,
+      __bru: bru
     };
   }
 
@@ -257,7 +269,11 @@ class HooksRuntime {
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
         persistentEnvVariables: bru.persistentEnvVariables,
-        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables)
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution,
+        __bru: bru
       };
     }
 
@@ -328,7 +344,11 @@ class HooksRuntime {
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
         persistentEnvVariables: bru.persistentEnvVariables,
-        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables)
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution,
+        __bru: bru
       };
     }
 
@@ -350,7 +370,12 @@ class HooksRuntime {
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       persistentEnvVariables: bru.persistentEnvVariables,
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables)
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      nextRequestName: bru.nextRequest,
+      skipRequest: bru.skipRequest,
+      stopExecution: bru.stopExecution,
+      // Include bru reference so callers can read updated values after hook execution
+      __bru: bru
     };
   }
 }
