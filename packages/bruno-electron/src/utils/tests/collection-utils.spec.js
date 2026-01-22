@@ -61,7 +61,7 @@ describe('transformRequestToSaveToFilesystem', () => {
           {
             uid: 'test-uid-1',
             name: 'Test Response',
-            code: 'expect(response.status).toBe(200);'
+            code: 'expect(response.status).toHaveText(/200/);'
           }
         ],
         docs: 'This is a test request documentation'

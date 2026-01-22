@@ -67,7 +67,7 @@
         ]
       },
       "response": {
-        "status": "200",
+        "status": 200,
         "statusText": "OK",
         "body": {
           "type": "json",
@@ -98,7 +98,7 @@
         ]
       },
       "response": {
-        "status": "200",
+        "status": 200,
         "statusText": "OK",
         "body": {
           "type": "json",
@@ -124,7 +124,7 @@
         ]
       },
       "response": {
-        "status": "200",
+        "status": 200,
         "statusText": "OK",
         "body": {
           "type": "text",
@@ -150,7 +150,7 @@
         ]
       },
       "response": {
-        "status": "200",
+        "status": 200,
         "statusText": "OK",
         "body": {
           "type": "xml",
@@ -184,7 +184,7 @@
         ]
       },
       "response": {
-        "status": "200",
+        "status": 200,
         "statusText": "OK",
         "body": {
           "type": "json",
@@ -211,7 +211,7 @@
         ]
       },
       "response": {
-        "status": "200",
+        "status": 200,
         "statusText": "OK",
         "body": {
           "type": "json",

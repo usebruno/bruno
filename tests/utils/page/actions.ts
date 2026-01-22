@@ -588,7 +588,7 @@ const sendRequestAndWaitForResponse = async (page: Page,
   } = { timeout: 15000 }) => {
   await test.step(`Send request and wait for status code ${expectedStatusCode}`, async () => {
     await page.getByTestId('send-arrow-icon').click();
-    await expect(page.getByTestId('response-status-code')).toContainText(expectedStatusCode, options);
+    await expect(page.getByTestId('response-status-code')).toContainText(String(expectedStatusCode), options);
   });
 };
 

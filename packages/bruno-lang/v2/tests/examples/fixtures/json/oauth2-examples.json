@@ -86,7 +86,7 @@
         ]
       },
       "response": {
-        "status": "200",
+        "status": 200,
         "statusText": "OK",
         "body": {
           "type": "json",
@@ -118,7 +118,7 @@
         ]
       },
       "response": {
-        "status": "200",
+        "status": 200,
         "statusText": "OK",
         "body": {
           "type": "json",
@@ -145,7 +145,7 @@
         ]
       },
       "response": {
-        "status": "200",
+        "status": 200,
         "statusText": "OK",
         "body": {
           "type": "json",
@@ -172,7 +172,7 @@
         ]
       },
       "response": {
-        "status": "200",
+        "status": 200,
         "statusText": "OK",
         "body": {
           "type": "json",
