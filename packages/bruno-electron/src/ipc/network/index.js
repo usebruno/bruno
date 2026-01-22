@@ -27,7 +27,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence, extractHooks, HOOK_EVENTS, getOrCreateHookManager } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence, extractHooks, HOOK_EVENTS } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -39,7 +39,6 @@ const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 const { buildFormUrlEncodedPayload, isFormData } = require('@usebruno/common').utils;
-const HookManager = require('@usebruno/js/src/hook-manager');
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -448,185 +447,70 @@ const registerNetworkIpc = (mainWindow) => {
   };
 
   /**
-   * Register all hooks along the request path tree to a new HookManager instance.
-   * Hooks are registered in order: collection -> folder(s) -> request
-   * The HookManager will be garbage collected after the request run completes.
-   *
+   * Execute hooks for a specific level at runtime
+   * Initializes HookManager, executes the hook event, and disposes immediately
+   * @param {string} hooksFile - Hooks file content for this level
+   * @param {string} hookEvent - Hook event to trigger (e.g., HOOK_EVENTS.HTTP_BEFORE_REQUEST)
+   * @param {object} eventData - Data to pass to hook handlers
    * @param {object} options - Configuration options
-   * @param {object} options.collection - Collection object
    * @param {object} options.request - Request object
-   * @param {array} options.requestTreePath - Path from collection to request
    * @param {object} options.envVars - Environment variables
    * @param {object} options.runtimeVariables - Runtime variables
    * @param {string} options.collectionPath - Collection path
+   * @param {function} options.onConsoleLog - Console log callback
    * @param {object} options.processEnvVars - Process environment variables
    * @param {object} options.scriptingConfig - Scripting configuration
    * @param {function} options.runRequestByItemPathname - Function to run requests
    * @param {string} options.collectionName - Collection name
-   * @param {function} options.onConsoleLog - Console log callback
-   * @returns {HookManager} HookManager instance with all hooks registered
+   * @param {string} options.requestUid - Request UID (for error notifications)
+   * @param {string} options.itemUid - Item UID (for error notifications)
+   * @param {string} options.collectionUid - Collection UID (for error notifications)
+   * @param {boolean} options.runInBackground - Whether running in background
+   * @param {function} options.notifyScriptExecution - Function to notify script execution
    */
-  /**
-   * Generic function to register hooks from a hooks file to a HookManager
-   * @param {object} options - Configuration options
-   * @param {string} options.hooksFile - The hooks script content
-   * @param {HookManager} options.hookManager - HookManager instance to register hooks to
-   * @param {object} options.request - Request object (used for variable extraction)
-   * @param {object} options.envVars - Environment variables
-   * @param {object} options.runtimeVariables - Runtime variables
-   * @param {string} options.collectionPath - Collection path
-   * @param {object} options.processEnvVars - Process environment variables
-   * @param {object} options.scriptingConfig - Scripting configuration
-   * @param {function} options.runRequestByItemPathname - Function to run requests
-   * @param {string} options.collectionName - Collection name
-   * @param {function} options.onConsoleLog - Console log callback
-   * @returns {Promise<void>}
-   */
-  const registerHooks = async ({
-    hooksFile,
-    hookManager,
-    request,
-    envVars,
-    runtimeVariables,
-    collectionPath,
-    processEnvVars,
-    scriptingConfig,
-    runRequestByItemPathname,
-    collectionName,
-    onConsoleLog
-  }) => {
+  const executeHooksForLevel = async (hooksFile, hookEvent, eventData, options) => {
     if (!hooksFile || !hooksFile.trim()) {
       return;
     }
 
-    const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
-
-    await hooksRuntime.runHooks({
-      hooksFile: decomment(hooksFile),
-      request,
-      envVariables: envVars,
-      runtimeVariables,
-      collectionPath,
-      onConsoleLog,
-      processEnvVars,
-      scriptingConfig,
-      runRequestByItemPathname,
-      collectionName,
-      hookManager
-    });
-  };
-
-  /**
-   * Register all hooks for a standalone request run
-   * Creates a single HookManager with all hooks (collection, folder, request)
-   * @param {object} options - Configuration options
-   * @returns {Promise<HookManager>} HookManager instance with all hooks registered
-   */
-  const registerHooksForRequest = async ({
-    collection,
-    request,
-    requestTreePath,
-    envVars,
-    runtimeVariables,
-    collectionPath,
-    processEnvVars,
-    scriptingConfig,
-    runRequestByItemPathname,
-    collectionName,
-    onConsoleLog,
-    requestUid,
-    itemUid,
-    collectionUid,
-    runInBackground,
-    notifyScriptExecution
-  }) => {
-    // Create a new HookManager for this request run
-    const hookManager = new HookManager();
-
-    // Extract hooks from different levels
-    const { collectionHooks, folderHooks, requestHooks } = extractHooks(collection, request, requestTreePath);
-
-    // Register collection-level hooks
     try {
-      await registerHooks({
-        hooksFile: collectionHooks,
-        hookManager,
-        request,
-        envVars,
-        runtimeVariables,
-        collectionPath,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname,
-        collectionName,
-        onConsoleLog
+      const hooksRuntime = new HooksRuntime({ runtime: options.scriptingConfig?.runtime });
+      const result = await hooksRuntime.runHooks({
+        hooksFile: decomment(hooksFile),
+        request: options.request || {},
+        envVariables: options.envVars,
+        runtimeVariables: options.runtimeVariables,
+        collectionPath: options.collectionPath,
+        onConsoleLog: options.onConsoleLog,
+        processEnvVars: options.processEnvVars,
+        scriptingConfig: options.scriptingConfig,
+        runRequestByItemPathname: options.runRequestByItemPathname,
+        collectionName: options.collectionName
       });
-    } catch (error) {
-      console.error('Error registering collection hooks:', error);
-      onConsoleLog?.('error', [`Error registering collection hooks: ${error.message}`]);
-      !runInBackground && notifyScriptExecution && notifyScriptExecution({
-        channel: 'main:run-request-event',
-        basePayload: { requestUid, collectionUid, itemUid },
-        scriptType: 'hooks',
-        error
-      });
-    }
 
-    // Register folder-level hooks (in order from collection to request)
-    for (const folderHook of folderHooks) {
-      try {
-        await registerHooks({
-          hooksFile: folderHook.hooks,
-          hookManager,
-          request,
-          envVars,
-          runtimeVariables,
-          collectionPath,
-          processEnvVars,
-          scriptingConfig,
-          runRequestByItemPathname,
-          collectionName,
-          onConsoleLog
-        });
-      } catch (error) {
-        console.error('Error registering folder hooks:', error);
-        onConsoleLog?.('error', [`Error registering folder hooks: ${error.message}`]);
-        !runInBackground && notifyScriptExecution && notifyScriptExecution({
+      if (result?.hookManager) {
+        await result.hookManager.call(hookEvent, eventData);
+        // Dispose HookManager to free VM resources
+        if (result.hookManager && typeof result.hookManager.dispose === 'function') {
+          result.hookManager.dispose();
+        }
+      }
+    } catch (error) {
+      console.error(`Error executing hooks for ${hookEvent}:`, error);
+      options.onConsoleLog?.('error', [`Error executing hooks for ${hookEvent}: ${error.message}`]);
+      if (!options.runInBackground && options.notifyScriptExecution && typeof options.notifyScriptExecution === 'function') {
+        options.notifyScriptExecution({
           channel: 'main:run-request-event',
-          basePayload: { requestUid, collectionUid, itemUid },
+          basePayload: {
+            requestUid: options.requestUid,
+            collectionUid: options.collectionUid,
+            itemUid: options.itemUid
+          },
           scriptType: 'hooks',
           error
         });
       }
     }
-
-    // Register request-level hooks
-    try {
-      await registerHooks({
-        hooksFile: requestHooks,
-        hookManager,
-        request,
-        envVars,
-        runtimeVariables,
-        collectionPath,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname,
-        collectionName,
-        onConsoleLog
-      });
-    } catch (error) {
-      console.error('Error registering request hooks:', error);
-      onConsoleLog?.('error', [`Error registering request hooks: ${error.message}`]);
-      !runInBackground && notifyScriptExecution && notifyScriptExecution({
-        channel: 'main:run-request-event',
-        basePayload: { requestUid, collectionUid, itemUid },
-        scriptType: 'hooks',
-        error
-      });
-    }
-
-    return hookManager;
   };
 
   const runPreRequest = async (request,
@@ -868,45 +752,39 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
-      // Register all hooks along the request path tree to a new HookManager for this request run
-      const hookManager = await registerHooksForRequest({
-        collection,
+      // Extract hooks for all levels
+      const { collectionHooks, folderHooks, requestHooks } = extractHooks(collection, request, requestTreePath);
+
+      // Call beforeRequest hooks before running pre-request scripts
+      // Hooks are called in registration order: collection -> folder(s) -> request
+      const beforeRequestEventData = { request, req: new BrunoRequest(request), collection, collectionUid };
+      const hookOptions = {
         request,
-        requestTreePath,
         envVars,
         runtimeVariables,
         collectionPath,
+        onConsoleLog,
         processEnvVars,
         scriptingConfig,
         runRequestByItemPathname,
         collectionName: collection?.name,
-        onConsoleLog,
         requestUid,
         itemUid: item.uid,
         collectionUid,
         runInBackground,
         notifyScriptExecution
-      });
+      };
 
-      // Call pre-request hooks before running pre-request scripts
-      // Hooks are called in registration order: collection -> folder(s) -> request
-      if (hookManager) {
-        try {
-          // Create req object for hook callbacks (res is not available yet)
-          const req = new BrunoRequest(request);
-          await hookManager.call(HOOK_EVENTS.HTTP_BEFORE_REQUEST, { request, req, collection, collectionUid });
-        } catch (error) {
-          console.error('Error calling pre-request hooks:', error);
-          onConsoleLog?.('error', [`Error calling pre-request hooks: ${error.message}`]);
+      // Collection-level beforeRequest hooks
+      await executeHooksForLevel(collectionHooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData, hookOptions);
 
-          !runInBackground && notifyScriptExecution({
-            channel: 'main:run-request-event',
-            basePayload: { requestUid, collectionUid, itemUid: item.uid },
-            scriptType: 'hooks',
-            error
-          });
-        }
+      // Folder-level beforeRequest hooks (in order from collection to request)
+      for (const folderHook of folderHooks) {
+        await executeHooksForLevel(folderHook.hooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData, hookOptions);
       }
+
+      // Request-level beforeRequest hooks
+      await executeHooksForLevel(requestHooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData, hookOptions);
 
       let preRequestScriptResult = null;
       let preRequestError = null;
@@ -1072,26 +950,27 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
       cookiesStore.saveCookieJar();
 
-      // Call post-response hooks after response is received but before post-response scripts
-      // Use the same HookManager that was created for this request run
-      if (hookManager) {
-        try {
-          // Create req and res objects for hook callbacks
-          const req = new BrunoRequest(request);
-          const res = new BrunoResponse(response);
-          await hookManager.call(HOOK_EVENTS.HTTP_AFTER_RESPONSE, { request, response, req, res, collection, collectionUid });
-        } catch (error) {
-          console.error('Error calling post-response hooks:', error);
-          onConsoleLog?.('error', [`Error calling post-response hooks: ${error.message}`]);
+      // Call afterResponse hooks after response is received but before post-response scripts
+      // Hooks are called in registration order: collection -> folder(s) -> request
+      const afterResponseEventData = {
+        request,
+        response,
+        req: new BrunoRequest(request),
+        res: new BrunoResponse(response),
+        collection,
+        collectionUid
+      };
 
-          !runInBackground && notifyScriptExecution({
-            channel: 'main:run-request-event',
-            basePayload: { requestUid, collectionUid, itemUid: item.uid },
-            scriptType: 'hooks',
-            error
-          });
-        }
+      // Collection-level afterResponse hooks
+      await executeHooksForLevel(collectionHooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData, hookOptions);
+
+      // Folder-level afterResponse hooks (in order from collection to request)
+      for (const folderHook of folderHooks) {
+        await executeHooksForLevel(folderHook.hooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData, hookOptions);
       }
+
+      // Request-level afterResponse hooks
+      await executeHooksForLevel(requestHooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData, hookOptions);
 
       const runPostScripts = async () => {
         let postResponseScriptResult = null;
@@ -1420,55 +1299,53 @@ const registerNetworkIpc = (mainWindow) => {
         cancelTokenUid
       });
 
-      // Create a map to store HookManagers for this collection/folder run
-      // Key format: 'collection:<collectionUid>', 'folder:<folderUid>', 'request:<requestUid>'
-      const hookManagersMap = new Map();
+      const isCollectionRun = folder?.uid === collection?.uid;
 
-      // Register collection-level hooks immediately
-      const collectionHookManagerOptions = {
-        request: {}, // Placeholder request for hook registration
-        envVars,
-        runtimeVariables,
-        collectionPath,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname,
-        collectionName: collection?.name,
-        onConsoleLog: (type, args) => {
-          console[type](...args);
-          mainWindow.webContents.send('main:console-log', {
-            type,
-            args
+      // Helper function to execute collection-level hooks at runtime
+      const executeCollectionHooks = async (hookEvent, eventData) => {
+        const collectionRoot = collection?.draft?.root || collection?.root || {};
+        const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
+
+        if (!collectionHooks || !collectionHooks.trim()) {
+          return;
+        }
+
+        try {
+          const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
+          const result = await hooksRuntime.runHooks({
+            hooksFile: decomment(collectionHooks),
+            request: {}, // Placeholder request for collection-level hooks
+            envVariables: envVars,
+            runtimeVariables,
+            collectionPath,
+            onConsoleLog: (type, args) => {
+              console[type](...args);
+              mainWindow.webContents.send('main:console-log', {
+                type,
+                args
+              });
+            },
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname,
+            collectionName: collection?.name
           });
+
+          if (result?.hookManager) {
+            await result.hookManager.call(hookEvent, eventData);
+            // Dispose HookManager to free VM resources
+            if (result.hookManager && typeof result.hookManager.dispose === 'function') {
+              result.hookManager.dispose();
+            }
+          }
+        } catch (error) {
+          console.error(`Error executing collection-level hooks for ${hookEvent}:`, error);
         }
       };
 
-      const collectionRoot = collection?.draft?.root || collection?.root || {};
-      const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
-      const collectionHookManagerKey = `collection:${collectionPath}`;
-      await getOrCreateHookManager(hookManagersMap, collectionHookManagerKey, collectionHooks, collectionHookManagerOptions);
-      const isCollectionRun = folder?.uid === collection?.uid;
-
-      // If a folder is being run (not the collection itself), register folder hooks along the folder path tree
-      if (folder && !isCollectionRun) {
-        const folderTreePath = getTreePathFromCollectionToItem(collection, folder);
-
-        // Extract folder hooks from the folder tree path
-        for (const pathItem of folderTreePath) {
-          if (pathItem.type === 'folder') {
-            const folderRoot = pathItem?.draft || pathItem?.root;
-            const folderHooks = get(folderRoot, 'request.script.hooks', '');
-            if (folderHooks && folderHooks.trim() !== '') {
-              const folderHookManagerKey = `folder:${pathItem.pathname}`;
-              await getOrCreateHookManager(hookManagersMap, folderHookManagerKey, folderHooks, collectionHookManagerOptions);
-            }
-          }
-        }
-      }
-
+      // Call onBeforeCollectionRun hook before starting to run requests
       if (isCollectionRun) {
-        const collectionHookManager = hookManagersMap.get(collectionHookManagerKey);
-        await collectionHookManager.call(HOOK_EVENTS.RUNNER_BEFORE_COLLECTION_RUN, { collection, collectionUid });
+        await executeCollectionHooks(HOOK_EVENTS.RUNNER_BEFORE_COLLECTION_RUN, { collection, collectionUid });
       }
 
       try {
@@ -1588,12 +1465,12 @@ const registerNetworkIpc = (mainWindow) => {
             continue;
           }
 
-          // Get request tree path for hooks registration
+          // Get request tree path for hooks extraction
           const requestTreePath = getTreePathFromCollectionToItem(collection, item);
           const { collectionHooks, folderHooks, requestHooks } = extractHooks(collection, request, requestTreePath);
 
-          // Get or create HookManagers for each level
-          const hookManagerOptions = {
+          // Hook execution options
+          const hookOptions = {
             request,
             envVars,
             runtimeVariables,
@@ -1609,47 +1486,33 @@ const registerNetworkIpc = (mainWindow) => {
                 args
               });
             },
-            notifyScriptExecution,
-            eventData
+            requestUid,
+            itemUid: item.uid,
+            collectionUid,
+            runInBackground: false,
+            notifyScriptExecution: (notification) => {
+              notifyScriptExecution({
+                ...notification,
+                basePayload: eventData
+              });
+            }
           };
 
-          // Collection-level HookManager
-          const collectionHookManagerKey = `collection:${collectionPath}`;
-          const collectionHookManager = await getOrCreateHookManager(hookManagersMap, collectionHookManagerKey, collectionHooks, hookManagerOptions);
-
-          // Folder-level HookManagers (in order from collection to request)
-          const folderHookManagers = [];
-          for (const folderHook of folderHooks) {
-            const folderHookManagerKey = `folder:${folderHook.folderPathname}`;
-            const folderHookManager = await getOrCreateHookManager(hookManagersMap, folderHookManagerKey, folderHook.hooks, hookManagerOptions);
-            folderHookManagers.push(folderHookManager);
-          }
-
-          // Request-level HookManager
-          const requestHookManagerKey = item.pathname;
-          const requestHookManager = await getOrCreateHookManager(hookManagersMap, requestHookManagerKey, requestHooks, hookManagerOptions);
-
-          // Combine all HookManagers in order: collection -> folders -> request
-          const allHookManagers = [collectionHookManager, ...folderHookManagers, requestHookManager];
-
           try {
-            // Call pre-request hooks before running pre-request scripts
+            // Call beforeRequest hooks before running pre-request scripts
             // Hooks are called in registration order: collection -> folder(s) -> request
-            for (const hookManager of allHookManagers) {
-              try {
-                const req = new BrunoRequest(request);
-                await hookManager.call(HOOK_EVENTS.HTTP_BEFORE_REQUEST, { request, req, collection, collectionUid });
-              } catch (error) {
-                console.error('Error calling pre-request hooks:', error);
+            const beforeRequestEventData = { request, req: new BrunoRequest(request), collection, collectionUid };
 
-                notifyScriptExecution({
-                  channel: 'main:run-folder-event',
-                  basePayload: eventData,
-                  scriptType: 'hooks',
-                  error
-                });
-              }
+            // Collection-level beforeRequest hooks
+            await executeHooksForLevel(collectionHooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData, hookOptions);
+
+            // Folder-level beforeRequest hooks (in order from collection to request)
+            for (const folderHook of folderHooks) {
+              await executeHooksForLevel(folderHook.hooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData, hookOptions);
             }
+
+            // Request-level beforeRequest hooks
+            await executeHooksForLevel(requestHooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData, hookOptions);
 
             let preRequestScriptResult;
             let preRequestError = null;
@@ -1702,10 +1565,6 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             if (preRequestScriptResult?.skipRequest) {
-              // Clean up request-level hook manager if request is skipped
-              if (hookManagersMap) {
-                hookManagersMap.delete(item.pathname);
-              }
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'runner-request-skipped',
                 error: 'Request has been skipped from pre-request script',
@@ -1876,31 +1735,27 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
-            // Call post-response hooks after response is received but before post-response scripts
+            // Call afterResponse hooks after response is received but before post-response scripts
             // Hooks are called in registration order: collection -> folder(s) -> request
-            for (const hookManager of allHookManagers) {
-              try {
-                const req = new BrunoRequest(request);
-                const res = new BrunoResponse(response);
-                await hookManager.call(HOOK_EVENTS.HTTP_AFTER_RESPONSE, { request, response, req, res, collection, collectionUid });
-              } catch (error) {
-                console.error('Error calling post-response hooks:', error);
+            const afterResponseEventData = {
+              request,
+              response,
+              req: new BrunoRequest(request),
+              res: new BrunoResponse(response),
+              collection,
+              collectionUid
+            };
 
-                notifyScriptExecution({
-                  channel: 'main:run-folder-event',
-                  basePayload: eventData,
-                  scriptType: 'hooks',
-                  error
-                });
-              }
+            // Collection-level afterResponse hooks
+            await executeHooksForLevel(collectionHooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData, hookOptions);
+
+            // Folder-level afterResponse hooks (in order from collection to request)
+            for (const folderHook of folderHooks) {
+              await executeHooksForLevel(folderHook.hooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData, hookOptions);
             }
 
-            // Clean up request-level hook manager after request completes
-            // Requests are only run once, so we can safely remove the hook manager to free memory
-            // TODO: we probably don't even have to store the request level hook manager in the first place
-            if (hookManagersMap) {
-              hookManagersMap.delete(item.pathname);
-            }
+            // Request-level afterResponse hooks
+            await executeHooksForLevel(requestHooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData, hookOptions);
 
             let postResponseScriptResult;
             let postResponseError = null;
@@ -2082,26 +1937,10 @@ const registerNetworkIpc = (mainWindow) => {
           }
         }
 
-        // Call collection run end hooks
+        // Call onAfterCollectionRun hook after all requests are done
         if (isCollectionRun) {
-          const collectionHookManager = hookManagersMap.get(collectionHookManagerKey);
-          if (collectionHookManager) {
-            await collectionHookManager.call(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection, collectionUid });
-          }
+          await executeCollectionHooks(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection, collectionUid });
         }
-
-        // Cleanup: Dispose all HookManagers to free VM resources, then clear the map
-        // This is critical to prevent memory leaks from persisted QuickJS VMs
-        hookManagersMap.forEach((hookManager) => {
-          if (hookManager && typeof hookManager.dispose === 'function') {
-            try {
-              hookManager.dispose();
-            } catch (e) {
-              // Ignore disposal errors
-            }
-          }
-        });
-        hookManagersMap.clear();
 
         deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
@@ -2113,26 +1952,10 @@ const registerNetworkIpc = (mainWindow) => {
       } catch (error) {
         console.log('error', error);
 
-        // Call collection run end hooks even on error
+        // Call onAfterCollectionRun hook even on error
         if (isCollectionRun) {
-          const collectionHookManager = hookManagersMap.get(collectionHookManagerKey);
-          if (collectionHookManager) {
-            await collectionHookManager.call(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection, collectionUid });
-          }
+          await executeCollectionHooks(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection, collectionUid });
         }
-
-        // Cleanup: Dispose all HookManagers to free VM resources, then clear the map
-        // This is critical to prevent memory leaks from persisted QuickJS VMs
-        hookManagersMap.forEach((hookManager) => {
-          if (hookManager && typeof hookManager.dispose === 'function') {
-            try {
-              hookManager.dispose();
-            } catch (e) {
-              // Ignore disposal errors
-            }
-          }
-        });
-        hookManagersMap.clear();
 
         deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
