@@ -24,7 +24,7 @@ paths:
       description: 'Create a new user (same summary as GET)'
       operationId: createUser
       responses:
-        '201':
+        201:
           description: Created
           content:
             application/json:

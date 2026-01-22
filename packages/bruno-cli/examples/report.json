@@ -183,7 +183,7 @@
         "headers": {}
       },
       "response": {
-        "status": "200",
+        "status": 200,
         "statusText": "OK",
         "headers": {
           "x-powered-by": "Express",

@@ -52,7 +52,7 @@ test.describe('CLI JSON Environment File Support', () => {
     const report = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
     const result = report.results[0];
     expect(result.request.url).toBe('https://echo.usebruno.com');
-    expect(result.response.status).toHaveText(/200/);
+    expect(result.response.status).toEqual(200);
 
     try {
       fs.unlinkSync(outputPath);

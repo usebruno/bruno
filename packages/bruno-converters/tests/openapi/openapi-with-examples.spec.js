@@ -206,7 +206,7 @@ paths:
       summary: 'Create user'
       operationId: 'createUser'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -334,7 +334,7 @@ paths:
                   name: ''
                   email: 'invalid'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -409,7 +409,7 @@ paths:
                   name: ''
                   email: 'invalid'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -418,7 +418,7 @@ paths:
                   summary: 'User Created'
                   value:
                     id: 123
-        '400':
+        400:
           description: 'Bad Request'
           content:
             application/json:
@@ -484,7 +484,7 @@ paths:
               name: 'John Doe'
               email: 'john@example.com'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -553,7 +553,7 @@ paths:
                   format: email
                   example: 'john@example.com'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -673,7 +673,7 @@ paths:
                   name: ''
                   email: 'invalid'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -768,7 +768,7 @@ paths:
               name: 'Jane Doe'
               email: 'jane@example.com'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -781,7 +781,7 @@ paths:
                   summary: 'Duplicate'
                   value:
                     id: 2
-        '400':
+        400:
           description: 'Bad Request'
           content:
             application/json:

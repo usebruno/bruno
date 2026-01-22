@@ -61,9 +61,9 @@ paths:
                       $ref: '#/components/schemas/User'
                   pagination:
                     $ref: '#/components/schemas/Pagination'
-        '400':
+        400:
           $ref: '#/components/responses/BadRequest'
-        '401':
+        401:
           $ref: '#/components/responses/Unauthorized'
     post:
       summary: Create a new user
@@ -77,15 +77,15 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateUserRequest'
       responses:
-        '201':
+        201:
           description: User created successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
-        '400':
+        400:
           $ref: '#/components/responses/BadRequest'
-        '409':
+        409:
           description: User already exists
   /users/{userId}:
     get:
@@ -108,7 +108,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
-        '404':
+        404:
           $ref: '#/components/responses/NotFound'
     put:
       summary: Update user
@@ -136,7 +136,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
-        '404':
+        404:
           $ref: '#/components/responses/NotFound'
     delete:
       summary: Delete user
@@ -152,9 +152,9 @@ paths:
             type: string
             format: uuid
       responses:
-        '204':
+        204:
           description: User deleted successfully
-        '404':
+        404:
           $ref: '#/components/responses/NotFound'
   /auth/login:
     post:
@@ -193,7 +193,7 @@ paths:
                     type: integer
                   user:
                     $ref: '#/components/schemas/User'
-        '401':
+        401:
           description: Invalid credentials
   /posts:
     get:
@@ -233,7 +233,7 @@ paths:
             schema:
               $ref: '#/components/schemas/CreatePostRequest'
       responses:
-        '201':
+        201:
           description: Post created successfully
           content:
             application/json:

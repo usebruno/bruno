@@ -600,8 +600,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               }
             },
             response: {
-              status: response.status || '',
-              statusText: response.code ? response.code.toString() : '',
+              status: response.code || null,
+              statusText: response.status || '',
               headers: [],
               body: {
                 type: getBodyTypeFromContentTypeHeader(response.header),

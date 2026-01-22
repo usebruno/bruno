@@ -250,7 +250,7 @@ const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, examp
       body: { ...brunoRequestItem.request.body }
     },
     response: {
-      status: String(statusCode),
+      status: Number(statusCode),
       statusText: getStatusText(statusCode),
       headers: contentType ? [
         {
@@ -1171,11 +1171,13 @@ export const parseOpenApiCollection = (data, options = {}) => {
 
 export const openApiToBruno = (openApiSpecification, options = {}) => {
   try {
+    console.log('Opening in API to Bruno');
     if (typeof openApiSpecification !== 'object') {
       openApiSpecification = jsyaml.load(openApiSpecification);
     }
 
     const collection = parseOpenApiCollection(openApiSpecification, options);
+    console.log('--Validating Collection--', collection);
     const transformedCollection = transformItemsInCollection(collection);
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
     const validatedCollection = validateSchema(hydratedCollection);

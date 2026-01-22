@@ -24,7 +24,7 @@ paths:
       description: 'This operation has multiple consecutive newlines'
       operationId: createUserWithNewlines
       responses:
-        '201':
+        201:
           description: Created
           content:
             application/json:

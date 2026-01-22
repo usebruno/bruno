@@ -65,7 +65,7 @@ test.describe('Prompt Variables Interpolation', () => {
 
     await test.step('Verify the request is sent with the correct variables', async () => {
       // Verify the response status code
-      await expect(page.getByTestId('response-status-code')).toHaveText(/200/);
+      await expect(page.getByTestId('response-status-code')).toBe(200);
       await expect(page.locator('.response-pane').locator('.CodeMirror-line').getByText('"folderVar": "folderVarPromptValue"').first()).toBeVisible();
       await expect(page.locator('.response-pane').locator('.CodeMirror-line').getByText('"collectionVar": "collectionVarPromptValue"').first()).toBeVisible();
       await expect(page.locator('.response-pane').locator('.CodeMirror-line').getByText('"collectionEnvVar": "collectionEnvVarPromptValue"').first()).toBeVisible();
