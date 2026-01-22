@@ -258,7 +258,9 @@ const BODY_TYPE_HANDLERS = [
     mode: 'json',
     handle: (body, bodySchema) => {
       if (bodySchema) {
-        if (bodySchema.type === 'array') {
+        if (bodySchema.example !== undefined) {
+          body.json = JSON.stringify(bodySchema.example, null, 2);
+        } else if (bodySchema.type === 'array') {
           body.json = JSON.stringify([buildEmptyJsonBody(bodySchema.items)], null, 2);
         } else {
           body.json = JSON.stringify(buildEmptyJsonBody(bodySchema), null, 2);
