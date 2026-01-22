@@ -285,8 +285,10 @@ class ParsedFileCacheStore {
 
       // Iterate through all entries
       for (const { key, value } of this.db.getRange({})) {
+        // Convert key to string if it's a buffer
+        const keyStr = typeof key === 'string' ? key : key.toString();
         // Skip metadata keys
-        if (key.startsWith('__')) {
+        if (keyStr.startsWith('__')) {
           continue;
         }
 
@@ -347,7 +349,9 @@ class ParsedFileCacheStore {
       let totalFiles = 0;
 
       for (const { key, value } of this.db.getRange({})) {
-        if (key.startsWith('__')) {
+        // Convert key to string if it's a buffer
+        const keyStr = typeof key === 'string' ? key : key.toString();
+        if (keyStr.startsWith('__')) {
           continue;
         }
 

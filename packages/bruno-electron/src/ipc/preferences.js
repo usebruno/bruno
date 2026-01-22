@@ -1,6 +1,7 @@
 const { ipcMain, nativeTheme } = require('electron');
 const { getPreferences, savePreferences, preferencesUtil } = require('../store/preferences');
 const { globalEnvironmentsStore } = require('../store/global-environments');
+const { parsedFileCacheStore } = require('../store/parsed-file-cache');
 
 const registerPreferencesIpc = (mainWindow, watcher) => {
   ipcMain.handle('renderer:ready', async (event) => {
@@ -41,6 +42,25 @@ const registerPreferencesIpc = (mainWindow, watcher) => {
 
   ipcMain.on('renderer:theme-change', (event, theme) => {
     nativeTheme.themeSource = theme;
+  });
+
+  ipcMain.handle('renderer:get-cache-stats', async () => {
+    try {
+      return parsedFileCacheStore.getStats();
+    } catch (error) {
+      console.error('Error getting cache stats:', error);
+      return { error: error.message };
+    }
+  });
+
+  ipcMain.handle('renderer:purge-cache', async () => {
+    try {
+      await parsedFileCacheStore.clear();
+      return { success: true };
+    } catch (error) {
+      console.error('Error purging cache:', error);
+      return { success: false, error: error.message };
+    }
   });
 };
 
