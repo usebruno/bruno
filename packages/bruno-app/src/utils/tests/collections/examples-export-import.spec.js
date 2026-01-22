@@ -67,7 +67,7 @@ describe('Examples Export/Import', () => {
       expect(httpRequest.examples[0].type).toBe('http-request');
       expect(httpRequest.examples[0].request.url).toBe('https://api.example.com/test');
       expect(httpRequest.examples[0].request.method).toBe('POST');
-      expect(httpRequest.examples[0].response.status).toHaveText(/200/);
+      expect(httpRequest.examples[0].response.status).toBe('200');
       expect(httpRequest.examples[0].response.statusText).toBe('OK');
       expect(httpRequest.examples[0].response.body).toBe('{"success": true, "data": "test"}');
     });
@@ -140,8 +140,8 @@ describe('Examples Export/Import', () => {
       expect(httpRequest.examples).toHaveLength(2);
       expect(httpRequest.examples[0].name).toBe('Success Example');
       expect(httpRequest.examples[1].name).toBe('Error Example');
-      expect(httpRequest.examples[0].response.status).toHaveText(/200/);
-      expect(httpRequest.examples[1].response.status).toHaveText(/400/);
+      expect(httpRequest.examples[0].response.status).toBe('200');
+      expect(httpRequest.examples[0].response.status).toBe('400');
     });
 
     it('should handle examples with GraphQL requests', () => {
@@ -281,7 +281,7 @@ describe('Examples Export/Import', () => {
 
       expect(result.examples).toHaveLength(1);
       expect(result.examples[0].name).toBe('Test Example');
-      expect(result.examples[0].response.status).toHaveText(/200/);
+      expect(result.examples[0].response.status).toBe('200');
     });
   });
 
@@ -321,7 +321,7 @@ describe('Examples Export/Import', () => {
                   body: { mode: 'json', json: '{}' }
                 },
                 response: {
-                  status: 200,
+                  status: '200',
                   statusText: 'OK',
                   headers: [
                     { uid: 'res-header-1', name: 'Content-Type', value: 'application/json', enabled: true }
@@ -576,7 +576,7 @@ describe('Examples Export/Import', () => {
       expect(importedRequest.examples[0].type).toBe('http-request');
       expect(importedRequest.examples[0].request.url).toBe(originalRequest.examples[0].request.url);
       expect(importedRequest.examples[0].request.method).toBe(originalRequest.examples[0].request.method);
-      expect(importedRequest.examples[0].response.status).toHaveText(String(originalRequest.examples[0].response.status));
+      expect(importedRequest.examples[0].response.status).toBe(originalRequest.examples[0].response.status);
       expect(importedRequest.examples[0].response.statusText).toBe(originalRequest.examples[0].response.statusText);
       expect(importedRequest.examples[0].response.body).toBe(originalRequest.examples[0].response.body);
     });
