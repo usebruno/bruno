@@ -447,15 +447,62 @@ const registerNetworkIpc = (mainWindow) => {
   };
 
   /**
+   * Send script environment updates to the renderer
+   * This is a reusable helper for updating the UI after script/hook execution
+   * @param {object} options - Update options
+   * @param {object} options.scriptResult - The result from script/hook execution
+   * @param {object} options.collection - The collection object
+   * @param {string} options.collectionUid - The collection UID
+   * @param {string} [options.requestUid] - The request UID (optional, not needed for collection-level hooks)
+   * @param {boolean} [options.updateCookies=true] - Whether to update cookies
+   */
+  const sendScriptEnvironmentUpdates = async ({
+    scriptResult,
+    collection,
+    collectionUid,
+    requestUid,
+    updateCookies = true
+  }) => {
+    if (!scriptResult) return;
+
+    mainWindow.webContents.send('main:script-environment-update', {
+      envVariables: scriptResult.envVariables,
+      runtimeVariables: scriptResult.runtimeVariables,
+      persistentEnvVariables: scriptResult.persistentEnvVariables,
+      ...(requestUid && { requestUid }),
+      collectionUid
+    });
+
+    mainWindow.webContents.send('main:persistent-env-variables-update', {
+      persistentEnvVariables: scriptResult.persistentEnvVariables,
+      collectionUid
+    });
+
+    mainWindow.webContents.send('main:global-environment-variables-update', {
+      globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+    });
+
+    if (scriptResult.globalEnvironmentVariables) {
+      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+    }
+
+    if (updateCookies) {
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    }
+  };
+
+  /**
    * Execute all hooks using consolidated approach
    * @param {object} extractedHooks - Hooks from all levels
    * @param {string} hookEvent - Hook event to trigger
    * @param {object} eventData - Data to pass to hook handlers
    * @param {object} options - Configuration options
+   * @returns {Promise<object|null>} Execution result or null if error
    */
   const executeAllHooksConsolidated = async (extractedHooks, hookEvent, eventData, options) => {
     try {
-      await HooksExecutor.executeAllHookLevels(extractedHooks, hookEvent, eventData, {
+      const result = await HooksExecutor.executeAllHookLevels(extractedHooks, hookEvent, eventData, {
         request: options.request || {},
         envVariables: options.envVars,
         runtimeVariables: options.runtimeVariables,
@@ -466,6 +513,19 @@ const registerNetworkIpc = (mainWindow) => {
         runRequestByItemPathname: options.runRequestByItemPathname,
         collectionName: options.collectionName
       });
+
+      // Send UI updates if we have a result
+      if (result) {
+        await sendScriptEnvironmentUpdates({
+          scriptResult: result,
+          collection: options.collection,
+          collectionUid: options.collectionUid,
+          requestUid: options.requestUid,
+          updateCookies: true
+        });
+      }
+
+      return result;
     } catch (error) {
       console.error(`Error executing consolidated hooks for ${hookEvent}:`, error);
       options.onConsoleLog?.('error', [`Error executing hooks for ${hookEvent}: ${error.message}`]);
@@ -481,6 +541,7 @@ const registerNetworkIpc = (mainWindow) => {
           error
         });
       }
+      return null;
     }
   };
 
@@ -515,27 +576,13 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName
       );
 
-      mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: scriptResult.envVariables,
-        runtimeVariables: scriptResult.runtimeVariables,
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
+      await sendScriptEnvironmentUpdates({
+        scriptResult,
+        collection,
+        collectionUid,
         requestUid,
-        collectionUid
+        updateCookies: true
       });
-
-      mainWindow.webContents.send('main:persistent-env-variables-update', {
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
-        collectionUid
-      });
-
-      mainWindow.webContents.send('main:global-environment-variables-update', {
-        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
-      });
-
-      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
-
-      const domainsWithCookies = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
     }
 
     // interpolate variables inside request
@@ -604,24 +651,13 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       if (result) {
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: result.envVariables,
-          runtimeVariables: result.runtimeVariables,
-          persistentEnvVariables: result.persistentEnvVariables,
+        await sendScriptEnvironmentUpdates({
+          scriptResult: result,
+          collection,
+          collectionUid,
           requestUid,
-          collectionUid
+          updateCookies: false
         });
-
-        mainWindow.webContents.send('main:persistent-env-variables-update', {
-          persistentEnvVariables: result.persistentEnvVariables,
-          collectionUid
-        });
-
-        mainWindow.webContents.send('main:global-environment-variables-update', {
-          globalEnvironmentVariables: result.globalEnvironmentVariables
-        });
-
-        collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
       }
 
       if (result?.error) {
@@ -649,27 +685,13 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName
       );
 
-      mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: scriptResult.envVariables,
-        runtimeVariables: scriptResult.runtimeVariables,
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
+      await sendScriptEnvironmentUpdates({
+        scriptResult,
+        collection,
+        collectionUid,
         requestUid,
-        collectionUid
+        updateCookies: true
       });
-
-      mainWindow.webContents.send('main:persistent-env-variables-update', {
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
-        collectionUid
-      });
-
-      mainWindow.webContents.send('main:global-environment-variables-update', {
-        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
-      });
-
-      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
-
-      const domainsWithCookiesPost = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPost)));
     }
     return scriptResult;
   };
@@ -739,6 +761,7 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig,
         runRequestByItemPathname,
         collectionName: collection?.name,
+        collection,
         requestUid,
         itemUid: item.uid,
         collectionUid,
@@ -1038,23 +1061,14 @@ const registerNetworkIpc = (mainWindow) => {
             collectionUid
           });
 
-          mainWindow.webContents.send('main:script-environment-update', {
-            envVariables: testResults.envVariables,
-            runtimeVariables: testResults.runtimeVariables,
+          await sendScriptEnvironmentUpdates({
+            scriptResult: testResults,
+            collection,
+            collectionUid,
             requestUid,
-            collectionUid
+            updateCookies: true
           });
-
-          mainWindow.webContents.send('main:persistent-env-variables-update', {
-            persistentEnvVariables: testResults.persistentEnvVariables,
-            collectionUid
-          });
-
-          mainWindow.webContents.send('main:global-environment-variables-update', {
-            globalEnvironmentVariables: testResults.globalEnvironmentVariables
-          });
-
-          collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+          cookiesStore.saveCookieJar();
 
           !runInBackground && notifyScriptExecution({
             channel: 'main:run-request-event',
@@ -1062,10 +1076,6 @@ const registerNetworkIpc = (mainWindow) => {
             scriptType: 'test',
             error: testError
           });
-
-          const domainsWithCookiesTest = await getDomainsWithCookies();
-          mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
-          cookiesStore.saveCookieJar();
         }
       };
       if (isResponseStream) {
@@ -1444,6 +1454,7 @@ const registerNetworkIpc = (mainWindow) => {
             scriptingConfig,
             runRequestByItemPathname,
             collectionName: collection?.name,
+            collection,
             onConsoleLog: (type, args) => {
               console[type](...args);
               mainWindow.webContents.send('main:console-log', {
@@ -1829,17 +1840,13 @@ const registerNetworkIpc = (mainWindow) => {
                 ...eventData
               });
 
-              mainWindow.webContents.send('main:script-environment-update', {
-                envVariables: testResults.envVariables,
-                runtimeVariables: testResults.runtimeVariables,
-                collectionUid
+              await sendScriptEnvironmentUpdates({
+                scriptResult: testResults,
+                collection,
+                collectionUid,
+                requestUid: undefined,
+                updateCookies: true
               });
-
-              mainWindow.webContents.send('main:global-environment-variables-update', {
-                globalEnvironmentVariables: testResults.globalEnvironmentVariables
-              });
-
-              collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
 
               notifyScriptExecution({
                 channel: 'main:run-folder-event',
@@ -1847,9 +1854,6 @@ const registerNetworkIpc = (mainWindow) => {
                 scriptType: 'test',
                 error: testError
               });
-
-              const domainsWithCookiesTest = await getDomainsWithCookies();
-              mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
             }
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {

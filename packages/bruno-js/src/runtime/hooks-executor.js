@@ -177,7 +177,7 @@ const executeConsolidatedHooks = async (extractedHooks, hookEvent, eventData, op
  * @param {string} hookEvent - The hook event to trigger
  * @param {object} eventData - Data to pass to hook handlers
  * @param {HookExecutionOptions} options - Execution options
- * @returns {Promise<void>}
+ * @returns {Promise<HookExecutionResult|null>} Execution result or null if no hooks
  */
 const executeAllHookLevels = async (extractedHooks, hookEvent, eventData, options) => {
   // Always use consolidated execution - single VM for all levels
@@ -185,6 +185,7 @@ const executeAllHookLevels = async (extractedHooks, hookEvent, eventData, option
   if (result?.hookManager && typeof result.hookManager.dispose === 'function') {
     result.hookManager.dispose();
   }
+  return result;
 };
 
 /**
