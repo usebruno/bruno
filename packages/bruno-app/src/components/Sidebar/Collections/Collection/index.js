@@ -258,6 +258,18 @@ const Collection = ({ collection, searchText }) => {
     }
   }, [isCollectionFocused]);
 
+  useEffect(() => {
+    if (searchText && searchText.trim().length && collection.mountStatus === 'unmounted') {
+      dispatch(
+        mountCollection({
+          collectionUid: collection.uid,
+          collectionPathname: collection.pathname,
+          brunoConfig: collection.brunoConfig
+        })
+      );
+    }
+  }, [searchText, collection, dispatch]);
+
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
       return null;
@@ -318,13 +330,13 @@ const Collection = ({ collection, searchText }) => {
     },
     ...(hasCopiedItems
       ? [
-          {
-            id: 'paste',
-            leftSection: IconClipboard,
-            label: 'Paste',
-            onClick: handlePasteItem
-          }
-        ]
+        {
+          id: 'paste',
+          leftSection: IconClipboard,
+          label: 'Paste',
+          onClick: handlePasteItem
+        }
+      ]
       : []),
     {
       id: 'rename',
