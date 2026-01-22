@@ -8,7 +8,7 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, HooksRuntime } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, HooksRuntime, HooksExecutor } = require('@usebruno/js');
 // BrunoRequest and BrunoResponse are not exported from main index, require directly
 const BrunoRequest = require('@usebruno/js/src/bruno-request');
 const BrunoResponse = require('@usebruno/js/src/bruno-response');
@@ -447,7 +447,7 @@ const registerNetworkIpc = (mainWindow) => {
   };
 
   /**
-   * Execute hooks for a specific level at runtime
+   * Execute hooks for a specific level at runtime using shared executor
    * Initializes HookManager, executes the hook event, and disposes immediately
    * @param {string} hooksFile - Hooks file content for this level
    * @param {string} hookEvent - Hook event to trigger (e.g., HOOK_EVENTS.HTTP_BEFORE_REQUEST)
@@ -474,9 +474,8 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     try {
-      const hooksRuntime = new HooksRuntime({ runtime: options.scriptingConfig?.runtime });
-      const result = await hooksRuntime.runHooks({
-        hooksFile: decomment(hooksFile),
+      // Use shared executor for hook execution
+      const result = await HooksExecutor.executeHooksForLevel(hooksFile, hookEvent, eventData, {
         request: options.request || {},
         envVariables: options.envVars,
         runtimeVariables: options.runtimeVariables,
@@ -488,15 +487,47 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName: options.collectionName
       });
 
-      if (result?.hookManager) {
-        await result.hookManager.call(hookEvent, eventData);
-        // Dispose HookManager to free VM resources
-        if (result.hookManager && typeof result.hookManager.dispose === 'function') {
-          result.hookManager.dispose();
-        }
-      }
+      return result;
     } catch (error) {
       console.error(`Error executing hooks for ${hookEvent}:`, error);
+      options.onConsoleLog?.('error', [`Error executing hooks for ${hookEvent}: ${error.message}`]);
+      if (!options.runInBackground && options.notifyScriptExecution && typeof options.notifyScriptExecution === 'function') {
+        options.notifyScriptExecution({
+          channel: 'main:run-request-event',
+          basePayload: {
+            requestUid: options.requestUid,
+            collectionUid: options.collectionUid,
+            itemUid: options.itemUid
+          },
+          scriptType: 'hooks',
+          error
+        });
+      }
+    }
+  };
+
+  /**
+   * Execute all hooks using consolidated approach
+   * @param {object} extractedHooks - Hooks from all levels
+   * @param {string} hookEvent - Hook event to trigger
+   * @param {object} eventData - Data to pass to hook handlers
+   * @param {object} options - Configuration options (same as executeHooksForLevel)
+   */
+  const executeAllHooksConsolidated = async (extractedHooks, hookEvent, eventData, options) => {
+    try {
+      await HooksExecutor.executeAllHookLevels(extractedHooks, hookEvent, eventData, {
+        request: options.request || {},
+        envVariables: options.envVars,
+        runtimeVariables: options.runtimeVariables,
+        collectionPath: options.collectionPath,
+        onConsoleLog: options.onConsoleLog,
+        processEnvVars: options.processEnvVars,
+        scriptingConfig: options.scriptingConfig,
+        runRequestByItemPathname: options.runRequestByItemPathname,
+        collectionName: options.collectionName
+      });
+    } catch (error) {
+      console.error(`Error executing consolidated hooks for ${hookEvent}:`, error);
       options.onConsoleLog?.('error', [`Error executing hooks for ${hookEvent}: ${error.message}`]);
       if (!options.runInBackground && options.notifyScriptExecution && typeof options.notifyScriptExecution === 'function') {
         options.notifyScriptExecution({
@@ -775,16 +806,13 @@ const registerNetworkIpc = (mainWindow) => {
         notifyScriptExecution
       };
 
-      // Collection-level beforeRequest hooks
-      await executeHooksForLevel(collectionHooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData, hookOptions);
-
-      // Folder-level beforeRequest hooks (in order from collection to request)
-      for (const folderHook of folderHooks) {
-        await executeHooksForLevel(folderHook.hooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData, hookOptions);
-      }
-
-      // Request-level beforeRequest hooks
-      await executeHooksForLevel(requestHooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData, hookOptions);
+      // Call beforeRequest hooks using consolidated approach when multiple levels have hooks
+      await executeAllHooksConsolidated(
+        { collectionHooks, folderHooks, requestHooks },
+        HOOK_EVENTS.HTTP_BEFORE_REQUEST,
+        beforeRequestEventData,
+        hookOptions
+      );
 
       let preRequestScriptResult = null;
       let preRequestError = null;
@@ -961,16 +989,13 @@ const registerNetworkIpc = (mainWindow) => {
         collectionUid
       };
 
-      // Collection-level afterResponse hooks
-      await executeHooksForLevel(collectionHooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData, hookOptions);
-
-      // Folder-level afterResponse hooks (in order from collection to request)
-      for (const folderHook of folderHooks) {
-        await executeHooksForLevel(folderHook.hooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData, hookOptions);
-      }
-
-      // Request-level afterResponse hooks
-      await executeHooksForLevel(requestHooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData, hookOptions);
+      // Call afterResponse hooks using consolidated approach when multiple levels have hooks
+      await executeAllHooksConsolidated(
+        { collectionHooks, folderHooks, requestHooks },
+        HOOK_EVENTS.HTTP_AFTER_RESPONSE,
+        afterResponseEventData,
+        hookOptions
+      );
 
       const runPostScripts = async () => {
         let postResponseScriptResult = null;
@@ -1499,20 +1524,15 @@ const registerNetworkIpc = (mainWindow) => {
           };
 
           try {
-            // Call beforeRequest hooks before running pre-request scripts
-            // Hooks are called in registration order: collection -> folder(s) -> request
+            // Call beforeRequest hooks using consolidated approach when multiple levels have hooks
             const beforeRequestEventData = { request, req: new BrunoRequest(request), collection, collectionUid };
 
-            // Collection-level beforeRequest hooks
-            await executeHooksForLevel(collectionHooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData, hookOptions);
-
-            // Folder-level beforeRequest hooks (in order from collection to request)
-            for (const folderHook of folderHooks) {
-              await executeHooksForLevel(folderHook.hooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData, hookOptions);
-            }
-
-            // Request-level beforeRequest hooks
-            await executeHooksForLevel(requestHooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData, hookOptions);
+            await executeAllHooksConsolidated(
+              { collectionHooks, folderHooks, requestHooks },
+              HOOK_EVENTS.HTTP_BEFORE_REQUEST,
+              beforeRequestEventData,
+              hookOptions
+            );
 
             let preRequestScriptResult;
             let preRequestError = null;
@@ -1735,8 +1755,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
-            // Call afterResponse hooks after response is received but before post-response scripts
-            // Hooks are called in registration order: collection -> folder(s) -> request
+            // Call afterResponse hooks using consolidated approach when multiple levels have hooks
             const afterResponseEventData = {
               request,
               response,
@@ -1746,16 +1765,12 @@ const registerNetworkIpc = (mainWindow) => {
               collectionUid
             };
 
-            // Collection-level afterResponse hooks
-            await executeHooksForLevel(collectionHooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData, hookOptions);
-
-            // Folder-level afterResponse hooks (in order from collection to request)
-            for (const folderHook of folderHooks) {
-              await executeHooksForLevel(folderHook.hooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData, hookOptions);
-            }
-
-            // Request-level afterResponse hooks
-            await executeHooksForLevel(requestHooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData, hookOptions);
+            await executeAllHooksConsolidated(
+              { collectionHooks, folderHooks, requestHooks },
+              HOOK_EVENTS.HTTP_AFTER_RESPONSE,
+              afterResponseEventData,
+              hookOptions
+            );
 
             let postResponseScriptResult;
             let postResponseError = null;

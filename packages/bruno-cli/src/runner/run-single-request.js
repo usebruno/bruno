@@ -6,7 +6,7 @@ const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lod
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString, interpolateObject } = require('./interpolate-string');
-const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, HooksRuntime } = require('@usebruno/js');
+const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, HooksRuntime, HooksExecutor } = require('@usebruno/js');
 const HookManager = require('@usebruno/js/src/hook-manager');
 const BrunoRequest = require('@usebruno/js/src/bruno-request');
 const BrunoResponse = require('@usebruno/js/src/bruno-response');
@@ -175,53 +175,45 @@ const runSingleRequest = async function (
     // Extract hooks for all levels
     const { collectionHooks, folderHooks, requestHooks } = extractHooks(collection, request, requestTreePath);
 
-    // Helper function to initialize and execute hooks at runtime
+    // Helper function to initialize and execute hooks at runtime using shared executor
     const executeHooksForLevel = async (hooksFile, hookEvent, eventData) => {
-      if (!hooksFile || !hooksFile.trim()) {
-        return;
-      }
+      return HooksExecutor.executeHooksForLevel(hooksFile, hookEvent, eventData, {
+        request,
+        envVariables,
+        runtimeVariables,
+        collectionPath,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        runRequestByItemPathname: runSingleRequestByPathname,
+        collectionName
+      });
+    };
 
-      try {
-        const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
-        const result = await hooksRuntime.runHooks({
-          hooksFile: decomment(hooksFile),
-          request,
-          envVariables,
-          runtimeVariables,
-          collectionPath,
-          onConsoleLog,
-          processEnvVars,
-          scriptingConfig,
-          runRequestByItemPathname: runSingleRequestByPathname,
-          collectionName
-        });
-
-        if (result?.hookManager) {
-          await result.hookManager.call(hookEvent, eventData);
-          // Dispose HookManager to free VM resources
-          if (result.hookManager && typeof result.hookManager.dispose === 'function') {
-            result.hookManager.dispose();
-          }
-        }
-      } catch (error) {
-        console.error(`Error executing hooks for ${hookEvent}:`, error);
-      }
+    // Helper function to execute all hooks using consolidated approach
+    const executeAllHooksConsolidated = async (extractedHooks, hookEvent, eventData) => {
+      return HooksExecutor.executeAllHookLevels(extractedHooks, hookEvent, eventData, {
+        request,
+        envVariables,
+        runtimeVariables,
+        collectionPath,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        runRequestByItemPathname: runSingleRequestByPathname,
+        collectionName
+      });
     };
 
     // Call beforeRequest hooks before running pre-request scripts
     // Hooks are called in registration order: collection -> folder(s) -> request
     const beforeRequestEventData = { request, req: new BrunoRequest(request), collection };
 
-    // Collection-level beforeRequest hooks
-    await executeHooksForLevel(collectionHooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData);
-
-    // Folder-level beforeRequest hooks (in order from collection to request)
-    for (const folderHook of folderHooks) {
-      await executeHooksForLevel(folderHook.hooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData);
-    }
-
-    // Request-level beforeRequest hooks
-    await executeHooksForLevel(requestHooks, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData);
+    await executeAllHooksConsolidated(
+      { collectionHooks, folderHooks, requestHooks },
+      HOOK_EVENTS.HTTP_BEFORE_REQUEST,
+      beforeRequestEventData
+    );
 
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
@@ -700,6 +692,7 @@ const runSingleRequest = async function (
 
     // Call afterResponse hooks after response is received but before post-response scripts
     // Hooks are called in registration order: collection -> folder(s) -> request
+    // Uses consolidated execution when multiple levels have hooks (more efficient)
     const afterResponseEventData = {
       request,
       response,
@@ -708,16 +701,11 @@ const runSingleRequest = async function (
       collection
     };
 
-    // Collection-level afterResponse hooks
-    await executeHooksForLevel(collectionHooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData);
-
-    // Folder-level afterResponse hooks (in order from collection to request)
-    for (const folderHook of folderHooks) {
-      await executeHooksForLevel(folderHook.hooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData);
-    }
-
-    // Request-level afterResponse hooks
-    await executeHooksForLevel(requestHooks, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData);
+    await executeAllHooksConsolidated(
+      { collectionHooks, folderHooks, requestHooks },
+      HOOK_EVENTS.HTTP_AFTER_RESPONSE,
+      afterResponseEventData
+    );
 
     // run post-response vars
     const postResponseVars = get(item, 'request.vars.res');
