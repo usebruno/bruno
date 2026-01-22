@@ -800,4 +800,112 @@ paths:
     expect(bodyJson.createdDate).toBe('2025-01-01');
     expect(bodyJson.score).toBe(3.1415926535);
   });
+
+  it('should handle XML body with object example (not produce [object Object])', () => {
+    const openApiSpec = `
+openapi: "3.0.0"
+info:
+  version: "1.0.0"
+  title: "XML Object Example Test"
+servers:
+  - url: "https://api.example.com"
+paths:
+  /user:
+    post:
+      summary: "Create user"
+      operationId: "createUser"
+      requestBody:
+        required: true
+        content:
+          application/xml:
+            schema:
+              type: object
+              example:
+                name: "John"
+                age: 30
+              properties:
+                name:
+                  type: string
+                age:
+                  type: integer
+      responses:
+        "201":
+          description: "Created"
+`;
+    const result = openApiToBruno(openApiSpec);
+    const request = result.items[0];
+
+    expect(request.request.body.mode).toBe('xml');
+    // Should NOT contain [object Object]
+    expect(request.request.body.xml).not.toContain('[object Object]');
+    // Should contain the example values
+    expect(request.request.body.xml).toContain('<name>John</name>');
+    expect(request.request.body.xml).toContain('<age>30</age>');
+  });
+
+  it('should handle XML body with string example (raw XML)', () => {
+    const openApiSpec = `
+openapi: "3.0.0"
+info:
+  version: "1.0.0"
+  title: "XML String Example Test"
+servers:
+  - url: "https://api.example.com"
+paths:
+  /user:
+    post:
+      summary: "Create user"
+      operationId: "createUser"
+      requestBody:
+        required: true
+        content:
+          application/xml:
+            schema:
+              type: string
+              example: '<user><name>John</name></user>'
+      responses:
+        "201":
+          description: "Created"
+`;
+    const result = openApiToBruno(openApiSpec);
+    const request = result.items[0];
+
+    expect(request.request.body.mode).toBe('xml');
+    // Should preserve the raw XML string
+    expect(request.request.body.xml).toBe('<user><name>John</name></user>');
+  });
+
+  it('should not crash when array schema has no items defined', () => {
+    const openApiSpec = `
+openapi: "3.0.0"
+info:
+  version: "1.0.0"
+  title: "Array Without Items Test"
+servers:
+  - url: "https://api.example.com"
+paths:
+  /items:
+    post:
+      summary: "Create items"
+      operationId: "createItems"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+      responses:
+        "201":
+          description: "Created"
+`;
+    // Should not throw an error
+    expect(() => openApiToBruno(openApiSpec)).not.toThrow();
+
+    const result = openApiToBruno(openApiSpec);
+    const request = result.items[0];
+
+    expect(request.request.body.mode).toBe('json');
+    // Should produce an empty array
+    expect(request.request.body.json).toBe('[]');
+  });
 });

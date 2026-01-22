@@ -182,49 +182,61 @@ const getDefaultValueForSchema = (schema, visited = new Map()) => {
  */
 const buildXmlBody = (bodySchema) => {
   if (!bodySchema) return '';
-  if (bodySchema.example !== undefined) return String(bodySchema.example);
-  if (!bodySchema.properties) return '';
 
-  // Get root element name from xml.name or default to 'root'
+  // String example = raw XML, return as-is
+  if (typeof bodySchema.example === 'string') {
+    return bodySchema.example;
+  }
+
+  const exampleValues = typeof bodySchema.example === 'object' ? bodySchema.example : null;
+
+  if (!bodySchema.properties && !exampleValues) return '';
+
   const rootName = bodySchema.xml?.name || 'root';
 
-  // Build XML elements from properties
-  const buildElement = (prop, name, indent = '  ') => {
+  // Build a single XML element
+  const buildElement = (name, prop = {}, value, indent = '  ') => {
     const xmlName = prop.xml?.name || name;
-    const isAttribute = prop.xml?.attribute === true;
 
-    if (isAttribute) return null; // Attributes handled separately
+    if (prop.xml?.attribute) return null;
 
-    if (prop.type === 'object' || prop.properties) {
-      const children = [];
-      each(prop.properties || {}, (childProp, childName) => {
-        const el = buildElement(childProp, childName, indent + '  ');
-        if (el) children.push(el);
-      });
-      return `${indent}<${xmlName}>\n${children.join('\n')}\n${indent}</${xmlName}>`;
+    // Nested object - recurse into children
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      const children = Object.entries(value)
+        .map(([k, v]) => buildElement(k, prop.properties?.[k] || {}, v, indent + '  '))
+        .filter(Boolean);
+      return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
     }
 
-    return `${indent}<${xmlName}></${xmlName}>`;
+    // Object schema without value - build empty structure from schema
+    if (prop.type === 'object' || prop.properties) {
+      const children = Object.entries(prop.properties || {})
+        .map(([k, p]) => buildElement(k, p, undefined, indent + '  '))
+        .filter(Boolean);
+      return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
+    }
+
+    // Primitive value
+    const content = value != null ? String(value) : '';
+    return `${indent}<${xmlName}>${content}</${xmlName}>`;
   };
 
-  // Collect attributes for root element
-  const attributes = [];
-  each(bodySchema.properties || {}, (prop, name) => {
-    if (prop.xml?.attribute === true) {
-      const attrName = prop.xml?.name || name;
-      attributes.push(`${attrName}=""`);
-    }
-  });
+  // Collect attributes
+  const attributes = Object.entries(bodySchema.properties || {})
+    .filter(([, p]) => p.xml?.attribute)
+    .map(([name, p]) => `${p.xml?.name || name}="${exampleValues?.[name] ?? ''}"`);
 
   // Build child elements
-  const children = [];
-  each(bodySchema.properties || {}, (prop, name) => {
-    const el = buildElement(prop, name);
-    if (el) children.push(el);
-  });
+  const entries = bodySchema.properties
+    ? Object.entries(bodySchema.properties).map(([k, p]) => [k, p, exampleValues?.[k]])
+    : Object.entries(exampleValues || {}).map(([k, v]) => [k, {}, v]);
 
-  const attrStr = attributes.length > 0 ? ' ' + attributes.join(' ') : '';
-  const childrenStr = children.length > 0 ? '\n' + children.join('\n') + '\n' : '';
+  const children = entries
+    .map(([name, prop, value]) => buildElement(name, prop, value))
+    .filter(Boolean);
+
+  const attrStr = attributes.length ? ' ' + attributes.join(' ') : '';
+  const childrenStr = children.length ? '\n' + children.join('\n') + '\n' : '';
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n<${rootName}${attrStr}>${childrenStr}</${rootName}>`;
 };
@@ -261,7 +273,7 @@ const BODY_TYPE_HANDLERS = [
         if (bodySchema.example !== undefined) {
           body.json = JSON.stringify(bodySchema.example, null, 2);
         } else if (bodySchema.type === 'array') {
-          body.json = JSON.stringify([buildEmptyJsonBody(bodySchema.items)], null, 2);
+          body.json = JSON.stringify(bodySchema.items ? [buildEmptyJsonBody(bodySchema.items)] : [], null, 2);
         } else {
           body.json = JSON.stringify(buildEmptyJsonBody(bodySchema), null, 2);
         }
