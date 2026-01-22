@@ -622,45 +622,7 @@ const handler = async function (argv) {
       console[type](...args);
     };
 
-    // Helper function to execute collection-level hooks at runtime
-    const executeCollectionHooks = async (hookEvent, eventData) => {
-      collectionRoot = collection?.draft?.root || collection?.root || {};
-      const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
-
-      if (!collectionHooks || !collectionHooks.trim()) {
-        return;
-      }
-
-      try {
-        const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
-        const result = await hooksRuntime.runHooks({
-          hooksFile: decomment(collectionHooks),
-          request: {}, // Placeholder request for collection-level hooks
-          envVariables: envVars,
-          runtimeVariables,
-          collectionPath,
-          onConsoleLog,
-          processEnvVars,
-          scriptingConfig,
-          runRequestByItemPathname: null, // Not available at collection level
-          collectionName
-        });
-
-        if (result?.hookManager) {
-          await result.hookManager.call(hookEvent, eventData);
-          // Dispose HookManager to free VM resources
-          if (result.hookManager && typeof result.hookManager.dispose === 'function') {
-            result.hookManager.dispose();
-          }
-        }
-      } catch (error) {
-        console.error(`Error executing collection-level hooks for ${hookEvent}:`, error);
-      }
-    };
-
-    // Call onBeforeCollectionRun hook before starting to run requests
-    await executeCollectionHooks(HOOK_EVENTS.RUNNER_BEFORE_COLLECTION_RUN, { collection });
-
+    // Define runSingleRequestByPathname before executeCollectionHooks so it's available at all hook levels
     const runSingleRequestByPathname = async (relativeItemPathname) => {
       const ext = FORMAT_CONFIG[collection.format].ext;
       return new Promise(async (resolve, reject) => {
@@ -687,6 +649,45 @@ const handler = async function (argv) {
         reject(`bru.runRequest: invalid request path - ${itemPathname}`);
       });
     };
+
+    // Helper function to execute collection-level hooks at runtime
+    const executeCollectionHooks = async (hookEvent, eventData) => {
+      collectionRoot = collection?.draft?.root || collection?.root || {};
+      const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
+
+      if (!collectionHooks || !collectionHooks.trim()) {
+        return;
+      }
+
+      try {
+        const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
+        const result = await hooksRuntime.runHooks({
+          hooksFile: decomment(collectionHooks),
+          request: {}, // Placeholder request for collection-level hooks
+          envVariables: envVars,
+          runtimeVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname: runSingleRequestByPathname,
+          collectionName
+        });
+
+        if (result?.hookManager) {
+          await result.hookManager.call(hookEvent, eventData);
+          // Dispose HookManager to free VM resources
+          if (result.hookManager && typeof result.hookManager.dispose === 'function') {
+            result.hookManager.dispose();
+          }
+        }
+      } catch (error) {
+        console.error(`Error executing collection-level hooks for ${hookEvent}:`, error);
+      }
+    };
+
+    // Call onBeforeCollectionRun hook before starting to run requests
+    await executeCollectionHooks(HOOK_EVENTS.RUNNER_BEFORE_COLLECTION_RUN, { collection });
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops

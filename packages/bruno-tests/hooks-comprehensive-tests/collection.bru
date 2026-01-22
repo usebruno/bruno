@@ -68,6 +68,32 @@ script:hooks {
     console.log('[onBeforeCollectionRun] Setup complete - token and counters initialized');
   });
   
+  // Test: bru.runRequest in onBeforeCollectionRun hook
+  bru.hooks.runner.onBeforeCollectionRun(async() => {
+    console.log('[onBeforeCollectionRun] Testing bru.runRequest in collection-level hook...');
+    
+    try {
+      // Call another request using bru.runRequest
+      const response = await bru.runRequest('hooks/bru-run-request/helper-request');
+      
+      // Store the response for verification in tests
+      if (response) {
+        bru.setVar('collection-run-request-response', response.data);
+        bru.setVar('collection-run-request-status', response.status);
+        bru.setVar('collection-run-request-tested', 'true');
+        console.log('[onBeforeCollectionRun] bru.runRequest succeeded:', response.data);
+      } else {
+        bru.setVar('collection-run-request-error', 'No response received');
+        console.log('[onBeforeCollectionRun] bru.runRequest failed - no response');
+      }
+    } catch (error) {
+      bru.setVar('collection-run-request-error', error.message || String(error));
+      console.log('[onBeforeCollectionRun] bru.runRequest error:', error);
+    }
+    
+    console.log('[onBeforeCollectionRun] bru.runRequest test completed');
+  });
+  
   // ============================================
   // onAfterCollectionRun Hook Tests
   // ============================================
@@ -136,6 +162,10 @@ script:hooks {
     bru.deleteVar('success-count');
     bru.deleteVar('final-stats');
     bru.deleteVar('cleanup-performed');
+    bru.deleteVar('collection-run-request-response');
+    bru.deleteVar('collection-run-request-status');
+    bru.deleteVar('collection-run-request-tested');
+    bru.deleteVar('collection-run-request-error');
     
     await bru.sleep(300);
     console.log('[onAfterCollectionRun] Cleanup complete - all test variables removed');

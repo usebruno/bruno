@@ -429,60 +429,6 @@ const HOOK_EVENTS = Object.freeze({
   RUNNER_AFTER_COLLECTION_RUN: 'runner:afterCollectionRun'
 });
 
-/**
- * Get or create HookManager for a specific level (collection, folder, or request)
- * @param {Map} hookManagersMap - Map storing HookManagers by key
- * @param {string} key - Unique identifier (collection:${pathname}, folder:${pathname}, or request uid/pathname)
- * @param {string} hooksFile - Hooks file content for this level
- * @param {object} options - Options for hook registration
- * @param {object} options.request - Request object
- * @param {object} options.envVars - Environment variables (or envVariables)
- * @param {object} options.runtimeVariables - Runtime variables
- * @param {string} options.collectionPath - Collection path
- * @param {function} options.onConsoleLog - Console log callback
- * @param {object} options.processEnvVars - Process environment variables
- * @param {object} options.scriptingConfig - Scripting configuration
- * @param {function} options.runRequestByItemPathname - Function to run requests
- * @param {string} options.collectionName - Collection name
- * @returns {Promise<HookManager>} HookManager instance for this level
- */
-const getOrCreateHookManager = async (hookManagersMap, key, hooksFile, options = {}) => {
-  // Return existing HookManager if already created
-  if (hookManagersMap.has(key)) {
-    return hookManagersMap.get(key);
-  }
-
-  // Create new HookManager and register hooks
-  const hookManager = new HookManager();
-  hookManagersMap.set(key, hookManager);
-
-  if (hooksFile && hooksFile.trim()) {
-    const hooksRuntime = new HooksRuntime({ runtime: options.scriptingConfig?.runtime });
-    try {
-      await hooksRuntime.runHooks({
-        hooksFile: decomment(hooksFile),
-        hookManager,
-        request: options.request || {},
-        envVariables: options.envVars || options.envVariables || {},
-        runtimeVariables: options.runtimeVariables || {},
-        collectionPath: options.collectionPath,
-        onConsoleLog: options.onConsoleLog,
-        processEnvVars: options.processEnvVars || {},
-        scriptingConfig: options.scriptingConfig || {},
-        runRequestByItemPathname: options.runRequestByItemPathname,
-        collectionName: options.collectionName
-      });
-    } catch (error) {
-      console.error(`Error registering hooks for ${key}:`, error);
-      if (options.onConsoleLog) {
-        options.onConsoleLog('error', [`Error registering hooks for ${key}: ${error.message}`]);
-      }
-    }
-  }
-
-  return hookManager;
-};
-
 const getAllRequestsInFolder = (folderItems = [], recursive = true) => {
   let requests = [];
 
@@ -714,6 +660,5 @@ module.exports = {
   getAllRequestsAtFolderRoot,
   getCallStack,
   extractHooks,
-  HOOK_EVENTS,
-  getOrCreateHookManager
+  HOOK_EVENTS
 };
