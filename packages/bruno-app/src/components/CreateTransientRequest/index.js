@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { flattenItems, isItemARequest } from 'utils/collections';
 import filter from 'lodash/filter';
-
+import { get } from 'lodash';
 const REQUEST_TYPE = {
   HTTP: 'http',
   GRAPHQL: 'graphql',
@@ -55,6 +55,12 @@ const CreateTransientRequest = ({ collectionUid }) => {
   const collections = useSelector((state) => state.collections.collections);
   const collection = collections?.find((c) => c.uid === collectionUid);
   const tempDirectory = useSelector((state) => state.collections.tempDirectories?.[collectionUid]);
+  const collectionPresets = get(
+    collection,
+    collection?.draft?.brunoConfig ? 'draft.brunoConfig.presets' : 'brunoConfig.presets',
+    { requestType: 'http', requestUrl: '' }
+  );
+
   const onDropdownCreate = (ref) => {
     dropdownTippyRef.current = ref;
     if (ref) {
@@ -67,7 +73,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
   };
 
   const handleLeftClick = () => {
-    handleItemClick('http');
+    handleItemClick(collectionPresets.requestType);
   };
 
   const handleRightClick = (e) => {
@@ -90,7 +96,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
         requestName: uniqueName,
         filename: filename,
         requestType: 'http-request',
-        requestUrl: '',
+        requestUrl: collectionPresets.requestUrl,
         requestMethod: 'GET',
         collectionUid: collection.uid,
         itemUid: null,
@@ -114,7 +120,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
         requestName: uniqueName,
         filename: filename,
         requestType: 'graphql-request',
-        requestUrl: '',
+        requestUrl: collectionPresets.requestUrl,
         requestMethod: 'POST',
         collectionUid: collection.uid,
         itemUid: null,
@@ -144,7 +150,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
       newWsRequest({
         requestName: uniqueName,
         filename: filename,
-        requestUrl: '',
+        requestUrl: collectionPresets.requestUrl,
         requestMethod: 'ws',
         collectionUid: collection.uid,
         itemUid: null,
@@ -167,7 +173,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
       newGrpcRequest({
         requestName: uniqueName,
         filename: filename,
-        requestUrl: '',
+        requestUrl: collectionPresets.requestUrl,
         collectionUid: collection.uid,
         itemUid: null,
         isTransient: true
