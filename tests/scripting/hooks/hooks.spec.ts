@@ -10,8 +10,8 @@ test.describe.serial('Hooks feature', () => {
       await runCollection(page, 'hooks-comprehensive-tests');
 
       await validateRunnerResults(page, {
-        totalRequests: 41,
-        passed: 41,
+        totalRequests: 45,
+        passed: 45,
         failed: 0,
         skipped: 0
       });
@@ -26,8 +26,8 @@ test.describe.serial('Hooks feature', () => {
       await runCollection(page, 'hooks-comprehensive-tests');
 
       await validateRunnerResults(page, {
-        totalRequests: 41,
-        passed: 41,
+        totalRequests: 45,
+        passed: 45,
         failed: 0,
         skipped: 0
       });
