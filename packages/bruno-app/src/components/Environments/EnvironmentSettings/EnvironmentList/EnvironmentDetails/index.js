@@ -1,6 +1,7 @@
-import { IconCopy, IconEdit, IconTrash, IconCheck, IconX } from '@tabler/icons';
+import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch } from '@tabler/icons';
 import { useState, useRef } from 'react';
 import { useDispatch } from 'react-redux';
+import useDebounce from 'hooks/useDebounce';
 import { renameEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
@@ -18,6 +19,8 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState('');
   const [nameError, setNameError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const inputRef = useRef(null);
 
   const validateEnvironmentName = (name) => {
@@ -162,6 +165,29 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}
         <div className="actions">
+          <div className="search-container">
+            <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Search variables..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+            />
+            {searchQuery && (
+              <button
+                className="clear-search"
+                onClick={() => setSearchQuery('')}
+                title="Clear search"
+              >
+                <IconX size={14} strokeWidth={1.5} />
+              </button>
+            )}
+          </div>
           <button onClick={handleRenameClick} title="Rename">
             <IconEdit size={15} strokeWidth={1.5} />
           </button>
@@ -175,7 +201,12 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
       </div>
 
       <div className="content">
-        <EnvironmentVariables environment={environment} setIsModified={setIsModified} collection={collection} />
+        <EnvironmentVariables
+          environment={environment}
+          setIsModified={setIsModified}
+          collection={collection}
+          searchQuery={debouncedSearchQuery}
+        />
       </div>
     </StyledWrapper>
   );
