@@ -53,7 +53,9 @@ const exampleGrammar = ohm.grammar(`Example {
   textchar = ~nl any
 
   // Root level properties
-  name =  "name" st* ":" st* valuechar* st*
+  name =  "name" st* ":" st* namevalue st*
+  namevalue = multilinenamevalue | singlelinevalue
+  multilinenamevalue = (~(nl* ("request" | "response" | "description") st* ":") any)+
   description = "description" st* ":" st* valuechar* st*
 
   // Request block
@@ -80,8 +82,14 @@ const astExampleAttribute = {
   // Root level properties
   name(_1, _2, _3, _4, value, _6) {
     return {
-      name: value.sourceString ? value.sourceString.trim() : ''
+      name: value.ast ? value.ast.trim() : ''
     };
+  },
+  namevalue(content) {
+    return content.ast;
+  },
+  multilinenamevalue(chars) {
+    return chars.sourceString ? chars.sourceString.replace(/\r\n/g, '\n').trim() : '';
   },
   description(_1, _2, _3, _4, value, _6) {
     return {
