@@ -80,11 +80,15 @@ const executeHooksForLevel = async (hooksFile, hookEvent, eventData, options) =>
     collectionName
   } = options;
 
+  // Extract response from eventData if available (for afterResponse hooks)
+  const response = eventData?.response;
+
   try {
     const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
     const result = await hooksRuntime.runHooks({
       hooksFile: decomment(hooksFile),
       request,
+      response,
       envVariables,
       runtimeVariables,
       collectionPath,
@@ -96,7 +100,13 @@ const executeHooksForLevel = async (hooksFile, hookEvent, eventData, options) =>
     });
 
     if (result?.hookManager) {
-      await result.hookManager.call(hookEvent, eventData);
+      // Enrich eventData with runtime-created req/res wrappers
+      const enrichedEventData = {
+        ...eventData,
+        req: result.req || eventData.req,
+        res: result.res || eventData.res
+      };
+      await result.hookManager.call(hookEvent, enrichedEventData);
       // Dispose HookManager to free VM resources
       if (typeof result.hookManager.dispose === 'function') {
         result.hookManager.dispose();
@@ -139,12 +149,16 @@ const executeConsolidatedHooks = async (extractedHooks, hookEvent, eventData, op
     collectionName
   } = options;
 
+  // Extract response from eventData if available (for afterResponse hooks)
+  const response = eventData?.response;
+
   try {
     const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
     const result = await hooksRuntime.runHooks({
       consolidated: true,
       consolidatedHooks: extractedHooks,
       request,
+      response,
       envVariables,
       runtimeVariables,
       collectionPath,
@@ -156,7 +170,13 @@ const executeConsolidatedHooks = async (extractedHooks, hookEvent, eventData, op
     });
 
     if (result?.hookManager) {
-      await result.hookManager.call(hookEvent, eventData);
+      // Enrich eventData with runtime-created req/res wrappers
+      const enrichedEventData = {
+        ...eventData,
+        req: result.req || eventData.req,
+        res: result.res || eventData.res
+      };
+      await result.hookManager.call(hookEvent, enrichedEventData);
 
       // IMPORTANT: Re-capture runner control values AFTER hooks have been called
       // The hooks may have called bru.runner.setNextRequest(), bru.runner.skipRequest(), etc.

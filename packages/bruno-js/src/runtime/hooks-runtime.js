@@ -1,5 +1,7 @@
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const Bru = require('../bru');
+const BrunoRequest = require('../bruno-request');
+const BrunoResponse = require('../bruno-response');
 const HookManager = require('../hook-manager');
 const { cleanJson } = require('../utils');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
@@ -54,7 +56,8 @@ class HooksRuntime {
    * Run hooks script to register event handlers
    * @param {object} options - Configuration options
    * @param {string} [options.hooksFile] - The hooks script content (for single-level execution)
-   * @param {object} options.request - The request object (used for variable extraction only)
+   * @param {object} options.request - The request object (used for variable extraction and BrunoRequest creation)
+   * @param {object} [options.response] - The response object (used for BrunoResponse creation, only for afterResponse hooks)
    * @param {object} options.envVariables - Environment variables
    * @param {object} options.runtimeVariables - Runtime variables
    * @param {string} options.collectionPath - Collection path
@@ -69,12 +72,13 @@ class HooksRuntime {
    * @param {string} [options.consolidatedHooks.collectionHooks] - Collection-level hooks script
    * @param {Array<object>} [options.consolidatedHooks.folderHooks] - Array of folder hooks
    * @param {string} [options.consolidatedHooks.requestHooks] - Request-level hooks script
-   * @returns {object} Result containing the hookManager instance
+   * @returns {object} Result containing the hookManager instance, and req/res wrapper objects
    */
   async runHooks(options) {
     const {
       hooksFile,
       request,
+      response,
       envVariables,
       runtimeVariables,
       collectionPath,
@@ -100,6 +104,7 @@ class HooksRuntime {
       return this._runConsolidatedHooks({
         consolidatedHooks,
         request,
+        response,
         envVariables,
         runtimeVariables,
         collectionPath,
@@ -122,8 +127,14 @@ class HooksRuntime {
     // Pass activeHookManager to Bru so it uses the same instance (whether provided or newly created)
     const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, activeHookManager);
 
+    // Create BrunoRequest and BrunoResponse wrappers (similar to ScriptRuntime)
+    const req = request ? new BrunoRequest(request) : null;
+    const res = response ? new BrunoResponse(response) : null;
+
     const context = {
-      bru
+      bru,
+      req,
+      res
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -157,7 +168,9 @@ class HooksRuntime {
         nextRequestName: bru.nextRequest,
         skipRequest: bru.skipRequest,
         stopExecution: bru.stopExecution,
-        __bru: bru
+        __bru: bru,
+        req,
+        res
       };
     }
 
@@ -184,7 +197,9 @@ class HooksRuntime {
         nextRequestName: bru.nextRequest,
         skipRequest: bru.skipRequest,
         stopExecution: bru.stopExecution,
-        __bru: bru
+        __bru: bru,
+        req,
+        res
       };
     }
 
@@ -211,7 +226,9 @@ class HooksRuntime {
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
       stopExecution: bru.stopExecution,
-      __bru: bru
+      __bru: bru,
+      req,
+      res
     };
   }
 
@@ -225,6 +242,8 @@ class HooksRuntime {
   async _runConsolidatedHooks(options) {
     const {
       consolidatedHooks,
+      request,
+      response,
       envVariables,
       runtimeVariables,
       collectionPath,
@@ -264,6 +283,9 @@ class HooksRuntime {
         promptVariables,
         activeHookManager
       );
+      // Create BrunoRequest and BrunoResponse wrappers
+      const req = request ? new BrunoRequest(request) : null;
+      const res = response ? new BrunoResponse(response) : null;
       return {
         hookManager: activeHookManager,
         envVariables: cleanJson(envVariables),
@@ -273,7 +295,9 @@ class HooksRuntime {
         nextRequestName: bru.nextRequest,
         skipRequest: bru.skipRequest,
         stopExecution: bru.stopExecution,
-        __bru: bru
+        __bru: bru,
+        req,
+        res
       };
     }
 
@@ -298,9 +322,15 @@ class HooksRuntime {
       activeHookManager
     );
 
+    // Create BrunoRequest and BrunoResponse wrappers (similar to ScriptRuntime)
+    const req = request ? new BrunoRequest(request) : null;
+    const res = response ? new BrunoResponse(response) : null;
+
     // Prepare context with error handling callback
     const context = {
       bru,
+      req,
+      res,
       __hookResult: null,
       __onHookError: (level, error) => {
         if (onConsoleLog) {
@@ -348,7 +378,9 @@ class HooksRuntime {
         nextRequestName: bru.nextRequest,
         skipRequest: bru.skipRequest,
         stopExecution: bru.stopExecution,
-        __bru: bru
+        __bru: bru,
+        req,
+        res
       };
     }
 
@@ -375,7 +407,9 @@ class HooksRuntime {
       skipRequest: bru.skipRequest,
       stopExecution: bru.stopExecution,
       // Include bru reference so callers can read updated values after hook execution
-      __bru: bru
+      __bru: bru,
+      req,
+      res
     };
   }
 }

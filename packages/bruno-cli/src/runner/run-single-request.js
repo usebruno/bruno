@@ -7,9 +7,6 @@ const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString, interpolateObject } = require('./interpolate-string');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, HooksRuntime, HooksExecutor } = require('@usebruno/js');
-const HookManager = require('@usebruno/js/src/hook-manager');
-const BrunoRequest = require('@usebruno/js/src/bruno-request');
-const BrunoResponse = require('@usebruno/js/src/bruno-response');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const { extractHooks, getTreePathFromCollectionToItem, HOOK_EVENTS } = require('../utils/collection');
@@ -238,7 +235,8 @@ const runSingleRequest = async function (
 
     // Call beforeRequest hooks before running pre-request scripts
     // Hooks are called in registration order: collection -> folder(s) -> request
-    const beforeRequestEventData = { request, req: new BrunoRequest(request), collection };
+    // Note: BrunoRequest is now created inside HooksRuntime for consistency with ScriptRuntime
+    const beforeRequestEventData = { request, collection };
 
     const beforeRequestHooksResult = await executeAllHooksConsolidated(
       { collectionHooks, folderHooks, requestHooks },
@@ -717,13 +715,8 @@ const runSingleRequest = async function (
     // Call afterResponse hooks after response is received but before post-response scripts
     // Hooks are called in registration order: collection -> folder(s) -> request
     // Uses consolidated execution when multiple levels have hooks (more efficient)
-    const afterResponseEventData = {
-      request,
-      response,
-      req: new BrunoRequest(request),
-      res: new BrunoResponse(response),
-      collection
-    };
+    // Note: BrunoRequest and BrunoResponse are now created inside HooksRuntime for consistency with ScriptRuntime
+    const afterResponseEventData = { request, response, collection };
 
     const afterResponseHooksResult = await executeAllHooksConsolidated(
       { collectionHooks, folderHooks, requestHooks },
