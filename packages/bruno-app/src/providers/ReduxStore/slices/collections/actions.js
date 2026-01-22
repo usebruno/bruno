@@ -57,9 +57,7 @@ import {
   addCollectionVar,
   updateCollectionVar,
   addTransientDirectory,
-  newItem,
-  openSaveTransientRequestModal,
-  closeSaveTransientRequestModal
+  openSaveTransientRequestModal
 } from './index';
 
 import { each } from 'lodash';
@@ -73,7 +71,6 @@ import {
   findCollectionByPathname,
   findEnvironmentInCollectionByName,
   getReorderedItemsInTargetDirectory,
-  resetSequencesInFolder,
   getReorderedItemsInSourceDirectory,
   calculateDraggedItemNewPathname,
   transformFolderRootToSave,
@@ -87,7 +84,6 @@ import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
-import { getDefaultRequestPaneTab } from 'utils/collections';
 
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
@@ -157,7 +153,7 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
     if (isTransient) {
       const modalId = uuid();
       dispatch(openSaveTransientRequestModal({ modalId, item, collection, isOpen: true }));
-      return resolve();
+      return reject();
     }
 
     const itemToSave = transformRequestToSaveToFilesystem(item);

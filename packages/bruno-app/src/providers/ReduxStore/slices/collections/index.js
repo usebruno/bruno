@@ -2571,7 +2571,7 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         const dirname = path.dirname(file.meta.pathname);
-        // Check if this file is in a temp directory (transient request)
+
         const tempDirectory = state.tempDirectories?.[file.meta.collectionUid];
         const isTransientFile = tempDirectory && file.meta.pathname.startsWith(tempDirectory);
 
