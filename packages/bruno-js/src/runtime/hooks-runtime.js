@@ -46,7 +46,7 @@ class HooksRuntime {
     const requestVariables = request?.requestVariables || {};
     const promptVariables = request?.promptVariables || {};
     // Pass activeHookManager to Bru so it uses the same instance (whether provided or newly created)
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, activeHookManager);
+    const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, activeHookManager);
 
     const context = {
       bru
