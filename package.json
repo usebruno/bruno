@@ -36,6 +36,7 @@
     "@types/node": "^22.14.1",
     "@typescript-eslint/parser": "^8.39.0",
     "concurrently": "^8.2.2",
+    "cross-env": "10.1.0",
     "eslint": "^9.26.0",
     "eslint-plugin-diff": "^2.0.3",
     "fs-extra": "^11.1.1",
@@ -83,8 +84,8 @@
     "test:e2e": "playwright test --project=default",
     "test:e2e:ssl": "playwright test --project=ssl",
     "test:prettier:web": "npm run test:prettier --workspace=packages/bruno-app",
-    "lint": "node --max_old_space_size=4096 $(npx which eslint)",
-    "lint:fix": "node --max_old_space_size=4096 $(npx which eslint) --fix",
+    "lint": "cross-env NODE_OPTIONS=\"--max_old_space_size=4096\" npx eslint",
+    "lint:fix": "cross-env NODE_OPTIONS=\"--max_old_space_size=4096\" npx eslint --fix",
     "prepare": "husky"
   },
   "nano-staged": {
