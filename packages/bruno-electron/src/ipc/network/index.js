@@ -447,71 +447,11 @@ const registerNetworkIpc = (mainWindow) => {
   };
 
   /**
-   * Execute hooks for a specific level at runtime using shared executor
-   * Initializes HookManager, executes the hook event, and disposes immediately
-   * @param {string} hooksFile - Hooks file content for this level
-   * @param {string} hookEvent - Hook event to trigger (e.g., HOOK_EVENTS.HTTP_BEFORE_REQUEST)
-   * @param {object} eventData - Data to pass to hook handlers
-   * @param {object} options - Configuration options
-   * @param {object} options.request - Request object
-   * @param {object} options.envVars - Environment variables
-   * @param {object} options.runtimeVariables - Runtime variables
-   * @param {string} options.collectionPath - Collection path
-   * @param {function} options.onConsoleLog - Console log callback
-   * @param {object} options.processEnvVars - Process environment variables
-   * @param {object} options.scriptingConfig - Scripting configuration
-   * @param {function} options.runRequestByItemPathname - Function to run requests
-   * @param {string} options.collectionName - Collection name
-   * @param {string} options.requestUid - Request UID (for error notifications)
-   * @param {string} options.itemUid - Item UID (for error notifications)
-   * @param {string} options.collectionUid - Collection UID (for error notifications)
-   * @param {boolean} options.runInBackground - Whether running in background
-   * @param {function} options.notifyScriptExecution - Function to notify script execution
-   */
-  const executeHooksForLevel = async (hooksFile, hookEvent, eventData, options) => {
-    if (!hooksFile || !hooksFile.trim()) {
-      return;
-    }
-
-    try {
-      // Use shared executor for hook execution
-      const result = await HooksExecutor.executeHooksForLevel(hooksFile, hookEvent, eventData, {
-        request: options.request || {},
-        envVariables: options.envVars,
-        runtimeVariables: options.runtimeVariables,
-        collectionPath: options.collectionPath,
-        onConsoleLog: options.onConsoleLog,
-        processEnvVars: options.processEnvVars,
-        scriptingConfig: options.scriptingConfig,
-        runRequestByItemPathname: options.runRequestByItemPathname,
-        collectionName: options.collectionName
-      });
-
-      return result;
-    } catch (error) {
-      console.error(`Error executing hooks for ${hookEvent}:`, error);
-      options.onConsoleLog?.('error', [`Error executing hooks for ${hookEvent}: ${error.message}`]);
-      if (!options.runInBackground && options.notifyScriptExecution && typeof options.notifyScriptExecution === 'function') {
-        options.notifyScriptExecution({
-          channel: 'main:run-request-event',
-          basePayload: {
-            requestUid: options.requestUid,
-            collectionUid: options.collectionUid,
-            itemUid: options.itemUid
-          },
-          scriptType: 'hooks',
-          error
-        });
-      }
-    }
-  };
-
-  /**
    * Execute all hooks using consolidated approach
    * @param {object} extractedHooks - Hooks from all levels
    * @param {string} hookEvent - Hook event to trigger
    * @param {object} eventData - Data to pass to hook handlers
-   * @param {object} options - Configuration options (same as executeHooksForLevel)
+   * @param {object} options - Configuration options
    */
   const executeAllHooksConsolidated = async (extractedHooks, hookEvent, eventData, options) => {
     try {

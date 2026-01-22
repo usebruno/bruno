@@ -175,21 +175,6 @@ const runSingleRequest = async function (
     // Extract hooks for all levels
     const { collectionHooks, folderHooks, requestHooks } = extractHooks(collection, request, requestTreePath);
 
-    // Helper function to initialize and execute hooks at runtime using shared executor
-    const executeHooksForLevel = async (hooksFile, hookEvent, eventData) => {
-      return HooksExecutor.executeHooksForLevel(hooksFile, hookEvent, eventData, {
-        request,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        onConsoleLog,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname: runSingleRequestByPathname,
-        collectionName
-      });
-    };
-
     // Helper function to execute all hooks using consolidated approach
     const executeAllHooksConsolidated = async (extractedHooks, hookEvent, eventData) => {
       return HooksExecutor.executeAllHookLevels(extractedHooks, hookEvent, eventData, {
@@ -596,7 +581,6 @@ const runSingleRequest = async function (
 
       if (request.ntlmConfig) {
         axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
-
         delete request.ntlmConfig;
       }
 
