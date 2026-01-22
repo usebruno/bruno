@@ -1,4 +1,4 @@
-const { default: postmanTranslation } = require('../../../src/postman/postman-translations');
+import postmanTranslation from '../../../src/postman/postman-translations';
 
 describe('postmanTranslations - cookie API conversions', () => {
   test('should convert pm.cookies.jar().get to bru.cookies.jar().getCookie', () => {

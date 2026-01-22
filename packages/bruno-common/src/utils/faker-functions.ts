@@ -1,5 +1,7 @@
 import { faker } from '@faker-js/faker';
 
+export const timeBasedDynamicVars = new Set(['timestamp', 'isoTimestamp']);
+
 export const mockDataFunctions = {
   guid: () => faker.string.uuid(),
   timestamp: () => Math.floor(Date.now() / 1000).toString(),

@@ -482,7 +482,7 @@ describe('Bruno Autocomplete', () => {
         mockedCodemirror.state.completionActive = mockCompletion;
 
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 0 });
-        mockedCodemirror.getLine.mockReturnValue('   ');
+        mockedCodemirror.getLine.mockReturnValue('req.bodyy');
         mockedCodemirror.getRange.mockReturnValue('');
 
         const mockEvent = { key: 'a' };

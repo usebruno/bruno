@@ -357,3 +357,87 @@ const expectedOutput = {
   uid: 'mockeduuidvalue123456',
   version: '1'
 };
+
+describe('openapi-collection: object schema parameters', () => {
+  it('should expand object schema query parameters with $ref into individual properties', () => {
+    const openApiSpec = `
+openapi: '3.0.3'
+info:
+  title: 'Test API for Object Schema Parameters'
+  version: '1.0.0'
+servers:
+  - url: 'https://api.example.com/v1'
+paths:
+  /items:
+    get:
+      summary: 'Get items with pagination'
+      operationId: 'getItems'
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: 'Filter by date'
+        - name: paginationParams
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/PaginationParams'
+      responses:
+        '200':
+          description: 'Successful response'
+components:
+  schemas:
+    PaginationParams:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+          minimum: 0
+          description: 'Page number'
+        size:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 1
+          description: 'Page size'
+      required:
+        - page
+        - size
+`;
+
+    const result = openApiToBruno(openApiSpec);
+
+    // Find the request item
+    const requestItem = result.items[0];
+
+    // Verify that we have 3 query parameters: date, page, size
+    const queryParams = requestItem.request.params.filter((p) => p.type === 'query');
+    expect(queryParams.length).toBe(3);
+
+    // Check that 'date' parameter exists
+    const dateParam = queryParams.find((p) => p.name === 'date');
+    expect(dateParam).toBeDefined();
+    expect(dateParam.description).toBe('Filter by date');
+    expect(dateParam.enabled).toBe(true);
+
+    // Check that 'page' parameter exists (expanded from PaginationParams)
+    const pageParam = queryParams.find((p) => p.name === 'page');
+    expect(pageParam).toBeDefined();
+    expect(pageParam.description).toBe('Page number');
+    expect(pageParam.enabled).toBe(true); // required in schema
+
+    // Check that 'size' parameter exists (expanded from PaginationParams)
+    const sizeParam = queryParams.find((p) => p.name === 'size');
+    expect(sizeParam).toBeDefined();
+    expect(sizeParam.description).toBe('Page size');
+    expect(sizeParam.enabled).toBe(true); // required in schema
+
+    // Verify that 'paginationParams' does NOT exist as a parameter
+    const paginationParam = queryParams.find((p) => p.name === 'paginationParams');
+    expect(paginationParam).toBeUndefined();
+  });
+});

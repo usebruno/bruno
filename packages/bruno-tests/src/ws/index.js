@@ -33,6 +33,12 @@ wss.on('connection', function connection(ws, request) {
         return ws.send(JSON.stringify({
           headers: request.headers
         }));
+      } else if ('func' in obj && obj.func === 'query') {
+        const url = new URL(request.url, `http://${request.headers.host}`);
+        const query = Object.fromEntries(url.searchParams.entries());
+        return ws.send(JSON.stringify({
+          query: query
+        }));
       } else {
         return ws.send(JSON.stringify({
           data: JSON.parse(Buffer.from(data).toString())
