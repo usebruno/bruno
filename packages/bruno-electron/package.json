@@ -72,7 +72,8 @@
     "socks-proxy-agent": "^8.0.2",
     "tough-cookie": "^6.0.0",
     "uuid": "^9.0.0",
-    "yup": "^0.32.11"
+    "yup": "^0.32.11",
+    "lmdb": "^3.2.6"
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11"
