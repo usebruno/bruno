@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
+import groupBy from 'lodash/groupBy';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
@@ -10,6 +11,7 @@ import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
+import TabGroup from './TabGroup';
 import CreateUntitledRequest from 'components/CreateUntitledRequest';
 import { IconPlus } from '@tabler/icons';
 import ActionIcon from 'ui/ActionIcon/index';
@@ -46,6 +48,8 @@ const RequestTabs = () => {
   const activeTab = find(tabs, (t) => t.uid === activeTabUid);
   const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
+  const tabGroups = useSelector((state) => state.tabs.tabGroups);
+  const collectionGroups = filter(tabGroups, (g) => g.collectionUid === activeTab?.collectionUid);
 
   useEffect(() => {
     if (!activeTabUid || !activeTab) return;
@@ -103,6 +107,101 @@ const RequestTabs = () => {
     });
   };
 
+  const renderTabsWithGroups = (collectionTabs, groups, activeTabUid) => {
+    // Separate tabs into grouped and ungrouped
+    const groupedTabs = {};
+    const ungroupedTabs = [];
+
+    collectionTabs.forEach((tab) => {
+      if (tab.groupId) {
+        if (!groupedTabs[tab.groupId]) {
+          groupedTabs[tab.groupId] = [];
+        }
+        groupedTabs[tab.groupId].push(tab);
+      } else {
+        ungroupedTabs.push(tab);
+      }
+    });
+
+    const result = [];
+    let currentIndex = 0;
+
+    // Render groups first
+    groups.forEach((group) => {
+      const groupTabs = groupedTabs[group.id] || [];
+      if (groupTabs.length > 0) {
+        result.push(
+          <TabGroup key={group.id} group={group} isActive={groupTabs.some((t) => t.uid === activeTabUid)}>
+            {groupTabs.map((tab, tabIndex) => {
+              const globalIndex = currentIndex++;
+              return (
+                <DraggableTab
+                  key={tab.uid}
+                  id={tab.uid}
+                  index={globalIndex}
+                  onMoveTab={(source, target) => {
+                    dispatch(reorderTabs({
+                      sourceUid: source,
+                      targetUid: target
+                    }));
+                  }}
+                  className={getTabClassname(tab, globalIndex)}
+                  onClick={() => handleClick(tab)}
+                >
+                  <RequestTab
+                    collectionRequestTabs={collectionTabs}
+                    tabIndex={globalIndex}
+                    key={tab.uid}
+                    tab={tab}
+                    collection={activeCollection}
+                    folderUid={tab.folderUid}
+                    hasOverflow={tabOverflowStates[tab.uid]}
+                    setHasOverflow={createSetHasOverflow(tab.uid)}
+                    dropdownContainerRef={collectionTabsRef}
+                  />
+                </DraggableTab>
+              );
+            })}
+          </TabGroup>
+        );
+      }
+    });
+
+    // Render ungrouped tabs
+    ungroupedTabs.forEach((tab) => {
+      const globalIndex = currentIndex++;
+      result.push(
+        <DraggableTab
+          key={tab.uid}
+          id={tab.uid}
+          index={globalIndex}
+          onMoveTab={(source, target) => {
+            dispatch(reorderTabs({
+              sourceUid: source,
+              targetUid: target
+            }));
+          }}
+          className={getTabClassname(tab, globalIndex)}
+          onClick={() => handleClick(tab)}
+        >
+          <RequestTab
+            collectionRequestTabs={collectionTabs}
+            tabIndex={globalIndex}
+            key={tab.uid}
+            tab={tab}
+            collection={activeCollection}
+            folderUid={tab.folderUid}
+            hasOverflow={tabOverflowStates[tab.uid]}
+            setHasOverflow={createSetHasOverflow(tab.uid)}
+            dropdownContainerRef={collectionTabsRef}
+          />
+        </DraggableTab>
+      );
+    });
+
+    return result;
+  };
+
   // Todo: Must support ephemeral requests
   return (
     <StyledWrapper>
@@ -127,35 +226,7 @@ const RequestTabs = () => {
             <div className="tabs-scroll-container" style={{ maxWidth: maxTablistWidth }} ref={scrollContainerRef}>
               <ul role="tablist" ref={tabsRef}>
                 {collectionRequestTabs && collectionRequestTabs.length
-                  ? collectionRequestTabs.map((tab, index) => {
-                      return (
-                        <DraggableTab
-                          key={tab.uid}
-                          id={tab.uid}
-                          index={index}
-                          onMoveTab={(source, target) => {
-                            dispatch(reorderTabs({
-                              sourceUid: source,
-                              targetUid: target
-                            }));
-                          }}
-                          className={getTabClassname(tab, index)}
-                          onClick={() => handleClick(tab)}
-                        >
-                          <RequestTab
-                            collectionRequestTabs={collectionRequestTabs}
-                            tabIndex={index}
-                            key={tab.uid}
-                            tab={tab}
-                            collection={activeCollection}
-                            folderUid={tab.folderUid}
-                            hasOverflow={tabOverflowStates[tab.uid]}
-                            setHasOverflow={createSetHasOverflow(tab.uid)}
-                            dropdownContainerRef={collectionTabsRef}
-                          />
-                        </DraggableTab>
-                      );
-                    })
+                  ? renderTabsWithGroups(collectionRequestTabs, collectionGroups, activeTabUid)
                   : null}
               </ul>
             </div>

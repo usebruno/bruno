@@ -7,7 +7,8 @@ import last from 'lodash/last';
 
 const initialState = {
   tabs: [],
-  activeTabUid: null
+  activeTabUid: null,
+  tabGroups: [] // Array of { id, name, color, collapsed, tabUids }
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
@@ -169,6 +170,21 @@ export const tabsSlice = createSlice({
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
 
+      // Remove tabs from their groups
+      tabUids.forEach((tabUid) => {
+        const tab = find(state.tabs, (t) => t.uid === tabUid);
+        if (tab && tab.groupId) {
+          const group = find(state.tabGroups, (g) => g.id === tab.groupId);
+          if (group) {
+            group.tabUids = filter(group.tabUids, (uid) => uid !== tabUid);
+            // Delete empty groups
+            if (group.tabUids.length === 0) {
+              state.tabGroups = filter(state.tabGroups, (g) => g.id !== group.id);
+            }
+          }
+        }
+      });
+
       // remove the tabs from the state
       state.tabs = filter(state.tabs, (t) => !tabUids.includes(t.uid));
 
@@ -236,6 +252,96 @@ export const tabsSlice = createSlice({
       tabs.splice(targetIdx, 0, moved);
 
       state.tabs = tabs;
+    },
+    createTabGroup: (state, action) => {
+      const { groupId, name, color, tabUids, collectionUid } = action.payload;
+
+      // Create the new group
+      const newGroup = {
+        id: groupId,
+        name: name || 'New Group',
+        color: color || '#5B9BD5',
+        collapsed: false,
+        collectionUid: collectionUid,
+        tabUids: tabUids || []
+      };
+
+      state.tabGroups.push(newGroup);
+
+      // Update tabs to include groupId
+      tabUids?.forEach((tabUid) => {
+        const tab = find(state.tabs, (t) => t.uid === tabUid);
+        if (tab) {
+          tab.groupId = groupId;
+        }
+      });
+    },
+    renameTabGroup: (state, action) => {
+      const { groupId, name } = action.payload;
+      const group = find(state.tabGroups, (g) => g.id === groupId);
+      if (group) {
+        group.name = name;
+      }
+    },
+    changeTabGroupColor: (state, action) => {
+      const { groupId, color } = action.payload;
+      const group = find(state.tabGroups, (g) => g.id === groupId);
+      if (group) {
+        group.color = color;
+      }
+    },
+    toggleTabGroupCollapse: (state, action) => {
+      const { groupId } = action.payload;
+      const group = find(state.tabGroups, (g) => g.id === groupId);
+      if (group) {
+        group.collapsed = !group.collapsed;
+      }
+    },
+    deleteTabGroup: (state, action) => {
+      const { groupId } = action.payload;
+
+      // Remove groupId from all tabs in the group
+      state.tabs.forEach((tab) => {
+        if (tab.groupId === groupId) {
+          delete tab.groupId;
+        }
+      });
+
+      // Remove the group
+      state.tabGroups = filter(state.tabGroups, (g) => g.id !== groupId);
+    },
+    addTabToGroup: (state, action) => {
+      const { tabUid, groupId } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === tabUid);
+      const group = find(state.tabGroups, (g) => g.id === groupId);
+
+      if (tab && group) {
+        // Remove from old group if exists
+        if (tab.groupId) {
+          const oldGroup = find(state.tabGroups, (g) => g.id === tab.groupId);
+          if (oldGroup) {
+            oldGroup.tabUids = filter(oldGroup.tabUids, (uid) => uid !== tabUid);
+          }
+        }
+
+        // Add to new group
+        tab.groupId = groupId;
+        if (!group.tabUids.includes(tabUid)) {
+          group.tabUids.push(tabUid);
+        }
+      }
+    },
+    removeTabFromGroup: (state, action) => {
+      const { tabUid } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === tabUid);
+
+      if (tab && tab.groupId) {
+        const group = find(state.tabGroups, (g) => g.id === tab.groupId);
+        if (group) {
+          group.tabUids = filter(group.tabUids, (uid) => uid !== tabUid);
+        }
+        delete tab.groupId;
+      }
     }
   }
 });
@@ -254,7 +360,14 @@ export const {
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
-  reorderTabs
+  reorderTabs,
+  createTabGroup,
+  renameTabGroup,
+  changeTabGroupColor,
+  toggleTabGroupCollapse,
+  deleteTabGroup,
+  addTabToGroup,
+  removeTabFromGroup
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;
