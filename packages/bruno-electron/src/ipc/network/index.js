@@ -490,14 +490,6 @@ const registerNetworkIpc = (mainWindow) => {
   };
 
   /**
-   * Execute all hooks using consolidated approach
-   * @param {object} extractedHooks - Hooks from all levels
-   * @param {string} hookEvent - Hook event to trigger
-   * @param {object} eventData - Data to pass to hook handlers
-   * @param {object} options - Configuration options
-   * @returns {Promise<object|null>} Execution result or null if error
-   */
-  /**
    * Execute merged hooks for a specific event
    * @param {string} hookEvent - Hook event to trigger
    * @param {object} eventData - Data to pass to hook handlers
