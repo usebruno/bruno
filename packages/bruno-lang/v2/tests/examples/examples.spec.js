@@ -374,4 +374,30 @@ example {
       expect(jsonValueField.value).toContain('"key": "value"');
     });
   });
+
+  describe('Example name field parsing', () => {
+    it('should parse basic name', () => {
+      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'bruToJson-singleline-name.bru'), 'utf8');
+      const expected = require('./fixtures/json/bruToJson-singleline-name.json');
+      const output = bruToJson(input);
+
+      expect(output).toEqual(expected);
+    });
+
+    it('should parse name containing reserved keywords', () => {
+      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'bruToJson-name-with-keywords.bru'), 'utf8');
+      const expected = require('./fixtures/json/bruToJson-name-with-keywords.json');
+      const output = bruToJson(input);
+
+      expect(output).toEqual(expected);
+    });
+
+    it('should parse name with special characters', () => {
+      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'bruToJson-name-markdown.bru'), 'utf8');
+      const expected = require('./fixtures/json/bruToJson-name-markdown.json');
+      const output = bruToJson(input);
+
+      expect(output).toEqual(expected);
+    });
+  });
 });

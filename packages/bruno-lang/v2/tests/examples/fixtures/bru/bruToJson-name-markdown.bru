@@ -1,0 +1,22 @@
+meta {
+  name: Test API
+  type: http
+}
+
+post {
+  url: https://api.example.com
+}
+
+example {
+  name: **HTTP Status Code:** 201 Created
+  request: {
+    url: https://api.example.com
+    method: POST
+  }
+  response: {
+    status: {
+      code: 201
+      text: Created
+    }
+  }
+}

@@ -1,0 +1,22 @@
+meta {
+  name: Test API
+  type: http
+}
+
+get {
+  url: https://api.example.com
+}
+
+example {
+  name: test request handler response code description
+  description: actual description
+  request: {
+    url: https://api.example.com
+    method: GET
+  }
+  response: {
+    status: {
+      code: 200
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "name": "Test API",
+    "type": "http",
+    "seq": 1
+  },
+  "http": {
+    "method": "get",
+    "url": "https://api.example.com"
+  },
+  "examples": [
+    {
+      "name": "test request handler response code description",
+      "description": "actual description",
+      "request": {
+        "url": "https://api.example.com",
+        "method": "GET"
+      },
+      "response": {
+        "status": "200",
+        "statusText": "OK"
+      }
+    }
+  ]
+}

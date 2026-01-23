@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "name": "Test API",
+    "type": "http",
+    "seq": 1
+  },
+  "http": {
+    "method": "post",
+    "url": "https://api.example.com"
+  },
+  "examples": [
+    {
+      "name": "**HTTP Status Code:** 201 Created",
+      "request": {
+        "url": "https://api.example.com",
+        "method": "POST"
+      },
+      "response": {
+        "status": "201",
+        "statusText": "Created"
+      }
+    }
+  ]
+}
