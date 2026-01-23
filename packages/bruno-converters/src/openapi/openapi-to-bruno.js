@@ -313,6 +313,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
     name: operationName,
     type: 'http-request',
     request: {
+      docs: _operationObject.description,
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
