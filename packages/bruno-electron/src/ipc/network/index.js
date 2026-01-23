@@ -8,7 +8,7 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, HooksRuntime, HooksExecutor } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, HooksRuntime } = require('@usebruno/js');
 const { encodeUrl } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
@@ -24,7 +24,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence, extractHooks, HOOK_EVENTS } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence, HOOK_EVENTS } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -497,10 +497,20 @@ const registerNetworkIpc = (mainWindow) => {
    * @param {object} options - Configuration options
    * @returns {Promise<object|null>} Execution result or null if error
    */
-  const executeAllHooksConsolidated = async (extractedHooks, hookEvent, eventData, options) => {
+  /**
+   * Execute merged hooks for a specific event
+   * @param {string} hookEvent - Hook event to trigger
+   * @param {object} eventData - Data to pass to hook handlers
+   * @param {object} options - Configuration options
+   * @returns {Promise<object|null>} Execution result or null if error
+   */
+  const executeHooks = async (hookEvent, eventData, options) => {
     try {
-      const result = await HooksExecutor.executeAllHookLevels(extractedHooks, hookEvent, eventData, {
+      const hooksRuntime = new HooksRuntime({ runtime: options.scriptingConfig?.runtime });
+      const result = await hooksRuntime.runHooks({
+        hooksFile: options.request?.script?.hooks,
         request: options.request || {},
+        response: eventData.response,
         envVariables: options.envVars,
         runtimeVariables: options.runtimeVariables,
         collectionPath: options.collectionPath,
@@ -510,6 +520,28 @@ const registerNetworkIpc = (mainWindow) => {
         runRequestByItemPathname: options.runRequestByItemPathname,
         collectionName: options.collectionName
       });
+
+      if (result?.hookManager) {
+        // Enrich eventData with runtime-created req/res wrappers
+        const enrichedEventData = {
+          ...eventData,
+          req: result.req || eventData.req,
+          res: result.res || eventData.res
+        };
+        await result.hookManager.call(hookEvent, enrichedEventData);
+
+        // Re-read runner control signals from bru instance AFTER handlers have executed
+        // Handlers may have called bru.runner.setNextRequest(), skipRequest(), or stopExecution()
+        // which update the bru instance but were not captured in the initial result
+        const bru = result.__bru;
+        if (bru) {
+          result.nextRequestName = bru.nextRequest;
+          result.skipRequest = bru.skipRequest;
+          result.stopExecution = bru.stopExecution;
+        }
+
+        result.hookManager.dispose();
+      }
 
       // Send UI updates if we have a result
       if (result) {
@@ -524,7 +556,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       return result;
     } catch (error) {
-      console.error(`Error executing consolidated hooks for ${hookEvent}:`, error);
+      console.error(`Error executing hooks for ${hookEvent}:`, error);
       options.onConsoleLog?.('error', [`Error executing hooks for ${hookEvent}: ${error.message}`]);
       if (!options.runInBackground && options.notifyScriptExecution && typeof options.notifyScriptExecution === 'function') {
         options.notifyScriptExecution({
@@ -735,19 +767,16 @@ const registerNetworkIpc = (mainWindow) => {
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
-    // Get request tree path for hooks registration
+    // Get request tree path for hooks execution
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
     try {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
-      // Extract hooks for all levels
-      const { collectionHooks, folderHooks, requestHooks } = extractHooks(collection, request, requestTreePath);
-
       // Call beforeRequest hooks before running pre-request scripts
+      // Hooks are merged in prepareRequest via mergeScripts
       // Hooks are called in registration order: collection -> folder(s) -> request
-      // Note: BrunoRequest is now created inside HooksRuntime for consistency with ScriptRuntime
       const beforeRequestEventData = { request, collection, collectionUid };
       const hookOptions = {
         request,
@@ -767,9 +796,8 @@ const registerNetworkIpc = (mainWindow) => {
         notifyScriptExecution
       };
 
-      // Call beforeRequest hooks using consolidated approach when multiple levels have hooks
-      await executeAllHooksConsolidated(
-        { collectionHooks, folderHooks, requestHooks },
+      // Call beforeRequest hooks using merged hooks
+      await executeHooks(
         HOOK_EVENTS.HTTP_BEFORE_REQUEST,
         beforeRequestEventData,
         hookOptions
@@ -941,12 +969,10 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Call afterResponse hooks after response is received but before post-response scripts
       // Hooks are called in registration order: collection -> folder(s) -> request
-      // Note: BrunoRequest and BrunoResponse are now created inside HooksRuntime for consistency with ScriptRuntime
       const afterResponseEventData = { request, response, collection, collectionUid };
 
-      // Call afterResponse hooks using consolidated approach when multiple levels have hooks
-      await executeAllHooksConsolidated(
-        { collectionHooks, folderHooks, requestHooks },
+      // Call afterResponse hooks using merged hooks
+      await executeHooks(
         HOOK_EVENTS.HTTP_AFTER_RESPONSE,
         afterResponseEventData,
         hookOptions
@@ -1432,9 +1458,8 @@ const registerNetworkIpc = (mainWindow) => {
             continue;
           }
 
-          // Get request tree path for hooks extraction
+          // Get request tree path for hooks execution (hooks are merged in prepareRequest via mergeScripts)
           const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-          const { collectionHooks, folderHooks, requestHooks } = extractHooks(collection, request, requestTreePath);
 
           // Hook execution options
           const hookOptions = {
@@ -1467,12 +1492,10 @@ const registerNetworkIpc = (mainWindow) => {
           };
 
           try {
-            // Call beforeRequest hooks using consolidated approach when multiple levels have hooks
-            // Note: BrunoRequest is now created inside HooksRuntime for consistency with ScriptRuntime
+            // Call beforeRequest hooks using merged hooks
             const beforeRequestEventData = { request, collection, collectionUid };
 
-            const beforeRequestHooksResult = await executeAllHooksConsolidated(
-              { collectionHooks, folderHooks, requestHooks },
+            const beforeRequestHooksResult = await executeHooks(
               HOOK_EVENTS.HTTP_BEFORE_REQUEST,
               beforeRequestEventData,
               hookOptions
@@ -1723,12 +1746,10 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
-            // Call afterResponse hooks using consolidated approach when multiple levels have hooks
-            // Note: BrunoRequest and BrunoResponse are now created inside HooksRuntime for consistency with ScriptRuntime
+            // Call afterResponse hooks using merged hooks
             const afterResponseEventData = { request, response, collection, collectionUid };
 
-            const afterResponseHooksResult = await executeAllHooksConsolidated(
-              { collectionHooks, folderHooks, requestHooks },
+            const afterResponseHooksResult = await executeHooks(
               HOOK_EVENTS.HTTP_AFTER_RESPONSE,
               afterResponseEventData,
               hookOptions

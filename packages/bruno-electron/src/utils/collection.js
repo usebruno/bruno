@@ -157,10 +157,12 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   let collectionPreReqScript = get(collectionRoot, 'request.script.req', '');
   let collectionPostResScript = get(collectionRoot, 'request.script.res', '');
   let collectionTests = get(collectionRoot, 'request.tests', '');
+  let collectionHooks = get(collectionRoot, 'request.script.hooks', '');
 
   let combinedPreReqScript = [];
   let combinedPostResScript = [];
   let combinedTests = [];
+  let combinedHooks = [];
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
@@ -177,6 +179,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       let tests = get(folderRoot, 'request.tests', '');
       if (tests && tests?.trim?.() !== '') {
         combinedTests.push(tests);
+      }
+
+      let hooks = get(folderRoot, 'request.script.hooks', '');
+      if (hooks && hooks.trim() !== '') {
+        combinedHooks.push(hooks);
       }
     }
   }
@@ -227,52 +234,21 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     ];
     request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   }
-};
 
-/**
- * Extract hooks from collection, folders, and request for registration.
- * Unlike mergeScripts, this returns separate hooks for each level to allow
- * one-time registration at each level.
- *
- * @param {object} collection - Collection object
- * @param {object} request - Request object (prepared request, may not have hooks)
- * @param {array} requestTreePath - Path from collection to request
- * @returns {object} Object containing hooks at each level
- */
-const extractHooks = (collection, request, requestTreePath) => {
-  const collectionRoot = collection?.draft?.root || collection?.root || {};
-  const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
-
-  const folderHooks = [];
-  let requestHooks = '';
-
-  for (let i of requestTreePath) {
-    if (i.type === 'folder') {
-      const folderRoot = i?.draft || i?.root;
-      const hooks = get(folderRoot, 'request.script.hooks', '');
-      if (hooks && hooks.trim() !== '') {
-        folderHooks.push({
-          folderPathname: i.pathname, // Use pathname as unique identifier
-          hooks: hooks
-        });
-      }
-    } else if (i.type !== 'folder') {
-      // This is the request item - get hooks from it
-      const itemRoot = i?.draft || i?.root || i;
-      requestHooks = get(itemRoot, 'request.script.hooks', '') || '';
-    }
-  }
-
-  // Fallback: try to get from request object if not found in tree path
-  if (!requestHooks) {
-    requestHooks = get(request, 'script.hooks', '') || get(request, 'hooks', '') || '';
-  }
-
-  return {
+  // Handle hooks - always merged sequentially: collection -> folders -> request
+  let requestHooks = request?.script?.hooks || '';
+  const hooksScripts = [
     collectionHooks,
-    folderHooks,
+    ...combinedHooks,
     requestHooks
-  };
+  ];
+
+  // Ensure request.script exists
+  if (!request.script) {
+    request.script = {};
+  }
+
+  request.script.hooks = compact(hooksScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
 };
 
 /**
@@ -812,6 +788,5 @@ module.exports = {
   getFormattedCollectionOauth2Credentials,
   sortByNameThenSequence,
   resolveInheritedSettings,
-  extractHooks,
   HOOK_EVENTS
 };

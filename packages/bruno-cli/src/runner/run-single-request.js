@@ -6,10 +6,10 @@ const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lod
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString, interpolateObject } = require('./interpolate-string');
-const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, HooksRuntime, HooksExecutor } = require('@usebruno/js');
+const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, HooksRuntime } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
-const { extractHooks, getTreePathFromCollectionToItem, HOOK_EVENTS } = require('../utils/collection');
+const { getTreePathFromCollectionToItem, HOOK_EVENTS } = require('../utils/collection');
 const https = require('https');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
@@ -211,17 +211,17 @@ const runSingleRequest = async function (
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = runtime;
 
-    // Get request tree path for hook extraction
+    // Get request tree path for hook execution
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
     const collectionName = collection?.brunoConfig?.name;
 
-    // Extract hooks for all levels
-    const { collectionHooks, folderHooks, requestHooks } = extractHooks(collection, request, requestTreePath);
-
-    // Helper function to execute all hooks using consolidated approach
-    const executeAllHooksConsolidated = async (extractedHooks, hookEvent, eventData) => {
-      return HooksExecutor.executeAllHookLevels(extractedHooks, hookEvent, eventData, {
+    // Helper function to execute merged hooks (hooks are merged in prepareRequest via mergeScripts)
+    const executeHooks = async (hookEvent, eventData) => {
+      const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
+      const result = await hooksRuntime.runHooks({
+        hooksFile: request.script?.hooks,
         request,
+        response: eventData.response,
         envVariables,
         runtimeVariables,
         collectionPath,
@@ -231,15 +231,37 @@ const runSingleRequest = async function (
         runRequestByItemPathname: runSingleRequestByPathname,
         collectionName
       });
+
+      if (result?.hookManager) {
+        // Enrich eventData with runtime-created req/res wrappers
+        const enrichedEventData = {
+          ...eventData,
+          req: result.req || eventData.req,
+          res: result.res || eventData.res
+        };
+        await result.hookManager.call(hookEvent, enrichedEventData);
+
+        // Re-read runner control signals from bru instance AFTER handlers have executed
+        // Handlers may have called bru.runner.setNextRequest(), skipRequest(), or stopExecution()
+        // which update the bru instance but were not captured in the initial result
+        const bru = result.__bru;
+        if (bru) {
+          result.nextRequestName = bru.nextRequest;
+          result.skipRequest = bru.skipRequest;
+          result.stopExecution = bru.stopExecution;
+        }
+
+        result.hookManager.dispose();
+      }
+
+      return result;
     };
 
     // Call beforeRequest hooks before running pre-request scripts
     // Hooks are called in registration order: collection -> folder(s) -> request
-    // Note: BrunoRequest is now created inside HooksRuntime for consistency with ScriptRuntime
     const beforeRequestEventData = { request, collection };
 
-    const beforeRequestHooksResult = await executeAllHooksConsolidated(
-      { collectionHooks, folderHooks, requestHooks },
+    const beforeRequestHooksResult = await executeHooks(
       HOOK_EVENTS.HTTP_BEFORE_REQUEST,
       beforeRequestEventData
     );
@@ -714,12 +736,9 @@ const runSingleRequest = async function (
 
     // Call afterResponse hooks after response is received but before post-response scripts
     // Hooks are called in registration order: collection -> folder(s) -> request
-    // Uses consolidated execution when multiple levels have hooks (more efficient)
-    // Note: BrunoRequest and BrunoResponse are now created inside HooksRuntime for consistency with ScriptRuntime
     const afterResponseEventData = { request, response, collection };
 
-    const afterResponseHooksResult = await executeAllHooksConsolidated(
-      { collectionHooks, folderHooks, requestHooks },
+    const afterResponseHooksResult = await executeHooks(
       HOOK_EVENTS.HTTP_AFTER_RESPONSE,
       afterResponseEventData
     );

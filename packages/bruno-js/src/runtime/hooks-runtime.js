@@ -5,14 +5,15 @@ const BrunoResponse = require('../bruno-response');
 const HookManager = require('../hook-manager');
 const { cleanJson } = require('../utils');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
-const { buildConsolidatedScript, fromExtractedHooks } = require('./hooks-consolidator');
 
 /**
  * HooksRuntime manages the execution of hook scripts in a sandboxed environment.
  *
- * Optimizations:
+ * Hooks are now merged into a single script using mergeScripts() in collection.js,
+ * following the same pattern as pre-request, post-response, and test scripts.
+ *
+ * Features:
  * - Lazy VM creation: VMs are only created when hooks are present
- * - Consolidated execution: Multiple hook levels can be batched into a single VM
  * - Shared HookManager: Can reuse an existing HookManager for handler registration
  *
  * @class
@@ -28,8 +29,7 @@ class HooksRuntime {
     // Track statistics for performance monitoring
     this._stats = {
       vmCreations: 0,
-      consolidatedRuns: 0,
-      singleLevelRuns: 0,
+      runs: 0,
       skippedRuns: 0
     };
   }
@@ -55,7 +55,7 @@ class HooksRuntime {
   /**
    * Run hooks script to register event handlers
    * @param {object} options - Configuration options
-   * @param {string} [options.hooksFile] - The hooks script content (for single-level execution)
+   * @param {string} [options.hooksFile] - The merged hooks script content
    * @param {object} options.request - The request object (used for variable extraction and BrunoRequest creation)
    * @param {object} [options.response] - The response object (used for BrunoResponse creation, only for afterResponse hooks)
    * @param {object} options.envVariables - Environment variables
@@ -67,11 +67,6 @@ class HooksRuntime {
    * @param {function} [options.runRequestByItemPathname] - Function to run requests
    * @param {string} options.collectionName - Collection name
    * @param {HookManager} [options.hookManager] - Existing HookManager instance to use (for shared hook registration)
-   * @param {boolean} [options.consolidated=false] - Whether to use consolidated execution mode
-   * @param {object} [options.consolidatedHooks] - Consolidated hooks data (when consolidated=true)
-   * @param {string} [options.consolidatedHooks.collectionHooks] - Collection-level hooks script
-   * @param {Array<object>} [options.consolidatedHooks.folderHooks] - Array of folder hooks
-   * @param {string} [options.consolidatedHooks.requestHooks] - Request-level hooks script
    * @returns {object} Result containing the hookManager instance, and req/res wrapper objects
    */
   async runHooks(options) {
@@ -87,9 +82,7 @@ class HooksRuntime {
       scriptingConfig,
       runRequestByItemPathname,
       collectionName,
-      hookManager,
-      consolidated = false,
-      consolidatedHooks
+      hookManager
     } = options;
     const activeHookManager = hookManager || new HookManager();
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
@@ -99,31 +92,6 @@ class HooksRuntime {
     const requestVariables = request?.requestVariables || {};
     const promptVariables = request?.promptVariables || {};
 
-    // Consolidated execution mode: build and execute consolidated script
-    if (consolidated && consolidatedHooks) {
-      return this._runConsolidatedHooks({
-        consolidatedHooks,
-        request,
-        response,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        onConsoleLog,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname,
-        collectionName,
-        activeHookManager,
-        globalEnvironmentVariables,
-        oauth2CredentialVariables,
-        collectionVariables,
-        folderVariables,
-        requestVariables,
-        promptVariables
-      });
-    }
-
-    // Single-level execution mode (original behavior)
     // Pass activeHookManager to Bru so it uses the same instance (whether provided or newly created)
     const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, activeHookManager);
 
@@ -174,7 +142,7 @@ class HooksRuntime {
       };
     }
 
-    this._stats.singleLevelRuns++;
+    this._stats.runs++;
     this._stats.vmCreations++;
 
     // Execute hooks script
@@ -226,187 +194,6 @@ class HooksRuntime {
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
       stopExecution: bru.stopExecution,
-      __bru: bru,
-      req,
-      res
-    };
-  }
-
-  /**
-   * Run consolidated hooks execution - all levels in a single VM run
-   * This is more efficient when there are multiple hook levels (collection, folder, request)
-   * @private
-   * @param {object} options - Execution options
-   * @returns {Promise<object>} Result containing hookManager and variable states
-   */
-  async _runConsolidatedHooks(options) {
-    const {
-      consolidatedHooks,
-      request,
-      response,
-      envVariables,
-      runtimeVariables,
-      collectionPath,
-      onConsoleLog,
-      processEnvVars,
-      scriptingConfig,
-      runRequestByItemPathname,
-      collectionName,
-      activeHookManager,
-      globalEnvironmentVariables,
-      oauth2CredentialVariables,
-      collectionVariables,
-      folderVariables,
-      requestVariables,
-      promptVariables
-    } = options;
-
-    // Build consolidated script from all hook levels
-    const config = fromExtractedHooks(consolidatedHooks);
-    const { script: consolidatedScript, hasHooks, levels } = buildConsolidatedScript(config);
-
-    // Lazy VM creation: If no hooks, return early without creating a VM
-    if (!hasHooks || !consolidatedScript) {
-      this._stats.skippedRuns++;
-      const bru = new Bru(
-        this.runtime,
-        envVariables,
-        runtimeVariables,
-        processEnvVars,
-        collectionPath,
-        collectionVariables,
-        folderVariables,
-        requestVariables,
-        globalEnvironmentVariables,
-        oauth2CredentialVariables,
-        collectionName,
-        promptVariables,
-        activeHookManager
-      );
-      // Create BrunoRequest and BrunoResponse wrappers
-      const req = request ? new BrunoRequest(request) : null;
-      const res = response ? new BrunoResponse(response) : null;
-      return {
-        hookManager: activeHookManager,
-        envVariables: cleanJson(envVariables),
-        runtimeVariables: cleanJson(runtimeVariables),
-        persistentEnvVariables: bru.persistentEnvVariables,
-        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-        nextRequestName: bru.nextRequest,
-        skipRequest: bru.skipRequest,
-        stopExecution: bru.stopExecution,
-        __bru: bru,
-        req,
-        res
-      };
-    }
-
-    this._stats.consolidatedRuns++;
-    this._stats.vmCreations++;
-
-    // Create a single Bru instance for consolidated execution
-    // All hook levels will share this instance's HookManager
-    const bru = new Bru(
-      this.runtime,
-      envVariables,
-      runtimeVariables,
-      processEnvVars,
-      collectionPath,
-      collectionVariables,
-      folderVariables,
-      requestVariables,
-      globalEnvironmentVariables,
-      oauth2CredentialVariables,
-      collectionName,
-      promptVariables,
-      activeHookManager
-    );
-
-    // Create BrunoRequest and BrunoResponse wrappers (similar to ScriptRuntime)
-    const req = request ? new BrunoRequest(request) : null;
-    const res = response ? new BrunoResponse(response) : null;
-
-    // Prepare context with error handling callback
-    const context = {
-      bru,
-      req,
-      res,
-      __hookResult: null,
-      __onHookError: (level, error) => {
-        if (onConsoleLog) {
-          onConsoleLog('error', [`[Hook Error] ${level}: ${error?.message || error}`]);
-        }
-      }
-    };
-
-    // Add custom console logger
-    if (onConsoleLog && typeof onConsoleLog === 'function') {
-      const customLogger = (type) => {
-        return (...args) => {
-          onConsoleLog(type, cleanJson(args));
-        };
-      };
-      context.console = {
-        log: customLogger('log'),
-        debug: customLogger('debug'),
-        info: customLogger('info'),
-        warn: customLogger('warn'),
-        error: customLogger('error')
-      };
-    }
-
-    // Add runRequest function if provided
-    if (runRequestByItemPathname) {
-      context.bru.runRequest = runRequestByItemPathname;
-    }
-
-    // Execute consolidated script
-    if (this.runtime === 'nodevm') {
-      await runScriptInNodeVm({
-        script: consolidatedScript,
-        context,
-        collectionPath,
-        scriptingConfig
-      });
-
-      return {
-        hookManager: activeHookManager,
-        envVariables: cleanJson(envVariables),
-        runtimeVariables: cleanJson(runtimeVariables),
-        persistentEnvVariables: bru.persistentEnvVariables,
-        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-        nextRequestName: bru.nextRequest,
-        skipRequest: bru.skipRequest,
-        stopExecution: bru.stopExecution,
-        __bru: bru,
-        req,
-        res
-      };
-    }
-
-    // For QuickJS, persist the VM so hook handlers can be called later
-    const result = await executeQuickJsVmAsync({
-      script: consolidatedScript,
-      context: context,
-      collectionPath,
-      persistVm: true
-    });
-
-    // Register VM cleanup with HookManager
-    if (result?.cleanup && typeof activeHookManager.registerCleanup === 'function') {
-      activeHookManager.registerCleanup(result.cleanup);
-    }
-
-    return {
-      hookManager: activeHookManager,
-      envVariables: cleanJson(envVariables),
-      runtimeVariables: cleanJson(runtimeVariables),
-      persistentEnvVariables: bru.persistentEnvVariables,
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-      nextRequestName: bru.nextRequest,
-      skipRequest: bru.skipRequest,
-      stopExecution: bru.stopExecution,
-      // Include bru reference so callers can read updated values after hook execution
       __bru: bru,
       req,
       res

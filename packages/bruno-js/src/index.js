@@ -3,8 +3,6 @@ const TestRuntime = require('./runtime/test-runtime');
 const VarsRuntime = require('./runtime/vars-runtime');
 const AssertRuntime = require('./runtime/assert-runtime');
 const HooksRuntime = require('./runtime/hooks-runtime');
-const HooksConsolidator = require('./runtime/hooks-consolidator');
-const HooksExecutor = require('./runtime/hooks-executor');
 const HookManager = require('./hook-manager');
 const { runScriptInNodeVm } = require('./sandbox/node-vm');
 
@@ -14,8 +12,6 @@ module.exports = {
   VarsRuntime,
   AssertRuntime,
   HooksRuntime,
-  HooksConsolidator,
-  HooksExecutor,
   HookManager,
   runScriptInNodeVm
 };
