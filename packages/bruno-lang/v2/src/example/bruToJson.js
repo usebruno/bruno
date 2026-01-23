@@ -89,7 +89,7 @@ const astExampleAttribute = {
     return content.ast;
   },
   multilinenamevalue(chars) {
-    return chars.sourceString ? chars.sourceString.replace(/\r\n/g, '\n').trim() : '';
+    return chars.sourceString ? chars.sourceString.replace(/\r?\n/g, ' ').trim() : '';
   },
   description(_1, _2, _3, _4, value, _6) {
     return {
