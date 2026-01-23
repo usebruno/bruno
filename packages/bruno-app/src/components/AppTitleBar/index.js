@@ -18,15 +18,21 @@ import ImportWorkspace from 'components/WorkspaceSidebar/ImportWorkspace';
 
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
 import StyledWrapper from './StyledWrapper';
-import { toTitleCase } from 'utils/common/index';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
 import { isMacOS, isWindowsOS, isLinuxOS } from 'utils/common/platform';
+import classNames from 'classnames';
 
 const getOsClass = () => {
   if (isMacOS()) return 'os-mac';
   if (isWindowsOS()) return 'os-windows';
   if (isLinuxOS()) return 'os-linux';
   return 'os-other';
+};
+
+// Helper to get display name for workspace
+export const getWorkspaceDisplayName = (name) => {
+  if (!name) return 'Untitled Workspace';
+  return name;
 };
 
 const AppTitleBar = () => {
@@ -115,7 +121,7 @@ const AppTitleBar = () => {
   const WorkspaceName = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="workspace-name-container" {...props}>
-        <span className="workspace-name">{toTitleCase(activeWorkspace?.name) || 'Default Workspace'}</span>
+        <span data-testid="workspace-name" className={classNames('workspace-name', { 'italic text-muted': !activeWorkspace?.name })}>{getWorkspaceDisplayName(activeWorkspace?.name)}</span>
         <IconChevronDown size={14} stroke={1.5} className="chevron-icon" />
       </div>
     );
@@ -127,7 +133,7 @@ const AppTitleBar = () => {
 
   const handleWorkspaceSwitch = (workspaceUid) => {
     dispatch(switchWorkspace(workspaceUid));
-    toast.success(`Switched to ${workspaces.find((w) => w.uid === workspaceUid)?.name}`);
+    toast.success(`Switched to ${getWorkspaceDisplayName(workspaces.find((w) => w.uid === workspaceUid)?.name)}`);
   };
 
   const handleOpenWorkspace = async () => {
@@ -178,7 +184,7 @@ const AppTitleBar = () => {
 
       return {
         id: workspace.uid,
-        label: toTitleCase(workspace.name),
+        label: getWorkspaceDisplayName(workspace.name),
         onClick: () => handleWorkspaceSwitch(workspace.uid),
         className: `workspace-item ${isActive ? 'active' : ''}`,
         rightSection: (
@@ -190,11 +196,7 @@ const AppTitleBar = () => {
                 label={isPinned ? 'Unpin workspace' : 'Pin workspace'}
                 size="sm"
               >
-                {isPinned ? (
-                  <IconPinned size={14} stroke={1.5} />
-                ) : (
-                  <IconPin size={14} stroke={1.5} />
-                )}
+                {isPinned ? <IconPinned size={14} stroke={1.5} /> : <IconPin size={14} stroke={1.5} />}
               </ActionIcon>
             )}
             {isActive && <IconCheck size={16} stroke={1.5} className="check-icon" />}
@@ -247,12 +249,7 @@ const AppTitleBar = () => {
       <div className="titlebar-content">
         {/* Left section: Home + Workspace */}
         <div className="titlebar-left">
-          <ActionIcon
-            onClick={handleHomeClick}
-            label="Home"
-            size="lg"
-            className="home-button"
-          >
+          <ActionIcon onClick={handleHomeClick} label="Home" size="lg" className="home-button">
             <IconHome size={16} stroke={1.5} />
           </ActionIcon>
 

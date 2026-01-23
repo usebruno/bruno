@@ -8,8 +8,11 @@ jest.mock('@usebruno/common', () => ({
     randomFirstName: jest.fn(() => 'John'),
     randomLastName: jest.fn(() => 'Doe'),
     randomEmail: jest.fn(() => 'john.doe@example.com'),
-    randomUUID: jest.fn(() => '123e4567-e89b-12d3-a456-426614174000')
-  }
+    randomUUID: jest.fn(() => '123e4567-e89b-12d3-a456-426614174000'),
+    timestamp: jest.fn(() => '1704067200'),
+    isoTimestamp: jest.fn(() => '2024-01-01T00:00:00.000Z')
+  },
+  timeBasedDynamicVars: new Set(['timestamp', 'isoTimestamp'])
 }));
 
 jest.mock('providers/ReduxStore', () => ({
@@ -466,6 +469,29 @@ describe('renderVarInfo', () => {
       expect(scopeBadge.textContent).toBe('Dynamic');
       expect(warningNote).not.toBeNull();
       expect(warningNote.textContent).toContain('Unknown dynamic variable');
+    });
+
+    it('should show time-based note for $timestamp variable', () => {
+      const { readOnlyNote, scopeBadge } = setupDynamicRender('$timestamp');
+
+      expect(scopeBadge.textContent).toBe('Dynamic');
+      expect(readOnlyNote).not.toBeNull();
+      expect(readOnlyNote.textContent).toBe('Generates current timestamp on each request');
+    });
+
+    it('should show time-based note for $isoTimestamp variable', () => {
+      const { readOnlyNote, scopeBadge } = setupDynamicRender('$isoTimestamp');
+
+      expect(scopeBadge.textContent).toBe('Dynamic');
+      expect(readOnlyNote).not.toBeNull();
+      expect(readOnlyNote.textContent).toBe('Generates current timestamp on each request');
+    });
+
+    it('should show random note for non-time-based dynamic variables', () => {
+      const { readOnlyNote } = setupDynamicRender('$randomEmail');
+
+      expect(readOnlyNote).not.toBeNull();
+      expect(readOnlyNote.textContent).toBe('Generates random value on each request');
     });
   });
 

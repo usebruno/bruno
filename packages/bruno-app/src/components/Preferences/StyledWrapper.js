@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   div.tabs {
-    padding: 8px;
+    padding: 12px;
     min-width: 160px;
 
     div.tab {
@@ -28,10 +28,10 @@ const StyledWrapper = styled.div`
 
       &.active {
         color: ${(props) => props.theme.text} !important;
-        background: ${(props) => props.theme.modal.title.bg};
+        background: ${(props) => props.theme.tabs.secondary.active.bg};
 
         &:hover {
-          background: ${(props) => props.theme.modal.title.bg} !important;
+          background: ${(props) => props.theme.tabs.secondary.active.bg} !important;
         }
       }
     }
@@ -39,9 +39,9 @@ const StyledWrapper = styled.div`
 
   section.tab-panel {
     min-height: 70vh;
-    max-height: 70vh;
     overflow-y: auto;
-    width: clamp(300px, 45vw, 550px);
+    flex-grow: 1;
+    padding: 12px;
   }
 
   input[type="checkbox"],
@@ -50,6 +50,24 @@ const StyledWrapper = styled.div`
     cursor: pointer;
   }
 
+  .textbox {
+    line-height: 1.5;
+    padding: 0.45rem;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
+    color: ${(props) => props.theme.text};
+
+    &:focus {
+      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
+      outline: none !important;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
   .section-header {
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};

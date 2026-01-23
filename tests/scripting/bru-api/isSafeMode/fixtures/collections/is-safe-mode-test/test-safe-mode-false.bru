@@ -1,0 +1,17 @@
+meta {
+  name: test-safe-mode-false
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://echo.usebruno.com
+  body: none
+  auth: none
+}
+
+tests {
+  test("bru.isSafeMode() returns false in developer mode", function() {
+    expect(bru.isSafeMode()).to.be.false;
+  });
+}

@@ -22,7 +22,7 @@ const StyledWrapper = styled.div`
   table tr {
     display: contents;
   }
- 
+
   table th {
     position: relative;
     font-weight: 400;

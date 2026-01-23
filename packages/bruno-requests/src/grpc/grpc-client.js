@@ -528,8 +528,19 @@ class GrpcClient {
       }
     }
 
+    // Extract user-agent from headers if provided (case-insensitive)
+    // Set it as grpc.primary_user_agent channel option to prepend to the default user-agent
+    const userAgentKey = Object.keys(request.headers).find(
+      (key) => key.toLowerCase() === 'user-agent'
+    );
+    const userAgentValue = userAgentKey ? request.headers[userAgentKey] : null;
+
+    const mergedChannelOptions = userAgentValue
+      ? { 'grpc.primary_user_agent': userAgentValue, ...channelOptions }
+      : channelOptions;
+
     const Client = makeGenericClientConstructor({});
-    const client = new Client(host, credentials, channelOptions);
+    const client = new Client(host, credentials, mergedChannelOptions);
     if (!client) {
       throw new Error('Failed to create client');
     }
@@ -612,9 +623,19 @@ class GrpcClient {
     passphrase,
     pfx,
     verifyOptions,
-    sendEvent
+    sendEvent,
+    channelOptions = {}
   }) {
     const { host, path } = getParsedGrpcUrlObject(request.url);
+
+    // Extract user-agent from headers if provided (case-insensitive)
+    // Set it as grpc.primary_user_agent channel option to prepend to the default user-agent
+    const userAgentKey = Object.keys(request.headers).find(
+      (key) => key.toLowerCase() === 'user-agent'
+    );
+    const userAgentValue = userAgentKey ? request.headers[userAgentKey] : null;
+    const mergedChannelOptions = userAgentValue ? { 'grpc.primary_user_agent': userAgentValue, ...channelOptions } : channelOptions;
+
     const metadata = new Metadata();
     Object.entries(request.headers).forEach(([name, value]) => {
       metadata.add(name, value);
@@ -630,7 +651,7 @@ class GrpcClient {
     });
 
     try {
-      const { client, services, callOptions } = await this.#getReflectionClient(host, credentials, metadata, {});
+      const { client, services, callOptions } = await this.#getReflectionClient(host, credentials, metadata, mergedChannelOptions);
 
       const methods = [];
       for (const service of services) {

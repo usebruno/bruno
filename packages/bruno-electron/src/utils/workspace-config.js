@@ -217,7 +217,7 @@ const readWorkspaceConfig = (workspacePath) => {
 
 const generateYamlContent = (config) => {
   const yamlLines = [];
-  const workspaceName = config.info?.name || config.name || 'Unnamed Workspace';
+  const workspaceName = config.info?.name || config.name || 'Untitled Workspace';
   const workspaceType = config.info?.type || config.type || WORKSPACE_TYPE;
 
   yamlLines.push(`opencollection: ${config.opencollection || OPENCOLLECTION_VERSION}`);

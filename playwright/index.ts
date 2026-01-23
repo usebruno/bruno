@@ -91,6 +91,7 @@ export const test = baseTest.extend<
             ELECTRON_USER_DATA_PATH: userDataPath,
             DISABLE_SAMPLE_COLLECTION_IMPORT: 'true',
             PLAYWRIGHT: 'true',
+            DISABLE_SINGLE_INSTANCE: 'true',
             ...dotEnv
           }
         });

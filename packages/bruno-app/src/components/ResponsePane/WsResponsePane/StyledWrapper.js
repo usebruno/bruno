@@ -53,6 +53,17 @@ const StyledWrapper = styled.div`
     align-items: center;
     margin-left: 10px;
   }
+
+  div.tabs .action-icon {
+    color: ${(props) => props.theme.dropdown.iconColor};
+    opacity: 0.8;
+
+    &:hover {
+      color: ${(props) => props.theme.text};
+      opacity: 1;
+      background-color: ${(props) => props.theme.workspace.button.bg};
+    }
+  }
 `;
 
 export default StyledWrapper;

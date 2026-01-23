@@ -183,7 +183,7 @@ docs: ''
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
       // UI always shows "My Workspace"
-      await expect(page.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // Should NOT create a new workspace
       expect(fs.existsSync(path.join(userDataPath, 'default-workspace-1'))).toBe(false);
@@ -231,7 +231,7 @@ docs: ''
       const page = await app.firstWindow();
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
-      await expect(page.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // Verify the correct workspace was selected (workspace-2)
       const prefs = JSON.parse(fs.readFileSync(path.join(userDataPath, 'preferences.json'), 'utf8'));
@@ -295,7 +295,7 @@ docs: ''
       const page = await app.firstWindow();
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
-      await expect(page.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // Verify workspace-1 was selected (not workspace-2 which is broken)
       const prefs = JSON.parse(fs.readFileSync(path.join(userDataPath, 'preferences.json'), 'utf8'));
@@ -521,7 +521,7 @@ docs: ''
       const page = await app.firstWindow();
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
-      await expect(page.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // Since path doesn't exist but we have a valid workspace, it should use it
       // OR create a new one recovering from the existing one
@@ -603,7 +603,7 @@ docs: ''
       const page = await app.firstWindow();
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
-      await expect(page.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // Verify workspace-1 was used (or workspace-2 was created recovering from workspace-1)
       const prefs = JSON.parse(fs.readFileSync(path.join(userDataPath, 'preferences.json'), 'utf8'));

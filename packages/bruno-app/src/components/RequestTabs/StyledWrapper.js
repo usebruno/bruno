@@ -14,6 +14,10 @@ const Wrapper = styled.div`
     z-index: 0;
   }
 
+  .scroll-chevrons.hidden {
+    display: none;
+  }
+
   .tabs-scroll-container {
     overflow-x: auto;
     overflow-y: clip;
@@ -190,10 +194,6 @@ const Wrapper = styled.div`
         }
       }
     }
-  }
-
-  &.has-chevrons ul {
-    padding-left: 0;
   }
 
   .special-tab-icon {

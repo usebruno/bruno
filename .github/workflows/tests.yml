@@ -58,6 +58,8 @@ jobs:
         run: npm run test --workspace=packages/bruno-converters
       - name: Test Package bruno-electron
         run: npm run test --workspace=packages/bruno-electron
+      - name: Test Package bruno-requests
+        run: npm run test --workspace=packages/bruno-requests
 
   cli-test:
     name: CLI Tests

@@ -5,10 +5,7 @@
   "scripts": {
     "moduleWhitelist": [
       "crypto"
-    ],
-    "filesystemAccess": {
-      "allow": true
-    }
+    ]
   },
   "clientCertificates": {
     "enabled": true,

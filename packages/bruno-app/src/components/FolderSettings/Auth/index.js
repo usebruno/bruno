@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import StyledWrapper from './StyledWrapper';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import OAuth2AuthorizationCode from 'components/RequestPane/Auth/OAuth2/AuthorizationCode/index';
-import { updateFolderAuth } from 'providers/ReduxStore/slices/collections';
+import { updateFolderAuth as _updateFolderAuth } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
 import OAuth2PasswordCredentials from 'components/RequestPane/Auth/OAuth2/PasswordCredentials/index';
 import OAuth2ClientCredentials from 'components/RequestPane/Auth/OAuth2/ClientCredentials/index';
@@ -20,7 +20,7 @@ import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
 import { humanizeRequestAuthMode, getTreePathFromCollectionToItem } from 'utils/collections/index';
 import Button from 'ui/Button';
 
-const GrantTypeComponentMap = ({ collection, folder }) => {
+const GrantTypeComponentMap = ({ collection, folder, updateFolderAuth }) => {
   const dispatch = useDispatch();
 
   const save = () => {
@@ -88,6 +88,13 @@ const Auth = ({ collection, folder }) => {
 
   const handleSave = () => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
+  };
+
+  const updateFolderAuth = ({ itemUid, ...rest }) => {
+    return _updateFolderAuth({
+      ...rest,
+      folderUid: folder.uid
+    });
   };
 
   const getAuthView = () => {
@@ -178,7 +185,7 @@ const Auth = ({ collection, folder }) => {
               collection={collection}
               item={folder}
             />
-            <GrantTypeComponentMap collection={collection} folder={folder} />
+            <GrantTypeComponentMap collection={collection} folder={folder} updateFolderAuth={updateFolderAuth} />
           </>
         );
       }

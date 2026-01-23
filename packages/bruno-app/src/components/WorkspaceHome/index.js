@@ -7,10 +7,13 @@ import toast from 'react-hot-toast';
 import CloseWorkspace from 'components/Sidebar/CloseWorkspace';
 import WorkspaceOverview from './WorkspaceOverview';
 import WorkspaceEnvironments from './WorkspaceEnvironments';
+import Preferences from 'components/Preferences';
 import WorkspaceTabs from 'components/WorkspaceTabs';
 import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
 import { getRevealInFolderLabel } from 'utils/common/platform';
+import { getWorkspaceDisplayName } from 'components/AppTitleBar';
+import classNames from 'classnames';
 
 const WorkspaceHome = () => {
   const dispatch = useDispatch();
@@ -155,6 +158,8 @@ const WorkspaceHome = () => {
         return <WorkspaceOverview workspace={activeWorkspace} />;
       case 'environments':
         return <WorkspaceEnvironments workspace={activeWorkspace} />;
+      case 'preferences':
+        return <Preferences />;
       default:
         return null;
     }
@@ -208,7 +213,7 @@ const WorkspaceHome = () => {
                   </div>
                 </div>
               ) : (
-                <span>{activeWorkspace.name}</span>
+                <span className={classNames('workspace-name', { 'italic text-muted': !activeWorkspace?.name })}>{getWorkspaceDisplayName(activeWorkspace.name)}</span>
               )}
             </div>
 

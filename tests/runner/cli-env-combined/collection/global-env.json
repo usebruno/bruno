@@ -1,0 +1,8 @@
+{
+  "name": "GlobalEnv",
+  "variables": [
+    { "name": "baseUrl", "value": "https://global.example.com", "enabled": true },
+    { "name": "overrideVar", "value": "global-value", "enabled": true },
+    { "name": "globalOnly", "value": "from-global", "enabled": true }
+  ]
+}

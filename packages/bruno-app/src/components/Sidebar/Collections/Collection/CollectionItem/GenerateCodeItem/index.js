@@ -110,12 +110,14 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
   // Resolve auth inheritance
   const resolvedRequest = resolveInheritedAuth(item, collection);
 
-  // Create the final item for code generation
+  // requestData.request contains either the normal request or example request data.
+  // We explicitly set auth from resolvedRequest to ensure inherited auth
+  // (from folders/collection) is resolved correctly in generated code.
   const finalItem = {
     ...item,
     request: {
-      ...resolvedRequest,
       ...requestData.request,
+      auth: resolvedRequest.auth,
       url: finalUrl
     }
   };

@@ -5,10 +5,5 @@
   "ignore": [
     "node_modules",
     ".git"
-  ],
-  "scripts": {
-    "filesystemAccess": {
-      "allow": true
-    }
-  }
+  ]
 }

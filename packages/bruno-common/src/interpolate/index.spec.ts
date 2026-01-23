@@ -1,4 +1,4 @@
-import interpolate from './index';
+import interpolate, { interpolateObject } from './index';
 import moment from 'moment';
 
 const BRUNO_BIRTH_DATE = new Date('2019-08-08');
@@ -375,6 +375,62 @@ describe('interpolate - recursive', () => {
       "x": "baz bar"
     }`);
   });
+
+  it('should replace variables pointing to mock data functions', () => {
+    const inputString = 'Timestamp: {{folderVar}}';
+    const inputObject = {
+      folderVar: '{{$isoTimestamp}}'
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    // Validate that the result is a valid ISO timestamp
+    const timestampPattern = /^Timestamp: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+    expect(timestampPattern.test(result)).toBe(true);
+  });
+
+  it('should replace nested variables pointing to mock data functions', () => {
+    const inputString = 'Random values: {{var1}} and {{var2}}';
+    const inputObject = {
+      var1: '{{nestedVar}}',
+      nestedVar: '{{$randomInt}}',
+      var2: '{{$randomBoolean}}'
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    // Validate the result
+    const parts = result.split(' and ');
+    expect(parts.length).toBe(2);
+
+    const randomInt = parts[0].replace('Random values: ', '');
+    const randomBoolean = parts[1];
+
+    // Check if randomInt is a number
+    expect(!isNaN(Number(randomInt))).toBe(true);
+    expect(Number(randomInt)).toBeGreaterThanOrEqual(0);
+    expect(Number(randomInt)).toBeLessThanOrEqual(1000);
+
+    // Check if randomBoolean is a boolean
+    expect(['true', 'false'].includes(randomBoolean)).toBe(true);
+  });
+
+  it('should replace variables pointing to mock data functions with escapeJSONStrings option', () => {
+    const inputString = '{"timestamp": "{{folderVar}}"}';
+    const inputObject = {
+      folderVar: '{{$isoTimestamp}}'
+    };
+
+    const result = interpolate(inputString, inputObject, { escapeJSONStrings: true });
+
+    // Should produce valid JSON
+    expect(() => {
+      const parsed = JSON.parse(result);
+      // Validate that the timestamp is a valid ISO timestamp
+      const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+      expect(timestampPattern.test(parsed.timestamp)).toBe(true);
+    }).not.toThrow();
+  });
 });
 
 describe('interpolate - object handling', () => {
@@ -534,6 +590,37 @@ describe('interpolate - mock variable interpolation', () => {
       JSON.parse(result); // This should throw an error
     }).toThrow();
   });
+
+  it('should process mock variables in nested objects', () => {
+    const inputString = '{{user.data}}';
+    const inputObject = {
+      user: {
+        data: {
+          id: '{{$randomUUID}}',
+          timestamp: '{{$isoTimestamp}}',
+          nested: {
+            randomInt: '{{$randomInt}}'
+          }
+        }
+      }
+    };
+
+    const result = interpolate(inputString, inputObject);
+    const parsed = JSON.parse(result);
+
+    // Validate UUID format
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    expect(uuidPattern.test(parsed.id)).toBe(true);
+
+    // Validate ISO timestamp format
+    const isoTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+    expect(isoTimestampPattern.test(parsed.timestamp)).toBe(true);
+
+    // Validate nested randomInt
+    expect(!isNaN(Number(parsed.nested.randomInt))).toBe(true);
+    expect(Number(parsed.nested.randomInt)).toBeGreaterThanOrEqual(0);
+    expect(Number(parsed.nested.randomInt)).toBeLessThanOrEqual(1000);
+  });
 });
 
 describe('interpolate - Date() handling', () => {
@@ -589,5 +676,184 @@ describe('interpolate - moment() handling', () => {
     const result = interpolate(inputString, inputObject);
 
     expect(result).toBe('Date is {"now":"2025-04-17T15:33:41.117Z"}');
+  });
+});
+
+describe('interpolateObject', () => {
+  it('should interpolate strings in a flat object', () => {
+    const obj = {
+      url: '{{baseUrl}}/api/users',
+      name: '{{userName}}'
+    };
+    const variables = { baseUrl: 'https://api.example.com', userName: 'Bruno' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      url: 'https://api.example.com/api/users',
+      name: 'Bruno'
+    });
+  });
+
+  it('should interpolate strings in nested objects', () => {
+    const obj = {
+      request: {
+        url: '{{baseUrl}}/api',
+        headers: {
+          Authorization: 'Bearer {{token}}'
+        }
+      }
+    };
+    const variables = { baseUrl: 'https://api.example.com', token: 'abc123' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      request: {
+        url: 'https://api.example.com/api',
+        headers: {
+          Authorization: 'Bearer abc123'
+        }
+      }
+    });
+  });
+
+  it('should interpolate strings in arrays', () => {
+    const obj = {
+      urls: ['{{baseUrl}}/one', '{{baseUrl}}/two']
+    };
+    const variables = { baseUrl: 'https://api.example.com' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      urls: ['https://api.example.com/one', 'https://api.example.com/two']
+    });
+  });
+
+  it('should preserve non-string values', () => {
+    const obj = {
+      name: '{{name}}',
+      age: 5,
+      active: true,
+      data: null
+    };
+    const variables = { name: 'Bruno' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      name: 'Bruno',
+      age: 5,
+      active: true,
+      data: null
+    });
+  });
+
+  it('should return null and undefined as-is', () => {
+    expect(interpolateObject(null, {})).toBeNull();
+    expect(interpolateObject(undefined, {})).toBeUndefined();
+  });
+
+  it('should throw on circular references', () => {
+    const obj: any = { a: 1 };
+    obj.self = obj;
+
+    expect(() => interpolateObject(obj, {})).toThrow('Circular reference detected during interpolation.');
+  });
+
+  it('should handle shared object references without throwing false positives', () => {
+    const shared = { value: '{{sharedValue}}' };
+    const obj = {
+      x: shared,
+      y: shared
+    };
+    const variables = { sharedValue: 'test' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      x: { value: 'test' },
+      y: { value: 'test' }
+    });
+  });
+
+  it('should handle shared object references in arrays', () => {
+    const shared = { id: '{{id}}' };
+    const obj = {
+      items: [shared, shared, shared]
+    };
+    const variables = { id: '123' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      items: [{ id: '123' }, { id: '123' }, { id: '123' }]
+    });
+  });
+
+  it('should handle shared object references in nested structures', () => {
+    const shared = { name: '{{name}}' };
+    const obj = {
+      user: shared,
+      profile: {
+        user: shared,
+        metadata: {
+          user: shared
+        }
+      }
+    };
+    const variables = { name: 'Bruno' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      user: { name: 'Bruno' },
+      profile: {
+        user: { name: 'Bruno' },
+        metadata: {
+          user: { name: 'Bruno' }
+        }
+      }
+    });
+  });
+
+  it('should handle shared array references', () => {
+    const shared = ['{{item1}}', '{{item2}}'];
+    const obj = {
+      list1: shared,
+      list2: shared
+    };
+    const variables = { item1: 'a', item2: 'b' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      list1: ['a', 'b'],
+      list2: ['a', 'b']
+    });
+  });
+
+  it('should still detect actual circular references', () => {
+    const obj: any = {
+      a: { value: '{{val}}' },
+      b: { value: '{{val}}' }
+    };
+    obj.a.circular = obj.a; // Circular reference
+
+    expect(() => interpolateObject(obj, { val: 'test' })).toThrow('Circular reference detected during interpolation.');
+  });
+
+  it('should handle deeply nested circular references', () => {
+    const obj: any = {
+      level1: {
+        level2: {
+          level3: {}
+        }
+      }
+    };
+    obj.level1.level2.level3.circular = obj.level1;
+
+    expect(() => interpolateObject(obj, {})).toThrow('Circular reference detected during interpolation.');
   });
 });
