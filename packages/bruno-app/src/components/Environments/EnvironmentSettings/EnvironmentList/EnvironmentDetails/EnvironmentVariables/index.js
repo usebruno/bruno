@@ -461,7 +461,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
                     collection={_collection}
                     name={`${index}.value`}
                     value={variable.value}
-                    placeholder={isLastEmptyRow ? 'Value' : ''}
+                    placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
                     isSecret={variable.secret}
                     readOnly={typeof variable.value !== 'string'}
                     onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
