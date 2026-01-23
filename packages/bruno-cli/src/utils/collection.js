@@ -6,9 +6,6 @@ const { sanitizeName } = require('./filesystem');
 const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest } = require('@usebruno/filestore');
 const constants = require('../constants');
 const chalk = require('chalk');
-const { HooksRuntime } = require('@usebruno/js');
-const HookManager = require('@usebruno/js/src/hook-manager');
-const decomment = require('decomment');
 
 const FORMAT_CONFIG = {
   yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },

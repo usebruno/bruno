@@ -4,8 +4,6 @@ const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
-const { HooksRuntime, HookManager } = require('@usebruno/js');
-const decomment = require('decomment');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
