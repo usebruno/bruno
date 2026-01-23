@@ -9,8 +9,10 @@ import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
 import ApiSpecPanel from 'components/ApiSpecPanel';
 // import ErrorCapture from 'components/ErrorCapture';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { closeAIPanel } from 'providers/ReduxStore/slices/app';
 import { isElectron } from 'utils/common/platform';
+import AIAssistantPanel from 'components/AIAssistantPanel';
 import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
@@ -54,12 +56,16 @@ require('utils/codemirror/javascript-lint');
 require('utils/codemirror/autocomplete');
 
 export default function Main() {
+  const dispatch = useDispatch();
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
   const isDragging = useSelector((state) => state.app.isDragging);
   const showHomePage = useSelector((state) => state.app.showHomePage);
   const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
   const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
+  const showAIPanel = useSelector((state) => state.app.showAIPanel);
+  const aiPanelContext = useSelector((state) => state.app.aiPanelContext);
+  const aiPanelWidth = useSelector((state) => state.app.aiPanelWidth);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
   const mainSectionRef = useRef(null);
   const [showRosettaBanner, setShowRosettaBanner] = useState(false);
@@ -110,13 +116,19 @@ export default function Main() {
       ) : null}
       <div
         ref={mainSectionRef}
-        className="flex-1 min-h-0 flex"
+        className="flex-1 min-h-0 flex relative"
         data-app-state="loading"
         style={{
           height: isConsoleOpen ? `calc(100vh - 60px - ${isConsoleOpen ? '300px' : '0px'})` : 'calc(100vh - 60px)'
         }}
       >
-        <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
+        <StyledWrapper
+          className={className}
+          style={{
+            height: '100%',
+            zIndex: 1
+          }}
+        >
           <Sidebar />
           <section className="flex flex-grow flex-col overflow-hidden">
             {showApiSpecPage && activeApiSpecUid ? (
@@ -132,6 +144,13 @@ export default function Main() {
               </>
             )}
           </section>
+          {showAIPanel && (
+            <AIAssistantPanel
+              isOpen={showAIPanel}
+              onClose={() => dispatch(closeAIPanel())}
+              context={aiPanelContext}
+            />
+          )}
         </StyledWrapper>
       </div>
 

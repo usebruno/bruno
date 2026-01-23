@@ -53,8 +53,15 @@ const RequestTabPanel = () => {
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const _collections = useSelector((state) => state.collections.collections);
   const preferences = useSelector((state) => state.app.preferences);
-  const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
+  const forceVerticalLayoutForAI = useSelector((state) => state.app.forceVerticalLayoutForAI);
+  // Force vertical layout when AI panel is open, otherwise use user preference
+  const isVerticalLayout = forceVerticalLayoutForAI ? true : preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
+  const showAIPanel = useSelector((state) => state.app.showAIPanel);
+  const responsePaneHiddenByAI = useSelector((state) => state.app.responsePaneHiddenByAI);
+
+  // Determine if response pane should be hidden when AI panel is wide
+  const shouldHideResponsePane = showAIPanel && responsePaneHiddenByAI;
 
   // Use ref to avoid stale closure in event handlers
   const isVerticalLayoutRef = useRef(isVerticalLayout);
@@ -350,20 +357,24 @@ const RequestTabPanel = () => {
           </div>
         </section>
 
-        <div
-          className="dragbar-wrapper"
-          onDoubleClick={(e) => {
-            e.preventDefault();
-            resetPaneBoundaries();
-          }}
-          onMouseDown={handleDragbarMouseDown}
-        >
-          <div className="dragbar-handle" />
-        </div>
+        {!shouldHideResponsePane && (
+          <>
+            <div
+              className="dragbar-wrapper"
+              onDoubleClick={(e) => {
+                e.preventDefault();
+                resetPaneBoundaries();
+              }}
+              onMouseDown={handleDragbarMouseDown}
+            >
+              <div className="dragbar-handle" />
+            </div>
 
-        <section className="response-pane flex-grow overflow-x-auto">
-          {renderResponsePane()}
-        </section>
+            <section className="response-pane flex-grow overflow-x-auto">
+              {renderResponsePane()}
+            </section>
+          </>
+        )}
       </section>
 
       {item.type === 'graphql-request' ? (

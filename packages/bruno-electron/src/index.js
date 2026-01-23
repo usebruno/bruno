@@ -48,6 +48,7 @@ const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window')
 const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
+const registerAiIpc = require('./ipc/ai');
 const TerminalManager = require('./ipc/terminal');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
@@ -352,6 +353,7 @@ app.on('ready', async () => {
   registerNotificationsIpc(mainWindow, collectionWatcher);
   registerFilesystemIpc(mainWindow);
   registerSystemMonitorIpc(mainWindow, systemMonitor);
+  registerAiIpc(mainWindow);
 });
 
 // Quit the app once all windows are closed

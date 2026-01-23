@@ -39,6 +39,9 @@ const initialState = {
     autoSave: {
       enabled: false,
       interval: 1000
+    },
+    ai: {
+      enabled: false
     }
   },
   generateCode: {
@@ -51,7 +54,16 @@ const initialState = {
   systemProxyEnvVariables: {},
   clipboard: {
     hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
-  }
+  },
+  showAIPanel: false,
+  aiPanelContext: null, // { scriptType, currentScript, item, collection }
+  aiPanelWidth: 360,
+  aiMode: 'ask-before-edit', // 'ask' | 'auto-accept' | 'ask-before-edit'
+  responsePaneHiddenByAI: false, // Whether ResponsePane is auto-hidden due to wide AI panel
+  forceVerticalLayoutForAI: false, // Force vertical layout when AI panel is open
+  // Multi-file AI selection
+  multiFileMode: false,
+  selectedFilesForAI: [] // Array of { itemUid, collectionUid, name, method, url }
 };
 
 export const appSlice = createSlice({
@@ -126,6 +138,66 @@ export const appSlice = createSlice({
     setClipboard: (state, action) => {
       // Update clipboard UI state
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
+    },
+    toggleAIPanel: (state) => {
+      state.showAIPanel = !state.showAIPanel;
+      state.forceVerticalLayoutForAI = state.showAIPanel; // Force vertical when opening
+      if (!state.showAIPanel) {
+        state.responsePaneHiddenByAI = false; // Restore ResponsePane when AI panel closes
+      }
+    },
+    openAIPanel: (state, action) => {
+      state.showAIPanel = true;
+      state.aiPanelContext = action.payload;
+      state.forceVerticalLayoutForAI = true; // Force vertical layout when AI panel opens
+    },
+    closeAIPanel: (state) => {
+      state.showAIPanel = false;
+      state.responsePaneHiddenByAI = false; // Restore ResponsePane when AI panel closes
+      state.forceVerticalLayoutForAI = false; // Restore original layout when AI panel closes
+    },
+    updateAIPanelContext: (state, action) => {
+      state.aiPanelContext = action.payload;
+    },
+    updateAIPanelWidth: (state, action) => {
+      state.aiPanelWidth = action.payload;
+    },
+    setAIMode: (state, action) => {
+      state.aiMode = action.payload;
+    },
+    setResponsePaneHiddenByAI: (state, action) => {
+      state.responsePaneHiddenByAI = action.payload;
+    },
+    // Multi-file AI selection actions
+    toggleMultiFileMode: (state) => {
+      state.multiFileMode = !state.multiFileMode;
+      // Clear selection when toggling off
+      if (!state.multiFileMode) {
+        state.selectedFilesForAI = [];
+      }
+    },
+    setMultiFileMode: (state, action) => {
+      state.multiFileMode = action.payload;
+      if (!action.payload) {
+        state.selectedFilesForAI = [];
+      }
+    },
+    addFileToAISelection: (state, action) => {
+      const { itemUid } = action.payload;
+      // Prevent duplicates
+      if (!state.selectedFilesForAI.some((f) => f.itemUid === itemUid)) {
+        state.selectedFilesForAI.push(action.payload);
+      }
+    },
+    removeFileFromAISelection: (state, action) => {
+      const itemUid = action.payload;
+      state.selectedFilesForAI = state.selectedFilesForAI.filter((f) => f.itemUid !== itemUid);
+    },
+    clearAIFileSelection: (state) => {
+      state.selectedFilesForAI = [];
+    },
+    setAIFileSelection: (state, action) => {
+      state.selectedFilesForAI = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -164,7 +236,21 @@ export const {
   updateSystemProxyEnvVariables,
   updateGenerateCode,
   toggleSidebarCollapse,
-  setClipboard
+  setClipboard,
+  toggleAIPanel,
+  openAIPanel,
+  closeAIPanel,
+  updateAIPanelContext,
+  updateAIPanelWidth,
+  setAIMode,
+  setResponsePaneHiddenByAI,
+  // Multi-file AI selection
+  toggleMultiFileMode,
+  setMultiFileMode,
+  addFileToAISelection,
+  removeFileFromAISelection,
+  clearAIFileSelection,
+  setAIFileSelection
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {

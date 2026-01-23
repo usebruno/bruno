@@ -54,9 +54,13 @@ export const IconDockToRight = () => {
 export const useResponseLayoutToggle = () => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
+  const showAIPanel = useSelector((state) => state.app.showAIPanel);
   const orientation = preferences?.layout?.responsePaneOrientation || 'horizontal';
 
   const toggleOrientation = () => {
+    // Don't allow toggle when AI panel is open
+    if (showAIPanel) return;
+
     const newOrientation = orientation === 'horizontal' ? 'vertical' : 'horizontal';
     const updatedPreferences = {
       ...preferences,
@@ -68,30 +72,35 @@ export const useResponseLayoutToggle = () => {
     dispatch(savePreferences(updatedPreferences));
   };
 
-  return { orientation, toggleOrientation };
+  return { orientation, toggleOrientation, isDisabled: showAIPanel };
 };
 
 const ResponseLayoutToggle = forwardRef(({ children }, ref) => {
-  const { orientation, toggleOrientation } = useResponseLayoutToggle();
+  const { orientation, toggleOrientation, isDisabled } = useResponseLayoutToggle();
   const elementRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
-    click: () => elementRef.current?.click(),
-    isDisabled: false
-  }), []);
+    click: () => !isDisabled && elementRef.current?.click(),
+    isDisabled
+  }), [isDisabled]);
 
-  const title = !children ? (orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout') : null;
+  const title = !children
+    ? (isDisabled
+        ? 'Layout toggle disabled while AI panel is open'
+        : (orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout'))
+    : null;
 
   return (
     <div
       ref={elementRef}
-      onClick={toggleOrientation}
+      onClick={isDisabled ? undefined : toggleOrientation}
       title={title}
       data-testid="response-layout-toggle-btn"
+      style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
     >
       {children ? children : (
         <StyledWrapper className="flex items-center w-full">
-          <ActionIcon size="lg" className="p-1">
+          <ActionIcon size="lg" className="p-1" disabled={isDisabled}>
             {orientation === 'vertical' ? (
               <IconLayoutColumns size={16} strokeWidth={2} />
             ) : (

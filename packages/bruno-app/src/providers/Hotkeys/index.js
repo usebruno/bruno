@@ -15,9 +15,9 @@ import {
 } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { addTab, closeTabs, reorderTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
-import { closeWorkspaceTab } from 'providers/ReduxStore/slices/workspaceTabs';
-import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { toggleSidebarCollapse, toggleAIPanel } from 'providers/ReduxStore/slices/app';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
+import { closeWorkspaceTab } from 'providers/ReduxStore/slices/workspaceTabs';
 
 export const HotkeysContext = React.createContext();
 
@@ -284,6 +284,18 @@ export const HotkeysProvider = (props) => {
 
     return () => {
       Mousetrap.unbind([...getKeyBindingsForActionAllOS('moveTabRight')]);
+    };
+  }, [dispatch]);
+
+  // AI Panel (ctrl/cmd + l)
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('aiPanel')], (e) => {
+      dispatch(toggleAIPanel());
+      return false;
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('aiPanel')]);
     };
   }, [dispatch]);
 

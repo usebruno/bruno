@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   display: flex;
-  width: 100%;
+  min-width: 0;
   height: 100%;
   flex: 1;
   border-top: 1px solid ${(props) => props.theme.sidebar.collection.item.hoverBg};
