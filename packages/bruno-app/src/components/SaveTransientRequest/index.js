@@ -124,6 +124,14 @@ const SaveTransientRequest = ({ modalId }) => {
         tabUids: [item.uid]
       }));
 
+      dispatch({
+        type: 'collections/deleteItem',
+        payload: {
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        }
+      });
+
       toast.success('Request saved successfully');
       handleClose();
     } catch (err) {
