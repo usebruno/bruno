@@ -13,7 +13,6 @@ const astBaseAttribute = require('../common/attributes');
  * Supports all body types from request side but response body stays as simple text.
  */
 
-const indentLevel = 2;
 const exampleGrammar = ohm.grammar(`Example {
   ExampleFile = (name | description | request | response)*
   
@@ -95,10 +94,7 @@ const astExampleAttribute = {
     return content.ast;
   },
   multilinetextblock(_1, content, _2, _3, contentType) {
-    const multilineString = content.sourceString
-      .split('\n')
-      .map((line) => line.slice(indentLevel))
-      .join('\n');
+    const multilineString = outdentString(content.sourceString);
 
     if (!contentType.sourceString) {
       return multilineString;
