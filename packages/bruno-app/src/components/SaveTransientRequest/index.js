@@ -8,10 +8,11 @@ import filter from 'lodash/filter';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import useCollectionFolderTree from 'hooks/useCollectionFolderTree';
-import { closeSaveTransientRequestModal } from 'providers/ReduxStore/slices/collections';
-import { newFolder, moveItem } from 'providers/ReduxStore/slices/collections/actions';
+import { closeSaveTransientRequestModal, deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
-import path from 'utils/common/path';
+import { resolveRequestFilename } from 'utils/common/platform';
 import { transformRequestToSaveToFilesystem, findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { itemSchema } from '@usebruno/schema';
 
@@ -93,34 +94,35 @@ const SaveTransientRequest = ({ modalId }) => {
     }
 
     try {
-      const itemToSave = latestItem.draft ? { ...latestItem.draft } : { ...latestItem };
-      if (requestName.trim() !== itemToSave.name) {
-        itemToSave.name = requestName.trim();
-      }
-
-      const transformedItem = transformRequestToSaveToFilesystem(itemToSave);
-      await itemSchema.validate(transformedItem);
-
       const { ipcRenderer } = window;
-      await ipcRenderer.invoke('renderer:save-request', item.pathname, transformedItem, collection.format);
 
       const selectedFolder = getCurrentSelectedFolder();
       const targetDirname = selectedFolder ? selectedFolder.pathname : collection.pathname;
 
-      await dispatch(moveItem({
+      const itemToSave = latestItem.draft
+        ? { ...latestItem, ...latestItem.draft }
+        : { ...latestItem };
+      itemToSave.name = requestName.trim();
+      delete itemToSave.draft;
+
+      const transformedItem = transformRequestToSaveToFilesystem(itemToSave);
+      await itemSchema.validate(transformedItem);
+
+      const sanitizedFilename = sanitizeName(requestName.trim());
+      const format = collection.format || 'bru';
+      const targetFilename = resolveRequestFilename(sanitizedFilename, format);
+
+      await ipcRenderer.invoke('renderer:save-transient-request', {
+        sourcePathname: item.pathname,
         targetDirname,
-        sourcePathname: item.pathname
+        targetFilename,
+        request: transformedItem,
+        format
+      });
+
+      dispatch(closeTabs({
+        tabUids: [item.uid]
       }));
-
-      const newPathname = path.join(targetDirname, item.filename);
-
-      if (requestName.trim() !== item.name) {
-        await ipcRenderer.invoke('renderer:rename-item-name', {
-          itemPath: newPathname,
-          newName: requestName.trim(),
-          collectionPathname: collection.pathname
-        });
-      }
 
       toast.success('Request saved successfully');
       handleClose();
@@ -241,6 +243,8 @@ const SaveTransientRequest = ({ modalId }) => {
               spellCheck="false"
               value={requestName}
               onChange={(e) => setRequestName(e.target.value)}
+              autoFocus={true}
+              onFocus={(e) => e.target.select()}
             />
           </div>
 
@@ -279,7 +283,7 @@ const SaveTransientRequest = ({ modalId }) => {
                 searchText={searchText}
                 setSearchText={setSearchText}
                 placeholder="Search for folder"
-
+                autoFocus={false}
               />
             </div>
 

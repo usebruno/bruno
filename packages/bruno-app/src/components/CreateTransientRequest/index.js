@@ -103,9 +103,6 @@ const CreateTransientRequest = ({ collectionUid }) => {
         isTransient: true
       })
     )
-      .then(() => {
-        toast.success('New transient request created!');
-      })
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
   }, [dispatch, collection]);
 
@@ -134,9 +131,6 @@ const CreateTransientRequest = ({ collectionUid }) => {
         }
       })
     )
-      .then(() => {
-        toast.success('New transient request created!');
-      })
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
   }, [dispatch, collection]);
 
@@ -157,9 +151,6 @@ const CreateTransientRequest = ({ collectionUid }) => {
         isTransient: true
       })
     )
-      .then(() => {
-        toast.success('New transient request created!');
-      })
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
   }, [dispatch, collection]);
 
@@ -179,9 +170,6 @@ const CreateTransientRequest = ({ collectionUid }) => {
         isTransient: true
       })
     )
-      .then(() => {
-        toast.success('New transient request created!');
-      })
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
   }, [dispatch, collection]);
 

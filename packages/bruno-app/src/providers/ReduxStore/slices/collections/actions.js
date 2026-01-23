@@ -20,7 +20,8 @@ import {
   isItemARequest,
   getAllVariables,
   transformRequestToSaveToFilesystem,
-  transformCollectionRootToSave
+  transformCollectionRootToSave,
+  flattenItems
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -1311,10 +1312,15 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     const resolvedFilename = resolveRequestFilename(filename, collection.format);
 
     if (isTransient) {
-      // Transient requests are always created at root level
+      // Transient requests are always created in temp directory
+      // Check for duplicates only among other transient requests
+      const allItems = flattenItems(collection.items);
+      const transientRequests = filter(allItems, (i) =>
+        isItemARequest(i) && i.pathname && i.pathname.startsWith(tempDirectory)
+      );
       const reqWithSameNameExists = find(
-        collection.items,
-        (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
+        transientRequests,
+        (i) => trim(i.filename) === trim(resolvedFilename)
       );
       const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
       item.seq = items.length + 1;
@@ -1462,10 +1468,15 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
     const resolvedFilename = resolveRequestFilename(filename, collection.format);
 
     if (isTransient) {
-      // Transient requests are always created at root level
+      // Transient requests are always created in temp directory
+      // Check for duplicates only among other transient requests
+      const allItems = flattenItems(collection.items);
+      const transientRequests = filter(allItems, (i) =>
+        isItemARequest(i) && i.pathname && i.pathname.startsWith(tempDirectory)
+      );
       const reqWithSameNameExists = find(
-        collection.items,
-        (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
+        transientRequests,
+        (i) => trim(i.filename) === trim(resolvedFilename)
       );
 
       if (reqWithSameNameExists) {
@@ -1580,10 +1591,15 @@ export const newWsRequest = (params) => (dispatch, getState) => {
     const resolvedFilename = resolveRequestFilename(filename, collection.format);
 
     if (isTransient) {
-      // Transient requests are always created at root level
+      // Transient requests are always created in temp directory
+      // Check for duplicates only among other transient requests
+      const allItems = flattenItems(collection.items);
+      const transientRequests = filter(allItems, (i) =>
+        isItemARequest(i) && i.pathname && i.pathname.startsWith(tempDirectory)
+      );
       const reqWithSameNameExists = find(
-        collection.items,
-        (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
+        transientRequests,
+        (i) => trim(i.filename) === trim(resolvedFilename)
       );
 
       if (reqWithSameNameExists) {

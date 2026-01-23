@@ -385,6 +385,49 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  // save transient request (handles move from temp to permanent location)
+  ipcMain.handle('renderer:save-transient-request', async (event, { sourcePathname, targetDirname, targetFilename, request, format }) => {
+    try {
+      // Validate source exists
+      if (!fs.existsSync(sourcePathname)) {
+        throw new Error(`Source path: ${sourcePathname} does not exist`);
+      }
+
+      // Validate target directory exists
+      if (!fs.existsSync(targetDirname)) {
+        throw new Error(`Target directory: ${targetDirname} does not exist`);
+      }
+
+      // Use provided target filename or fall back to source filename
+      const filename = targetFilename || path.basename(sourcePathname);
+      const targetPathname = path.join(targetDirname, filename);
+
+      // Check for filename conflicts and throw error if exists
+      if (fs.existsSync(targetPathname)) {
+        throw new Error(`A file with the name "${filename}" already exists in the target location`);
+      }
+
+      // Step 1: Save the updated content to the transient file
+      syncExampleUidsCache(sourcePathname, request.examples);
+      const content = await stringifyRequestViaWorker(request, { format });
+      await writeFile(sourcePathname, content);
+
+      // Step 2: Read the file content from temp (this is the actual file content)
+      const fileContent = await fs.promises.readFile(sourcePathname, 'utf8');
+
+      // Step 3: Create new file at target location with the content
+      await writeFile(targetPathname, fileContent);
+
+      // Step 4: Delete the old temp file
+      await removePath(sourcePathname);
+
+      // Return the new pathname (file watcher will handle adding to Redux)
+      return { newPathname: targetPathname };
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // save multiple requests
   ipcMain.handle('renderer:save-multiple-requests', async (event, requestsToSave) => {
     try {
