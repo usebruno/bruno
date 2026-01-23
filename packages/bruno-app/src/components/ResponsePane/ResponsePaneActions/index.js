@@ -95,7 +95,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     }
   ];
 
-  if (item.type !== 'http-request') {
+  if (!['http-request', 'graphql-request'].includes(item.type)) {
     return null;
   }
 
