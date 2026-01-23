@@ -243,6 +243,51 @@ example {
 
       expect(output).toEqual(expected);
     });
+
+    it('should handle examples without description', () => {
+      const jsonInput = {
+        meta: {
+          name: 'Test API',
+          type: 'http'
+        },
+        http: {
+          url: 'https://api.example.com/test',
+          method: 'get'
+        },
+        examples: [
+          {
+            name: 'Example Request',
+            request: {
+              url: 'https://api.example.com/example',
+              method: 'get'
+            }
+          }
+        ]
+      };
+
+      const expected = `meta {
+  name: Test API
+  type: http
+}
+
+get {
+  url: https://api.example.com/test
+}
+
+example {
+  name: Example Request
+  
+  request: {
+    url: https://api.example.com/example
+    method: get
+  }
+}
+`;
+
+      const output = jsonToBru(jsonInput);
+
+      expect(output).toEqual(expected);
+    });
   });
 
   describe('Complex examples with auth', () => {
@@ -316,6 +361,30 @@ example {
       const output = bruToJson(input);
 
       expect(output).toEqual(expected);
+    });
+
+    it('should parse example without description field', () => {
+      const bruInput = `meta {
+  name: Test API
+  type: http
+}
+
+example {
+  name: Example Request
+  
+  request: {
+    url: https://api.example.com/example
+    method: get
+  }
+}
+`;
+
+      const output = bruToJson(bruInput);
+
+      expect(output.examples).toBeDefined();
+      expect(output.examples).toHaveLength(1);
+      expect(output.examples[0].name).toBe('Example Request');
+      expect(output.examples[0].description).toBeUndefined();
     });
   });
 
