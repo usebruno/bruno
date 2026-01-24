@@ -211,9 +211,9 @@ const RequestTabs = () => {
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           <CollectionToolBar collection={activeCollection} />
-          <div className="flex items-center gap-2 pl-2" ref={collectionTabsRef}>
+          <div className="flex items-start gap-2 pl-2" ref={collectionTabsRef}>
             <div className={classnames('scroll-chevrons', { hidden: !showChevrons })}>
-              <ActionIcon size="lg" onClick={leftSlide} aria-label="Left Chevron" style={{ marginBottom: '3px' }}>
+              <ActionIcon size="lg" onClick={leftSlide} aria-label="Left Chevron" style={{ marginTop: '4px' }}>
                 <IconChevronLeft size={18} strokeWidth={1.5} />
               </ActionIcon>
             </div>
@@ -232,7 +232,7 @@ const RequestTabs = () => {
             </div>
 
             {activeCollection && (
-              <ActionIcon onClick={() => setNewRequestModalOpen(true)} aria-label="New Request" size="lg" style={{ marginBottom: '3px' }}>
+              <ActionIcon onClick={() => setNewRequestModalOpen(true)} aria-label="New Request" size="lg" style={{ marginTop: '4px' }}>
                 <IconPlus
                   size={18}
                   strokeWidth={1.5}
@@ -241,7 +241,7 @@ const RequestTabs = () => {
             )}
 
             <div className={classnames('scroll-chevrons', { hidden: !showChevrons })}>
-              <ActionIcon size="lg" onClick={rightSlide} aria-label="Right Chevron" style={{ marginBottom: '3px' }}>
+              <ActionIcon size="lg" onClick={rightSlide} aria-label="Right Chevron" style={{ marginTop: '4px' }}>
                 <IconChevronRight size={18} strokeWidth={1.5} />
               </ActionIcon>
             </div>

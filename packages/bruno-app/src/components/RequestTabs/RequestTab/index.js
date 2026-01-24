@@ -510,7 +510,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     dispatch(createTabGroup({
       groupId,
       name: 'New Group',
-      color: '#5B9BD5',
+      color: '#3B82F6',
       tabUids: [currentTab.uid],
       collectionUid: collection.uid
     }));

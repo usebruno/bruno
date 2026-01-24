@@ -259,7 +259,7 @@ export const tabsSlice = createSlice({
       const newGroup = {
         id: groupId,
         name: name || 'New Group',
-        color: color || '#5B9BD5',
+        color: color || '#3B82F6',
         collapsed: false,
         collectionUid: collectionUid,
         tabUids: tabUids || []
