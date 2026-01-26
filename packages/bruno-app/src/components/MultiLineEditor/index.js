@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { focusAddressBar } from 'utils/common/keybinding-commons';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import StyledWrapper from './StyledWrapper';
@@ -55,6 +56,8 @@ class MultiLineEditor extends Component {
             this.props.onRun();
           }
         },
+        'Cmd-L': focusAddressBar,
+        'Ctrl-L': focusAddressBar,
         'Cmd-S': () => {
           if (this.props.onSave) {
             this.props.onSave();
