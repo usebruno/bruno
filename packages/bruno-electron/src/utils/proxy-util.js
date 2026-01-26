@@ -1,6 +1,6 @@
 const parseUrl = require('url').parse;
 const https = require('node:https');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
@@ -14,6 +14,7 @@ const { isEmpty, get, isUndefined, isNull } = require('lodash');
  * which significantly reduces SSL handshake time for repeated requests.
  */
 const agentCache = new Map();
+const MAX_AGENT_CACHE_SIZE = 100;
 
 /**
  * Generate a cache key from agent options.
@@ -24,11 +25,12 @@ function getAgentCacheKey(options, proxyUri = null) {
   const keyData = {
     proxyUri,
     rejectUnauthorized: options.rejectUnauthorized,
-    // Hash certificates instead of including full content
+    // Hash certificates and passphrase instead of including full content
     ca: options.ca ? crypto.createHash('md5').update(String(options.ca)).digest('hex') : null,
     cert: options.cert ? crypto.createHash('md5').update(String(options.cert)).digest('hex') : null,
     key: options.key ? crypto.createHash('md5').update(String(options.key)).digest('hex') : null,
     pfx: options.pfx ? crypto.createHash('md5').update(String(options.pfx)).digest('hex') : null,
+    passphrase: options.passphrase ? crypto.createHash('md5').update(String(options.passphrase)).digest('hex') : null,
     minVersion: options.minVersion,
     secureProtocol: options.secureProtocol
   };
@@ -38,12 +40,17 @@ function getAgentCacheKey(options, proxyUri = null) {
 /**
  * Get or create a cached agent.
  * Reuses existing agents to enable SSL session caching.
+ * Uses LRU-style eviction when cache exceeds MAX_AGENT_CACHE_SIZE.
  */
 function getOrCreateAgent(AgentClass, options, proxyUri = null) {
   const cacheKey = getAgentCacheKey(options, proxyUri);
 
   if (agentCache.has(cacheKey)) {
-    return agentCache.get(cacheKey);
+    // Move to end for LRU (delete and re-add)
+    const agent = agentCache.get(cacheKey);
+    agentCache.delete(cacheKey);
+    agentCache.set(cacheKey, agent);
+    return agent;
   }
 
   let agent;
@@ -51,6 +58,12 @@ function getOrCreateAgent(AgentClass, options, proxyUri = null) {
     agent = new AgentClass(proxyUri, options);
   } else {
     agent = new AgentClass(options);
+  }
+
+  // Evict oldest entry if cache is full
+  if (agentCache.size >= MAX_AGENT_CACHE_SIZE) {
+    const oldestKey = agentCache.keys().next().value;
+    agentCache.delete(oldestKey);
   }
 
   agentCache.set(cacheKey, agent);
