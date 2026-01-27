@@ -17,6 +17,7 @@ import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 import ImportWorkspace from 'components/WorkspaceSidebar/ImportWorkspace';
 
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
+import AppMenu from './AppMenu';
 import StyledWrapper from './StyledWrapper';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
 import { isMacOS, isWindowsOS, isLinuxOS } from 'utils/common/platform';
@@ -294,6 +295,8 @@ const AppTitleBar = () => {
             </ActionIcon>
 
             <ResponseLayoutToggle />
+
+            {showWindowControls && <AppMenu />}
           </div>
 
           {showWindowControls && (
