@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { IconPlus, IconApi, IconBrandGraphql, IconPlugConnected, IconCode } from '@tabler/icons';
 import ActionIcon from 'ui/ActionIcon/index';
 import Dropdown from 'components/Dropdown';
@@ -6,9 +6,10 @@ import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxSto
 import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { flattenItems, isItemARequest } from 'utils/collections';
+import { flattenItems, isItemARequest, isItemTransientRequest } from 'utils/collections';
 import filter from 'lodash/filter';
 import { get } from 'lodash';
+
 const REQUEST_TYPE = {
   HTTP: 'http',
   GRAPHQL: 'graphql',
@@ -21,13 +22,13 @@ const REQUEST_TYPE = {
  * @param {Object} collection - The collection object
  * @returns {string} A request name like "Untitled 1", "Untitled 2", etc.
  */
-const generateTransientRequestName = (collection, tempDirectory) => {
+const generateTransientRequestName = (collection) => {
   if (!collection || !collection.items) {
     return 'Untitled 1';
   }
   const allItems = flattenItems(collection.items);
   const transientRequests = filter(allItems, (item) => {
-    return isItemARequest(item) && item.pathname.startsWith(tempDirectory);
+    return isItemTransientRequest(item);
   });
 
   // Find the highest "Untitled X" number among transient requests
@@ -53,13 +54,17 @@ const CreateTransientRequest = ({ collectionUid }) => {
   const dropdownTippyRef = useRef();
   const dispatch = useDispatch();
   const collections = useSelector((state) => state.collections.collections);
-  const collection = collections?.find((c) => c.uid === collectionUid);
-  const tempDirectory = useSelector((state) => state.collections.tempDirectories?.[collectionUid]);
-  const collectionPresets = get(
-    collection,
-    collection?.draft?.brunoConfig ? 'draft.brunoConfig.presets' : 'brunoConfig.presets',
-    { requestType: 'http', requestUrl: '' }
-  );
+
+  const collection = useMemo(() => {
+    return collections?.find((c) => c.uid === collectionUid);
+  }, [collections]);
+
+  const collectionPresets = useMemo(() => {
+    return get(collection, collection?.draft?.brunoConfig ? 'draft.brunoConfig.presets' : 'brunoConfig.presets', {
+      requestType: 'http',
+      requestUrl: ''
+    });
+  }, [collection]);
 
   const onDropdownCreate = (ref) => {
     dropdownTippyRef.current = ref;
@@ -81,14 +86,10 @@ const CreateTransientRequest = ({ collectionUid }) => {
     setDropdownVisible(true);
   };
 
-  const handleClickOutside = () => {
-    setDropdownVisible(false);
-  };
-
   const handleCreateHttpRequest = useCallback(() => {
     if (!collection) return;
 
-    const uniqueName = generateTransientRequestName(collection, tempDirectory);
+    const uniqueName = generateTransientRequestName(collection);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -103,12 +104,12 @@ const CreateTransientRequest = ({ collectionUid }) => {
         isTransient: true
       })
     ).catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  }, [dispatch, collection, tempDirectory, collectionPresets.requestUrl]);
+  }, [dispatch, collection, collectionPresets.requestUrl]);
 
   const handleCreateGraphQLRequest = useCallback(() => {
     if (!collection) return;
 
-    const uniqueName = generateTransientRequestName(collection, tempDirectory);
+    const uniqueName = generateTransientRequestName(collection);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -130,12 +131,12 @@ const CreateTransientRequest = ({ collectionUid }) => {
         }
       })
     ).catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  }, [dispatch, collection, tempDirectory, collectionPresets.requestUrl]);
+  }, [dispatch, collection, collectionPresets.requestUrl]);
 
   const handleCreateWebSocketRequest = useCallback(() => {
     if (!collection) return;
 
-    const uniqueName = generateTransientRequestName(collection, tempDirectory);
+    const uniqueName = generateTransientRequestName(collection);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -149,12 +150,12 @@ const CreateTransientRequest = ({ collectionUid }) => {
         isTransient: true
       })
     ).catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  }, [dispatch, collection, tempDirectory, collectionPresets.requestUrl]);
+  }, [dispatch, collection, collectionPresets.requestUrl]);
 
   const handleCreateGrpcRequest = useCallback(() => {
     if (!collection) return;
 
-    const uniqueName = generateTransientRequestName(collection, tempDirectory);
+    const uniqueName = generateTransientRequestName(collection);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -167,19 +168,12 @@ const CreateTransientRequest = ({ collectionUid }) => {
         isTransient: true
       })
     ).catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  }, [dispatch, collection, tempDirectory, collectionPresets.requestUrl]);
+  }, [dispatch, collection, collectionPresets.requestUrl]);
 
   const handleItemClick = (type) => {
-    // Handle item selection
     if (dropdownTippyRef.current) {
       dropdownTippyRef.current.hide();
     }
-
-    if (!collection) {
-      toast.error('Collection not found');
-      return;
-    }
-
     switch (type) {
       case REQUEST_TYPE.HTTP:
         handleCreateHttpRequest();
@@ -217,7 +211,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
       icon={IconButton}
       visible={dropdownVisible}
       onCreate={onDropdownCreate}
-      onClickOutside={handleClickOutside}
+      onClickOutside={() => setDropdownVisible(false)}
       placement="bottom-end"
     >
       <div className="dropdown-item" onClick={() => handleItemClick(REQUEST_TYPE.HTTP)}>

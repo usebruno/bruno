@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import filter from 'lodash/filter';
 import { useDispatch, useSelector } from 'react-redux';
 import { flattenItems, isItemARequest, hasRequestChanges, findCollectionByUid } from 'utils/collections';
@@ -11,38 +11,42 @@ import Modal from 'components/Modal';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
 
-const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) => {
-  const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
-  const dispatch = useDispatch();
-  const tempDirectory = useSelector((state) => state.collections.tempDirectories?.[collectionUid]);
+const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
 
-  const latestCollection = useSelector((state) =>
-    findCollectionByUid(state.collections.collections, collectionUid)
-  );
+const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) => {
+  const dispatch = useDispatch();
+
+  const latestCollection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
 
   const activeCollection = latestCollection || collection;
 
-  const currentDrafts = React.useMemo(() => {
+  const currentDrafts = useMemo(() => {
     if (!activeCollection) return [];
     const items = flattenItems(activeCollection.items);
-    const collectionDrafts = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item) && !item.pathname.startsWith(tempDirectory));
-    return collectionDrafts.map((draft) => ({
-      ...draft,
-      collectionUid: collectionUid
-    }));
-  }, [activeCollection, collectionUid, tempDirectory]);
+    return items
+      ?.filter((item) => isItemARequest(item) && hasRequestChanges(item) && !item.isTransient)
+      .map((item) => {
+        return {
+          ...item,
+          collectionUid: collectionUid
+        };
+      });
+  }, [activeCollection, collectionUid]);
 
-  const currentTransientDrafts = React.useMemo(() => {
+  const currentTransientDrafts = useMemo(() => {
     if (!activeCollection) return [];
     const items = flattenItems(activeCollection.items);
-    const transientDrafts = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item) && item.pathname.startsWith(tempDirectory));
-    return transientDrafts.map((draft) => ({
-      ...draft,
-      collectionUid: collectionUid
-    }));
-  }, [activeCollection, collectionUid, tempDirectory]);
+    return items
+      ?.filter((item) => isItemARequest(item) && hasRequestChanges(item) && item.isTransient)
+      .map((item) => {
+        return {
+          ...item,
+          collectionUid: collectionUid
+        };
+      });
+  }, [activeCollection, collectionUid]);
 
-  const allDrafts = React.useMemo(() => {
+  const allDrafts = useMemo(() => {
     return [...currentDrafts, ...currentTransientDrafts];
   }, [currentDrafts, currentTransientDrafts]);
 
@@ -52,7 +56,6 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
       toast.error('Please save or discard transient requests first');
       return;
     }
-
     // Save only non-transient drafts
     if (currentDrafts.length > 0) {
       dispatch(saveMultipleRequests(currentDrafts))
@@ -81,10 +84,12 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
   const handleDiscardAll = () => {
     // Discard all drafts (both regular and transient)
     allDrafts.forEach((draft) => {
-      dispatch(deleteRequestDraft({
-        collectionUid: collectionUid,
-        itemUid: draft.uid
-      }));
+      dispatch(
+        deleteRequestDraft({
+          collectionUid: collectionUid,
+          itemUid: draft.uid
+        })
+      );
     });
 
     // Then remove the collection
@@ -97,7 +102,6 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
   };
 
   const handleSaveTransient = (draft) => {
-    // Trigger save request which will open the save transient modal
     dispatch(saveRequest(draft.uid, collectionUid));
   };
 
@@ -122,8 +126,8 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
         <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
       </div>
       <p className="mt-4">
-        You have unsaved changes in{' '}
-        <span className="font-medium">{allDrafts.length}</span> {pluralizeWord('request', allDrafts.length)}.
+        You have unsaved changes in <span className="font-medium">{allDrafts.length}</span>{' '}
+        {pluralizeWord('request', allDrafts.length)}.
       </p>
 
       {/* Regular (saved) requests with changes */}

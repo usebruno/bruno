@@ -666,7 +666,6 @@ class CollectionWatcher {
   constructor() {
     this.watchers = {};
     this.loadingStates = {};
-    // Maps collectionPath to its associated tempDirectoryPath for cleanup
     this.tempDirectoryMap = {};
   }
 
@@ -825,7 +824,6 @@ class CollectionWatcher {
       this.watchers[watchPath] = null;
     }
 
-    // Also close the associated temp directory watcher if it exists
     const tempDirectoryPath = this.tempDirectoryMap[watchPath];
     if (tempDirectoryPath && this.watchers[tempDirectoryPath]) {
       this.watchers[tempDirectoryPath].close();

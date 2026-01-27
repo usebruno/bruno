@@ -85,23 +85,20 @@ const envHasSecrets = (environment = {}) => {
 
 const findCollectionPathByItemPath = (filePath) => {
   const tmpDir = os.tmpdir();
-  const isTransientRequest = filePath.startsWith(tmpDir);
-  if (isTransientRequest) {
-    const parts = filePath.split(path.sep);
-    const index = parts.findIndex((part) => part.startsWith('bruno-'));
+  const parts = filePath.split(path.sep);
+  const index = parts.findIndex((part) => part.startsWith('bruno-'));
 
-    if (index !== -1) {
-      const transientDirPath = parts.slice(0, index + 1).join(path.sep);
-      const metadataPath = path.join(transientDirPath, 'metadata.json');
-      try {
-        const metadataContent = fs.readFileSync(metadataPath, 'utf8');
-        const metadata = JSON.parse(metadataContent);
-        if (metadata.collectionPath) {
-          return metadata.collectionPath;
-        }
-      } catch (error) {
-        return null;
+  if (filePath.startsWith(tmpDir) && index !== -1) {
+    const transientDirPath = parts.slice(0, index + 1).join(path.sep);
+    const metadataPath = path.join(transientDirPath, 'metadata.json');
+    try {
+      const metadataContent = fs.readFileSync(metadataPath, 'utf8');
+      const metadata = JSON.parse(metadataContent);
+      if (metadata.collectionPath) {
+        return metadata.collectionPath;
       }
+    } catch (error) {
+      return null;
     }
     return null;
   }
@@ -397,6 +394,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (!fs.existsSync(targetDirname)) {
         throw new Error(`Target directory: ${targetDirname} does not exist`);
       }
+
+      // Check if the target directory is inside a collection
+      validatePathIsInsideCollection(targetDirname);
 
       // Use provided target filename or fall back to source filename
       const filename = targetFilename || path.basename(sourcePathname);

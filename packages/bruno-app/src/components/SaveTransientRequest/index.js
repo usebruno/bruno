@@ -38,7 +38,6 @@ const SaveTransientRequest = ({ modalId }) => {
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderDirectoryName, setNewFolderDirectoryName] = useState('');
   const [showFilesystemName, setShowFilesystemName] = useState(false);
-  const [newFolderError, setNewFolderError] = useState('');
   const newFolderInputRef = useRef(null);
 
   const {
@@ -54,18 +53,19 @@ const SaveTransientRequest = ({ modalId }) => {
     isAtRoot
   } = useCollectionFolderTree(collection?.uid);
 
+  const resetForm = () => {
+    setRequestName(item.name || '');
+    setSearchText('');
+    reset();
+    setShowNewFolderInput(false);
+    setNewFolderName('');
+    setNewFolderDirectoryName('');
+    setShowFilesystemName(false);
+  };
+
   useEffect(() => {
-    if (isOpen && item) {
-      setRequestName(item.name || '');
-      setSearchText('');
-      reset();
-      setShowNewFolderInput(false);
-      setNewFolderName('');
-      setNewFolderDirectoryName('');
-      setShowFilesystemName(false);
-      setNewFolderError('');
-    }
-  }, [isOpen, item, reset]);
+    isOpen && item && resetForm();
+  }, [isOpen, item]);
 
   useEffect(() => {
     if (showNewFolderInput && newFolderInputRef.current) {
@@ -82,9 +82,7 @@ const SaveTransientRequest = ({ modalId }) => {
   }, [currentFolders, searchText]);
 
   const handleCancel = () => {
-    setRequestName(item?.name || '');
-    setSearchText('');
-    reset();
+    resetForm();
     handleClose();
   };
 
@@ -106,10 +104,6 @@ const SaveTransientRequest = ({ modalId }) => {
       }
 
       const sanitizedFilename = sanitizeName(trimmedName);
-      if (!sanitizedFilename) {
-        toast.error('Request name must include valid characters');
-        return;
-      }
 
       const itemToSave = latestItem.draft ? { ...latestItem, ...latestItem.draft } : { ...latestItem };
       itemToSave.name = sanitizedFilename;
@@ -156,7 +150,6 @@ const SaveTransientRequest = ({ modalId }) => {
     setNewFolderName('');
     setNewFolderDirectoryName('');
     setShowFilesystemName(false);
-    setNewFolderError('');
   };
 
   const handleCancelNewFolder = () => {
@@ -164,7 +157,6 @@ const SaveTransientRequest = ({ modalId }) => {
     setNewFolderName('');
     setNewFolderDirectoryName('');
     setShowFilesystemName(false);
-    setNewFolderError('');
   };
 
   const handleNewFolderNameChange = (value) => {
@@ -172,47 +164,13 @@ const SaveTransientRequest = ({ modalId }) => {
     if (!showFilesystemName) {
       setNewFolderDirectoryName(sanitizeName(value));
     }
-    setNewFolderError('');
   };
 
   const handleDirectoryNameChange = (value) => {
     setNewFolderDirectoryName(value);
-    setNewFolderError('');
-  };
-
-  const validateNewFolder = () => {
-    if (!newFolderName.trim()) {
-      setNewFolderError('must be at least 1 character');
-      return false;
-    }
-
-    const directoryName = newFolderDirectoryName.trim() || sanitizeName(newFolderName.trim());
-
-    if (!directoryName) {
-      setNewFolderError('must be at least 1 character');
-      return false;
-    }
-
-    if (!validateName(directoryName)) {
-      setNewFolderError(validateNameError(directoryName));
-      return false;
-    }
-
-    const parentFolder = getCurrentParentFolder();
-    if (!parentFolder && directoryName.toLowerCase().includes('environments')) {
-      setNewFolderError('The folder name "environments" at the root of the collection is reserved in bruno');
-      return false;
-    }
-
-    setNewFolderError('');
-    return true;
   };
 
   const handleCreateNewFolder = async () => {
-    if (!validateNewFolder()) {
-      return;
-    }
-
     const directoryName = newFolderDirectoryName.trim() || sanitizeName(newFolderName.trim());
     const parentFolder = getCurrentParentFolder();
 
@@ -222,7 +180,6 @@ const SaveTransientRequest = ({ modalId }) => {
       handleCancelNewFolder();
     } catch (err) {
       const errorMessage = err?.message || 'An error occurred while adding the folder';
-      setNewFolderError(errorMessage);
       toast.error(errorMessage);
     }
   };
@@ -387,8 +344,6 @@ const SaveTransientRequest = ({ modalId }) => {
                               />
                             </div>
                           )}
-
-                          {newFolderError && <div className="new-folder-error">{newFolderError}</div>}
                         </div>
                       </div>
                       <button
