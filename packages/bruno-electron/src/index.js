@@ -116,7 +116,13 @@ if (useSingleInstance && !gotTheLock) {
   // Try to remove any existing registrations
   app.removeAsDefaultProtocolClient('bruno');
   // Register as default handler for `bruno://` protocol URLs
-  app.setAsDefaultProtocolClient('bruno');
+  if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+      app.setAsDefaultProtocolClient('bruno', process.execPath, [path.resolve(process.argv[1])]);
+    }
+  } else {
+    app.setAsDefaultProtocolClient('bruno');
+  }
 
   if (isLinux) {
     try {
