@@ -55,7 +55,8 @@ import {
   addFolderVar,
   updateFolderVar,
   addCollectionVar,
-  updateCollectionVar
+  updateCollectionVar,
+  updatePathParam
 } from './index';
 
 import { each } from 'lodash';
@@ -2004,6 +2005,26 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             .then(() => {
               toast.success(`Variable "${variableName}" updated`);
             })
+            .then(resolve)
+            .catch(reject);
+        }
+        case 'pathParam': {
+          const { item } = data;
+          const collectionUid = collection.uid;
+          const vName = variableName;
+          const params = item.draft ? get(item, 'draft.request.params', []) : get(item, 'request.params', []);
+          const pathParam = params.find((p) => p.type === 'path' && p.name === vName);
+
+          if (newValue && pathParam) {
+            const updatedParam = { ...pathParam, value: newValue };
+            dispatch(updatePathParam({
+              pathParam: updatedParam,
+              itemUid: item.uid,
+              collectionUid: collectionUid
+            }));
+          }
+
+          return dispatch(saveRequest(item.uid, collectionUid, true))
             .then(resolve)
             .catch(reject);
         }
