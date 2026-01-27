@@ -519,7 +519,7 @@ export const renderVarInfo = (token, options) => {
             const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
             if (collection) {
               const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
-              const updatedScopeInfo = getVariableScope(variableName, collection, freshItem);
+              const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
               if (updatedScopeInfo) {
                 scopeInfo = updatedScopeInfo;
               }
