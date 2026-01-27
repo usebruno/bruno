@@ -99,16 +99,25 @@ const SaveTransientRequest = ({ modalId }) => {
       const selectedFolder = getCurrentSelectedFolder();
       const targetDirname = selectedFolder ? selectedFolder.pathname : collection.pathname;
 
-      const itemToSave = latestItem.draft
-        ? { ...latestItem, ...latestItem.draft }
-        : { ...latestItem };
-      itemToSave.name = requestName.trim();
+      const trimmedName = requestName.trim();
+      if (!trimmedName || trimmedName.length === 0) {
+        toast.error('Request name is required');
+        return;
+      }
+
+      const sanitizedFilename = sanitizeName(trimmedName);
+      if (!sanitizedFilename) {
+        toast.error('Request name must include valid characters');
+        return;
+      }
+
+      const itemToSave = latestItem.draft ? { ...latestItem, ...latestItem.draft } : { ...latestItem };
+      itemToSave.name = sanitizedFilename;
       delete itemToSave.draft;
 
       const transformedItem = transformRequestToSaveToFilesystem(itemToSave);
       await itemSchema.validate(transformedItem);
 
-      const sanitizedFilename = sanitizeName(requestName.trim());
       const format = collection.format || 'bru';
       const targetFilename = resolveRequestFilename(sanitizedFilename, format);
 
@@ -120,9 +129,11 @@ const SaveTransientRequest = ({ modalId }) => {
         format
       });
 
-      dispatch(closeTabs({
-        tabUids: [item.uid]
-      }));
+      dispatch(
+        closeTabs({
+          tabUids: [item.uid]
+        })
+      );
 
       dispatch({
         type: 'collections/deleteItem',
@@ -259,7 +270,10 @@ const SaveTransientRequest = ({ modalId }) => {
           <div className="collections-section">
             <div className="collections-label">Save to Collections</div>
             {collection && (
-              <div className={`collection-name ${!isAtRoot ? 'collection-name-clickable' : ''}`} onClick={!isAtRoot ? navigateToRoot : undefined}>
+              <div
+                className={`collection-name ${!isAtRoot ? 'collection-name-clickable' : ''}`}
+                onClick={!isAtRoot ? navigateToRoot : undefined}
+              >
                 <span>{collection.name}</span>
                 {breadcrumbs.length > 0 && (
                   <>
@@ -280,9 +294,7 @@ const SaveTransientRequest = ({ modalId }) => {
                     ))}
                   </>
                 )}
-                {isAtRoot && (
-                  <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />
-                )}
+                {isAtRoot && <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />}
               </div>
             )}
 
@@ -360,9 +372,7 @@ const SaveTransientRequest = ({ modalId }) => {
 
                           {showFilesystemName && (
                             <div className="new-folder-filesystem-wrapper">
-                              <label className="new-folder-filesystem-label">
-                                Name on filesystem
-                              </label>
+                              <label className="new-folder-filesystem-label">Name on filesystem</label>
                               <input
                                 type="text"
                                 className="new-folder-input"
@@ -378,9 +388,7 @@ const SaveTransientRequest = ({ modalId }) => {
                             </div>
                           )}
 
-                          {newFolderError && (
-                            <div className="new-folder-error">{newFolderError}</div>
-                          )}
+                          {newFolderError && <div className="new-folder-error">{newFolderError}</div>}
                         </div>
                       </div>
                       <button
