@@ -641,24 +641,29 @@ const getResponseBody = async (page: Page): Promise<string> => {
 };
 
 const selectRequestPaneTab = async (page: Page, tabName: string) => {
+  await test.step(`Wait for request to open up "${tabName}"`, async () => {
+    await expect(page.locator('.request-pane > .px-4')).toBeVisible();
+    await expect(page.locator('.tabs')).toBeVisible();
+  });
   await test.step(`Select request pane tab "${tabName}"`, async () => {
     const visibleTab = page.locator('.tabs').getByRole('tab', { name: tabName });
-    const overflowButton = page.locator('.tabs .more-tabs');
 
     // Check if tab is directly visible
     if (await visibleTab.isVisible()) {
       await visibleTab.click();
+      await expect(visibleTab).toContainClass('active');
       return;
     }
 
+    const overflowButton = page.locator('.tabs .more-tabs');
     // Check if there's an overflow dropdown
     if (await overflowButton.isVisible()) {
       await overflowButton.click();
 
       // Wait for dropdown to appear and click the menu item (overflow tabs are rendered as menuitems)
       const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
-      await expect(dropdownItem).toBeVisible();
       await dropdownItem.click();
+      await expect(visibleTab).toContainClass('active');
       return;
     }
 
