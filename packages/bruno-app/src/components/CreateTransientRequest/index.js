@@ -102,9 +102,8 @@ const CreateTransientRequest = ({ collectionUid }) => {
         itemUid: null,
         isTransient: true
       })
-    )
-      .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  }, [dispatch, collection]);
+    ).catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+  }, [dispatch, collection, tempDirectory, collectionPresets.requestUrl]);
 
   const handleCreateGraphQLRequest = useCallback(() => {
     if (!collection) return;
@@ -130,9 +129,8 @@ const CreateTransientRequest = ({ collectionUid }) => {
           }
         }
       })
-    )
-      .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  }, [dispatch, collection]);
+    ).catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+  }, [dispatch, collection, tempDirectory, collectionPresets.requestUrl]);
 
   const handleCreateWebSocketRequest = useCallback(() => {
     if (!collection) return;
@@ -150,9 +148,8 @@ const CreateTransientRequest = ({ collectionUid }) => {
         itemUid: null,
         isTransient: true
       })
-    )
-      .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  }, [dispatch, collection]);
+    ).catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+  }, [dispatch, collection, tempDirectory, collectionPresets.requestUrl]);
 
   const handleCreateGrpcRequest = useCallback(() => {
     if (!collection) return;
@@ -169,9 +166,8 @@ const CreateTransientRequest = ({ collectionUid }) => {
         itemUid: null,
         isTransient: true
       })
-    )
-      .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  }, [dispatch, collection]);
+    ).catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+  }, [dispatch, collection, tempDirectory, collectionPresets.requestUrl]);
 
   const handleItemClick = (type) => {
     // Handle item selection
