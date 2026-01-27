@@ -1,31 +1,28 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, openCollection, selectRequestPaneTab } from '../../utils/page';
+import { closeAllCollections, createCollection, createRequest, openCollection, openRequest, saveRequest, selectRequestPaneTab } from '../../utils/page';
 import { getTableCell } from '../../utils/page/locators';
 
-test.describe('Header Validation', () => {
+test.describe.serial('Header Validation', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('should show error icon when header name contains spaces', async ({ page, createTmpDir }) => {
+  test.beforeAll(async ({ page, createTmpDir }) => {
     await test.step('Create collection and request', async () => {
       await createCollection(page, 'header-validation', await createTmpDir('header-validation'));
-
-      const collection = page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'header-validation' });
-      await collection.hover();
-      await collection.locator('.collection-actions .icon').click();
-      await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
-      await page.getByPlaceholder('Request Name').fill('test-headers');
-      await page.locator('#new-request-url').locator('.CodeMirror').click();
-      await page.locator('#new-request-url').locator('textarea').fill('https://httpbin.org/get');
-      await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
+      await createRequest(page, 'test-headers', '', {
+        url: 'https://httpbin.org/get',
+        inFolder: false
+      });
     });
 
     await test.step('Open the request', async () => {
       await openCollection(page, 'header-validation');
-      await page.locator('.collection-item-name').filter({ hasText: 'test-headers' }).dblclick();
+      await openRequest(page, 'header-validation', 'test-headers', { persist: true });
     });
+  });
 
+  test('should show error icon when header name contains spaces', async ({ page, createTmpDir }) => {
     await test.step('Navigate to Headers tab', async () => {
       await selectRequestPaneTab(page, 'Headers');
     });

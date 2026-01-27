@@ -549,13 +549,17 @@ const sendRequest = async (
 * @param collectionName - The name of the collection
 * @param requestName - The name of the request
 */
-const openRequest = async (page: Page, collectionName: string, requestName: string) => {
+const openRequest = async (page: Page, collectionName: string, requestName: string, { persist = false } = {}) => {
   await test.step(`Navigate to collection "${collectionName}" and open request "${requestName}"`, async () => {
     const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
     await collectionContainer.click();
     const collectionWrapper = collectionContainer.locator('..');
     const request = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName });
-    await request.click();
+    if (!persist) {
+      await request.click();
+    } else {
+      await request.dblclick();
+    }
   });
 };
 /**
@@ -641,6 +645,10 @@ const getResponseBody = async (page: Page): Promise<string> => {
 };
 
 const selectRequestPaneTab = async (page: Page, tabName: string) => {
+  await test.step(`Wait for request to open up "${tabName}"`, async () => {
+    await expect(page.locator('.request-pane > .px-4')).toBeVisible();
+    await expect(page.locator('.tabs')).toBeVisible();
+  });
   await test.step(`Select request pane tab "${tabName}"`, async () => {
     const visibleTab = page.locator('.tabs').getByRole('tab', { name: tabName });
     const overflowButton = page.locator('.tabs .more-tabs');
