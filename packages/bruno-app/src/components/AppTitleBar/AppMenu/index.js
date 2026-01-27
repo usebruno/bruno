@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { IconMenu2, IconChevronRight } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
@@ -6,16 +6,6 @@ import StyledWrapper from './StyledWrapper';
 
 const SubmenuTrigger = ({ label, submenuItems, onItemClick }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const timeoutRef = useRef(null);
-
-  const handleMouseEnter = () => {
-    clearTimeout(timeoutRef.current);
-    setIsOpen(true);
-  };
-
-  const handleMouseLeave = () => {
-    timeoutRef.current = setTimeout(() => setIsOpen(false), 50);
-  };
 
   const submenuItemsWithClose = submenuItems.map((item) => {
     if (item.type === 'divider') return item;
@@ -31,8 +21,8 @@ const SubmenuTrigger = ({ label, submenuItems, onItemClick }) => {
   return (
     <div
       className="submenu-trigger"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
     >
       <MenuDropdown
         items={submenuItemsWithClose}
@@ -41,6 +31,7 @@ const SubmenuTrigger = ({ label, submenuItems, onItemClick }) => {
         onChange={setIsOpen}
         showTickMark={false}
         appendTo={() => document.body}
+        offset={[0, 0]}
       >
         <div className="submenu-trigger-content">
           <span>{label}</span>
@@ -53,7 +44,6 @@ const SubmenuTrigger = ({ label, submenuItems, onItemClick }) => {
 
 const AppMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef(null);
 
   const handleClose = useCallback(() => setIsOpen(false), []);
 
@@ -171,11 +161,11 @@ const AppMenu = () => {
   ];
 
   return (
-    <StyledWrapper ref={menuRef}>
+    <StyledWrapper>
       <MenuDropdown
         opened={isOpen}
         onChange={setIsOpen}
-        placement="bottom-end"
+        placement="bottom-start"
         showTickMark={false}
         items={[]}
         header={(

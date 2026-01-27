@@ -248,8 +248,9 @@ const AppTitleBar = () => {
       )}
 
       <div className="titlebar-content">
-        {/* Left section: Home + Workspace */}
         <div className="titlebar-left">
+          {showWindowControls && <AppMenu />}
+
           <ActionIcon onClick={handleHomeClick} label="Home" size="lg" className="home-button">
             <IconHome size={16} stroke={1.5} />
           </ActionIcon>
@@ -295,8 +296,6 @@ const AppTitleBar = () => {
             </ActionIcon>
 
             <ResponseLayoutToggle />
-
-            {showWindowControls && <AppMenu />}
           </div>
 
           {showWindowControls && (

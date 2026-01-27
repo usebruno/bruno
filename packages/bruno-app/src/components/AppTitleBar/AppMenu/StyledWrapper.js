@@ -43,7 +43,6 @@ const StyledWrapper = styled.div`
   .shortcut {
     font-size: 11px;
     color: ${(props) => props.theme.dropdown.mutedText};
-    margin-left: 24px;
   }
 `;
 
