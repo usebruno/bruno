@@ -646,8 +646,9 @@ const getResponseBody = async (page: Page): Promise<string> => {
 
 const selectRequestPaneTab = async (page: Page, tabName: string) => {
   await test.step(`Wait for request to open up "${tabName}"`, async () => {
-    await expect(page.locator('.request-pane > .px-4')).toBeVisible();
-    await expect(page.locator('.tabs')).toBeVisible();
+    const requestPane = page.locator('.request-pane > .px-4');
+    await expect(requestPane).toBeVisible();
+    await expect(requestPane.locator('.tabs')).toBeVisible();
   });
   await test.step(`Select request pane tab "${tabName}"`, async () => {
     const visibleTab = page.locator('.tabs').getByRole('tab', { name: tabName });
