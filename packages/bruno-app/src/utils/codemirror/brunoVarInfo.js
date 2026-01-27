@@ -40,6 +40,8 @@ export const COPY_SUCCESS_TIMEOUT = 1000;
 const EDITOR_MIN_HEIGHT = 1.75;
 const EDITOR_MAX_HEIGHT = 11.125;
 
+const READ_ONLY_SCOPE_VARIABLE = ['process.env', 'runtime', 'dynamic', 'oauth2', 'undefined'];
+
 /**
  * Calculate editor height based on content, clamped between min and max
  * @param {number} contentHeight - The actual content height from CodeMirror
@@ -75,7 +77,8 @@ const getScopeLabel = (scopeType) => {
     'process.env': 'Process Env',
     'dynamic': 'Dynamic',
     'oauth2': 'OAuth2',
-    'undefined': 'Undefined'
+    'undefined': 'Undefined',
+    'pathParam': 'Path Param'
   };
   return labels[scopeType] || scopeType;
 };
@@ -209,6 +212,12 @@ export const renderVarInfo = (token, options) => {
       value: variableValue || '',
       data: null
     };
+  } else if (token.string.startsWith('/:')) {
+    scopeInfo = {
+      type: 'pathParam',
+      value: variableValue || '',
+      data: { item }
+    };
   } else {
     // Detect variable scope
     scopeInfo = getVariableScope(variableName, collection, item);
@@ -253,7 +262,7 @@ export const renderVarInfo = (token, options) => {
   }
 
   // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, and undefined variables cannot be edited)
-  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined';
+  const isReadOnly = READ_ONLY_SCOPE_VARIABLE.includes(scopeInfo.type);
 
   // Get raw value from scope
   const rawValue = scopeInfo.value || '';
@@ -683,88 +692,95 @@ if (!SERVER_RENDERED) {
     const state = cm.state.brunoVarInfo;
     const options = state.options;
 
-    // Get the full line text where the hover happened
     const line = cm.getLine(pos.line);
     if (!line) return;
 
-    // If the line doesn't even contain both braces, no need to run loops
-    if (!line.includes('{{') || !line.includes('}}')) {
-      return;
+    // ---------- 1) MODE: Double-Brace Variable {{ ... }} ----------
+    // We check this first as it's the most common variable type.
+    if (line.includes('{{') && line.includes('}}')) {
+      // Check if the cursor is roughly between a '{{' to the left and '}}' to the right
+      if (line.lastIndexOf('{{', pos.ch) !== -1 && line.indexOf('}}', pos.ch) !== -1) {
+        let start = pos.ch;
+        let end = pos.ch;
+
+        // Scan LEFT to find the nearest '{{'
+        while (start > 0) {
+          const leftTwo = line.substring(start - 2, start);
+          if (leftTwo === '{{') {
+            start -= 2;
+            break;
+          }
+          // If we hit a '}}' while looking for '{{', the cursor is outside a pair
+          if (leftTwo === '}}') break;
+          start--;
+        }
+
+        // Validate we actually found a '{{'
+        if (start >= 0 && line.substring(start, start + 2) === '{{') {
+          // Scan RIGHT to find the nearest '}}'
+          while (end < line.length) {
+            const rightTwo = line.substring(end, end + 2);
+            if (rightTwo === '}}') {
+              end += 2;
+              break;
+            }
+            // If we hit another '{{' before a closing '}}', the structure is invalid
+            if (rightTwo === '{{') {
+              end = line.length + 1;
+              break;
+            }
+            end++;
+          }
+
+          // Validate the final string and show popup
+          if (end <= line.length && line.substring(end - 2, end) === '}}') {
+            const fullVariableString = line.substring(start, end);
+            const inner = fullVariableString.slice(2, -2).trim();
+
+            if (inner) {
+              const token = { string: fullVariableString, start, end };
+              const brunoVarInfo = renderVarInfo(token, options);
+              if (brunoVarInfo) {
+                showPopup(cm, box, brunoVarInfo);
+                return; // EXIT: We found a variable, don't look for path params
+              }
+            }
+          }
+        }
+      }
     }
 
-    // lastIndexOf searches backward from the cursor indexOf searches forward
-    if (line.lastIndexOf('{{', pos.ch) === -1 || line.indexOf('}}', pos.ch) === -1) {
-      return;
-    }
-    let start = pos.ch;
-    let end = pos.ch;
+    // ---------- 2) MODE: Path Parameter /:varName ----------
+    // If we didn't return from the brace logic, check if cursor is on a path param
+    const pathParamStart = line.substring(0, pos.ch + 1).lastIndexOf('/:');
 
-    // ---------- Find opening '{{' to the LEFT ----------
-    while (start > 0) {
-      const leftTwo = line.substring(start - 2, start);
+    if (pathParamStart !== -1) {
+      let pathValueEnd = pathParamStart + 2;
 
-      // If we find opening braces, stop
-      if (leftTwo === '{{') {
-        start -= 2;
-        break;
+      // Path params end at the next URL separator (/, ?, &, =) or end of line
+      const separators = ['/', '?', '&', '='];
+      while (pathValueEnd < line.length && !separators.includes(line[pathValueEnd])) {
+        pathValueEnd++;
       }
 
-      // If we cross a closing braces before finding '{{', we're not inside a variable
-      if (leftTwo === '}}') {
-        return;
+      // Check if cursor is actually inside the detected /:param range
+      if (pos.ch >= pathParamStart && pos.ch < pathValueEnd) {
+        const fullVariableString = line.substring(pathParamStart, pathValueEnd);
+
+        // Ensure it's not just "/:" but has a name (e.g., "/:id")
+        if (fullVariableString.length > 2) {
+          const token = {
+            string: fullVariableString,
+            start: pathParamStart,
+            end: pathValueEnd
+          };
+          const brunoVarInfo = renderVarInfo(token, options);
+          if (brunoVarInfo) {
+            showPopup(cm, box, brunoVarInfo);
+            return; // EXIT: Popup shown
+          }
+        }
       }
-
-      start--;
-    }
-
-    // If we reached the start of the line and didn't match '{{', return
-    if (start < 0 || line.substring(start, start + 2) !== '{{') {
-      return;
-    }
-
-    // ---------- Find closing '}}' to the RIGHT ----------
-    while (end < line.length) {
-      const rightTwo = line.substring(end, end + 2);
-
-      // If we find closing braces, stop
-      if (rightTwo === '}}') {
-        end += 2;
-        break;
-      }
-
-      // If we hit another '{{' before a '}}', then this isn't a valid enclosing pair
-      if (rightTwo === '{{') {
-        return;
-      }
-
-      end++;
-    }
-    // If we reached end-of-line without finding '}}', return
-    if (end > line.length || line.substring(end - 2, end) !== '}}') {
-      return;
-    }
-
-    const fullVariableString = line.substring(start, end);
-
-    // Basic validation to ensure it's a non-empty variable
-    if (!fullVariableString.startsWith('{{') || !fullVariableString.endsWith('}}')) {
-      return;
-    }
-
-    // Prevent tooltips for empty variables like {{   }}
-    const inner = fullVariableString.slice(2, -2).trim();
-    if (!inner) return;
-
-    // Build a token object compatible with renderVarInfo
-    const token = {
-      string: fullVariableString,
-      start: start,
-      end: end
-    };
-
-    const brunoVarInfo = renderVarInfo(token, options);
-    if (brunoVarInfo) {
-      showPopup(cm, box, brunoVarInfo);
     }
   }
 
