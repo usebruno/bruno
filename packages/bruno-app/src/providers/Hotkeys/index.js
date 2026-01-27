@@ -15,6 +15,7 @@ import {
 } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { addTab, closeTabs, reorderTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
+import { closeWorkspaceTab } from 'providers/ReduxStore/slices/workspaceTabs';
 import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
@@ -25,6 +26,8 @@ export const HotkeysProvider = (props) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const collections = useSelector((state) => state.collections.collections);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const showHomePage = useSelector((state) => state.app.showHomePage);
+  const activeWorkspaceTabUid = useSelector((state) => state.workspaceTabs.activeTabUid);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showGlobalSearchModal, setShowGlobalSearchModal] = useState(false);
 
@@ -171,11 +174,15 @@ export const HotkeysProvider = (props) => {
   // close tab hotkey
   useEffect(() => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('closeTab')], (e) => {
-      dispatch(
-        closeTabs({
-          tabUids: [activeTabUid]
-        })
-      );
+      if (showHomePage && activeWorkspaceTabUid) {
+        dispatch(closeWorkspaceTab({ uid: activeWorkspaceTabUid }));
+      } else if (activeTabUid) {
+        dispatch(
+          closeTabs({
+            tabUids: [activeTabUid]
+          })
+        );
+      }
 
       return false; // this stops the event bubbling
     });
@@ -183,7 +190,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       Mousetrap.unbind([...getKeyBindingsForActionAllOS('closeTab')]);
     };
-  }, [activeTabUid]);
+  }, [activeTabUid, showHomePage, activeWorkspaceTabUid]);
 
   // Switch to the previous tab
   useEffect(() => {

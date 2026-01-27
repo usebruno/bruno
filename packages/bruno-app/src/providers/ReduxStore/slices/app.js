@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import brunoClipboard from 'utils/bruno-clipboard';
-import { addTab, focusTab } from './tabs';
+import { addTab, focusTab, closeTabs } from './tabs';
 
 const initialState = {
   isDragging: false,
@@ -10,11 +10,11 @@ const initialState = {
   sidebarCollapsed: false,
   screenWidth: 500,
   showHomePage: false,
-  showPreferences: false,
   showApiSpecPage: false,
   showManageWorkspacePage: false,
   isEnvironmentSettingsModalOpen: false,
   isGlobalEnvironmentSettingsModalOpen: false,
+  activePreferencesTab: 'general',
   preferences: {
     request: {
       sslVerification: true,
@@ -88,17 +88,16 @@ export const appSlice = createSlice({
     },
     showApiSpecPage: (state) => {
       state.showHomePage = false;
-      state.showPreferences = false;
       state.showApiSpecPage = true;
     },
     hideApiSpecPage: (state) => {
       state.showApiSpecPage = false;
     },
-    showPreferences: (state, action) => {
-      state.showPreferences = action.payload;
-    },
     updatePreferences: (state, action) => {
       state.preferences = action.payload;
+    },
+    updateActivePreferencesTab: (state, action) => {
+      state.activePreferencesTab = action.payload.tab;
     },
     updateCookies: (state, action) => {
       state.cookies = action.payload;
@@ -156,8 +155,8 @@ export const {
   hideManageWorkspacePage,
   showApiSpecPage,
   hideApiSpecPage,
-  showPreferences,
   updatePreferences,
+  updateActivePreferencesTab,
   updateCookies,
   insertTaskIntoQueue,
   removeTaskFromQueue,

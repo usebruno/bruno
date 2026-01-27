@@ -28,14 +28,20 @@ const getCertsAndProxyConfig = async ({
     httpsAgentRequestFields['rejectUnauthorized'] = false;
   }
 
-  let caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
-  let caCertificatesData = getCACertificates({
-    caCertFilePath,
-    shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates()
-  });
+  let caCertificates = '';
+  let caCertificatesCount = { system: 0, root: 0, custom: 0, extra: 0 };
 
-  let caCertificates = caCertificatesData.caCertificates;
-  let caCertificatesCount = caCertificatesData.caCertificatesCount;
+  // Only load CA certificates if SSL validation is enabled (otherwise they're unused)
+  if (preferencesUtil.shouldVerifyTls()) {
+    let caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
+    let caCertificatesData = getCACertificates({
+      caCertFilePath,
+      shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates()
+    });
+
+    caCertificates = caCertificatesData.caCertificates;
+    caCertificatesCount = caCertificatesData.caCertificatesCount;
+  }
 
   // configure HTTPS agent with aggregated CA certificates
   httpsAgentRequestFields['caCertificatesCount'] = caCertificatesCount;

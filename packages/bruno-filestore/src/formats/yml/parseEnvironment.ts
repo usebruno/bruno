@@ -2,7 +2,7 @@ import type { Environment as BrunoEnvironment, EnvironmentVariable as BrunoEnvir
 import type { Environment } from '@opencollection/types/config/environments';
 import type { Variable, SecretVariable } from '@opencollection/types/common/variables';
 import { parseYml } from './utils';
-import { uuid } from '../../utils';
+import { uuid, ensureString } from '../../utils';
 
 const isSecretVariable = (v: Variable | SecretVariable): v is SecretVariable => {
   return 'secret' in v && v.secret === true;
@@ -17,7 +17,7 @@ const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | 
     if (isSecretVariable(v)) {
       return {
         uid: uuid(),
-        name: v.name || '',
+        name: ensureString(v.name),
         value: '',
         type: 'text',
         enabled: v.disabled !== true,
@@ -26,8 +26,8 @@ const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | 
     }
     const variable: BrunoEnvironmentVariable = {
       uid: uuid(),
-      name: v.name || '',
-      value: (typeof v.value === 'string' ? v.value : '') || '',
+      name: ensureString(v.name),
+      value: ensureString(v.value),
       type: 'text',
       enabled: v.disabled !== true,
       secret: false
@@ -42,7 +42,7 @@ const parseEnvironment = (ymlString: string): BrunoEnvironment => {
 
     const brunoEnvironment: BrunoEnvironment = {
       uid: uuid(),
-      name: ocEnvironment.name || 'Untitled Environment',
+      name: ensureString(ocEnvironment.name, 'Untitled Environment'),
       variables: toBrunoEnvironmentVariables(ocEnvironment.variables)
     };
 

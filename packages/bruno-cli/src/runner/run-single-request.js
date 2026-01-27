@@ -5,7 +5,7 @@ const fs = require('fs');
 const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
-const { interpolateString } = require('./interpolate-string');
+const { interpolateString, interpolateObject } = require('./interpolate-string');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
@@ -21,7 +21,7 @@ const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
-const { addDigestInterceptor } = require('@usebruno/requests');
+const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2 } = require('@usebruno/requests');
 const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
 const { getOAuth2Token } = require('../utils/oauth2');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData } = require('@usebruno/common').utils;
@@ -460,7 +460,54 @@ const runSingleRequest = async function (
     // Handle OAuth2 authentication
     if (request.oauth2) {
       try {
-        const token = await getOAuth2Token(request.oauth2);
+        // Prepare interpolation options with all available variables
+        const oauth2InterpolationOptions = {
+          envVars: envVariables,
+          runtimeVariables,
+          processEnvVars,
+          collectionVariables: request.collectionVariables || {},
+          folderVariables: request.folderVariables || {},
+          requestVariables: request.requestVariables || {}
+        };
+
+        const accessTokenUrl = request.oauth2.accessTokenUrl ? interpolateString(request.oauth2.accessTokenUrl, oauth2InterpolationOptions) : undefined;
+        const refreshTokenUrl = request.oauth2.refreshTokenUrl ? interpolateString(request.oauth2.refreshTokenUrl, oauth2InterpolationOptions) : undefined;
+        const oauth2RequestUrl = accessTokenUrl || refreshTokenUrl;
+
+        let token;
+        if (oauth2RequestUrl) {
+          const tlsOptions = {
+            noproxy: options.noproxy,
+            shouldVerifyTls: !insecure,
+            shouldUseCustomCaCertificate: !!options['cacert'],
+            customCaCertificateFilePath: options['cacert'],
+            shouldKeepDefaultCaCertificates: !options['ignoreTruststore']
+          };
+
+          const clientCertificates = get(brunoConfig, 'clientCertificates');
+          const proxyConfig = get(brunoConfig, 'proxy');
+          const interpolatedClientCertificates = clientCertificates ? interpolateObject(clientCertificates, oauth2InterpolationOptions) : undefined;
+          const interpolatedProxyConfig = proxyConfig ? interpolateObject(proxyConfig, oauth2InterpolationOptions) : undefined;
+
+          const { httpAgent: oauth2HttpAgent, httpsAgent: oauth2HttpsAgent } = await getHttpHttpsAgents({
+            requestUrl: oauth2RequestUrl,
+            collectionPath,
+            options: tlsOptions,
+            clientCertificates: interpolatedClientCertificates,
+            collectionLevelProxy: interpolatedProxyConfig,
+            systemProxyConfig: getSystemProxyEnvVariables()
+          });
+
+          const oauth2AxiosInstance = makeAxiosInstanceForOauth2({
+            requestMaxRedirects: requestMaxRedirects,
+            disableCookies: options.disableCookies,
+            httpAgent: oauth2HttpAgent,
+            httpsAgent: oauth2HttpsAgent
+          });
+
+          token = await getOAuth2Token(request.oauth2, oauth2AxiosInstance);
+        }
+
         if (token) {
           const { tokenPlacement = 'header', tokenHeaderPrefix = '', tokenQueryKey = 'access_token' } = request.oauth2;
 
