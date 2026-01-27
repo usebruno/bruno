@@ -1,54 +1,54 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { getEmptyImage } from 'react-dnd-html5-backend';
-import classnames from 'classnames';
-import { uuid } from 'utils/common';
-import filter from 'lodash/filter';
-import { useDrop, useDrag } from 'react-dnd';
 import {
+  IconBook,
   IconChevronRight,
-  IconDots,
-  IconLoader2,
-  IconFilePlus,
-  IconFolderPlus,
-  IconCopy,
   IconClipboard,
-  IconPlayerPlay,
+  IconCopy,
+  IconDots,
   IconEdit,
-  IconShare,
+  IconFilePlus,
   IconFoldDown,
-  IconX,
-  IconSettings,
-  IconTerminal2,
   IconFolder,
-  IconBook
+  IconFolderPlus,
+  IconLoader2,
+  IconPlayerPlay,
+  IconSettings,
+  IconShare,
+  IconTerminal2,
+  IconX
 } from '@tabler/icons';
-import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
-import { useDispatch, useSelector } from 'react-redux';
-import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import toast from 'react-hot-toast';
-import NewRequest from 'components/Sidebar/NewRequest';
+import classnames from 'classnames';
 import NewFolder from 'components/Sidebar/NewFolder';
+import NewRequest from 'components/Sidebar/NewRequest';
+import filter from 'lodash/filter';
+import { collapseFullCollection, toggleCollection } from 'providers/ReduxStore/slices/collections';
+import { handleCollectionItemDrop, mountCollection, moveCollectionAndPersist, pasteItem, saveCollectionSecurityConfig, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import React, { useEffect, useRef, useState } from 'react';
+import { useDrag, useDrop } from 'react-dnd';
+import { getEmptyImage } from 'react-dnd-html5-backend';
+import toast from 'react-hot-toast';
+import { useDispatch, useSelector } from 'react-redux';
+import { isTabForItemActive } from 'src/selectors/tab';
+import { isItemAFolder, isItemARequest } from 'utils/collections';
+import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
+import { uuid } from 'utils/common';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
-import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest } from 'utils/collections';
-import { isTabForItemActive } from 'src/selectors/tab';
 
-import RenameCollection from './RenameCollection';
-import StyledWrapper from './StyledWrapper';
-import CloneCollection from './CloneCollection';
-import { areItemsLoading } from 'utils/collections';
-import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
-import GenerateDocumentation from './GenerateDocumentation';
-import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
-import { sortByNameThenSequence } from 'utils/common/index';
-import { getRevealInFolderLabel } from 'utils/common/platform';
-import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
+import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
-import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
+import { areItemsLoading } from 'utils/collections';
+import { sortByNameThenSequence } from 'utils/common/index';
+import { getRevealInFolderLabel } from 'utils/common/platform';
+import { scrollToTheActiveTab } from 'utils/tabs';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
+import CloneCollection from './CloneCollection';
+import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
+import GenerateDocumentation from './GenerateDocumentation';
+import RenameCollection from './RenameCollection';
+import StyledWrapper from './StyledWrapper';
 
 const Collection = ({ collection, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
@@ -258,8 +258,20 @@ const Collection = ({ collection, searchText }) => {
     }
   }, [isCollectionFocused]);
 
+  useEffect(() => {
+    if (searchText && searchText.trim().length && collection.mountStatus === 'unmounted') {
+      dispatch(
+        mountCollection({
+          collectionUid: collection.uid,
+          collectionPathname: collection.pathname,
+          brunoConfig: collection.brunoConfig
+        })
+      );
+    }
+  }, [searchText, collection, dispatch]);
+
   if (searchText && searchText.length) {
-    if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
+    if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText) && collection.mountStatus !== 'unmounted') {
       return null;
     }
   }

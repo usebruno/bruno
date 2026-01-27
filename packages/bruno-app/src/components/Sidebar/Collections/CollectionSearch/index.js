@@ -16,7 +16,7 @@ const CollectionSearch = ({ searchText, setSearchText }) => {
         autoFocus
         spellCheck="false"
         value={searchText}
-        onChange={(e) => setSearchText(e.target.value.toLowerCase())}
+        onChange={(e) => setSearchText(e.target.value)}
       />
       {searchText !== '' && (
         <div className="clear-icon" onClick={() => setSearchText('')}>
