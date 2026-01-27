@@ -666,6 +666,8 @@ class CollectionWatcher {
   constructor() {
     this.watchers = {};
     this.loadingStates = {};
+    // Maps collectionPath to its associated tempDirectoryPath for cleanup
+    this.tempDirectoryMap = {};
   }
 
   // Initialize loading state tracking for a collection
@@ -823,6 +825,14 @@ class CollectionWatcher {
       this.watchers[watchPath] = null;
     }
 
+    // Also close the associated temp directory watcher if it exists
+    const tempDirectoryPath = this.tempDirectoryMap[watchPath];
+    if (tempDirectoryPath && this.watchers[tempDirectoryPath]) {
+      this.watchers[tempDirectoryPath].close();
+      delete this.watchers[tempDirectoryPath];
+      delete this.tempDirectoryMap[watchPath];
+    }
+
     if (collectionUid) {
       this.cleanupLoadingState(collectionUid);
     }
@@ -869,10 +879,14 @@ class CollectionWatcher {
   }
 
   // Add watcher for transient directory
+  // The tempDirectoryPath is stored in this.tempDirectoryMap[collectionPath] so removeWatcher can clean it up
   addTempDirectoryWatcher(win, tempDirectoryPath, collectionUid, collectionPath) {
     if (this.watchers[tempDirectoryPath]) {
       this.watchers[tempDirectoryPath].close();
     }
+
+    // Store the mapping from collectionPath to tempDirectoryPath for cleanup in removeWatcher
+    this.tempDirectoryMap[collectionPath] = tempDirectoryPath;
 
     // Ignore metadata.json file
     const ignored = (filepath) => {
