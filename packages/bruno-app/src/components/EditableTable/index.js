@@ -75,6 +75,13 @@ const EditableTable = ({
     return !value || (typeof value === 'string' && value.trim() === '');
   }, [columns]);
 
+  const rowHasValue = useCallback((row) => {
+    return columns.some((column) => {
+      const value = column.getValue ? column.getValue(row) : row[column.key];
+      return value && (typeof value !== 'string' || value.trim() !== '');
+    });
+  }, [columns]);
+
   const isLastEmptyRow = useCallback((row, index) => {
     if (!showAddRow) return false;
     return index === rowsWithEmpty.length - 1 && isEmptyRow(row);
@@ -160,14 +167,24 @@ const EditableTable = ({
     const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
     if (fromIndex !== toIndex && onReorder) {
       const reorderableRows = showAddRow ? rowsWithEmpty.slice(0, -1) : rowsWithEmpty;
+      const lastRow = showAddRow ? rowsWithEmpty[rowsWithEmpty.length - 1] : null;
+
       const updatedOrder = [...reorderableRows];
       const [movedRow] = updatedOrder.splice(fromIndex, 1);
+      if (!movedRow) {
+        setDragStart(null);
+        setHoveredRow(null);
+        return;
+      }
       updatedOrder.splice(toIndex, 0, movedRow);
-      onReorder({ updateReorderedItem: updatedOrder.map((row) => row.uid) });
+
+      // Preserve last row if it has any content
+      const finalOrder = lastRow && rowHasValue(lastRow) ? [...updatedOrder, lastRow] : updatedOrder;
+      onReorder({ updateReorderedItem: finalOrder.map((row) => row.uid) });
     }
     setDragStart(null);
     setHoveredRow(null);
-  }, [onReorder, rowsWithEmpty, showAddRow]);
+  }, [onReorder, rowsWithEmpty, showAddRow, rowHasValue]);
 
   const handleDragEnd = useCallback(() => {
     setDragStart(null);
