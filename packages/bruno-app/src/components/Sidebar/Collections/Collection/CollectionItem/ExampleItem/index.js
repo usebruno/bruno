@@ -86,7 +86,7 @@ const ExampleItem = ({ example, item, collection }) => {
     }));
 
     // Save the request
-    await dispatch(saveRequest(item.uid, collection.uid));
+    await dispatch(saveRequest(item.uid, collection.uid, true));
 
     // Task middleware will track this and open the example in a new tab once the file is reloaded
     dispatch(insertTaskIntoQueue({
@@ -125,7 +125,7 @@ const ExampleItem = ({ example, item, collection }) => {
         name: newName
       }
     }));
-    dispatch(saveRequest(item.uid, collection.uid));
+    dispatch(saveRequest(item.uid, collection.uid, true));
     setShowRenameModal(false);
   };
 
