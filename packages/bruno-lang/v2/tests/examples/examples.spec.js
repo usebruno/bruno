@@ -363,6 +363,14 @@ example {
       expect(output).toEqual(expected);
     });
 
+    it('should convert examples with multiline descriptions to BRU format', () => {
+      const jsonInput = require('./fixtures/json/examples-multiline-description.json');
+      const expected = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'examples-multiline-description.bru'), 'utf8');
+      const output = jsonToBru(jsonInput);
+
+      expect(output).toEqual(expected);
+    });
+
     it('should parse example without description field', () => {
       const bruInput = `meta {
   name: Test API

@@ -2,7 +2,7 @@
   "meta": {
     "name": "Multiline Description Test",
     "type": "http",
-    "seq": 1
+    "seq": "1"
   },
   "http": {
     "method": "get",
