@@ -177,7 +177,7 @@ const MultipartFormParams = ({ item, collection }) => {
       key: 'contentType',
       name: 'Content-Type',
       placeholder: 'Auto',
-      width: '20%',
+      width: '30%',
       render: ({ row, value, onChange, isLastEmptyRow }) => (
         <SingleLineEditor
           onSave={onSave}
