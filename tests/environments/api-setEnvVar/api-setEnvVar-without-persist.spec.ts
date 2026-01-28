@@ -1,7 +1,20 @@
 import { test, expect } from '../../../playwright';
-import { sendRequest } from '../../utils/page';
+import fs from 'fs';
+import path from 'path';
+import { sendRequest, selectEnvironment, saveEnvironment, closeEnvironmentPanel, openRequest } from '../../utils/page';
 
 test.describe.serial('bru.setEnvVar(name, value)', () => {
+  const stageBruPath = path.join(__dirname, 'fixtures/collection/environments/Stage.bru');
+  let originalStageBruContent: string;
+
+  test.beforeAll(() => {
+    originalStageBruContent = fs.readFileSync(stageBruPath, 'utf8');
+  });
+
+  test.afterAll(() => {
+    fs.writeFileSync(stageBruPath, originalStageBruContent);
+  });
+
   test('set env var using script', async ({ pageWithUserData: page, restartApp }) => {
     // Select the collection and request
     await page.locator('#sidebar-collection-name').click();
@@ -50,5 +63,39 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     await newEnvTab.hover();
     await newEnvTab.getByTestId('request-tab-close-icon').click();
     await newPage.close();
+  });
+
+  test('ephemeral vars survive when user adds new var via modal', async ({ pageWithUserData: page }) => {
+    // Open the request
+    await openRequest(page, 'collection', 'api-setEnvVar-without-persist');
+
+    // Select stage environment
+    await selectEnvironment(page, 'Stage');
+
+    // Send request to create ephemeral var
+    await sendRequest(page, 200);
+
+    // Open environment config
+    await page.getByTestId('environment-selector-trigger').click();
+    await page.locator('#configure-env').click();
+    await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible();
+
+    // Verify ephemeral var exists
+    await expect(page.getByRole('row', { name: 'token' })).toBeVisible();
+
+    // Add a new variable via the empty row
+    const lastRow = page.locator('tbody tr').last();
+    await lastRow.locator('input[type="text"]').first().fill('newManualVar');
+
+    // Save and verify
+    await saveEnvironment(page);
+    await expect(page.getByText('Changes saved successfully')).toBeVisible();
+
+    // Verify ephemeral var still exists after save
+    await expect(page.getByRole('row', { name: 'token' })).toBeVisible();
+    await expect(page.getByRole('row', { name: 'newManualVar' })).toBeVisible();
+
+    // Close tab
+    await closeEnvironmentPanel(page);
   });
 });
