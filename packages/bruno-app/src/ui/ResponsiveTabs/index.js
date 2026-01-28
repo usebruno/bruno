@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import classnames from 'classnames';
-import MenuDropdown from 'ui/MenuDropdown';
 import { IconChevronsRight } from '@tabler/icons';
+import classnames from 'classnames';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import MenuDropdown from 'ui/MenuDropdown';
+import DraggableTab from './DraggableTab';
 import StyledWrapper from './StyledWrapper';
 
 const DROPDOWN_WIDTH = 60;
@@ -24,7 +25,8 @@ const ResponsiveTabs = ({
   rightContentRef,
   delayedTabs = [],
   rightContentExpandedWidth, // Optional: width of the expandable element when expanded
-  expandableElementIndex = -1 // Optional: index of the expandable child element (-1 means last child)
+  expandableElementIndex = -1, // Optional: index of the expandable child element (-1 means last child)
+  onTabReorder
 }) => {
   const [visibleTabKeys, setVisibleTabKeys] = useState([]);
   const [overflowTabKeys, setOverflowTabKeys] = useState([]);
@@ -40,6 +42,15 @@ const ResponsiveTabs = ({
       menuDropdownRef.current?.hide();
     },
     [onTabSelect]
+  );
+
+  const moveTab = useCallback(
+    (dragIndex, hoverIndex) => {
+      if (onTabReorder) {
+        onTabReorder(dragIndex, hoverIndex);
+      }
+    },
+    [onTabReorder]
   );
 
   const calculateTabVisibility = useCallback(() => {
@@ -192,20 +203,21 @@ const ResponsiveTabs = ({
     }
   }, []);
 
-  const renderTab = (tab) => {
+  const renderTab = (tab, index) => {
     const isActive = tab.key === activeTab;
 
     return (
-      <div
+      <DraggableTab
         key={tab.key}
-        role="tab"
-        aria-selected={isActive}
+        id={tab.key}
+        index={index}
+        moveTab={moveTab}
         className={classnames('tab select-none', tab.key, { active: isActive })}
         onClick={() => handleTabSelect(tab.key)}
       >
         {tab.label}
         {tab.indicator}
-      </div>
+      </DraggableTab>
     );
   };
 
@@ -213,7 +225,7 @@ const ResponsiveTabs = ({
     expandable: rightSideExpandable
   });
 
-  // Map stored keys to fresh tab objects from props (ensures indicators stay up-to-date)
+  // Map stored keys to fresh tab objects from props
   const visibleTabs = visibleTabKeys.map((key) => tabs.find((t) => t.key === key)).filter(Boolean);
   const overflowTabs = overflowTabKeys.map((key) => tabs.find((t) => t.key === key)).filter(Boolean);
 
@@ -251,7 +263,7 @@ const ResponsiveTabs = ({
         </div>
 
         {/* Visible tabs */}
-        {visibleTabs.map((tab) => renderTab(tab))}
+        {visibleTabs.map((tab, index) => renderTab(tab, index))}
 
         {/* Overflow dropdown */}
         {overflowTabs.length > 0 && (

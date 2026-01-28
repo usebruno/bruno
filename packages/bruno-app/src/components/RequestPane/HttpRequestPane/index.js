@@ -1,22 +1,25 @@
-import React, { useRef, useCallback, useMemo } from 'react';
 import classnames from 'classnames';
-import { useSelector, useDispatch } from 'react-redux';
-import { find, get } from 'lodash';
-import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import Documentation from 'components/Documentation/index';
+import Assertions from 'components/RequestPane/Assertions';
+import Auth from 'components/RequestPane/Auth';
 import QueryParams from 'components/RequestPane/QueryParams';
-import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
-import Auth from 'components/RequestPane/Auth';
-import Vars from 'components/RequestPane/Vars';
-import Assertions from 'components/RequestPane/Assertions';
+import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import Script from 'components/RequestPane/Script';
-import Tests from 'components/RequestPane/Tests';
 import Settings from 'components/RequestPane/Settings';
-import Documentation from 'components/Documentation/index';
+import Tests from 'components/RequestPane/Tests';
+import Vars from 'components/RequestPane/Vars';
 import StatusDot from 'components/StatusDot';
-import ResponsiveTabs from 'ui/ResponsiveTabs';
+import { find, get } from 'lodash';
+import { updateRequestTabOrder } from 'providers/ReduxStore/slices/collections/actions';
+import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
+import ResponsiveTabs from 'ui/ResponsiveTabs';
+import { findParentItemInCollection } from 'utils/collections';
+import { getEffectiveTabOrder, sortTabs } from 'utils/tabs';
 import AuthMode from '../Auth/AuthMode/index';
 
 const TAB_CONFIG = [
@@ -49,6 +52,7 @@ const HttpRequestPane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const preferences = useSelector((state) => state.app.preferences);
 
   const rightContentRef = useRef(null);
 
@@ -104,9 +108,29 @@ const HttpRequestPane = ({ item, collection }) => {
     };
   }, [activeCounts, body.mode, auth.mode, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, tags]);
 
-  const allTabs = useMemo(
-    () => TAB_CONFIG.map(({ key, label }) => ({ key, label, indicator: indicators[key] })),
-    [indicators]
+  const effectiveTabOrder = useMemo(() => {
+    const scope = preferences.requestTabOrderPersistenceScope || 'global';
+    if (scope === 'folder') {
+      const parentFolder = findParentItemInCollection(collection, item.uid);
+      return parentFolder?.requestTabOrder;
+    }
+    return getEffectiveTabOrder(item, collection, preferences);
+  }, [item, collection, preferences]);
+
+  const allTabs = useMemo(() => {
+    const tabs = TAB_CONFIG.map(({ key, label }) => ({ key, label, indicator: indicators[key] }));
+    return sortTabs(tabs, effectiveTabOrder);
+  }, [indicators, effectiveTabOrder]);
+
+  const handleTabReorder = useCallback(
+    (dragIndex, hoverIndex) => {
+      const newOrder = allTabs.map((t) => t.key);
+      const [moved] = newOrder.splice(dragIndex, 1);
+      newOrder.splice(hoverIndex, 0, moved);
+
+      dispatch(updateRequestTabOrder(collection.uid, item.uid, newOrder));
+    },
+    [allTabs, dispatch, collection.uid, item.uid]
   );
 
   const tabPanel = useMemo(() => {
@@ -134,6 +158,7 @@ const HttpRequestPane = ({ item, collection }) => {
         tabs={allTabs}
         activeTab={requestPaneTab}
         onTabSelect={selectTab}
+        onTabReorder={handleTabReorder}
         rightContent={rightContent}
         rightContentRef={rightContent ? rightContentRef : null}
         delayedTabs={['body']}

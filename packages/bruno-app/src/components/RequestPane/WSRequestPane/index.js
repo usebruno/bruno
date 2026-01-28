@@ -1,23 +1,26 @@
-import React, { useMemo, useCallback, useRef } from 'react';
 import Documentation from 'components/Documentation/index';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StatusDot from 'components/StatusDot/index';
 import { find } from 'lodash';
+import { updateRequestTabOrder } from 'providers/ReduxStore/slices/collections/actions';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
+import { findParentItemInCollection, getPropertyFromDraftOrRequest } from 'utils/collections/index';
+import { getEffectiveTabOrder, sortTabs } from 'utils/tabs';
 import WsBody from '../WsBody/index';
+import WSSettingsPane from '../WSSettingsPane/index';
 import StyledWrapper from './StyledWrapper';
 import WSAuth from './WSAuth';
 import WSAuthMode from './WSAuth/WSAuthMode';
-import WSSettingsPane from '../WSSettingsPane/index';
 
 const WSRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const preferences = useSelector((state) => state.app.preferences);
 
   const rightContentRef = useRef(null);
 
@@ -41,7 +44,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
 
   const allTabs = useMemo(() => {
-    return [
+    const tabs = [
       {
         key: 'body',
         label: 'Message',
@@ -68,7 +71,29 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
         indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
       }
     ];
-  }, [activeHeadersLength, auth.mode, docs]);
+
+    const effectiveTabOrder = (() => {
+      const scope = preferences.requestTabOrderPersistenceScope || 'global';
+      if (scope === 'folder') {
+        const parentFolder = findParentItemInCollection(collection, item.uid);
+        return parentFolder?.requestTabOrder;
+      }
+      return getEffectiveTabOrder(item, collection, preferences);
+    })();
+
+    return sortTabs(tabs, effectiveTabOrder);
+  }, [activeHeadersLength, auth.mode, docs, preferences, collection, item.uid]);
+
+  const handleTabReorder = useCallback(
+    (dragIndex, hoverIndex) => {
+      const newOrder = allTabs.map((t) => t.key);
+      const [moved] = newOrder.splice(dragIndex, 1);
+      newOrder.splice(hoverIndex, 0, moved);
+
+      dispatch(updateRequestTabOrder(collection.uid, item.uid, newOrder));
+    },
+    [allTabs, dispatch, collection.uid, item.uid]
+  );
 
   const tabPanel = useMemo(() => {
     switch (requestPaneTab) {
@@ -117,6 +142,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
         tabs={allTabs}
         activeTab={requestPaneTab}
         onTabSelect={selectTab}
+        onTabReorder={handleTabReorder}
         rightContent={rightContent}
         rightContentRef={rightContent ? rightContentRef : null}
       />

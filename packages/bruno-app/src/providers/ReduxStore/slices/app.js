@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import brunoClipboard from 'utils/bruno-clipboard';
-import { addTab, focusTab, closeTabs } from './tabs';
+import { addTab, focusTab } from './tabs';
 
 const initialState = {
   isDragging: false,
@@ -39,7 +39,14 @@ const initialState = {
     autoSave: {
       enabled: false,
       interval: 1000
-    }
+    },
+    requestTabOrder: {
+      http: [],
+      graphql: [],
+      grpc: [],
+      ws: []
+    },
+    requestTabOrderPersistenceScope: 'global'
   },
   generateCode: {
     mainLanguage: 'Shell',
