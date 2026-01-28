@@ -44,12 +44,21 @@ const createHeaders = (request, headers) => {
   return enabledHeaders;
 };
 
+// Encode [] and lone % for HAR (same as normalizeUrlForHar) so queryString entries pass validation
+const encodeQueryParamSegment = (s) => {
+  if (s == null || typeof s !== 'string') return s;
+  return s
+    .replace(/\[/g, '%5B')
+    .replace(/\]/g, '%5D')
+    .replace(/%(?![0-9A-Fa-f]{2})/g, '%25');
+};
+
 const createQuery = (queryParams = [], request) => {
   const params = queryParams
     .filter((param) => param.enabled && param.type === 'query')
     .map((param) => ({
-      name: param.name,
-      value: param.value
+      name: encodeQueryParamSegment(param.name),
+      value: encodeQueryParamSegment(param.value)
     }));
 
   if (request?.auth?.mode === 'apikey'
@@ -57,8 +66,8 @@ const createQuery = (queryParams = [], request) => {
     && request?.auth?.apikey?.key
     && request?.auth?.apikey?.value) {
     params.push({
-      name: request.auth.apikey.key,
-      value: request.auth.apikey.value
+      name: encodeQueryParamSegment(request.auth.apikey.key),
+      value: encodeQueryParamSegment(request.auth.apikey.value)
     });
   }
 
@@ -130,17 +139,53 @@ const createPostData = (body) => {
   }
 };
 
-export const buildHarRequest = ({ request, headers }) => {
-  // NOTE:
-  // This is just a safety check.
-  // The interpolateUrlPathParams method validates the url, but it does not throw
-  if (!URL.canParse(request.url)) {
-    throw new Error('invalid request url');
+// Placeholder used so {{ variable }} in URL doesn't break HAR/HTTPSnippet validation. Restored in snippet post-process.
+const BRUNO_VAR_PLACEHOLDER_PREFIX = '__BRUNO_VAR__';
+const BRUNO_VAR_PLACEHOLDER_SUFFIX = '__';
+
+/**
+ * Normalize URL for HAR/HTTPSnippet:
+ * - Variables {{ }} -> replaced with placeholder (restored in snippet post-process)
+ * - Brackets [] -> encode to %5B%5D
+ * - % -> encode to %25 only when not already part of %XX (detect isEncoded first)
+ */
+const normalizeUrlForHar = (url) => {
+  if (!url || typeof url !== 'string') return url;
+
+  // 1) Replace {{ variableName }} with placeholder so URL passes validation
+  let out = url.replace(/\{\{\s*([^}]*?)\s*\}\}/g, (_, varName) => {
+    const name = (varName || '').trim();
+    return name ? `${BRUNO_VAR_PLACEHOLDER_PREFIX}${name}${BRUNO_VAR_PLACEHOLDER_SUFFIX}` : '';
+  });
+
+  // 2) Encode [] and % (only lone % not part of %XX)
+  const encodeSegment = (s) => {
+    return s
+      .replace(/\[/g, '%5B')
+      .replace(/\]/g, '%5D')
+      .replace(/%(?![0-9A-Fa-f]{2})/g, '%25');
+  };
+
+  const qIndex = out.indexOf('?');
+  if (qIndex === -1) {
+    out = encodeSegment(out);
+  } else {
+    const base = out.slice(0, qIndex);
+    const query = out.slice(qIndex + 1);
+    out = `${encodeSegment(base)}?${encodeSegment(query)}`;
   }
+
+  return out;
+};
+
+export const buildHarRequest = ({ request, headers }) => {
+  let requestUrl = request.url || '';
+
+  requestUrl = normalizeUrlForHar(requestUrl);
 
   return {
     method: request.method,
-    url: request.url,
+    url: requestUrl,
     httpVersion: 'HTTP/1.1',
     cookies: [],
     headers: createHeaders(request, headers),

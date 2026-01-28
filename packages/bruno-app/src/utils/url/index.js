@@ -82,14 +82,15 @@ export const splitOnFirst = (str, char) => {
 };
 
 export const isValidUrl = (url) => {
+  if (!url) return false;
   try {
     new URL(url);
     return true;
   } catch (err) {
-    return false;
+    // Return true if it has a protocol or Bruno template syntax
+    return /^https?:\/\//i.test(url) || url.includes('://') || url.includes('{{');
   }
 };
-
 export const interpolateUrl = ({ url, variables }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;
@@ -99,60 +100,25 @@ export const interpolateUrl = ({ url, variables }) => {
 };
 
 export const interpolateUrlPathParams = (url, params) => {
-  const getInterpolatedBasePath = (pathname, params) => {
-    return pathname
-      .split('/')
-      .map((segment) => {
-        // traditional path parameters
-        if (segment.startsWith(':')) {
-          const name = segment.slice(1);
-          const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
-          return pathParam ? pathParam.value : segment;
-        }
+  if (!url || typeof url !== 'string') return url;
 
-        // for OData-style parameters (parameters inside parentheses)
-        // Check if segment matches valid OData syntax:
-        // 1. EntitySet('key') or EntitySet(key)
-        // 2. EntitySet(Key1=value1,Key2=value2)
-        // 3. Function(param=value)
-        if (!/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
-          return segment;
-        }
+  // Manual split to avoid 'URI malformed' crash on literal %
+  let tempUrl = url.startsWith('http') ? url : `http://${url}`;
+  const [urlWithoutQuery, searchPart] = splitOnFirst(tempUrl, '?');
 
-        const regex = /[:](\w+)/g;
-        let match;
-        let result = segment;
-        while ((match = regex.exec(segment))) {
-          if (!match[1]) continue;
+  const originMatch = urlWithoutQuery.match(/^https?:\/\/[^/]+/);
+  const origin = originMatch ? originMatch[0] : '';
+  const pathname = urlWithoutQuery.replace(origin, '');
 
-          let name = match[1].replace(/[')"`]+$/, '');
-          name = name.replace(/^[('"`]+/, '');
-          if (!name) continue;
+  const interpolatedPath = pathname.split('/').map((segment) => {
+    if (segment.startsWith(':')) {
+      const name = segment.slice(1);
+      const p = params.find((p) => p?.name === name && p?.type === 'path');
+      return p ? p.value : segment;
+    }
+    return segment;
+  }).join('/');
 
-          const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
-          if (pathParam) {
-            result = result.replace(':' + match[1], pathParam.value);
-          }
-        }
-        return result;
-      })
-      .join('/');
-  };
-
-  let uri;
-
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    url = `http://${url}`;
-  }
-
-  try {
-    uri = new URL(url);
-  } catch (error) {
-    // if the URL is invalid, return the URL as is
-    return url;
-  }
-
-  const basePath = getInterpolatedBasePath(uri.pathname, params);
-
-  return `${uri.origin}${basePath}${uri?.search || ''}`;
+  let result = `${origin}${interpolatedPath}${searchPart ? '?' + searchPart : ''}`;
+  return url.startsWith('http') ? result : result.replace('http://', '');
 };
