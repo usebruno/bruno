@@ -71,7 +71,7 @@ const initialState = {
   collectionSortOrder: 'default',
   activeConnections: [],
   tempDirectories: {},
-  saveTransientRequestModals: {}
+  saveTransientRequestModals: []
 };
 
 const initiatedGrpcResponse = {
@@ -3408,17 +3408,22 @@ export const collectionsSlice = createSlice({
     addTransientDirectory: (state, action) => {
       state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
     },
-    openSaveTransientRequestModal: (state, action) => {
-      const { modalId, item, collection, isOpen } = action.payload;
-      state.saveTransientRequestModals[modalId] = {
-        item,
-        collection,
-        isOpen
-      };
+    addSaveTransientRequestModal: (state, action) => {
+      const { item, collection } = action.payload;
+      // Avoid duplicates - check if this item is already in the array
+      const exists = state.saveTransientRequestModals.some((modal) => modal.item.uid === item.uid);
+      if (!exists) {
+        state.saveTransientRequestModals.push({ item, collection });
+      }
     },
-    closeSaveTransientRequestModal: (state, action) => {
-      const { modalId } = action.payload;
-      delete state.saveTransientRequestModals[modalId];
+    removeSaveTransientRequestModal: (state, action) => {
+      const { itemUid } = action.payload;
+      state.saveTransientRequestModals = state.saveTransientRequestModals.filter(
+        (modal) => modal.item.uid !== itemUid
+      );
+    },
+    clearAllSaveTransientRequestModals: (state) => {
+      state.saveTransientRequestModals = [];
     },
     /* Response Example Actions */
     addResponseExample: exampleReducers.addResponseExample,
@@ -3648,8 +3653,9 @@ export const {
   setResponseExampleParams,
   /* Response Example Actions - End */
   addTransientDirectory,
-  openSaveTransientRequestModal,
-  closeSaveTransientRequestModal
+  addSaveTransientRequestModal,
+  removeSaveTransientRequestModal,
+  clearAllSaveTransientRequestModals
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

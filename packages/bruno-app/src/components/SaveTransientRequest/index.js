@@ -8,7 +8,7 @@ import filter from 'lodash/filter';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import useCollectionFolderTree from 'hooks/useCollectionFolderTree';
-import { closeSaveTransientRequestModal, deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+import { removeSaveTransientRequestModal, deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
@@ -16,21 +16,24 @@ import { resolveRequestFilename } from 'utils/common/platform';
 import { transformRequestToSaveToFilesystem, findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { itemSchema } from '@usebruno/schema';
 
-const SaveTransientRequest = ({ modalId }) => {
+const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose }) => {
   const dispatch = useDispatch();
-  const modalState = useSelector((state) => state.collections.saveTransientRequestModals[modalId]);
-
-  const item = modalState?.item;
-  const collection = modalState?.collection;
-  const isOpen = modalState?.isOpen || false;
 
   const latestCollection = useSelector((state) =>
-    collection ? findCollectionByUid(state.collections.collections, collection.uid) : null
+    collectionProp ? findCollectionByUid(state.collections.collections, collectionProp.uid) : null
   );
-  const latestItem = latestCollection && item ? findItemInCollection(latestCollection, item.uid) : item;
+  const latestItem = latestCollection && itemProp ? findItemInCollection(latestCollection, itemProp.uid) : itemProp;
+
+  const item = itemProp;
+  const collection = collectionProp;
 
   const handleClose = () => {
-    dispatch(closeSaveTransientRequestModal({ modalId }));
+    if (onClose) {
+      onClose();
+      return;
+    }
+    // Remove from Redux array
+    dispatch(removeSaveTransientRequestModal({ itemUid: item.uid }));
   };
   const [requestName, setRequestName] = useState(item?.name || '');
   const [searchText, setSearchText] = useState('');

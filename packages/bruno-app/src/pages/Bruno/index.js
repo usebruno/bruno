@@ -21,6 +21,7 @@ import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
 import useWsEventListeners from 'utils/network/ws-event-listeners';
 import Portal from 'components/Portal';
 import SaveTransientRequestContainer from 'components/SaveTransientRequest/Container';
+import SaveTransientRequest from 'components/SaveTransientRequest';
 
 require('codemirror/mode/javascript/javascript');
 require('codemirror/mode/xml/xml');
@@ -62,6 +63,7 @@ export default function Main() {
   const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
   const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
+  const saveTransientRequestModals = useSelector((state) => state.collections.saveTransientRequestModals);
   const mainSectionRef = useRef(null);
   const [showRosettaBanner, setShowRosettaBanner] = useState(false);
 
@@ -138,7 +140,15 @@ export default function Main() {
 
       <Devtools mainSectionRef={mainSectionRef} />
       <StatusBar />
-      <SaveTransientRequestContainer />
+      {saveTransientRequestModals.length === 1 ? (
+        <SaveTransientRequest
+          item={saveTransientRequestModals[0].item}
+          collection={saveTransientRequestModals[0].collection}
+          isOpen={true}
+        />
+      ) : saveTransientRequestModals.length > 1 ? (
+        <SaveTransientRequestContainer />
+      ) : null}
     </div>
     // </ErrorCapture>
   );

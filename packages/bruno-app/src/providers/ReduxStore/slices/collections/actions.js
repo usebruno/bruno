@@ -64,7 +64,7 @@ import {
   addCollectionVar,
   updateCollectionVar,
   addTransientDirectory,
-  openSaveTransientRequestModal
+  addSaveTransientRequestModal
 } from './index';
 
 import { each } from 'lodash';
@@ -160,8 +160,7 @@ export const saveRequest
 
         const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
         if (isTransient) {
-          const modalId = uuid();
-          dispatch(openSaveTransientRequestModal({ modalId, item, collection, isOpen: true }));
+          dispatch(addSaveTransientRequestModal({ item, collection }));
           return reject();
         }
 
