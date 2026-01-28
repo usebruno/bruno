@@ -1,14 +1,25 @@
 import React, { useEffect, useState, useRef } from 'react';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
-import CreateEnvironment from 'components/Environments/EnvironmentSettings/CreateEnvironment';
-import { IconDownload, IconUpload, IconSearch, IconPlus, IconCheck, IconX } from '@tabler/icons';
+import { IconDownload, IconUpload, IconSearch, IconPlus, IconCheck, IconX, IconFileAlert } from '@tabler/icons';
+import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from 'components/WorkspaceHome/WorkspaceEnvironments/EnvironmentList/ConfirmSwitchEnv';
 import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
+import CollapsibleSection from 'components/Environments/CollapsibleSection';
+import DotEnvFileEditor from 'components/Environments/DotEnvFileEditor';
+import DotEnvFileDetails from './DotEnvFileDetails';
 import { isEqual } from 'lodash';
-import { useDispatch } from 'react-redux';
-import { addEnvironment, renameEnvironment, selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  addEnvironment,
+  renameEnvironment,
+  selectEnvironment,
+  saveDotEnvVariables,
+  saveDotEnvRaw,
+  createDotEnvFile,
+  deleteDotEnvFile
+} from 'providers/ReduxStore/slices/collections/actions';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 
@@ -24,7 +35,6 @@ const EnvironmentList = ({
 }) => {
   const dispatch = useDispatch();
 
-  const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [isCreatingInline, setIsCreatingInline] = useState(false);
@@ -38,8 +48,54 @@ const EnvironmentList = ({
   const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
   const [originalEnvironmentVariables, setOriginalEnvironmentVariables] = useState([]);
 
+  const [environmentsExpanded, setEnvironmentsExpanded] = useState(true);
+  const [dotEnvExpanded, setDotEnvExpanded] = useState(false);
+
+  const [activeView, setActiveView] = useState('environment');
+  const [isDotEnvModified, setIsDotEnvModified] = useState(false);
+
+  const [dotEnvViewMode, setDotEnvViewMode] = useState('table');
+
+  const [selectedDotEnvFile, setSelectedDotEnvFile] = useState(null);
+
+  const [isCreatingDotEnvInline, setIsCreatingDotEnvInline] = useState(false);
+  const [newDotEnvName, setNewDotEnvName] = useState('.env');
+  const [dotEnvNameError, setDotEnvNameError] = useState('');
+  const dotEnvInputRef = useRef(null);
+  const dotEnvCreateContainerRef = useRef(null);
+
+  const dotEnvFiles = useSelector((state) => {
+    const coll = state.collections.collections.find((c) => c.uid === collection?.uid);
+    return coll?.dotEnvFiles || [];
+  });
+
   const envUids = environments ? environments.map((env) => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
+
+  useEffect(() => {
+    if (dotEnvFiles.length > 0) {
+      if (!selectedDotEnvFile || !dotEnvFiles.find((f) => f.filename === selectedDotEnvFile)) {
+        setSelectedDotEnvFile(dotEnvFiles[0].filename);
+      }
+    } else {
+      setSelectedDotEnvFile(null);
+    }
+  }, [dotEnvFiles, selectedDotEnvFile]);
+
+  useEffect(() => {
+    if (!isCreatingDotEnvInline) return;
+
+    const handleClickOutside = (event) => {
+      if (dotEnvCreateContainerRef.current && !dotEnvCreateContainerRef.current.contains(event.target)) {
+        handleCancelDotEnvCreate();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCreatingDotEnvInline]);
 
   useEffect(() => {
     if (!environments?.length) {
@@ -117,10 +173,42 @@ const EnvironmentList = ({
   }, [isCreatingInline]);
 
   const handleEnvironmentClick = (env) => {
+    if (activeView === 'dotenv' && isDotEnvModified) {
+      setSwitchEnvConfirmClose(true);
+      return;
+    }
     if (!isModified) {
       setSelectedEnvironment(env);
+      setActiveView('environment');
+      setEnvironmentsExpanded(true);
     } else {
       setSwitchEnvConfirmClose(true);
+    }
+  };
+
+  const handleDotEnvClick = (filename) => {
+    if (isModified) {
+      setSwitchEnvConfirmClose(true);
+      return;
+    }
+    if (activeView === 'dotenv' && isDotEnvModified && selectedDotEnvFile !== filename) {
+      setSwitchEnvConfirmClose(true);
+      return;
+    }
+    setSelectedDotEnvFile(filename);
+    setActiveView('dotenv');
+    setDotEnvExpanded(true);
+  };
+
+  const handleDotEnvClose = () => {
+    if (isDotEnvModified) {
+      setSwitchEnvConfirmClose(true);
+      return;
+    }
+    setActiveView('environment');
+    if (environments?.length) {
+      const env = environments.find((e) => e.uid === activeEnvironmentUid) || environments[0];
+      setSelectedEnvironment(env);
     }
   };
 
@@ -145,10 +233,6 @@ const EnvironmentList = ({
       });
   };
 
-  if (!selectedEnvironment) {
-    return null;
-  }
-
   const validateEnvironmentName = (name, excludeUid = null) => {
     if (!name || name.trim() === '') {
       return 'Name is required';
@@ -170,7 +254,7 @@ const EnvironmentList = ({
   };
 
   const handleCreateEnvClick = () => {
-    if (!isModified) {
+    if (!isModified && !isDotEnvModified) {
       setIsCreatingInline(true);
       setNewEnvName('');
       setEnvNameError('');
@@ -260,7 +344,7 @@ const EnvironmentList = ({
   };
 
   const handleImportClick = () => {
-    if (!isModified) {
+    if (!isModified && !isDotEnvModified) {
       setOpenImportModal(true);
     } else {
       setSwitchEnvConfirmClose(true);
@@ -279,12 +363,195 @@ const EnvironmentList = ({
     }
   };
 
+  const handleSaveDotEnv = (variables) => {
+    if (!selectedDotEnvFile) return Promise.reject(new Error('No file selected'));
+    return dispatch(saveDotEnvVariables(collection.uid, variables, selectedDotEnvFile));
+  };
+
+  const handleSaveDotEnvRaw = (content) => {
+    if (!selectedDotEnvFile) return Promise.reject(new Error('No file selected'));
+    return dispatch(saveDotEnvRaw(collection.uid, content, selectedDotEnvFile));
+  };
+
+  const handleCreateDotEnvInlineClick = () => {
+    if (isModified || isDotEnvModified) {
+      setSwitchEnvConfirmClose(true);
+      return;
+    }
+    setIsCreatingDotEnvInline(true);
+    setNewDotEnvName('.env');
+    setDotEnvNameError('');
+    setTimeout(() => {
+      dotEnvInputRef.current?.focus();
+      const input = dotEnvInputRef.current;
+      if (input) {
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
+    }, 50);
+  };
+
+  const handleCancelDotEnvCreate = () => {
+    setIsCreatingDotEnvInline(false);
+    setNewDotEnvName('.env');
+    setDotEnvNameError('');
+  };
+
+  const validateDotEnvName = (name) => {
+    if (!name || name.trim() === '') {
+      return 'Name is required';
+    }
+
+    if (!name.startsWith('.env')) {
+      return 'File name must start with .env';
+    }
+
+    const validPattern = /^\.env[a-zA-Z0-9._-]*$/;
+    if (!validPattern.test(name)) {
+      return 'Invalid file name';
+    }
+
+    const exists = dotEnvFiles.some((f) => f.filename === name);
+    if (exists) {
+      return 'File already exists';
+    }
+
+    return null;
+  };
+
+  const handleSaveNewDotEnv = () => {
+    const error = validateDotEnvName(newDotEnvName);
+    if (error) {
+      setDotEnvNameError(error);
+      return;
+    }
+
+    dispatch(createDotEnvFile(collection.uid, newDotEnvName))
+      .then(() => {
+        toast.success(`${newDotEnvName} file created!`);
+        setIsCreatingDotEnvInline(false);
+        setNewDotEnvName('.env');
+        setDotEnvNameError('');
+        setSelectedDotEnvFile(newDotEnvName);
+        setActiveView('dotenv');
+        setDotEnvExpanded(true);
+      })
+      .catch((error) => {
+        toast.error(error.message || 'Failed to create .env file');
+      });
+  };
+
+  const handleDotEnvNameChange = (e) => {
+    const value = e.target.value;
+    if (!value.startsWith('.env')) {
+      setNewDotEnvName('.env');
+    } else {
+      setNewDotEnvName(value);
+    }
+    if (dotEnvNameError) {
+      setDotEnvNameError('');
+    }
+  };
+
+  const handleDotEnvNameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveNewDotEnv();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancelDotEnvCreate();
+    } else if (e.key === 'Backspace') {
+      const input = e.target;
+      if (input.selectionStart <= 4 && input.selectionEnd <= 4) {
+        e.preventDefault();
+      }
+    }
+  };
+
+  const handleDeleteDotEnvFile = (filename) => {
+    dispatch(deleteDotEnvFile(collection.uid, filename))
+      .then(() => {
+        toast.success(`${filename} file deleted!`);
+        setIsDotEnvModified(false);
+        if (selectedDotEnvFile === filename) {
+          const remainingFiles = dotEnvFiles.filter((f) => f.filename !== filename);
+          if (remainingFiles.length > 0) {
+            setSelectedDotEnvFile(remainingFiles[0].filename);
+          } else {
+            setActiveView('environment');
+            if (environments?.length) {
+              const env = environments.find((e) => e.uid === activeEnvironmentUid) || environments[0];
+              setSelectedEnvironment(env);
+            }
+          }
+        }
+      })
+      .catch((error) => {
+        toast.error(error.message || 'Failed to delete .env file');
+      });
+  };
+
+  const handleDotEnvViewModeChange = (mode) => {
+    setDotEnvViewMode(mode);
+  };
+
   const filteredEnvironments
     = environments?.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase())) || [];
 
+  const selectedDotEnvData = dotEnvFiles.find((f) => f.filename === selectedDotEnvFile);
+
+  const renderContent = () => {
+    if (activeView === 'dotenv' && selectedDotEnvFile && selectedDotEnvData) {
+      return (
+        <DotEnvFileDetails
+          title={selectedDotEnvFile}
+          onDelete={() => handleDeleteDotEnvFile(selectedDotEnvFile)}
+          dotEnvExists={selectedDotEnvData?.exists}
+          viewMode={dotEnvViewMode}
+          onViewModeChange={handleDotEnvViewModeChange}
+        >
+          <DotEnvFileEditor
+            variables={selectedDotEnvData?.variables || []}
+            onSave={handleSaveDotEnv}
+            onSaveRaw={handleSaveDotEnvRaw}
+            isModified={isDotEnvModified}
+            setIsModified={setIsDotEnvModified}
+            dotEnvExists={selectedDotEnvData?.exists}
+            viewMode={dotEnvViewMode}
+            collection={collection}
+          />
+        </DotEnvFileDetails>
+      );
+    }
+
+    if (selectedEnvironment) {
+      return (
+        <EnvironmentDetails
+          environment={selectedEnvironment}
+          setIsModified={setIsModified}
+          originalEnvironmentVariables={originalEnvironmentVariables}
+          collection={collection}
+        />
+      );
+    }
+
+    return (
+      <div className="empty-state">
+        <IconFileAlert size={48} strokeWidth={1.5} />
+        <div className="title">No Environments</div>
+        <div className="actions">
+          <Button size="sm" color="secondary" onClick={() => handleCreateEnvClick()}>
+            Create Environment
+          </Button>
+          <Button size="sm" color="secondary" onClick={() => handleImportClick()}>
+            Import Environment
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <StyledWrapper>
-      {openCreateModal && <CreateEnvironment collection={collection} onClose={() => setOpenCreateModal(false)} />}
       {openImportModal && (
         <ImportEnvironmentModal type="collection" collection={collection} onClose={() => setOpenImportModal(false)} />
       )}
@@ -298,42 +565,106 @@ const EnvironmentList = ({
 
         <div className="sidebar">
           <div className="sidebar-header">
-            <h2 className="title">Environments</h2>
-            <div className="flex items-center gap-2">
-              <button className="btn-action" onClick={() => handleCreateEnvClick()} title="Create environment">
-                <IconPlus size={16} strokeWidth={1.5} />
-              </button>
-              <button className="btn-action" onClick={() => handleImportClick()} title="Import environment">
-                <IconDownload size={16} strokeWidth={1.5} />
-              </button>
-              <button className="btn-action" onClick={() => handleExportClick()} title="Export environment">
-                <IconUpload size={16} strokeWidth={1.5} />
-              </button>
-            </div>
+            <h2 className="title">Variables</h2>
           </div>
 
           <div className="search-container">
             <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
             <input
               type="text"
-              placeholder="Search environments..."
+              placeholder="Search..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               className="search-input"
             />
           </div>
 
-          <div className="environments-list">
-            {filteredEnvironments.map((env) => (
-              <div
-                key={env.uid}
-                id={env.uid}
-                className={`environment-item ${selectedEnvironment.uid === env.uid ? 'active' : ''} ${renamingEnvUid === env.uid ? 'renaming' : ''} ${activeEnvironmentUid === env.uid ? 'activated' : ''}`}
-                onClick={() => renamingEnvUid !== env.uid && handleEnvironmentClick(env)}
-                onDoubleClick={() => handleEnvironmentDoubleClick(env)}
-              >
-                {renamingEnvUid === env.uid ? (
-                  <div className="rename-container" ref={renameContainerRef}>
+          <div className="sections-container">
+            <CollapsibleSection
+              title="Environments"
+              expanded={environmentsExpanded}
+              onToggle={() => setEnvironmentsExpanded(!environmentsExpanded)}
+              actions={(
+                <>
+                  <button className="btn-action" onClick={() => handleCreateEnvClick()} title="Create environment">
+                    <IconPlus size={14} strokeWidth={1.5} />
+                  </button>
+                  <button className="btn-action" onClick={() => handleImportClick()} title="Import environment">
+                    <IconDownload size={14} strokeWidth={1.5} />
+                  </button>
+                  <button className="btn-action" onClick={() => handleExportClick()} title="Export environment">
+                    <IconUpload size={14} strokeWidth={1.5} />
+                  </button>
+                </>
+              )}
+            >
+              <div className="environments-list">
+                {filteredEnvironments.map((env) => (
+                  <div
+                    key={env.uid}
+                    id={env.uid}
+                    className={`environment-item ${activeView === 'environment' && selectedEnvironment?.uid === env.uid ? 'active' : ''} ${renamingEnvUid === env.uid ? 'renaming' : ''} ${activeEnvironmentUid === env.uid ? 'activated' : ''}`}
+                    onClick={() => renamingEnvUid !== env.uid && handleEnvironmentClick(env)}
+                    onDoubleClick={() => handleEnvironmentDoubleClick(env)}
+                  >
+                    {renamingEnvUid === env.uid ? (
+                      <div className="rename-container" ref={renameContainerRef}>
+                        <input
+                          ref={inputRef}
+                          type="text"
+                          className="environment-name-input"
+                          value={newEnvName}
+                          onChange={handleEnvNameChange}
+                          onKeyDown={handleEnvNameKeyDown}
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
+                        />
+                        <div className="inline-actions">
+                          <button
+                            className="inline-action-btn save"
+                            onClick={handleSaveRename}
+                            onMouseDown={(e) => e.preventDefault()}
+                            title="Save"
+                          >
+                            <IconCheck size={14} strokeWidth={2} />
+                          </button>
+                          <button
+                            className="inline-action-btn cancel"
+                            onClick={handleCancelRename}
+                            onMouseDown={(e) => e.preventDefault()}
+                            title="Cancel"
+                          >
+                            <IconX size={14} strokeWidth={2} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="environment-name">{env.name}</span>
+                        <div className="environment-actions">
+                          {activeEnvironmentUid === env.uid ? (
+                            <div className="activated-checkmark" title="Active environment">
+                              <IconCheck size={16} strokeWidth={2} />
+                            </div>
+                          ) : (
+                            <button
+                              className="activate-btn"
+                              onClick={(e) => handleActivateEnvironment(e, env)}
+                              title="Activate environment"
+                            >
+                              <IconCheck size={16} strokeWidth={2} />
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+
+                {isCreatingInline && (
+                  <div className="environment-item creating" ref={createContainerRef}>
                     <input
                       ref={inputRef}
                       type="text"
@@ -341,6 +672,7 @@ const EnvironmentList = ({
                       value={newEnvName}
                       onChange={handleEnvNameChange}
                       onKeyDown={handleEnvNameKeyDown}
+                      placeholder="Environment name..."
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -349,7 +681,7 @@ const EnvironmentList = ({
                     <div className="inline-actions">
                       <button
                         className="inline-action-btn save"
-                        onClick={handleSaveRename}
+                        onClick={handleSaveNewEnv}
                         onMouseDown={(e) => e.preventDefault()}
                         title="Save"
                       >
@@ -357,7 +689,7 @@ const EnvironmentList = ({
                       </button>
                       <button
                         className="inline-action-btn cancel"
-                        onClick={handleCancelRename}
+                        onClick={handleCancelCreate}
                         onMouseDown={(e) => e.preventDefault()}
                         title="Cancel"
                       >
@@ -365,75 +697,92 @@ const EnvironmentList = ({
                       </button>
                     </div>
                   </div>
-                ) : (
-                  <>
-                    <span className="environment-name">{env.name}</span>
-                    <div className="environment-actions">
-                      {activeEnvironmentUid === env.uid ? (
-                        <div className="activated-checkmark" title="Active environment">
-                          <IconCheck size={16} strokeWidth={2} />
-                        </div>
-                      ) : (
-                        <button
-                          className="activate-btn"
-                          onClick={(e) => handleActivateEnvironment(e, env)}
-                          title="Activate environment"
-                        >
-                          <IconCheck size={16} strokeWidth={2} />
-                        </button>
-                      )}
-                    </div>
-                  </>
+                )}
+
+                {envNameError && (isCreatingInline || renamingEnvUid) && <div className="env-error">{envNameError}</div>}
+
+                {filteredEnvironments.length === 0 && !isCreatingInline && (
+                  <div className="no-env-file">
+                    <span>No environments</span>
+                  </div>
                 )}
               </div>
-            ))}
+            </CollapsibleSection>
 
-            {isCreatingInline && (
-              <div className="environment-item creating" ref={createContainerRef}>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  className="environment-name-input"
-                  value={newEnvName}
-                  onChange={handleEnvNameChange}
-                  onKeyDown={handleEnvNameKeyDown}
-                  placeholder="Environment name..."
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                />
-                <div className="inline-actions">
-                  <button
-                    className="inline-action-btn save"
-                    onClick={handleSaveNewEnv}
-                    onMouseDown={(e) => e.preventDefault()}
-                    title="Save"
+            <CollapsibleSection
+              title=".env Files"
+              expanded={dotEnvExpanded}
+              onToggle={() => setDotEnvExpanded(!dotEnvExpanded)}
+              badge={dotEnvFiles.length}
+              actions={(
+                <button
+                  className="btn-action"
+                  onClick={handleCreateDotEnvInlineClick}
+                  title="Create .env file"
+                >
+                  <IconPlus size={14} strokeWidth={1.5} />
+                </button>
+              )}
+            >
+              <div className="environments-list">
+                {dotEnvFiles.map((file) => (
+                  <div
+                    key={file.filename}
+                    className={`environment-item ${activeView === 'dotenv' && selectedDotEnvFile === file.filename ? 'active' : ''}`}
+                    onClick={() => handleDotEnvClick(file.filename)}
                   >
-                    <IconCheck size={14} strokeWidth={2} />
-                  </button>
-                  <button
-                    className="inline-action-btn cancel"
-                    onClick={handleCancelCreate}
-                    onMouseDown={(e) => e.preventDefault()}
-                    title="Cancel"
-                  >
-                    <IconX size={14} strokeWidth={2} />
-                  </button>
-                </div>
+                    <span className="environment-name">{file.filename}</span>
+                  </div>
+                ))}
+
+                {isCreatingDotEnvInline && (
+                  <div className="environment-item creating" ref={dotEnvCreateContainerRef}>
+                    <input
+                      ref={dotEnvInputRef}
+                      type="text"
+                      className="environment-name-input"
+                      value={newDotEnvName}
+                      onChange={handleDotEnvNameChange}
+                      onKeyDown={handleDotEnvNameKeyDown}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                    />
+                    <div className="inline-actions">
+                      <button
+                        className="inline-action-btn save"
+                        onClick={handleSaveNewDotEnv}
+                        onMouseDown={(e) => e.preventDefault()}
+                        title="Create"
+                      >
+                        <IconCheck size={14} strokeWidth={2} />
+                      </button>
+                      <button
+                        className="inline-action-btn cancel"
+                        onClick={handleCancelDotEnvCreate}
+                        onMouseDown={(e) => e.preventDefault()}
+                        title="Cancel"
+                      >
+                        <IconX size={14} strokeWidth={2} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {dotEnvNameError && isCreatingDotEnvInline && <div className="env-error">{dotEnvNameError}</div>}
+
+                {dotEnvFiles.length === 0 && !isCreatingDotEnvInline && (
+                  <div className="no-env-file">
+                    <span>No .env files</span>
+                  </div>
+                )}
               </div>
-            )}
-
-            {envNameError && (isCreatingInline || renamingEnvUid) && <div className="env-error">{envNameError}</div>}
+            </CollapsibleSection>
           </div>
         </div>
 
-        <EnvironmentDetails
-          environment={selectedEnvironment}
-          setIsModified={setIsModified}
-          originalEnvironmentVariables={originalEnvironmentVariables}
-          collection={collection}
-        />
+        {renderContent()}
       </div>
     </StyledWrapper>
   );

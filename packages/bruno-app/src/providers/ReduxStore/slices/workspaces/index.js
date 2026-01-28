@@ -84,6 +84,38 @@ export const workspacesSlice = createSlice({
       if (workspace) {
         workspace.processEnvVariables = processEnvVariables;
       }
+    },
+
+    setWorkspaceDotEnvVariables: (state, action) => {
+      const { workspaceUid, variables, exists, filename = '.env' } = action.payload;
+      const workspace = state.workspaces.find((w) => w.uid === workspaceUid);
+
+      if (workspace) {
+        if (!workspace.dotEnvFiles) {
+          workspace.dotEnvFiles = [];
+        }
+
+        const existingIndex = workspace.dotEnvFiles.findIndex((f) => f.filename === filename);
+        if (existingIndex >= 0) {
+          if (exists) {
+            workspace.dotEnvFiles[existingIndex] = { filename, variables, exists };
+          } else {
+            workspace.dotEnvFiles.splice(existingIndex, 1);
+          }
+        } else if (exists) {
+          workspace.dotEnvFiles.push({ filename, variables, exists });
+        }
+
+        workspace.dotEnvFiles.sort((a, b) => {
+          if (a.filename === '.env') return -1;
+          if (b.filename === '.env') return 1;
+          return a.filename.localeCompare(b.filename);
+        });
+
+        const mainEnvFile = workspace.dotEnvFiles.find((f) => f.filename === '.env');
+        workspace.dotEnvVariables = mainEnvFile?.variables || [];
+        workspace.dotEnvExists = mainEnvFile?.exists || false;
+      }
     }
   }
 });
@@ -96,7 +128,8 @@ export const {
   addCollectionToWorkspace,
   removeCollectionFromWorkspace,
   updateWorkspaceLoadingState,
-  workspaceDotEnvUpdateEvent
+  workspaceDotEnvUpdateEvent,
+  setWorkspaceDotEnvVariables
 } = workspacesSlice.actions;
 
 export default workspacesSlice.reducer;
