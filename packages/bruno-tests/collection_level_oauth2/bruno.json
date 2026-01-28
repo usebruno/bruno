@@ -3,10 +3,7 @@
   "name": "collection_level_oauth2",
   "type": "collection",
   "scripts": {
-    "moduleWhitelist": ["crypto"],
-    "filesystemAccess": {
-      "allow": true
-    }
+    "moduleWhitelist": ["crypto"]
   },
   "clientCertificates": {
     "enabled": true,

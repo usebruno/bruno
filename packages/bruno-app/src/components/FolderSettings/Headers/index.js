@@ -11,6 +11,7 @@ import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from 'components/BulkEditor/index';
 import Button from 'ui/Button';
+import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
@@ -35,6 +36,22 @@ const Headers = ({ collection, folder }) => {
   }, [dispatch, collection.uid, folder.uid]);
 
   const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
+
+  const getRowError = useCallback((row, index, key) => {
+    if (key === 'name') {
+      if (!row.name || row.name.trim() === '') return null;
+      if (!headerNameRegex.test(row.name)) {
+        return 'Header name cannot contain spaces or newlines';
+      }
+    }
+    if (key === 'value') {
+      if (!row.value) return null;
+      if (!headerValueRegex.test(row.value)) {
+        return 'Header value cannot contain newlines';
+      }
+    }
+    return null;
+  }, []);
 
   const columns = [
     {
@@ -106,6 +123,7 @@ const Headers = ({ collection, folder }) => {
         rows={headers}
         onChange={handleHeadersChange}
         defaultRow={defaultRow}
+        getRowError={getRowError}
       />
       <div className="flex justify-end mt-2">
         <button className="text-link select-none" onClick={toggleBulkEditMode}>

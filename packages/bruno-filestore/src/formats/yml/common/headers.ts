@@ -1,7 +1,7 @@
 import type { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import type { HttpRequestHeader, HttpResponseHeader } from '@opencollection/types/requests/http';
-import { uuid } from '../../../utils';
+import { uuid, ensureString } from '../../../utils';
 
 export const toOpenCollectionHttpHeaders = (headers: BrunoFolderRequest['headers']): HttpRequestHeader[] | undefined => {
   if (!headers?.length) {
@@ -46,8 +46,8 @@ export const toBrunoHttpHeaders = (headers: HttpRequestHeader[] | HttpResponseHe
   const brunoHeaders = headers.map((header): BrunoKeyValue => {
     const brunoHeader: BrunoKeyValue = {
       uid: uuid(),
-      name: header.name || '',
-      value: header.value || '',
+      name: ensureString(header.name),
+      value: ensureString(header.value),
       enabled: ('disabled' in header) ? header.disabled !== true : true
     };
 

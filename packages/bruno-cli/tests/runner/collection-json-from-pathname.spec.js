@@ -36,7 +36,6 @@ describe('create collection json from pathname', () => {
     expect(c).toHaveProperty('brunoConfig.proxy.auth.password', '<password>');
     expect(c).toHaveProperty('brunoConfig.proxy.bypassProxy', '');
     expect(c).toHaveProperty('brunoConfig.scripts.moduleWhitelist', ['crypto', 'buffer']);
-    expect(c).toHaveProperty('brunoConfig.scripts.filesystemAccess.allow', true);
     expect(c).toHaveProperty('brunoConfig.clientCertificates.enabled', true);
     expect(c).toHaveProperty('brunoConfig.clientCertificates.certs', []);
 

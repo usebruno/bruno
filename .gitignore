@@ -55,6 +55,7 @@ bruno.iml
 
 # Development plan files
 CLAUDE.md
+AGENTS.md
 *.plan.md
 
 # packages dist

@@ -20,6 +20,7 @@ test.describe.serial('Collection Environment Import Tests', () => {
 
     await test.step('Navigate to collection environment import', async () => {
       // Open environment import
+      await page.getByTestId('environment-selector-trigger').hover();
       await page.getByTestId('environment-selector-trigger').click();
       await page.getByTestId('env-tab-collection').click();
       await expect(page.getByTestId('env-tab-collection')).toHaveClass(/active/);
@@ -74,7 +75,10 @@ test.describe.serial('Collection Environment Import Tests', () => {
 
     await test.step('Navigate to collection environment import', async () => {
       // Open environment import
+
+      await page.getByTestId('environment-selector-trigger').hover();
       await page.getByTestId('environment-selector-trigger').click();
+
       await page.getByTestId('env-tab-collection').click();
       await expect(page.getByTestId('env-tab-collection')).toHaveClass(/active/);
       await page.getByText('Import', { exact: true }).click();
@@ -97,6 +101,8 @@ test.describe.serial('Collection Environment Import Tests', () => {
 
     await test.step('Verify both environments are available in selector', async () => {
       await page.waitForTimeout(500);
+
+      await page.getByTestId('environment-selector-trigger').hover();
       await page.getByTestId('environment-selector-trigger').click();
 
       await page.waitForTimeout(300);
@@ -110,6 +116,7 @@ test.describe.serial('Collection Environment Import Tests', () => {
       await expect(page.locator('.current-environment')).toContainText('prod');
 
       // Verify prod environment variables by opening settings again
+      await page.getByTestId('environment-selector-trigger').hover();
       await page.getByTestId('environment-selector-trigger').click();
       await page.getByText('Configure', { exact: true }).click();
 

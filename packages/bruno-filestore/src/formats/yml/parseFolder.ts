@@ -5,7 +5,7 @@ import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
 import { toBrunoScripts } from './common/scripts';
-import { isNonEmptyString } from '../../utils';
+import { ensureString } from '../../utils';
 
 const parseFolder = (ymlString: string): FolderRoot => {
   try {
@@ -15,7 +15,7 @@ const parseFolder = (ymlString: string): FolderRoot => {
 
     const folderRoot: FolderRoot = {
       meta: {
-        name: info?.name || 'Untitled Folder',
+        name: ensureString(info?.name, 'Untitled Folder'),
         seq: info?.seq || 1
       },
       request: null,

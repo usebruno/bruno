@@ -25,11 +25,14 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
     await sendRequest(page, 200);
 
     // confirm that the environment variable is set
+    await page.getByTestId('environment-selector-trigger').hover();
     await page.getByTestId('environment-selector-trigger').click();
     // open environment configuration
+
+    await page.locator('#configure-env').hover();
     await page.locator('#configure-env').click();
 
-    const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+    const envTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Environments' }) });
     await expect(envTab).toBeVisible();
 
     await expect(page.getByRole('row', { name: 'token' }).getByRole('cell').nth(1)).toBeVisible();

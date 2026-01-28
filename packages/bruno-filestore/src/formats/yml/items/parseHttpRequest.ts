@@ -9,7 +9,7 @@ import { toBrunoVariables } from '../common/variables';
 import { toBrunoPostResponseVariables } from '../common/actions';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
-import { uuid } from '../../../utils';
+import { uuid, ensureString } from '../../../utils';
 
 const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   const info = ocRequest.info;
@@ -17,8 +17,8 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   const runtime = ocRequest.runtime;
 
   const brunoRequest: BrunoHttpRequest = {
-    url: http?.url || '',
-    method: http?.method || 'GET',
+    url: ensureString(http?.url),
+    method: ensureString(http?.method, 'GET'),
     headers: toBrunoHttpHeaders(http?.headers) || [],
     params: toBrunoParams(http?.params) || [],
     auth: toBrunoAuth(http?.auth),
@@ -84,7 +84,7 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     uid: uuid(),
     type: 'http-request',
     seq: info?.seq || 1,
-    name: info?.name || 'Untitled Request',
+    name: ensureString(info?.name, 'Untitled Request'),
     tags: info?.tags || [],
     request: brunoRequest,
     settings: null,
@@ -135,7 +135,7 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
       const brunoExample: any = {
         uid: uuid(),
         itemUid: uuid(),
-        name: example.name || 'Untitled Example',
+        name: ensureString(example.name, 'Untitled Example'),
         type: 'http-request',
         request: null,
         response: null
@@ -151,8 +151,8 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
 
       if (example.request) {
         brunoExample.request = {
-          url: example.request.url || '',
-          method: example.request.method || 'GET',
+          url: ensureString(example.request.url),
+          method: ensureString(example.request.method, 'GET'),
           headers: toBrunoHttpHeaders(example.request.headers) || [],
           params: toBrunoParams(example.request.params) || [],
           body: toBrunoBody(example.request.body) || {

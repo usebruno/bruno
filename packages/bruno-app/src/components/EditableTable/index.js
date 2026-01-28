@@ -179,15 +179,34 @@ const EditableTable = ({
     const value = column.getValue ? column.getValue(row) : row[column.key];
     const error = getRowError?.(row, rowIndex, column.key);
 
+    const errorIcon = error && !isEmpty ? (
+      <span>
+        <IconAlertCircle
+          data-tooltip-id={`error-${row.uid}-${column.key}`}
+          className="text-red-600 cursor-pointer ml-1"
+          size={20}
+        />
+        <Tooltip
+          className="tooltip-mod"
+          id={`error-${row.uid}-${column.key}`}
+          html={error}
+        />
+      </span>
+    ) : null;
+
     if (column.render) {
-      return column.render({
-        row,
-        value,
-        rowIndex,
-        isLastEmptyRow: isEmpty,
-        onChange: (newValue) => handleValueChange(row.uid, column.key, newValue),
-        error
-      });
+      return (
+        <div className="flex items-center">
+          {column.render({
+            row,
+            value,
+            rowIndex,
+            isLastEmptyRow: isEmpty,
+            onChange: (newValue) => handleValueChange(row.uid, column.key, newValue)
+          })}
+          {errorIcon}
+        </div>
+      );
     }
 
     return (
@@ -204,20 +223,7 @@ const EditableTable = ({
           placeholder={isEmpty ? column.placeholder || column.name : ''}
           onChange={(e) => handleValueChange(row.uid, column.key, e.target.value)}
         />
-        {error && !isEmpty && (
-          <span>
-            <IconAlertCircle
-              data-tooltip-id={`error-${row.uid}-${column.key}`}
-              className="text-red-600 cursor-pointer"
-              size={20}
-            />
-            <Tooltip
-              className="tooltip-mod"
-              id={`error-${row.uid}-${column.key}`}
-              html={error}
-            />
-          </span>
-        )}
+        {errorIcon}
       </div>
     );
   }, [isLastEmptyRow, getRowError, handleValueChange]);

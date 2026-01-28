@@ -7,6 +7,12 @@ describe('Bruno to Postman Request Translation', () => {
     expect(translatedCode).toBe('const url = pm.request.url;');
   });
 
+  it('should translate req.url to pm.request.url (property to property)', () => {
+    const code = 'const url = req.url;';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const url = pm.request.url;');
+  });
+
   it('should translate req.getMethod() to pm.request.method (function to property)', () => {
     const code = 'const method = req.getMethod();';
     const translatedCode = translateBruToPostman(code);

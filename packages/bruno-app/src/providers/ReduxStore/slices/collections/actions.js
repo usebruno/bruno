@@ -55,7 +55,8 @@ import {
   addFolderVar,
   updateFolderVar,
   addCollectionVar,
-  updateCollectionVar
+  updateCollectionVar,
+  updatePathParam
 } from './index';
 
 import { each } from 'lodash';
@@ -1870,7 +1871,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
         return reject(new Error('Process environment variables are read-only'));
       }
 
-      if (type === 'runtime') {
+      if (type === 'runtime' || (collection && collection.runtimeVariables && collection.runtimeVariables[variableName])) {
         toast.error('Runtime variables are set by scripts and cannot be edited');
         return reject(new Error('Runtime variables are read-only'));
       }
@@ -2007,7 +2008,23 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             .then(resolve)
             .catch(reject);
         }
+        case 'pathParam': {
+          const { item } = data;
+          const params = item.draft ? get(item, 'draft.request.params', []) : get(item, 'request.params', []);
+          const pathParam = params.find((p) => p.type === 'path' && p.name === variableName);
 
+          if (pathParam) {
+            const updatedParam = { ...pathParam, value: newValue };
+            dispatch(updatePathParam({
+              pathParam: updatedParam,
+              itemUid: item.uid,
+              collectionUid: collection.uid
+            }));
+          }
+          return dispatch(saveRequest(item.uid, collection.uid, true))
+            .then(resolve)
+            .catch(reject);
+        }
         default:
           return reject(new Error(`Unknown scope type: ${type}`));
       }

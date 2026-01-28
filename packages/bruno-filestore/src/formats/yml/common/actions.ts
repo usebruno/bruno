@@ -1,6 +1,6 @@
 import type { Action, ActionSetVariable, ActionVariableScope } from '@opencollection/types/common/actions';
 import type { Variable as BrunoVariable, Variables as BrunoVariables } from '@usebruno/schema-types/common/variables';
-import { uuid } from '../../../utils';
+import { uuid, ensureString } from '../../../utils';
 
 /**
  * Convert Bruno post-response variables to OpenCollection actions.
@@ -58,8 +58,8 @@ export const toBrunoPostResponseVariables = (actions: Action[] | null | undefine
 
       const variable: BrunoVariable = {
         uid: uuid(),
-        name: setVarAction.variable?.name || '',
-        value: setVarAction.selector?.expression || '',
+        name: ensureString(setVarAction.variable?.name),
+        value: ensureString(setVarAction.selector?.expression),
         enabled: setVarAction.disabled !== true,
         local: false
       };

@@ -12,7 +12,7 @@
  */
 
 import { mockDataFunctions } from '../utils/faker-functions';
-import { get, isPlainObject } from 'lodash-es';
+import { get, isPlainObject, mapValues } from 'lodash-es';
 
 // regex to match {{$keyword}}
 const MOCK_PATTERN = /\{\{\$(\w+)\}\}/g;
@@ -127,6 +127,35 @@ const replace = (
   }
 
   return resultStr;
+};
+
+export const interpolateObject = (obj: unknown, variables: Record<string, any>): unknown => {
+  const seen = new WeakSet<object>();
+  const walk = (value: unknown): unknown => {
+    if (value == null) return value;
+    if (typeof value === 'string') {
+      return interpolate(value, variables);
+    }
+    if (typeof value === 'object') {
+      if (seen.has(value as object)) {
+        throw new Error('Circular reference detected during interpolation.');
+      }
+      seen.add(value as object);
+      try {
+        if (Array.isArray(value)) {
+          return value.map(walk);
+        }
+        if (isPlainObject(value)) {
+          return mapValues(value as Record<string, unknown>, walk);
+        }
+        return value;
+      } finally {
+        seen.delete(value as object);
+      }
+    }
+    return value;
+  };
+  return walk(obj);
 };
 
 export default interpolate;

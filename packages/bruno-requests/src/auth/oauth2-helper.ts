@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, ResponseType } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, ResponseType } from 'axios';
 import qs from 'qs';
 import debug from 'debug';
 
@@ -107,7 +107,7 @@ const safeParseJSONBuffer = (data: any) => {
 /**
  * Fetches an OAuth2 token using client credentials grant
  */
-const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
+const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config, axiosInstance?: AxiosInstance) => {
   const {
     accessTokenUrl,
     clientId,
@@ -167,7 +167,8 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
   debug('oauth2')(JSON.stringify(requestConfig, null, 2));
 
   try {
-    const response = await axios(requestConfig);
+    const httpClient = axiosInstance || axios;
+    const response = await httpClient(requestConfig);
     const parsedData = safeParseJSONBuffer(response.data);
 
     if (parsedData && typeof parsedData === 'object') {
@@ -197,7 +198,7 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
 /**
  * Fetches an OAuth2 token using password grant
  */
-const fetchTokenPassword = async (oauth2Config: OAuth2Config) => {
+const fetchTokenPassword = async (oauth2Config: OAuth2Config, axiosInstance?: AxiosInstance) => {
   const {
     accessTokenUrl,
     clientId,
@@ -269,7 +270,8 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config) => {
   debug('oauth2')(JSON.stringify(requestConfig, null, 2));
 
   try {
-    const response = await axios(requestConfig);
+    const httpClient = axiosInstance || axios;
+    const response = await httpClient(requestConfig);
     const parsedData = safeParseJSONBuffer(response.data);
 
     if (parsedData && typeof parsedData === 'object') {
@@ -313,7 +315,7 @@ const isTokenExpired = (credentials: any): boolean => {
 /**
  * Manages OAuth2 token retrieval and storage
  */
-export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: TokenStore, verbose: string): Promise<string | null> => {
+export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: TokenStore, verbose: string, axiosInstance?: AxiosInstance): Promise<string | null> => {
   const {
     grantType,
     accessTokenUrl,
@@ -367,9 +369,9 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
   let tokenResponse;
 
   if (grantType === 'client_credentials') {
-    tokenResponse = await fetchTokenClientCredentials(oauth2Config);
+    tokenResponse = await fetchTokenClientCredentials(oauth2Config, axiosInstance);
   } else if (grantType === 'password') {
-    tokenResponse = await fetchTokenPassword(oauth2Config);
+    tokenResponse = await fetchTokenPassword(oauth2Config, axiosInstance);
   } else {
     throw new Error(`Unsupported grant type: ${grantType}`);
   }

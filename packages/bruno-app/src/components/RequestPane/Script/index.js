@@ -6,17 +6,35 @@ import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
+import StatusDot from 'components/StatusDot';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState('pre-request');
   const preRequestEditorRef = useRef(null);
   const postResponseEditorRef = useRef(null);
   const requestScript = item.draft ? get(item, 'draft.request.script.req') : get(item, 'request.script.req');
   const responseScript = item.draft ? get(item, 'draft.request.script.res') : get(item, 'request.script.res');
 
+  // Default to post-response if pre-request script is empty
+  const getInitialTab = () => {
+    const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
+    return hasPreRequestScript ? 'pre-request' : 'post-response';
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+  const prevItemUidRef = useRef(item.uid);
+
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+
+  // Update active tab only when switching to a different item
+  useEffect(() => {
+    if (prevItemUidRef.current !== item.uid) {
+      prevItemUidRef.current = item.uid;
+      const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
+      setActiveTab(hasPreRequestScript ? 'pre-request' : 'post-response');
+    }
+  }, [item.uid, requestScript]);
 
   // Refresh CodeMirror when tab becomes visible
   useEffect(() => {
@@ -55,12 +73,21 @@ const Script = ({ item, collection }) => {
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
+  const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
+  const hasPostResponseScript = responseScript && responseScript.trim().length > 0;
+
   return (
     <div className="w-full h-full flex flex-col">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="pre-request">Pre Request</TabsTrigger>
-          <TabsTrigger value="post-response">Post Response</TabsTrigger>
+          <TabsTrigger value="pre-request">
+            Pre Request
+            {hasPreRequestScript && <StatusDot />}
+          </TabsTrigger>
+          <TabsTrigger value="post-response">
+            Post Response
+            {hasPostResponseScript && <StatusDot />}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pre-request" className="mt-2" dataTestId="pre-request-script-editor">

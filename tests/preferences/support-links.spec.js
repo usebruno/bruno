@@ -22,6 +22,4 @@ test('Should verify all support links with correct URL in preference > Support t
 
   const locator_documentation = page.getByRole('link', { name: 'Documentation', exact: true });
   expect(await locator_documentation.getAttribute('href')).toEqual('https://docs.usebruno.com');
-
-  await page.getByTestId('modal-close-button').click();
 });

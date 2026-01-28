@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest, selectRequestPaneTab } from '../../utils/page';
+import { closeAllCollections, createCollection, createRequest, saveRequest, selectRequestPaneTab } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Tag persistence', () => {
@@ -23,13 +23,11 @@ test.describe('Tag persistence', () => {
       await locators.sidebar.request(requestName).click();
       await locators.tabs.requestTab(requestName).waitFor({ state: 'visible' });
       await selectRequestPaneTab(page, 'Settings');
-      await page.waitForTimeout(200);
+      await expect(locators.tags.input()).toBeVisible();
       await locators.tags.input().fill(tagName);
       await locators.tags.input().press('Enter');
-      await page.waitForTimeout(200);
       await expect(locators.tags.item(tagName)).toBeVisible();
-      await page.keyboard.press('Meta+s');
-      await page.waitForTimeout(200);
+      await saveRequest(page);
     }
 
     // Move the last request to just above the first request within the same collection
@@ -53,7 +51,6 @@ test.describe('Tag persistence', () => {
     await r3Request.click();
     await locators.tabs.requestTab('request-3').waitFor({ state: 'visible' });
     await selectRequestPaneTab(page, 'Settings');
-    await page.waitForTimeout(200);
     // Verify the tag is still present after the move
     await expect(locators.tags.item(tagName)).toBeVisible();
   });
@@ -70,11 +67,10 @@ test.describe('Tag persistence', () => {
     await locators.dropdown.item('New Folder').click();
     await page.locator('#folder-name').fill('folder-1');
     await locators.modal.button('Create').click();
-    await page.waitForTimeout(100);
+    await expect(locators.sidebar.folder('folder-1')).toBeVisible();
 
     // Create a new request within folder-1 folder
     await locators.sidebar.folder('folder-1').click();
-    await page.waitForTimeout(200);
 
     await locators.sidebar.folder('folder-1').hover();
     await locators.actions.collectionItemActions('folder-1').click();
@@ -92,14 +88,16 @@ test.describe('Tag persistence', () => {
     await locators.request.newRequestUrl().click();
     await page.keyboard.type('https://httpfaker.org/api/echo');
     await locators.modal.button('Create').click();
-    await page.waitForTimeout(200);
+    await expect(locators.sidebar.folderRequest('folder-1', 'request-2')).toBeVisible();
+    await locators.sidebar.folderRequest('folder-1', 'request-2').click();
+    await expect(locators.tabs.activeRequestTab()).toContainText('request-2');
 
     // Add a tag to the request
     await selectRequestPaneTab(page, 'Settings');
-    await page.waitForTimeout(200);
+    await expect(locators.tags.input()).toBeVisible();
+
     await locators.tags.input().fill('smoke');
     await locators.tags.input().press('Enter');
-    await page.waitForTimeout(200);
     await expect(locators.tags.item('smoke')).toBeVisible();
     await page.keyboard.press('Meta+s');
 
@@ -125,17 +123,14 @@ test.describe('Tag persistence', () => {
     const f2Folder = locators.sidebar.folder('folder-2');
     await r2Request.dragTo(f2Folder);
 
-    // Verify the requests are still in the collection and request-2 is now in folder-2 folder
-    await expect(locators.sidebar.request('request-2')).toBeVisible();
-    await expect(locators.sidebar.folder('folder-2')).toBeVisible();
+    const request2 = locators.sidebar.folderRequest('folder-2', 'request-2');
+    await expect(request2).toBeVisible();
 
     // Click on request-2 to verify the tag persisted after the move
-    await locators.sidebar.request('request-2').click();
-    await page.waitForTimeout(200);
-
+    await request2.click();
     await locators.tabs.requestTab('request-2').waitFor({ state: 'visible' });
+
     await selectRequestPaneTab(page, 'Settings');
-    await page.waitForTimeout(200);
     await expect(locators.tags.item('smoke')).toBeVisible();
   });
 });

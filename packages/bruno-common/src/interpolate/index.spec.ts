@@ -1,4 +1,4 @@
-import interpolate from './index';
+import interpolate, { interpolateObject } from './index';
 import moment from 'moment';
 
 const BRUNO_BIRTH_DATE = new Date('2019-08-08');
@@ -676,5 +676,184 @@ describe('interpolate - moment() handling', () => {
     const result = interpolate(inputString, inputObject);
 
     expect(result).toBe('Date is {"now":"2025-04-17T15:33:41.117Z"}');
+  });
+});
+
+describe('interpolateObject', () => {
+  it('should interpolate strings in a flat object', () => {
+    const obj = {
+      url: '{{baseUrl}}/api/users',
+      name: '{{userName}}'
+    };
+    const variables = { baseUrl: 'https://api.example.com', userName: 'Bruno' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      url: 'https://api.example.com/api/users',
+      name: 'Bruno'
+    });
+  });
+
+  it('should interpolate strings in nested objects', () => {
+    const obj = {
+      request: {
+        url: '{{baseUrl}}/api',
+        headers: {
+          Authorization: 'Bearer {{token}}'
+        }
+      }
+    };
+    const variables = { baseUrl: 'https://api.example.com', token: 'abc123' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      request: {
+        url: 'https://api.example.com/api',
+        headers: {
+          Authorization: 'Bearer abc123'
+        }
+      }
+    });
+  });
+
+  it('should interpolate strings in arrays', () => {
+    const obj = {
+      urls: ['{{baseUrl}}/one', '{{baseUrl}}/two']
+    };
+    const variables = { baseUrl: 'https://api.example.com' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      urls: ['https://api.example.com/one', 'https://api.example.com/two']
+    });
+  });
+
+  it('should preserve non-string values', () => {
+    const obj = {
+      name: '{{name}}',
+      age: 5,
+      active: true,
+      data: null
+    };
+    const variables = { name: 'Bruno' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      name: 'Bruno',
+      age: 5,
+      active: true,
+      data: null
+    });
+  });
+
+  it('should return null and undefined as-is', () => {
+    expect(interpolateObject(null, {})).toBeNull();
+    expect(interpolateObject(undefined, {})).toBeUndefined();
+  });
+
+  it('should throw on circular references', () => {
+    const obj: any = { a: 1 };
+    obj.self = obj;
+
+    expect(() => interpolateObject(obj, {})).toThrow('Circular reference detected during interpolation.');
+  });
+
+  it('should handle shared object references without throwing false positives', () => {
+    const shared = { value: '{{sharedValue}}' };
+    const obj = {
+      x: shared,
+      y: shared
+    };
+    const variables = { sharedValue: 'test' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      x: { value: 'test' },
+      y: { value: 'test' }
+    });
+  });
+
+  it('should handle shared object references in arrays', () => {
+    const shared = { id: '{{id}}' };
+    const obj = {
+      items: [shared, shared, shared]
+    };
+    const variables = { id: '123' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      items: [{ id: '123' }, { id: '123' }, { id: '123' }]
+    });
+  });
+
+  it('should handle shared object references in nested structures', () => {
+    const shared = { name: '{{name}}' };
+    const obj = {
+      user: shared,
+      profile: {
+        user: shared,
+        metadata: {
+          user: shared
+        }
+      }
+    };
+    const variables = { name: 'Bruno' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      user: { name: 'Bruno' },
+      profile: {
+        user: { name: 'Bruno' },
+        metadata: {
+          user: { name: 'Bruno' }
+        }
+      }
+    });
+  });
+
+  it('should handle shared array references', () => {
+    const shared = ['{{item1}}', '{{item2}}'];
+    const obj = {
+      list1: shared,
+      list2: shared
+    };
+    const variables = { item1: 'a', item2: 'b' };
+
+    const result = interpolateObject(obj, variables);
+
+    expect(result).toEqual({
+      list1: ['a', 'b'],
+      list2: ['a', 'b']
+    });
+  });
+
+  it('should still detect actual circular references', () => {
+    const obj: any = {
+      a: { value: '{{val}}' },
+      b: { value: '{{val}}' }
+    };
+    obj.a.circular = obj.a; // Circular reference
+
+    expect(() => interpolateObject(obj, { val: 'test' })).toThrow('Circular reference detected during interpolation.');
+  });
+
+  it('should handle deeply nested circular references', () => {
+    const obj: any = {
+      level1: {
+        level2: {
+          level3: {}
+        }
+      }
+    };
+    obj.level1.level2.level3.circular = obj.level1;
+
+    expect(() => interpolateObject(obj, {})).toThrow('Circular reference detected during interpolation.');
   });
 });

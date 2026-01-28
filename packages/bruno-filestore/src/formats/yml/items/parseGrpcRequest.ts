@@ -6,7 +6,7 @@ import { toBrunoAuth } from '../common/auth';
 import { toBrunoVariables } from '../common/variables';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
-import { isNonEmptyString, uuid } from '../../../utils';
+import { isNonEmptyString, uuid, ensureString } from '../../../utils';
 
 const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): BrunoKeyValue[] | undefined => {
   if (!metadata?.length) {
@@ -16,8 +16,8 @@ const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): Bruno
   const brunoMetadata = metadata.map((meta: GrpcMetadata): BrunoKeyValue => {
     const brunoMeta: BrunoKeyValue = {
       uid: uuid(),
-      name: meta.name || '',
-      value: meta.value || '',
+      name: ensureString(meta.name),
+      value: ensureString(meta.value),
       enabled: meta.disabled !== true
     };
 
@@ -33,8 +33,8 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   const runtime = ocRequest.runtime;
 
   const brunoRequest: BrunoGrpcRequest = {
-    url: grpc?.url || '',
-    method: grpc?.method || '',
+    url: ensureString(grpc?.url),
+    method: ensureString(grpc?.method),
     methodType: grpc?.methodType || '',
     protoPath: grpc?.protoFilePath || null,
     headers: toBrunoGrpcMetadata(grpc?.metadata) || [],
@@ -98,7 +98,7 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
     uid: uuid(),
     type: 'grpc-request',
     seq: info?.seq || 1,
-    name: info?.name || 'Untitled Request',
+    name: ensureString(info?.name, 'Untitled Request'),
     tags: info?.tags || [],
     request: brunoRequest,
     settings: {},

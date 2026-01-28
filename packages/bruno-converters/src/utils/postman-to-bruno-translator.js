@@ -38,6 +38,10 @@ const simpleTranslations = {
   'pm.info.requestName': 'req.getName()',
 
   // Request properties (pm.request.*)
+  'pm.request.url.getHost': 'req.getHost',
+  'pm.request.url.getPath': 'req.getPath',
+  'pm.request.url.getQueryString': 'req.getQueryString',
+  'pm.request.url.variables': 'req.getPathParams()',
   'pm.request.url': 'req.getUrl()',
   'pm.request.method': 'req.getMethod()',
   'pm.request.headers': 'req.getHeaders()',

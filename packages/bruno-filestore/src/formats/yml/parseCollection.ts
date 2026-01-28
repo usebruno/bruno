@@ -5,6 +5,7 @@ import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
 import { toBrunoScripts } from './common/scripts';
+import { ensureString } from '../../utils';
 
 interface ParsedCollection {
   collectionRoot: FolderRoot;
@@ -18,7 +19,7 @@ const parseCollection = (ymlString: string): ParsedCollection => {
     // bruno config
     const brunoConfig: Record<string, any> = {
       opencollection: oc.opencollection || '1.0.0',
-      name: oc.info?.name || 'Untitled Collection',
+      name: ensureString(oc.info?.name, 'Untitled Collection'),
       type: 'collection',
       ignore: []
     };

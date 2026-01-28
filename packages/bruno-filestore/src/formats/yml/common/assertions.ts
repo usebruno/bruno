@@ -1,6 +1,6 @@
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import type { Assertion } from '@opencollection/types/common/assertions';
-import { uuid } from '../../../utils';
+import { uuid, ensureString } from '../../../utils';
 
 const OPERATORS = [
   'eq',
@@ -119,14 +119,14 @@ export const toBrunoAssertions = (assertions: Assertion[] | null | undefined): B
 
   const brunoAssertions: BrunoKeyValue[] = assertions.map((assertion: Assertion): BrunoKeyValue => {
     // Reconstruct the "operator value" format that Bruno uses
-    let valueString = assertion.operator;
+    let valueString = ensureString(assertion.operator);
     if (assertion.value !== undefined && assertion.value !== null) {
-      valueString = `${assertion.operator} ${assertion.value}`;
+      valueString = `${assertion.operator} ${ensureString(assertion.value)}`;
     }
 
     const brunoAssertion: BrunoKeyValue = {
       uid: uuid(),
-      name: assertion.expression || '',
+      name: ensureString(assertion.expression),
       value: valueString,
       enabled: assertion.disabled !== true
     };
