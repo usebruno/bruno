@@ -809,8 +809,7 @@ const runSingleRequest = async function (
     // Log request status after all tests/assertions are logged
     if (hasAnyFailures) {
       console.log(
-        'tomato'
-        + chalk.red(stripExtension(relativeItemPathname))
+        chalk.red(stripExtension(relativeItemPathname))
         + chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
       );
     } else {
