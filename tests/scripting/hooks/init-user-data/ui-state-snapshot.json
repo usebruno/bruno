@@ -1,0 +1,8 @@
+{
+    "collections": [
+        {
+            "pathname": "{{projectRoot}}/packages/bruno-tests/hooks-comprehensive-tests",
+            "selectedEnvironment": "Prod"
+        }
+    ]
+}

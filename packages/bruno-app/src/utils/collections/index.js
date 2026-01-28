@@ -522,6 +522,9 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           if (script?.res?.length) {
             di.root.request.script.res = script?.res;
           }
+          if (script?.hooks?.length) {
+            di.root.request.script.hooks = script?.hooks;
+          }
         }
         // folder level vars
         if (Object.keys(vars)?.length) {
@@ -606,6 +609,9 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     }
     if (script?.res?.length) {
       collectionToSave.root.request.script.res = script?.res;
+    }
+    if (script?.hooks?.length) {
+      collectionToSave.root.request.script.hooks = script?.hooks;
     }
   }
   // collection level vars

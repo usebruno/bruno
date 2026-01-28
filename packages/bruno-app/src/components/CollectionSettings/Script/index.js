@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
-import { updateCollectionRequestScript, updateCollectionResponseScript } from 'providers/ReduxStore/slices/collections';
+import { updateCollectionRequestScript, updateCollectionResponseScript, updateCollectionHooksScript } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
@@ -14,8 +14,10 @@ const Script = ({ collection }) => {
   const dispatch = useDispatch();
   const preRequestEditorRef = useRef(null);
   const postResponseEditorRef = useRef(null);
+  const hooksEditorRef = useRef(null);
   const requestScript = collection.draft?.root ? get(collection, 'draft.root.request.script.req', '') : get(collection, 'root.request.script.req', '');
   const responseScript = collection.draft?.root ? get(collection, 'draft.root.request.script.res', '') : get(collection, 'root.request.script.res', '');
+  const hooks = collection.draft?.root ? get(collection, 'draft.root.request.script.hooks', '') : get(collection, 'root.request.script.hooks', '');
 
   // Default to post-response if pre-request script is empty
   const getInitialTab = () => {
@@ -45,6 +47,8 @@ const Script = ({ collection }) => {
         preRequestEditorRef.current.editor.refresh();
       } else if (activeTab === 'post-response' && postResponseEditorRef.current?.editor) {
         postResponseEditorRef.current.editor.refresh();
+      } else if (activeTab === 'hooks' && hooksEditorRef.current?.editor) {
+        hooksEditorRef.current.editor.refresh();
       }
     }, 0);
 
@@ -69,6 +73,13 @@ const Script = ({ collection }) => {
     );
   };
 
+  const onHooksEdit = (value) => {
+    dispatch(updateCollectionHooksScript({
+      hooks: value,
+      collectionUid: collection.uid
+    }));
+  };
+
   const handleSave = () => {
     dispatch(saveCollectionSettings(collection.uid));
   };
@@ -88,6 +99,10 @@ const Script = ({ collection }) => {
           <TabsTrigger value="post-response">
             Post Response
             {responseScript && responseScript.trim().length > 0 && <StatusDot />}
+          </TabsTrigger>
+          <TabsTrigger value="hooks">
+            Hooks
+            {hooks && hooks.trim().length > 0 && <StatusDot />}
           </TabsTrigger>
         </TabsList>
 
@@ -113,6 +128,21 @@ const Script = ({ collection }) => {
             value={responseScript || ''}
             theme={displayedTheme}
             onEdit={onResponseScriptEdit}
+            mode="javascript"
+            onSave={handleSave}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+            showHintsFor={['req', 'res', 'bru']}
+          />
+        </TabsContent>
+
+        <TabsContent value="hooks" className="mt-2">
+          <CodeEditor
+            ref={hooksEditorRef}
+            collection={collection}
+            value={hooks || ''}
+            theme={displayedTheme}
+            onEdit={onHooksEdit}
             mode="javascript"
             onSave={handleSave}
             font={get(preferences, 'font.codeFont', 'default')}

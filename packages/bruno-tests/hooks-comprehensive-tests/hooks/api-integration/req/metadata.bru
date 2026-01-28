@@ -1,0 +1,43 @@
+meta {
+  name: metadata
+  type: http
+  seq: 5
+  tags: [
+    hook-test
+    api-test
+  ]
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    bru.setVar('req-name', req.getName());
+    bru.setVar('req-tags', req.getTags());
+    bru.setVar('req-timeout-before', req.getTimeout());
+    
+    req.setTimeout(5000);
+    bru.setVar('req-timeout-after', req.getTimeout());
+  });
+}
+
+tests {
+  test("req.getName - returns request name", function() {
+    expect(bru.getVar('req-name')).to.equal('metadata');
+  });
+  
+  test("req.getTags - returns tags array", function() {
+    const tags = bru.getVar('req-tags');
+    expect(tags).to.include('hook-test');
+    expect(tags).to.include('api-test');
+  });
+  
+  test("req.setTimeout - changes timeout", function() {
+    expect(bru.getVar('req-timeout-after')).to.equal(5000);
+  });
+}
+

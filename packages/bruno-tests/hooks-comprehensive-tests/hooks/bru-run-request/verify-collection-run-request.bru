@@ -1,0 +1,28 @@
+meta {
+  name: verify-collection-run-request
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("collection-level bru.runRequest should have set response body", function() {
+    const responseBody = bru.getVar('collection-run-request-response');
+    expect(responseBody).to.equal('pong');
+  });
+  
+  test("collection-level bru.runRequest should have set response status", function() {
+    const responseStatus = bru.getVar('collection-run-request-status');
+    expect(responseStatus).to.equal(200);
+  });
+  
+  test("collection-level bru.runRequest flag should be set", function() {
+    const flag = bru.getVar('collection-run-request-tested');
+    expect(flag).to.equal('true');
+  });
+}
