@@ -61,6 +61,7 @@ export const tabsSlice = createSlice({
           responsePaneTab: 'response',
           responseFormat: null,
           responseViewTab: null,
+          scriptPaneTab: null,
           type: type || 'request',
           preview: preview !== undefined
             ? preview
@@ -83,6 +84,7 @@ export const tabsSlice = createSlice({
         responsePaneScrollPosition: null,
         responseFormat: null,
         responseViewTab: null,
+        scriptPaneTab: null,
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
@@ -163,6 +165,13 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.responseViewTab = action.payload.responseViewTab;
+      }
+    },
+    updateScriptPaneTab: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.scriptPaneTab = action.payload.scriptPaneTab;
       }
     },
     closeTabs: (state, action) => {
@@ -251,6 +260,7 @@ export const {
   updateResponsePaneScrollPosition,
   updateResponseFormat,
   updateResponseViewTab,
+  updateScriptPaneTab,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
