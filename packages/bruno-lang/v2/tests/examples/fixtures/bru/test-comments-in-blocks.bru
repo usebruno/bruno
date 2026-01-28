@@ -1,0 +1,56 @@
+# Top-level comment before meta block
+
+meta {
+  # Comment inside meta block
+  name: Test Request with Comments
+  type: http
+  // Another comment style
+  seq: 1
+}
+
+get {
+  # Comment before URL
+  url: https://api.example.com/users
+}
+
+headers {
+  # This is a header comment
+  Authorization: Bearer token123
+  // Another header comment
+  Content-Type: application/json
+  # Comment before next header
+  Accept: application/json
+}
+
+params:query {
+  # Query parameter comment
+  page: 1
+  // Limit comment
+  limit: 10
+}
+
+vars:pre-request {
+  # Variable comment
+  userId: 123
+  // Another variable
+  timestamp: {{Date.now()}}
+}
+
+vars:post-response {
+  # Response variable comment
+  userName: res.body.name
+}
+
+assert {
+  # Assertion comment
+  res.status: eq 200
+  // Body assertion
+  res.body.success: eq true
+}
+
+# Comment before tests block
+tests {
+  test("Status code", function() {
+    expect(res.status).to.equal(200);
+  });
+}

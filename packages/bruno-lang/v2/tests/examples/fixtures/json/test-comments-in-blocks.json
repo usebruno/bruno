@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "name": "Test Request with Comments",
+    "type": "http",
+    "seq": "1"
+  },
+  "http": {
+    "method": "get",
+    "url": "https://api.example.com/users"
+  },
+  "headers": [
+    {
+      "name": "Authorization",
+      "value": "Bearer token123",
+      "enabled": true
+    },
+    {
+      "name": "Content-Type",
+      "value": "application/json",
+      "enabled": true
+    },
+    {
+      "name": "Accept",
+      "value": "application/json",
+      "enabled": true
+    }
+  ],
+  "params": [
+    {
+      "name": "page",
+      "value": "1",
+      "enabled": true,
+      "type": "query"
+    },
+    {
+      "name": "limit",
+      "value": "10",
+      "enabled": true,
+      "type": "query"
+    }
+  ],
+  "vars": {
+    "req": [
+      {
+        "name": "userId",
+        "value": "123",
+        "enabled": true,
+        "local": false
+      },
+      {
+        "name": "timestamp",
+        "value": "{{Date.now()}}",
+        "enabled": true,
+        "local": false
+      }
+    ],
+    "res": [
+      {
+        "name": "userName",
+        "value": "res.body.name",
+        "enabled": true,
+        "local": false
+      }
+    ]
+  },
+  "assertions": [
+    {
+      "name": "res.status",
+      "value": "eq 200",
+      "enabled": true
+    },
+    {
+      "name": "res.body.success",
+      "value": "eq true",
+      "enabled": true
+    }
+  ],
+  "tests": "test(\"Status code\", function() {\n  expect(res.status).to.equal(200);\n});"
+}

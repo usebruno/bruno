@@ -1,0 +1,66 @@
+# This is a Bruno request file example with comments
+# Comments can start with # or //
+
+meta {
+  name: Get User Profile
+  type: http
+  seq: 1
+}
+
+// HTTP method and URL
+get {
+  url: https://api.example.com/users/{{userId}}
+}
+
+# Request headers
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+// Query parameters
+params:query {
+  include: profile,settings
+  format: json
+}
+
+# Variables to set before the request
+vars:pre-request {
+  userId: 123
+  timestamp: {{new Date().getTime()}}
+}
+
+// Variables to extract from the response
+vars:post-response {
+  userName: res.body.name
+  userEmail: res.body.email
+}
+
+# Assertions to validate the response
+assert {
+  res.status: eq 200
+  res.body.id: eq {{userId}}
+  res.body.email: isString
+}
+
+// Tests script (JavaScript)
+tests {
+  test("Status should be 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("Response should have user data", function() {
+    expect(res.body).to.have.property('name');
+    expect(res.body).to.have.property('email');
+  });
+}
+
+# Documentation for this request
+docs {
+  This endpoint retrieves a user's profile information.
+  
+  Required permissions:
+  - read:users
+  
+  Rate limit: 100 requests per minute
+}
