@@ -9,12 +9,13 @@ const EnvironmentColor = ({ environment, collectionUid }) => {
   const dispatch = useDispatch();
 
   const onColorChange = useCallback(
-                          (color) => (
-                            dispatch(saveEnvironmentColor(color, environment.uid, collectionUid))
-                            .then(() => toast.success('Environment color changed successfully'))
-                            .catch((e) => toast.error('An error occurred while changing the environment color'))
-                          )
-                        );
+    (color) => {
+      dispatch(saveEnvironmentColor(color, environment.uid, collectionUid))
+        .then(() => toast.success('Environment color changed successfully'))
+        .catch(() => toast.error('An error occurred while changing the environment color'));
+    },
+    [dispatch, environment.uid, collectionUid]
+  );
 
   return (
     <CirclePicker
