@@ -9,13 +9,11 @@ import StyledWrapper from './StyledWrapper';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import { useState } from 'react';
+import SystemProxy from './SystemProxy';
 
 const ProxySettings = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
-  const systemProxyEnvVariables = useSelector((state) => state.app.systemProxyEnvVariables);
-  const { http_proxy, https_proxy, no_proxy } = systemProxyEnvVariables || {};
   const dispatch = useDispatch();
-  console.log(preferences);
 
   const proxySchema = Yup.object({
     disabled: Yup.boolean().optional(),
@@ -167,30 +165,7 @@ const ProxySettings = ({ close }) => {
         </div>
         {formik.values.disabled === false && formik.values.inherit === true ? (
           <div className="mb-3 pt-1 text-muted system-proxy-settings">
-            <small>
-              Below values are sourced from your system environment variables and cannot be directly updated in Bruno.<br />
-              Please refer to your OS documentation to change these values.
-            </small>
-            <div className="flex flex-col justify-start items-start pt-2">
-              <div className="mb-1 flex items-center">
-                <label className="settings-label" htmlFor="http_proxy">
-                  http_proxy
-                </label>
-                <div className="opacity-80">{http_proxy || '-'}</div>
-              </div>
-              <div className="mb-1 flex items-center">
-                <label className="settings-label" htmlFor="https_proxy">
-                  https_proxy
-                </label>
-                <div className="opacity-80">{https_proxy || '-'}</div>
-              </div>
-              <div className="mb-1 flex items-center">
-                <label className="settings-label" htmlFor="no_proxy">
-                  no_proxy
-                </label>
-                <div className="opacity-80">{no_proxy || '-'}</div>
-              </div>
-            </div>
+            <SystemProxy />
           </div>
         ) : null}
         {formik.values.disabled === false && formik.values.inherit === false ? (
