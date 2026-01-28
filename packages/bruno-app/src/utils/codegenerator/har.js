@@ -50,7 +50,7 @@ const encodeQueryParamSegment = (s) => {
   return s
     .replace(/\[/g, '%5B')
     .replace(/\]/g, '%5D')
-    .replace(/%(?![0-9A-Fa-f]{2})/g, '%25');
+    .replace(/%(?![0-9A-Fa-f]{2})/g, BRUNO_PERCENT_SENTINEL);
 };
 
 const createQuery = (queryParams = [], request) => {
@@ -143,11 +143,14 @@ const createPostData = (body) => {
 const BRUNO_VAR_PLACEHOLDER_PREFIX = '__BRUNO_VAR__';
 const BRUNO_VAR_PLACEHOLDER_SUFFIX = '__';
 
+// Sentinel for lone '%' (not part of %XX). Restored to '%' in snippet post-process; avoids blindly decoding all %25.
+export const BRUNO_PERCENT_SENTINEL = '__BRUNO_PERCENT__';
+
 /**
  * Normalize URL for HAR/HTTPSnippet:
  * - Variables {{ }} -> replaced with placeholder (restored in snippet post-process)
  * - Brackets [] -> encode to %5B%5D
- * - % -> encode to %25 only when not already part of %XX (detect isEncoded first)
+ * - Lone % (not part of %XX) -> replaced with BRUNO_PERCENT_SENTINEL (restored in snippet post-process)
  */
 const normalizeUrlForHar = (url) => {
   if (!url || typeof url !== 'string') return url;
@@ -158,12 +161,12 @@ const normalizeUrlForHar = (url) => {
     return name ? `${BRUNO_VAR_PLACEHOLDER_PREFIX}${name}${BRUNO_VAR_PLACEHOLDER_SUFFIX}` : '';
   });
 
-  // 2) Encode [] and % (only lone % not part of %XX)
+  // 2) Encode [] and replace lone % with sentinel (only lone % not part of %XX)
   const encodeSegment = (s) => {
     return s
       .replace(/\[/g, '%5B')
       .replace(/\]/g, '%5D')
-      .replace(/%(?![0-9A-Fa-f]{2})/g, '%25');
+      .replace(/%(?![0-9A-Fa-f]{2})/g, BRUNO_PERCENT_SENTINEL);
   };
 
   const qIndex = out.indexOf('?');

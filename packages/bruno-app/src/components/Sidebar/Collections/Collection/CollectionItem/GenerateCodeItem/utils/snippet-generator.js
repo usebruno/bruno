@@ -1,7 +1,7 @@
-import { buildHarRequest } from 'utils/codegenerator/har';
+import { buildHarRequest, BRUNO_PERCENT_SENTINEL } from 'utils/codegenerator/har';
 import { getAuthHeaders } from 'utils/codegenerator/auth';
 import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
-import { interpolateHeaders, interpolateBody, interpolateAuth, interpolateParams } from './interpolation';
+import { interpolateAuth, interpolateHeaders, interpolateBody, interpolateParams } from './interpolation';
 import { get } from 'lodash';
 
 // Must match har.js placeholders so {{ variable }} is restored in generated code
@@ -26,23 +26,40 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
 
     if (shouldInterpolate) {
       headers = interpolateHeaders(headers, variables);
-      if (request.body) request.body = interpolateBody(request.body, variables);
+      if (request.body) {
+        request = { ...request, body: interpolateBody(request.body, variables) };
+      }
+      request.params = interpolateParams(request.params, variables);
+
+      // Add auth headers if needed (auth inheritance is resolved upstream)
+      if (request.auth && request.auth.mode !== 'none') {
+        if (shouldInterpolate) {
+          request.auth = interpolateAuth(request.auth, variables);
+        }
+
+        const authHeaders = getAuthHeaders(request.auth, collection, item);
+        headers = [...headers, ...authHeaders];
+      }
     }
 
     // 1. Build the "Perfect" HAR for the engine (URL normalized: {{ }} -> placeholder, [] -> %5B%5D, % encoded when not already)
-    const harRequest = buildHarRequest({ request, headers });
+    const harRequest = buildHarRequest({
+      request,
+      headers
+    });
 
-    // 2. Generate
+    // Generate snippet using HTTPSnippet
     const snippet = new HTTPSnippet(harRequest);
     let result = snippet.convert(language.target, language.client);
 
-    // 3. Post-Process: Restore {{ variable }} from placeholder; revert %25 to % (brackets stay %5B%5D per user preference)
+    // 3. Post-Process: Restore {{ variable }} from placeholder; restore only lone-% sentinel to '%' (not all %25)
     if (result && typeof result === 'string') {
       const prefix = BRUNO_VAR_PLACEHOLDER_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const suffix = BRUNO_VAR_PLACEHOLDER_SUFFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const placeholderRegex = new RegExp(`${prefix}(.+?)${suffix}`, 'g');
       result = result.replace(placeholderRegex, '{{ $1 }}');
-      result = result.replace(/%25/g, '%');
+      const percentSentinelRegex = new RegExp(BRUNO_PERCENT_SENTINEL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+      result = result.replace(percentSentinelRegex, '%');
     }
 
     return result;
