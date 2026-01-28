@@ -14,16 +14,21 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     const variables = getAllVariables(collection, item);
     const url = get(item, 'draft.request.url') ?? get(item, 'request.url') ?? '';
 
-    const request = { ...item.request, url };
+    let request = { ...item.request, url };
 
-    // Standard Header/Auth Logic
+    // 1. Resolve Auth & Merge Headers
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+    const collectionAuth = collection?.draft?.root
+      ? get(collection, 'draft.root.request.auth')
+      : get(collection, 'root.request.auth');
+
     let headers = mergeHeaders(collection, request, requestTreePath);
+
     if (request.auth && request.auth.mode !== 'none') {
-      const collectionAuth = collection?.draft?.root ? get(collection, 'draft.root.request.auth') : get(collection, 'root.request.auth');
       headers = [...headers, ...getAuthHeaders(collectionAuth, request.auth)];
     }
 
+    // 2. Interpolate if requested
     if (shouldInterpolate) {
       headers = interpolateHeaders(headers, variables);
       if (request.body) {
@@ -31,33 +36,25 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       }
       request.params = interpolateParams(request.params, variables);
 
-      // Add auth headers if needed (auth inheritance is resolved upstream)
+      // Interpolate the auth object itself if needed for other logic,
+      // but headers are already merged above.
       if (request.auth && request.auth.mode !== 'none') {
-        if (shouldInterpolate) {
-          request.auth = interpolateAuth(request.auth, variables);
-        }
-
-        const authHeaders = getAuthHeaders(request.auth, collection, item);
-        headers = [...headers, ...authHeaders];
+        request.auth = interpolateAuth(request.auth, variables);
       }
     }
 
-    // 1. Build the "Perfect" HAR for the engine (URL normalized: {{ }} -> placeholder, [] -> %5B%5D, % encoded when not already)
-    const harRequest = buildHarRequest({
-      request,
-      headers
-    });
-
-    // Generate snippet using HTTPSnippet
+    // 3. Build HAR and Generate Snippet
+    const harRequest = buildHarRequest({ request, headers });
     const snippet = new HTTPSnippet(harRequest);
     let result = snippet.convert(language.target, language.client);
 
-    // 3. Post-Process: Restore {{ variable }} from placeholder; restore only lone-% sentinel to '%' (not all %25)
+    // 4. Post-Process (Restoring placeholders)
     if (result && typeof result === 'string') {
       const prefix = BRUNO_VAR_PLACEHOLDER_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const suffix = BRUNO_VAR_PLACEHOLDER_SUFFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const placeholderRegex = new RegExp(`${prefix}(.+?)${suffix}`, 'g');
       result = result.replace(placeholderRegex, '{{ $1 }}');
+
       const percentSentinelRegex = new RegExp(BRUNO_PERCENT_SENTINEL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
       result = result.replace(percentSentinelRegex, '%');
     }
