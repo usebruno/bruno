@@ -173,6 +173,19 @@ const Wrapper = styled.div`
     background-color: ${(props) => props.theme.dropdown.separator};
     margin: 0.25rem 0;
   }
+
+  .submenu-trigger {
+    position: relative;
+  }
+
+  .dropdown-item.has-submenu {
+    justify-content: space-between;
+  }
+
+  .submenu-arrow {
+    color: ${(props) => props.theme.dropdown.mutedText};
+    flex-shrink: 0;
+  }
 `;
 
 export default Wrapper;

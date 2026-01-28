@@ -1,4 +1,5 @@
 import React, { forwardRef, useRef, useCallback, useState, useImperativeHandle, useEffect, useMemo } from 'react';
+import { IconChevronRight } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 
 // Constants
@@ -31,6 +32,7 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  *   - testId: string (optional, for testing, for items only)
  *   - disabled: boolean (optional, for items only)
  *   - className: string (optional, additional CSS classes for the item)
+ *   - submenu: Array (optional, array of menu items for nested submenu, opens on hover)
  *
  *   Grouped format: [{name: string, options: [{id, label, ...}]}, ...]
  *   Flat format: [{id, label, ...}, ...]
@@ -264,7 +266,11 @@ const MenuDropdown = forwardRef(({
   }, [isOpen, updateOpenState]);
 
   // Close dropdown when clicking outside
-  const handleClickOutside = useCallback(() => {
+  const handleClickOutside = useCallback((instance, event) => {
+    // Don't close if clicking inside a submenu (another tippy popper)
+    if (event?.target?.closest?.('[data-tippy-root]')) {
+      return;
+    }
     updateOpenState(false);
   }, [updateOpenState]);
 
@@ -346,8 +352,64 @@ const MenuDropdown = forwardRef(({
     return section;
   };
 
+  // Render submenu item (only used when item has submenu)
+  const SubmenuItem = ({ item, onRootClose }) => {
+    const [submenuOpen, setSubmenuOpen] = useState(false);
+    const selectIndentClass = item.groupStyle === 'select' ? 'dropdown-item-select' : '';
+
+    const submenuItemsWithClose = item.submenu.map((subItem) => {
+      if (subItem.type === 'divider') return subItem;
+      return {
+        ...subItem,
+        onClick: () => {
+          subItem.onClick?.();
+          onRootClose();
+        }
+      };
+    });
+
+    return (
+      <div
+        className="submenu-trigger"
+        onMouseEnter={() => setSubmenuOpen(true)}
+        onMouseLeave={() => setSubmenuOpen(false)}
+      >
+        <MenuDropdown
+          items={submenuItemsWithClose}
+          placement="right-start"
+          opened={submenuOpen}
+          onChange={setSubmenuOpen}
+          showTickMark={false}
+          appendTo={() => document.body}
+          offset={[0, 0]}
+        >
+          <div
+            className={`dropdown-item has-submenu ${item.disabled ? 'disabled' : ''} ${selectIndentClass} ${item.className || ''}`.trim()}
+            role="menuitem"
+            data-item-id={item.id}
+            tabIndex={item.disabled ? -1 : 0}
+            aria-label={item.ariaLabel}
+            aria-disabled={item.disabled}
+            aria-haspopup="true"
+            aria-expanded={submenuOpen}
+            title={item.title}
+            data-testid={`${testId}-${String(item.id).toLowerCase()}`}
+          >
+            {renderSection(item.leftSection)}
+            <span className="dropdown-label">{item.label}</span>
+            <IconChevronRight size={14} className="submenu-arrow" />
+          </div>
+        </MenuDropdown>
+      </div>
+    );
+  };
+
   // Render menu item
   const renderMenuItem = (item) => {
+    if (item.submenu) {
+      return <SubmenuItem key={item.id} item={item} onRootClose={() => updateOpenState(false)} />;
+    }
+
     const selectIndentClass = item.groupStyle === 'select' ? 'dropdown-item-select' : '';
     const isActive = item.id === selectedItemId;
     const activeClass = isActive ? 'dropdown-item-active' : '';
