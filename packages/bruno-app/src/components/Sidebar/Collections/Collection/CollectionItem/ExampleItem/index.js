@@ -27,7 +27,7 @@ const ExampleItem = ({ example, item, collection }) => {
   // Check if this example is the active tab
   const activeTabUid = useSelector((state) => state.tabs?.activeTabUid);
   const isExampleActive = activeTabUid === example.uid;
-  const [editName, setEditName] = useState(example.name);
+  const [editName, setEditName] = useState(example.name || '');
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
@@ -230,7 +230,7 @@ const ExampleItem = ({ example, item, collection }) => {
           handleConfirm={() => handleRenameConfirm(editName)}
           confirmText="Rename"
           cancelText="Cancel"
-          confirmDisabled={!editName.trim()}
+          confirmDisabled={!editName || !editName.trim()}
         >
           <div>
             <label htmlFor="renameExampleName" className="block font-medium">
