@@ -83,6 +83,7 @@ const STATIC_API_HINTS = {
     'bru.isSafeMode()',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
+    'bru.setGlobalEnvVar(key, value, options)',
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
