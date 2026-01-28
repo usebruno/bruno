@@ -19,6 +19,49 @@ describe('Proxy Preferences Migration', () => {
     mockStoreData = {};
   });
 
+  describe('Default Proxy Settings', () => {
+    it('should default to inherit: true for new users (empty preferences)', () => {
+      // New user - no preferences.json exists, store returns empty object
+      mockStoreData['preferences'] = {};
+
+      const preferences = getPreferences();
+
+      // New users get the default proxy settings with inherit: true
+      expect(preferences.proxy.inherit).toBe(true);
+      expect(preferences.proxy.disabled).toBeUndefined();
+      expect(preferences.proxy.config).toBeDefined();
+      expect(preferences.proxy.config.protocol).toBe('http');
+      expect(preferences.proxy.config.hostname).toBe('');
+      expect(preferences.proxy.config.port).toBeNull();
+    });
+
+    it('should default to disabled: true, inherit: false for existing users without proxy settings', () => {
+      // Existing user - has preferences but no proxy property
+      mockStoreData['preferences'] = {
+        request: {
+          sslVerification: true
+        },
+        font: {
+          codeFont: 'default',
+          codeFontSize: 13
+        }
+      };
+
+      const preferences = getPreferences();
+
+      // Existing users without proxy get disabled proxy by default
+      expect(preferences.proxy.disabled).toBe(true);
+      expect(preferences.proxy.inherit).toBe(false);
+      expect(preferences.proxy.config).toBeDefined();
+      expect(preferences.proxy.config.protocol).toBe('http');
+      expect(preferences.proxy.config.hostname).toBe('');
+      expect(preferences.proxy.config.port).toBeNull();
+      expect(preferences.proxy.config.auth.username).toBe('');
+      expect(preferences.proxy.config.auth.password).toBe('');
+      expect(preferences.proxy.config.bypassProxy).toBe('');
+    });
+  });
+
   describe('New Format (no migration needed)', () => {
     it('should handle new format with inherit: false', () => {
       const newFormatProxy = {

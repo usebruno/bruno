@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('path');
 const { get } = require('lodash');
-const { getCACertificates } = require('@usebruno/requests');
+const { getCACertificates, getSystemProxy } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { interpolateString } = require('./interpolate-string');
@@ -144,6 +144,8 @@ const getCertsAndProxyConfig = async ({
     } else if (!globalDisabled && globalInherit) {
       // Use system proxy
       proxyMode = 'system';
+      const systemProxyConfig = await getSystemProxy();
+      proxyConfig = systemProxyConfig;
     }
     // else: global proxy is disabled, proxyMode stays 'off'
   }

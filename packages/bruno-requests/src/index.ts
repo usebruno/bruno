@@ -11,4 +11,4 @@ export { getHttpHttpsAgents } from './utils/http-https-agents';
 
 export * as scripting from './scripting';
 
-export { makeAxiosInstance } from './network/axios-instance';
+export { makeAxiosInstance, getSystemProxy } from './network';
