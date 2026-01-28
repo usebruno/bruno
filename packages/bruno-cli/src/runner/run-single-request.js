@@ -656,11 +656,6 @@ const runSingleRequest = async function (
 
     response.responseTime = responseTime;
 
-    console.log(
-      chalk.green(stripExtension(relativeItemPathname))
-      + chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
-    );
-
     // Log pre-request test results
     logResults(preRequestTestResults, 'Pre-Request Tests');
 
@@ -803,6 +798,28 @@ const runSingleRequest = async function (
 
     logResults(assertionResults, 'Assertions');
 
+    // Determine status based on test/assertion results
+    const hasFailedTests = testResults.some((r) => r.status === 'fail');
+    const hasFailedAssertions = assertionResults.some((r) => r.status === 'fail');
+    const hasFailedPreRequestTests = preRequestTestResults.some((r) => r.status === 'fail');
+    const hasFailedPostResponseTests = postResponseTestResults.some((r) => r.status === 'fail');
+    const hasAnyFailures = hasFailedTests || hasFailedAssertions || hasFailedPreRequestTests || hasFailedPostResponseTests;
+    const requestStatus = hasAnyFailures ? 'fail' : 'pass';
+
+    // Log request status after all tests/assertions are logged
+    if (hasAnyFailures) {
+      console.log(
+        'tomato'
+        + chalk.red(stripExtension(relativeItemPathname))
+        + chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+      );
+    } else {
+      console.log(
+        chalk.green(stripExtension(relativeItemPathname))
+        + chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+      );
+    }
+
     return {
       test: {
         filename: relativeItemPathname
@@ -822,7 +839,7 @@ const runSingleRequest = async function (
         responseTime
       },
       error: null,
-      status: 'pass',
+      status: requestStatus,
       assertionResults,
       testResults,
       preRequestTestResults,
