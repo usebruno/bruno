@@ -26,20 +26,6 @@ class HooksRuntime {
    */
   constructor(props) {
     this.runtime = props?.runtime || 'quickjs';
-    // Track statistics for performance monitoring
-    this._stats = {
-      vmCreations: 0,
-      runs: 0,
-      skippedRuns: 0
-    };
-  }
-
-  /**
-   * Get execution statistics
-   * @returns {object} Statistics about hook execution
-   */
-  get stats() {
-    return { ...this._stats };
   }
 
   /**
@@ -126,7 +112,6 @@ class HooksRuntime {
 
     // Lazy VM creation: If no hooks file, return early without creating a VM
     if (this._isEmptyContent(hooksFile)) {
-      this._stats.skippedRuns++;
       return {
         hookManager: activeHookManager,
         envVariables: cleanJson(envVariables),
@@ -141,9 +126,6 @@ class HooksRuntime {
         res
       };
     }
-
-    this._stats.runs++;
-    this._stats.vmCreations++;
 
     // Execute hooks script
     // Note: Hooks need the VM to persist so registered handlers can be called later

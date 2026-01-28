@@ -25,14 +25,6 @@ describe('HookManager', () => {
       expect(hookManager.state).toBe(HookManager.State.ACTIVE);
       expect(hookManager.isDisposed).toBe(false);
     });
-
-    it('should initialize stats', () => {
-      expect(hookManager.stats).toEqual({
-        totalCalls: 0,
-        totalErrors: 0,
-        lastCallTime: null
-      });
-    });
   });
 
   describe('on()', () => {
@@ -144,13 +136,6 @@ describe('HookManager', () => {
       hookManager.on('test', normalHandler);
       await hookManager.call('test', {});
       expect(normalHandler).toHaveBeenCalled();
-    });
-
-    it('should update stats after call', async () => {
-      hookManager.on('test', jest.fn());
-      await hookManager.call('test', {});
-      expect(hookManager.stats.totalCalls).toBe(1);
-      expect(hookManager.stats.lastCallTime).not.toBeNull();
     });
 
     it('should collect errors when collectErrors is true', async () => {

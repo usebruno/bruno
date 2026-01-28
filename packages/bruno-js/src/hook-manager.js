@@ -60,14 +60,7 @@ class HookManager {
     this.listeners = {};
     // Track cleanup functions for proper resource disposal
     this._cleanupFunctions = [];
-    this._disposed = false;
     this._state = HookManager.State.ACTIVE;
-    // Track execution statistics
-    this._stats = {
-      totalCalls: 0,
-      totalErrors: 0,
-      lastCallTime: null
-    };
   }
 
   /**
@@ -83,15 +76,7 @@ class HookManager {
    * @returns {boolean} True if disposed
    */
   get isDisposed() {
-    return this._disposed;
-  }
-
-  /**
-   * Get execution statistics
-   * @returns {object} Statistics object
-   */
-  get stats() {
-    return { ...this._stats };
+    return this._state === HookManager.State.DISPOSED;
   }
 
   /**
@@ -111,10 +96,9 @@ class HookManager {
    * Should be called when the HookManager is no longer needed
    */
   dispose() {
-    if (this._disposed) {
+    if (this._state === HookManager.State.DISPOSED) {
       return;
     }
-    this._disposed = true;
     this._state = HookManager.State.DISPOSED;
 
     // Call all registered cleanup functions
@@ -138,7 +122,7 @@ class HookManager {
    * @throws {Error} If HookManager is disposed
    */
   _validateState(operation) {
-    if (this._disposed) {
+    if (this._state === HookManager.State.DISPOSED) {
       throw new Error(`Cannot ${operation}: HookManager has been disposed`);
     }
   }
@@ -161,7 +145,7 @@ class HookManager {
    */
   async call(pattern, data, options = {}) {
     // Validate state - but allow calls on disposed manager to fail gracefully
-    if (this._disposed) {
+    if (this._state === HookManager.State.DISPOSED) {
       console.warn('HookManager.call() called on disposed instance');
       if (options.collectErrors) {
         return {
@@ -183,10 +167,6 @@ class HookManager {
     let handlersExecuted = 0;
     let handlersFailed = 0;
 
-    // Update stats
-    this._stats.totalCalls++;
-    this._stats.lastCallTime = Date.now();
-
     const patternList = [].concat(pattern).map((d) => String(d).trim());
     const hasWildcard = patternList.includes('*');
 
@@ -202,7 +182,6 @@ class HookManager {
 
       if (!result.success) {
         handlersFailed++;
-        this._stats.totalErrors++;
 
         if (collectErrors && result.error) {
           errors.push(result.error);
