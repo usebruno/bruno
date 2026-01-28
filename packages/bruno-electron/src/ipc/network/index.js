@@ -492,6 +492,10 @@ const registerNetworkIpc = (mainWindow) => {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
 
+      mainWindow.webContents.send('main:persistent-global-env-variables-update', {
+        persistentGlobalEnvVariables: scriptResult.persistentGlobalEnvVariables
+      });
+
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
 
       const domainsWithCookies = await getDomainsWithCookies();
@@ -581,6 +585,10 @@ const registerNetworkIpc = (mainWindow) => {
           globalEnvironmentVariables: result.globalEnvironmentVariables
         });
 
+        mainWindow.webContents.send('main:persistent-global-env-variables-update', {
+          persistentGlobalEnvVariables: result.persistentGlobalEnvVariables
+        });
+
         collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
       }
 
@@ -624,6 +632,10 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+      });
+
+      mainWindow.webContents.send('main:persistent-global-env-variables-update', {
+        persistentGlobalEnvVariables: scriptResult.persistentGlobalEnvVariables
       });
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
@@ -959,6 +971,10 @@ const registerNetworkIpc = (mainWindow) => {
 
           mainWindow.webContents.send('main:global-environment-variables-update', {
             globalEnvironmentVariables: testResults.globalEnvironmentVariables
+          });
+
+          mainWindow.webContents.send('main:persistent-global-env-variables-update', {
+            persistentGlobalEnvVariables: testResults.persistentGlobalEnvVariables
           });
 
           collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
@@ -1632,8 +1648,17 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionUid
               });
 
+              mainWindow.webContents.send('main:persistent-env-variables-update', {
+                persistentEnvVariables: testResults.persistentEnvVariables,
+                collectionUid
+              });
+
               mainWindow.webContents.send('main:global-environment-variables-update', {
                 globalEnvironmentVariables: testResults.globalEnvironmentVariables
+              });
+
+              mainWindow.webContents.send('main:persistent-global-env-variables-update', {
+                persistentGlobalEnvVariables: testResults.persistentGlobalEnvVariables
               });
 
               collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
