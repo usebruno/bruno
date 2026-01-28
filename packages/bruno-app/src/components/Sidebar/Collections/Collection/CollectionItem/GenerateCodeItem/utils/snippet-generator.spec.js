@@ -16,6 +16,7 @@ jest.mock('httpsnippet', () => {
 });
 
 jest.mock('utils/codegenerator/har', () => ({
+  BRUNO_PERCENT_SENTINEL: '__BRUNO_PERCENT__',
   buildHarRequest: jest.fn((data) => {
     const request = data.request || {};
     const method = request.method || 'GET';
@@ -273,14 +274,14 @@ describe('Snippet Generator - Simple Tests', () => {
   });
 
   it('should handle errors gracefully', () => {
-    // Set up the error mock after beforeEach has run
-    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
-    require('httpsnippet').HTTPSnippet = jest.fn(() => {
+    // 1. Mock HTTPSnippet to throw an error
+    const { HTTPSnippet } = require('httpsnippet');
+    const snippetMock = jest.spyOn(require('httpsnippet'), 'HTTPSnippet').mockImplementation(() => {
       throw new Error('Mock error!');
     });
 
-    const originalConsoleError = console.error;
-    console.error = jest.fn();
+    // 2. Mock console.error to keep the test output clean
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
     const result = generateSnippet({
       language: curlLanguage,
@@ -289,10 +290,15 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: false
     });
 
-    expect(result).toBe('Error generating code snippet');
+    // 3. Match the exact string returned by your catch block
+    expect(result).toBe('Error: Unable to generate code. Please ensure your URL and variables are formatted correctly.');
 
-    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
-    console.error = originalConsoleError;
+    // 4. Verify that the error was actually logged
+    expect(consoleSpy).toHaveBeenCalled();
+
+    // 5. Cleanup mocks
+    snippetMock.mockRestore();
+    consoleSpy.mockRestore();
   });
 
   it('should work with JavaScript language', () => {
