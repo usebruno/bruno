@@ -16,29 +16,21 @@ const {
   parseCollection,
   parseFolder
 } = require('@usebruno/filestore');
-const { parseDotEnv } = require('@usebruno/filestore');
 
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptStringSafe } = require('../utils/encryption');
-const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
 const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
+const dotEnvWatcher = require('./dotenv-watcher');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
-
-const isDotEnvFile = (pathname, collectionPath) => {
-  const dirname = path.dirname(pathname);
-  const basename = path.basename(pathname);
-
-  return dirname === collectionPath && basename === '.env';
-};
 
 const isBrunoConfigFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
@@ -222,24 +214,6 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       };
 
       win.webContents.send('main:bruno-config-update', payload);
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  if (isDotEnvFile(pathname, collectionPath)) {
-    try {
-      const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = parseDotEnv(content);
-
-      setDotEnvVars(collectionUid, jsonData);
-      const payload = {
-        collectionUid,
-        processEnvVariables: {
-          ...jsonData
-        }
-      };
-      win.webContents.send('main:process-env-update', payload);
     } catch (err) {
       console.error(err);
     }
@@ -463,26 +437,6 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       };
 
       win.webContents.send('main:bruno-config-update', payload);
-    } catch (err) {
-      console.error(err);
-    }
-
-    return;
-  }
-
-  if (isDotEnvFile(pathname, collectionPath)) {
-    try {
-      const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = parseDotEnv(content);
-
-      setDotEnvVars(collectionUid, jsonData);
-      const payload = {
-        collectionUid,
-        processEnvVariables: {
-          ...jsonData
-        }
-      };
-      win.webContents.send('main:process-env-update', payload);
     } catch (err) {
       console.error(err);
     }
@@ -758,6 +712,12 @@ class CollectionWatcher {
         ignored: (filepath) => {
           const normalizedPath = normalizeAndResolvePath(filepath);
           const relativePath = path.relative(watchPath, normalizedPath);
+          const basename = path.basename(filepath);
+
+          // Ignore .env files - handled by dotenv-watcher
+          if (basename === '.env' || basename.startsWith('.env.')) {
+            return true;
+          }
 
           // Check if any path segment matches a default ignore pattern (handles symlinks)
           const pathSegments = relativePath.split(path.sep);
@@ -810,6 +770,8 @@ class CollectionWatcher {
         });
 
       this.watchers[watchPath] = watcher;
+
+      dotEnvWatcher.addCollectionWatcher(win, watchPath, collectionUid);
     }, 100);
   }
 
@@ -822,6 +784,8 @@ class CollectionWatcher {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
     }
+
+    dotEnvWatcher.removeCollectionWatcher(watchPath);
 
     if (collectionUid) {
       this.cleanupLoadingState(collectionUid);

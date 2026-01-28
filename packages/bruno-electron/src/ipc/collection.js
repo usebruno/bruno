@@ -555,6 +555,82 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  // Save .env file variables for collection
+  ipcMain.handle('renderer:save-dotenv-variables', async (event, collectionPathname, variables, filename = '.env') => {
+    try {
+      const dotEnvPath = path.join(collectionPathname, filename);
+
+      // Convert variables array to .env format
+      const content = variables
+        .filter((v) => v.name && v.name.trim() !== '')
+        .map((v) => {
+          const value = v.value || '';
+          // If value contains newlines or special characters, wrap in quotes
+          if (value.includes('\n') || value.includes('"') || value.includes('\'')) {
+            const escapedValue = value.replace(/"/g, '\\"');
+            return `${v.name}="${escapedValue}"`;
+          }
+          return `${v.name}=${value}`;
+        })
+        .join('\n');
+
+      await writeFile(dotEnvPath, content);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error saving .env file:', error);
+      return Promise.reject(error);
+    }
+  });
+
+  // Save .env file raw content for collection
+  ipcMain.handle('renderer:save-dotenv-raw', async (event, collectionPathname, content, filename = '.env') => {
+    try {
+      const dotEnvPath = path.join(collectionPathname, filename);
+      await writeFile(dotEnvPath, content);
+      return { success: true };
+    } catch (error) {
+      console.error('Error saving .env file:', error);
+      return Promise.reject(error);
+    }
+  });
+
+  // Create .env file for collection
+  ipcMain.handle('renderer:create-dotenv-file', async (event, collectionPathname, filename = '.env') => {
+    try {
+      const dotEnvPath = path.join(collectionPathname, filename);
+
+      if (fs.existsSync(dotEnvPath)) {
+        throw new Error(`${filename} file already exists`);
+      }
+
+      await writeFile(dotEnvPath, '');
+
+      return { success: true, filename };
+    } catch (error) {
+      console.error('Error creating .env file:', error);
+      return Promise.reject(error);
+    }
+  });
+
+  // Delete .env file for collection
+  ipcMain.handle('renderer:delete-dotenv-file', async (event, collectionPathname, filename = '.env') => {
+    try {
+      const dotEnvPath = path.join(collectionPathname, filename);
+
+      if (!fs.existsSync(dotEnvPath)) {
+        throw new Error(`${filename} file does not exist`);
+      }
+
+      fs.unlinkSync(dotEnvPath);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting .env file:', error);
+      return Promise.reject(error);
+    }
+  });
+
   // Generic environment export handler
   ipcMain.handle('renderer:export-environment', async (event, { environments, environmentType, filePath, exportFormat = 'folder' }) => {
     try {

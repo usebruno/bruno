@@ -99,10 +99,37 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .environments-list {
+  .sections-container {
     flex: 1;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     padding: 0 8px;
+  }
+
+  .environments-list {
+    overflow-y: auto;
+    padding: 0 4px;
+  }
+
+  .btn-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: ${(props) => props.theme.colors.text.muted};
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      color: ${(props) => props.theme.text};
+    }
   }
 
   .environment-item {
@@ -279,6 +306,39 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.danger};
     background: ${(props) => `${props.theme.colors.text.danger}15`};
     border-radius: 4px;
+  }
+
+  .no-env-file {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: ${(props) => props.theme.colors.text.muted};
+    font-style: italic;
+  }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 10%;
+    color: ${(props) => props.theme.colors.text.muted};
+
+    svg {
+      opacity: 0.3;
+      margin-bottom: 8px;
+    }
+
+    .title {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 12px;
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
   }
 `;
 

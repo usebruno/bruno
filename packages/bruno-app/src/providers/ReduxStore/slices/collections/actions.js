@@ -2706,3 +2706,67 @@ export const openCollectionSettings
         resolve();
       });
     };
+
+export const saveDotEnvVariables = (collectionUid, variables, filename = '.env') => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:save-dotenv-variables', collection.pathname, variables, filename)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const saveDotEnvRaw = (collectionUid, content, filename = '.env') => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:save-dotenv-raw', collection.pathname, content, filename)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const createDotEnvFile = (collectionUid, filename = '.env') => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:create-dotenv-file', collection.pathname, filename)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const deleteDotEnvFile = (collectionUid, filename = '.env') => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:delete-dotenv-file', collection.pathname, filename)
+      .then(resolve)
+      .catch(reject);
+  });
+};
