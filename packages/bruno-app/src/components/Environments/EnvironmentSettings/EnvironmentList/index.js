@@ -11,7 +11,7 @@ import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ToolHint from 'components/ToolHint';
 import { isEqual } from 'lodash';
 
-const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified, onClose, setShowExportModal }) => {
+const EnvironmentList = ({ collection, isModified, setIsModified, onClose, setShowExportModal }) => {
   const { environments, activeEnvironmentUid } = collection;
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);

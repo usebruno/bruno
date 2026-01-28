@@ -68,8 +68,6 @@ const EnvironmentSettings = ({ collection, onClose }) => {
     <StyledWrapper>
       <Modal size="lg" title="Environments" handleCancel={onClose} hideFooter={true}>
         <EnvironmentList
-          selectedEnvironment={selectedEnvironment}
-          setSelectedEnvironment={setSelectedEnvironment}
           collection={collection}
           isModified={isModified}
           setIsModified={setIsModified}
