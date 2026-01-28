@@ -102,23 +102,36 @@ export const interpolateUrl = ({ url, variables }) => {
 export const interpolateUrlPathParams = (url, params) => {
   if (!url || typeof url !== 'string') return url;
 
-  // Manual split to avoid 'URI malformed' crash on literal %
-  let tempUrl = url.startsWith('http') ? url : `http://${url}`;
-  const [urlWithoutQuery, searchPart] = splitOnFirst(tempUrl, '?');
+  // 1. Ensure we have a protocol for parsing.
+  // If missing, we prepend 'http://' and keep it.
+  let resultUrl = url;
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    resultUrl = `http://${url}`;
+  }
 
+  // 2. Manual split on '?' to isolate the query string.
+  // This prevents the 'new URL()' / 'URI malformed' crash on literal '%' signs.
+  const [urlWithoutQuery, searchPart] = splitOnFirst(resultUrl, '?');
+
+  // 3. Extract the origin and pathname using Regex.
+  // This is safer than new URL() for strings containing {{vars}}.
   const originMatch = urlWithoutQuery.match(/^https?:\/\/[^/]+/);
   const origin = originMatch ? originMatch[0] : '';
   const pathname = urlWithoutQuery.replace(origin, '');
 
-  const interpolatedPath = pathname.split('/').map((segment) => {
-    if (segment.startsWith(':')) {
-      const name = segment.slice(1);
-      const p = params.find((p) => p?.name === name && p?.type === 'path');
-      return p ? p.value : segment;
-    }
-    return segment;
-  }).join('/');
+  // 4. Interpolate the path segments.
+  const interpolatedPath = pathname
+    .split('/')
+    .map((segment) => {
+      if (segment.startsWith(':')) {
+        const name = segment.slice(1);
+        const p = params.find((p) => p?.name === name && p?.type === 'path');
+        return p ? p.value : segment;
+      }
+      return segment;
+    })
+    .join('/');
 
-  let result = `${origin}${interpolatedPath}${searchPart ? '?' + searchPart : ''}`;
-  return url.startsWith('http') ? result : result.replace('http://', '');
+  // 5. Reconstruct the final URL.
+  return `${origin}${interpolatedPath}${searchPart ? '?' + searchPart : ''}`;
 };
