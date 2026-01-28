@@ -1,9 +1,9 @@
-import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
+import { isRequestTagsIncluded } from '@usebruno/common';
+import { cloneDeep, each, filter, find, get, isEqual, isString, map, sortBy } from 'lodash';
 import { uuid } from 'utils/common';
-import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
-import { isRequestTagsIncluded } from '@usebruno/common';
+import { buildPersistedEnvVariables } from 'utils/environments';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -672,6 +672,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
     seq: _item.seq,
     settings: _item.settings,
     tags: _item.tags,
+    requestTabOrder: _item.requestTabOrder,
     examples: _item.examples || [],
     request: {
       method: _item.request.method,
@@ -761,6 +762,7 @@ export const transformCollectionRootToSave = (collection) => {
   const collectionRootToSave = {
     docs: _collection?.docs,
     meta: _collection?.meta,
+    requestTabOrder: _collection?.requestTabOrder,
     request: {
       auth: _collection?.request?.auth,
       headers: [],
@@ -787,6 +789,7 @@ export const transformFolderRootToSave = (folder) => {
   const _folder = folder.draft ? folder.draft : folder.root;
   const folderRootToSave = {
     docs: _folder.docs,
+    requestTabOrder: _folder.requestTabOrder,
     request: {
       auth: _folder?.request?.auth,
       headers: [],

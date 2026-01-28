@@ -1,12 +1,12 @@
-import * as _ from 'lodash';
 import {
-  bruToJsonV2,
-  jsonToBruV2,
-  bruToEnvJsonV2,
-  envJsonToBruV2,
   collectionBruToJson as _collectionBruToJson,
-  jsonToCollectionBru as _jsonToCollectionBru
+  jsonToCollectionBru as _jsonToCollectionBru,
+  bruToEnvJsonV2,
+  bruToJsonV2,
+  envJsonToBruV2,
+  jsonToBruV2
 } from '@usebruno/lang';
+import * as _ from 'lodash';
 import { getOauth2AdditionalParameters } from './utils/oauth2-additional-params';
 
 export const parseBruRequest = (data: string | any, parsed: boolean = false): any => {
@@ -43,6 +43,7 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
       seq: !_.isNaN(sequence) ? Number(sequence) : 1,
       settings: _.get(json, 'settings', {}),
       tags: _.get(json, 'meta.tags', []),
+      requestTabOrder: _.get(json, 'meta.requestTabOrder', []),
       request: {
         // Preserving special characters in custom methods. Using _.upperCase strips special characters.
         method:
@@ -142,7 +143,8 @@ export const stringifyBruRequest = (json: any): string => {
         name: _.get(json, 'name'),
         type: type,
         seq: !_.isNaN(sequence) ? Number(sequence) : 1,
-        tags: _.get(json, 'tags', [])
+        tags: _.get(json, 'tags', []),
+        requestTabOrder: _.get(json, 'requestTabOrder', [])
       }
     } as any;
 
@@ -255,6 +257,10 @@ export const parseBruCollection = (data: string | any, parsed: boolean = false):
         const sequence = json.meta.seq;
         transformedJson.meta.seq = !isNaN(sequence) ? Number(sequence) : 1;
       }
+
+      if (json.meta.requestTabOrder) {
+        transformedJson.requestTabOrder = json.meta.requestTabOrder;
+      }
     }
 
     // add oauth2 additional parameters if they exist
@@ -302,6 +308,15 @@ export const stringifyBruCollection = (json: any, isFolder?: boolean): string =>
         const sequence = json.meta.seq;
         collectionBruJson.meta.seq = !isNaN(sequence) ? Number(sequence) : 1;
       }
+
+      if (json.requestTabOrder) {
+        collectionBruJson.meta = collectionBruJson.meta || {};
+        collectionBruJson.meta.requestTabOrder = json.requestTabOrder;
+      }
+    } else if (json.requestTabOrder) {
+      collectionBruJson.meta = {
+        requestTabOrder: json.requestTabOrder
+      };
     }
 
     if (!isFolder) {

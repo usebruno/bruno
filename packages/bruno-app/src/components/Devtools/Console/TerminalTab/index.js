@@ -174,7 +174,6 @@ const openTerminalIntoContainer = async (container, sessionId) => {
   await new Promise((resolve) => setTimeout(resolve, 50));
   try {
     fitAddon.fit();
-    terminal.focus();
     const { cols, rows } = terminal;
     if (cols && rows && window.ipcRenderer) {
       window.ipcRenderer.send('terminal:resize', sessionId, { cols, rows });
