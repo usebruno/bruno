@@ -243,6 +243,38 @@ example {
 
       expect(output).toEqual(expected);
     });
+
+    it('should normalize multiline example names to single line', () => {
+      const jsonInput = {
+        meta: {
+          name: 'Test API',
+          type: 'http'
+        },
+        http: {
+          url: 'https://api.example.com',
+          method: 'post'
+        },
+        examples: [
+          {
+            name: '**HTTP Status Code:**\n201\n\nCreated',
+            request: {
+              url: 'https://api.example.com',
+              method: 'POST'
+            }
+          }
+        ]
+      };
+
+      const output = jsonToBru(jsonInput);
+
+      // Multiline names should be converted to single line with spaces
+      expect(output).toContain('name: **HTTP Status Code:** 201  Created');
+      expect(output).not.toContain('name: **HTTP Status Code:**\n');
+
+      // Verify round-trip conversion
+      const parsedBack = bruToJson(output);
+      expect(parsedBack.examples[0].name).toBe('**HTTP Status Code:** 201  Created');
+    });
   });
 
   describe('Complex examples with auth', () => {
@@ -372,32 +404,6 @@ example {
       const jsonValueField = multipartForm.find((f) => f.name === 'jsonValue');
       expect(jsonValueField.contentType).toBe('application/json');
       expect(jsonValueField.value).toContain('"key": "value"');
-    });
-  });
-
-  describe('Example name field parsing', () => {
-    it('should parse basic name', () => {
-      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'bruToJson-singleline-name.bru'), 'utf8');
-      const expected = require('./fixtures/json/bruToJson-singleline-name.json');
-      const output = bruToJson(input);
-
-      expect(output).toEqual(expected);
-    });
-
-    it('should parse name containing reserved keywords', () => {
-      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'bruToJson-name-with-keywords.bru'), 'utf8');
-      const expected = require('./fixtures/json/bruToJson-name-with-keywords.json');
-      const output = bruToJson(input);
-
-      expect(output).toEqual(expected);
-    });
-
-    it('should parse name with special characters', () => {
-      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'bruToJson-name-markdown.bru'), 'utf8');
-      const expected = require('./fixtures/json/bruToJson-name-markdown.json');
-      const output = bruToJson(input);
-
-      expect(output).toEqual(expected);
     });
   });
 });
