@@ -12,5 +12,5 @@ paths:
     get:
       summary: Get users
       responses:
-        '200':
+        200:
           description: List of users

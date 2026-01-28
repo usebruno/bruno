@@ -43,8 +43,8 @@
               ]
             }
           },
-          "status": "OK",
-          "code": 200,
+          "status": 200,
+          "statusText": "OK",
           "_postman_previewlanguage": "json",
           "header": [
             {
@@ -95,8 +95,8 @@
               ]
             }
           },
-          "status": "Internal Server Error",
-          "code": 500,
+          "status": 500,
+          "statusText": "Internal Server Error",
           "_postman_previewlanguage": "json",
           "header": [
             {

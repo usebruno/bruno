@@ -460,7 +460,7 @@ const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, examp
       body: bodyCopy
     },
     response: {
-      status: String(statusCode),
+      status: Number(statusCode),
       statusText: getStatusText(statusCode),
       headers: contentType ? [
         {
