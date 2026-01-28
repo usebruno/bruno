@@ -1,0 +1,32 @@
+meta {
+  name: skip-request-in-before-hook
+  type: http
+  seq: 100
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] Testing bru.runner.skipRequest() API');
+    
+    // Set a marker to confirm the hook executed
+    bru.setVar('skip-request-hook-executed', 'true');
+    
+    // Skip this request - the main request should not execute
+    bru.runner.skipRequest();
+    
+    console.log('[beforeRequest] Called bru.runner.skipRequest() - request should be skipped');
+  });
+}
+
+tests {
+  test("hook should have executed before skip", function() {
+    const hookExecuted = bru.getVar('skip-request-hook-executed');
+    expect(hookExecuted).to.equal('true');
+  });
+}

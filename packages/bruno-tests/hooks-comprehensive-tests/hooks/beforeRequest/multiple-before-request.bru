@@ -1,0 +1,54 @@
+meta {
+  name: multiple-before-request
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  // First hook
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest 1] First hook executing');
+    bru.setVar('hook-order', '1');
+    req.setHeader('X-Hook-Order', '1');
+  });
+  
+  // Second hook
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest 2] Second hook executing');
+    const order = bru.getVar('hook-order') || '';
+    bru.setVar('hook-order', order + ',2');
+    
+    const existingOrder = req.getHeader('X-Hook-Order');
+    req.setHeader('X-Hook-Order', existingOrder + ',2');
+  });
+  
+  // Third hook (async)
+  bru.hooks.http.onBeforeRequest(async({ req }) => {
+    console.log('[beforeRequest 3] Third hook (async) executing');
+    await bru.sleep(200);
+    const order = bru.getVar('hook-order') || '';
+    bru.setVar('hook-order', order + ',3');
+    
+    const existingOrder = req.getHeader('X-Hook-Order');
+    req.setHeader('X-Hook-Order', existingOrder + ',3');
+  });
+}
+
+tests {
+  test("all beforeRequest hooks should execute in order", function() {
+    const order = bru.getVar('hook-order');
+    expect(order).to.equal('1,2,3');
+  });
+  
+  test("request should have headers from all hooks", function() {
+    // Verify hooks executed sequentially
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+

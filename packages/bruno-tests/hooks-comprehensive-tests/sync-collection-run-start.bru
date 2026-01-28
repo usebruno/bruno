@@ -1,0 +1,39 @@
+meta {
+  name: sync-collection-run-start
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("onBeforeCollectionRun hook should have executed", function() {
+    const started = bru.getVar('collection-run-started');
+    expect(started).to.equal('true');
+  });
+  
+  test("should have set start time", function() {
+    const startTime = bru.getVar('start-time');
+    expect(parseInt(startTime)).to.be.a('number');
+  });
+  
+  test("should have set env var in onBeforeCollectionRun", function() {
+    const setupComplete = bru.getEnvVar('collection-setup-complete');
+    expect(setupComplete).to.equal('true');
+  });
+  
+  test("should have captured env name at start", function() {
+    const envName = bru.getVar('env-name-at-start');
+    expect(envName).to.be.a('string');
+  });
+  
+  test("should have captured collection name at start", function() {
+    const collectionName = bru.getVar('collection-name-at-start');
+    expect(collectionName).to.be.a('string');
+  });
+}
+

@@ -1,0 +1,49 @@
+meta {
+  name: run-request-in-after-hook
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onAfterResponse(async ({ res }) => {
+    console.log('[afterResponse] Testing bru.runRequest API');
+    console.log('[afterResponse] Main request status:', res.getStatus());
+    
+    // Call another request using bru.runRequest
+    const response = await bru.runRequest('hooks/bru-run-request/helper-request');
+    
+    // Store the response body for verification in tests
+    if (response) {
+      bru.setVar('after-helper-response-body', response.data);
+      bru.setVar('after-helper-response-status', response.status);
+      console.log('[afterResponse] Helper request response:', response.data);
+    } else {
+      bru.setVar('after-helper-response-error', 'No response received');
+      console.log('[afterResponse] Helper request failed - no response');
+    }
+    
+    console.log('[afterResponse] bru.runRequest test completed');
+  });
+}
+
+tests {
+  test("bru.runRequest in afterResponse hook should return helper response", function() {
+    const helperBody = bru.getVar('after-helper-response-body');
+    expect(helperBody).to.equal('pong');
+  });
+  
+  test("bru.runRequest in afterResponse hook should return status 200", function() {
+    const helperStatus = bru.getVar('after-helper-response-status');
+    expect(helperStatus).to.equal(200);
+  });
+  
+  test("main request should succeed", function() {
+    expect(res.getBody()).to.equal('pong');
+  });
+}

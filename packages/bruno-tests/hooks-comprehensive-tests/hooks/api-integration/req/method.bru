@@ -1,0 +1,28 @@
+meta {
+  name: method
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/headers
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    bru.setVar('original-method', req.getMethod());
+  });
+}
+
+tests {
+  test("req.getMethod - returns HTTP method", function() {
+    expect(bru.getVar('original-method')).to.equal('GET');
+  });
+  
+  test("req.getMethod - available in tests", function() {
+    expect(req.getMethod()).to.equal('GET');
+  });
+}
+

@@ -1,0 +1,48 @@
+meta {
+  name: run-request-in-before-hook
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(async ({ req }) => {
+    console.log('[beforeRequest] Testing bru.runRequest API');
+    
+    // Call another request using bru.runRequest
+    const response = await bru.runRequest('hooks/bru-run-request/helper-request');
+    
+    // Store the response body for verification in tests
+    if (response) {
+      bru.setVar('helper-response-body', response.data);
+      bru.setVar('helper-response-status', response.status);
+      console.log('[beforeRequest] Helper request response:', response.data);
+    } else {
+      bru.setVar('helper-response-error', 'No response received');
+      console.log('[beforeRequest] Helper request failed - no response');
+    }
+    
+    console.log('[beforeRequest] bru.runRequest test completed');
+  });
+}
+
+tests {
+  test("bru.runRequest in beforeRequest hook should return helper response", function() {
+    const helperBody = bru.getVar('helper-response-body');
+    expect(helperBody).to.equal('pong');
+  });
+  
+  test("bru.runRequest in beforeRequest hook should return status 200", function() {
+    const helperStatus = bru.getVar('helper-response-status');
+    expect(helperStatus).to.equal(200);
+  });
+  
+  test("main request should still succeed", function() {
+    expect(res.getBody()).to.equal('pong');
+  });
+}
