@@ -5,7 +5,6 @@ import { useDispatch } from 'react-redux';
 import { deleteResponseExample } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
-import toast from 'react-hot-toast';
 
 const DeleteResponseExampleModal = ({ onClose, example, item, collection }) => {
   const dispatch = useDispatch();
