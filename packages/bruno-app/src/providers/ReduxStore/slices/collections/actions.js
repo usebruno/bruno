@@ -2708,6 +2708,7 @@ export const openCollectionSettings
     };
 
 export const saveDotEnvVariables = (collectionUid, variables, filename = '.env') => (dispatch, getState) => {
+  const { ipcRenderer } = window;
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -2724,6 +2725,7 @@ export const saveDotEnvVariables = (collectionUid, variables, filename = '.env')
 };
 
 export const saveDotEnvRaw = (collectionUid, content, filename = '.env') => (dispatch, getState) => {
+  const { ipcRenderer } = window;
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -2740,6 +2742,7 @@ export const saveDotEnvRaw = (collectionUid, content, filename = '.env') => (dis
 };
 
 export const createDotEnvFile = (collectionUid, filename = '.env') => (dispatch, getState) => {
+  const { ipcRenderer } = window;
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -2756,6 +2759,7 @@ export const createDotEnvFile = (collectionUid, filename = '.env') => (dispatch,
 };
 
 export const deleteDotEnvFile = (collectionUid, filename = '.env') => (dispatch, getState) => {
+  const { ipcRenderer } = window;
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);

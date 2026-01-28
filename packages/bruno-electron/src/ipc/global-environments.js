@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { ipcMain } = require('electron');
 const { globalEnvironmentsStore } = require('../store/global-environments');
-const { generateUniqueName, sanitizeName, writeFile } = require('../utils/filesystem');
+const { generateUniqueName, sanitizeName, writeFile, isValidDotEnvFilename } = require('../utils/filesystem');
 
 const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager) => {
   ipcMain.handle('renderer:create-global-environment', async (event, { uid, name, variables, workspaceUid, workspacePath }) => {
@@ -109,6 +109,10 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
         throw new Error('Workspace path is required');
       }
 
+      if (!isValidDotEnvFilename(filename)) {
+        throw new Error('Invalid .env filename');
+      }
+
       const dotEnvPath = path.join(workspacePath, filename);
 
       // Convert variables array to .env format
@@ -117,8 +121,9 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
         .map((v) => {
           const value = v.value || '';
           // If value contains newlines or special characters, wrap in quotes
-          if (value.includes('\n') || value.includes('"') || value.includes('\'')) {
-            const escapedValue = value.replace(/"/g, '\\"');
+          if (value.includes('\n') || value.includes('"') || value.includes('\'') || value.includes('\\')) {
+            // Escape backslashes first, then double quotes
+            const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
             return `${v.name}="${escapedValue}"`;
           }
           return `${v.name}=${value}`;
@@ -141,6 +146,10 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
         throw new Error('Workspace path is required');
       }
 
+      if (!isValidDotEnvFilename(filename)) {
+        throw new Error('Invalid .env filename');
+      }
+
       const dotEnvPath = path.join(workspacePath, filename);
       await writeFile(dotEnvPath, content);
 
@@ -156,6 +165,10 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
     try {
       if (!workspacePath) {
         throw new Error('Workspace path is required');
+      }
+
+      if (!isValidDotEnvFilename(filename)) {
+        throw new Error('Invalid .env filename');
       }
 
       const dotEnvPath = path.join(workspacePath, filename);
@@ -178,6 +191,10 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
     try {
       if (!workspacePath) {
         throw new Error('Workspace path is required');
+      }
+
+      if (!isValidDotEnvFilename(filename)) {
+        throw new Error('Invalid .env filename');
       }
 
       const dotEnvPath = path.join(workspacePath, filename);

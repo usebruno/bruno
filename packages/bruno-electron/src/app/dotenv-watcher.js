@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const { parseDotEnv } = require('@usebruno/filestore');
-const { setDotEnvVars, setWorkspaceDotEnvVars, clearWorkspaceDotEnvVars } = require('../store/process-env');
+const { setDotEnvVars, clearDotEnvVars, setWorkspaceDotEnvVars, clearWorkspaceDotEnvVars } = require('../store/process-env');
 
 const isDotEnvFile = (filename) => {
   return filename === '.env' || filename.startsWith('.env.');
@@ -80,6 +80,10 @@ class DotEnvWatcher {
       const filename = path.basename(pathname);
       if (!isDotEnvFile(filename)) {
         return;
+      }
+
+      if (filename === '.env') {
+        clearDotEnvVars(collectionUid);
       }
 
       if (!win.isDestroyed()) {

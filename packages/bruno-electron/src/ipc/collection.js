@@ -46,6 +46,7 @@ const {
   getPaths,
   generateUniqueName,
   isDotEnvFile,
+  isValidDotEnvFilename,
   isBrunoConfigFile,
   isBruEnvironmentConfig,
   isCollectionRootBruFile
@@ -558,6 +559,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // Save .env file variables for collection
   ipcMain.handle('renderer:save-dotenv-variables', async (event, collectionPathname, variables, filename = '.env') => {
     try {
+      if (!isValidDotEnvFilename(filename)) {
+        throw new Error('Invalid .env filename');
+      }
+
       const dotEnvPath = path.join(collectionPathname, filename);
 
       // Convert variables array to .env format
@@ -566,8 +571,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         .map((v) => {
           const value = v.value || '';
           // If value contains newlines or special characters, wrap in quotes
-          if (value.includes('\n') || value.includes('"') || value.includes('\'')) {
-            const escapedValue = value.replace(/"/g, '\\"');
+          if (value.includes('\n') || value.includes('"') || value.includes('\'') || value.includes('\\')) {
+            // Escape backslashes first, then double quotes
+            const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
             return `${v.name}="${escapedValue}"`;
           }
           return `${v.name}=${value}`;
@@ -586,6 +592,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // Save .env file raw content for collection
   ipcMain.handle('renderer:save-dotenv-raw', async (event, collectionPathname, content, filename = '.env') => {
     try {
+      if (!isValidDotEnvFilename(filename)) {
+        throw new Error('Invalid .env filename');
+      }
+
       const dotEnvPath = path.join(collectionPathname, filename);
       await writeFile(dotEnvPath, content);
       return { success: true };
@@ -598,6 +608,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // Create .env file for collection
   ipcMain.handle('renderer:create-dotenv-file', async (event, collectionPathname, filename = '.env') => {
     try {
+      if (!isValidDotEnvFilename(filename)) {
+        throw new Error('Invalid .env filename');
+      }
+
       const dotEnvPath = path.join(collectionPathname, filename);
 
       if (fs.existsSync(dotEnvPath)) {
@@ -616,6 +630,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // Delete .env file for collection
   ipcMain.handle('renderer:delete-dotenv-file', async (event, collectionPathname, filename = '.env') => {
     try {
+      if (!isValidDotEnvFilename(filename)) {
+        throw new Error('Invalid .env filename');
+      }
+
       const dotEnvPath = path.join(collectionPathname, filename);
 
       if (!fs.existsSync(dotEnvPath)) {
