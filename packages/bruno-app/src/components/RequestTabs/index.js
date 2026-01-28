@@ -50,6 +50,9 @@ const RequestTabs = () => {
   }
 
   const activeCollection = find(collections, (c) => c.uid === activeTab.collectionUid);
+  const activeEnvironment = activeCollection
+    ? findEnvironmentInCollection(activeCollection, activeCollection.activeEnvironmentUid)
+    : null;
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
 
   const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
@@ -80,7 +83,6 @@ const RequestTabs = () => {
     });
   };
 
-  const activeEnvironment = findEnvironmentInCollection(activeCollection, activeCollection.activeEnvironmentUid);
   // Todo: Must support ephemeral requests
   return (
     <StyledWrapper color={activeEnvironment?.color} className={getRootClassname()}>
