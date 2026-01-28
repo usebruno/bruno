@@ -1,0 +1,58 @@
+meta {
+  name: headers
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/headers
+  body: none
+  auth: none
+}
+
+headers {
+  X-Original: original-value
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    // Test getHeader
+    bru.setVar('read-original', req.getHeader('X-Original'));
+    
+    // Test setHeader - add new
+    req.setHeader('X-Added-In-Hook', 'hook-value');
+    
+    // Test setHeader - modify existing
+    req.setHeader('X-Original', 'modified-value');
+    
+    // Test getHeaders
+    bru.setVar('headers-count', Object.keys(req.getHeaders()).length);
+    
+    // Test setHeaders - bulk add
+    const headers = req.getHeaders();
+    req.setHeaders({ ...headers, 'X-Bulk-1': 'bulk-1', 'X-Bulk-2': 'bulk-2' });
+  });
+}
+
+tests {
+  test("req.getHeader - reads header value", function() {
+    expect(bru.getVar('read-original')).to.equal('original-value');
+  });
+  
+  test("req.setHeader - adds new header", function() {
+    const body = res.getBody();
+    expect(body['x-added-in-hook']).to.equal('hook-value');
+  });
+  
+  test("req.setHeader - modifies existing header", function() {
+    const body = res.getBody();
+    expect(body['x-original']).to.equal('modified-value');
+  });
+  
+  test("req.setHeaders - bulk adds headers", function() {
+    const body = res.getBody();
+    expect(body['x-bulk-1']).to.equal('bulk-1');
+    expect(body['x-bulk-2']).to.equal('bulk-2');
+  });
+}
+

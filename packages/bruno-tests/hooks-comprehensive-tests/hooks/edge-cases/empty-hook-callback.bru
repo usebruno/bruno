@@ -1,0 +1,29 @@
+meta {
+  name: empty-hook-callback
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  // Test: Empty hook callback
+  bru.hooks.http.onBeforeRequest(() => {
+    // Empty callback - should not cause errors
+  });
+  
+  bru.hooks.http.onAfterResponse(() => {
+    // Empty callback - should not cause errors
+  });
+}
+
+tests {
+  test("empty hook callbacks should not cause errors", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+

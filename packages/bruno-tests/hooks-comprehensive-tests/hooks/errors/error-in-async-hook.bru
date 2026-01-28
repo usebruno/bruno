@@ -1,0 +1,50 @@
+meta {
+  name: error-in-async-hook
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(async () => {
+    console.log('[beforeRequest] About to throw error in async hook');
+    await bru.sleep(500);
+    
+    // Intentionally throw an error to test error handling
+    try {
+      throw new Error('Test error in async hook');
+    } catch (error) {
+      bru.setVar('async-error-caught-in-hook', 'true');
+      bru.setVar('async-error-message', error.message);
+      console.log('[beforeRequest] Async error caught:', error.message);
+    }
+  });
+  
+  bru.hooks.http.onAfterResponse(async () => {
+    await bru.sleep(200);
+    // This should still execute even if beforeRequest had an error
+    bru.setVar('async-afterResponse-executed', 'true');
+  });
+}
+
+tests {
+  test("async error should have been caught in hook", function() {
+    const errorCaught = bru.getVar('async-error-caught-in-hook');
+    expect(errorCaught).to.equal('true');
+  });
+  
+  test("async afterResponse should execute even if beforeRequest had error", function() {
+    const afterResponseExecuted = bru.getVar('async-afterResponse-executed');
+    expect(afterResponseExecuted).to.equal('true');
+  });
+  
+  test("request should still execute", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
