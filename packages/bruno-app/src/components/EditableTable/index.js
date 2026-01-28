@@ -162,6 +162,11 @@ const EditableTable = ({
       const reorderableRows = showAddRow ? rowsWithEmpty.slice(0, -1) : rowsWithEmpty;
       const updatedOrder = [...reorderableRows];
       const [movedRow] = updatedOrder.splice(fromIndex, 1);
+      if (!movedRow) {
+        setDragStart(null);
+        setHoveredRow(null);
+        return;
+      }
       updatedOrder.splice(toIndex, 0, movedRow);
       onReorder({ updateReorderedItem: updatedOrder.map((row) => row.uid) });
     }
