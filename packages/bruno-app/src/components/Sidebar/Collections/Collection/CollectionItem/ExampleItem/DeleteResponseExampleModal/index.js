@@ -18,9 +18,10 @@ const DeleteResponseExampleModal = ({ onClose, example, item, collection }) => {
       collectionUid: collection.uid,
       exampleUid: example.uid
     }));
-    dispatch(saveRequest(item.uid, collection.uid, true));
-    toast.success(`Example "${example.name}" deleted successfully`);
-    onClose();
+    dispatch(saveRequest(item.uid, collection.uid, true))
+      .then(() => {
+        onClose();
+      });
   };
 
   return (
