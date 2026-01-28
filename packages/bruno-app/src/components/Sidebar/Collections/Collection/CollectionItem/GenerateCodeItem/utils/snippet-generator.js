@@ -1,7 +1,7 @@
 import { buildHarRequest } from 'utils/codegenerator/har';
 import { getAuthHeaders } from 'utils/codegenerator/auth';
 import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
-import { interpolateHeaders, interpolateBody } from './interpolation';
+import { interpolateHeaders, interpolateBody, interpolateAuth, interpolateParams } from './interpolation';
 import { get } from 'lodash';
 
 // Must match har.js placeholders so {{ variable }} is restored in generated code
