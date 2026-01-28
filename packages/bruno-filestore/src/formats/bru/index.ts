@@ -310,8 +310,13 @@ export const stringifyBruCollection = (json: any, isFolder?: boolean): string =>
       }
 
       if (json.requestTabOrder) {
+        collectionBruJson.meta = collectionBruJson.meta || {};
         collectionBruJson.meta.requestTabOrder = json.requestTabOrder;
       }
+    } else if (json.requestTabOrder) {
+      collectionBruJson.meta = {
+        requestTabOrder: json.requestTabOrder
+      };
     }
 
     if (!isFolder) {
