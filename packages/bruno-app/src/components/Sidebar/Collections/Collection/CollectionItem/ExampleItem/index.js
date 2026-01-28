@@ -96,6 +96,8 @@ const ExampleItem = ({ example, item, collection }) => {
       itemUid: item.uid,
       exampleIndex: clonedExampleIndex
     }));
+
+    toast.success(`Example "${example.name}" cloned successfully`);
   };
 
   const handleDelete = () => {
@@ -126,6 +128,7 @@ const ExampleItem = ({ example, item, collection }) => {
       }
     }));
     dispatch(saveRequest(item.uid, collection.uid, true));
+    toast.success(`Example renamed to "${newName}"`);
     setShowRenameModal(false);
   };
 
