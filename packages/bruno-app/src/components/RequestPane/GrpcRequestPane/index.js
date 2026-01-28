@@ -9,7 +9,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import { findParentItemInCollection, getPropertyFromDraftOrRequest } from 'utils/collections/index';
+import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 import { getEffectiveTabOrder, sortTabs } from 'utils/tabs';
 import GrpcAuthMode from './GrpcAuth/GrpcAuthMode/index';
 import GrpcAuth from './GrpcAuth/index';
@@ -100,14 +100,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       }
     ];
 
-    const effectiveTabOrder = (() => {
-      const scope = preferences.requestTabOrderPersistenceScope || 'global';
-      if (scope === 'folder') {
-        const parentFolder = findParentItemInCollection(collection, item.uid);
-        return parentFolder?.requestTabOrder;
-      }
-      return getEffectiveTabOrder(item, collection, preferences);
-    })();
+    const effectiveTabOrder = getEffectiveTabOrder(item, collection, preferences);
 
     return sortTabs(tabs, effectiveTabOrder);
   }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, auth?.mode, docs, preferences, collection, item.uid]);

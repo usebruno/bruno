@@ -11,14 +11,24 @@ describe('getEffectiveTabOrder', () => {
 
   const collection = {
     uid: 'coll-1',
-    requestTabOrder: ['headers', 'params']
+    requestTabOrder: ['headers', 'params'],
+    items: [
+      {
+        uid: 'folder-1',
+        type: 'folder',
+        requestTabOrder: ['docs', 'vars'],
+        items: [
+          {
+            uid: 'item-1',
+            type: 'http-request',
+            requestTabOrder: ['body', 'params']
+          }
+        ]
+      }
+    ]
   };
 
-  const item = {
-    uid: 'item-1',
-    type: 'http-request',
-    requestTabOrder: ['body', 'params']
-  };
+  const item = collection.items[0].items[0];
 
   it('should return global tab order when scope is global', () => {
     const result = getEffectiveTabOrder(item, collection, preferences);
@@ -39,13 +49,15 @@ describe('getEffectiveTabOrder', () => {
 
   it('should return folder tab order when scope is folder', () => {
     const prefs = { ...preferences, requestTabOrderPersistenceScope: 'folder' };
-    // In folder scope, the item passed to getEffectiveTabOrder is expected to be the folder (or item with folder's tab order)
-    const folderItem = {
-      type: 'folder',
-      requestTabOrder: ['docs', 'vars']
-    };
-    const result = getEffectiveTabOrder(folderItem, collection, prefs);
+    const result = getEffectiveTabOrder(item, collection, prefs);
     expect(result).toEqual(['docs', 'vars']);
+  });
+
+  it('should fallback to collection when scope is folder but request is at root', () => {
+    const prefs = { ...preferences, requestTabOrderPersistenceScope: 'folder' };
+    const rootItem = { uid: 'root-item-1', type: 'http-request' };
+    const result = getEffectiveTabOrder(rootItem, collection, prefs);
+    expect(result).toEqual(['headers', 'params']);
   });
 
   it('should fallback to global if scope is unknown', () => {
@@ -55,7 +67,7 @@ describe('getEffectiveTabOrder', () => {
   });
 
   it('should handle different request types', () => {
-    const gqlItem = { type: 'graphql-request' };
+    const gqlItem = { type: 'graphql-request', uid: 'gql-1' };
     const result = getEffectiveTabOrder(gqlItem, collection, preferences);
     expect(result).toEqual(['query', 'variables']);
   });
