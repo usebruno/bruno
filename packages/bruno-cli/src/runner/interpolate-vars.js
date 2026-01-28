@@ -67,7 +67,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   const contentType = getContentType(request.headers);
 
   if (contentType.includes('json')) {
-    if (typeof request.data === 'object') {
+    // Skip interpolation if data is a Buffer (e.g., gzip-compressed data)
+    if (typeof request.data === 'object' && !Buffer.isBuffer(request.data)) {
       try {
         let parsed = JSON.stringify(request.data);
         parsed = _interpolate(parsed, { escapeJSONStrings: true });
