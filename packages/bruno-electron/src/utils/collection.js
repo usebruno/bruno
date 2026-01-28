@@ -4,6 +4,7 @@ const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
+const path = require('path');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
@@ -402,6 +403,8 @@ const parseFileMeta = (data, format = 'bru') => {
 
 const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = getRequestUid(pathname);
+  const prefix = path.join(os.tmpdir(), 'bruno-');
+  request.isTransient = pathname.startsWith(prefix);
 
   const params = get(request, 'request.params', []);
   const headers = get(request, 'request.headers', []);
