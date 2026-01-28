@@ -17,6 +17,7 @@ import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { addTab, closeTabs, reorderTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
 import { closeWorkspaceTab } from 'providers/ReduxStore/slices/workspaceTabs';
 import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { focusAddressBar } from 'utils/common/keybinding-commons';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
 export const HotkeysContext = React.createContext();
@@ -168,6 +169,18 @@ export const HotkeysProvider = (props) => {
 
     return () => {
       Mousetrap.unbind([...getKeyBindingsForActionAllOS('globalSearch')]);
+    };
+  }, []);
+
+  // focus address bar (ctrl/cmd + l)
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('focusAddressBar')], (e) => {
+      focusAddressBar();
+      return false; // stop event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('focusAddressBar')]);
     };
   }, []);
 
