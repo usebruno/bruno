@@ -178,13 +178,12 @@ const Wrapper = styled.div`
     position: relative;
   }
 
-  .dropdown-item.has-submenu {
-    justify-content: space-between;
-  }
-
   .submenu-arrow {
     color: ${(props) => props.theme.dropdown.mutedText};
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
   }
 `;
 

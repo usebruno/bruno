@@ -1,5 +1,5 @@
 import React, { forwardRef, useRef, useCallback, useState, useImperativeHandle, useEffect, useMemo } from 'react';
-import { IconChevronRight } from '@tabler/icons';
+import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 
 // Constants
@@ -48,6 +48,7 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  * @param {boolean} props.showGroupDividers - Optional flag to show dividers between groups in grouped format (default: true)
  * @param {string} props.groupStyle - Style for grouped items: 'action' (default, normal case) or 'select' (uppercase labels, indented items)
  * @param {boolean} props.autoFocusFirstOption - Optional flag to auto-focus first option when dropdown opens (default: false)
+ * @param {string} props.submenuPlacement - Placement of submenus: 'right' (default) or 'left'. Controls both position and arrow direction.
  * @param {Object} props.dropdownProps - Other props passed to underlying Dropdown component
  * @param {React.Ref} ref - Optional ref to expose open/close methods
  */
@@ -65,6 +66,7 @@ const MenuDropdown = forwardRef(({
   showGroupDividers = true,
   groupStyle = 'action',
   autoFocusFirstOption = false,
+  submenuPlacement = 'right',
   'data-testid': testId = 'menu-dropdown',
   ...dropdownProps
 }, ref) => {
@@ -352,10 +354,44 @@ const MenuDropdown = forwardRef(({
     return section;
   };
 
+  // Get common props for menu items (shared between regular items and submenu triggers)
+  const getMenuItemProps = (item, extraProps = {}) => {
+    const selectIndentClass = item.groupStyle === 'select' ? 'dropdown-item-select' : '';
+    const isActive = item.id === selectedItemId;
+    const activeClass = isActive ? 'dropdown-item-active' : '';
+
+    // Destructure className from extraProps to avoid it being overwritten by spread
+    const { className: extraClassName, ...restExtraProps } = extraProps;
+
+    return {
+      'className': `dropdown-item ${item.disabled ? 'disabled' : ''} ${selectIndentClass} ${activeClass} ${extraClassName || ''} ${item.className || ''}`.trim(),
+      'role': 'menuitem',
+      'data-item-id': item.id,
+      'tabIndex': item.disabled ? -1 : 0,
+      'aria-label': item.ariaLabel,
+      'aria-disabled': item.disabled,
+      'aria-current': isActive ? 'true' : undefined,
+      'title': item.title,
+      'data-testid': `${testId}-${String(item.id).toLowerCase()}`,
+      ...restExtraProps
+    };
+  };
+
+  // Render the content inside a menu item (leftSection, label, and rightSection/arrow)
+  const renderMenuItemContent = (item, rightContent = null) => (
+    <>
+      {renderSection(item.leftSection)}
+      <span className="dropdown-label">{item.label}</span>
+      {rightContent}
+    </>
+  );
+
   // Render submenu item (only used when item has submenu)
   const SubmenuItem = ({ item, onRootClose }) => {
     const [submenuOpen, setSubmenuOpen] = useState(false);
-    const selectIndentClass = item.groupStyle === 'select' ? 'dropdown-item-select' : '';
+    const isLeftPlacement = submenuPlacement === 'left';
+    const submenuTippyPlacement = isLeftPlacement ? 'left-start' : 'right-start';
+    const ArrowIcon = isLeftPlacement ? IconChevronLeft : IconChevronRight;
 
     const submenuItemsWithClose = item.submenu.map((subItem) => {
       if (subItem.type === 'divider') return subItem;
@@ -368,6 +404,19 @@ const MenuDropdown = forwardRef(({
       };
     });
 
+    const itemProps = getMenuItemProps(item, {
+      'className': 'has-submenu',
+      'aria-haspopup': 'true',
+      'aria-expanded': submenuOpen,
+      'aria-current': undefined // submenu triggers don't need aria-current
+    });
+
+    const arrowElement = (
+      <span className="submenu-arrow">
+        <ArrowIcon size={14} />
+      </span>
+    );
+
     return (
       <div
         className="submenu-trigger"
@@ -376,28 +425,16 @@ const MenuDropdown = forwardRef(({
       >
         <MenuDropdown
           items={submenuItemsWithClose}
-          placement="right-start"
+          placement={submenuTippyPlacement}
           opened={submenuOpen}
           onChange={setSubmenuOpen}
           showTickMark={false}
+          submenuPlacement={submenuPlacement}
           appendTo={() => document.body}
           offset={[0, 0]}
         >
-          <div
-            className={`dropdown-item has-submenu ${item.disabled ? 'disabled' : ''} ${selectIndentClass} ${item.className || ''}`.trim()}
-            role="menuitem"
-            data-item-id={item.id}
-            tabIndex={item.disabled ? -1 : 0}
-            aria-label={item.ariaLabel}
-            aria-disabled={item.disabled}
-            aria-haspopup="true"
-            aria-expanded={submenuOpen}
-            title={item.title}
-            data-testid={`${testId}-${String(item.id).toLowerCase()}`}
-          >
-            {renderSection(item.leftSection)}
-            <span className="dropdown-label">{item.label}</span>
-            <IconChevronRight size={14} className="submenu-arrow" />
+          <div {...itemProps}>
+            {renderMenuItemContent(item, arrowElement)}
           </div>
         </MenuDropdown>
       </div>
@@ -410,37 +447,27 @@ const MenuDropdown = forwardRef(({
       return <SubmenuItem key={item.id} item={item} onRootClose={() => updateOpenState(false)} />;
     }
 
-    const selectIndentClass = item.groupStyle === 'select' ? 'dropdown-item-select' : '';
-    const isActive = item.id === selectedItemId;
-    const activeClass = isActive ? 'dropdown-item-active' : '';
+    const itemProps = getMenuItemProps(item);
+
+    const rightContent = item.rightSection ? (
+      <div
+        className="dropdown-right-section"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
+        {renderSection(item.rightSection)}
+      </div>
+    ) : null;
 
     return (
       <div
         key={item.id}
-        className={`dropdown-item ${item.disabled ? 'disabled' : ''} ${selectIndentClass} ${activeClass} ${item.className || ''}`.trim()}
-        role="menuitem"
-        data-item-id={item.id}
+        {...itemProps}
         onClick={() => !item.disabled && handleItemClick(item)}
-        tabIndex={item.disabled ? -1 : 0}
-        aria-label={item.ariaLabel}
-        aria-disabled={item.disabled}
-        aria-current={isActive ? 'true' : undefined}
-        title={item.title}
-        data-testid={`${testId}-${String(item.id).toLowerCase()}`}
       >
-        {renderSection(item.leftSection)}
-        <span className="dropdown-label">{item.label}</span>
-        {item.rightSection && (
-          <div
-            className="dropdown-right-section"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          >
-            {renderSection(item.rightSection)}
-          </div>
-        )}
+        {renderMenuItemContent(item, rightContent)}
       </div>
     );
   };
