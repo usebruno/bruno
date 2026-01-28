@@ -2,7 +2,6 @@ const { cleanJson, cleanCircularJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
 const { createBrunoRequestShim } = require('./bruno-request');
 const { createBrunoResponseShim } = require('./bruno-response');
-const uuid = require('uuid');
 
 const addBruShimToContext = (vm, bru) => {
   const bruObject = vm.newObject();
@@ -397,42 +396,6 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'cookies', bruCookiesObject);
   bruCookiesObject.dispose();
 
-  // Store handler handles - we need a Map (not WeakMap) because we need to look up by string ID
-  // WeakMap only allows object keys, but we need string-based lookup for handlerId
-  // Proper cleanup via unhook() and cleanupHandlerHandles() prevents memory leaks
-  const handlerIdToHandle = new Map(); // handlerId (string) -> handle (for lookup and cleanup)
-
-  // Cleanup function to dispose handler handles and prevent memory leaks
-  const cleanupHandlerHandles = () => {
-    if (handlerIdToHandle.size === 0) {
-      return;
-    }
-
-    try {
-      // Dispose all handler handles
-      handlerIdToHandle.forEach((handle, handlerId) => {
-        try {
-          if (handle && typeof handle.dispose === 'function') {
-            handle.dispose();
-          }
-        } catch (e) {
-          // Ignore disposal errors for individual handles
-          // Log only if it's not a UseAfterFree error
-          const errorMsg = e?.message || String(e);
-          if (!errorMsg.includes('UseAfterFree') && !errorMsg.includes('Lifetime not alive')) {
-            console.warn(`Error disposing handler handle ${handlerId}:`, e.message);
-          }
-        }
-      });
-
-      // Clear the Map
-      handlerIdToHandle.clear();
-    } catch (error) {
-      // Ignore cleanup errors
-      console.warn('Error during handler handles cleanup:', error.message);
-    }
-  };
-
   // Add hooks shim if bru.hooks exists
   if (bru.hooks) {
     const hooksObject = vm.newObject();
@@ -573,7 +536,7 @@ const addBruShimToContext = (vm, bru) => {
      * Creates a hook function that registers a handler with the native hook system.
      * This helper eliminates code duplication across different hook types.
      *
-     * @param {string} handlerIdPrefix - Prefix for the unique handler ID
+     * @param {string} handlerIdPrefix - Prefix for logging/debugging (not used for lookup)
      * @param {Function} nativeHookRegister - Function to register with native hooks (e.g., bru.hooks.http.onBeforeRequest)
      * @param {boolean} validateHandler - Whether to validate handler is a function (default: true)
      * @returns {Function} VM function that can be registered as a hook
@@ -585,9 +548,6 @@ const addBruShimToContext = (vm, bru) => {
           throw new Error('Handler must be a function');
         }
 
-        // Create unique handler ID
-        const handlerId = `${handlerIdPrefix}-${uuid.v4()}`;
-
         // Try to duplicate the handle to own a reference
         let handlerHandle;
         try {
@@ -596,39 +556,23 @@ const addBruShimToContext = (vm, bru) => {
           handlerHandle = handler;
         }
 
-        // Store the handle - we need Map (not WeakMap) because we need string-based lookup
-        handlerIdToHandle.set(handlerId, handlerHandle);
-
         // Create native handler that executes the stored handle
         // Returns a Promise so HookManager can await async handlers
+        // Capture handlerHandle directly in closure - no lookup needed
         const nativeHandler = (data) => {
-          const storedHandle = handlerIdToHandle.get(handlerId);
-          if (!storedHandle || !vm) {
+          if (!handlerHandle || !vm) {
             return Promise.resolve();
           }
           // Return the Promise from executeHandler so HookManager awaits it
-          return executeHandler(storedHandle, vm, data);
+          return executeHandler(handlerHandle, vm, data);
         };
 
         // Register with native hook system
         const unhook = nativeHookRegister(nativeHandler);
 
-        // Create unhook function
+        // Create unhook function (just calls native unhook - no handle cleanup needed)
         const unhookFn = vm.newFunction('unhook', () => {
           unhook();
-
-          // Clean up handler handle
-          if (handlerIdToHandle.has(handlerId)) {
-            const storedHandle = handlerIdToHandle.get(handlerId);
-            try {
-              if (storedHandle && storedHandle.dispose) {
-                storedHandle.dispose();
-              }
-            } catch (e) {
-              // Ignore disposal errors
-            }
-            handlerIdToHandle.delete(handlerId);
-          }
         });
 
         return unhookFn;
@@ -740,9 +684,6 @@ const addBruShimToContext = (vm, bru) => {
       };
     };
   `);
-
-  // Always return cleanup function; it is a no-op if no hooks were registered
-  return cleanupHandlerHandles;
 };
 
 module.exports = addBruShimToContext;

@@ -100,63 +100,17 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
  *                                      If false (default), VM is disposed immediately.
  * @returns {Promise<Object|undefined>} Returns { cleanup } if persistVm=true, undefined otherwise
  */
-const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext, collectionPath, persistVm = false }) => {
+const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext, collectionPath }) => {
   if (!externalScript?.length || typeof externalScript !== 'string') {
-    return persistVm ? { cleanup: () => {} } : undefined;
+    return externalScript;
   }
   externalScript = externalScript?.trim();
 
-  // Reuse the memoized WASM module instead of creating a new one each time
-  // This significantly reduces memory allocation and GC pressure
-  const module = await loader();
-  const vm = module.newContext();
-
-  // Track cleanup function for bru shim (handles hook handler disposal)
-  let bruCleanup = null;
-  let disposed = false;
-
-  // Create cleanup function that can be called later (for hooks) or immediately (for scripts)
-  // IMPORTANT: We skip VM disposal entirely to avoid QuickJS GC assertion errors.
-  // The "list_empty(&rt->gc_obj_list)" assertion occurs when objects remain in the GC list
-  // during disposal. This can happen with:
-  // - Async operations that create promises
-  // - Native function shims that hold references
-  // - Hook handlers stored in native Maps
-  // Since we reuse the WASM module, memory impact is limited and VMs will be
-  // reclaimed when the process exits or module is garbage collected.
-  const performCleanup = () => {
-    if (disposed) return;
-    disposed = true;
-
-    // 1. Call bru cleanup to dispose handler handles stored in the shim
-    if (bruCleanup && typeof bruCleanup === 'function') {
-      try {
-        bruCleanup();
-      } catch (e) {
-        // Ignore cleanup errors - VM may already be in bad state
-      }
-    }
-
-    // 2. Execute any pending jobs to allow async operations to complete
-    try {
-      if (vm.runtime) {
-        vm.runtime.executePendingJobs();
-      }
-    } catch (e) {
-      // Ignore errors - VM may be in inconsistent state
-    }
-
-    // NOTE: We intentionally do NOT call vm.dispose() here.
-    // QuickJS's GC assertion "list_empty(&rt->gc_obj_list)" fails when there are
-    // still objects in the VM's GC list during disposal. This commonly occurs with:
-    // - Promises that haven't been fully resolved
-    // - Native function callbacks holding references
-    // - Async operations in flight
-    // The WASM module is reused via memoization, so VM contexts don't accumulate
-    // indefinitely. Memory will be reclaimed when the process exits.
-  };
-
   try {
+    // Create new WASM module each time (no memoization)
+    const module = await newQuickJSWASMModule();
+    const vm = module.newContext();
+
     // add crypto utilities required by the crypto-js library in bundledCode
     await addCryptoUtilsShimToContext(vm);
 
@@ -205,11 +159,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
 
     consoleFn && addConsoleShimToContext(vm, consoleFn);
-    // Capture cleanup function returned by addBruShimToContext
-    // This is essential for disposing handler handles and preventing memory leaks
-    if (bru) {
-      bruCleanup = addBruShimToContext(vm, bru);
-    }
+    bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
     addLocalModuleLoaderShimToContext(vm, collectionPath);
@@ -243,25 +193,10 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     promiseHandle.dispose();
     const resolvedHandle = vm.unwrapResult(resolvedResult);
     resolvedHandle.dispose();
-
-    // If persistVm is true, return cleanup function for later disposal (used by hooks)
-    // Otherwise, cleanup immediately (used by regular scripts)
-    if (persistVm) {
-      // Return cleanup function for hooks - cleanup will run when HookManager.dispose() is called
-      return { cleanup: performCleanup };
-    }
     return;
   } catch (error) {
     console.error('Error executing the script!', error);
-    // On error, cleanup handler handles (VM disposal skipped to avoid GC assertion)
-    performCleanup();
     throw new Error(error);
-  } finally {
-    // For regular scripts (not hooks), cleanup handler handles immediately
-    // VM disposal is skipped to avoid QuickJS GC assertion errors
-    if (!persistVm) {
-      performCleanup();
-    }
   }
 };
 
