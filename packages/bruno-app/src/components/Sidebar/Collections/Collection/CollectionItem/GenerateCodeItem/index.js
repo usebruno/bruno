@@ -113,12 +113,14 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
   // requestData.request contains either the normal request or example request data.
   // We explicitly set auth from resolvedRequest to ensure inherited auth
   // (from folders/collection) is resolved correctly in generated code.
+  // URL: use interpolated URL when "Interpolate Variables" is on, raw URL (with {{ }}) when off
+  const requestUrl = generateCodePrefs.shouldInterpolate ? finalUrl : requestData.url;
   const finalItem = {
     ...item,
     request: {
       ...requestData.request,
       auth: resolvedRequest.auth,
-      url: finalUrl
+      url: requestUrl
     }
   };
 
