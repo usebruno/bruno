@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { pluralizeWord } from 'utils/common';
 import { IconAlertTriangle, IconDeviceFloppy } from '@tabler/icons';
 import { clearAllSaveTransientRequestModals } from 'providers/ReduxStore/slices/collections';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
 import SaveTransientRequest from './index';
@@ -12,8 +14,23 @@ const SaveTransientRequestContainer = () => {
   const modals = useSelector((state) => state.collections.saveTransientRequestModals);
   const [openItemUid, setOpenItemUid] = useState(null);
 
+  // Reset openItemUid if the modal no longer exists in the array
+  useEffect(() => {
+    if (openItemUid && !modals.find((modal) => modal.item.uid === openItemUid)) {
+      setOpenItemUid(null);
+    }
+  }, [modals, openItemUid]);
+
   const handleDiscardAll = () => {
+    // Close all tabs for the transient requests (this will also delete the transient files)
+    const tabUids = modals.map((modal) => modal.item.uid);
+    dispatch(closeTabs({ tabUids }));
+
+    // Clear all modals
     dispatch(clearAllSaveTransientRequestModals());
+
+    // Show success message
+    toast.success(`Discarded ${modals.length} ${pluralizeWord('request', modals.length)}`);
   };
 
   const handleCancel = () => {
@@ -25,10 +42,6 @@ const SaveTransientRequestContainer = () => {
     setOpenItemUid(itemUid);
   };
 
-  const handleCloseSpecificModal = () => {
-    setOpenItemUid(null);
-  };
-
   // If a specific modal is open, show it
   if (openItemUid) {
     const modalToOpen = modals.find((modal) => modal.item.uid === openItemUid);
@@ -38,12 +51,9 @@ const SaveTransientRequestContainer = () => {
           item={modalToOpen.item}
           collection={modalToOpen.collection}
           isOpen={true}
-          onClose={handleCloseSpecificModal}
         />
       );
     }
-    // If modal not found, reset
-    setOpenItemUid(null);
   }
 
   // Show list of multiple modals
