@@ -50,6 +50,18 @@ describe('Bruno to Postman Response Translation', () => {
     expect(translatedCode).toBe('console.log("Headers:", pm.response.headers);');
   });
 
+  it('should translate res.getUrl() to pm.response.url (function to property)', () => {
+    const code = 'const url = res.getUrl();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const url = pm.response.url;');
+  });
+
+  it('should translate res.url to pm.response.url (property to property)', () => {
+    const code = 'const url = res.url;';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const url = pm.response.url;');
+  });
+
   it('should translate res.getHeader()', () => {
     const code = 'const contentType = res.getHeader("Content-Type");';
     const translatedCode = translateBruToPostman(code);
