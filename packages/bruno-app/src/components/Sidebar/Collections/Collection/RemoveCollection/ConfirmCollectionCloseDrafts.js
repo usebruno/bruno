@@ -163,8 +163,8 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
           <p className="text-xs text-orange-600 mb-3">
             These requests need to be saved individually before closing the collection.
           </p>
-          <div className="space-y-2">
-            {currentTransientDrafts.slice(0, MAX_UNSAVED_REQUESTS_TO_SHOW).map((item) => {
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+            {currentTransientDrafts.map((item) => {
               return (
                 <div
                   key={item.uid}
@@ -184,12 +184,6 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
               );
             })}
           </div>
-          {currentTransientDrafts.length > MAX_UNSAVED_REQUESTS_TO_SHOW && (
-            <p className="ml-2 mt-2 text-xs text-gray-500">
-              ...{currentTransientDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW} additional{' '}
-              {pluralizeWord('request', currentTransientDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW)} not shown
-            </p>
-          )}
         </div>
       )}
 
