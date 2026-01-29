@@ -124,9 +124,27 @@ class PreferencesStore {
   getPreferences() {
     let preferences = this.store.get('preferences', {});
 
-    // Migrate proxy configuration from old formats to new format
-    const proxyMigrated = get(preferences, '_migrations.proxyConfigFormat', false);
-    if (!proxyMigrated && preferences?.proxy) {
+    // Handle existing users without proxy settings
+    // They should get disabled proxy by default, not inherit from system
+    // New users (empty preferences) will get defaultPreferences.proxy via merge
+    if (Object.keys(preferences).length > 0 && !preferences.proxy) {
+      preferences.proxy = {
+        inherit: false,
+        disabled: true,
+        config: {
+          protocol: 'http',
+          hostname: '',
+          port: null,
+          auth: {
+            username: '',
+            password: ''
+          },
+          bypassProxy: ''
+        }
+      };
+    }
+
+    if (preferences?.proxy) {
       const proxy = preferences.proxy || {};
 
       // Check if this is an old format that needs migration
@@ -181,15 +199,6 @@ class PreferencesStore {
         }
 
         preferences.proxy = newProxy;
-
-        // Mark migration as complete // ?
-        // if (!preferences._migrations) {
-        //   preferences._migrations = {};
-        // }
-        // preferences._migrations.proxyConfigFormat = true;
-
-        // Save the migrated preferences back to the store
-        // this.store.set('preferences', preferences);
       }
     }
 
@@ -260,7 +269,7 @@ const preferencesUtil = {
     return get(getPreferences(), 'request.timeout', 0);
   },
   getGlobalProxyConfig: () => {
-    return get(getPreferences(), 'proxy', {});
+    return get(getPreferences(), 'proxy', defaultPreferences.proxy);
   },
   shouldStoreCookies: () => {
     return get(getPreferences(), 'request.storeCookies', true);
@@ -273,14 +282,6 @@ const preferencesUtil = {
   },
   getResponsePaneOrientation: () => {
     return get(getPreferences(), 'layout.responsePaneOrientation', 'horizontal');
-  },
-  getSystemProxyEnvVariables: () => {
-    const { http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY, no_proxy, NO_PROXY } = process.env;
-    return {
-      http_proxy: http_proxy || HTTP_PROXY,
-      https_proxy: https_proxy || HTTPS_PROXY,
-      no_proxy: no_proxy || NO_PROXY
-    };
   },
   isBetaFeatureEnabled: (featureName) => {
     return get(getPreferences(), `beta.${featureName}`, false);

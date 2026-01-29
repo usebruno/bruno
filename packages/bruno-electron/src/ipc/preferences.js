@@ -1,17 +1,13 @@
 const { ipcMain, nativeTheme } = require('electron');
-const { getPreferences, savePreferences, preferencesUtil } = require('../store/preferences');
+const { getPreferences, savePreferences } = require('../store/preferences');
 const { globalEnvironmentsStore } = require('../store/global-environments');
+const { getSystemProxy } = require('@usebruno/requests');
 
-const registerPreferencesIpc = (mainWindow, watcher) => {
+const registerPreferencesIpc = (mainWindow) => {
   ipcMain.handle('renderer:ready', async (event) => {
     // load preferences
     const preferences = getPreferences();
     mainWindow.webContents.send('main:load-preferences', preferences);
-
-    // load system proxy vars
-    const systemProxyVars = preferencesUtil.getSystemProxyEnvVariables();
-    const { http_proxy, https_proxy, no_proxy } = systemProxyVars || {};
-    mainWindow.webContents.send('main:load-system-proxy-env', { http_proxy, https_proxy, no_proxy });
 
     try {
       // load global environments
@@ -41,6 +37,11 @@ const registerPreferencesIpc = (mainWindow, watcher) => {
 
   ipcMain.on('renderer:theme-change', (event, theme) => {
     nativeTheme.themeSource = theme;
+  });
+
+  ipcMain.handle('renderer:get-system-proxy-variables', async () => {
+    const systemProxyConfig = await getSystemProxy();
+    return systemProxyConfig;
   });
 };
 
