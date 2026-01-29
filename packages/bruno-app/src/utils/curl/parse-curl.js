@@ -228,7 +228,7 @@ const setAuth = (request, value) => {
 /**
  * Finalize authentication object based on credentials and auth type flags
  */
-const finalizeAuth = (request) => {
+const normalizeAuthProperties = (request) => {
   if (!request.authCredentials) {
     delete request.isDigestAuth;
     delete request.isNtlmAuth;
@@ -489,7 +489,7 @@ const postBuildProcessRequest = (request) => {
     }
   }
 
-  finalizeAuth(request);
+  normalizeAuthProperties(request);
 
   // if method is not set, set it to GET
   if (!request.method) {
