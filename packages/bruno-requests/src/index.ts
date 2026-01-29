@@ -8,7 +8,7 @@ export { transformProxyConfig } from './utils/proxy-util';
 export { default as createVaultClient, VaultError } from './utils/node-vault';
 export type { VaultClient, VaultConfig, VaultRequestOptions } from './utils/node-vault';
 export { getHttpHttpsAgents } from './utils/http-https-agents';
-export { getOrCreateAgent, clearAgentCache, getAgentCacheSize } from './utils/agent-cache';
+export { getOrCreateAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize } from './utils/agent-cache';
 
 export * as scripting from './scripting';
 
