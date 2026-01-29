@@ -1,11 +1,12 @@
 const parseUrl = require('url').parse;
 const https = require('node:https');
+const http = require('node:http');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
-const { getOrCreateAgent, clearAgentCache, getAgentCacheSize } = require('@usebruno/requests');
+const { getOrCreateAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize } = require('@usebruno/requests');
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -104,14 +105,8 @@ function setupProxyAgents({
     keepAlive: true
   };
 
-  // Log SSL validation status to timeline
-  if (timeline) {
-    timeline.push({
-      timestamp: new Date(),
-      type: 'info',
-      message: `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`
-    });
-  }
+  const parsedUrl = parseUrl(requestConfig.url);
+  const isHttpsRequest = parsedUrl.protocol === 'https:';
 
   if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(requestConfig.url, get(proxyConfig, 'bypassProxy', ''));
@@ -141,29 +136,29 @@ function setupProxyAgents({
         });
       }
 
+      // Only set the agent needed for the request protocol
       if (socksEnabled) {
-        // Use cached agents for SSL session reuse with timeline logging
-        requestConfig.httpAgent = getOrCreateAgent(SocksProxyAgent, { keepAlive: true }, proxyUri, timeline);
-        requestConfig.httpsAgent = getOrCreateAgent(SocksProxyAgent, tlsOptions, proxyUri, timeline);
+        if (isHttpsRequest) {
+          requestConfig.httpsAgent = getOrCreateAgent(SocksProxyAgent, tlsOptions, proxyUri, timeline);
+        } else {
+          requestConfig.httpAgent = getOrCreateHttpAgent(SocksProxyAgent, { keepAlive: true }, proxyUri, timeline);
+        }
       } else {
-        // Use cached agents for SSL session reuse with timeline logging
-        requestConfig.httpAgent = getOrCreateAgent(HttpProxyAgent, { keepAlive: true }, proxyUri, timeline);
-        requestConfig.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, proxyUri, timeline);
+        if (isHttpsRequest) {
+          requestConfig.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, proxyUri, timeline);
+        } else {
+          requestConfig.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, proxyUri, timeline);
+        }
       }
-    } else {
-      // If proxy should not be used, use cached default HTTPS agent with timeline logging
-      requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null, timeline);
     }
   } else if (proxyMode === 'system') {
     const { http_proxy, https_proxy, no_proxy } = proxyConfig || {};
     const shouldUseSystemProxy = shouldUseProxy(requestConfig.url, no_proxy || '');
-    const parsedUrl = parseUrl(requestConfig.url);
-    const isHttpsRequest = parsedUrl.protocol === 'https:';
     if (shouldUseSystemProxy) {
       try {
         if (http_proxy?.length && !isHttpsRequest) {
           new URL(http_proxy);
-          requestConfig.httpAgent = getOrCreateAgent(HttpProxyAgent, { keepAlive: true }, http_proxy, timeline);
+          requestConfig.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, http_proxy, timeline);
         }
       } catch (error) {
         throw new Error(`Invalid system http_proxy "${http_proxy}": ${error.message}`);
@@ -185,12 +180,15 @@ function setupProxyAgents({
       } catch (error) {
         throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
       }
-    } else {
-      requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null, timeline);
     }
-  } else {
-    // No proxy - use cached HTTPS agent for SSL session reuse with timeline logging
-    requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null, timeline);
+  }
+
+  if (!requestConfig.httpAgent && !requestConfig.httpsAgent) {
+    if (isHttpsRequest) {
+      requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null, timeline);
+    } else {
+      requestConfig.httpAgent = getOrCreateHttpAgent(http.Agent, { keepAlive: true }, null, timeline);
+    }
   }
 }
 
@@ -200,5 +198,6 @@ module.exports = {
   setupProxyAgents,
   clearAgentCache,
   getAgentCacheSize,
-  getOrCreateAgent
+  getOrCreateAgent,
+  getOrCreateHttpAgent
 };
