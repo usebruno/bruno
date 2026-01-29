@@ -77,8 +77,8 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getOauth2CredentialVar', getOauth2CredentialVar);
   getOauth2CredentialVar.dispose();
 
-  let setGlobalEnvVar = vm.newFunction('setGlobalEnvVar', function (key, value) {
-    bru.setGlobalEnvVar(vm.dump(key), vm.dump(value));
+  let setGlobalEnvVar = vm.newFunction('setGlobalEnvVar', function (key, value, options = {}) {
+    bru.setGlobalEnvVar(vm.dump(key), vm.dump(value), vm.dump(options));
   });
   vm.setProp(bruObject, 'setGlobalEnvVar', setGlobalEnvVar);
   setGlobalEnvVar.dispose();
