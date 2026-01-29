@@ -60,7 +60,6 @@
     "dev:watch": "node ./scripts/dev-hot-reload.js",
     "dev:web": "npm run dev --workspace=packages/bruno-app",
     "build:web": "npm run build --workspace=packages/bruno-app",
-    "prettier:web": "npm run prettier --workspace=packages/bruno-app",
     "dev:electron": "npm run dev --workspace=packages/bruno-electron",
     "dev:electron:debug": "npm run debug --workspace=packages/bruno-electron",
     "storybook": "npm run storybook --workspace=packages/bruno-app",
@@ -83,7 +82,6 @@
     "test:codegen": "node playwright/codegen.ts",
     "test:e2e": "playwright test --project=default",
     "test:e2e:ssl": "playwright test --project=ssl",
-    "test:prettier:web": "npm run test:prettier --workspace=packages/bruno-app",
     "lint": "cross-env NODE_OPTIONS=\"--max_old_space_size=4096\" npx eslint",
     "lint:fix": "cross-env NODE_OPTIONS=\"--max_old_space_size=4096\" npx eslint --fix",
     "prepare": "husky"
