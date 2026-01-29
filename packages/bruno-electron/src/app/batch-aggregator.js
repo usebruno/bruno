@@ -6,13 +6,13 @@
  * Redux updates and improving UI performance during collection mounting.
  *
  * Flush triggers:
- * - Time-based: Every DISPATCH_INTERVAL_MS (100ms)
- * - Size-based: When batch reaches MAX_BATCH_SIZE (50 items)
+ * - Time-based: Every DISPATCH_INTERVAL_MS (200ms)
+ * - Size-based: When batch reaches MAX_BATCH_SIZE (300 items)
  * - Manual: Call flush() directly (e.g., on watcher 'ready' event)
  */
 
-const DISPATCH_INTERVAL_MS = 150;
-const MAX_BATCH_SIZE = 200;
+const DISPATCH_INTERVAL_MS = 200;
+const MAX_BATCH_SIZE = 300;
 
 class BatchAggregator {
   constructor(win, collectionUid) {
