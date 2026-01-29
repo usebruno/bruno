@@ -58,7 +58,8 @@ import {
   addCollectionVar,
   updateCollectionVar,
   addTransientDirectory,
-  addSaveTransientRequestModal
+  addSaveTransientRequestModal,
+  updatePathParam
 } from './index';
 
 import { each } from 'lodash';
@@ -2151,7 +2152,23 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             .then(resolve)
             .catch(reject);
         }
+        case 'pathParam': {
+          const { item } = data;
+          const params = item.draft ? get(item, 'draft.request.params', []) : get(item, 'request.params', []);
+          const pathParam = params.find((p) => p.type === 'path' && p.name === variableName);
 
+          if (pathParam) {
+            const updatedParam = { ...pathParam, value: newValue };
+            dispatch(updatePathParam({
+              pathParam: updatedParam,
+              itemUid: item.uid,
+              collectionUid: collection.uid
+            }));
+          }
+          return dispatch(saveRequest(item.uid, collection.uid, true))
+            .then(resolve)
+            .catch(reject);
+        }
         default:
           return reject(new Error(`Unknown scope type: ${type}`));
       }
