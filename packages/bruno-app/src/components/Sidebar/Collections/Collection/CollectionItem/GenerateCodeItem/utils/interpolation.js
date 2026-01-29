@@ -1,12 +1,29 @@
-import { interpolate } from '@usebruno/common';
+import { interpolate, interpolateObject } from '@usebruno/common';
 import { cloneDeep } from 'lodash';
 
+export const interpolateAuth = (auth, variables = {}) => {
+  if (!auth) return auth;
+  return interpolateObject(auth, variables);
+};
+
 export const interpolateHeaders = (headers = [], variables = {}) => {
-  return headers.map((header) => ({
-    ...header,
-    name: interpolate(header.name, variables),
-    value: interpolate(header.value, variables)
-  }));
+  if (!headers) return [];
+  return headers.map((header) => {
+    if (header.enabled) {
+      return interpolateObject(header, variables);
+    }
+    return header;
+  });
+};
+
+export const interpolateParams = (params = [], variables = {}) => {
+  if (!params) return [];
+  return params.map((param) => {
+    if (param.enabled) {
+      return interpolateObject(param, variables);
+    }
+    return param;
+  });
 };
 
 export const interpolateBody = (body, variables = {}) => {
