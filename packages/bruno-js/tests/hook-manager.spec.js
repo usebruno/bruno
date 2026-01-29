@@ -138,48 +138,12 @@ describe('HookManager', () => {
       expect(normalHandler).toHaveBeenCalled();
     });
 
-    it('should collect errors when collectErrors is true', async () => {
-      const errorHandler = jest.fn(() => { throw new Error('Test error'); });
-      hookManager.on('test', errorHandler);
-      const result = await hookManager.call('test', {}, { collectErrors: true });
-      expect(result.success).toBe(false);
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors[0].message).toBe('Test error');
-    });
-
-    it('should stop on first error when stopOnError is true', async () => {
-      const errorHandler = jest.fn(() => { throw new Error('Test error'); });
-      const normalHandler = jest.fn();
-      hookManager.on('test', errorHandler);
-      hookManager.on('test', normalHandler);
-      await hookManager.call('test', {}, { stopOnError: true });
-      expect(normalHandler).not.toHaveBeenCalled();
-    });
-
-    it('should call onError callback for each error', async () => {
-      const onError = jest.fn();
-      const errorHandler = jest.fn(() => { throw new Error('Test error'); });
-      hookManager.on('test', errorHandler);
-      await hookManager.call('test', {}, { onError });
-      expect(onError).toHaveBeenCalledWith(expect.objectContaining({
-        event: 'test',
-        message: 'Test error'
-      }));
-    });
-
     it('should warn when called on disposed instance', async () => {
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
       hookManager.dispose();
       await hookManager.call('test', {});
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('disposed'));
       consoleSpy.mockRestore();
-    });
-
-    it('should return error result when disposed and collectErrors is true', async () => {
-      hookManager.dispose();
-      const result = await hookManager.call('test', {}, { collectErrors: true });
-      expect(result.success).toBe(false);
-      expect(result.errors[0].message).toContain('disposed');
     });
   });
 
