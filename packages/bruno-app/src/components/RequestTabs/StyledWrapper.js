@@ -71,9 +71,8 @@ const Wrapper = styled.div`
 
       &:not(.active) {
         background: ${(props) => props.theme.requestTabs.bg};
-        border-color: transparent;
+        border-bottom: 3px solid ${(props) => props.color ?? "transparent"};
         border-radius: ${(props) => props.theme.border.radius.base};
-
       }
 
       &:nth-last-child(1) {
@@ -113,7 +112,7 @@ const Wrapper = styled.div`
       &.active {
         background: ${(props) => props.theme.bg || '#ffffff'};
         border: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
-        border-bottom-color: ${(props) => props.theme.bg || '#ffffff'};
+        border-bottom-color: ${(props) => props.color ?? props.theme.bg ?? '#ffffff'};
         border-radius: 8px 8px 0 0;
         z-index: 1;
         margin-bottom: -2px;

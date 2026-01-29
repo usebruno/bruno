@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 import CopyEnvironment from 'components/Environments/EnvironmentSettings/CopyEnvironment';
 import DeleteEnvironment from 'components/Environments/EnvironmentSettings/DeleteEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
+import EnvironmentColor from '../EnvironmentDetails/EnvironmentColor';
+import ToolHint from 'components/ToolHint/index';
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
@@ -119,7 +121,6 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
       {openCopyModal && (
         <CopyEnvironment onClose={() => setOpenCopyModal(false)} environment={environment} collection={collection} />
       )}
-
       <div className="header">
         <div className={`title-container ${isRenaming ? 'renaming' : ''}`}>
           {isRenaming ? (
@@ -174,9 +175,8 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
         </div>
       </div>
 
-      <div className="content">
-        <EnvironmentVariables environment={environment} setIsModified={setIsModified} collection={collection} />
-      </div>
+      <EnvironmentColor environment={environment} collectionUid={collection.uid} />
+      <EnvironmentVariables environment={environment} collection={collection} setIsModified={setIsModified} onClose={onClose} />
     </StyledWrapper>
   );
 };
