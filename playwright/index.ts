@@ -41,7 +41,7 @@ export const test = baseTest.extend<
   }
 >({
   createTmpDir: [
-    async ({}, use) => {
+    async ({ }, use) => {
       const dirs: string[] = [];
       await use(async (tag?: string) => {
         const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), `pw-${tag || ''}-`));
@@ -85,7 +85,7 @@ export const test = baseTest.extend<
         }
 
         const app = await playwright._electron.launch({
-          args: [electronAppPath],
+          args: [electronAppPath, '--disable-gpu'],
           env: {
             ...process.env,
             ELECTRON_USER_DATA_PATH: userDataPath,
@@ -134,7 +134,7 @@ export const test = baseTest.extend<
     if (tracingOptions) {
       try {
         await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
-      } catch (e) {}
+      } catch (e) { }
     }
     await use(context);
   },
@@ -236,7 +236,7 @@ export const test = baseTest.extend<
       const tracePath = testInfo.outputPath(`trace-${testInfo.testId}.zip`);
       try {
         await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
-      } catch (e) {}
+      } catch (e) { }
       await context.tracing.startChunk();
       await use(page);
       await context.tracing.stopChunk({ path: tracePath });

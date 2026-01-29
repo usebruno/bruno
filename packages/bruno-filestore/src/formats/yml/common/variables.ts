@@ -1,7 +1,7 @@
 import { Variable } from '@opencollection/types/common/variables';
 import { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
 import { Variable as BrunoVariable, Variables as BrunoVariables } from '@usebruno/schema-types/common/variables';
-import { uuid } from '../../../utils';
+import { uuid, ensureString } from '../../../utils';
 
 /**
  * Convert Bruno pre-request variables to OpenCollection variables format.
@@ -51,8 +51,8 @@ export const toBrunoVariables = (variables: Variable[] | null | undefined): { re
   variables.forEach((v: Variable) => {
     const variable: BrunoVariable = {
       uid: uuid(),
-      name: v.name || '',
-      value: v.value as string || '',
+      name: ensureString(v.name),
+      value: ensureString(v.value),
       enabled: v.disabled !== true,
       local: false
     };

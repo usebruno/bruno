@@ -117,6 +117,130 @@ const getBodyTypeFromContentType = (contentType) => {
   return 'text';
 };
 
+/**
+ * Gets a default value for a schema based on its type, format, and constraints
+ * Prioritizes: explicit example > enum first value > format-specific example > type default
+ * @param {Object} schema - The OpenAPI schema object
+ * @param {Map} visited - Map to track circular references
+ * @returns {*} - The default value for the schema
+ */
+const getDefaultValueForSchema = (schema, visited = new Map()) => {
+  // Check for explicit example first
+  if (schema.example !== undefined) {
+    return schema.example;
+  }
+
+  // Check for enum and use first value
+  if (schema.enum && schema.enum.length > 0) {
+    return schema.enum[0];
+  }
+
+  // Handle different types
+  if (schema.type === 'object' || schema.properties) {
+    return buildEmptyJsonBody(schema, visited);
+  }
+
+  if (schema.type === 'array') {
+    // Check for array-level example
+    if (schema.example !== undefined) {
+      return schema.example;
+    }
+
+    if (schema.items) {
+      if (schema.items.type === 'object' || schema.items.properties) {
+        return [buildEmptyJsonBody(schema.items, visited)];
+      }
+      // For primitive arrays, get example from items
+      if (schema.items.example !== undefined) {
+        return Array.isArray(schema.items.example) ? schema.items.example : [schema.items.example];
+      }
+      // Return array with a single default primitive value
+      const itemDefault = getDefaultValueForSchema(schema.items, visited);
+      if (itemDefault !== '' && itemDefault !== 0 && itemDefault !== false) {
+        return [itemDefault];
+      }
+    }
+    return [];
+  }
+
+  if (schema.type === 'integer' || schema.type === 'number') {
+    return 0;
+  }
+
+  if (schema.type === 'boolean') {
+    return false;
+  }
+
+  // Default for strings and other types
+  return '';
+};
+
+/**
+ * Builds XML string from OpenAPI schema
+ * @param {Object} bodySchema - The OpenAPI schema object
+ * @returns {string} - XML string
+ */
+const buildXmlBody = (bodySchema) => {
+  if (!bodySchema) return '';
+
+  // String example = raw XML, return as-is
+  if (typeof bodySchema.example === 'string') {
+    return bodySchema.example;
+  }
+
+  const exampleValues = typeof bodySchema.example === 'object' ? bodySchema.example : null;
+
+  if (!bodySchema.properties && !exampleValues) return '';
+
+  const rootName = bodySchema.xml?.name || 'root';
+
+  // Build a single XML element
+  const buildElement = (name, prop = {}, value, indent = '  ') => {
+    const xmlName = prop.xml?.name || name;
+
+    if (prop.xml?.attribute) return null;
+
+    // Nested object - recurse into children
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      const children = Object.entries(value)
+        .map(([k, v]) => buildElement(k, prop.properties?.[k] || {}, v, indent + '  '))
+        .filter(Boolean);
+      return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
+    }
+
+    // Object schema without value - build empty structure from schema
+    if (prop.type === 'object' || prop.properties) {
+      const children = Object.entries(prop.properties || {})
+        .map(([k, p]) => buildElement(k, p, undefined, indent + '  '))
+        .filter(Boolean);
+      return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
+    }
+
+    // Primitive value
+    const content = value != null ? String(value) : '';
+    return `${indent}<${xmlName}>${content}</${xmlName}>`;
+  };
+
+  // Collect attributes
+  const attributes = Object.entries(bodySchema.properties || {})
+    .filter(([, p]) => p.xml?.attribute)
+    .map(([name, p]) => `${p.xml?.name || name}="${exampleValues?.[name] ?? ''}"`);
+
+  // Build child elements
+  const entries = bodySchema.properties
+    ? Object.entries(bodySchema.properties).map(([k, p]) => [k, p, exampleValues?.[k]])
+    : Object.entries(exampleValues || {}).map(([k, v]) => [k, {}, v]);
+
+  const children = entries
+    .map(([name, prop, value]) => buildElement(name, prop, value))
+    .filter(Boolean);
+
+  const attrStr = attributes.length ? ' ' + attributes.join(' ') : '';
+  const childrenStr = children.length ? '\n' + children.join('\n') + '\n' : '';
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<${rootName}${attrStr}>${childrenStr}</${rootName}>`;
+};
+
 const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
   // Check for circular references
   if (visited.has(bodySchema)) {
@@ -128,24 +252,100 @@ const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
 
   let _jsonBody = {};
   each(bodySchema.properties || {}, (prop, name) => {
-    if (prop.type === 'object' || prop.properties) {
-      _jsonBody[name] = buildEmptyJsonBody(prop, visited);
-    } else if (prop.type === 'array') {
-      if (prop.items && (prop.items.type === 'object' || prop.items.properties)) {
-        _jsonBody[name] = [buildEmptyJsonBody(prop.items, visited)];
-      } else {
-        _jsonBody[name] = [];
-      }
-    } else if (prop.type === 'integer' || prop.type === 'number') {
-      _jsonBody[name] = 0;
-    } else if (prop.type === 'boolean') {
-      _jsonBody[name] = false;
-    } else {
-      _jsonBody[name] = '';
-    }
+    _jsonBody[name] = getDefaultValueForSchema(prop, visited);
   });
   return _jsonBody;
 };
+
+/**
+ * Body type handlers for different content types
+ * Each handler has:
+ * - match: function to test if this handler should process the mime type
+ * - mode: the Bruno body mode to set
+ * - handle: function to populate the body content
+ */
+const BODY_TYPE_HANDLERS = [
+  {
+    match: (mimeType) => CONTENT_TYPE_PATTERNS.JSON.test(mimeType),
+    mode: 'json',
+    handle: (body, bodySchema) => {
+      if (bodySchema) {
+        if (bodySchema.example !== undefined) {
+          body.json = JSON.stringify(bodySchema.example, null, 2);
+        } else if (bodySchema.type === 'array') {
+          body.json = JSON.stringify(bodySchema.items ? [buildEmptyJsonBody(bodySchema.items)] : [], null, 2);
+        } else {
+          body.json = JSON.stringify(buildEmptyJsonBody(bodySchema), null, 2);
+        }
+      }
+    }
+  },
+  {
+    match: (mimeType) => mimeType === 'application/x-www-form-urlencoded',
+    mode: 'formUrlEncoded',
+    handle: (body, bodySchema) => {
+      if (!bodySchema) return;
+      const fields = bodySchema.example || bodySchema.properties || {};
+      const isExample = !!bodySchema.example;
+
+      each(fields, (prop, name) => {
+        const value = isExample ? prop : (prop.example ?? prop.default ?? '');
+        body.formUrlEncoded.push({
+          uid: uuid(),
+          name,
+          value: value !== undefined ? String(value) : '',
+          description: prop.description || '',
+          enabled: true
+        });
+      });
+    }
+  },
+  {
+    match: (mimeType) => mimeType === 'multipart/form-data',
+    mode: 'multipartForm',
+    handle: (body, bodySchema) => {
+      if (!bodySchema) return;
+      const fields = bodySchema.example || bodySchema.properties || {};
+      const isExample = !!bodySchema.example;
+
+      each(fields, (prop, name) => {
+        const isFileField = !isExample && prop.type === 'string' && prop.format === 'binary';
+        const value = isFileField ? [] : isExample ? prop : (prop.example ?? prop.default ?? '');
+        body.multipartForm.push({
+          uid: uuid(),
+          type: isFileField ? 'file' : 'text',
+          name,
+          value: isFileField ? [] : (value !== undefined ? String(value) : ''),
+          description: prop.description || '',
+          enabled: true
+        });
+      });
+    }
+  },
+  {
+    match: (mimeType) => CONTENT_TYPE_PATTERNS.XML.test(mimeType) || mimeType === 'application/xml',
+    mode: 'xml',
+    handle: (body, bodySchema) => {
+      body.xml = buildXmlBody(bodySchema);
+    }
+  },
+  {
+    match: (mimeType) => mimeType === 'application/sparql-query',
+    mode: 'sparql',
+    handle: (body, bodySchema) => {
+      // Use example from schema if available
+      body.sparql = bodySchema?.example !== undefined ? String(bodySchema.example) : '';
+    }
+  },
+  {
+    match: (mimeType) => ['text/plain', 'application/octet-stream', '*/*'].includes(mimeType),
+    mode: 'text',
+    handle: (body, bodySchema) => {
+      // Use example from schema if available
+      body.text = bodySchema?.example !== undefined ? String(bodySchema.example) : '';
+    }
+  }
+];
 
 /**
  * Extracts or generates an example value from an OpenAPI schema
@@ -191,34 +391,33 @@ const getExampleFromSchema = (schema) => {
 };
 
 /**
- * Populates request body in Bruno example from a value
- * Uses pattern matching to handle various MIME type variants
+ * Populates request body in Bruno example from schema
+ * Reuses BODY_TYPE_HANDLERS for consistent body generation
  * @param {Object} params - Parameters object
  * @param {Object} params.body - The Bruno request body object to populate
- * @param {*} params.requestBodyValue - The request body value to set
+ * @param {Object} params.bodySchema - The OpenAPI schema for the request body
  * @param {string} params.contentType - Content type (e.g., 'application/json', 'application/ld+json')
  */
-const populateRequestBody = ({ body, requestBodyValue, contentType }) => {
-  if (!requestBodyValue || !contentType || typeof contentType !== 'string') return;
+const populateRequestBody = ({ body, bodySchema, contentType }) => {
+  if (!contentType || typeof contentType !== 'string') return;
 
   // Normalize: lowercase (content types from OpenAPI spec object keys may vary in case)
   const normalizedContentType = contentType.toLowerCase();
 
-  if (CONTENT_TYPE_PATTERNS.JSON.test(normalizedContentType)) {
-    body.mode = 'json';
-    body.json = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue, null, 2) : requestBodyValue;
-  } else if (normalizedContentType === 'application/x-www-form-urlencoded') {
-    body.mode = 'formUrlEncoded';
-    // Handle form data if needed
-  } else if (normalizedContentType === 'multipart/form-data') {
-    body.mode = 'multipartForm';
-    // Handle multipart form data if needed
-  } else if (normalizedContentType === 'text/plain') {
-    body.mode = 'text';
-    body.text = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue) : String(requestBodyValue);
-  } else if (CONTENT_TYPE_PATTERNS.XML.test(normalizedContentType)) {
-    body.mode = 'xml';
-    body.xml = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue) : String(requestBodyValue);
+  // Find matching handler and use it (same as main request body)
+  const handler = BODY_TYPE_HANDLERS.find((h) => h.match(normalizedContentType));
+  if (handler) {
+    body.mode = handler.mode;
+
+    // Clear arrays for form-based content types to avoid duplicates
+    // (since the body was deep-copied from the main request)
+    if (normalizedContentType === 'application/x-www-form-urlencoded') {
+      body.formUrlEncoded = [];
+    } else if (normalizedContentType === 'multipart/form-data') {
+      body.multipartForm = [];
+    }
+
+    handler.handle(body, bodySchema);
   }
 };
 
@@ -231,11 +430,22 @@ const populateRequestBody = ({ body, requestBodyValue, contentType }) => {
  * @param {string} params.exampleDescription - Description of the example
  * @param {string|number} params.statusCode - HTTP status code (for response examples)
  * @param {string} params.contentType - Content type (e.g., 'application/json')
- * @param {*} [params.requestBodyValue] - Optional request body value to populate in the example
+ * @param {Object} [params.requestBodySchema] - Optional request body schema to populate in the example
  * @param {string} [params.requestBodyContentType] - Optional request body content type
  * @returns {Object} Bruno example object
  */
-const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType, requestBodyValue = null, requestBodyContentType = null }) => {
+const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType, requestBodySchema = null, requestBodyContentType = null }) => {
+  // Deep copy the body to avoid shared references
+  const bodyCopy = {
+    mode: brunoRequestItem.request.body.mode,
+    json: brunoRequestItem.request.body.json,
+    text: brunoRequestItem.request.body.text,
+    xml: brunoRequestItem.request.body.xml,
+    sparql: brunoRequestItem.request.body.sparql || null,
+    formUrlEncoded: [...(brunoRequestItem.request.body.formUrlEncoded || [])],
+    multipartForm: [...(brunoRequestItem.request.body.multipartForm || [])]
+  };
+
   const brunoExample = {
     uid: uuid(),
     itemUid: brunoRequestItem.uid,
@@ -247,7 +457,7 @@ const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, examp
       method: brunoRequestItem.request.method,
       headers: [...brunoRequestItem.request.headers],
       params: [...brunoRequestItem.request.params],
-      body: { ...brunoRequestItem.request.body }
+      body: bodyCopy
     },
     response: {
       status: String(statusCode),
@@ -268,9 +478,9 @@ const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, examp
     }
   };
 
-  // Populate request body if provided
-  if (requestBodyValue !== null) {
-    populateRequestBody({ body: brunoExample.request.body, requestBodyValue, contentType: requestBodyContentType });
+  // Populate request body from schema if provided (reuses BODY_TYPE_HANDLERS)
+  if (requestBodySchema !== null) {
+    populateRequestBody({ body: brunoExample.request.body, bodySchema: requestBodySchema, contentType: requestBodyContentType });
   }
 
   return brunoExample;
@@ -518,56 +728,19 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
 
   // TODO: handle allOf/anyOf/oneOf
   if (_operationObject.requestBody) {
-    let content = get(_operationObject, 'requestBody.content', {});
-    let mimeType = Object.keys(content)[0];
-    let body = content[mimeType] || {};
-    let bodySchema = body.schema;
+    const content = get(_operationObject, 'requestBody.content', {});
+    const mimeType = Object.keys(content)[0];
+    const bodyContent = content[mimeType] || {};
+    const bodySchema = bodyContent.schema;
 
     // Normalize: lowercase (object keys may vary in case)
     const normalizedMimeType = typeof mimeType === 'string' ? mimeType.toLowerCase() : '';
 
-    if (CONTENT_TYPE_PATTERNS.JSON.test(normalizedMimeType)) {
-      brunoRequestItem.request.body.mode = 'json';
-      if (bodySchema && (bodySchema.type === 'object' || bodySchema.properties)) {
-        let _jsonBody = buildEmptyJsonBody(bodySchema);
-        brunoRequestItem.request.body.json = JSON.stringify(_jsonBody, null, 2);
-      }
-      if (bodySchema && bodySchema.type === 'array') {
-        brunoRequestItem.request.body.json = JSON.stringify([buildEmptyJsonBody(bodySchema.items)], null, 2);
-      }
-    } else if (normalizedMimeType === 'application/x-www-form-urlencoded') {
-      brunoRequestItem.request.body.mode = 'formUrlEncoded';
-      if (bodySchema && (bodySchema.type === 'object' || bodySchema.properties)) {
-        each(bodySchema.properties || {}, (prop, name) => {
-          brunoRequestItem.request.body.formUrlEncoded.push({
-            uid: uuid(),
-            name: name,
-            value: '',
-            description: prop.description || '',
-            enabled: true
-          });
-        });
-      }
-    } else if (normalizedMimeType === 'multipart/form-data') {
-      brunoRequestItem.request.body.mode = 'multipartForm';
-      if (bodySchema && (bodySchema.type === 'object' || bodySchema.properties)) {
-        each(bodySchema.properties || {}, (prop, name) => {
-          brunoRequestItem.request.body.multipartForm.push({
-            uid: uuid(),
-            type: 'text',
-            name: name,
-            value: '',
-            description: prop.description || '',
-            enabled: true
-          });
-        });
-      }
-    } else if (normalizedMimeType === 'text/plain') {
-      brunoRequestItem.request.body.mode = 'text';
-      brunoRequestItem.request.body.text = '';
-    } else if (CONTENT_TYPE_PATTERNS.XML.test(normalizedMimeType)) {
-      brunoRequestItem.request.body.mode = 'xml';
-      brunoRequestItem.request.body.xml = '';
+    // Find matching handler for this content type
+    const handler = BODY_TYPE_HANDLERS.find((h) => h.match(normalizedMimeType));
+    if (handler) {
+      brunoRequestItem.request.body.mode = handler.mode;
+      handler.handle(brunoRequestItem.request.body, bodySchema);
     }
   }
 
@@ -627,7 +800,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
           exampleDescription,
           statusCode,
           contentType: responseContentType,
-          requestBodyValue: matchingRequestBodyExample.value,
+          requestBodySchema: matchingRequestBodyExample.schema,
           requestBodyContentType: matchingRequestBodyExample.contentType
         }));
       } else if (requestBodyExamplesWithKeys.length > 0) {
@@ -642,7 +815,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
             exampleDescription: combinedExampleDescription,
             statusCode,
             contentType: responseContentType,
-            requestBodyValue: rbExample.value,
+            requestBodySchema: rbExample.schema,
             requestBodyContentType: rbExample.contentType
           }));
         });
@@ -656,7 +829,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
           exampleDescription,
           statusCode,
           contentType: responseContentType,
-          requestBodyValue: rbExample.value,
+          requestBodySchema: rbExample.schema,
           requestBodyContentType: rbExample.contentType
         }));
       } else {
@@ -677,32 +850,32 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
         if (content.examples) {
           // Multiple request body examples
           Object.entries(content.examples).forEach(([exampleKey, example]) => {
+            const exampleValue = example.value !== undefined ? example.value : example;
             requestBodyExamples.push({
               key: exampleKey,
-              value: example.value !== undefined ? example.value : example,
+              schema: { example: exampleValue }, // Wrap in schema format for BODY_TYPE_HANDLERS
               summary: example.summary,
               description: example.description,
               contentType: contentType
             });
           });
         } else if (content.example !== undefined) {
-          // Single request body example - convert to unified structure
+          // Single request body example - wrap in schema-like object
           requestBodyExamples.push({
-            key: null, // No key for single example
-            value: content.example,
+            key: null,
+            schema: { example: content.example }, // Wrap in schema format for BODY_TYPE_HANDLERS
             summary: null,
             description: null,
             contentType: contentType
           });
         } else if (content.schema) {
-          // Schema-based request body - convert to unified structure
+          // Schema-based request body - pass schema directly
           requestBodyExamples.push({
-            key: null, // No key for schema
-            value: getExampleFromSchema(content.schema),
+            key: null,
+            schema: content.schema,
             summary: null,
             description: null,
-            contentType: contentType,
-            isSchema: true
+            contentType: contentType
           });
         }
       });
