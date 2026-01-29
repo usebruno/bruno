@@ -215,13 +215,6 @@ describe('HookManager', () => {
       expect(hookManager.state).toBe(HookManager.State.DISPOSED);
     });
 
-    it('should call cleanup functions', () => {
-      const cleanup = jest.fn();
-      hookManager.registerCleanup(cleanup);
-      hookManager.dispose();
-      expect(cleanup).toHaveBeenCalled();
-    });
-
     it('should clear all listeners', () => {
       hookManager.on('test', jest.fn());
       hookManager.dispose();
@@ -229,29 +222,11 @@ describe('HookManager', () => {
     });
 
     it('should be idempotent', () => {
-      const cleanup = jest.fn();
-      hookManager.registerCleanup(cleanup);
+      hookManager.on('test', jest.fn());
       hookManager.dispose();
       hookManager.dispose();
-      expect(cleanup).toHaveBeenCalledTimes(1);
-    });
-
-    it('should handle cleanup errors gracefully', () => {
-      hookManager.registerCleanup(() => { throw new Error('Cleanup error'); });
-      expect(() => hookManager.dispose()).not.toThrow();
-    });
-  });
-
-  describe('registerCleanup()', () => {
-    it('should register cleanup function', () => {
-      const cleanup = jest.fn();
-      hookManager.registerCleanup(cleanup);
-      hookManager.dispose();
-      expect(cleanup).toHaveBeenCalled();
-    });
-
-    it('should ignore non-function arguments', () => {
-      expect(() => hookManager.registerCleanup('not a function')).not.toThrow();
+      expect(hookManager.isDisposed).toBe(true);
+      expect(hookManager.listeners).toEqual({});
     });
   });
 });

@@ -58,8 +58,6 @@ class HookManager {
 
   constructor() {
     this.listeners = {};
-    // Track cleanup functions for proper resource disposal
-    this._cleanupFunctions = [];
     this._state = HookManager.State.ACTIVE;
   }
 
@@ -80,19 +78,8 @@ class HookManager {
   }
 
   /**
-   * Register a cleanup function to be called when dispose() is invoked
-   * This is used to clean up VM handles, handler references, etc.
-   * @param {Function} cleanupFn - Cleanup function to register
-   */
-  registerCleanup(cleanupFn) {
-    if (typeof cleanupFn === 'function') {
-      this._cleanupFunctions.push(cleanupFn);
-    }
-  }
-
-  /**
    * Dispose of all resources held by this HookManager
-   * Calls all registered cleanup functions and clears all handlers
+   * Clears all handlers and marks the manager as disposed
    * Should be called when the HookManager is no longer needed
    */
   dispose() {
@@ -100,16 +87,6 @@ class HookManager {
       return;
     }
     this._state = HookManager.State.DISPOSED;
-
-    // Call all registered cleanup functions
-    for (const cleanupFn of this._cleanupFunctions) {
-      try {
-        cleanupFn();
-      } catch (e) {
-        // Ignore cleanup errors - resources may already be freed
-      }
-    }
-    this._cleanupFunctions = [];
 
     // Clear all listeners
     this.clearAll();
