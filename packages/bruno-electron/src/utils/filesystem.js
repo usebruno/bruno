@@ -445,6 +445,13 @@ const isDotEnvFile = (pathname, collectionPath) => {
   return dirname === collectionPath && basename === '.env';
 };
 
+const isValidDotEnvFilename = (filename) => {
+  if (!filename || typeof filename !== 'string') return false;
+  const basename = path.basename(filename);
+  if (basename !== filename) return false;
+  return basename === '.env' || (basename.startsWith('.env.') && /^\.env\.[a-zA-Z0-9._-]+$/.test(basename));
+};
+
 const isBrunoConfigFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
@@ -504,6 +511,7 @@ module.exports = {
   generateUniqueName,
   getCollectionFormat,
   isDotEnvFile,
+  isValidDotEnvFilename,
   isBrunoConfigFile,
   isBruEnvironmentConfig,
   isCollectionRootBruFile
