@@ -236,7 +236,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
         <div className="dropdown-icon">
           <IconPlugConnected size={16} strokeWidth={2} />
         </div>
-        <div className="dropdown-label">Websocket</div>
+        <div className="dropdown-label">WebSocket</div>
       </div>
     </Dropdown>
   );

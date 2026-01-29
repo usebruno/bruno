@@ -95,7 +95,7 @@ test.describe.serial('Transient Requests', () => {
   test('Create transient WebSocket request - should not appear in sidebar', async ({ page }) => {
     await test.step('Create transient WebSocket request', async () => {
       await createTransientRequest(page, {
-        requestType: 'Websocket'
+        requestType: 'WebSocket'
       });
       await fillRequestUrl(page, 'ws://localhost:8082');
     });

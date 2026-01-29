@@ -157,7 +157,7 @@ const createUntitledRequest = async (
 };
 
 type CreateTransientRequestOptions = {
-  requestType?: 'HTTP' | 'GraphQL' | 'gRPC' | 'Websocket';
+  requestType?: 'HTTP' | 'GraphQL' | 'gRPC' | 'WebSocket';
 };
 
 /**
