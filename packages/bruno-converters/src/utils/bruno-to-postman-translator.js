@@ -55,15 +55,17 @@ const simpleTranslations = {
   // Request helpers
   // Note: req.getUrl(), req.getMethod(), req.getHeaders(), req.getBody(), req.getName() are handled
   // in complexTransformations because they're function -> property conversions
+  'req.url': 'pm.request.url',
   'req.getHeader': 'pm.request.headers.get',
   'req.setHeader': 'pm.request.headers.set',
 
   // Response helpers
-  // Note: res.getStatus(), res.getResponseTime(), res.getHeaders() are handled
+  // Note: res.getStatus(), res.getResponseTime(), res.getHeaders(), res.getUrl() are handled
   // in complexTransformations because they're function -> property conversions
   'res.status': 'pm.response.code',
   'res.statusText': 'pm.response.status',
   'res.body': 'pm.response.body',
+  'res.url': 'pm.response.url',
   'res.getBody': 'pm.response.json',
   'res.getHeader': 'pm.response.headers.get',
   'res.getSize': 'pm.response.size',
@@ -179,6 +181,11 @@ const complexTransformations = [
   {
     pattern: 'res.getHeaders',
     transform: () => buildMemberExpressionFromString('pm.response.headers')
+  },
+  // res.getUrl() -> pm.response.url
+  {
+    pattern: 'res.getUrl',
+    transform: () => buildMemberExpressionFromString('pm.response.url')
   }
 ];
 

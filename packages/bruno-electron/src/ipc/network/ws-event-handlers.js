@@ -290,7 +290,7 @@ let wsClient;
  */
 const registerWsEventHandlers = (window) => {
   const sendEvent = (eventName, ...args) => {
-    if (window && window.webContents) {
+    if (window && !window.isDestroyed() && window.webContents && !window.webContents.isDestroyed()) {
       window.webContents.send(eventName, ...args);
     } else {
       console.warn(`Unable to send message "${eventName}": Window not available`);

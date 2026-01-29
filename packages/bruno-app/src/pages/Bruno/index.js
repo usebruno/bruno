@@ -20,6 +20,8 @@ import Devtools from 'components/Devtools';
 import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
 import useWsEventListeners from 'utils/network/ws-event-listeners';
 import Portal from 'components/Portal';
+import SaveTransientRequestContainer from 'components/SaveTransientRequest/Container';
+import SaveTransientRequest from 'components/SaveTransientRequest';
 
 require('codemirror/mode/javascript/javascript');
 require('codemirror/mode/xml/xml');
@@ -53,6 +55,24 @@ require('utils/codemirror/brunoVarInfo');
 require('utils/codemirror/javascript-lint');
 require('utils/codemirror/autocomplete');
 
+const TransientRequestModalsRenderer = ({ modals }) => {
+  if (modals.length === 0) {
+    return null;
+  }
+
+  if (modals.length === 1) {
+    return (
+      <SaveTransientRequest
+        item={modals[0].item}
+        collection={modals[0].collection}
+        isOpen={true}
+      />
+    );
+  }
+
+  return <SaveTransientRequestContainer />;
+};
+
 export default function Main() {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
@@ -61,6 +81,7 @@ export default function Main() {
   const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
   const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
+  const saveTransientRequestModals = useSelector((state) => state.collections.saveTransientRequestModals);
   const mainSectionRef = useRef(null);
   const [showRosettaBanner, setShowRosettaBanner] = useState(false);
 
@@ -137,6 +158,7 @@ export default function Main() {
 
       <Devtools mainSectionRef={mainSectionRef} />
       <StatusBar />
+      <TransientRequestModalsRenderer modals={saveTransientRequestModals} />
     </div>
     // </ErrorCapture>
   );
