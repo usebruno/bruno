@@ -467,11 +467,6 @@ const handler = async function (argv) {
         console.error(chalk.red(`Failed to parse global environment: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
       }
-
-      envVars = { ...globalEnvVars, ...envVars };
-      if (!envVars.__name__ && globalEnvVars.__name__) {
-        envVars.__name__ = globalEnvVars.__name__;
-      }
     }
 
     if (envVar) {
@@ -632,7 +627,8 @@ const handler = async function (argv) {
             collectionRoot,
             runtime,
             collection,
-            runSingleRequestByPathname
+            runSingleRequestByPathname,
+            globalEnvVars
           );
           resolve(res?.response);
         }
@@ -657,7 +653,8 @@ const handler = async function (argv) {
         collectionRoot,
         runtime,
         collection,
-        runSingleRequestByPathname
+        runSingleRequestByPathname,
+        globalEnvVars
       );
 
       const isLastRun = currentRequestIndex === requestItems.length - 1;
