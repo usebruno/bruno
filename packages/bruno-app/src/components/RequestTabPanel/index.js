@@ -322,12 +322,12 @@ const RequestTabPanel = () => {
 
   const requestPaneStyle = isVerticalLayout
     ? {
-        height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
+        height: focusedTab.responsePaneVisible === false ? '100%' : `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
         minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
         width: '100%'
       }
     : {
-        width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
+        width: focusedTab.responsePaneVisible === false ? '100%' : `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
       };
 
   return (
@@ -340,7 +340,7 @@ const RequestTabPanel = () => {
       </div>
       <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}>
         {focusedTab.requestPaneVisible !== false && (
-          <section className="request-pane">
+          <section className={`request-pane ${focusedTab.responsePaneVisible === false ? 'flex-grow' : ''}`}>
             <div
               className="px-4 h-full"
               style={requestPaneStyle}

@@ -2734,24 +2734,36 @@ export const updateRequestTabOrder = (collectionUid, itemUid, tabOrder) => (disp
     );
   } else {
     // Update in collection/folder/request
+    let targetItemUid = null;
+    let effectiveScope = scope;
+
+    if (scope === 'request') {
+      targetItemUid = itemUid;
+    } else if (scope === 'folder') {
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+      const parentFolder = findParentItemInCollection(collection, itemUid);
+      if (parentFolder) {
+        targetItemUid = parentFolder.uid;
+      } else {
+        // Fallback to collection scope if no parent folder (root level request)
+        effectiveScope = 'collection';
+      }
+    }
+
     dispatch(
       _updateRequestTabOrder({
         collectionUid,
-        itemUid: scope === 'request' ? itemUid : (scope === 'folder' ? findParentItemInCollection(findCollectionByUid(state.collections.collections, collectionUid), itemUid)?.uid : null),
+        itemUid: targetItemUid,
         tabOrder
       })
     );
 
     // Save to filesystem
-    if (scope === 'request') {
+    if (effectiveScope === 'request') {
       dispatch(saveRequest(itemUid, collectionUid, true));
-    } else if (scope === 'folder') {
-      const collection = findCollectionByUid(state.collections.collections, collectionUid);
-      const parentFolder = findParentItemInCollection(collection, itemUid);
-      if (parentFolder) {
-        dispatch(saveFolderRoot(collectionUid, parentFolder.uid, true));
-      }
-    } else if (scope === 'collection') {
+    } else if (effectiveScope === 'folder') {
+      dispatch(saveFolderRoot(collectionUid, targetItemUid, true));
+    } else if (effectiveScope === 'collection') {
       dispatch(saveCollectionRoot(collectionUid, true));
     }
   }

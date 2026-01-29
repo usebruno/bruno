@@ -27,7 +27,7 @@ const RequestTabOrder = () => {
               type="radio"
               name="requestTabOrderPersistenceScope"
               value="global"
-              checked={preferences.requestTabOrderPersistenceScope === 'global'}
+              checked={preferences.requestTabOrderPersistenceScope === 'global' || !preferences.requestTabOrderPersistenceScope}
               onChange={handleScopeChange}
               className="mousetrap mr-0"
             />

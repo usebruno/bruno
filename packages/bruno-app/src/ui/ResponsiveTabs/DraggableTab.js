@@ -75,6 +75,7 @@ const DraggableTab = ({ id, index, moveTab, children, className, onClick, ...pro
   return (
     <div
       ref={ref}
+      id={id}
       className={className}
       onClick={onClick}
       style={{ opacity: isDragging ? 0 : 1, cursor: isDragging ? 'move' : 'pointer' }}

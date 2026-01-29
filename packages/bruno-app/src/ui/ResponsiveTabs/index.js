@@ -212,6 +212,8 @@ const ResponsiveTabs = ({
         id={tab.key}
         index={index}
         moveTab={moveTab}
+        role="tab"
+        aria-selected={isActive}
         className={classnames('tab select-none', tab.key, { active: isActive })}
         onClick={() => handleTabSelect(tab.key)}
       >
@@ -254,6 +256,8 @@ const ResponsiveTabs = ({
             <div
               key={tab.key}
               ref={(el) => setTabRef(el, tab.key)}
+              role="tab"
+              aria-selected={tab.key === activeTab}
               className={classnames('tab select-none', tab.key, { active: tab.key === activeTab })}
             >
               {tab.label}
