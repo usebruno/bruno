@@ -134,15 +134,14 @@ const EnvironmentSelector = ({ collection }) => {
         {activeCollectionEnvironment && (
           <>
             <div className="flex items-center">
+              <IconDatabase size={14} strokeWidth={1.5} className="env-icon" />
               <ToolHint
-                className="active-env-toolhint"
                 text={activeCollectionEnvironment.name}
                 toolhintId={`collection-env-${activeCollectionEnvironment.uid}`}
                 place="bottom-start"
                 delayShow={1000}
                 hidden={activeCollectionEnvironment.name?.length < 7}
               >
-                <IconDatabase size={14} strokeWidth={1.5} className="env-icon" />
                 <span className="env-text max-w-24 truncate overflow-hidden">{activeCollectionEnvironment.name}</span>
               </ToolHint>
             </div>
@@ -183,7 +182,7 @@ const EnvironmentSelector = ({ collection }) => {
   });
 
   return (
-    <StyledWrapper color={activeCollectionEnvironment?.color} width={dropdownWidth}>
+    <StyledWrapper width={dropdownWidth}>
       <div className="environment-selector flex align-center cursor-pointer">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           {/* Tab Headers */}

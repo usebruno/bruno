@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { findEnvironmentInCollection, findItem } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from 'components/Environments/EnvironmentSettings/CreateEnvironment';
@@ -25,10 +24,6 @@ const EnvironmentList = ({
 }) => {
   const dispatch = useDispatch();
 
-
-const EnvironmentList = ({ collection, isModified, setIsModified, onClose, setShowExportModal }) => {
-  const { environments, activeEnvironmentUid } = collection;
-  const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -43,7 +38,7 @@ const EnvironmentList = ({ collection, isModified, setIsModified, onClose, setSh
   const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
   const [originalEnvironmentVariables, setOriginalEnvironmentVariables] = useState([]);
 
-  const envUids = environments?.map((env) => env.uid) ?? [];
+  const envUids = environments ? environments.map((env) => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
 
   useEffect(() => {
@@ -68,11 +63,9 @@ const EnvironmentList = ({ collection, isModified, setIsModified, onClose, setSh
       if (hasSelectedEnvironmentChanged || selectedEnvironment.uid !== _selectedEnvironment?.uid) {
         setSelectedEnvironment(_selectedEnvironment);
       }
-      setOriginalEnvironmentVariables(selectedEnvironment?.variables||[]);
-      setSelectedEnvironment(findItem(environments, selectedEnvironment.uid));
+      setOriginalEnvironmentVariables(_selectedEnvironment?.variables || []);
       return;
     }
-
 
     const environment = environments?.find((env) => env.uid === activeEnvironmentUid) || environments?.[0];
 
@@ -81,21 +74,15 @@ const EnvironmentList = ({ collection, isModified, setIsModified, onClose, setSh
   }, [environments, activeEnvironmentUid, selectedEnvironment]);
 
   useEffect(() => {
-    if (selectedEnvironment) {
-      setSelectedEnvironment(findEnvironmentInCollection(collection, selectedEnvironment.uid));
-    }
-  }, [environments]);
-
-  useEffect(() => {
-    if (prevEnvUids?.length && envUids.length > prevEnvUids.length) {
+    if (prevEnvUids && prevEnvUids.length && envUids.length > prevEnvUids.length) {
       const newEnv = environments.find((env) => !prevEnvUids.includes(env.uid));
       if (newEnv) {
         setSelectedEnvironment(newEnv);
       }
     }
 
-    if (prevEnvUids?.length && envUids.length < prevEnvUids.length) {
-      setSelectedEnvironment(environments?.length ? environments[0] : null);
+    if (prevEnvUids && prevEnvUids.length && envUids.length < prevEnvUids.length) {
+      setSelectedEnvironment(environments && environments.length ? environments[0] : null);
     }
   }, [envUids, environments, prevEnvUids]);
 
