@@ -90,7 +90,7 @@ const actionsToIntercept = [
 
   // Environment draft actions
   'collections/setEnvironmentsDraft',
-  'globalEnvironments/setGlobalEnvironmentDraft'
+  'global-environments/setGlobalEnvironmentDraft'
 ];
 
 // Simple object to track pending save timers
@@ -175,7 +175,7 @@ const determineSaveHandler = (actionType, payload, dispatch, getState) => {
     };
   }
 
-  if (actionType === 'globalEnvironments/setGlobalEnvironmentDraft') {
+  if (actionType === 'global-environments/setGlobalEnvironmentDraft') {
     if (!environmentUid) return null;
     return {
       key: `global-environment-${environmentUid}`,

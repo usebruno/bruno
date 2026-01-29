@@ -13,6 +13,9 @@ const STATIC_API_HINTS = {
     'req.timeout',
     'req.getUrl()',
     'req.setUrl(url)',
+    'req.getHost()',
+    'req.getPath()',
+    'req.getQueryString()',
     'req.getMethod()',
     'req.getAuthMode()',
     'req.setMethod(method)',
@@ -27,6 +30,7 @@ const STATIC_API_HINTS = {
     'req.setTimeout(timeout)',
     'req.getExecutionMode()',
     'req.getName()',
+    'req.getPathParams()',
     'req.getTags()',
     'req.disableParsingResponseJson()',
     'req.onFail(function(err) {})'

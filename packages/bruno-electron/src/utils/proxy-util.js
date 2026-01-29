@@ -5,7 +5,6 @@ const { HttpsProxyAgent } = require('https-proxy-agent');
 const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
-const { preferencesUtil } = require('../store/preferences');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
 
 /**
@@ -145,6 +144,29 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
     const combinedOpts = { ...this.constructorOpts, ...opts };
     return super.connect(req, combinedOpts);
   }
+}
+
+function createTimelineHttpAgentClass(BaseAgentClass) {
+  return class extends BaseAgentClass {
+    constructor(options, timeline) {
+      // For proxy agents, the first argument is the proxy URI and the second is options
+      const { proxy: proxyUri, httpProxyAgentOptions } = options || {};
+
+      if (!proxyUri) {
+        throw new Error('TimelineHttpProxyAgent requires options.proxy to be set');
+      }
+
+      super(proxyUri, httpProxyAgentOptions);
+
+      this.timeline = Array.isArray(timeline) ? timeline : [];
+      // Log the proxy details
+      this.timeline.push({
+        timestamp: new Date(),
+        type: 'info',
+        message: `Using proxy: ${proxyUri}`
+      });
+    }
+  };
 }
 
 function createTimelineAgentClass(BaseAgentClass) {
@@ -428,19 +450,21 @@ function setupProxyAgents({
       requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
     }
   } else if (proxyMode === 'system') {
-    const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
+    const { http_proxy, https_proxy, no_proxy } = proxyConfig || {};
     const shouldUseSystemProxy = shouldUseProxy(requestConfig.url, no_proxy || '');
+    const parsedUrl = parseUrl(requestConfig.url);
+    const isHttpsRequest = parsedUrl.protocol === 'https:';
     if (shouldUseSystemProxy) {
       try {
-        if (http_proxy?.length) {
+        if (http_proxy?.length && !isHttpsRequest) {
           new URL(http_proxy);
           requestConfig.httpAgent = getOrCreateAgent(HttpProxyAgent, { keepAlive: true }, http_proxy);
         }
       } catch (error) {
-        throw new Error('Invalid system http_proxy');
+        throw new Error(`Invalid system http_proxy "${http_proxy}": ${error.message}`);
       }
       try {
-        if (https_proxy?.length) {
+        if (https_proxy?.length && isHttpsRequest) {
           new URL(https_proxy);
           if (timeline) {
             timeline.push({
@@ -454,7 +478,7 @@ function setupProxyAgents({
           requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
         }
       } catch (error) {
-        throw new Error('Invalid system https_proxy');
+        throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
       }
     } else {
       requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);

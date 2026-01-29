@@ -90,31 +90,64 @@ const isLinux = process.platform === 'linux';
 let mainWindow;
 let appProtocolUrl;
 
-// Register custom protocol handler (must be called before app is ready)
-// In dev mode, we need to pass the Electron executable path and script path
-app.setAsDefaultProtocolClient('bruno');
-if (os.platform() === 'linux') {
-  try {
-    execSync('xdg-mime default bruno.desktop x-scheme-handler/bruno');
-  } catch (err) {}
-}
+// Helper function to focus and restore the main window
+const focusMainWindow = () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow.focus();
+  }
+};
 
+// Parse protocol URL from command line arguments (if any)
 appProtocolUrl = getAppProtocolUrlFromArgv(process.argv);
 
-// Handle protocol URLs (macOS)
-if (process.platform === 'darwin') {
-  app.on('open-url', (event, url) => {
-    event.preventDefault();
-    appProtocolUrl = url || appProtocolUrl;
-    handleAppProtocolUrl(appProtocolUrl, mainWindow);
-  });
-}
+// Single instance lock - ensures only one instance of Bruno runs at a time (enabled by default)
+const useSingleInstance = process.env.DISABLE_SINGLE_INSTANCE !== 'true';
+const gotTheLock = useSingleInstance ? app.requestSingleInstanceLock() : true;
 
-// Handle protocol URLs when app is already running (Windows/Linux)
-if (process.platform === 'win32' || process.platform === 'linux') {
-  app.on('second-instance', (event, argv) => {
-    appProtocolUrl = getAppProtocolUrlFromArgv(argv) || appProtocolUrl;
-    handleAppProtocolUrl(appProtocolUrl, mainWindow);
+if (useSingleInstance && !gotTheLock) {
+  // Another instance is already running, quit immediately
+  app.quit();
+} else {
+  // This is the primary instance (or single instance is disabled)
+
+  // Try to remove any existing registrations
+  app.removeAsDefaultProtocolClient('bruno');
+  // Register as default handler for `bruno://` protocol URLs
+  app.setAsDefaultProtocolClient('bruno');
+
+  if (isLinux) {
+    try {
+      execSync('xdg-mime default bruno.desktop x-scheme-handler/bruno');
+    } catch (err) {}
+  }
+
+  // Handle protocol URLs for MacOS
+  if (isMac) {
+    app.on('open-url', (event, url) => {
+      event.preventDefault();
+      if (url) {
+        if (mainWindow) {
+          focusMainWindow();
+          handleAppProtocolUrl(url);
+        } else {
+          // Store for handling after window is ready
+          appProtocolUrl = url;
+        }
+      }
+    });
+  }
+
+  // Handle second instance attempts - focus primary window on all platforms
+  app.on('second-instance', (event, commandLine) => {
+    focusMainWindow();
+    // Extract and handle protocol URL from the second instance attempt
+    const url = getAppProtocolUrlFromArgv(commandLine);
+    if (url) {
+      handleAppProtocolUrl(url);
+    }
   });
 }
 
@@ -267,7 +300,7 @@ app.on('ready', async () => {
 
   mainWindow.webContents.once('did-finish-load', () => {
     if (appProtocolUrl) {
-      handleAppProtocolUrl(appProtocolUrl, mainWindow);
+      handleAppProtocolUrl(appProtocolUrl);
     }
   });
 
@@ -323,6 +356,11 @@ app.on('ready', async () => {
 
 // Quit the app once all windows are closed
 app.on('before-quit', () => {
+  // Release single instance lock to allow other instances to take over
+  if (useSingleInstance && gotTheLock) {
+    app.releaseSingleInstanceLock();
+  }
+
   try {
     cookiesStore.saveCookieJar(true);
   } catch (err) {

@@ -1,10 +1,14 @@
 import { useEffect } from 'react';
 import {
-  showPreferences,
   updateCookies,
-  updatePreferences,
-  updateSystemProxyEnvVariables
+  updatePreferences
 } from 'providers/ReduxStore/slices/app';
+import {
+  addTab
+} from 'providers/ReduxStore/slices/tabs';
+import {
+  setActiveWorkspaceTab
+} from 'providers/ReduxStore/slices/workspaceTabs';
 import {
   brunoConfigUpdateEvent,
   collectionAddDirectoryEvent,
@@ -26,7 +30,7 @@ import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUi
 import { workspaceOpenedEvent, workspaceConfigUpdatedEvent } from 'providers/ReduxStore/slices/workspaces/actions';
 import { workspaceDotEnvUpdateEvent } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
@@ -36,6 +40,7 @@ import { apiSpecAddFileEvent, apiSpecChangeFileEvent } from 'providers/ReduxStor
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
+  const store = useStore();
 
   useEffect(() => {
     if (!isElectron()) {
@@ -126,7 +131,7 @@ const useIpcEvents = () => {
     });
 
     const removeWorkspaceEnvironmentAddedListener = ipcRenderer.on('main:workspace-environment-added', (workspaceUid, file) => {
-      const state = window.__store__.getState();
+      const state = store.getState();
       const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
       if (activeWorkspaceUid === workspaceUid) {
         const workspace = state.workspaces?.workspaces?.find((w) => w.uid === workspaceUid);
@@ -144,7 +149,7 @@ const useIpcEvents = () => {
     });
 
     const removeWorkspaceEnvironmentChangedListener = ipcRenderer.on('main:workspace-environment-changed', (workspaceUid, file) => {
-      const state = window.__store__.getState();
+      const state = store.getState();
       const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
       if (activeWorkspaceUid === workspaceUid) {
         const workspace = state.workspaces?.workspaces?.find((w) => w.uid === workspaceUid);
@@ -162,7 +167,7 @@ const useIpcEvents = () => {
     });
 
     const removeWorkspaceEnvironmentDeletedListener = ipcRenderer.on('main:workspace-environment-deleted', (workspaceUid, environmentUid) => {
-      const state = window.__store__.getState();
+      const state = store.getState();
       const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
       if (activeWorkspaceUid === workspaceUid) {
         const workspace = state.workspaces?.workspaces?.find((w) => w.uid === workspaceUid);
@@ -239,15 +244,30 @@ const useIpcEvents = () => {
     );
 
     const removeShowPreferencesListener = ipcRenderer.on('main:open-preferences', () => {
-      dispatch(showPreferences(true));
+      const state = store.getState();
+      const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
+      const { showHomePage, showManageWorkspacePage, showApiSpecPage } = state.app;
+      const tabs = state.tabs?.tabs;
+      const activeTabUid = state.tabs?.activeTabUid;
+      const activeTab = tabs?.find((t) => t.uid === activeTabUid);
+
+      if (showHomePage || showManageWorkspacePage || showApiSpecPage || !activeTabUid) {
+        if (activeWorkspaceUid) {
+          dispatch(setActiveWorkspaceTab({ workspaceUid: activeWorkspaceUid, type: 'preferences' }));
+        }
+      } else {
+        dispatch(
+          addTab({
+            type: 'preferences',
+            uid: activeTab?.collectionUid ? `${activeTab.collectionUid}-preferences` : 'preferences',
+            collectionUid: activeTab?.collectionUid
+          })
+        );
+      }
     });
 
     const removePreferencesUpdatesListener = ipcRenderer.on('main:load-preferences', (val) => {
       dispatch(updatePreferences(val));
-    });
-
-    const removeSystemProxyEnvUpdatesListener = ipcRenderer.on('main:load-system-proxy-env', (val) => {
-      dispatch(updateSystemProxyEnvVariables(val));
     });
 
     const removeCookieUpdateListener = ipcRenderer.on('main:cookies-update', (val) => {
@@ -306,7 +326,6 @@ const useIpcEvents = () => {
       removeShowPreferencesListener();
       removePreferencesUpdatesListener();
       removeCookieUpdateListener();
-      removeSystemProxyEnvUpdatesListener();
       removeGlobalEnvironmentsUpdatesListener();
       removeSnapshotHydrationListener();
       removeCollectionOauth2CredentialsUpdatesListener();

@@ -2,12 +2,12 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   table {
-    width: 100%;
+    width: 80%;
     border-collapse: collapse;
 
     thead,
     td {
-      border: 2px solid ${(props) => props.theme.table.border};
+      border: 1px solid ${(props) => props.theme.table.border};
     }
 
     thead {
@@ -17,7 +17,7 @@ const StyledWrapper = styled.div`
     }
 
     td {
-      padding: 4px 8px;
+      padding: 6px 10px;
       font-size: ${(props) => props.theme.font.size.sm};
     }
 
@@ -25,6 +25,7 @@ const StyledWrapper = styled.div`
       font-weight: 500;
       padding: 10px;
       text-align: left;
+      border: 1px solid ${(props) => props.theme.table.border};
     }
   }
 
@@ -35,11 +36,13 @@ const StyledWrapper = styled.div`
   .key-button {
     display: inline-block;
     color: ${(props) => props.theme.table.input.color};
+    opacity: 0.7;
     border-radius: 4px;
     padding: 1px 5px;
     font-family: monospace;
     margin-right: 8px;
     border: 1px solid #ccc;
+    border-bottom: 1.44px solid ${(props) => props.theme.table.input.border};
   }
 `;
 
