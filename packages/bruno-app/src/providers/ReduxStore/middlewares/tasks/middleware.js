@@ -42,9 +42,11 @@ taskMiddleware.startListening({
           }
         }
 
-        listenerApi.dispatch(removeTaskFromQueue({
-          taskUid: task.uid
-        }));
+        listenerApi.dispatch(
+          removeTaskFromQueue({
+            taskUid: task.uid
+          })
+        );
       }
     });
   }
@@ -83,11 +85,9 @@ taskMiddleware.startListening({
           }
         }
 
-        listenerApi.dispatch(
-          removeTaskFromQueue({
-            taskUid: task.uid
-          })
-        );
+        listenerApi.dispatch(removeTaskFromQueue({
+          taskUid: task.uid
+        }));
       }
     });
   }

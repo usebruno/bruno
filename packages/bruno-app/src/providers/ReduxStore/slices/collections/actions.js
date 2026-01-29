@@ -993,7 +993,7 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
         // Handle folder pasting
         if (isItemAFolder(copiedItem)) {
-        // Generate unique name for folder
+          // Generate unique name for folder
           const { newName, newFilename } = generateUniqueName(copiedItem.name, existingItems, true);
 
           set(copiedItem, 'name', newName);
@@ -1006,8 +1006,8 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
           await ipcRenderer.invoke('renderer:clone-folder', copiedItem, fullPathname, targetCollection.pathname);
         } else {
-        // Handle request pasting
-        // Generate unique name for request
+          // Handle request pasting
+          // Generate unique name for request
           const { newName, newFilename } = generateUniqueName(copiedItem.name, existingItems, false);
 
           const filename = resolveRequestFilename(newFilename, targetCollection.format);
@@ -1127,7 +1127,7 @@ export const handleCollectionItemDrop
 
         // Update sequences in the source directory
         if (draggedItemDirectoryItems?.length) {
-        // reorder items in the source directory
+          // reorder items in the source directory
           const draggedItemDirectoryItemsWithoutDraggedItem = draggedItemDirectoryItems.filter((i) => i.uid !== draggedItemUid);
           const reorderedSourceItems = getReorderedItemsInSourceDirectory({
             items: draggedItemDirectoryItemsWithoutDraggedItem
@@ -2563,8 +2563,7 @@ export const openCollection = (options = {}) => (dispatch, getState) => {
       options.workspaceId = activeWorkspace?.pathname || 'default';
     }
 
-    ipcRenderer
-      .invoke('renderer:open-collection', options)
+    ipcRenderer.invoke('renderer:open-collection', options)
       .then((result) => {
         resolve(result);
       })
@@ -2576,8 +2575,7 @@ export const openMultipleCollections = (collectionPaths, options = {}) => () => 
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
-    ipcRenderer
-      .invoke('renderer:open-multiple-collections', collectionPaths, options)
+    ipcRenderer.invoke('renderer:open-multiple-collections', collectionPaths, options)
       .then(resolve)
       .catch((err) => {
         reject();
