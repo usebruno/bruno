@@ -24,13 +24,7 @@ import {
   flattenItems
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import {
-  cancelNetworkRequest,
-  connectWS,
-  sendGrpcRequest,
-  sendNetworkRequest,
-  sendWsRequest
-} from 'utils/network/index';
+import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
 import brunoClipboard from 'utils/bruno-clipboard';
 
@@ -78,6 +72,7 @@ import {
   findCollectionByPathname,
   findEnvironmentInCollectionByName,
   getReorderedItemsInTargetDirectory,
+  resetSequencesInFolder,
   getReorderedItemsInSourceDirectory,
   calculateDraggedItemNewPathname,
   transformFolderRootToSave,
@@ -100,7 +95,7 @@ const generateUniqueName = (originalName, existingItems, isFolder) => {
 
   // Get normalized filenames for items of the same type
   const existingFilenames = existingItems
-    .filter((item) => (isFolder ? item.type === 'folder' : item.type !== 'folder'))
+    .filter((item) => isFolder ? item.type === 'folder' : item.type !== 'folder')
     .map((item) => {
       let filename = trim(item.filename);
       // For requests, remove file extension (.bru, .yml, .yaml)
@@ -141,53 +136,51 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
   });
 };
 
-export const saveRequest
-  = (itemUid, collectionUid, silent = false) =>
-    (dispatch, getState) => {
-      const state = getState();
-      const collection = findCollectionByUid(state.collections.collections, collectionUid);
-      const tempDirectory = state.collections.tempDirectories?.[collectionUid];
-      return new Promise((resolve, reject) => {
-        if (!collection) {
-          return reject(new Error('Collection not found'));
+export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const tempDirectory = state.collections.tempDirectories?.[collectionUid];
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    const item = findItemInCollection(collectionCopy, itemUid);
+    if (!item) {
+      return reject(new Error('Not able to locate item'));
+    }
+
+    const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
+    if (isTransient) {
+      dispatch(addSaveTransientRequestModal({ item, collection }));
+      return reject();
+    }
+
+    const itemToSave = transformRequestToSaveToFilesystem(item);
+    const { ipcRenderer } = window;
+
+    itemSchema
+      .validate(itemToSave)
+      .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave, collection.format))
+      .then(() => {
+        if (!silent) {
+          toast.success('Request saved successfully');
         }
-
-        const collectionCopy = cloneDeep(collection);
-        const item = findItemInCollection(collectionCopy, itemUid);
-        if (!item) {
-          return reject(new Error('Not able to locate item'));
-        }
-
-        const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
-        if (isTransient) {
-          dispatch(addSaveTransientRequestModal({ item, collection }));
-          return reject();
-        }
-
-        const itemToSave = transformRequestToSaveToFilesystem(item);
-        const { ipcRenderer } = window;
-
-        itemSchema
-          .validate(itemToSave)
-          .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave, collection.format))
-          .then(() => {
-            if (!silent) {
-              toast.success('Request saved successfully');
-            }
-            dispatch(
-              _saveRequest({
-                itemUid,
-                collectionUid
-              })
-            );
+        dispatch(
+          _saveRequest({
+            itemUid,
+            collectionUid
           })
-          .then(resolve)
-          .catch((err) => {
-            toast.error(err.message || 'Failed to save request!');
-            reject(err);
-          });
+        );
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error(err.message || 'Failed to save request!');
+        reject(err);
       });
-    };
+  });
+};
 
 export const saveMultipleRequests = (items) => (dispatch, getState) => {
   const state = getState();
@@ -238,12 +231,7 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke(
-        'renderer:save-collection-root',
-        collectionCopy.pathname,
-        collectionRootToSave,
-        collectionCopy.brunoConfig
-      )
+      .invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig)
       .then(() => {
         toast.success('Collection Settings saved successfully');
         dispatch(saveCollectionDraft({ collectionUid }));
@@ -256,52 +244,50 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const saveFolderRoot
-  = (collectionUid, folderUid, silent = false) =>
-    (dispatch, getState) => {
-      const state = getState();
-      const collection = findCollectionByUid(state.collections.collections, collectionUid);
-      const folder = findItemInCollection(collection, folderUid);
+export const saveFolderRoot = (collectionUid, folderUid, silent = false) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const folder = findItemInCollection(collection, folderUid);
 
-      return new Promise((resolve, reject) => {
-        if (!collection) {
-          return reject(new Error('Collection not found'));
-        }
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
 
-        if (!folder) {
-          return reject(new Error('Folder not found'));
-        }
+    if (!folder) {
+      return reject(new Error('Folder not found'));
+    }
 
-        const { ipcRenderer } = window;
+    const { ipcRenderer } = window;
 
-        // Use draft if it exists, otherwise use root
-        const folderRootToSave = transformFolderRootToSave(folder);
+    // Use draft if it exists, otherwise use root
+    const folderRootToSave = transformFolderRootToSave(folder);
 
-        const folderData = {
-          name: folder.name,
-          folderPathname: folder.pathname,
-          collectionPathname: collection.pathname,
-          root: folderRootToSave
-        };
-
-        ipcRenderer
-          .invoke('renderer:save-folder-root', folderData)
-          .then(() => {
-            if (!silent) {
-              toast.success('Folder Settings saved successfully');
-            }
-            // If there was a draft, save it to root and clear the draft
-            if (folder.draft) {
-              dispatch(saveFolderDraft({ collectionUid, folderUid }));
-            }
-          })
-          .then(resolve)
-          .catch((err) => {
-            toast.error('Failed to save folder settings!');
-            reject(err);
-          });
-      });
+    const folderData = {
+      name: folder.name,
+      folderPathname: folder.pathname,
+      collectionPathname: collection.pathname,
+      root: folderRootToSave
     };
+
+    ipcRenderer
+      .invoke('renderer:save-folder-root', folderData)
+      .then(() => {
+        if (!silent) {
+          toast.success('Folder Settings saved successfully');
+        }
+        // If there was a draft, save it to root and clear the draft
+        if (folder.draft) {
+          dispatch(saveFolderDraft({ collectionUid, folderUid }));
+        }
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save folder settings!');
+        reject(err);
+      });
+  });
+};
 
 export const saveMultipleCollections = (collectionDrafts) => (dispatch, getState) => {
   const state = getState();
@@ -319,24 +305,10 @@ export const saveMultipleCollections = (collectionDrafts) => (dispatch, getState
 
         let savePromises = [];
 
-        savePromises.push(
-          ipcRenderer.invoke(
-            'renderer:save-collection-root',
-            collectionCopy.pathname,
-            collectionRootToSave,
-            collectionCopy.brunoConfig
-          )
-        );
+        savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig));
 
         if (collectionCopy.draft?.brunoConfig) {
-          savePromises.push(
-            ipcRenderer.invoke(
-              'renderer:update-bruno-config',
-              collectionCopy.draft.brunoConfig,
-              collectionCopy.pathname,
-              collectionCopy.root
-            )
-          );
+          savePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', collectionCopy.draft.brunoConfig, collectionCopy.pathname, collectionCopy.root));
         }
 
         Promise.all(savePromises)
@@ -481,10 +453,8 @@ const extractPromptVariablesForRequest = async (item, collection) => {
   return new Promise(async (resolve, reject) => {
     // Ensure window contains promptForVariables function
     if (typeof window === 'undefined' || typeof window.promptForVariables !== 'function') {
-      console.error(
-        'Failed to initialize prompt variables: window.promptForVariables is not available. '
-        + 'This may indicate an initialization issue with the app environment.'
-      );
+      console.error('Failed to initialize prompt variables: window.promptForVariables is not available. '
+        + 'This may indicate an initialization issue with the app environment.');
       return resolve(null);
     }
 
@@ -502,8 +472,7 @@ const extractPromptVariablesForRequest = async (item, collection) => {
       const domain = interpolateUrl({ url: clientCert?.domain, variables: allVariables });
 
       if (domain) {
-        const hostRegex
-          = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/)?' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+        const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/)?' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
         const requestUrl = interpolateUrl({ url: request.url, variables: allVariables });
         if (requestUrl.match(hostRegex)) {
           prompts.push(...extractPromptVariables(clientCert));
@@ -835,17 +804,11 @@ export const renameItem
         const { ipcRenderer } = window;
 
         const renameName = async () => {
-          return ipcRenderer
-            .invoke('renderer:rename-item-name', {
-              itemPath: item.pathname,
-              newName,
-              collectionPathname: collection.pathname
-            })
-            .catch((err) => {
-              toast.error('Failed to rename the item name');
-              console.error(err);
-              throw new Error('Failed to rename the item name');
-            });
+          return ipcRenderer.invoke('renderer:rename-item-name', { itemPath: item.pathname, newName, collectionPathname: collection.pathname }).catch((err) => {
+            toast.error('Failed to rename the item name');
+            console.error(err);
+            throw new Error('Failed to rename the item name');
+          });
         };
 
         const renameFile = async () => {
@@ -859,13 +822,7 @@ export const renameItem
           }
 
           return ipcRenderer
-            .invoke('renderer:rename-item-filename', {
-              oldPath: item.pathname,
-              newPath,
-              newName,
-              newFilename,
-              collectionPathname: collection.pathname
-            })
+            .invoke('renderer:rename-item-filename', { oldPath: item.pathname, newPath, newName, newFilename, collectionPathname: collection.pathname })
             .catch((err) => {
               console.error(err);
               throw new Error('Failed to rename the file');

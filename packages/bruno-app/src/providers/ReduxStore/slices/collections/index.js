@@ -425,9 +425,7 @@ export const collectionsSlice = createSlice({
 
             const startTimestamp = item.requestSent.timestamp;
             item.response.duration = startTimestamp ? Date.now() - startTimestamp : item.response.duration;
-            item.response.data = [
-              { type: 'info', timestamp: Date.now(), seq: seq, message: 'Connection Closed' }
-            ].concat(item.response.data);
+            item.response.data = [{ type: 'info', timestamp: Date.now(), seq: seq, message: 'Connection Closed' }].concat(item.response.data);
           } else {
             item.response = null;
             item.requestUid = null;
@@ -453,10 +451,9 @@ export const collectionsSlice = createSlice({
           }
 
           // Ensure timestamp is a number (milliseconds since epoch)
-          const timestamp
-            = item?.requestSent?.timestamp instanceof Date
-              ? item.requestSent.timestamp.getTime()
-              : item?.requestSent?.timestamp || Date.now();
+          const timestamp = item?.requestSent?.timestamp instanceof Date
+            ? item.requestSent.timestamp.getTime()
+            : item?.requestSent?.timestamp || Date.now();
 
           // Append the new timeline entry with numeric timestamp
           collection.timeline.push({
@@ -573,8 +570,7 @@ export const collectionsSlice = createSlice({
           // Handle error status (non-zero code)
           if (statusCode !== 0) {
             updatedResponse.isError = true;
-            updatedResponse.error
-              = statusDetails || `gRPC error with code ${statusCode} (${updatedResponse.statusText})`;
+            updatedResponse.error = statusDetails || `gRPC error with code ${statusCode} (${updatedResponse.statusText})`;
           }
 
           break;
@@ -988,23 +984,22 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       const existingOtherParams = item.draft.request.params?.filter((p) => p.type !== 'query') || [];
-      const newQueryParams = map(
-        params,
-        ({ uid, name = '', value = '', description = '', type = 'query', enabled = true }) => ({
-          uid: uid || uuid(),
-          name,
-          value,
-          description,
-          type,
-          enabled
-        })
-      );
+      const newQueryParams = map(params, ({ uid, name = '', value = '', description = '', type = 'query', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        description,
+        type,
+        enabled
+      }));
 
       item.draft.request.params = [...newQueryParams, ...existingOtherParams];
 
       // Update the request URL to reflect the new query params
       const parts = splitOnFirst(item.draft.request.url, '?');
-      const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
+      const query = stringifyQueryParams(
+        filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+      );
 
       // If there are enabled query params, append them to the URL
       if (query && query.length) {
@@ -1235,16 +1230,13 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.headers = map(
-        action.payload.headers,
-        ({ uid, name = '', value = '', description = '', enabled = true }) => ({
-          uid: uid || uuid(),
-          name,
-          value,
-          description,
-          enabled
-        })
-      );
+      item.draft.request.headers = map(action.payload.headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        description,
+        enabled
+      }));
     },
     setCollectionHeaders: (state, action) => {
       const { collectionUid, headers } = action.payload;
@@ -1266,16 +1258,13 @@ export const collectionsSlice = createSlice({
         collection.draft.root.request = {};
       }
 
-      collection.draft.root.request.headers = map(
-        headers,
-        ({ uid, name = '', value = '', description = '', enabled = true }) => ({
-          uid: uid || uuid(),
-          name,
-          value,
-          description,
-          enabled
-        })
-      );
+      collection.draft.root.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        description,
+        enabled
+      }));
     },
     setFolderHeaders: (state, action) => {
       const { collectionUid, folderUid, headers } = action.payload;
@@ -1296,16 +1285,13 @@ export const collectionsSlice = createSlice({
       if (!folder.draft.request) {
         folder.draft.request = {};
       }
-      folder.draft.request.headers = map(
-        headers,
-        ({ uid, name = '', value = '', description = '', enabled = true }) => ({
-          uid: uid || uuid(),
-          name,
-          value,
-          description,
-          enabled
-        })
-      );
+      folder.draft.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        description,
+        enabled
+      }));
     },
     addFormUrlEncodedParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -1376,16 +1362,13 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.body.formUrlEncoded = map(
-        params,
-        ({ uid, name = '', value = '', description = '', enabled = true }) => ({
-          uid: uid || uuid(),
-          name,
-          value,
-          description,
-          enabled
-        })
-      );
+      item.draft.request.body.formUrlEncoded = map(params, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        description,
+        enabled
+      }));
     },
     moveFormUrlEncodedParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -1480,17 +1463,14 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.body.multipartForm = map(
-        params,
-        ({ uid, name = '', value = '', contentType = '', type = 'text', enabled = true }) => ({
-          uid: uid || uuid(),
-          name,
-          value,
-          contentType,
-          type,
-          enabled
-        })
-      );
+      item.draft.request.body.multipartForm = map(params, ({ uid, name = '', value = '', contentType = '', type = 'text', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        contentType,
+        type,
+        enabled
+      }));
     },
     moveMultipartFormParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -1831,16 +1811,13 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.assertions = map(
-        assertions,
-        ({ uid, name = '', value = '', operator = 'eq', enabled = true }) => ({
-          uid: uid || uuid(),
-          name,
-          value,
-          operator,
-          enabled
-        })
-      );
+      item.draft.request.assertions = map(assertions, ({ uid, name = '', value = '', operator = 'eq', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        operator,
+        enabled
+      }));
     },
     moveAssertion: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -3202,10 +3179,7 @@ export const collectionsSlice = createSlice({
           });
         }
         if (item.response.dataBuffer && item.response.dataBuffer.length && data.dataBuffer) {
-          item.response.dataBuffer = Buffer.concat([
-            Buffer.from(item.response.dataBuffer),
-            Buffer.from(data.dataBuffer)
-          ]);
+          item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
         }
 
         item.response.size = data.data?.length + (item.response.size || 0);

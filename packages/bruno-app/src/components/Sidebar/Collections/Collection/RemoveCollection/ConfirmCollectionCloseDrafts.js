@@ -84,12 +84,10 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
   const handleDiscardAll = () => {
     // Discard all drafts (both regular and transient)
     allDrafts.forEach((draft) => {
-      dispatch(
-        deleteRequestDraft({
-          collectionUid: collectionUid,
-          itemUid: draft.uid
-        })
-      );
+      dispatch(deleteRequestDraft({
+        collectionUid: collectionUid,
+        itemUid: draft.uid
+      }));
     });
 
     // Then remove the collection
