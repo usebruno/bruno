@@ -42,21 +42,21 @@ const exampleGrammar = ohm.grammar(`Example {
   key = keychar*
   value = list | multilinetextblock | singlelinevalue
   singlelinevalue = valuechar*
-
+  
   // List
   list = st* "[" nl+ listitems? st* nl+ st* "]"
   listitems = listitem (nl+ listitem)*
   listitem = st+ (alnum | "_" | "-")+ st*
-
+  
   // Text Blocks
   textblock = textline (~tagend nl textline)*
   textline = textchar*
   textchar = ~nl any
+  textvalue = multilinetextblock | singlelinevalue
 
   // Root level properties
   name =  "name" st* ":" st* valuechar* st*
-  description = "description" st* ":" st* descriptionvalue st*
-  descriptionvalue = multilinetextblock | singlelinevalue
+  description = "description" st* ":" st* textvalue st*
 
   // Request block
   request = nl* "request" st* ":" st* "{" nl* requestcontent+ nl* "}" nl*
@@ -90,7 +90,7 @@ const astExampleAttribute = {
       description: value.ast ? value.ast.trim() : ''
     };
   },
-  descriptionvalue(content) {
+  textvalue(content) {
     return content.ast;
   },
   multilinetextblock(_1, content, _2, _3, contentType) {
