@@ -312,6 +312,12 @@ const runSingleRequest = async function (
     }
     // else: collection proxy is disabled, proxyMode stays 'off'
 
+    // Prepare TLS options for agent caching
+    const tlsOptions = {
+      ...httpsAgentRequestFields,
+      keepAlive: true
+    };
+
     if (proxyMode === 'on') {
       const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
       if (shouldProxy) {
@@ -331,22 +337,14 @@ const runSingleRequest = async function (
           proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
         }
         if (socksEnabled) {
-          request.httpsAgent = new SocksProxyAgent(
-            proxyUri,
-            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-          );
-          request.httpAgent = new SocksProxyAgent(proxyUri);
+          request.httpAgent = getOrCreateAgent(SocksProxyAgent, { keepAlive: true }, proxyUri);
+          request.httpsAgent = getOrCreateAgent(SocksProxyAgent, tlsOptions, proxyUri);
         } else {
-          request.httpsAgent = new PatchedHttpsProxyAgent(
-            proxyUri,
-            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-          );
-          request.httpAgent = new HttpProxyAgent(proxyUri);
+          request.httpAgent = getOrCreateAgent(HttpProxyAgent, { keepAlive: true }, proxyUri);
+          request.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, proxyUri);
         }
       } else {
-        request.httpsAgent = new https.Agent({
-          ...httpsAgentRequestFields
-        });
+        request.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
       }
     } else if (proxyMode === 'system') {
       try {
@@ -359,7 +357,7 @@ const runSingleRequest = async function (
           try {
             if (http_proxy?.length && !isHttpsRequest) {
               new URL(http_proxy);
-              request.httpAgent = new HttpProxyAgent(http_proxy);
+              request.httpAgent = getOrCreateAgent(HttpProxyAgent, { keepAlive: true }, http_proxy);
             }
           } catch (error) {
             throw new Error('Invalid system http_proxy');
@@ -367,12 +365,9 @@ const runSingleRequest = async function (
           try {
             if (https_proxy?.length && isHttpsRequest) {
               new URL(https_proxy);
-              request.httpsAgent = new PatchedHttpsProxyAgent(https_proxy,
-                Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined);
+              request.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, https_proxy);
             } else {
-              request.httpsAgent = new https.Agent({
-                ...httpsAgentRequestFields
-              });
+              request.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
             }
           } catch (error) {
             throw new Error('Invalid system https_proxy');
@@ -383,14 +378,10 @@ const runSingleRequest = async function (
           });
         }
       } catch (error) {
-        request.httpsAgent = new https.Agent({
-          ...httpsAgentRequestFields
-        });
+        request.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
       }
     } else if (Object.keys(httpsAgentRequestFields).length > 0) {
-      request.httpsAgent = new https.Agent({
-        ...httpsAgentRequestFields
-      });
+      request.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
     }
 
     // set cookies if enabled
