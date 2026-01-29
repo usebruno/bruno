@@ -93,6 +93,17 @@ const WSAuth = ({ item, collection }) => {
       case 'inherit': {
         const source = getEffectiveAuthSource();
 
+        // Check if inherited auth is OAuth2 - not supported for WebSockets
+        if (source?.auth?.mode === 'oauth2') {
+          return (
+            <>
+              <div className="flex flex-row w-full mt-2 gap-2">
+                OAuth 2 not <strong>yet</strong> supported by WebSockets. Using no auth instead.
+              </div>
+            </>
+          );
+        }
+
         // Only show inherited auth if it's one of the supported types
         if (source && supportedAuthModes.includes(source.auth?.mode)) {
           return (

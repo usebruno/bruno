@@ -25,7 +25,8 @@ export const tabsSlice = createSlice({
         'variables',
         'collection-runner',
         'environment-settings',
-        'global-environment-settings'
+        'global-environment-settings',
+        'preferences'
       ];
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);

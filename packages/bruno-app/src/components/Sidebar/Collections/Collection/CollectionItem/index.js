@@ -487,7 +487,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }));
 
     // Save the request
-    await dispatch(saveRequest(item.uid, collectionUid));
+    await dispatch(saveRequest(item.uid, collectionUid, true));
 
     // Task middleware will track this and open the example in a new tab once the file is reloaded
     dispatch(insertTaskIntoQueue({

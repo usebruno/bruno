@@ -1,7 +1,6 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/tests/scripting/inbuilt-libraries/fs/fixtures/collections/should_allow_fs",
-    "{{projectRoot}}/tests/scripting/inbuilt-libraries/fs/fixtures/collections/should_disallow_fs"
+    "{{projectRoot}}/tests/scripting/inbuilt-libraries/fs/fixtures/collections/should_allow_fs"
   ]
 }

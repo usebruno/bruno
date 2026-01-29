@@ -102,16 +102,12 @@ const astRequestAttribute = {
   },
   requestmode(_1, _2, _3, _4, value) {
     const modeValue = value.sourceString ? value.sourceString.trim() : '';
-    // If mode is "none", return a body with mode: "none"
-    if (modeValue === 'none') {
-      return {
-        body: {
-          mode: 'none'
-        }
-      };
-    }
-    // For other modes, return nothing since the body parser will handle it
-    return {};
+    // Return body with the mode set
+    return {
+      body: {
+        mode: modeValue || 'none'
+      }
+    };
   },
   requestparamspath(_1, _2, _3, _4, dictionary) {
     return {

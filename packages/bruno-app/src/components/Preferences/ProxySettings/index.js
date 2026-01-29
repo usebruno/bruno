@@ -291,12 +291,14 @@ const ProxySettings = ({ close }) => {
                 Auth
               </label>
               <input
+                id="config.auth.disabled"
                 type="checkbox"
                 name="config.auth.disabled"
                 checked={!formik.values.config.auth.disabled}
                 onChange={(e) => {
                   formik.setFieldValue('config.auth.disabled', !e.target.checked);
                 }}
+                className="mousetrap mr-0"
               />
             </div>
             <div>
