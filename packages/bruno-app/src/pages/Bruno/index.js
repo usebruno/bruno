@@ -55,6 +55,24 @@ require('utils/codemirror/brunoVarInfo');
 require('utils/codemirror/javascript-lint');
 require('utils/codemirror/autocomplete');
 
+const TransientRequestModalsRenderer = ({ modals }) => {
+  if (modals.length === 0) {
+    return null;
+  }
+
+  if (modals.length === 1) {
+    return (
+      <SaveTransientRequest
+        item={modals[0].item}
+        collection={modals[0].collection}
+        isOpen={true}
+      />
+    );
+  }
+
+  return <SaveTransientRequestContainer />;
+};
+
 export default function Main() {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
@@ -140,15 +158,7 @@ export default function Main() {
 
       <Devtools mainSectionRef={mainSectionRef} />
       <StatusBar />
-      {saveTransientRequestModals.length === 1 ? (
-        <SaveTransientRequest
-          item={saveTransientRequestModals[0].item}
-          collection={saveTransientRequestModals[0].collection}
-          isOpen={true}
-        />
-      ) : saveTransientRequestModals.length > 1 ? (
-        <SaveTransientRequestContainer />
-      ) : null}
+      <TransientRequestModalsRenderer modals={saveTransientRequestModals} />
     </div>
     // </ErrorCapture>
   );

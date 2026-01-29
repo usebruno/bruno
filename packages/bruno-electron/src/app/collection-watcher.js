@@ -892,77 +892,75 @@ class CollectionWatcher {
       return basename === 'metadata.json';
     };
 
-    setTimeout(() => {
-      const watcher = chokidar.watch(tempDirectoryPath, {
-        ignoreInitial: true, // Don't process existing files
-        usePolling: isWSLPath(tempDirectoryPath) ? true : false,
-        ignored,
-        persistent: true,
-        ignorePermissionErrors: true,
-        awaitWriteFinish: {
-          stabilityThreshold: 80,
-          pollInterval: 10
-        },
-        depth: 1, // Only watch the temp directory itself, not subdirectories
-        disableGlobbing: true
+    const watcher = chokidar.watch(tempDirectoryPath, {
+      ignoreInitial: true, // Don't process existing files
+      usePolling: isWSLPath(tempDirectoryPath) ? true : false,
+      ignored,
+      persistent: true,
+      ignorePermissionErrors: true,
+      awaitWriteFinish: {
+        stabilityThreshold: 80,
+        pollInterval: 10
+      },
+      depth: 1, // Only watch the temp directory itself, not subdirectories
+      disableGlobbing: true
+    });
+
+    // Wrapper function to handle temp directory files
+    const addTempFile = async (pathname) => {
+      // Skip metadata.json
+      if (path.basename(pathname) === 'metadata.json') {
+        return;
+      }
+
+      // Get the actual collection path from metadata
+      const actualCollectionPath = this.getCollectionPathFromTempDirectory(tempDirectoryPath);
+      if (!actualCollectionPath) {
+        console.error(`Could not determine collection path for temp directory: ${tempDirectoryPath}`);
+        return;
+      }
+
+      // Use the collection format from the actual collection
+      const format = getCollectionFormat(actualCollectionPath);
+
+      // Only process request files
+      if (hasRequestExtension(pathname, format)) {
+        // Call the regular add function with the actual collection path
+        // This will hydrate and send the file to the renderer
+        await add(win, pathname, collectionUid, actualCollectionPath, false, this);
+      }
+    };
+    const unlinkTempFile = async (pathname) => {
+      // Skip metadata.json
+      if (path.basename(pathname) === 'metadata.json') {
+        return;
+      }
+
+      // Get the actual collection path from metadata
+      const actualCollectionPath = this.getCollectionPathFromTempDirectory(tempDirectoryPath);
+      if (!actualCollectionPath) {
+        console.error(`Could not determine collection path for temp directory: ${tempDirectoryPath}`);
+        return;
+      }
+
+      // Use the collection format from the actual collection
+      const format = getCollectionFormat(actualCollectionPath);
+
+      // Only process request files
+      if (hasRequestExtension(pathname, format)) {
+        // Call the regular unlink function with the actual collection path
+        await unlink(win, pathname, collectionUid, actualCollectionPath);
+      }
+    };
+
+    watcher
+      .on('add', (pathname) => addTempFile(pathname))
+      .on('unlink', (pathname) => unlinkTempFile(pathname))
+      .on('error', (error) => {
+        console.error(`An error occurred in the temp directory watcher for: ${tempDirectoryPath}`, error);
       });
 
-      // Wrapper function to handle temp directory files
-      const addTempFile = async (pathname) => {
-        // Skip metadata.json
-        if (path.basename(pathname) === 'metadata.json') {
-          return;
-        }
-
-        // Get the actual collection path from metadata
-        const actualCollectionPath = this.getCollectionPathFromTempDirectory(tempDirectoryPath);
-        if (!actualCollectionPath) {
-          console.error(`Could not determine collection path for temp directory: ${tempDirectoryPath}`);
-          return;
-        }
-
-        // Use the collection format from the actual collection
-        const format = getCollectionFormat(actualCollectionPath);
-
-        // Only process request files
-        if (hasRequestExtension(pathname, format)) {
-          // Call the regular add function with the actual collection path
-          // This will hydrate and send the file to the renderer
-          await add(win, pathname, collectionUid, actualCollectionPath, false, this);
-        }
-      };
-      const unlinkTempFile = async (pathname) => {
-        // Skip metadata.json
-        if (path.basename(pathname) === 'metadata.json') {
-          return;
-        }
-
-        // Get the actual collection path from metadata
-        const actualCollectionPath = this.getCollectionPathFromTempDirectory(tempDirectoryPath);
-        if (!actualCollectionPath) {
-          console.error(`Could not determine collection path for temp directory: ${tempDirectoryPath}`);
-          return;
-        }
-
-        // Use the collection format from the actual collection
-        const format = getCollectionFormat(actualCollectionPath);
-
-        // Only process request files
-        if (hasRequestExtension(pathname, format)) {
-          // Call the regular unlink function with the actual collection path
-          await unlink(win, pathname, collectionUid, actualCollectionPath);
-        }
-      };
-
-      watcher
-        .on('add', (pathname) => addTempFile(pathname))
-        .on('unlink', (pathname) => unlinkTempFile(pathname))
-        .on('error', (error) => {
-          console.error(`An error occurred in the temp directory watcher for: ${tempDirectoryPath}`, error);
-        });
-
-      this.watchers[tempDirectoryPath] = watcher;
-    }, 100);
+    this.watchers[tempDirectoryPath] = watcher;
   }
 
   getAllWatcherPaths() {
