@@ -6,7 +6,7 @@ class BrunoRequest {
    * - req.headers
    * - req.timeout
    * - req.body
-   * 
+   *
    * Above shorthands are useful for accessing the request properties directly in the scripts
    * It must be noted that the user cannot set these properties directly.
    * They should use the respective setter methods to set these properties.
@@ -18,13 +18,14 @@ class BrunoRequest {
     this.headers = req.headers;
     this.timeout = req.timeout;
     this.name = req.name;
+    this.pathParams = req.pathParams;
     this.tags = req.tags || [];
     /**
      * We automatically parse the JSON body if the content type is JSON
      * This is to make it easier for the user to access the body directly
-     * 
+     *
      * It must be noted that the request data is always a string and is what gets sent over the network
-     * If the user wants to access the raw data, they can use getBody({raw: true}) method 
+     * If the user wants to access the raw data, they can use getBody({raw: true}) method
      */
     const isJson = this.hasJSONContentType(this.req.headers);
     if (isJson) {
@@ -41,9 +42,57 @@ class BrunoRequest {
     this.req.url = url;
   }
 
+  getHost() {
+    try {
+      const url = new URL(this.req.url);
+      return url.host;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  getPath() {
+    try {
+      const url = new URL(this.req.url);
+      let pathname = url.pathname;
+
+      // If path params exist, interpolate them into the pathname
+      if (this.req.pathParams && Array.isArray(this.req.pathParams)) {
+        pathname = pathname
+          .split('/')
+          .map((segment) => {
+            if (segment.startsWith(':')) {
+              const paramName = segment.slice(1);
+              const pathParam = this.req.pathParams.find((param) => param.name === paramName);
+              if (pathParam && pathParam.value) {
+                return pathParam.value;
+              }
+            }
+            return segment;
+          })
+          .join('/');
+      }
+
+      return pathname;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  getQueryString() {
+    try {
+      const url = new URL(this.req.url);
+      // Return query string without the leading '?'
+      return url.search ? url.search.substring(1) : '';
+    } catch (e) {
+      return '';
+    }
+  }
+
   getMethod() {
     return this.req.method;
   }
+
   getAuthMode() {
     if (this.req?.oauth2) {
       return 'oauth2';
@@ -92,7 +141,7 @@ class BrunoRequest {
 
   /**
    * Get the body of the request
-   * 
+   *
    * We automatically parse and return the JSON body if the content type is JSON
    * If the user wants the raw body, they can pass the raw option as true
    */
@@ -116,7 +165,7 @@ class BrunoRequest {
    * Otherwise
    *  - We set the request data as the data itself
    *  - We set the body property as the data itself
-   * 
+   *
    * If the user wants to override this behavior, they can pass the raw option as true
    */
   setBody(data, options = {}) {
@@ -149,7 +198,7 @@ class BrunoRequest {
     this.timeout = timeout;
     this.req.timeout = timeout;
   }
-  
+
   onFail(callback) {
     if (typeof callback === 'function') {
       this.req.onFailHandler = callback;
@@ -177,7 +226,6 @@ class BrunoRequest {
   __isObject(obj) {
     return obj !== null && typeof obj === 'object';
   }
-  
 
   disableParsingResponseJson() {
     this.req.__brunoDisableParsingResponseJson = true;
@@ -189,6 +237,16 @@ class BrunoRequest {
 
   getName() {
     return this.req.name;
+  }
+
+  getPathParams() {
+    const params = Array.isArray(this.req.pathParams) ? this.req.pathParams : [];
+
+    return params.map((param) => ({
+      name: param.name,
+      value: param.value,
+      type: param.type
+    }));
   }
 
   /**

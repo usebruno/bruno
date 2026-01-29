@@ -10,7 +10,6 @@ const {
 } = require('../utils/filesystem');
 
 const registerFilesystemIpc = (mainWindow) => {
-
   ipcMain.handle('renderer:browse-directory', async (event, pathname, request) => {
     try {
       return await browseDirectory(mainWindow);

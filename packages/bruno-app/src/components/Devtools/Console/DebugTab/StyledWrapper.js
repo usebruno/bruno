@@ -38,20 +38,6 @@ const StyledWrapper = styled.div`
     gap: 8px;
   }
 
-  .control-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    background: transparent;
-    border: 1px solid ${(props) => props.theme.console.border};
-    border-radius: 4px;
-    color: ${(props) => props.theme.console.buttonColor};
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
   .debug-content {
     flex: 1;
     overflow: hidden;
@@ -160,4 +146,4 @@ const StyledWrapper = styled.div`
   }
 `;
 
-export default StyledWrapper; 
+export default StyledWrapper;

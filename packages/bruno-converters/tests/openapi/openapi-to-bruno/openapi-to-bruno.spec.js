@@ -10,7 +10,7 @@ describe('openapi-collection', () => {
 
   it('should set auth mode to inherit when no security is defined in the collection', () => {
     const brunoCollection = openApiToBruno(openApiCollectionString);
-    
+
     // The openApiCollectionString has no security defined, so auth mode should be 'inherit'
     expect(brunoCollection.items[0].items[0].request.auth.mode).toBe('inherit');
   });
@@ -299,61 +299,145 @@ servers:
 `;
 
 const expectedOutput = {
-  "environments": [
+  environments: [
     {
-      "name": "Environment 1",
-      "uid": "mockeduuidvalue123456",
-      "variables": [
+      name: 'Environment 1',
+      uid: 'mockeduuidvalue123456',
+      variables: [
         {
-          "enabled": true,
-          "name": "baseUrl",
-          "secret": false,
-          "type": "text",
-          "uid": "mockeduuidvalue123456",
+          enabled: true,
+          name: 'baseUrl',
+          secret: false,
+          type: 'text',
+          uid: 'mockeduuidvalue123456',
           value: 'https://echo.usebruno.com'
-        },
-      ],
-    },
+        }
+      ]
+    }
   ],
-  "items": [
+  items: [
     {
-      "items": [
+      items: [
         {
-          "name": "Request1 and Request2",
-          "request": {
-            "auth": {
-              "basic": null,
-              "bearer": null,
-              "digest": null,
-              "mode": "inherit",
+          name: 'Request1 and Request2',
+          request: {
+            auth: {
+              basic: null,
+              bearer: null,
+              digest: null,
+              mode: 'inherit'
             },
-            "body": {
-              "formUrlEncoded": [],
-              "json": null,
-              "mode": "none",
-              "multipartForm": [],
-              "text": null,
-              "xml": null,
+            body: {
+              formUrlEncoded: [],
+              json: null,
+              mode: 'none',
+              multipartForm: [],
+              text: null,
+              xml: null
             },
-            "headers": [],
-            "method": "GET",
-            "params": [],
-            "script": {
-              "res": null,
+            headers: [],
+            method: 'GET',
+            params: [],
+            script: {
+              res: null
             },
-            "url": "{{baseUrl}}/get",
+            url: '{{baseUrl}}/get'
           },
-          "seq": 1,
-          "type": "http-request",
-          "uid": "mockeduuidvalue123456",
-        },
+          seq: 1,
+          type: 'http-request',
+          uid: 'mockeduuidvalue123456'
+        }
       ],
-      "name": "Folder1",
-      "type": "folder",
-      "uid": "mockeduuidvalue123456",
-    },
+      name: 'Folder1',
+      type: 'folder',
+      uid: 'mockeduuidvalue123456'
+    }
   ],
-  "name": "Hello World OpenAPI",
-  "uid": "mockeduuidvalue123456",
-  "version": "1",
+  name: 'Hello World OpenAPI',
+  uid: 'mockeduuidvalue123456',
+  version: '1'
 };
+
+describe('openapi-collection: object schema parameters', () => {
+  it('should expand object schema query parameters with $ref into individual properties', () => {
+    const openApiSpec = `
+openapi: '3.0.3'
+info:
+  title: 'Test API for Object Schema Parameters'
+  version: '1.0.0'
+servers:
+  - url: 'https://api.example.com/v1'
+paths:
+  /items:
+    get:
+      summary: 'Get items with pagination'
+      operationId: 'getItems'
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: 'Filter by date'
+        - name: paginationParams
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/PaginationParams'
+      responses:
+        '200':
+          description: 'Successful response'
+components:
+  schemas:
+    PaginationParams:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+          minimum: 0
+          description: 'Page number'
+        size:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 1
+          description: 'Page size'
+      required:
+        - page
+        - size
+`;
+
+    const result = openApiToBruno(openApiSpec);
+
+    // Find the request item
+    const requestItem = result.items[0];
+
+    // Verify that we have 3 query parameters: date, page, size
+    const queryParams = requestItem.request.params.filter((p) => p.type === 'query');
+    expect(queryParams.length).toBe(3);
+
+    // Check that 'date' parameter exists
+    const dateParam = queryParams.find((p) => p.name === 'date');
+    expect(dateParam).toBeDefined();
+    expect(dateParam.description).toBe('Filter by date');
+    expect(dateParam.enabled).toBe(true);
+
+    // Check that 'page' parameter exists (expanded from PaginationParams)
+    const pageParam = queryParams.find((p) => p.name === 'page');
+    expect(pageParam).toBeDefined();
+    expect(pageParam.description).toBe('Page number');
+    expect(pageParam.enabled).toBe(true); // required in schema
+
+    // Check that 'size' parameter exists (expanded from PaginationParams)
+    const sizeParam = queryParams.find((p) => p.name === 'size');
+    expect(sizeParam).toBeDefined();
+    expect(sizeParam.description).toBe('Page size');
+    expect(sizeParam.enabled).toBe(true); // required in schema
+
+    // Verify that 'paginationParams' does NOT exist as a parameter
+    const paginationParam = queryParams.find((p) => p.name === 'paginationParams');
+    expect(paginationParam).toBeUndefined();
+  });
+});

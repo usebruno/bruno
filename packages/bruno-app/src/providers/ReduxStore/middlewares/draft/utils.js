@@ -1,5 +1,5 @@
-import { makeTabPermanent } from "providers/ReduxStore/slices/tabs";
-import { findCollectionByUid, findItemInCollection } from "utils/collections/index";
+import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { findCollectionByUid, findItemInCollection } from 'utils/collections/index';
 import find from 'lodash/find';
 
 function handleMakeTabParmanent(state, action, dispatch) {
@@ -24,9 +24,7 @@ function handleMakeTabParmanent(state, action, dispatch) {
     if (item) {
       dispatch(makeTabPermanent({ uid: itemUid }));
     }
-  }
-  // Handle folder-level changes (folder settings tab)
-  else if (folderUid) {
+  } else if (folderUid) { // Handle folder-level changes (folder settings tab)
     const folder = findItemInCollection(collection, folderUid);
     if (folder) {
       dispatch(makeTabPermanent({ uid: folderUid }));
@@ -39,4 +37,4 @@ function handleMakeTabParmanent(state, action, dispatch) {
 
 export {
   handleMakeTabParmanent
-}
+};

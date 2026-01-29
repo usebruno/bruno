@@ -1,14 +1,11 @@
-import React from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { IconExclamationCircle, IconChevronRight, IconInfoCircle, IconChevronDown, IconArrowUpRight, IconArrowDownLeft } from '@tabler/icons';
 import CodeEditor from 'components/CodeEditor/index';
 import { useTheme } from 'providers/Theme';
-import { useState } from 'react';
 import { useSelector } from 'react-redux';
-import _ from 'lodash';
-import { useRef } from 'react';
-import { useEffect } from 'react';
+import { Virtuoso } from 'react-virtuoso';
 
 const getContentMeta = (content) => {
   if (typeof content === 'object') {
@@ -62,8 +59,7 @@ const TypeIcon = ({ type }) => {
   }[type];
 };
 
-const WSMessageItem = ({ message, inFocus }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
   const [showHex, setShowHex] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
@@ -83,68 +79,60 @@ const WSMessageItem = ({ message, inFocus }) => {
     const dateDiff = Date.now() - new Date(message.timestamp).getTime();
     if (dateDiff < 1000 * 10) {
       setIsNew(true);
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         notified.current = true;
         setIsNew(false);
       }, 2500);
+      return () => clearTimeout(timer);
     }
-  }, [message]);
+  }, [message.timestamp]);
 
   const canOpenMessage = !isInfo && !isError;
 
+  const handleToggle = () => {
+    if (!canOpenMessage) return;
+    onToggle?.(message.timestamp);
+  };
+
   return (
     <div
-      ref={(node) => {
-        if (!node) return;
-        if (inFocus) node.scrollIntoView();
-      }}
       className={classnames('ws-message flex flex-col p-2', {
         'ws-incoming': isIncoming,
-        'ws-outgoing': !isIncoming,
+        'ws-outgoing': isOutgoing,
+        'ws-info': isInfo,
+        'ws-error': isError,
         'open': isOpen,
         'new': isNew
       })}
     >
       <div
         className={classnames('flex items-center justify-between', {
-          'cursor-pointer': !isInfo,
-          'cursor-not-allowed': isInfo
+          'cursor-pointer': canOpenMessage,
+          'cursor-not-allowed': !canOpenMessage
         })}
-        onClick={(e) => {
-          if (!canOpenMessage) return;
-          setIsOpen(!isOpen);
-        }}
+        onClick={handleToggle}
       >
         <div className="flex min-w-0 shrink">
-          <span
-            className={classnames('font-medium flex items-center gap-1',
-              {
-                'text-green-700': isIncoming,
-                'text-yellow-700': isOutgoing,
-                'text-blue-700': isInfo,
-                'text-red-700': isError,
-                'text-red-700': isError
-              })}
-          >
+          <span className="message-type-icon">
             <TypeIcon type={message.type} />
           </span>
-          <span className="ml-3 text-ellipsis max-w-full overflow-hidden text-nowrap">{parsedContent.content}</span>
+          <span className="ml-3 text-ellipsis max-w-full overflow-hidden text-nowrap message-content">{parsedContent.content}</span>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 gap-2 items-center">
           {message.timestamp && (
-            <span className="text-xs text-gray-400">{new Date(message.timestamp).toISOString()}</span>
+            <span className="message-timestamp">{new Date(message.timestamp).toISOString()}</span>
           )}
           {canOpenMessage
             ? (
-                <span className="text-gray-600">
+                <span className="chevron-icon">
                   {isOpen ? (
-                    <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+                    <IconChevronDown size={16} strokeWidth={1.5} />
                   ) : (
-                    <IconChevronRight size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+                    <IconChevronRight size={16} strokeWidth={1.5} />
                   )}
                 </span>
               )
-            : <span class="w-4"></span>}
+            : <span className="w-4"></span>}
         </div>
       </div>
       {isOpen && (
@@ -184,19 +172,87 @@ const WSMessageItem = ({ message, inFocus }) => {
       )}
     </div>
   );
-};
+});
 
-const WSMessagesList = ({ order = -1, messages = [] }) => {
+const WSMessagesList = ({ messages = [] }) => {
+  const virtuosoRef = useRef(null);
+  const [scrollerElement, setScrollerElement] = useState(null);
+  const [openMessages, setOpenMessages] = useState(new Set());
+  const userScrolledAwayRef = useRef(false);
+
+  // Toggle message open/closed state by timestamp
+  const handleMessageToggle = useCallback((timestamp) => {
+    setOpenMessages((prev) => {
+      const next = new Set(prev);
+      if (next.has(timestamp)) {
+        next.delete(timestamp);
+      } else {
+        next.add(timestamp);
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!scrollerElement) return;
+
+    const handleWheel = (e) => {
+      // deltaY < 0 means scrolling up
+      if (e.deltaY < 0) {
+        userScrolledAwayRef.current = true;
+      }
+    };
+
+    scrollerElement.addEventListener('wheel', handleWheel, { passive: true });
+
+    return () => {
+      scrollerElement.removeEventListener('wheel', handleWheel);
+    };
+  }, [scrollerElement]);
+
+  const handleAtBottomStateChange = useCallback((atBottom) => {
+    if (atBottom) {
+      // User scrolled back to bottom, re-enable auto-scroll
+      userScrolledAwayRef.current = false;
+    }
+  }, []);
+
+  const followOutput = useCallback((isAtBottom) => {
+    // Don't auto-scroll if user has scrolled away or has messages open
+    if (userScrolledAwayRef.current || openMessages.size > 0) {
+      return false;
+    }
+    if (isAtBottom) {
+      return 'smooth';
+    }
+    return false;
+  }, [openMessages.size]);
+
+  const renderItem = useCallback((_, msg) => {
+    const isOpen = openMessages.has(msg.timestamp);
+    return <WSMessageItem message={msg} isOpen={isOpen} onToggle={handleMessageToggle} />;
+  }, [openMessages, handleMessageToggle]);
+
+  const computeItemKey = useCallback((_, msg) => {
+    return msg.seq ?? msg.timestamp;
+  }, []);
+
   if (!messages.length) {
-    return <div className="p-4 text-gray-500">No messages yet.</div>;
+    return <StyledWrapper><div className="empty-state">No messages yet.</div></StyledWrapper>;
   }
-  const ordered = order === -1 ? messages : messages.slice().reverse();
+
   return (
-    <StyledWrapper className="ws-messages-list mt-1 flex flex-col">
-      {ordered.map((msg, idx, src) => {
-        const inFocus = order === -1 ? src.length - 1 === idx : idx === 0;
-        return <WSMessageItem key={msg.timestamp} inFocus={inFocus} id={idx} message={msg} />;
-      })}
+    <StyledWrapper className="ws-messages-list flex flex-col">
+      <Virtuoso
+        ref={virtuosoRef}
+        scrollerRef={setScrollerElement}
+        data={messages}
+        itemContent={renderItem}
+        computeItemKey={computeItemKey}
+        followOutput={followOutput}
+        initialTopMostItemIndex={messages.length - 1}
+        atBottomStateChange={handleAtBottomStateChange}
+      />
     </StyledWrapper>
   );
 };

@@ -1,6 +1,6 @@
-import RequestMethod from "../RequestMethod";
+import RequestMethod from '../RequestMethod';
 import { IconLoader2, IconAlertTriangle, IconAlertCircle } from '@tabler/icons';
-import StyledWrapper from "./StyledWrapper";
+import StyledWrapper from './StyledWrapper';
 
 const CollectionItemIcon = ({ item }) => {
   if (item?.error) {

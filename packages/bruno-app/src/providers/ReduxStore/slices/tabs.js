@@ -22,11 +22,13 @@ export const tabsSlice = createSlice({
       const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid } = action.payload;
 
       const nonReplaceableTabTypes = [
-        "variables",
-        "collection-runner",
-        "security-settings",
+        'variables',
+        'collection-runner',
+        'environment-settings',
+        'global-environment-settings',
+        'preferences'
       ];
-    
+
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
       if (existingTab) {
         state.activeTabUid = existingTab.uid;
@@ -57,10 +59,12 @@ export const tabsSlice = createSlice({
           requestPaneWidth: null,
           requestPaneTab: requestPaneTab || defaultRequestPaneTab,
           responsePaneTab: 'response',
+          responseFormat: null,
+          responseViewTab: null,
           type: type || 'request',
           preview: preview !== undefined
             ? preview
-          : !nonReplaceableTabTypes.includes(type),
+            : !nonReplaceableTabTypes.includes(type),
           ...(uid ? { folderUid: uid } : {}),
           ...(exampleUid ? { exampleUid } : {}),
           ...(itemUid ? { itemUid } : {})
@@ -69,7 +73,7 @@ export const tabsSlice = createSlice({
         state.activeTabUid = uid;
         return;
       }
-    
+
       state.tabs.push({
         uid,
         collectionUid,
@@ -77,10 +81,12 @@ export const tabsSlice = createSlice({
         requestPaneTab: requestPaneTab || defaultRequestPaneTab,
         responsePaneTab: 'response',
         responsePaneScrollPosition: null,
+        responseFormat: null,
+        responseViewTab: null,
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
-            ? preview
+          ? preview
           : !nonReplaceableTabTypes.includes(type),
         ...(exampleUid ? { exampleUid } : {}),
         ...(itemUid ? { itemUid } : {})
@@ -143,6 +149,20 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.responsePaneScrollPosition = action.payload.scrollY;
+      }
+    },
+    updateResponseFormat: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseFormat = action.payload.responseFormat;
+      }
+    },
+    updateResponseViewTab: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseViewTab = action.payload.responseViewTab;
       }
     },
     closeTabs: (state, action) => {
@@ -229,6 +249,8 @@ export const {
   updateRequestPaneTab,
   updateResponsePaneTab,
   updateResponsePaneScrollPosition,
+  updateResponseFormat,
+  updateResponseViewTab,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,

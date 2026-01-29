@@ -66,7 +66,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
           },
           fromCache: false,
           completed: true,
-          requests: [], // No sub-requests in this context
+          requests: [] // No sub-requests in this context
         };
         // Add to mainRequests
 
@@ -80,14 +80,14 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
 
     webSession.webRequest.onBeforeSendHeaders((details, callback) => {
       const { id: requestId, requestHeaders, method, url } = details;
-      
+
       if (details.resourceType === 'mainFrame' && Object.keys(additionalHeaders).length > 0) {
         // Add our custom headers
         for (const [name, value] of Object.entries(additionalHeaders)) {
           requestHeaders[name] = value;
         }
       }
-      
+
       if (currentMainRequest?.requestId === requestId) {
         currentMainRequest.request = {
           url,
@@ -185,7 +185,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
             const urlWithHash = new URL(finalUrl);
             const hash = urlWithHash.hash.substring(1); // Remove the leading #
             const hashParams = new URLSearchParams(hash);
-            
+
             // Extract tokens from hash fragment
             const implicitTokens = {
               access_token: hashParams.get('access_token'),
@@ -194,7 +194,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
               state: hashParams.get('state'),
               scope: hashParams.get('scope')
             };
-            
+
             return resolve({ implicitTokens, debugInfo });
           } else {
             // Default case - authorization code flow

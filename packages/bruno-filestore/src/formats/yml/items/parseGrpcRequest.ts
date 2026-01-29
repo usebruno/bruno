@@ -6,7 +6,7 @@ import { toBrunoAuth } from '../common/auth';
 import { toBrunoVariables } from '../common/variables';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
-import { isNonEmptyString, uuid } from '../../../utils';
+import { isNonEmptyString, uuid, ensureString } from '../../../utils';
 
 const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): BrunoKeyValue[] | undefined => {
   if (!metadata?.length) {
@@ -16,8 +16,8 @@ const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): Bruno
   const brunoMetadata = metadata.map((meta: GrpcMetadata): BrunoKeyValue => {
     const brunoMeta: BrunoKeyValue = {
       uid: uuid(),
-      name: meta.name || '',
-      value: meta.value || '',
+      name: ensureString(meta.name),
+      value: ensureString(meta.value),
       enabled: meta.disabled !== true
     };
 
@@ -28,13 +28,17 @@ const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): Bruno
 };
 
 const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
+  const info = ocRequest.info;
+  const grpc = ocRequest.grpc;
+  const runtime = ocRequest.runtime;
+
   const brunoRequest: BrunoGrpcRequest = {
-    url: ocRequest.url || '',
-    method: ocRequest.method || '',
-    methodType: ocRequest.methodType || null,
-    protoPath: ocRequest.protoFilePath || null,
-    headers: toBrunoGrpcMetadata(ocRequest.metadata) || [],
-    auth: toBrunoAuth(ocRequest.auth),
+    url: ensureString(grpc?.url),
+    method: ensureString(grpc?.method),
+    methodType: grpc?.methodType || '',
+    protoPath: grpc?.protoFilePath || null,
+    headers: toBrunoGrpcMetadata(grpc?.metadata) || [],
+    auth: toBrunoAuth(grpc?.auth),
     body: {
       mode: 'grpc',
       grpc: []
@@ -53,15 +57,15 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   };
 
   // message
-  if (isNonEmptyString(ocRequest.message)) {
+  if (isNonEmptyString(grpc?.message)) {
     brunoRequest.body.grpc = [{
       name: '',
-      content: ocRequest.message
+      content: grpc?.message as string
     }];
   }
 
   // scripts
-  const scripts = toBrunoScripts(ocRequest.scripts);
+  const scripts = toBrunoScripts(runtime?.scripts);
   if (scripts?.script && brunoRequest.script) {
     if (scripts.script.req) {
       brunoRequest.script.req = scripts.script.req;
@@ -75,11 +79,11 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   }
 
   // variables
-  const variables = toBrunoVariables(ocRequest.variables);
+  const variables = toBrunoVariables(runtime?.variables);
   brunoRequest.vars = variables;
 
   // assertions
-  const assertions = toBrunoAssertions(ocRequest.assertions);
+  const assertions = toBrunoAssertions(runtime?.assertions);
   if (assertions) {
     brunoRequest.assertions = assertions;
   }
@@ -93,11 +97,11 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   const brunoItem: BrunoItem = {
     uid: uuid(),
     type: 'grpc-request',
-    seq: ocRequest.seq || 1,
-    name: ocRequest.name || 'Untitled Request',
-    tags: ocRequest.tags || [],
+    seq: info?.seq || 1,
+    name: ensureString(info?.name, 'Untitled Request'),
+    tags: info?.tags || [],
     request: brunoRequest,
-    settings: null,
+    settings: {},
     fileContent: null,
     root: null,
     items: [],

@@ -18,7 +18,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
   const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  
+
   const handleSave = () => {
     save();
   };
@@ -66,12 +66,12 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
         }
       })
     );
-  };  
+  };
 
   return (
     <StyledWrapper className="mt-2 w-full">
-      <label className="block font-medium mb-2">Username</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Username</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={ntlmAuth.username || ''}
           theme={storedTheme}
@@ -80,11 +80,12 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Password</label>
-      <div className="single-line-editor-wrapper flex items-center">
+      <label className="block mb-1">Password</label>
+      <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
           value={ntlmAuth.password || ''}
           theme={storedTheme}
@@ -94,11 +95,12 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
           collection={collection}
           item={item}
           isSecret={true}
+          isCompact
         />
         {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} />}
       </div>
 
-      <label className="block font-medium mb-2">Domain</label>
+      <label className="block mb-1">Domain</label>
       <div className="single-line-editor-wrapper">
         <SingleLineEditor
           value={ntlmAuth.domain || ''}
@@ -108,6 +110,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          isCompact
         />
       </div>
     </StyledWrapper>

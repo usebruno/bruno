@@ -29,49 +29,49 @@ describe('postman-collection', () => {
 
   it('should handle falsy values in collection variables', async () => {
     const collectionWithFalsyVars = {
-      "info": {
-        "_postman_id": "7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9",
-        "name": "collection with falsy vars",
-        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+      info: {
+        _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+        name: 'collection with falsy vars',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
       },
-      "variable": [
+      variable: [
         {
-          "type": "string"
+          type: 'string'
         },
         {
-          "key": "",
-          "type": "string"
+          key: '',
+          type: 'string'
         },
         {
-          "value": "",
-          "type": "string"
+          value: '',
+          type: 'string'
         },
         {
-          "key": "",
-          "value": "",
-          "type": "string"
+          key: '',
+          value: '',
+          type: 'string'
         }
       ],
-      "item": []
+      item: []
     };
 
     const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
-    
+
     expect(brunoCollection.root.request.vars.req).toEqual([
       {
-        uid: "mockeduuidvalue123456",
+        uid: 'mockeduuidvalue123456',
         name: '',
         value: '',
         enabled: true
       },
       {
-        uid: "mockeduuidvalue123456",
+        uid: 'mockeduuidvalue123456',
         name: '',
         value: '',
         enabled: true
       },
       {
-        uid: "mockeduuidvalue123456",
+        uid: 'mockeduuidvalue123456',
         name: '',
         value: '',
         enabled: true
@@ -79,15 +79,174 @@ describe('postman-collection', () => {
     ]);
   });
 
-  it("should handle empty variables", async () => {
-    const collectionWithEmptyVars = {
-      "info": {
-        "_postman_id": "7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9",
-        "name": "collection with falsy vars",
-        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  it('should successfully translate a URL path array with no empty elements', async () => {
+    const collectionWithFalsyVars = {
+      info: {
+        _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+        name: 'collection with falsy vars',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
       },
-      "variable": [],
-      "item": []
+      variable: [
+        {
+          type: 'string'
+        },
+        {
+          key: '',
+          type: 'string'
+        },
+        {
+          value: '',
+          type: 'string'
+        },
+        {
+          key: '',
+          value: '',
+          type: 'string'
+        }
+      ],
+      item: [
+        {
+          name: 'Request with all settings',
+          protocolProfileBehavior: {
+            maxRedirects: 10,
+            followRedirects: false,
+            disableUrlEncoding: true
+          },
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              protocol: 'https',
+              host: ['httpbin', 'org'],
+              path: ['api', 'v1', 'resource']
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+
+    expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
+      'https://httpbin.org/api/v1/resource'
+    ]);
+  });
+
+  it('should not mutate a URL path with an empty element representing a trailing slash', async () => {
+    const collectionWithFalsyVars = {
+      info: {
+        _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+        name: 'collection with falsy vars',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      variable: [
+        {
+          type: 'string'
+        },
+        {
+          key: '',
+          type: 'string'
+        },
+        {
+          value: '',
+          type: 'string'
+        },
+        {
+          key: '',
+          value: '',
+          type: 'string'
+        }
+      ],
+      item: [
+        {
+          name: 'Request with all settings',
+          protocolProfileBehavior: {
+            maxRedirects: 10,
+            followRedirects: false,
+            disableUrlEncoding: true
+          },
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              protocol: 'https',
+              host: ['httpbin', 'org'],
+              path: ['api', 'v1', 'resource', '']
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+
+    expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
+      'https://httpbin.org/api/v1/resource/'
+    ]);
+  });
+
+  it('should not mutate a URL path with an empty element representing a trailing slash', async () => {
+    const collectionWithFalsyVars = {
+      info: {
+        _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+        name: 'collection with falsy vars',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      variable: [
+        {
+          type: 'string'
+        },
+        {
+          key: '',
+          type: 'string'
+        },
+        {
+          value: '',
+          type: 'string'
+        },
+        {
+          key: '',
+          value: '',
+          type: 'string'
+        }
+      ],
+      item: [
+        {
+          name: 'Request with all settings',
+          protocolProfileBehavior: {
+            maxRedirects: 10,
+            followRedirects: false,
+            disableUrlEncoding: true
+          },
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              protocol: 'https',
+              host: ['httpbin', 'org'],
+              path: ['api', '', 'resource']
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+
+    expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
+      'https://httpbin.org/api//resource'
+    ]);
+  });
+
+  it('should handle empty variables', async () => {
+    const collectionWithEmptyVars = {
+      info: {
+        _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+        name: 'collection with falsy vars',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      variable: [],
+      item: []
     };
 
     const brunoCollection = await postmanToBruno(collectionWithEmptyVars);
@@ -178,28 +337,28 @@ describe('postman-collection', () => {
 
   it('should handle collection with auth object having undefined type', async () => {
     const collectionWithUndefinedAuthType = {
-      'info': {
-        '_postman_id': '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
-        'name': 'collection with undefined auth type',
-        'schema': 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      info: {
+        _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+        name: 'collection with undefined auth type',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
       },
-      'auth': {
-        'basic': [
+      auth: {
+        basic: [
           { key: 'username', value: 'testuser', type: 'string' },
           { key: 'password', value: 'testpass', type: 'string' }
         ]
       },
-      'item': [
+      item: [
         {
-          'name': 'request',
-          'request': {
-            'method': 'GET',
-            'header': [],
-            'url': {
-              'raw': 'https://api.example.com/test',
-              'protocol': 'https',
-              'host': ['api', 'example', 'com'],
-              'path': ['test']
+          name: 'request',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              raw: 'https://api.example.com/test',
+              protocol: 'https',
+              host: ['api', 'example', 'com'],
+              path: ['test']
             }
           }
         }
@@ -207,7 +366,7 @@ describe('postman-collection', () => {
     };
 
     const brunoCollection = await postmanToBruno(collectionWithUndefinedAuthType);
-    
+
     // Collection level auth should default to 'none'
     expect(brunoCollection.root.request.auth).toEqual({
       mode: 'none',
@@ -233,28 +392,28 @@ describe('postman-collection', () => {
 
   it('should handle collection with auth object having null type', async () => {
     const collectionWithNullAuthType = {
-      'info': {
-        '_postman_id': '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
-        'name': 'collection with null auth type',
-        'schema': 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      info: {
+        _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+        name: 'collection with null auth type',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
       },
-      'auth': {
-        'type': null,
-        'bearer': {
-          'token': 'test-token'
+      auth: {
+        type: null,
+        bearer: {
+          token: 'test-token'
         }
       },
-      'item': [
+      item: [
         {
-          'name': 'request',
-          'request': {
-            'method': 'GET',
-            'header': [],
-            'url': {
-              'raw': 'https://api.example.com/test',
-              'protocol': 'https',
-              'host': ['api', 'example', 'com'],
-              'path': ['test']
+          name: 'request',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              raw: 'https://api.example.com/test',
+              protocol: 'https',
+              host: ['api', 'example', 'com'],
+              path: ['test']
             }
           }
         }
@@ -262,7 +421,7 @@ describe('postman-collection', () => {
     };
 
     const brunoCollection = await postmanToBruno(collectionWithNullAuthType);
-    
+
     // Collection level auth should default to 'none'
     expect(brunoCollection.root.request.auth).toEqual({
       mode: 'none',
@@ -277,29 +436,29 @@ describe('postman-collection', () => {
 
   it('should handle collection with auth object having unexpected type value', async () => {
     const collectionWithUnexpectedAuthType = {
-      'info': {
-        '_postman_id': '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
-        'name': 'collection with unexpected auth type',
-        'schema': 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      info: {
+        _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+        name: 'collection with unexpected auth type',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
       },
-      'auth': {
-        'type': 'unexpected_auth_type',
-        'basic': [
+      auth: {
+        type: 'unexpected_auth_type',
+        basic: [
           { key: 'username', value: 'testuser', type: 'string' },
           { key: 'password', value: 'testpass', type: 'string' }
         ]
       },
-      'item': [
+      item: [
         {
-          'name': 'request',
-          'request': {
-            'method': 'GET',
-            'header': [],
-            'url': {
-              'raw': 'https://api.example.com/test',
-              'protocol': 'https',
-              'host': ['api', 'example', 'com'],
-              'path': ['test']
+          name: 'request',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              raw: 'https://api.example.com/test',
+              protocol: 'https',
+              host: ['api', 'example', 'com'],
+              path: ['test']
             }
           }
         }
@@ -307,7 +466,7 @@ describe('postman-collection', () => {
     };
 
     const brunoCollection = await postmanToBruno(collectionWithUnexpectedAuthType);
-    
+
     // Collection level auth should default to 'none'
     expect(brunoCollection.root.request.auth).toEqual({
       mode: 'none',
@@ -333,25 +492,25 @@ describe('postman-collection', () => {
 
   it('should handle request with auth object having undefined type', async () => {
     const collectionWithRequestUndefinedAuthType = {
-      'info': {
-        '_postman_id': '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
-        'name': 'collection with request undefined auth type',
-        'schema': 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      info: {
+        _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+        name: 'collection with request undefined auth type',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
       },
-      'item': [
+      item: [
         {
-          'name': 'request',
-          'request': {
-            'method': 'GET',
-            'header': [],
-            'url': {
-              'raw': 'https://api.example.com/test',
-              'protocol': 'https',
-              'host': ['api', 'example', 'com'],
-              'path': ['test']
+          name: 'request',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              raw: 'https://api.example.com/test',
+              protocol: 'https',
+              host: ['api', 'example', 'com'],
+              path: ['test']
             },
-            'auth': {
-              'basic': [
+            auth: {
+              basic: [
                 { key: 'username', value: 'testuser', type: 'string' },
                 { key: 'password', value: 'testpass', type: 'string' }
               ]
@@ -373,7 +532,7 @@ describe('postman-collection', () => {
       oauth2: null,
       digest: null
     });
-    
+
     // Request auth should default to 'none'
     expect(brunoCollection.items[0].request.auth).toEqual({
       mode: 'none',
@@ -388,31 +547,31 @@ describe('postman-collection', () => {
 
   it('should handle folder with auth object having unexpected type', async () => {
     const collectionWithFolderUnexpectedAuthType = {
-      'info': {
-        '_postman_id': '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
-        'name': 'collection with folder unexpected auth type',
-        'schema': 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      info: {
+        _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+        name: 'collection with folder unexpected auth type',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
       },
-      'item': [
+      item: [
         {
-          'name': 'folder',
-          'auth': {
-            'type': 'unexpected_folder_auth_type',
-            'bearer': {
-              'token': 'folder-token'
+          name: 'folder',
+          auth: {
+            type: 'unexpected_folder_auth_type',
+            bearer: {
+              token: 'folder-token'
             }
           },
-          'item': [
+          item: [
             {
-              'name': 'request',
-              'request': {
-                'method': 'GET',
-                'header': [],
-                'url': {
-                  'raw': 'https://api.example.com/test',
-                  'protocol': 'https',
-                  'host': ['api', 'example', 'com'],
-                  'path': ['test']
+              name: 'request',
+              request: {
+                method: 'GET',
+                header: [],
+                url: {
+                  raw: 'https://api.example.com/test',
+                  protocol: 'https',
+                  host: ['api', 'example', 'com'],
+                  path: ['test']
                 }
               }
             }
@@ -422,7 +581,7 @@ describe('postman-collection', () => {
     };
 
     const brunoCollection = await postmanToBruno(collectionWithFolderUnexpectedAuthType);
-    
+
     // Folder auth should default to 'none'
     expect(brunoCollection.items[0].root.request.auth).toEqual({
       mode: 'none',
@@ -453,52 +612,52 @@ describe('postman-collection', () => {
 // └── request (GET)
 
 const postmanCollection = {
-	"info": {
-		"_postman_id": "7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9",
-		"name": "simple collection",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "21992467",
-		"_collection_link": "https://random-user-007.postman.co/workspace/testing~7523f559-3d5f-4c30-8315-3cb3c3ff98b7/collection/21992467-7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9?action=share&source=collection_link&creator=007"
-	},
-	"item": [
-		{
-			"name": "folder",
-			"item": [
-				{
-					"name": "request",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "https://usebruno.com",
-							"protocol": "https",
-							"host": [
-								"usebruno",
-								"com"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "request",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "https://usebruno.com",
-					"protocol": "https",
-					"host": [
-						"usebruno",
-						"com"
-					]
-				}
-			},
-			"response": []
-		}
-	]
+  info: {
+    _postman_id: '7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9',
+    name: 'simple collection',
+    schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+    _exporter_id: '21992467',
+    _collection_link: 'https://random-user-007.postman.co/workspace/testing~7523f559-3d5f-4c30-8315-3cb3c3ff98b7/collection/21992467-7f91bbd8-cb97-41ac-8d0b-e1fcd8bb4ce9?action=share&source=collection_link&creator=007'
+  },
+  item: [
+    {
+      name: 'folder',
+      item: [
+        {
+          name: 'request',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              raw: 'https://usebruno.com',
+              protocol: 'https',
+              host: [
+                'usebruno',
+                'com'
+              ]
+            }
+          },
+          response: []
+        }
+      ]
+    },
+    {
+      name: 'request',
+      request: {
+        method: 'GET',
+        header: [],
+        url: {
+          raw: 'https://usebruno.com',
+          protocol: 'https',
+          host: [
+            'usebruno',
+            'com'
+          ]
+        }
+      },
+      response: []
+    }
+  ]
 };
 
 // Simple Collection (bruno)
@@ -507,120 +666,120 @@ const postmanCollection = {
 // └── request (GET)
 
 const expectedOutput = {
-	"name": "simple collection",
-	"uid": "mockeduuidvalue123456",
-	"version": "1",
-	"items": [
-	  {
-      "uid": "mockeduuidvalue123456",	
-      "name": "folder",
-      "type": "folder",
-      "seq": 1,
-      "items": [
+  name: 'simple collection',
+  uid: 'mockeduuidvalue123456',
+  version: '1',
+  items: [
+    {
+      uid: 'mockeduuidvalue123456',
+      name: 'folder',
+      type: 'folder',
+      seq: 1,
+      items: [
         {
-          "uid": "mockeduuidvalue123456",
-          "name": "request",
-          "type": "http-request",
-          "seq": 1,
-          "request": {
-            "url": "https://usebruno.com",
-            "method": "GET",
-            "auth": {
-              "mode": "inherit",
-              "basic": null,
-              "bearer": null,
-              "awsv4": null,
-              "apikey": null,
-              "oauth2": null,
-              "digest": null
+          uid: 'mockeduuidvalue123456',
+          name: 'request',
+          type: 'http-request',
+          seq: 1,
+          request: {
+            url: 'https://usebruno.com',
+            method: 'GET',
+            auth: {
+              mode: 'inherit',
+              basic: null,
+              bearer: null,
+              awsv4: null,
+              apikey: null,
+              oauth2: null,
+              digest: null
             },
-            "headers": [],
-            "params": [],
-            "body": {
-              "mode": "none",
-              "json": null,
-              "text": null,
-              "xml": null,
-              "formUrlEncoded": [],
-              "multipartForm": []
+            headers: [],
+            params: [],
+            body: {
+              mode: 'none',
+              json: null,
+              text: null,
+              xml: null,
+              formUrlEncoded: [],
+              multipartForm: []
             },
-            "docs": ""
+            docs: ''
           }
         }
       ],
-      "root": {
-        "docs": "",
-        "meta": {
-        "name": "folder"
+      root: {
+        docs: '',
+        meta: {
+          name: 'folder'
         },
-        "request": {
-        "auth": {
-          "mode": "inherit",
-          "basic": null,
-          "bearer": null,
-          "awsv4": null,
-          "apikey": null,
-          "oauth2": null,
-          "digest": null
-        },
-        "headers": [],
-        "script": {},
-        "tests": "",
-        "vars": {}
+        request: {
+          auth: {
+            mode: 'inherit',
+            basic: null,
+            bearer: null,
+            awsv4: null,
+            apikey: null,
+            oauth2: null,
+            digest: null
+          },
+          headers: [],
+          script: {},
+          tests: '',
+          vars: {}
         }
       }
-	  },
-	  {
-      "uid": "mockeduuidvalue123456",
-      "name": "request",
-      "type": "http-request",
-      "seq": 2,
-      "request": {
-        "url": "https://usebruno.com",
-        "method": "GET",
-        "auth": {
-          "mode": "inherit",
-          "basic": null,
-          "bearer": null,
-          "awsv4": null,
-          "apikey": null,
-          "oauth2": null,
-          "digest": null
+    },
+    {
+      uid: 'mockeduuidvalue123456',
+      name: 'request',
+      type: 'http-request',
+      seq: 2,
+      request: {
+        url: 'https://usebruno.com',
+        method: 'GET',
+        auth: {
+          mode: 'inherit',
+          basic: null,
+          bearer: null,
+          awsv4: null,
+          apikey: null,
+          oauth2: null,
+          digest: null
         },
-        "headers": [],
-        "params": [],
-        "body": {
-          "mode": "none",
-          "json": null,
-          "text": null,
-          "xml": null,
-          "formUrlEncoded": [],
-          "multipartForm": []
+        headers: [],
+        params: [],
+        body: {
+          mode: 'none',
+          json: null,
+          text: null,
+          xml: null,
+          formUrlEncoded: [],
+          multipartForm: []
         },
-        "docs": ""
+        docs: ''
+      }
+    }
+  ],
+  environments: [],
+  root: {
+    docs: '',
+    meta: {
+      name: 'simple collection'
+    },
+    request: {
+      auth: {
+        mode: 'none',
+        basic: null,
+        bearer: null,
+        awsv4: null,
+        apikey: null,
+        oauth2: null,
+        digest: null
       },
-	  }
-	],
-	"environments": [],
-	"root": {
-	  "docs": "",
-	  "meta": {
-		"name": "simple collection"
-	  },
-	  "request": {
-		"auth": {
-		  "mode": "none",
-		  "basic": null,
-		  "bearer": null,
-		  "awsv4": null,
-		  "apikey": null,
-		  "oauth2": null,
-		  "digest": null
-		},
-		"headers": [],
-		"script": {},
-		"tests": "",
-		"vars": {}
-	  }
-	}
-  };
+      headers: [],
+      script: {},
+      tests: '',
+      vars: {}
+    }
+  }
+};

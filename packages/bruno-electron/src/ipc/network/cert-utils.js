@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('path');
 const { get } = require('lodash');
-const { getCACertificates } = require('@usebruno/requests');
+const { getCACertificates, getSystemProxy } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { interpolateString } = require('./interpolate-string');
@@ -28,24 +28,37 @@ const getCertsAndProxyConfig = async ({
     httpsAgentRequestFields['rejectUnauthorized'] = false;
   }
 
-  let caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
-  let caCertificatesData = getCACertificates({
-    caCertFilePath, 
-    shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates() 
-  });
+  let caCertificates = '';
+  let caCertificatesCount = { system: 0, root: 0, custom: 0, extra: 0 };
 
-  let caCertificates = caCertificatesData.caCertificates;
-  let caCertificatesCount = caCertificatesData.caCertificatesCount;
+  // Only load CA certificates if SSL validation is enabled (otherwise they're unused)
+  if (preferencesUtil.shouldVerifyTls()) {
+    let caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
+    let caCertificatesData = getCACertificates({
+      caCertFilePath,
+      shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates()
+    });
+
+    caCertificates = caCertificatesData.caCertificates;
+    caCertificatesCount = caCertificatesData.caCertificatesCount;
+  }
 
   // configure HTTPS agent with aggregated CA certificates
   httpsAgentRequestFields['caCertificatesCount'] = caCertificatesCount;
   httpsAgentRequestFields['ca'] = caCertificates || [];
 
   const { promptVariables } = collection;
+  const collectionVariables = request.collectionVariables || {};
+  const folderVariables = request.folderVariables || {};
+  const requestVariables = request.requestVariables || {};
+
   const brunoConfig = getBrunoConfig(collectionUid, collection);
   const interpolationOptions = {
     globalEnvironmentVariables,
+    collectionVariables,
     envVars,
+    folderVariables,
+    requestVariables,
     runtimeVariables,
     promptVariables,
     processEnvVars
@@ -58,9 +71,10 @@ const getCertsAndProxyConfig = async ({
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
     const type = clientCert?.type || 'cert';
     if (domain) {
-      const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/)?' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+      const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/|ws:\\/\\/|wss:\\/\\/)?'
+        + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
       const requestUrl = interpolateString(request.url, interpolationOptions);
-      if (requestUrl.match(hostRegex)) {
+      if (requestUrl && requestUrl.match(hostRegex)) {
         if (type === 'cert') {
           try {
             let certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
@@ -92,30 +106,52 @@ const getCertsAndProxyConfig = async ({
 
   /**
    * Proxy configuration
-   * 
-   * Preferences proxyMode has three possible values: on, off, system
-   * Collection proxyMode has three possible values: true, false, global
-   * 
-   * When collection proxyMode is true, it overrides the app-level proxy settings
-   * When collection proxyMode is false, it ignores the app-level proxy settings
-   * When collection proxyMode is global, it uses the app-level proxy settings
-   * 
+   *
+   * New format:
+   * - disabled: boolean (optional, defaults to false)
+   * - inherit: boolean (required)
+   * - config: { protocol, hostname, port, auth, bypassProxy }
+   *
+   * When collection proxy has inherit=false and disabled=false, use collection-specific proxy
+   * When collection proxy has inherit=true, inherit from global preferences
+   * When disabled=true, proxy is disabled
+   *
    * Below logic calculates the proxyMode and proxyConfig to be used for the request
    */
   let proxyMode = 'off';
   let proxyConfig = {};
 
   const collectionProxyConfig = get(brunoConfig, 'proxy', {});
-  const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', 'global');
-  if (collectionProxyEnabled === true) {
-    proxyConfig = collectionProxyConfig;
-    proxyMode = 'on';
-  } else if (collectionProxyEnabled === 'global') {
-    proxyConfig = preferencesUtil.getGlobalProxyConfig();
-    proxyMode = get(proxyConfig, 'mode', 'off');
-  }
-  
-  return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
-}
+  const collectionProxyDisabled = get(collectionProxyConfig, 'disabled', false);
+  const collectionProxyInherit = get(collectionProxyConfig, 'inherit', true);
+  const collectionProxyConfigData = get(collectionProxyConfig, 'config', collectionProxyConfig);
 
-module.exports = { getCertsAndProxyConfig }; 
+  if (!collectionProxyDisabled && !collectionProxyInherit) {
+    // Use collection-specific proxy
+    proxyConfig = collectionProxyConfigData;
+    proxyMode = 'on';
+  } else if (!collectionProxyDisabled && collectionProxyInherit) {
+    // Inherit from global preferences
+    const globalProxy = preferencesUtil.getGlobalProxyConfig();
+    const globalDisabled = get(globalProxy, 'disabled', false);
+    const globalInherit = get(globalProxy, 'inherit', false);
+    const globalProxyConfigData = get(globalProxy, 'config', globalProxy);
+
+    if (!globalDisabled && !globalInherit) {
+      // Use global custom proxy
+      proxyConfig = globalProxyConfigData;
+      proxyMode = 'on';
+    } else if (!globalDisabled && globalInherit) {
+      // Use system proxy
+      proxyMode = 'system';
+      const systemProxyConfig = await getSystemProxy();
+      proxyConfig = systemProxyConfig;
+    }
+    // else: global proxy is disabled, proxyMode stays 'off'
+  }
+  // else: collection proxy is disabled, proxyMode stays 'off'
+
+  return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
+};
+
+module.exports = { getCertsAndProxyConfig };

@@ -1,0 +1,83 @@
+import { uuid } from '../../common/index.js';
+import type {
+  Action,
+  ActionSetVariable,
+  ActionVariableScope,
+  BrunoVariable,
+  BrunoVariables
+} from '../types';
+
+/**
+ * Convert Bruno post-response variables to OpenCollection actions.
+ * Post-response variables in Bruno are converted to 'set-variable' actions
+ * with phase 'after-response'.
+ */
+export const toOpenCollectionActions = (resVariables: BrunoVariables | null | undefined): Action[] | undefined => {
+  if (!resVariables?.length) {
+    return undefined;
+  }
+
+  const actions: Action[] = resVariables.map((v: BrunoVariable): ActionSetVariable => {
+    const action: ActionSetVariable = {
+      type: 'set-variable',
+      phase: 'after-response',
+      selector: {
+        expression: v.value || '',
+        method: 'jsonq'
+      },
+      variable: {
+        name: v.name || '',
+        scope: v.local ? 'request' : 'runtime' as ActionVariableScope
+      }
+    };
+
+    if (v.description && typeof v.description === 'string' && v.description.trim().length) {
+      action.description = v.description;
+    }
+
+    if (v.enabled === false) {
+      action.disabled = true;
+    }
+
+    return action;
+  });
+
+  return actions.length > 0 ? actions : undefined;
+};
+
+/**
+ * Convert OpenCollection actions to Bruno post-response variables.
+ * Only 'set-variable' actions with phase 'after-response' are converted.
+ */
+export const fromOpenCollectionActions = (actions: Action[] | null | undefined): BrunoVariables => {
+  if (!actions?.length) {
+    return [];
+  }
+
+  const resVars: BrunoVariables = [];
+
+  actions.forEach((action: Action) => {
+    // Only process 'set-variable' actions with 'after-response' phase
+    if (action.type === 'set-variable' && action.phase === 'after-response') {
+      const setVarAction = action as ActionSetVariable;
+
+      const variable: BrunoVariable = {
+        uid: uuid(),
+        name: setVarAction.variable?.name || '',
+        value: setVarAction.selector?.expression || '',
+        enabled: setVarAction.disabled !== true,
+        local: setVarAction.variable?.scope === 'request'
+      };
+
+      if (setVarAction.description) {
+        variable.description = typeof setVarAction.description === 'string'
+          ? setVarAction.description
+          : (setVarAction.description as { content?: string })?.content || '';
+      }
+
+      resVars.push(variable);
+    }
+  });
+
+  return resVars;
+};

@@ -1,15 +1,15 @@
-const { default: postmanTranslation } = require("../../../src/postman/postman-translations");
+import postmanTranslation from '../../../src/postman/postman-translations';
 
 describe('postmanTranslations - cookie API conversions', () => {
   test('should convert pm.cookies.jar().get to bru.cookies.jar().getCookie', () => {
     const inputScript = `pm.cookies.jar().get('https://example.com', 'sessionId', (err, cookie) => {
       console.log(cookie);
     });`;
-    
+
     const expectedOutput = `bru.cookies.jar().getCookie('https://example.com', 'sessionId', (err, cookie) => {
       console.log(cookie);
     });`;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -17,11 +17,11 @@ describe('postmanTranslations - cookie API conversions', () => {
     const inputScript = `pm.cookies.jar().getAll('https://example.com', (err, cookies) => {
       console.log(cookies);
     });`;
-    
+
     const expectedOutput = `bru.cookies.jar().getCookies('https://example.com', (err, cookies) => {
       console.log(cookies);
     });`;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -29,11 +29,11 @@ describe('postmanTranslations - cookie API conversions', () => {
     const inputScript = `pm.cookies.jar().set('https://example.com', 'sessionId', 'abc123', (err) => {
       if (err) console.error(err);
     });`;
-    
+
     const expectedOutput = `bru.cookies.jar().setCookie('https://example.com', 'sessionId', 'abc123', (err) => {
       if (err) console.error(err);
     });`;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -41,11 +41,11 @@ describe('postmanTranslations - cookie API conversions', () => {
     const inputScript = `pm.cookies.jar().unset('https://example.com', 'sessionId', (err) => {
       if (err) console.error(err);
     });`;
-    
+
     const expectedOutput = `bru.cookies.jar().deleteCookie('https://example.com', 'sessionId', (err) => {
       if (err) console.error(err);
     });`;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -53,11 +53,11 @@ describe('postmanTranslations - cookie API conversions', () => {
     const inputScript = `pm.cookies.jar().clear('https://example.com', (err) => {
       if (err) console.error(err);
     });`;
-    
+
     const expectedOutput = `bru.cookies.jar().deleteCookies('https://example.com', (err) => {
       if (err) console.error(err);
     });`;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -71,7 +71,7 @@ describe('postmanTranslations - cookie API conversions', () => {
       pm.cookies.jar().unset('https://api.example.com', 'temp');
       pm.cookies.jar().clear('https://api.example.com');
     `;
-    
+
     const expectedOutput = `
       bru.cookies.jar().setCookie('https://api.example.com', 'auth', 'token123');
       const cookie = bru.cookies.jar().getCookie('https://api.example.com', 'auth');
@@ -81,7 +81,7 @@ describe('postmanTranslations - cookie API conversions', () => {
       bru.cookies.jar().deleteCookie('https://api.example.com', 'temp');
       bru.cookies.jar().deleteCookies('https://api.example.com');
     `;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -91,13 +91,13 @@ describe('postmanTranslations - cookie API conversions', () => {
       jar.set('https://example.com', 'user', 'john');
       const userCookie = jar.get('https://example.com', 'user');
     `;
-    
+
     const expectedOutput = `
       const jar = bru.cookies.jar();
       jar.setCookie('https://example.com', 'user', 'john');
       const userCookie = jar.getCookie('https://example.com', 'user');
     `;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -112,7 +112,7 @@ describe('postmanTranslations - cookie API conversions', () => {
         }
       });
     `;
-    
+
     const expectedOutput = `
       const jar = bru.cookies.jar();
       jar.getCookie('https://api.example.com', 'authToken', (error, cookie) => {
@@ -123,7 +123,7 @@ describe('postmanTranslations - cookie API conversions', () => {
         }
       });
     `;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -138,7 +138,7 @@ describe('postmanTranslations - cookie API conversions', () => {
         }
       });
     `;
-    
+
     const expectedOutput = `
       const jar = bru.cookies.jar();
       jar.getCookies('https://api.example.com', (error, cookies) => {
@@ -149,7 +149,7 @@ describe('postmanTranslations - cookie API conversions', () => {
         }
       });
     `;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -166,7 +166,7 @@ describe('postmanTranslations - cookie API conversions', () => {
         if (error) console.error(error);
       });
     `;
-    
+
     const expectedOutput = `
       const jar = bru.cookies.jar();
       jar.setCookie('https://api.example.com', {
@@ -179,7 +179,7 @@ describe('postmanTranslations - cookie API conversions', () => {
         if (error) console.error(error);
       });
     `;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -194,7 +194,7 @@ describe('postmanTranslations - cookie API conversions', () => {
         }
       });
     `;
-    
+
     const expectedOutput = `
       const jar = bru.cookies.jar();
       jar.deleteCookie('https://api.example.com', 'tempCookie', (error) => {
@@ -205,7 +205,7 @@ describe('postmanTranslations - cookie API conversions', () => {
         }
       });
     `;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -220,7 +220,7 @@ describe('postmanTranslations - cookie API conversions', () => {
         }
       });
     `;
-    
+
     const expectedOutput = `
       const jar = bru.cookies.jar();
       jar.deleteCookies('https://api.example.com', (error) => {
@@ -231,7 +231,7 @@ describe('postmanTranslations - cookie API conversions', () => {
         }
       });
     `;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -261,7 +261,7 @@ describe('postmanTranslations - cookie API conversions', () => {
       cookieJar.unset('https://example.com', 'temp');
       cookieJar.clear('https://example.com');
     `;
-    
+
     const expectedOutput = `
       const cookieJar = bru.cookies.jar();
       
@@ -287,7 +287,7 @@ describe('postmanTranslations - cookie API conversions', () => {
       cookieJar.deleteCookie('https://example.com', 'temp');
       cookieJar.deleteCookies('https://example.com');
     `;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -302,7 +302,7 @@ describe('postmanTranslations - cookie API conversions', () => {
         console.log(cookies);
       });
     `;
-    
+
     const expectedOutput = `
       const jar = bru.cookies.jar();
       jar.getCookie('https://api.com', 'session');
@@ -313,7 +313,7 @@ describe('postmanTranslations - cookie API conversions', () => {
         console.log(cookies);
       });
     `;
-    
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
-}); 
+});

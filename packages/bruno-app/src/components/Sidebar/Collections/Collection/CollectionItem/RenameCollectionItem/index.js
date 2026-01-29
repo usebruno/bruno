@@ -15,6 +15,7 @@ import PathDisplay from 'components/PathDisplay';
 import Portal from 'components/Portal';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
@@ -44,11 +45,11 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
         .min(1, 'must be at least 1 character')
         .max(255, 'must be 255 characters or less')
         .required('name is required')
-        .test('is-valid-name', function(value) {
+        .test('is-valid-name', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
-        .test('not-reserved', `The file names "collection" and "folder" are reserved in bruno`, value => !['collection', 'folder'].includes(value))
+        .test('not-reserved', `The file names "collection" and "folder" are reserved in bruno`, (value) => !['collection', 'folder'].includes(value))
     }),
     onSubmit: async (values) => {
       // if there is unsaved changes in the request,
@@ -63,7 +64,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
       try {
         let renameConfig = {
           itemUid: item.uid,
-          collectionUid,
+          collectionUid
         };
         renameConfig['newName'] = newName;
         if (itemFilename !== newFilename) {
@@ -95,7 +96,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
         >
           Options
         </button>
-        <IconCaretDown className="caret ml-1" size={14} strokeWidth={2}/>
+        <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
       </div>
     );
   });
@@ -110,7 +111,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
           hideFooter
         >
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
-            <div className='flex flex-col mt-2'>
+            <div className="flex flex-col mt-2">
               <label htmlFor="name" className="block font-medium">
                 {isFolder ? 'Folder' : 'Request'} Name
               </label>
@@ -124,7 +125,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
-                onChange={e => {
+                onChange={(e) => {
                   formik.setFieldValue('name', e.target.value);
                   !isEditing && formik.setFieldValue('filename', sanitizeName(e.target.value));
                 }}
@@ -137,7 +138,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
               <div className="mt-4">
                 <div className="flex items-center justify-between">
                   <label htmlFor="filename" className="flex items-center font-medium">
-                    {isFolder ? 'Folder' : 'File'} Name <small className='font-normal text-muted ml-1'>(on filesystem)</small>
+                    {isFolder ? 'Folder' : 'File'} Name <small className="font-normal text-muted ml-1">(on filesystem)</small>
                     { isFolder ? (
                       <Help width="300">
                         <p>
@@ -156,29 +157,29 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                     )}
                   </label>
                   {isEditing ? (
-                    <IconArrowBackUp 
+                    <IconArrowBackUp
                       className="cursor-pointer opacity-50 hover:opacity-80"
-                      size={16} 
-                      strokeWidth={1.5} 
-                      onClick={() => toggleEditing(false)} 
+                      size={16}
+                      strokeWidth={1.5}
+                      onClick={() => toggleEditing(false)}
                     />
                   ) : (
                     <IconEdit
-                      className="cursor-pointer opacity-50 hover:opacity-80" 
-                      size={16} 
+                      className="cursor-pointer opacity-50 hover:opacity-80"
+                      size={16}
                       strokeWidth={1.5}
-                      onClick={() => toggleEditing(true)} 
+                      onClick={() => toggleEditing(true)}
                     />
                   )}
                 </div>
                 {isEditing ? (
-                  <div className='relative flex flex-row gap-1 items-center justify-between'>
+                  <div className="relative flex flex-row gap-1 items-center justify-between">
                     <input
                       id="file-name"
                       type="text"
                       name="filename"
                       placeholder={isFolder ? 'Folder Name' : 'File Name'}
-                      className={`!pr-10 block textbox mt-2 w-full`}
+                      className="!pr-10 block textbox mt-2 w-full"
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -186,10 +187,10 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                       onChange={formik.handleChange}
                       value={formik.values.filename || ''}
                     />
-                    {itemType !== 'folder' && <span className='absolute right-2 top-4 flex justify-center items-center file-extension'>.bru</span>}
+                    {itemType !== 'folder' && <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.bru</span>}
                   </div>
                 ) : (
-                  <div className='relative flex flex-row gap-1 items-center justify-between'>
+                  <div className="relative flex flex-row gap-1 items-center justify-between">
                     <PathDisplay
                       baseName={formik.values.filename}
                     />
@@ -201,9 +202,9 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
               </div>
             )}
             <div className="flex justify-between items-center mt-8 bruno-modal-footer">
-              <div className='flex advanced-options'>
+              <div className="flex advanced-options">
                 <Dropdown onCreate={onDropdownCreate} icon={<AdvancedOptions />} placement="bottom-start">
-                  <div 
+                  <div
                     className="dropdown-item"
                     key="show-filesystem-name"
                     onClick={(e) => {
@@ -215,20 +216,13 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                   </div>
                 </Dropdown>
               </div>
-              <div className='flex justify-end'>
-                <span className='mr-2'>
-                  <button type="button" onClick={onClose} className="btn btn-md btn-close">
-                    Cancel
-                  </button>
-                </span>
-                <span>
-                  <button
-                    type="submit"
-                    className="submit btn btn-md btn-secondary"
-                  >
-                    Rename
-                  </button>
-                </span>
+              <div className="flex justify-end">
+                <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Rename
+                </Button>
               </div>
             </div>
           </form>

@@ -1,4 +1,4 @@
-import translateCode from '../../../../src/utils/jscode-shift-translator.js';
+import translateCode from '../../../../src/utils/postman-to-bruno-translator';
 
 describe('Legacy Postman API Translation', () => {
   describe('handleLegacyGlobalAPIs - No Conflicts', () => {
@@ -6,12 +6,12 @@ describe('Legacy Postman API Translation', () => {
       const input = `
         const data = JSON.parse(responseBody);
 `;
-      
+
       const result = translateCode(input);
       const expected = `
         const data = res.getBody();
 `;
-      
+
       expect(result).toEqual(expected);
     });
 
@@ -20,9 +20,9 @@ describe('Legacy Postman API Translation', () => {
         console.log(responseHeaders);
         const headers = responseHeaders;
       `;
-      
+
       const result = translateCode(input);
-      
+
       expect(result).toContain('res.getHeaders()');
       expect(result).not.toContain('responseHeaders');
     });
@@ -32,9 +32,9 @@ describe('Legacy Postman API Translation', () => {
         console.log(responseTime);
         const time = responseTime;
       `;
-      
+
       const result = translateCode(input);
-      
+
       expect(result).toContain('res.getResponseTime()');
       expect(result).not.toContain('responseTime');
     });
@@ -44,9 +44,9 @@ describe('Legacy Postman API Translation', () => {
         const data = JSON.parse(responseBody);
         console.log(data);
       `;
-      
+
       const result = translateCode(input);
-      
+
       expect(result).toContain('res.getBody()');
       expect(result).not.toContain('JSON.parse(responseBody)');
       expect(result).not.toContain('responseBody');
@@ -61,7 +61,7 @@ describe('Legacy Postman API Translation', () => {
       const expected = `
         console.log(res.getBody());
       `;
-      
+
       expect(result).toContain(expected);
     });
 
@@ -73,9 +73,9 @@ describe('Legacy Postman API Translation', () => {
         
         console.log(data, headers, time);
       `;
-      
+
       const result = translateCode(input);
-      
+
       expect(result).toContain('res.getBody()');
       expect(result).toContain('res.getHeaders()');
       expect(result).toContain('res.getResponseTime()');
@@ -91,13 +91,13 @@ describe('Legacy Postman API Translation', () => {
         const responseBody = pm.response.json();
         console.log(responseBody);
       `;
-      
+
       const result = translateCode(input);
       const expected = `
         const responseBody = res.getBody();
         console.log(responseBody);
       `;
-      
+
       // pm.response.json() should be transformed to res.getBody() (Postman API transformation)
       expect(result).toEqual(expected);
     });
@@ -107,13 +107,13 @@ describe('Legacy Postman API Translation', () => {
         const responseHeaders = pm.response.headers;
         console.log(responseHeaders);
       `;
-      
+
       const result = translateCode(input);
       const expected = `
         const responseHeaders = res.getHeaders();
         console.log(responseHeaders);
       `;
-      
+
       expect(result).toEqual(expected);
     });
 
@@ -122,13 +122,13 @@ describe('Legacy Postman API Translation', () => {
         const responseTime = pm.response.responseTime;
         console.log(responseTime);
       `;
-      
+
       const result = translateCode(input);
       const expected = `
         const responseTime = res.getResponseTime();
         console.log(responseTime);
       `;
-      
+
       expect(result).toEqual(expected);
     });
 
@@ -138,14 +138,14 @@ describe('Legacy Postman API Translation', () => {
         const data = JSON.parse(responseBody);
         console.log(data);
       `;
-      
+
       const result = translateCode(input);
       const expected = `
         const responseBody = res.getBody();
         const data = JSON.parse(responseBody);
         console.log(data);
       `;
-      
+
       expect(result).toEqual(expected);
     });
   });
@@ -158,7 +158,7 @@ describe('Legacy Postman API Translation', () => {
         console.log(responseHeaders);
         console.log(responseTime);
       `;
-      
+
       const result = translateCode(input);
       const expected = `
         const responseBody = res.getBody();
@@ -166,9 +166,8 @@ describe('Legacy Postman API Translation', () => {
         console.log(res.getHeaders());
         console.log(res.getResponseTime());
       `;
-      
-      expect(result).toEqual(expected);
 
+      expect(result).toEqual(expected);
     });
 
     test('should translate JSON.parse(responseBody) only when no conflict exists', () => {
@@ -177,14 +176,14 @@ describe('Legacy Postman API Translation', () => {
         const data = JSON.parse(responseBody);
         console.log(responseHeaders);
       `;
-      
+
       const result = translateCode(input);
       const expected = `
         const responseHeaders = res.getHeaders();
         const data = res.getBody();
         console.log(responseHeaders);
       `;
-      
+
       expect(result).toEqual(expected);
     });
   });
@@ -197,7 +196,7 @@ describe('Legacy Postman API Translation', () => {
           console.log(responseHeaders);
         }
       `;
-      
+
       const result = translateCode(input);
       const expected = `
         function test(responseBody) {
@@ -205,7 +204,7 @@ describe('Legacy Postman API Translation', () => {
           console.log(res.getHeaders());
         }
       `;
-      
+
       expect(result).toEqual(expected);
     });
 
@@ -217,9 +216,9 @@ describe('Legacy Postman API Translation', () => {
         };
         console.log(responseTime);
       `;
-      
+
       const result = translateCode(input);
-      
+
       const expected = `
         const config = {
           responseBody: 'custom',
@@ -227,7 +226,7 @@ describe('Legacy Postman API Translation', () => {
         };
         console.log(res.getResponseTime());
       `;
-      
+
       expect(result).toEqual(expected);
     });
 
@@ -237,15 +236,15 @@ describe('Legacy Postman API Translation', () => {
         responseHeaders = 'new headers';
         console.log(responseTime);
       `;
-      
+
       const result = translateCode(input);
-      
+
       const expected = `
         responseBody = 'new value';
         responseHeaders = 'new headers';
         console.log(res.getResponseTime());
       `;
-      
+
       expect(result).toEqual(expected);
     });
 
@@ -261,9 +260,9 @@ describe('Legacy Postman API Translation', () => {
           console.log(responseHeaders);
         }
       `;
-      
+
       const result = translateCode(input);
-      
+
       const expected = `
         const responseBody = res.getBody();
         const data = JSON.parse(responseBody);
@@ -275,7 +274,7 @@ describe('Legacy Postman API Translation', () => {
           console.log(res.getHeaders());
         }
       `;
-      
+
       expect(result).toEqual(expected);
     });
   });
@@ -286,13 +285,13 @@ describe('Legacy Postman API Translation', () => {
         const data = { name: 'test' };
         console.log(data.name);
       `;
-      
+
       const result = translateCode(input);
       const expected = `
         const data = { name: 'test' };
         console.log(data.name);
       `;
-      
+
       expect(result).toEqual(expected);
     });
   });

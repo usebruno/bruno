@@ -10,10 +10,10 @@ jest.mock('codemirror', () => {
 
 const MOCK_THEME = {
   codemirror: {
-    bg: "#1e1e1e",
-    border: "#333",
+    bg: '#1e1e1e',
+    border: '#333'
   },
-  textLink: "#007acc",
+  textLink: '#007acc'
 };
 
 const setupEditorState = (editor, { value, cursorPosition }) => {
@@ -27,8 +27,8 @@ const setupEditorState = (editor, { value, cursorPosition }) => {
   });
 
   editor.state = {
-    completionActive: null,
-  }
+    completionActive: null
+  };
 };
 
 const setupEditorWithRef = () => {
@@ -47,5 +47,5 @@ describe('CodeEditor', () => {
     jest.resetModules();
   });
 
-  it("add CodeEditor related tests here", () => {});
+  it('add CodeEditor related tests here', () => {});
 });

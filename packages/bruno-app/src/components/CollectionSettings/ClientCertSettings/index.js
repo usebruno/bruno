@@ -13,6 +13,7 @@ import { useDispatch } from 'react-redux';
 import { updateCollectionClientCertificates } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import get from 'lodash/get';
+import Button from 'ui/Button';
 
 const ClientCertSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -39,7 +40,7 @@ const ClientCertSettings = ({ collection }) => {
       domain: Yup.string()
         .required()
         .trim()
-        .test('not-empty-after-trim', 'Domain is required', value => value && value.trim().length > 0),
+        .test('not-empty-after-trim', 'Domain is required', (value) => value && value.trim().length > 0),
       type: Yup.string().required().oneOf(['cert', 'pfx']),
       certFilePath: Yup.string().when('type', {
         is: (type) => type == 'cert',
@@ -151,22 +152,22 @@ const ClientCertSettings = ({ collection }) => {
         {!clientCertConfig.length
           ? 'No client certificates added'
           : clientCertConfig.map((clientCert, index) => (
-            <li key={`client-cert-${index}`} className="flex items-center available-certificates p-2 rounded-lg mb-2">
-              <div className="flex items-center w-full justify-between">
-                <div className="flex w-full items-center">
-                  <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
-                  {clientCert.domain}
-                </div>
-                <div className="flex w-full items-center">
-                  <IconCertificate className="mr-2 flex-shrink-0" size={18} strokeWidth={1.5} />
-                  {clientCert.type === 'cert' ? clientCert.certFilePath : clientCert.pfxFilePath}
-                </div>
+              <li key={`client-cert-${index}`} className="flex items-center available-certificates p-2 rounded-lg mb-2">
+                <div className="flex items-center w-full justify-between">
+                  <div className="flex w-full items-center">
+                    <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
+                    {clientCert.domain}
+                  </div>
+                  <div className="flex w-full items-center">
+                    <IconCertificate className="mr-2 flex-shrink-0" size={18} strokeWidth={1.5} />
+                    {clientCert.type === 'cert' ? clientCert.certFilePath : clientCert.pfxFilePath}
+                  </div>
                   <button onClick={() => handleRemove(index)} className="remove-certificate ml-2">
-                  <IconTrash size={18} strokeWidth={1.5} />
+                    <IconTrash size={18} strokeWidth={1.5} />
                   </button>
-              </div>
-            </li>
-          ))}
+                </div>
+              </li>
+            ))}
       </ul>
 
       <h1 className="font-medium mt-8 mb-2">Add Client Certificate</h1>
@@ -180,6 +181,7 @@ const ClientCertSettings = ({ collection }) => {
               <span className="protocol-placeholder">
                 <span className="protocol-https">https://</span>
                 <span className="protocol-grpcs">grpcs://</span>
+                <span className="protocol-wss">wss://</span>
               </span>
             </div>
             <input
@@ -373,13 +375,13 @@ const ClientCertSettings = ({ collection }) => {
           ) : null}
         </div>
         <div className="mt-6 flex flex-row gap-2 items-center">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
+          <Button type="submit" size="sm" data-testid="add-client-cert">
             Add
-          </button>
+          </Button>
           <div className="h-4 border-l border-gray-600"></div>
-          <button type="button" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+          <Button type="button" size="sm" onClick={handleSave}>
             Save
-          </button>
+          </Button>
         </div>
       </form>
     </StyledWrapper>

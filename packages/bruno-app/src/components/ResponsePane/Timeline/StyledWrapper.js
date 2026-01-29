@@ -10,8 +10,11 @@ const StyledWrapper = styled.div`
     flex: 1;
   }
 
+  .timeline-item {
+    border-color: ${(props) => props.theme.border.border1};
+  }
+
   .timeline-event {
-    padding: 8px 0 0 0;
     cursor: pointer;
   }
 
@@ -63,9 +66,9 @@ const StyledWrapper = styled.div`
   }
 
   .tabs-switcher {
-    border-bottom: 1px solid ${(props) => props.theme.modal.input.border};
+    border-bottom: 1px solid ${(props) => props.theme.border.border1};
     margin-bottom: 16px;
-    
+
     button {
       position: relative;
       padding: 8px 16px;
@@ -126,7 +129,7 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.purple};
     }
   }
-    
+
   .request-label {
     font-size: ${(props) => props.theme.font.size.base};
     padding: 2px 6px;

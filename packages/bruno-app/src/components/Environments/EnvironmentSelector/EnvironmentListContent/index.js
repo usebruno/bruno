@@ -33,7 +33,7 @@ const EnvironmentListContent = ({
                 {environments.map((env) => (
                   <div
                     key={env.uid}
-                    className={`dropdown-item ${env.uid === activeEnvironmentUid ? 'active' : ''}`}
+                    className={`dropdown-item ${env.uid === activeEnvironmentUid ? 'dropdown-item-active' : ''}`}
                     onClick={() => onEnvironmentSelect(env)}
                     data-tooltip-content={env.name}
                     data-tooltip-hidden={env.name?.length < 90}

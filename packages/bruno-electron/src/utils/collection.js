@@ -87,7 +87,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   request.folderVariables = folderVariables;
   request.requestVariables = requestVariables;
 
-  if(request?.vars) {
+  if (request?.vars) {
     request.vars.req = Array.from(reqVars, ([name, value]) => ({
       name,
       value,
@@ -122,7 +122,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
     }
   }
 
-  if(request?.vars) {
+  if (request?.vars) {
     request.vars.res = Array.from(resVars, ([name, value]) => ({
       name,
       value,
@@ -130,6 +130,24 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       type: 'response'
     }));
   }
+};
+
+/**
+ * Wraps a script in an IIFE closure to isolate its scope
+ * @param {string} script - The script code to wrap
+ * @returns {string} The wrapped script
+ */
+const wrapScriptInClosure = (script) => {
+  if (!script || script.trim() === '') {
+    return '';
+  }
+
+  // Wrap script in async IIFE to create isolated scope
+  // This prevents variable re-declaration errors and allows early returns
+  // to only affect the current script segment
+  return `await (async () => {
+${script}
+})();`;
 };
 
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
@@ -161,18 +179,51 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     }
   }
 
-  request.script.req = compact([collectionPreReqScript, ...combinedPreReqScript, request?.script?.req || '']).join(os.EOL);
+  // Wrap each script segment in its own closure and join them
+  // This allows each script to run separately with its own scope,
+  // preventing variable re-declaration errors and allowing early returns
+  // to only affect that specific script segment
+  const preReqScripts = [
+    collectionPreReqScript,
+    ...combinedPreReqScript,
+    request?.script?.req || ''
+  ];
+  request.script.req = compact(preReqScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
 
+  // Handle post-response scripts based on scriptFlow
   if (scriptFlow === 'sequential') {
-    request.script.res = compact([collectionPostResScript, ...combinedPostResScript, request?.script?.res || '']).join(os.EOL);
+    const postResScripts = [
+      collectionPostResScript,
+      ...combinedPostResScript,
+      request?.script?.res || ''
+    ];
+    request.script.res = compact(postResScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   } else {
-    request.script.res = compact([request?.script?.res || '', ...combinedPostResScript.reverse(), collectionPostResScript]).join(os.EOL);
+    // Reverse order for non-sequential flow
+    const postResScripts = [
+      request?.script?.res || '',
+      ...[...combinedPostResScript].reverse(),
+      collectionPostResScript
+    ];
+    request.script.res = compact(postResScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   }
 
+  // Handle tests based on scriptFlow
   if (scriptFlow === 'sequential') {
-    request.tests = compact([collectionTests, ...combinedTests, request?.tests || '']).join(os.EOL);
+    const testScripts = [
+      collectionTests,
+      ...combinedTests,
+      request?.tests || ''
+    ];
+    request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   } else {
-    request.tests = compact([request?.tests || '', ...combinedTests.reverse(), collectionTests]).join(os.EOL);
+    // Reverse order for non-sequential flow
+    const testScripts = [
+      request?.tests || '',
+      ...[...combinedTests].reverse(),
+      collectionTests
+    ];
+    request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   }
 };
 
@@ -238,8 +289,8 @@ const parseBruFileMeta = (data) => {
       const metaContent = match[1].trim();
       const lines = metaContent.replace(/\r\n/g, '\n').split('\n');
       const metaJson = {};
-      lines.forEach(line => {
-        const [key, value] = line.split(':').map(str => str.trim());
+      lines.forEach((line) => {
+        const [key, value] = line.split(':').map((str) => str.trim());
         if (key && value) {
           metaJson[key] = isNaN(value) ? value : Number(value);
         }
@@ -286,7 +337,7 @@ const parseBruFileMeta = (data) => {
     console.error('Error reading file:', err);
     return null;
   }
-}
+};
 
 // Parse YML file meta information
 const parseYmlFileMeta = (data) => {
@@ -436,7 +487,7 @@ const transformRequestToSaveToFilesystem = (item) => {
   if (_item.type === 'grpc-request') {
     itemToSave.request.methodType = _item.request.methodType;
     itemToSave.request.protoPath = _item.request.protoPath;
-    delete itemToSave.request.params
+    delete itemToSave.request.params;
   }
 
   // Only process params for non-gRPC requests
@@ -473,7 +524,7 @@ const transformRequestToSaveToFilesystem = (item) => {
   if (itemToSave.request.body.mode === 'grpc') {
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      grpc: itemToSave.request.body.grpc.map(({name, content}, index) => ({
+      grpc: itemToSave.request.body.grpc.map(({ name, content }, index) => ({
         name: name ? name : `message ${index + 1}`,
         content: replaceTabsWithSpaces(content)
       }))
@@ -481,7 +532,7 @@ const transformRequestToSaveToFilesystem = (item) => {
   }
 
   return itemToSave;
-}
+};
 
 const sortCollection = (collection) => {
   const items = collection.items || [];
@@ -587,7 +638,7 @@ const mergeAuth = (collection, request, requestTreePath) => {
   // If request is set to inherit, use the effective auth from collection/folders
   if (request.auth.mode === 'inherit') {
     request.auth = effectiveAuth;
-    
+
     // For OAuth2, we need to handle credentials properly
     if (effectiveAuth.mode === 'oauth2') {
       if (lastFolderWithAuth) {
@@ -637,17 +688,17 @@ const resolveInheritedSettings = (settings) => {
   return resolvedSettings;
 };
 
-const sortByNameThenSequence = items => {
-  const isSeqValid = seq => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
+const sortByNameThenSequence = (items) => {
+  const isSeqValid = (seq) => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
 
   // Sort folders alphabetically by name
   const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
 
   // Extract folders without 'seq'
-  const withoutSeq = alphabeticallySorted.filter(f => !isSeqValid(f['seq']));
+  const withoutSeq = alphabeticallySorted.filter((f) => !isSeqValid(f['seq']));
 
   // Extract folders with 'seq' and sort them by 'seq'
-  const withSeq = alphabeticallySorted.filter(f => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
+  const withSeq = alphabeticallySorted.filter((f) => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
 
   const sortedItems = withoutSeq;
 
@@ -666,7 +717,7 @@ const sortByNameThenSequence = items => {
       const newGroup = Array.isArray(existingItem)
         ? [...existingItem, item]
         : [existingItem, item];
-      
+
       withoutSeq.splice(position, 1, newGroup);
     } else {
       // Insert item at the specified position

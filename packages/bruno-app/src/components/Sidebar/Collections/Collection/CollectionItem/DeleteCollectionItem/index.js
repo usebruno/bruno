@@ -16,7 +16,7 @@ const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
       if (isFolder) {
         // close all tabs that belong to the folder
         // including the folder itself and its children
-        const tabUids = [...recursivelyGetAllItemUids(item.items), item.uid]
+        const tabUids = [...recursivelyGetAllItemUids(item.items), item.uid];
 
         dispatch(
           closeTabs({
@@ -40,9 +40,10 @@ const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
   return (
     <StyledWrapper>
       <Modal
-        size="sm"
+        size="md"
         title={`Delete ${isFolder ? 'Folder' : 'Request'}`}
         confirmText="Delete"
+        confirmButtonColor="danger"
         handleConfirm={onConfirm}
         handleCancel={onClose}
       >

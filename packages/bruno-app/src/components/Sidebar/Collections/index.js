@@ -1,24 +1,31 @@
-import {
-  IconSearch,
-  IconX
-} from '@tabler/icons';
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
-import CreateCollection from '../CreateCollection';
 import Collection from './Collection';
-import CollectionsHeader from './CollectionsHeader';
-import CreateOrOpenCollection from './CreateOrOpenCollection';
+import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
+import CreateOrOpenCollection from './CreateOrOpenCollection';
+import CollectionSearch from './CollectionSearch/index';
+import { useMemo } from 'react';
+import { normalizePath } from 'utils/common/path';
 
-const Collections = () => {
+const Collections = ({ showSearch }) => {
   const [searchText, setSearchText] = useState('');
   const { collections } = useSelector((state) => state.collections);
+  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
 
-  if (!collections || !collections.length) {
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
+
+  const workspaceCollections = useMemo(() => {
+    if (!activeWorkspace) return [];
+    return collections.filter((c) =>
+      activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
+    );
+  }, [activeWorkspace, collections]);
+
+  if (!workspaceCollections || !workspaceCollections.length) {
     return (
-      <StyledWrapper data-testid="collections">
-        <CollectionsHeader />
+      <StyledWrapper>
         <CreateOrOpenCollection />
       </StyledWrapper>
     );
@@ -26,46 +33,19 @@ const Collections = () => {
 
   return (
     <StyledWrapper data-testid="collections">
-      {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
-
-      <CollectionsHeader />
-
-      <div className="mt-4 relative collection-filter px-2">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <span className="text-gray-500">
-            <IconSearch size={16} strokeWidth={1.5} />
-          </span>
-        </div>
-        <input
-          type="text"
-          name="search"
-          placeholder="Search requests …"
-          id="search"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          className="block w-full pl-7 py-1"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value.toLowerCase())}
+      {createCollectionModalOpen ? (
+        <CreateCollection
+          onClose={() => setCreateCollectionModalOpen(false)}
         />
-        {searchText !== '' && (
-          <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-            <span
-              className="close-icon"
-              onClick={() => {
-                setSearchText('');
-              }}
-            >
-              <IconX size={16} strokeWidth={1.5} className="cursor-pointer" />
-            </span>
-          </div>
-        )}
-      </div>
+      ) : null}
 
-      <div className="mt-4 flex flex-col overflow-hidden hover:overflow-y-auto absolute top-32 bottom-0 left-0 right-0">
-        {collections && collections.length
-          ? collections.map((c) => {
+      {showSearch && (
+        <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
+      )}
+
+      <div className="collections-list">
+        {workspaceCollections && workspaceCollections.length
+          ? workspaceCollections.map((c) => {
               return (
                 <Collection searchText={searchText} collection={c} key={c.uid} />
               );

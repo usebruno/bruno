@@ -2,7 +2,7 @@ import { test, expect } from '../../../../playwright';
 
 test.describe('Custom Search Functionality in Scripts Tab', () => {
   test('should open search box when Cmd+F or Ctrl+F is pressed in scripts tab', async ({ pageWithUserData: page }) => {
-    await page.getByTitle('custom-search').click();
+    await page.getByTestId('collections').locator('#sidebar-collection-name').filter({ hasText: 'custom-search' }).click();
 
     await page.getByText('search-test-request').click();
 
@@ -62,7 +62,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
   });
 
   test('should handle search in different script editors independently', async ({ pageWithUserData: page }) => {
-    await page.getByTitle('custom-search').click();
+    await page.getByTestId('collections').locator('#sidebar-collection-name').filter({ hasText: 'custom-search' }).click();
 
     await page.getByText('search-test-request').click();
 
@@ -96,7 +96,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
   });
 
   test('should maintain search state when switching between tabs', async ({ pageWithUserData: page }) => {
-    await page.getByTitle('custom-search').click();
+    await page.getByTestId('collections').locator('#sidebar-collection-name').filter({ hasText: 'custom-search' }).click();
 
     await page.getByText('search-test-request').click();
 

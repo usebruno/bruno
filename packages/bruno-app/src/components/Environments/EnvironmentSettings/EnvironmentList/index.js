@@ -1,22 +1,44 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { findEnvironmentInCollection, findItem } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
-import CreateEnvironment from '../CreateEnvironment';
-import { IconDownload, IconShieldLock, IconUpload } from '@tabler/icons';
-import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
-import ManageSecrets from '../ManageSecrets';
+import CreateEnvironment from 'components/Environments/EnvironmentSettings/CreateEnvironment';
+import { IconDownload, IconUpload, IconSearch, IconPlus, IconCheck, IconX } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
-import ConfirmSwitchEnv from './ConfirmSwitchEnv';
-import ToolHint from 'components/ToolHint';
+import ConfirmSwitchEnv from 'components/WorkspaceHome/WorkspaceEnvironments/EnvironmentList/ConfirmSwitchEnv';
+import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
 import { isEqual } from 'lodash';
+import { useDispatch } from 'react-redux';
+import { addEnvironment, renameEnvironment, selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { validateName, validateNameError } from 'utils/common/regex';
+import toast from 'react-hot-toast';
+
+const EnvironmentList = ({
+  environments,
+  activeEnvironmentUid,
+  selectedEnvironment,
+  setSelectedEnvironment,
+  isModified,
+  setIsModified,
+  collection,
+  setShowExportModal
+}) => {
+  const dispatch = useDispatch();
+
 
 const EnvironmentList = ({ collection, isModified, setIsModified, onClose, setShowExportModal }) => {
   const { environments, activeEnvironmentUid } = collection;
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
-  const [openManageSecretsModal, setOpenManageSecretsModal] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [isCreatingInline, setIsCreatingInline] = useState(false);
+  const [renamingEnvUid, setRenamingEnvUid] = useState(null);
+  const [newEnvName, setNewEnvName] = useState('');
+  const [envNameError, setEnvNameError] = useState('');
+  const inputRef = useRef(null);
+  const renameContainerRef = useRef(null);
+  const createContainerRef = useRef(null);
 
   const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
   const [originalEnvironmentVariables, setOriginalEnvironmentVariables] = useState([]);
@@ -25,24 +47,38 @@ const EnvironmentList = ({ collection, isModified, setIsModified, onClose, setSh
   const prevEnvUids = usePrevious(envUids);
 
   useEffect(() => {
+    if (!environments?.length) {
+      setSelectedEnvironment(null);
+      setOriginalEnvironmentVariables([]);
+      return;
+    }
+
     if (selectedEnvironment) {
-      const _selectedEnvironment = environments?.find(env => env?.uid === selectedEnvironment?.uid);
+      let _selectedEnvironment = environments?.find((env) => env?.uid === selectedEnvironment?.uid);
+
+      if (!_selectedEnvironment) {
+        _selectedEnvironment = environments?.find((env) => env?.name === selectedEnvironment?.name);
+      }
+
+      if (!_selectedEnvironment) {
+        _selectedEnvironment = environments?.find((env) => env.uid === activeEnvironmentUid) || environments?.[0];
+      }
+
       const hasSelectedEnvironmentChanged = !isEqual(selectedEnvironment, _selectedEnvironment);
-      if (hasSelectedEnvironmentChanged) {
+      if (hasSelectedEnvironmentChanged || selectedEnvironment.uid !== _selectedEnvironment?.uid) {
         setSelectedEnvironment(_selectedEnvironment);
       }
-      setOriginalEnvironmentVariables(selectedEnvironment.variables);
+      setOriginalEnvironmentVariables(selectedEnvironment?.variables||[]);
       setSelectedEnvironment(findItem(environments, selectedEnvironment.uid));
       return;
     }
 
-    const environment = findItem(environments, activeEnvironmentUid);
-    if (environment) {
-      setSelectedEnvironment(environment);
-    } else {
-      setSelectedEnvironment(environments?.length ? environments[0] : null);
-    }
-  }, [activeEnvironmentUid, selectedEnvironment]);
+
+    const environment = environments?.find((env) => env.uid === activeEnvironmentUid) || environments?.[0];
+
+    setSelectedEnvironment(environment);
+    setOriginalEnvironmentVariables(environment?.variables || []);
+  }, [environments, activeEnvironmentUid, selectedEnvironment]);
 
   useEffect(() => {
     if (selectedEnvironment) {
@@ -63,6 +99,36 @@ const EnvironmentList = ({ collection, isModified, setIsModified, onClose, setSh
     }
   }, [envUids, environments, prevEnvUids]);
 
+  useEffect(() => {
+    if (!renamingEnvUid) return;
+
+    const handleClickOutside = (event) => {
+      if (renameContainerRef.current && !renameContainerRef.current.contains(event.target)) {
+        handleCancelRename();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [renamingEnvUid]);
+
+  useEffect(() => {
+    if (!isCreatingInline) return;
+
+    const handleClickOutside = (event) => {
+      if (createContainerRef.current && !createContainerRef.current.contains(event.target)) {
+        handleCancelCreate();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCreatingInline]);
+
   const handleEnvironmentClick = (env) => {
     if (!isModified) {
       setSelectedEnvironment(env);
@@ -71,16 +137,139 @@ const EnvironmentList = ({ collection, isModified, setIsModified, onClose, setSh
     }
   };
 
+  const handleEnvironmentDoubleClick = (env) => {
+    setRenamingEnvUid(env.uid);
+    setNewEnvName(env.name);
+    setEnvNameError('');
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 50);
+  };
+
+  const handleActivateEnvironment = (e, env) => {
+    e.stopPropagation();
+    dispatch(selectEnvironment(env.uid, collection.uid))
+      .then(() => {
+        toast.success(`Environment "${env.name}" activated`);
+      })
+      .catch(() => {
+        toast.error('Failed to activate environment');
+      });
+  };
+
   if (!selectedEnvironment) {
     return null;
   }
 
+  const validateEnvironmentName = (name, excludeUid = null) => {
+    if (!name || name.trim() === '') {
+      return 'Name is required';
+    }
+
+    if (!validateName(name)) {
+      return validateNameError(name);
+    }
+
+    const trimmedName = name.toLowerCase().trim();
+    const isDuplicate = environments.some(
+      (env) => env?.uid !== excludeUid && env?.name?.toLowerCase().trim() === trimmedName
+    );
+    if (isDuplicate) {
+      return 'Environment already exists';
+    }
+
+    return null;
+  };
+
   const handleCreateEnvClick = () => {
     if (!isModified) {
-      setOpenCreateModal(true);
+      setIsCreatingInline(true);
+      setNewEnvName('');
+      setEnvNameError('');
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
     } else {
       setSwitchEnvConfirmClose(true);
     }
+  };
+
+  const handleCancelCreate = () => {
+    setIsCreatingInline(false);
+    setNewEnvName('');
+    setEnvNameError('');
+  };
+
+  const handleSaveNewEnv = () => {
+    const error = validateEnvironmentName(newEnvName);
+    if (error) {
+      setEnvNameError(error);
+      return;
+    }
+
+    dispatch(addEnvironment(newEnvName, collection.uid))
+      .then(() => {
+        toast.success('Environment created!');
+        setIsCreatingInline(false);
+        setNewEnvName('');
+        setEnvNameError('');
+      })
+      .catch(() => {
+        toast.error('An error occurred while creating the environment');
+      });
+  };
+
+  const handleEnvNameChange = (e) => {
+    const value = e.target.value;
+    setNewEnvName(value);
+
+    if (envNameError) {
+      setEnvNameError('');
+    }
+  };
+
+  const handleEnvNameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (renamingEnvUid) {
+        handleSaveRename();
+      } else {
+        handleSaveNewEnv();
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      if (renamingEnvUid) {
+        handleCancelRename();
+      } else {
+        handleCancelCreate();
+      }
+    }
+  };
+
+  const handleSaveRename = () => {
+    const error = validateEnvironmentName(newEnvName, renamingEnvUid);
+    if (error) {
+      setEnvNameError(error);
+      return;
+    }
+
+    dispatch(renameEnvironment(newEnvName, renamingEnvUid, collection.uid))
+      .then(() => {
+        toast.success('Environment renamed!');
+        setRenamingEnvUid(null);
+        setNewEnvName('');
+        setEnvNameError('');
+      })
+      .catch(() => {
+        toast.error('An error occurred while renaming the environment');
+      });
+  };
+
+  const handleCancelRename = () => {
+    setRenamingEnvUid(null);
+    setNewEnvName('');
+    setEnvNameError('');
   };
 
   const handleImportClick = () => {
@@ -91,8 +280,10 @@ const EnvironmentList = ({ collection, isModified, setIsModified, onClose, setSh
     }
   };
 
-  const handleSecretsClick = () => {
-    setOpenManageSecretsModal(true);
+  const handleExportClick = () => {
+    if (setShowExportModal) {
+      setShowExportModal(true);
+    }
   };
 
   const handleConfirmSwitch = (saveChanges) => {
@@ -101,57 +292,160 @@ const EnvironmentList = ({ collection, isModified, setIsModified, onClose, setSh
     }
   };
 
+  const filteredEnvironments
+    = environments?.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase())) || [];
+
   return (
     <StyledWrapper>
       {openCreateModal && <CreateEnvironment collection={collection} onClose={() => setOpenCreateModal(false)} />}
-      {openImportModal && <ImportEnvironmentModal type="collection" collection={collection} onClose={() => setOpenImportModal(false)} />}
-      {openManageSecretsModal && <ManageSecrets onClose={() => setOpenManageSecretsModal(false)} />}
+      {openImportModal && (
+        <ImportEnvironmentModal type="collection" collection={collection} onClose={() => setOpenImportModal(false)} />
+      )}
 
-      <div className="flex">
-        <div>
-          {switchEnvConfirmClose && (
-            <div className="flex items-center justify-between tab-container px-1">
-              <ConfirmSwitchEnv onCancel={() => handleConfirmSwitch(false)} />
-            </div>
-          )}
-          <div className="environments-sidebar flex flex-col">
-            {environments?.map((env) => (
-                <ToolHint key={env.uid} text={env.name} toolhintId={env.uid} place="right">
-                  <div
-                    id={env.uid}
-                    className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
-                    onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle clicks
-                  >
-                      <span className="break-all">{env.name}</span>
-                  </div>
-                </ToolHint>
-              ))}
-            <div className="btn-create-environment" onClick={() => handleCreateEnvClick()}>
-              + <span>Create</span>
-            </div>
+      <div className="environments-container">
+        {switchEnvConfirmClose && (
+          <div className="confirm-switch-overlay">
+            <ConfirmSwitchEnv onCancel={() => handleConfirmSwitch(false)} />
+          </div>
+        )}
 
-            <div className="mt-auto btn-import-environment">
-              <div className="flex items-center" onClick={() => handleImportClick()}>
-                <IconDownload size={12} strokeWidth={2} />
-                <span className="label ml-1 text-xs">Import</span>
-              </div>
-              <div className="flex items-center mt-2" onClick={() => setShowExportModal(true)}>
-                <IconUpload size={12} strokeWidth={2} />
-                <span className="label ml-1 text-xs">Export</span>
-              </div>
-              <div className="flex items-center mt-2" onClick={() => handleSecretsClick()}>
-                <IconShieldLock size={12} strokeWidth={2} />
-                <span className="label ml-1 text-xs">Managing Secrets</span>
-              </div>
+        <div className="sidebar">
+          <div className="sidebar-header">
+            <h2 className="title">Environments</h2>
+            <div className="flex items-center gap-2">
+              <button className="btn-action" onClick={() => handleCreateEnvClick()} title="Create environment">
+                <IconPlus size={16} strokeWidth={1.5} />
+              </button>
+              <button className="btn-action" onClick={() => handleImportClick()} title="Import environment">
+                <IconDownload size={16} strokeWidth={1.5} />
+              </button>
+              <button className="btn-action" onClick={() => handleExportClick()} title="Export environment">
+                <IconUpload size={16} strokeWidth={1.5} />
+              </button>
             </div>
           </div>
+
+          <div className="search-container">
+            <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Search environments..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="search-input"
+            />
+          </div>
+
+          <div className="environments-list">
+            {filteredEnvironments.map((env) => (
+              <div
+                key={env.uid}
+                id={env.uid}
+                className={`environment-item ${selectedEnvironment.uid === env.uid ? 'active' : ''} ${renamingEnvUid === env.uid ? 'renaming' : ''} ${activeEnvironmentUid === env.uid ? 'activated' : ''}`}
+                onClick={() => renamingEnvUid !== env.uid && handleEnvironmentClick(env)}
+                onDoubleClick={() => handleEnvironmentDoubleClick(env)}
+              >
+                {renamingEnvUid === env.uid ? (
+                  <div className="rename-container" ref={renameContainerRef}>
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      className="environment-name-input"
+                      value={newEnvName}
+                      onChange={handleEnvNameChange}
+                      onKeyDown={handleEnvNameKeyDown}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                    />
+                    <div className="inline-actions">
+                      <button
+                        className="inline-action-btn save"
+                        onClick={handleSaveRename}
+                        onMouseDown={(e) => e.preventDefault()}
+                        title="Save"
+                      >
+                        <IconCheck size={14} strokeWidth={2} />
+                      </button>
+                      <button
+                        className="inline-action-btn cancel"
+                        onClick={handleCancelRename}
+                        onMouseDown={(e) => e.preventDefault()}
+                        title="Cancel"
+                      >
+                        <IconX size={14} strokeWidth={2} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <span className="environment-name">{env.name}</span>
+                    <div className="environment-actions">
+                      {activeEnvironmentUid === env.uid ? (
+                        <div className="activated-checkmark" title="Active environment">
+                          <IconCheck size={16} strokeWidth={2} />
+                        </div>
+                      ) : (
+                        <button
+                          className="activate-btn"
+                          onClick={(e) => handleActivateEnvironment(e, env)}
+                          title="Activate environment"
+                        >
+                          <IconCheck size={16} strokeWidth={2} />
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+
+            {isCreatingInline && (
+              <div className="environment-item creating" ref={createContainerRef}>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  className="environment-name-input"
+                  value={newEnvName}
+                  onChange={handleEnvNameChange}
+                  onKeyDown={handleEnvNameKeyDown}
+                  placeholder="Environment name..."
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                />
+                <div className="inline-actions">
+                  <button
+                    className="inline-action-btn save"
+                    onClick={handleSaveNewEnv}
+                    onMouseDown={(e) => e.preventDefault()}
+                    title="Save"
+                  >
+                    <IconCheck size={14} strokeWidth={2} />
+                  </button>
+                  <button
+                    className="inline-action-btn cancel"
+                    onClick={handleCancelCreate}
+                    onMouseDown={(e) => e.preventDefault()}
+                    title="Cancel"
+                  >
+                    <IconX size={14} strokeWidth={2} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {envNameError && (isCreatingInline || renamingEnvUid) && <div className="env-error">{envNameError}</div>}
+          </div>
         </div>
+
         <EnvironmentDetails
           environment={selectedEnvironment}
-          collection={collection}
           setIsModified={setIsModified}
           originalEnvironmentVariables={originalEnvironmentVariables}
-          onClose={onClose}
+          collection={collection}
         />
       </div>
     </StyledWrapper>

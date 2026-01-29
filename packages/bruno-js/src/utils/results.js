@@ -7,7 +7,7 @@ const getResultsSummary = (results) => {
     total: results.length,
     passed: 0,
     failed: 0,
-    skipped: 0,
+    skipped: 0
   };
 
   results.forEach((r) => {
@@ -34,7 +34,7 @@ const setupBruTestMethods = (bru, __brunoTestResults, assertionResults) => {
     const summary = getResultsSummary(results);
     return {
       summary,
-      results: results.map(r => ({
+      results: results.map((r) => ({
         status: r.status,
         description: r.description,
         expected: r.expected,
@@ -49,7 +49,7 @@ const setupBruTestMethods = (bru, __brunoTestResults, assertionResults) => {
     const summary = getResultsSummary(results);
     return {
       summary,
-      results: results.map(r => ({
+      results: results.map((r) => ({
         status: r.status,
         lhsExpr: r.lhsExpr,
         rhsExpr: r.rhsExpr,

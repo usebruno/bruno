@@ -59,6 +59,7 @@ const Wrapper = styled.div`
     cursor: pointer;
     position: relative;
     top: 1px;
+    accent-color: ${(props) => props.theme.primary.solid};
   }
 `;
 

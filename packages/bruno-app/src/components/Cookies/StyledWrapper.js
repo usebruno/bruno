@@ -28,11 +28,11 @@ const Wrapper = styled.div`
     box-shadow: none;
     transition: border-color ease-in-out 0.1s;
     border-radius: 3px;
-    background-color: ${(props) => props.theme.modal.input.bg};
-    border: 1px solid ${(props) => props.theme.modal.input.border};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
 
     &:focus {
-      border: solid 1px ${(props) => props.theme.modal.input.focusBorder} !important;
+      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
       outline: none !important;
     }
   }
@@ -69,6 +69,92 @@ const Wrapper = styled.div`
     background-repeat: no-repeat;
     background-size: 100% 30px, 100% 30px, 100% 10px, 100% 10px;
     background-attachment: local, local, scroll, scroll;
+  }
+
+  /* Warning icon */
+  .warning-icon {
+    color: ${(props) => props.theme.colors.text.warning};
+  }
+
+  /* Empty state */
+  .empty-icon {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .empty-text {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  /* Domain count text */
+  .domain-count {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  /* Action buttons */
+  .action-button {
+    color: ${(props) => props.theme.colors.text.muted};
+    transition: color 0.2s;
+    cursor: pointer;
+
+    &:hover {
+      color: ${(props) => props.theme.text};
+    }
+  }
+
+  .action-button-danger {
+    color: ${(props) => props.theme.text};
+    transition: color 0.2s;
+    cursor: pointer;
+
+    &:hover {
+      color: ${(props) => props.theme.colors.text.danger};
+    }
+  }
+
+  /* Table styles */
+  table {
+    thead {
+      tr {
+        border-bottom: 1px solid ${(props) => props.theme.table.border};
+        color: ${(props) => props.theme.table.thead.color};
+
+        th {
+          color: ${(props) => props.theme.table.thead.color};
+        }
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid ${(props) => props.theme.table.border};
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+    }
+  }
+
+  /* Edit button */
+  .edit-button {
+    color: ${(props) => props.theme.text};
+    transition: color 0.2s;
+    cursor: pointer;
+
+    &:hover {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  /* Delete button */
+  .delete-button {
+    color: ${(props) => props.theme.text};
+    transition: color 0.2s;
+    cursor: pointer;
+
+    &:hover {
+      color: ${(props) => props.theme.colors.text.danger};
+    }
   }
 `;
 

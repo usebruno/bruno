@@ -1,4 +1,4 @@
-const { default: postmanTranslation } = require("../../../src/postman/postman-translations");
+import postmanTranslation from '../../../src/postman/postman-translations';
 
 describe('postmanTranslations - test commands', () => {
   test('should handle test commands', () => {
@@ -20,4 +20,4 @@ describe('postmanTranslations - test commands', () => {
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
-}); 
+});

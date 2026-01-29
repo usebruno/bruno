@@ -10,7 +10,7 @@ import OAuth2ClientCredentials from 'components/RequestPane/Auth/OAuth2/ClientCr
 import OAuth2Implicit from 'components/RequestPane/Auth/OAuth2/Implicit/index';
 import GrantTypeSelector from 'components/RequestPane/Auth/OAuth2/GrantTypeSelector/index';
 
-const GrantTypeComponentMap = ({collection }) => {
+const GrantTypeComponentMap = ({ collection }) => {
   const dispatch = useDispatch();
 
   const save = () => {

@@ -1,13 +1,15 @@
 import React, { useRef, useEffect, useState, forwardRef } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
+import { processOpenCollection } from 'utils/importers/opencollection';
 import { wsdlToBruno } from '@usebruno/converters';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
@@ -36,6 +38,8 @@ const getCollectionName = (format, rawData) => {
       return rawData.name || 'Insomnia Collection';
     case 'bruno':
       return rawData.name || 'Bruno Collection';
+    case 'opencollection':
+      return rawData.info?.name || 'OpenCollection';
     case 'wsdl':
       return 'WSDL Collection';
     default:
@@ -64,6 +68,9 @@ const convertCollection = async (format, rawData, groupingType) => {
       case 'bruno':
         collection = await processBrunoCollection(rawData);
         break;
+      case 'opencollection':
+        collection = await processOpenCollection(rawData);
+        break;
       default:
         throw new Error('Unknown collection format');
     }
@@ -85,15 +92,25 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [groupingType, setGroupingType] = useState('tags');
+  const [collectionFormat, setCollectionFormat] = useState('bru');
   const dropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
+
+  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const preferences = useSelector((state) => state.app.preferences);
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
+
+  const defaultLocation = isDefaultWorkspace
+    ? get(preferences, 'general.defaultCollectionLocation', '')
+    : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
 
   const collectionName = getCollectionName(format, rawData);
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      collectionLocation: ''
+      collectionLocation: defaultLocation
     },
     validationSchema: Yup.object({
       collectionLocation: Yup.string()
@@ -103,7 +120,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
     }),
     onSubmit: async (values) => {
       const convertedCollection = await convertCollection(format, rawData, groupingType);
-      handleSubmit(convertedCollection, values.collectionLocation);
+      handleSubmit(convertedCollection, values.collectionLocation, { format: collectionFormat });
     }
   });
 
@@ -146,7 +163,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
   return (
     <StyledWrapper>
       <Modal
-        size="sm"
+        size="md"
         title="Import Collection"
         confirmText="Import"
         handleConfirm={onSubmit}
@@ -192,6 +209,31 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
               <span className="text-link cursor-pointer hover:underline" onClick={browse}>
                 Browse
               </span>
+            </div>
+
+            <div className="mt-4">
+              <label htmlFor="format" className="flex items-center font-medium">
+                File Format
+                <Help width="300">
+                  <p>Choose the file format for storing requests in this collection.</p>
+                  <p className="mt-2">
+                    <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
+                  </p>
+                  <p className="mt-1">
+                    <strong>BRU:</strong> Bruno's native file format (.bru files)
+                  </p>
+                </Help>
+              </label>
+              <select
+                id="format"
+                name="format"
+                className="block textbox mt-2 w-full"
+                value={collectionFormat}
+                onChange={(e) => setCollectionFormat(e.target.value)}
+              >
+                <option value="yml">OpenCollection (YAML)</option>
+                <option value="bru">BRU Format (.bru)</option>
+              </select>
             </div>
           </div>
 

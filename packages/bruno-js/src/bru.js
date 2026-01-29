@@ -7,7 +7,7 @@ const { jar: createCookieJar } = require('@usebruno/requests').cookies;
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables) {
+  constructor(runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.promptVariables = promptVariables || {};
@@ -20,10 +20,11 @@ class Bru {
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
     this.sendRequest = sendRequest;
+    this.runtime = runtime;
     this.cookies = {
       jar: () => {
         const cookieJar = createCookieJar();
-                
+
         return {
           getCookie: (url, cookieName, callback) => {
             const interpolatedUrl = this.interpolate(url);
@@ -225,19 +226,19 @@ class Bru {
 
     if (variableNameRegex.test(key) === false) {
       throw new Error(
-        `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        `Variable name: "${key}" contains invalid characters!`
+        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
-    this.runtimeVariables[key] = this.interpolate(value);
+    this.runtimeVariables[key] = value;
   }
 
   getVar(key) {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
-        `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        `Variable name: "${key}" contains invalid characters!`
+        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
@@ -278,6 +279,10 @@ class Bru {
 
   getCollectionName() {
     return this.collectionName;
+  }
+
+  isSafeMode() {
+    return this.runtime === 'quickjs';
   }
 }
 

@@ -24,7 +24,6 @@ const GrantTypeComponentMap = ({ item, collection }) => {
     dispatch(sendRequest(item, collection.uid));
   };
 
-
   switch (grantType) {
     case 'password':
       return <OAuth2PasswordCredentials item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuth} collection={collection} />;
@@ -48,7 +47,7 @@ const OAuth2 = ({ item, collection }) => {
   let request = item.draft ? get(item, 'draft.request', {}) : get(item, 'request', {});
 
   return (
-    <StyledWrapper className="mt-2 w-full">
+    <StyledWrapper className="w-full">
       <GrantTypeSelector item={item} request={request} updateAuth={updateAuth} collection={collection} />
       <GrantTypeComponentMap item={item} collection={collection} />
     </StyledWrapper>

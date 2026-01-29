@@ -1,7 +1,7 @@
-import translateCode from '../../../../src/utils/jscode-shift-translator';
+import translateCode from '../../../../src/utils/postman-to-bruno-translator';
 
 describe('Scoped Variables', () => {
- it.skip('should handle scoped variables correctly', () => {
+  it.skip('should handle scoped variables correctly', () => {
     const code = `
     const response = pm.response;
     const status = response.status;
@@ -11,7 +11,7 @@ describe('Scoped Variables', () => {
         const status = response.status;
         console.log(status);
     }
-    `
+    `;
     const result = translateCode(code);
     console.log(result);
     expect(result).toBe(`
@@ -22,8 +22,8 @@ describe('Scoped Variables', () => {
         const status = response.status;
         console.log(status);
     }
-    `)
-  })
+    `);
+  });
 
   it.skip('should handle scoped variables correctly', () => {
     const code = `
@@ -35,7 +35,7 @@ describe('Scoped Variables', () => {
         const status = response.status;
         console.log(status);
     }
-    `
+    `;
     const result = translateCode(code);
     console.log(result);
     expect(result).toBe(`
@@ -46,6 +46,6 @@ describe('Scoped Variables', () => {
         const status = res.statusText;
         console.log(status);
     }
-    `)
-  })
-})
+    `);
+  });
+});

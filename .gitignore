@@ -48,11 +48,17 @@ yarn-error.log*
 bruno.iml
 .idea
 .vscode
+.cursor
 
 # Playwright
 /blob-report/
 
-# packages
+# Development plan files
+CLAUDE.md
+AGENTS.md
+*.plan.md
+
+# packages dist
 packages/bruno-filestore/dist
 packages/bruno-requests/dist
 packages/bruno-schema-types/dist

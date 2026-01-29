@@ -40,14 +40,13 @@ test.describe.serial('Global Environment Export Tests', () => {
         await page.getByTestId('env-tab-global').click();
         await page.getByText('Configure', { exact: true }).click();
 
-        // Verify the global environment settings modal opens
-        const globalEnvModal = page.locator('.bruno-modal').filter({ hasText: 'Global Environments' });
-        await expect(globalEnvModal).toBeVisible();
+        const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
+        await expect(envTab).toBeVisible();
       });
 
       await test.step('Open export modal and configure export settings', async () => {
         // Click export button
-        await page.locator('.btn-import-environment').getByText('Export').click();
+        await page.locator('button[title="Export environment"]').click();
 
         // Verify export modal opens
         const exportModal = page.locator('.bruno-modal').filter({ hasText: 'Export Environments' });
@@ -67,8 +66,6 @@ test.describe.serial('Global Environment Export Tests', () => {
       await test.step('Execute export and close modal', async () => {
         // Export the environment
         await page.getByRole('button', { name: 'Export 1 Environment' }).click();
-
-        await page.getByTestId('modal-close-button').click();
       });
 
       await test.step('Verify exported file and content', async () => {
@@ -99,11 +96,14 @@ test.describe.serial('Global Environment Export Tests', () => {
         await page.getByTestId('environment-selector-trigger').click();
         await page.getByTestId('env-tab-global').click();
         await page.getByText('Configure', { exact: true }).click();
+
+        const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
+        await expect(envTab).toBeVisible();
       });
 
       await test.step('Configure export settings for multiple environments', async () => {
         // Click export button
-        await page.locator('.btn-import-environment').getByText('Export').click();
+        await page.locator('button[title="Export environment"]').click();
 
         // Verify all environments are selected by default
         await expect(page.getByRole('checkbox', { name: 'Local' })).toBeChecked();
@@ -119,8 +119,6 @@ test.describe.serial('Global Environment Export Tests', () => {
       await test.step('Execute export and close modal', async () => {
         // Export all environments
         await page.getByRole('button', { name: /Export \d+ Environments?/ }).click();
-
-        await page.getByTestId('modal-close-button').click();
       });
 
       await test.step('Verify exported files and content', async () => {
@@ -166,11 +164,14 @@ test.describe.serial('Global Environment Export Tests', () => {
         await page.getByTestId('environment-selector-trigger').click();
         await page.getByTestId('env-tab-global').click();
         await page.getByText('Configure', { exact: true }).click();
+
+        const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
+        await expect(envTab).toBeVisible();
       });
 
       await test.step('Configure export settings with folder format', async () => {
         // Click export button
-        await page.locator('.btn-import-environment').getByText('Export').click();
+        await page.locator('button[title="Export environment"]').click();
 
         // Set export directory
         await page.locator('input[id="export-location"]').fill(exportDir);
@@ -182,8 +183,6 @@ test.describe.serial('Global Environment Export Tests', () => {
       await test.step('Execute export and close modal', async () => {
         // Export should succeed with unique names
         await page.getByRole('button', { name: 'Export 2 Environment' }).click();
-
-        await page.getByTestId('modal-close-button').first().click();
       });
 
       await test.step('Verify unique naming and file content', async () => {
@@ -223,11 +222,13 @@ test.describe.serial('Global Environment Export Tests', () => {
         await page.getByTestId('environment-selector-trigger').click();
         await page.getByTestId('env-tab-global').click();
         await page.getByText('Configure', { exact: true }).click();
+
+        const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
+        await expect(envTab).toBeVisible();
       });
 
       await test.step('Configure export settings for single JSON file', async () => {
-        // Click export button
-        await page.locator('.btn-import-environment').getByText('Export').click();
+        await page.locator('button[title="Export environment"]').click();
 
         // Deselect all environments first
         await page.getByText('Deselect All').click();
@@ -250,8 +251,6 @@ test.describe.serial('Global Environment Export Tests', () => {
 
         // Verify success message
         await expect(page.getByText('Environment(s) exported successfully', { exact: false }).first()).toBeVisible();
-
-        await page.getByTestId('modal-close-button').click();
       });
 
       await test.step('Verify exported file and content', async () => {
@@ -280,11 +279,13 @@ test.describe.serial('Global Environment Export Tests', () => {
         await page.getByTestId('environment-selector-trigger').click();
         await page.getByTestId('env-tab-global').click();
         await page.getByText('Configure', { exact: true }).click();
+
+        const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
+        await expect(envTab).toBeVisible();
       });
 
       await test.step('Configure export settings for single JSON file', async () => {
-        // Click export button
-        await page.locator('.btn-import-environment').getByText('Export').click();
+        await page.locator('button[title="Export environment"]').click();
 
         // Select single JSON file format
         await page.getByText('Single JSON file').click();
@@ -299,8 +300,6 @@ test.describe.serial('Global Environment Export Tests', () => {
         await page.waitForTimeout(200);
         // Verify success message
         await expect(page.getByText('Environment(s) exported successfully', { exact: false }).first()).toBeVisible();
-
-        await page.getByTestId('modal-close-button').click();
       });
 
       await test.step('Verify exported file and content', async () => {
@@ -335,11 +334,13 @@ test.describe.serial('Global Environment Export Tests', () => {
         await page.getByTestId('environment-selector-trigger').click();
         await page.getByTestId('env-tab-global').click();
         await page.getByText('Configure', { exact: true }).click();
+
+        const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
+        await expect(envTab).toBeVisible();
       });
 
       await test.step('Configure export settings for single JSON file', async () => {
-        // Click export button
-        await page.locator('.btn-import-environment').getByText('Export').click();
+        await page.locator('button[title="Export environment"]').click();
 
         // Deselect all environments first
         await page.getByText('Deselect All').click();
@@ -359,8 +360,6 @@ test.describe.serial('Global Environment Export Tests', () => {
       await test.step('Execute export and close modal', async () => {
         // Export should succeed with unique names
         await page.getByRole('button', { name: 'Export 1 Environment' }).click();
-
-        await page.getByTestId('modal-close-button').first().click();
       });
 
       await test.step('Verify unique naming and file content', async () => {
@@ -395,18 +394,18 @@ test.describe.serial('Global Environment Export Tests', () => {
       await page.getByTestId('environment-selector-trigger').click();
       await page.getByTestId('env-tab-global').click();
       await page.getByText('Configure', { exact: true }).click();
+
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
+      await expect(envTab).toBeVisible();
     });
 
     await test.step('Open export modal and deselect all environments', async () => {
-      // Click export button
-      await page.locator('.btn-import-environment').getByText('Export').click();
+      await page.getByRole('button', { name: 'Export Environment' }).click();
 
-      // Deselect all environments
       await page.getByText('Deselect All').click();
     });
 
     await test.step('Verify export button is disabled when no environments selected', async () => {
-      // Verify export button is disabled
       await expect(page.getByRole('button', { name: 'Export Environments' })).toBeDisabled();
     });
   });
