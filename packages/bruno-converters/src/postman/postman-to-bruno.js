@@ -572,7 +572,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         brunoRequestItem.examples = [];
 
         i.response.forEach((response, responseIndex) => {
-          const exampleName = response.name || `Example ${responseIndex + 1}`;
+          // Normalize multiline names to single line
+          const rawName = response.name || `Example ${responseIndex + 1}`;
+          const exampleName = String(rawName).replace(/\r?\n/g, ' ').trim();
 
           // Convert originalRequest to Bruno request format
           const originalRequest = response.originalRequest || {};

@@ -34,8 +34,7 @@ const jsonToExampleBru = (json) => {
   let bru = '';
 
   if (name) {
-    const processedName = String(name).replace(/\r?\n/g, ' ').trim();
-    bru += `name: ${processedName}\n`;
+    bru += `name: ${name}\n`;
   }
 
   if (description) {

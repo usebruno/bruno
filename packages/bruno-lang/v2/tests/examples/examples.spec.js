@@ -243,38 +243,6 @@ example {
 
       expect(output).toEqual(expected);
     });
-
-    it('should normalize multiline example names to single line', () => {
-      const jsonInput = {
-        meta: {
-          name: 'Test API',
-          type: 'http'
-        },
-        http: {
-          url: 'https://api.example.com',
-          method: 'post'
-        },
-        examples: [
-          {
-            name: '**HTTP Status Code:**\n201\n\nCreated',
-            request: {
-              url: 'https://api.example.com',
-              method: 'POST'
-            }
-          }
-        ]
-      };
-
-      const output = jsonToBru(jsonInput);
-
-      // Multiline names should be converted to single line with spaces
-      expect(output).toContain('name: **HTTP Status Code:** 201  Created');
-      expect(output).not.toContain('name: **HTTP Status Code:**\n');
-
-      // Verify round-trip conversion
-      const parsedBack = bruToJson(output);
-      expect(parsedBack.examples[0].name).toBe('**HTTP Status Code:** 201  Created');
-    });
   });
 
   describe('Complex examples with auth', () => {
