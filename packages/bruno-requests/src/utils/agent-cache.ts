@@ -1,8 +1,9 @@
 import crypto from 'node:crypto';
+import http from 'node:http';
 import https from 'node:https';
 import type { Agent as HttpAgent } from 'node:http';
 import type { Agent as HttpsAgent } from 'node:https';
-import { createTimelineAgentClass, type TimelineEntry, type AgentOptions, type AgentClass } from './timeline-agent';
+import { createTimelineAgentClass, createTimelineHttpAgentClass, type TimelineEntry, type AgentOptions, type HttpAgentOptions, type AgentClass, type HttpAgentClass } from './timeline-agent';
 
 /**
  * Agent cache for SSL session reuse.
@@ -20,10 +21,16 @@ const agentCache = new Map<string, HttpAgent | HttpsAgent>();
 const MAX_AGENT_CACHE_SIZE = 100;
 
 /**
- * Cache for timeline-wrapped agent classes.
+ * Cache for timeline-wrapped HTTPS agent classes.
  * Prevents creating new class definitions on every call.
  */
 const timelineClassCache = new WeakMap<any, AgentClass>();
+
+/**
+ * Cache for timeline-wrapped HTTP agent classes.
+ * Prevents creating new class definitions on every call.
+ */
+const timelineHttpClassCache = new WeakMap<any, HttpAgentClass>();
 
 /**
  * Map to assign unique IDs to agent classes.
@@ -51,7 +58,7 @@ function hashValue(value: string | Buffer | undefined): string | null {
 }
 
 /**
- * Generate a cache key from agent options.
+ * Generate a cache key from HTTPS agent options.
  * Uses a hash of the serialized options to create a compact key.
  */
 function getAgentCacheKey(agentClassId: number, options: AgentOptions, proxyUri: string | null = null): string {
@@ -73,7 +80,20 @@ function getAgentCacheKey(agentClassId: number, options: AgentOptions, proxyUri:
 }
 
 /**
- * Get a cached timeline-wrapped agent class.
+ * Generate a cache key from HTTP agent options.
+ * Simpler than HTTPS since no TLS options are involved.
+ */
+function getHttpAgentCacheKey(agentClassId: number, options: HttpAgentOptions, proxyUri: string | null = null): string {
+  const keyData = {
+    agentClassId,
+    proxyUri,
+    keepAlive: options.keepAlive
+  };
+  return JSON.stringify(keyData);
+}
+
+/**
+ * Get a cached timeline-wrapped HTTPS agent class.
  * Creates the wrapped class once and caches it for reuse.
  */
 function getTimelineAgentClass(BaseAgentClass: any): AgentClass {
@@ -86,12 +106,90 @@ function getTimelineAgentClass(BaseAgentClass: any): AgentClass {
 }
 
 /**
- * Get or create a cached agent.
+ * Get a cached timeline-wrapped HTTP agent class.
+ * Creates the wrapped class once and caches it for reuse.
+ */
+function getTimelineHttpAgentClass(BaseAgentClass: any): HttpAgentClass {
+  if (timelineHttpClassCache.has(BaseAgentClass)) {
+    return timelineHttpClassCache.get(BaseAgentClass)!;
+  }
+  const wrappedClass = createTimelineHttpAgentClass(BaseAgentClass);
+  timelineHttpClassCache.set(BaseAgentClass, wrappedClass);
+  return wrappedClass;
+}
+
+/**
+ * Type for cache key generation functions.
+ */
+type CacheKeyFn<T> = (classId: number, options: T, proxyUri: string | null) => string;
+
+/**
+ * Type for timeline class wrapper functions.
+ */
+type TimelineClassFn = (base: any) => AgentClass | HttpAgentClass;
+
+/**
+ * Internal helper for agent caching with LRU eviction.
+ * Shared logic for both HTTP and HTTPS agents.
+ */
+function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
+  BaseAgentClass: any,
+  options: TOptions,
+  proxyUri: string | null,
+  timeline: TimelineEntry[] | null,
+  getCacheKey: CacheKeyFn<TOptions>,
+  getTimelineClass: TimelineClassFn
+): HttpAgent | HttpsAgent {
+  const agentClassId = getAgentClassId(BaseAgentClass);
+  const cacheKey = getCacheKey(agentClassId, options, proxyUri);
+
+  if (agentCache.has(cacheKey)) {
+    // Move to end for LRU (delete and re-add)
+    const agent = agentCache.get(cacheKey)!;
+    agentCache.delete(cacheKey);
+    agentCache.set(cacheKey, agent);
+
+    // Update timeline reference for new request
+    // The cached agent was created with a previous timeline,
+    // but we need events to go to the current request's timeline
+    if (timeline && 'timeline' in agent) {
+      (agent as any).timeline = timeline;
+    }
+
+    return agent;
+  }
+
+  // Wrap the agent class with timeline support (cached)
+  const AgentClass = getTimelineClass(BaseAgentClass);
+
+  const agent = proxyUri
+    ? new AgentClass({ ...options, proxy: proxyUri }, timeline || undefined)
+    : new AgentClass(options, timeline || undefined);
+
+  // Evict oldest entry if cache is full (LRU eviction)
+  if (agentCache.size >= MAX_AGENT_CACHE_SIZE) {
+    const firstKey = agentCache.keys().next().value;
+    if (firstKey !== undefined) {
+      const evictedAgent = agentCache.get(firstKey);
+      agentCache.delete(firstKey);
+      // Destroy the agent to release its sockets and prevent memory leaks
+      if (evictedAgent && typeof (evictedAgent as any).destroy === 'function') {
+        (evictedAgent as any).destroy();
+      }
+    }
+  }
+
+  agentCache.set(cacheKey, agent);
+  return agent;
+}
+
+/**
+ * Get or create a cached HTTPS agent.
  * Reuses existing agents to enable SSL session caching.
  * Uses LRU-style eviction when cache exceeds MAX_AGENT_CACHE_SIZE.
  * Automatically wraps the agent class with timeline logging support.
  *
- * @param BaseAgentClass - The base agent class (https.Agent, HttpProxyAgent, etc.)
+ * @param BaseAgentClass - The base agent class (https.Agent, HttpsProxyAgent, etc.)
  * @param options - Agent options (TLS settings, etc.)
  * @param proxyUri - Proxy URI if using a proxy
  * @param timeline - Timeline array for logging TLS events
@@ -102,51 +200,41 @@ function getOrCreateAgent(
   proxyUri: string | null = null,
   timeline: TimelineEntry[] | null = null
 ): HttpAgent | HttpsAgent {
-  const agentClassId = getAgentClassId(BaseAgentClass);
-  const cacheKey = getAgentCacheKey(agentClassId, options, proxyUri);
+  return getOrCreateAgentInternal(
+    BaseAgentClass,
+    options,
+    proxyUri,
+    timeline,
+    getAgentCacheKey,
+    getTimelineAgentClass
+  );
+}
 
-  if (agentCache.has(cacheKey)) {
-    // Move to end for LRU (delete and re-add)
-    const agent = agentCache.get(cacheKey)!;
-    agentCache.delete(cacheKey);
-    agentCache.set(cacheKey, agent);
-
-    // Update timeline reference for new request
-    // The cached agent was created with a previous timeline,
-    // but we need TLS events to go to the current request's timeline
-    if (timeline && 'timeline' in agent) {
-      (agent as any).timeline = timeline;
-    }
-
-    return agent;
-  }
-
-  // Wrap the agent class with timeline support (cached)
-  const AgentClass = getTimelineAgentClass(BaseAgentClass);
-
-  let agent: HttpAgent | HttpsAgent;
-  if (proxyUri) {
-    // For timeline agents, pass proxy via options.proxy and timeline as second arg
-    agent = new AgentClass({ ...options, proxy: proxyUri }, timeline || undefined);
-  } else {
-    agent = new AgentClass(options, timeline || undefined);
-  }
-
-  // Evict oldest entry if cache is full (LRU eviction)
-  if (agentCache.size >= MAX_AGENT_CACHE_SIZE) {
-    const firstEntry = agentCache.keys().next();
-    if (!firstEntry.done && firstEntry.value !== undefined) {
-      const evictedAgent = agentCache.get(firstEntry.value);
-      agentCache.delete(firstEntry.value);
-      // Destroy the agent to release its sockets and prevent memory leaks
-      if (evictedAgent && typeof (evictedAgent as any).destroy === 'function') {
-        (evictedAgent as any).destroy();
-      }
-    }
-  }
-
-  agentCache.set(cacheKey, agent);
-  return agent;
+/**
+ * Get or create a cached HTTP agent.
+ * Reuses existing agents to enable connection reuse.
+ * Uses LRU-style eviction when cache exceeds MAX_AGENT_CACHE_SIZE.
+ * Automatically wraps the agent class with timeline logging support.
+ *
+ * @param BaseAgentClass - The base HTTP agent class (http.Agent, HttpProxyAgent, etc.)
+ * @param options - Agent options
+ * @param proxyUri - Proxy URI if using a proxy
+ * @param timeline - Timeline array for logging connection events
+ */
+function getOrCreateHttpAgent(
+  BaseAgentClass: any,
+  options: HttpAgentOptions,
+  proxyUri: string | null = null,
+  timeline: TimelineEntry[] | null = null
+): HttpAgent {
+  return getOrCreateAgentInternal(
+    BaseAgentClass,
+    options,
+    proxyUri,
+    timeline,
+    getHttpAgentCacheKey,
+    getTimelineHttpAgentClass
+  ) as HttpAgent;
 }
 
 /**
@@ -169,4 +257,4 @@ function getAgentCacheSize(): number {
   return agentCache.size;
 }
 
-export { getOrCreateAgent, clearAgentCache, getAgentCacheSize };
+export { getOrCreateAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize };
