@@ -50,7 +50,7 @@ const grammar = ohm.grammar(`Bru {
   textchar = ~nl any
 
   // List
-  list = st* "[" nl+ listitems? st* nl+ st* "]"
+  list = st* "[" nl* listitems? st* nl* st* "]"
   listitems = listitem (nl+ listitem)*
   listitem = st+ (alnum | "_" | "-")+ st*
   
