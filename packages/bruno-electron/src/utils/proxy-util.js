@@ -1,73 +1,11 @@
 const parseUrl = require('url').parse;
 const https = require('node:https');
-const crypto = require('node:crypto');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
-
-/**
- * Agent cache for SSL session reuse.
- * Agents are cached by their configuration to enable TLS session resumption,
- * which significantly reduces SSL handshake time for repeated requests.
- */
-const agentCache = new Map();
-const MAX_AGENT_CACHE_SIZE = 100;
-
-/**
- * Generate a cache key from agent options.
- * Uses a hash of the serialized options to create a compact key.
- */
-function getAgentCacheKey(options, proxyUri = null) {
-  // Extract the TLS-relevant options for the cache key
-  const keyData = {
-    proxyUri,
-    rejectUnauthorized: options.rejectUnauthorized,
-    // Hash certificates and passphrase instead of including full content
-    ca: options.ca ? crypto.createHash('md5').update(String(options.ca)).digest('hex') : null,
-    cert: options.cert ? crypto.createHash('md5').update(String(options.cert)).digest('hex') : null,
-    key: options.key ? crypto.createHash('md5').update(String(options.key)).digest('hex') : null,
-    pfx: options.pfx ? crypto.createHash('md5').update(String(options.pfx)).digest('hex') : null,
-    passphrase: options.passphrase ? crypto.createHash('md5').update(String(options.passphrase)).digest('hex') : null,
-    minVersion: options.minVersion,
-    secureProtocol: options.secureProtocol
-  };
-  return JSON.stringify(keyData);
-}
-
-/**
- * Get or create a cached agent.
- * Reuses existing agents to enable SSL session caching.
- * Uses LRU-style eviction when cache exceeds MAX_AGENT_CACHE_SIZE.
- */
-function getOrCreateAgent(AgentClass, options, proxyUri = null) {
-  const cacheKey = getAgentCacheKey(options, proxyUri);
-
-  if (agentCache.has(cacheKey)) {
-    // Move to end for LRU (delete and re-add)
-    const agent = agentCache.get(cacheKey);
-    agentCache.delete(cacheKey);
-    agentCache.set(cacheKey, agent);
-    return agent;
-  }
-
-  let agent;
-  if (proxyUri) {
-    agent = new AgentClass(proxyUri, options);
-  } else {
-    agent = new AgentClass(options);
-  }
-
-  // Evict oldest entry if cache is full
-  if (agentCache.size >= MAX_AGENT_CACHE_SIZE) {
-    const oldestKey = agentCache.keys().next().value;
-    agentCache.delete(oldestKey);
-  }
-
-  agentCache.set(cacheKey, agent);
-  return agent;
-}
+const { getOrCreateAgent, clearAgentCache, getAgentCacheSize } = require('@usebruno/requests');
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -146,239 +84,6 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
   }
 }
 
-function createTimelineHttpAgentClass(BaseAgentClass) {
-  return class extends BaseAgentClass {
-    constructor(options, timeline) {
-      // For proxy agents, the first argument is the proxy URI and the second is options
-      const { proxy: proxyUri, httpProxyAgentOptions } = options || {};
-
-      if (!proxyUri) {
-        throw new Error('TimelineHttpProxyAgent requires options.proxy to be set');
-      }
-
-      super(proxyUri, httpProxyAgentOptions);
-
-      this.timeline = Array.isArray(timeline) ? timeline : [];
-      // Log the proxy details
-      this.timeline.push({
-        timestamp: new Date(),
-        type: 'info',
-        message: `Using proxy: ${proxyUri}`
-      });
-    }
-  };
-}
-
-function createTimelineAgentClass(BaseAgentClass) {
-  return class extends BaseAgentClass {
-    constructor(options, timeline) {
-      let caCertificatesCount = options.caCertificatesCount || {};
-      delete options.caCertificatesCount;
-
-      // For proxy agents, the first argument is the proxy URI and the second is options
-      if (options?.proxy) {
-        const { proxy: proxyUri, ...agentOptions } = options;
-        // Ensure TLS options are properly set
-        const tlsOptions = {
-          ...agentOptions,
-          rejectUnauthorized: agentOptions.rejectUnauthorized ?? true
-        };
-        super(proxyUri, tlsOptions);
-        this.timeline = Array.isArray(timeline) ? timeline : [];
-        this.alpnProtocols = tlsOptions.ALPNProtocols || ['h2', 'http/1.1'];
-        this.caProvided = !!tlsOptions.ca;
-
-        // Log TLS verification status
-        this.timeline.push({
-          timestamp: new Date(),
-          type: 'info',
-          message: `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`
-        });
-
-        // Log the proxy details
-        this.timeline.push({
-          timestamp: new Date(),
-          type: 'info',
-          message: `Using proxy: ${proxyUri}`
-        });
-      } else {
-        // This is a regular HTTPS agent case
-        const tlsOptions = {
-          ...options,
-          rejectUnauthorized: options.rejectUnauthorized ?? true
-        };
-        super(tlsOptions);
-        this.timeline = Array.isArray(timeline) ? timeline : [];
-        this.alpnProtocols = options.ALPNProtocols || ['h2', 'http/1.1'];
-        this.caProvided = !!options.ca;
-
-        // Log TLS verification status
-        this.timeline.push({
-          timestamp: new Date(),
-          type: 'info',
-          message: `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`
-        });
-      }
-
-      this.caCertificatesCount = caCertificatesCount;
-    }
-
-    createConnection(options, callback) {
-      const { host, port } = options;
-
-      // Log ALPN protocols offered
-      if (this.alpnProtocols && this.alpnProtocols.length > 0) {
-        this.timeline.push({
-          timestamp: new Date(),
-          type: 'tls',
-          message: `ALPN: offers ${this.alpnProtocols.join(', ')}`
-        });
-      }
-
-      const rootCerts = this.caCertificatesCount.root || 0;
-      const systemCerts = this.caCertificatesCount.system || 0;
-      const extraCerts = this.caCertificatesCount.extra || 0;
-      const customCerts = this.caCertificatesCount.custom || 0;
-
-      this.timeline.push({
-        timestamp: new Date(),
-        type: 'tls',
-        message: `CA Certificates: ${rootCerts} root, ${systemCerts} system, ${extraCerts} extra, ${customCerts} custom`
-      });
-
-      // Log "Trying host:port..."
-      this.timeline.push({
-        timestamp: new Date(),
-        type: 'info',
-        message: `Trying ${host}:${port}...`
-      });
-
-      let socket;
-      try {
-        socket = super.createConnection(options, callback);
-      } catch (error) {
-        this.timeline.push({
-          timestamp: new Date(),
-          type: 'error',
-          message: `Error creating connection: ${error.message}`
-        });
-        error.timeline = this.timeline;
-        throw error;
-      }
-
-      // Attach event listeners to the socket
-      socket?.on('lookup', (err, address, family, host) => {
-        if (err) {
-          this.timeline.push({
-            timestamp: new Date(),
-            type: 'error',
-            message: `DNS lookup error for ${host}: ${err.message}`
-          });
-        } else {
-          this.timeline.push({
-            timestamp: new Date(),
-            type: 'info',
-            message: `DNS lookup: ${host} -> ${address}`
-          });
-        }
-      });
-
-      socket?.on('connect', () => {
-        const address = socket.remoteAddress || host;
-        const remotePort = socket.remotePort || port;
-
-        this.timeline.push({
-          timestamp: new Date(),
-          type: 'info',
-          message: `Connected to ${host} (${address}) port ${remotePort}`
-        });
-      });
-
-      socket?.on('secureConnect', () => {
-        const protocol = socket.getProtocol() || 'SSL/TLS';
-        const cipher = socket.getCipher();
-        const cipherSuite = cipher ? `${cipher.name} (${cipher.version})` : 'Unknown cipher';
-
-        this.timeline.push({
-          timestamp: new Date(),
-          type: 'tls',
-          message: `SSL connection using ${protocol} / ${cipherSuite}`
-        });
-
-        // ALPN protocol
-        const alpnProtocol = socket.alpnProtocol || 'None';
-        this.timeline.push({
-          timestamp: new Date(),
-          type: 'tls',
-          message: `ALPN: server accepted ${alpnProtocol}`
-        });
-
-        // Server certificate
-        const cert = socket.getPeerCertificate(true);
-        if (cert) {
-          this.timeline.push({
-            timestamp: new Date(),
-            type: 'tls',
-            message: `Server certificate:`
-          });
-          if (cert.subject) {
-            this.timeline.push({
-              timestamp: new Date(),
-              type: 'tls',
-              message: ` subject: ${Object.entries(cert.subject).map(([k, v]) => `${k}=${v}`).join(', ')}`
-            });
-          }
-          if (cert.valid_from) {
-            this.timeline.push({
-              timestamp: new Date(),
-              type: 'tls',
-              message: ` start date: ${cert.valid_from}`
-            });
-          }
-          if (cert.valid_to) {
-            this.timeline.push({
-              timestamp: new Date(),
-              type: 'tls',
-              message: ` expire date: ${cert.valid_to}`
-            });
-          }
-          if (cert.subjectaltname) {
-            this.timeline.push({
-              timestamp: new Date(),
-              type: 'tls',
-              message: ` subjectAltName: ${cert.subjectaltname}`
-            });
-          }
-          if (cert.issuer) {
-            this.timeline.push({
-              timestamp: new Date(),
-              type: 'tls',
-              message: ` issuer: ${Object.entries(cert.issuer).map(([k, v]) => `${k}=${v}`).join(', ')}`
-            });
-          }
-
-          // SSL certificate verify ok
-          this.timeline.push({
-            timestamp: new Date(),
-            type: 'tls',
-            message: `SSL certificate verify ok.`
-          });
-        }
-      });
-
-      socket?.on('error', (err) => {
-        this.timeline.push({
-          timestamp: new Date(),
-          type: 'error',
-          message: `Socket error: ${err.message}`
-        });
-      });
-
-      return socket;
-    }
-  };
-}
-
 function setupProxyAgents({
   requestConfig,
   proxyMode = 'off',
@@ -437,17 +142,17 @@ function setupProxyAgents({
       }
 
       if (socksEnabled) {
-        // Use cached agents for SSL session reuse
-        requestConfig.httpAgent = getOrCreateAgent(SocksProxyAgent, { keepAlive: true }, proxyUri);
-        requestConfig.httpsAgent = getOrCreateAgent(SocksProxyAgent, tlsOptions, proxyUri);
+        // Use cached agents for SSL session reuse with timeline logging
+        requestConfig.httpAgent = getOrCreateAgent(SocksProxyAgent, { keepAlive: true }, proxyUri, timeline);
+        requestConfig.httpsAgent = getOrCreateAgent(SocksProxyAgent, tlsOptions, proxyUri, timeline);
       } else {
-        // Use cached agents for SSL session reuse
-        requestConfig.httpAgent = getOrCreateAgent(HttpProxyAgent, { keepAlive: true }, proxyUri);
-        requestConfig.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, proxyUri);
+        // Use cached agents for SSL session reuse with timeline logging
+        requestConfig.httpAgent = getOrCreateAgent(HttpProxyAgent, { keepAlive: true }, proxyUri, timeline);
+        requestConfig.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, proxyUri, timeline);
       }
     } else {
-      // If proxy should not be used, use cached default HTTPS agent
-      requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
+      // If proxy should not be used, use cached default HTTPS agent with timeline logging
+      requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null, timeline);
     }
   } else if (proxyMode === 'system') {
     const { http_proxy, https_proxy, no_proxy } = proxyConfig || {};
@@ -458,7 +163,7 @@ function setupProxyAgents({
       try {
         if (http_proxy?.length && !isHttpsRequest) {
           new URL(http_proxy);
-          requestConfig.httpAgent = getOrCreateAgent(HttpProxyAgent, { keepAlive: true }, http_proxy);
+          requestConfig.httpAgent = getOrCreateAgent(HttpProxyAgent, { keepAlive: true }, http_proxy, timeline);
         }
       } catch (error) {
         throw new Error(`Invalid system http_proxy "${http_proxy}": ${error.message}`);
@@ -473,34 +178,20 @@ function setupProxyAgents({
               message: `Using system proxy: ${https_proxy}`
             });
           }
-          requestConfig.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, https_proxy);
+          requestConfig.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, https_proxy, timeline);
         } else {
-          requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
+          requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null, timeline);
         }
       } catch (error) {
         throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
       }
     } else {
-      requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
+      requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null, timeline);
     }
   } else {
-    // No proxy - use cached HTTPS agent for SSL session reuse
-    requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
+    // No proxy - use cached HTTPS agent for SSL session reuse with timeline logging
+    requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null, timeline);
   }
-}
-
-/**
- * Clear the agent cache. Useful for testing or when SSL configuration changes.
- */
-function clearAgentCache() {
-  agentCache.clear();
-}
-
-/**
- * Get the current size of the agent cache.
- */
-function getAgentCacheSize() {
-  return agentCache.size;
 }
 
 module.exports = {
@@ -508,5 +199,6 @@ module.exports = {
   PatchedHttpsProxyAgent,
   setupProxyAgents,
   clearAgentCache,
-  getAgentCacheSize
+  getAgentCacheSize,
+  getOrCreateAgent
 };
