@@ -82,15 +82,14 @@ export const splitOnFirst = (str, char) => {
 };
 
 export const isValidUrl = (url) => {
-  if (!url) return false;
   try {
     new URL(url);
     return true;
   } catch (err) {
-    // Return true if it has a protocol or Bruno template syntax
-    return /^https?:\/\//i.test(url) || url.includes('://') || url.includes('{{');
+    return false;
   }
 };
+
 export const interpolateUrl = ({ url, variables }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;
@@ -100,38 +99,60 @@ export const interpolateUrl = ({ url, variables }) => {
 };
 
 export const interpolateUrlPathParams = (url, params) => {
-  if (!url || typeof url !== 'string') return url;
+  const getInterpolatedBasePath = (pathname, params) => {
+    return pathname
+      .split('/')
+      .map((segment) => {
+        // traditional path parameters
+        if (segment.startsWith(':')) {
+          const name = segment.slice(1);
+          const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
+          return pathParam ? pathParam.value : segment;
+        }
 
-  // 1. Ensure we have a protocol for parsing.
-  // If missing, we prepend 'http://' and keep it.
-  let resultUrl = url;
+        // for OData-style parameters (parameters inside parentheses)
+        // Check if segment matches valid OData syntax:
+        // 1. EntitySet('key') or EntitySet(key)
+        // 2. EntitySet(Key1=value1,Key2=value2)
+        // 3. Function(param=value)
+        if (!/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
+          return segment;
+        }
+
+        const regex = /[:](\w+)/g;
+        let match;
+        let result = segment;
+        while ((match = regex.exec(segment))) {
+          if (!match[1]) continue;
+
+          let name = match[1].replace(/[')"`]+$/, '');
+          name = name.replace(/^[('"`]+/, '');
+          if (!name) continue;
+
+          const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
+          if (pathParam) {
+            result = result.replace(':' + match[1], pathParam.value);
+          }
+        }
+        return result;
+      })
+      .join('/');
+  };
+
+  let uri;
+
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    resultUrl = `http://${url}`;
+    url = `http://${url}`;
   }
 
-  // 2. Manual split on '?' to isolate the query string.
-  // This prevents the 'new URL()' / 'URI malformed' crash on literal '%' signs.
-  const [urlWithoutQuery, searchPart] = splitOnFirst(resultUrl, '?');
+  try {
+    uri = new URL(url);
+  } catch (error) {
+    // if the URL is invalid, return the URL as is
+    return url;
+  }
 
-  // 3. Extract the origin and pathname using Regex.
-  // This is safer than new URL() for strings containing {{vars}}.
-  const originMatch = urlWithoutQuery.match(/^https?:\/\/[^/]+/);
-  const origin = originMatch ? originMatch[0] : '';
-  const pathname = urlWithoutQuery.replace(origin, '');
+  const basePath = getInterpolatedBasePath(uri.pathname, params);
 
-  // 4. Interpolate the path segments.
-  const interpolatedPath = pathname
-    .split('/')
-    .map((segment) => {
-      if (segment.startsWith(':')) {
-        const name = segment.slice(1);
-        const p = params.find((p) => p?.name === name && p?.type === 'path');
-        return p ? p.value : segment;
-      }
-      return segment;
-    })
-    .join('/');
-
-  // 5. Reconstruct the final URL.
-  return `${origin}${interpolatedPath}${searchPart ? '?' + searchPart : ''}`;
+  return `${uri.origin}${basePath}${uri?.search || ''}`;
 };
