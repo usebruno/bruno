@@ -35,13 +35,6 @@ const EditableTable = ({
     return initialWidths;
   });
 
-  const resizeRef = useRef({
-    startX: 0,
-    startWidth: 0,
-    nextColumnKey: null,
-    nextColumnStartWidth: 0
-  });
-
   const handleResizeStart = useCallback((e, columnKey) => {
     e.preventDefault();
     e.stopPropagation();
@@ -53,30 +46,22 @@ const EditableTable = ({
     const columnIndex = columns.findIndex((col) => col.key === columnKey);
     if (columnIndex >= columns.length - 1) return;
 
-    resizeRef.current = {
-      startX: e.clientX,
-      startWidth: currentCell.offsetWidth,
-      nextColumnKey: columns[columnIndex + 1].key,
-      nextColumnStartWidth: nextCell.offsetWidth
-    };
+    const startX = e.clientX;
+    const startWidth = currentCell.offsetWidth;
+    const nextColumnKey = columns[columnIndex + 1].key;
+    const nextColumnStartWidth = nextCell.offsetWidth;
 
     setResizing(columnKey);
-  }, [columns]);
 
-  useEffect(() => {
-    if (!resizing) return;
-
-    const { startX, startWidth, nextColumnKey, nextColumnStartWidth } = resizeRef.current;
-
-    const handleMouseMove = (e) => {
-      const diff = e.clientX - startX;
+    const handleMouseMove = (moveEvent) => {
+      const diff = moveEvent.clientX - startX;
       const maxGrow = nextColumnStartWidth - MIN_COLUMN_WIDTH;
       const maxShrink = startWidth - MIN_COLUMN_WIDTH;
       const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
 
       setColumnWidths((prev) => ({
         ...prev,
-        [resizing]: `${startWidth + clampedDiff}px`,
+        [columnKey]: `${startWidth + clampedDiff}px`,
         [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
       }));
     };
@@ -91,13 +76,13 @@ const EditableTable = ({
 
         headerCells.forEach((cell, cellIndex) => {
           const checkboxOffset = showCheckbox ? 1 : 0;
-          const columnIndex = cellIndex - checkboxOffset;
+          const colIndex = cellIndex - checkboxOffset;
 
-          if (columnIndex >= 0 && columnIndex < columns.length) {
-            const columnKey = columns[columnIndex]?.key;
-            if (columnKey) {
+          if (colIndex >= 0 && colIndex < columns.length) {
+            const colKey = columns[colIndex]?.key;
+            if (colKey) {
               const percentage = (cell.offsetWidth / tableWidth) * 100;
-              newWidths[columnKey] = `${percentage}%`;
+              newWidths[colKey] = `${percentage}%`;
             }
           }
         });
@@ -107,15 +92,13 @@ const EditableTable = ({
         }
       }
       setResizing(null);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [resizing, columns, showCheckbox, showDelete]);
+  }, [columns, showCheckbox]);
 
   // Track table height for resize handles
   useEffect(() => {
