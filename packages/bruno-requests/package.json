@@ -31,6 +31,7 @@
     "http-proxy-agent": "~7.0.2",
     "https-proxy-agent": "~7.0.6",
     "is-ip": "^5.0.1",
+    "json5": "^2.2.3",
     "socks-proxy-agent": "~8.0.5",
     "system-ca": "^2.0.1",
     "tough-cookie": "^6.0.0",
