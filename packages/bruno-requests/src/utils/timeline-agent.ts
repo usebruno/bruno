@@ -1,3 +1,4 @@
+import http from 'node:http';
 import https from 'node:https';
 
 type TimelineEntry = {
@@ -30,6 +31,14 @@ type AgentOptions = {
 
 type AgentClass = new (options: AgentOptions, timeline?: TimelineEntry[]) => https.Agent;
 type ProxyAgentClass = new (proxyUri: string, options?: AgentOptions) => https.Agent;
+
+type HttpAgentOptions = {
+  keepAlive?: boolean;
+  proxy?: string;
+};
+
+type HttpAgentClass = new (options: HttpAgentOptions, timeline?: TimelineEntry[]) => http.Agent;
+type HttpProxyAgentClass = new (proxyUri: string, options?: HttpAgentOptions) => http.Agent;
 
 /**
  * Creates a timeline-aware agent class that logs TLS connection events.
@@ -188,4 +197,86 @@ function createTimelineAgentClass<T extends ProxyAgentClass | typeof https.Agent
   } as unknown as AgentClass;
 }
 
-export { createTimelineAgentClass, TimelineEntry, AgentOptions, CaCertificatesCount, AgentClass, ProxyAgentClass };
+/**
+ * Creates a timeline-aware HTTP agent class that logs connection events.
+ * The returned class wraps the base HTTP agent and adds timeline logging for:
+ * - Proxy usage (when applicable)
+ * - DNS lookups
+ * - Connection establishment
+ * - Errors
+ *
+ * This is a simplified version of createTimelineAgentClass for HTTP (non-TLS) connections.
+ */
+function createTimelineHttpAgentClass<T extends HttpProxyAgentClass | typeof http.Agent>(BaseAgentClass: T): HttpAgentClass {
+  return class TimelineHttpAgent extends (BaseAgentClass as any) {
+    timeline: TimelineEntry[];
+
+    /**
+     * Helper method to log entries to the timeline.
+     */
+    private log(type: 'info' | 'tls' | 'error', message: string): void {
+      this.timeline.push({
+        timestamp: new Date(),
+        type,
+        message
+      });
+    }
+
+    constructor(options: HttpAgentOptions, timeline?: TimelineEntry[]) {
+      const optionsCopy = { ...options };
+
+      // For proxy agents, the first argument is the proxy URI and the second is options
+      if (optionsCopy?.proxy) {
+        const { proxy: proxyUri, ...agentOptions } = optionsCopy;
+        super(proxyUri, agentOptions);
+        this.timeline = Array.isArray(timeline) ? timeline : [];
+
+        // Log proxy details
+        this.log('info', `Using proxy: ${proxyUri}`);
+      } else {
+        super(optionsCopy);
+        this.timeline = Array.isArray(timeline) ? timeline : [];
+      }
+    }
+
+    createConnection(options: any, callback: any) {
+      const { host, port } = options;
+
+      // Log "Trying host:port..."
+      this.log('info', `Trying ${host}:${port}...`);
+
+      let socket: any;
+      try {
+        socket = super.createConnection(options, callback);
+      } catch (error: any) {
+        this.log('error', `Error creating connection: ${error.message}`);
+        error.timeline = this.timeline;
+        throw error;
+      }
+
+      // Attach event listeners to the socket
+      socket?.on('lookup', (err: Error | null, address: string, family: number, host: string) => {
+        if (err) {
+          this.log('error', `DNS lookup error for ${host}: ${err.message}`);
+        } else {
+          this.log('info', `DNS lookup: ${host} -> ${address}`);
+        }
+      });
+
+      socket?.on('connect', () => {
+        const address = socket.remoteAddress || host;
+        const remotePort = socket.remotePort || port;
+
+        this.log('info', `Connected to ${host} (${address}) port ${remotePort}`);
+      });
+
+      socket?.on('error', (err: Error) => {
+        this.log('error', `Socket error: ${err.message}`);
+      });
+
+      return socket;
+    }
+  } as unknown as HttpAgentClass;
+}
+
+export { createTimelineAgentClass, createTimelineHttpAgentClass, TimelineEntry, AgentOptions, HttpAgentOptions, CaCertificatesCount, AgentClass, HttpAgentClass, ProxyAgentClass, HttpProxyAgentClass };
