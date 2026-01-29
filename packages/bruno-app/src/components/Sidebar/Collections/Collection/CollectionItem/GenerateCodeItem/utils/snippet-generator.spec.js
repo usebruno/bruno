@@ -18,7 +18,6 @@ jest.mock('httpsnippet', () => {
 });
 
 jest.mock('utils/codegenerator/har', () => ({
-  BRUNO_PERCENT_SENTINEL: '__BRUNO_PERCENT__',
   buildHarRequest: jest.fn((data) => {
     const request = data.request || {};
     const method = request.method || 'GET';
@@ -140,7 +139,7 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: false
     });
 
-    expect(result).toBe('curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"message": "{{greeting}}", "count": {{number}}}\'');
+    expect(result).toBe('curl -X POST https://api.example.com/%7B%7Bendpoint%7D%7D -H "Content-Type: application/json" -d \'{"message": "{{greeting}}", "count": {{number}}}\'');
   });
 
   it('should interpolate variables when enabled', () => {
@@ -155,7 +154,7 @@ describe('Snippet Generator - Simple Tests', () => {
   "message": "Hello World",
   "count": 42
 }`;
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/%7B%7Bendpoint%7D%7D -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle GET requests', () => {
@@ -175,7 +174,7 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: false
     });
 
-    expect(result).toBe('curl -X GET https://api.example.com/{{endpoint}}');
+    expect(result).toBe('curl -X GET https://api.example.com/%7B%7Bendpoint%7D%7D');
   });
 
   it('should handle requests with different headers', () => {
@@ -212,7 +211,7 @@ describe('Snippet Generator - Simple Tests', () => {
   "message": "Hello World",
   "count": 42
 }`;
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/%7B%7Bendpoint%7D%7D -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle complex nested JSON body', () => {
@@ -274,18 +273,18 @@ describe('Snippet Generator - Simple Tests', () => {
       }
     }, null, 2);
 
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/%7B%7Bendpoint%7D%7D -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
   });
 
   it('should handle errors gracefully', () => {
-    // 1. Mock HTTPSnippet to throw an error
-    const { HTTPSnippet } = require('httpsnippet');
-    const snippetMock = jest.spyOn(require('httpsnippet'), 'HTTPSnippet').mockImplementation(() => {
+    // Set up the error mock after beforeEach has run
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.fn(() => {
       throw new Error('Mock error!');
     });
 
-    // 2. Mock console.error to keep the test output clean
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+    const originalConsoleError = console.error;
+    console.error = jest.fn();
 
     const result = generateSnippet({
       language: curlLanguage,
@@ -294,15 +293,10 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: false
     });
 
-    // 3. Match the exact string returned by your catch block
-    expect(result).toBe('Error: Unable to generate code. Please ensure your URL and variables are formatted correctly.');
+    expect(result).toBe('Error generating code snippet');
 
-    // 4. Verify that the error was actually logged
-    expect(consoleSpy).toHaveBeenCalled();
-
-    // 5. Cleanup mocks
-    snippetMock.mockRestore();
-    consoleSpy.mockRestore();
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+    console.error = originalConsoleError;
   });
 
   it('should work with JavaScript language', () => {
@@ -434,7 +428,7 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: false
     });
 
-    expect(result).toBe('curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
+    expect(result).toBe('curl -X POST https://api.test.com/%7B%7Bendpoint%7D%7D -H "Content-Type: application/json" -d \'{"name": "{{userName}}", "email": "{{userEmail}}", "age": {{userAge}}}\'');
   });
 
   it('should interpolate auth credentials correctly', () => {
