@@ -13,6 +13,7 @@ export interface Environment {
   uid: UID;
   name: string;
   variables: EnvironmentVariable[];
+  color?: string | null;
 }
 
 export type Environments = Environment[];

@@ -325,6 +325,30 @@ class GlobalEnvironmentsManager {
     }
   }
 
+  async updateGlobalEnvironmentColor(workspacePath, environmentUid, color) {
+    try {
+      if (!workspacePath) {
+        throw new Error('Workspace path is required');
+      }
+
+      const envFile = this.findEnvironmentFileByUid(workspacePath, environmentUid);
+
+      if (!envFile) {
+        throw new Error(`Environment file not found for uid: ${environmentUid}`);
+      }
+
+      const environment = await this.parseEnvironmentFile(envFile.filePath, workspacePath);
+      environment.color = color;
+
+      const content = stringifyEnvironment(environment, { format: 'yml' });
+      await writeFile(envFile.filePath, content);
+
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getGlobalEnvironmentsByPath(workspacePath) {
     return this.getGlobalEnvironments(workspacePath);
   }
@@ -347,6 +371,10 @@ class GlobalEnvironmentsManager {
 
   async selectGlobalEnvironmentByPath(workspacePath, params) {
     return this.selectGlobalEnvironment(workspacePath, params);
+  }
+
+  async updateGlobalEnvironmentColorByPath(workspacePath, { environmentUid, color }) {
+    return this.updateGlobalEnvironmentColor(workspacePath, environmentUid, color);
   }
 }
 

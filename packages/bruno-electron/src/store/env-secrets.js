@@ -117,6 +117,22 @@ class EnvironmentSecretsStore {
     _.remove(collection.environments, (e) => e.name === environmentName);
     this.store.set('collections', collections);
   }
+
+  updateEnvironmentColor(collectionPathname, environmentName, color) {
+    const collections = this.store.get('collections') || [];
+    const collection = _.find(collections, (c) => c.path === collectionPathname);
+    if (!collection) {
+      return;
+    }
+
+    const env = _.find(collection.environments, (e) => e.name === environmentName);
+    if (!env) {
+      return;
+    }
+
+    env.color = color;
+    this.store.set('collections', collections);
+  }
 }
 
 module.exports = EnvironmentSecretsStore;
