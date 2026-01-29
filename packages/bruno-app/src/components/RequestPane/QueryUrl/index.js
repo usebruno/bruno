@@ -1,32 +1,34 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { IconArrowRight, IconCode, IconDeviceFloppy, IconSquareRoundedX } from '@tabler/icons';
+import PaneToggles from 'components/RequestPane/PaneToggles';
+import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
+import SingleLineEditor from 'components/SingleLineEditor';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
 import {
   requestUrlChanged,
-  updateRequestMethod,
   setRequestHeaders,
-  updateRequestBodyMode,
+  updateAuth,
+  updateRequestAuthMode,
   updateRequestBody,
+  updateRequestBodyMode,
   updateRequestGraphqlQuery,
   updateRequestGraphqlVariables,
-  updateRequestAuthMode,
-  updateAuth
+  updateRequestMethod
 } from 'providers/ReduxStore/slices/collections';
-import { saveRequest, cancelRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { cancelRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { useTheme } from 'providers/Theme';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import { hasRequestChanges } from 'utils/collections';
+import { isMacOS } from 'utils/common/platform';
 import { getRequestFromCurlCommand } from 'utils/curl';
 import HttpMethodSelector from './HttpMethodSelector';
-import { useTheme } from 'providers/Theme';
-import { IconDeviceFloppy, IconArrowRight, IconCode, IconSquareRoundedX } from '@tabler/icons';
-import SingleLineEditor from 'components/SingleLineEditor';
-import { isMacOS } from 'utils/common/platform';
-import { hasRequestChanges } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
-import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
-import toast from 'react-hot-toast';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
+
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const isMac = isMacOS();
@@ -368,6 +370,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     e.stopPropagation();
     dispatch(cancelRequest(item.cancelTokenUid, item, collection));
   };
+
   return (
     <StyledWrapper className="flex items-center w-full">
       <div className="flex items-center h-full min-w-fit">
@@ -440,6 +443,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           />
         )}
       </div>
+      <PaneToggles item={item} />
       {generateCodeItemModalOpen && (
         <GenerateCodeItem
           collectionUid={collection.uid}

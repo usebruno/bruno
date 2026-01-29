@@ -1,31 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { requestUrlChanged, updateRequestMethod, updateRequestProtoPath } from 'providers/ReduxStore/slices/collections';
-import { saveRequest, generateGrpcurlCommand } from 'providers/ReduxStore/slices/collections/actions';
-import { useTheme } from 'providers/Theme';
-import SingleLineEditor from 'components/SingleLineEditor/index';
-import { isMacOS } from 'utils/common/platform';
-import StyledWrapper from './StyledWrapper';
 import {
-  IconX,
-  IconCheck,
-  IconRefresh,
-  IconDeviceFloppy,
   IconArrowRight,
-  IconCode
+  IconCheck,
+  IconCode,
+  IconDeviceFloppy,
+  IconRefresh,
+  IconX
 } from '@tabler/icons';
+import PaneToggles from 'components/RequestPane/PaneToggles';
+import SingleLineEditor from 'components/SingleLineEditor/index';
+import useProtoFileManagement from 'hooks/useProtoFileManagement/index';
+import useReflectionManagement from 'hooks/useReflectionManagement/index';
+import { debounce } from 'lodash';
+import { requestUrlChanged, updateRequestMethod, updateRequestProtoPath } from 'providers/ReduxStore/slices/collections';
+import { generateGrpcurlCommand, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { useTheme } from 'providers/Theme';
+import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useDispatch, useSelector } from 'react-redux';
+import { getPropertyFromDraftOrRequest } from 'utils/collections';
+import { isMacOS } from 'utils/common/platform';
 import {
   cancelGrpcConnection,
   endGrpcConnection
 } from 'utils/network/index';
 import GrpcurlModal from './GrpcurlModal';
-import { debounce } from 'lodash';
-import { getPropertyFromDraftOrRequest } from 'utils/collections';
-import useReflectionManagement from 'hooks/useReflectionManagement/index';
-import useProtoFileManagement from 'hooks/useProtoFileManagement/index';
 import MethodDropdown from './MethodDropdown';
 import ProtoFileDropdown from './ProtoFileDropdown';
+import StyledWrapper from './StyledWrapper';
 
 const STREAMING_METHOD_TYPES = ['client-streaming', 'server-streaming', 'bidi-streaming'];
 const CLIENT_STREAMING_METHOD_TYPES = ['client-streaming', 'bidi-streaming'];
@@ -425,6 +426,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
             <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={20} />
           </div>
         )}
+        <PaneToggles item={item} />
       </div>
       {isConnectionActive && isStreamingMethod && (
         <div className="connection-status-strip"></div>

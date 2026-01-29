@@ -1,26 +1,27 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import find from 'lodash/find';
-import get from 'lodash/get';
 import classnames from 'classnames';
-import { useSelector, useDispatch } from 'react-redux';
-import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
-import QueryEditor from 'components/RequestPane/QueryEditor';
+import Documentation from 'components/Documentation/index';
+import Assertions from 'components/RequestPane/Assertions';
 import Auth from 'components/RequestPane/Auth';
 import GraphQLVariables from 'components/RequestPane/GraphQLVariables';
+import QueryEditor from 'components/RequestPane/QueryEditor';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
-import Vars from 'components/RequestPane/Vars';
-import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
-import Tests from 'components/RequestPane/Tests';
-import { useTheme } from 'providers/Theme';
-import { updateRequestGraphqlQuery } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import Documentation from 'components/Documentation/index';
-import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
-import HeightBoundContainer from 'ui/HeightBoundContainer';
 import Settings from 'components/RequestPane/Settings';
+import Tests from 'components/RequestPane/Tests';
+import Vars from 'components/RequestPane/Vars';
+import find from 'lodash/find';
+import get from 'lodash/get';
+import { updateRequestGraphqlQuery } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, sendRequest, updateRequestTabOrder } from 'providers/ReduxStore/slices/collections/actions';
+import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { useTheme } from 'providers/Theme';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
+import { getEffectiveTabOrder, sortTabs } from 'utils/tabs';
 import AuthMode from '../Auth/AuthMode/index';
+import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
 
 const TAB_CONFIG = [
   { key: 'query', label: 'Query' },
@@ -89,7 +90,23 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     [dispatch, item.uid]
   );
 
-  const allTabs = useMemo(() => TAB_CONFIG.map(({ key, label }) => ({ key, label })), []);
+  const effectiveTabOrder = useMemo(() => getEffectiveTabOrder(item, collection, preferences), [item, collection, preferences]);
+
+  const allTabs = useMemo(() => {
+    const tabs = TAB_CONFIG.map(({ key, label }) => ({ key, label }));
+    return sortTabs(tabs, effectiveTabOrder);
+  }, [effectiveTabOrder]);
+
+  const handleTabReorder = useCallback(
+    (dragIndex, hoverIndex) => {
+      const newOrder = allTabs.map((t) => t.key);
+      const [moved] = newOrder.splice(dragIndex, 1);
+      newOrder.splice(hoverIndex, 0, moved);
+
+      dispatch(updateRequestTabOrder(collection.uid, item.uid, newOrder));
+    },
+    [allTabs, dispatch, collection.uid, item.uid]
+  );
 
   const tabPanel = useMemo(() => {
     switch (requestPaneTab) {
@@ -151,6 +168,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
         tabs={allTabs}
         activeTab={requestPaneTab}
         onTabSelect={selectTab}
+        onTabReorder={handleTabReorder}
         rightContent={rightContent}
         rightContentRef={rightContent ? schemaActionsRef : null}
       />

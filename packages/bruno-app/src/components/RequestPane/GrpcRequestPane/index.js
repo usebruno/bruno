@@ -1,22 +1,25 @@
-import React, { useMemo, useCallback, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
-import RequestHeaders from 'components/RequestPane/RequestHeaders';
-import GrpcBody from 'components/RequestPane/GrpcBody';
-import GrpcAuth from './GrpcAuth/index';
-import GrpcAuthMode from './GrpcAuth/GrpcAuthMode/index';
-import StatusDot from 'components/StatusDot/index';
-import HeightBoundContainer from 'ui/HeightBoundContainer';
-import find from 'lodash/find';
 import Documentation from 'components/Documentation/index';
-import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
+import GrpcBody from 'components/RequestPane/GrpcBody';
+import RequestHeaders from 'components/RequestPane/RequestHeaders';
+import StatusDot from 'components/StatusDot/index';
+import find from 'lodash/find';
+import { updateRequestTabOrder } from 'providers/ReduxStore/slices/collections/actions';
+import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
+import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
+import { getEffectiveTabOrder, sortTabs } from 'utils/tabs';
+import GrpcAuthMode from './GrpcAuth/GrpcAuthMode/index';
+import GrpcAuth from './GrpcAuth/index';
 import StyledWrapper from './StyledWrapper';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const preferences = useSelector((state) => state.app.preferences);
   const rightContentRef = useRef(null);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const requestPaneTab = focusedTab?.requestPaneTab;
@@ -74,7 +77,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       return null;
     };
 
-    return [
+    const tabs = [
       {
         key: 'body',
         label: 'Message',
@@ -96,7 +99,22 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
       }
     ];
-  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, auth?.mode, docs]);
+
+    const effectiveTabOrder = getEffectiveTabOrder(item, collection, preferences);
+
+    return sortTabs(tabs, effectiveTabOrder);
+  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, auth?.mode, docs, preferences, collection, item.uid]);
+
+  const handleTabReorder = useCallback(
+    (dragIndex, hoverIndex) => {
+      const newOrder = allTabs.map((t) => t.key);
+      const [moved] = newOrder.splice(dragIndex, 1);
+      newOrder.splice(hoverIndex, 0, moved);
+
+      dispatch(updateRequestTabOrder(collection.uid, item.uid, newOrder));
+    },
+    [allTabs, dispatch, collection.uid, item.uid]
+  );
 
   // Initialize tab to 'body' if no tab is currently set
   useEffect(() => {
@@ -127,6 +145,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         tabs={allTabs}
         activeTab={requestPaneTab}
         onTabSelect={selectTab}
+        onTabReorder={handleTabReorder}
         rightContent={rightContent}
         rightContentRef={rightContent ? rightContentRef : null}
       />

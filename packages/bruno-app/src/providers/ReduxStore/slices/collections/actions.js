@@ -1,92 +1,90 @@
+import { extractPromptVariables, parseQueryParams } from '@usebruno/common/utils';
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams, extractPromptVariables } from '@usebruno/common/utils';
-import { REQUEST_TYPES } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
-import path, { normalizePath } from 'utils/common/path';
-import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { insertTaskIntoQueue, savePreferences, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
+import brunoClipboard from 'utils/bruno-clipboard';
 import {
   findCollectionByUid,
   findEnvironmentInCollection,
   findItemInCollection,
   findParentItemInCollection,
-  isItemAFolder,
-  refreshUidsInItem,
-  isItemARequest,
+  flattenItems,
   getAllVariables,
-  transformRequestToSaveToFilesystem,
+  isItemAFolder,
+  isItemARequest,
+  refreshUidsInItem,
   transformCollectionRootToSave,
-  flattenItems
+  transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
+import { REQUEST_TYPES } from 'utils/common/constants';
 import { callIpc } from 'utils/common/ipc';
-import brunoClipboard from 'utils/bruno-clipboard';
+import path, { normalizePath } from 'utils/common/path';
+import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
 
 import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
   createCollection as _createCollection,
   removeCollection as _removeCollection,
+  saveEnvironment as _saveEnvironment,
+  saveRequest as _saveRequest,
   selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
-  updateCollectionMountStatus,
-  moveCollection,
-  workspaceEnvUpdateEvent,
-  requestCancelled,
-  resetRunResults,
-  responseReceived,
-  updateLastAction,
-  setCollectionSecurityConfig,
+  updateRequestTabOrder as _updateRequestTabOrder,
+  updateRunnerConfiguration as _updateRunnerConfiguration,
+  addCollectionVar,
+  addFolderVar,
+  addSaveTransientRequestModal,
+  addTransientDirectory,
+  addVar,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrl,
   initRunRequestEvent,
-  updateRunnerConfiguration as _updateRunnerConfiguration,
-  updateActiveConnections,
-  saveRequest as _saveRequest,
-  saveEnvironment as _saveEnvironment,
+  moveCollection,
+  requestCancelled,
+  resetRunResults,
+  responseReceived,
   saveCollectionDraft,
   saveFolderDraft,
-  addVar,
-  updateVar,
-  addFolderVar,
-  updateFolderVar,
-  addCollectionVar,
+  setCollectionSecurityConfig,
+  updateActiveConnections,
+  updateCollectionMountStatus,
   updateCollectionVar,
-  addTransientDirectory,
-  addSaveTransientRequestModal,
-  updatePathParam
+  updateFolderVar,
+  updateLastAction,
+  updateVar,
+  workspaceEnvUpdateEvent
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
+import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { addTab, closeAllCollectionTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
-import { resolveRequestFilename } from 'utils/common/platform';
-import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
-import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
+import { resolveInheritedAuth } from 'utils/auth';
 import {
-  getGlobalEnvironmentVariables,
+  calculateDraggedItemNewPathname,
   findCollectionByPathname,
   findEnvironmentInCollectionByName,
-  getReorderedItemsInTargetDirectory,
-  resetSequencesInFolder,
+  getGlobalEnvironmentVariables,
   getReorderedItemsInSourceDirectory,
-  calculateDraggedItemNewPathname,
-  transformFolderRootToSave,
+  getReorderedItemsInTargetDirectory,
   getTreePathFromCollectionToItem,
-  mergeHeaders
+  mergeHeaders,
+  transformFolderRootToSave
 } from 'utils/collections/index';
+import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
+import { resolveRequestFilename } from 'utils/common/platform';
 import { sanitizeName } from 'utils/common/regex';
 import { buildPersistedEnvVariables } from 'utils/environments';
-import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
-import { resolveInheritedAuth } from 'utils/auth';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
+import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
 import { updateSettingsSelectedTab } from './index';
-import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
@@ -216,7 +214,7 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
   });
 };
 
-export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
+export const saveCollectionRoot = (collectionUid, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -234,7 +232,9 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
     ipcRenderer
       .invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig)
       .then(() => {
-        toast.success('Collection Settings saved successfully');
+        if (!silent) {
+          toast.success('Collection Settings saved successfully');
+        }
         dispatch(saveCollectionDraft({ collectionUid }));
       })
       .then(resolve)
@@ -2152,23 +2152,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             .then(resolve)
             .catch(reject);
         }
-        case 'pathParam': {
-          const { item } = data;
-          const params = item.draft ? get(item, 'draft.request.params', []) : get(item, 'request.params', []);
-          const pathParam = params.find((p) => p.type === 'path' && p.name === variableName);
 
-          if (pathParam) {
-            const updatedParam = { ...pathParam, value: newValue };
-            dispatch(updatePathParam({
-              pathParam: updatedParam,
-              itemUid: item.uid,
-              collectionUid: collection.uid
-            }));
-          }
-          return dispatch(saveRequest(item.uid, collection.uid, true))
-            .then(resolve)
-            .catch(reject);
-        }
         default:
           return reject(new Error(`Unknown scope type: ${type}`));
       }
@@ -2870,3 +2854,64 @@ export const openCollectionSettings
         resolve();
       });
     };
+export const updateRequestTabOrder = (collectionUid, itemUid, tabOrder) => (dispatch, getState) => {
+  const state = getState();
+  const preferences = state.app.preferences;
+  const scope = preferences.requestTabOrderPersistenceScope || 'global';
+
+  if (scope === 'global') {
+    // We need to know the request type to update the global preferences correctly
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    const item = findItemInCollection(collection, itemUid);
+    if (!item) return;
+
+    let type = 'http';
+    if (item.type === 'graphql-request') type = 'graphql';
+    if (item.type === 'grpc-request') type = 'grpc';
+    if (item.type === 'ws-request') type = 'ws';
+
+    dispatch(
+      savePreferences({
+        ...preferences,
+        requestTabOrder: {
+          ...preferences.requestTabOrder,
+          [type]: tabOrder
+        }
+      })
+    );
+  } else {
+    // Update in collection/folder/request
+    let targetItemUid = null;
+    let effectiveScope = scope;
+
+    if (scope === 'request') {
+      targetItemUid = itemUid;
+    } else if (scope === 'folder') {
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+      const parentFolder = findParentItemInCollection(collection, itemUid);
+      if (parentFolder) {
+        targetItemUid = parentFolder.uid;
+      } else {
+        // Fallback to collection scope if no parent folder (root level request)
+        effectiveScope = 'collection';
+      }
+    }
+
+    dispatch(
+      _updateRequestTabOrder({
+        collectionUid,
+        itemUid: targetItemUid,
+        tabOrder
+      })
+    );
+
+    // Save to filesystem
+    if (effectiveScope === 'request') {
+      dispatch(saveRequest(itemUid, collectionUid, true));
+    } else if (effectiveScope === 'folder') {
+      dispatch(saveFolderRoot(collectionUid, targetItemUid, true));
+    } else if (effectiveScope === 'collection') {
+      dispatch(saveCollectionRoot(collectionUid, true));
+    }
+  }
+};

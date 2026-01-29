@@ -1,41 +1,40 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import find from 'lodash/find';
-import toast from 'react-hot-toast';
-import { useSelector, useDispatch } from 'react-redux';
+import { DocExplorer } from '@usebruno/graphql-docs';
+import CollectionSettings from 'components/CollectionSettings';
 import GraphQLRequestPane from 'components/RequestPane/GraphQLRequestPane';
-import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
+import GrpcQueryUrl from 'components/RequestPane/GrpcQueryUrl/index';
 import GrpcRequestPane from 'components/RequestPane/GrpcRequestPane/index';
+import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
+import QueryUrl from 'components/RequestPane/QueryUrl/index';
 import ResponsePane from 'components/ResponsePane';
 import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
-import { findItemInCollection } from 'utils/collections';
-import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
-import RequestNotFound from './RequestNotFound';
-import QueryUrl from 'components/RequestPane/QueryUrl/index';
-import GrpcQueryUrl from 'components/RequestPane/GrpcQueryUrl/index';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import RunnerResults from 'components/RunnerResults';
 import VariablesEditor from 'components/VariablesEditor';
-import CollectionSettings from 'components/CollectionSettings';
-import { DocExplorer } from '@usebruno/graphql-docs';
+import find from 'lodash/find';
+import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useDispatch, useSelector } from 'react-redux';
+import { findItemInCollection } from 'utils/collections';
+import RequestNotFound from './RequestNotFound';
 
-import StyledWrapper from './StyledWrapper';
-import FolderSettings from 'components/FolderSettings';
-import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
-import { produce } from 'immer';
 import CollectionOverview from 'components/CollectionSettings/Overview';
-import RequestNotLoaded from './RequestNotLoaded';
-import RequestIsLoading from './RequestIsLoading';
-import FolderNotFound from './FolderNotFound';
-import ExampleNotFound from './ExampleNotFound';
-import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
-import WSRequestPane from 'components/RequestPane/WSRequestPane';
-import WSResponsePane from 'components/ResponsePane/WsResponsePane';
-import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
-import ResponseExample from 'components/ResponseExample';
-import WorkspaceHome from 'components/WorkspaceHome';
-import Preferences from 'components/Preferences';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
+import FolderSettings from 'components/FolderSettings';
+import Preferences from 'components/Preferences';
+import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
+import WSRequestPane from 'components/RequestPane/WSRequestPane';
+import ResponseExample from 'components/ResponseExample';
+import WSResponsePane from 'components/ResponsePane/WsResponsePane';
+import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
+import { produce } from 'immer';
+import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
+import ExampleNotFound from './ExampleNotFound';
+import FolderNotFound from './FolderNotFound';
+import RequestIsLoading from './RequestIsLoading';
+import RequestNotLoaded from './RequestNotLoaded';
+import StyledWrapper from './StyledWrapper';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 490;
@@ -323,47 +322,52 @@ const RequestTabPanel = () => {
 
   const requestPaneStyle = isVerticalLayout
     ? {
-        height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
+        height: focusedTab.responsePaneVisible === false ? '100%' : `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
         minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
         width: '100%'
       }
     : {
-        width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
+        width: focusedTab.responsePaneVisible === false ? '100%' : `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
       };
 
   return (
     <StyledWrapper
-      className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${
-        isVerticalLayout ? 'vertical-layout' : ''
+      className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${isVerticalLayout ? 'vertical-layout' : ''
       }`}
     >
       <div className="pt-3 pb-3 px-4">
         {renderQueryUrl()}
       </div>
       <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}>
-        <section className="request-pane">
+        {focusedTab.requestPaneVisible !== false && (
+          <section className={`request-pane ${focusedTab.responsePaneVisible === false ? 'flex-grow' : ''}`}>
+            <div
+              className="px-4 h-full"
+              style={requestPaneStyle}
+            >
+              {renderRequestPane()}
+            </div>
+          </section>
+        )}
+
+        {focusedTab.requestPaneVisible !== false && focusedTab.responsePaneVisible !== false && (
           <div
-            className="px-4 h-full"
-            style={requestPaneStyle}
+            className="dragbar-wrapper"
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              resetPaneBoundaries();
+            }}
+            onMouseDown={handleDragbarMouseDown}
           >
-            {renderRequestPane()}
+            <div className="dragbar-handle" />
           </div>
-        </section>
+        )}
 
-        <div
-          className="dragbar-wrapper"
-          onDoubleClick={(e) => {
-            e.preventDefault();
-            resetPaneBoundaries();
-          }}
-          onMouseDown={handleDragbarMouseDown}
-        >
-          <div className="dragbar-handle" />
-        </div>
-
-        <section className="response-pane flex-grow overflow-x-auto">
-          {renderResponsePane()}
-        </section>
+        {focusedTab.responsePaneVisible !== false && (
+          <section className="response-pane flex-grow overflow-x-auto">
+            {renderResponsePane()}
+          </section>
+        )}
       </section>
 
       {item.type === 'graphql-request' ? (
