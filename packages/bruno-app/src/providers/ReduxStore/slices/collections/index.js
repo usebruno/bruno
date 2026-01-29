@@ -1551,7 +1551,10 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
 
-          item.draft.request.body.file = filter(item.draft.request.body.file, (p) => p.uid !== action.payload.paramUid);
+          item.draft.request.body.file = filter(
+            item.draft.request.body.file,
+            (p) => p.uid !== action.payload.paramUid
+          );
 
           if (item.draft.request.body.file.length > 0) {
             item.draft.request.body.file[0].selected = true;
@@ -3134,7 +3137,8 @@ export const collectionsSlice = createSlice({
         let collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
         const filteredOauth2Credentials = filter(
           collectionOauth2Credentials,
-          (creds) => !(creds.url === url && creds.collectionUid === collectionUid)
+          (creds) =>
+            !(creds.url === url && creds.collectionUid === collectionUid)
         );
         collection.oauth2Credentials = filteredOauth2Credentials;
       }
@@ -3145,7 +3149,8 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       const oauth2Credential = find(
         collection?.oauth2Credentials || [],
-        (creds) => creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId
+        (creds) =>
+          creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId
       );
       return oauth2Credential;
     },

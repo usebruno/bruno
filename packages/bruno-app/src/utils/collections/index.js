@@ -645,21 +645,17 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   }
 
   if (collectionToSave?.brunoConfig?.protobuf?.importPaths) {
-    collectionToSave.brunoConfig.protobuf.importPaths = collectionToSave.brunoConfig.protobuf.importPaths.map(
-      (importPath) => {
-        delete importPath.exists;
-        return importPath;
-      }
-    );
+    collectionToSave.brunoConfig.protobuf.importPaths = collectionToSave.brunoConfig.protobuf.importPaths.map((importPath) => {
+      delete importPath.exists;
+      return importPath;
+    });
   }
 
   if (collectionToSave?.brunoConfig?.protobuf?.protoFiles) {
-    collectionToSave.brunoConfig.protobuf.protoFiles = collectionToSave.brunoConfig.protobuf.protoFiles.map(
-      (protoFile) => {
-        delete protoFile.exists;
-        return protoFile;
-      }
-    );
+    collectionToSave.brunoConfig.protobuf.protoFiles = collectionToSave.brunoConfig.protobuf.protoFiles.map((protoFile) => {
+      delete protoFile.exists;
+      return protoFile;
+    });
   }
 
   copyItems(collection.items, collectionToSave.items);
@@ -837,11 +833,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return (
-    item.hasOwnProperty('request')
-    && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)
-    && !item.items
-  );
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {
@@ -1185,12 +1177,7 @@ export const getAllVariables = (collection, item) => {
   const pathParams = getPathParams(item);
   const { globalEnvironmentVariables = {} } = collection;
 
-  const {
-    processEnvVariables = {},
-    runtimeVariables = {},
-    promptVariables = {},
-    workspaceProcessEnvVariables = {}
-  } = collection;
+  const { processEnvVariables = {}, runtimeVariables = {}, promptVariables = {}, workspaceProcessEnvVariables = {} } = collection;
 
   // Merge workspace and collection processEnvVariables (collection takes priority)
   const mergedProcessEnvVariables = {
@@ -1222,9 +1209,7 @@ export const getAllVariables = (collection, item) => {
 
   const uniqueMaskedVariables = [...new Set([...filteredMaskedEnvVariables, ...filteredMaskedGlobalEnvVariables])];
 
-  const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({
-    oauth2Credentials: collection?.oauth2Credentials
-  });
+  const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
 
   return {
     ...globalEnvironmentVariables,
@@ -1252,9 +1237,7 @@ export const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
 
   // Add collection headers first
-  const collectionHeaders = collection?.draft?.root
-    ? get(collection, 'draft.root.request.headers', [])
-    : get(collection, 'root.request.headers', []);
+  const collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       headers.set(header.name, header);
@@ -1425,15 +1408,15 @@ export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, dragg
     }
   });
   // only return items that have been reordered
-  return itemsWithFixedSequences.filter(
-    (item) => items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
+  return itemsWithFixedSequences.filter((item) =>
+    items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
   );
 };
 
 export const getReorderedItemsInSourceDirectory = ({ items }) => {
   const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
-  return itemsWithFixedSequences.filter(
-    (item) => items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
+  return itemsWithFixedSequences.filter((item) =>
+    items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
   );
 };
 
@@ -1686,7 +1669,7 @@ export const generateUniqueRequestName = async (collection, baseName = 'Untitled
 
   const trim = require('lodash/trim');
   const parentItem = itemUid ? findItemInCollection(collection, itemUid) : null;
-  const parentItems = parentItem ? parentItem.items || [] : collection.items || [];
+  const parentItems = parentItem ? (parentItem.items || []) : (collection.items || []);
   const baseNamePattern = new RegExp(`^${baseName}(\\d+)?$`);
   // Support .bru, .yml, and .yaml file extensions
   const requestExtensions = /\.(bru|yml|yaml)$/i;

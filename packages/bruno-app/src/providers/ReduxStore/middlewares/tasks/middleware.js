@@ -5,14 +5,7 @@ import { createListenerMiddleware } from '@reduxjs/toolkit';
 import { removeTaskFromQueue } from 'providers/ReduxStore/slices/app';
 import { addTab, closeTabs, closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { collectionAddFileEvent, collectionChangeFileEvent } from 'providers/ReduxStore/slices/collections';
-import {
-  findCollectionByUid,
-  findItemInCollectionByPathname,
-  getDefaultRequestPaneTab,
-  findItemInCollectionByItemUid,
-  findItemInCollection,
-  flattenItems
-} from 'utils/collections/index';
+import { findCollectionByUid, findItemInCollectionByPathname, getDefaultRequestPaneTab, findItemInCollectionByItemUid, findItemInCollection, flattenItems } from 'utils/collections/index';
 import { taskTypes } from './utils';
 
 const taskMiddleware = createListenerMiddleware();
@@ -29,6 +22,7 @@ taskMiddleware.startListening({
   effect: (action, listenerApi) => {
     const state = listenerApi.getState();
     const collectionUid = get(action, 'payload.file.meta.collectionUid');
+
     const openRequestTasks = filter(state.app.taskQueue, { type: taskTypes.OPEN_REQUEST });
     each(openRequestTasks, (task) => {
       if (collectionUid === task.collectionUid) {
@@ -48,11 +42,9 @@ taskMiddleware.startListening({
           }
         }
 
-        listenerApi.dispatch(
-          removeTaskFromQueue({
-            taskUid: task.uid
-          })
-        );
+        listenerApi.dispatch(removeTaskFromQueue({
+          taskUid: task.uid
+        }));
       }
     });
   }
@@ -80,15 +72,13 @@ taskMiddleware.startListening({
           if (item && item.examples && item.examples.length > task.exampleIndex) {
             const example = item.examples[task.exampleIndex];
             if (example) {
-              listenerApi.dispatch(
-                addTab({
-                  uid: example.uid,
-                  exampleUid: example.uid,
-                  collectionUid: collection.uid,
-                  type: 'response-example',
-                  itemUid: item.uid
-                })
-              );
+              listenerApi.dispatch(addTab({
+                uid: example.uid,
+                exampleUid: example.uid,
+                collectionUid: collection.uid,
+                type: 'response-example',
+                itemUid: item.uid
+              }));
             }
           }
         }
