@@ -31,7 +31,9 @@ const DraggableTab = ({ id, index, moveTab, children, className, onClick, ...pro
 
       // Determine mouse position
       const clientOffset = monitor.getClientOffset();
-
+      if (!clientOffset) {
+        return;
+      }
       // Get pixels to the left
       const hoverClientX = clientOffset.x - hoverBoundingRect.left;
 

@@ -13,12 +13,12 @@ const PaneToggles = ({ item }) => {
 
   const handleToggleRequestPane = (e) => {
     e.stopPropagation();
-    dispatch(toggleRequestPane({ uid: item.uid }));
+    dispatch(toggleRequestPane({ uid: focusedTab?.uid || item.uid }));
   };
 
   const handleToggleResponsePane = (e) => {
     e.stopPropagation();
-    dispatch(toggleResponsePane({ uid: item.uid }));
+    dispatch(toggleResponsePane({ uid: focusedTab?.uid || item.uid }));
   };
 
   return (

@@ -196,6 +196,13 @@ const ResponsiveTabs = ({
     }),
     []
   );
+  const tabIndexByKey = useMemo(() => {
+    const map = new Map();
+    tabs.forEach((tab, i) => {
+      map.set(tab.key, i);
+    });
+    return map;
+  }, [tabs]);
 
   const setTabRef = useCallback((el, key) => {
     if (el) {
@@ -203,9 +210,12 @@ const ResponsiveTabs = ({
     }
   }, []);
 
-  const renderTab = (tab, index) => {
+  const renderTab = (tab) => {
     const isActive = tab.key === activeTab;
-
+    const index = tabIndexByKey.get(tab.key);
+    if (index === undefined) {
+      return null;
+    }
     return (
       <DraggableTab
         key={tab.key}
@@ -267,7 +277,7 @@ const ResponsiveTabs = ({
         </div>
 
         {/* Visible tabs */}
-        {visibleTabs.map((tab, index) => renderTab(tab, index))}
+        {visibleTabs.map((tab) => renderTab(tab))}
 
         {/* Overflow dropdown */}
         {overflowTabs.length > 0 && (

@@ -172,13 +172,15 @@ export const tabsSlice = createSlice({
     toggleRequestPane: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
       if (tab) {
-        tab.requestPaneVisible = !tab.requestPaneVisible;
+        const current = tab.requestPaneVisible !== false;
+        tab.requestPaneVisible = !current;
       }
     },
     toggleResponsePane: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
       if (tab) {
-        tab.responsePaneVisible = !tab.responsePaneVisible;
+        const current = tab.responsePaneVisible !== false;
+        tab.responsePaneVisible = !current;
       }
     },
     closeTabs: (state, action) => {

@@ -65,8 +65,9 @@ export const getEffectiveTabOrder = (item, collection, preferences) => {
 
   if (scope === 'folder') {
     const parentFolder = findParentItemInCollection(collection, item.uid);
-    if (parentFolder) {
-      return parentFolder.requestTabOrder;
+    const folderOrder = parentFolder?.requestTabOrder;
+    if (folderOrder && folderOrder.length) {
+      return folderOrder;
     }
     return collection.requestTabOrder;
   }

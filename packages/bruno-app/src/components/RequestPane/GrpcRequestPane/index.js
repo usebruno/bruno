@@ -103,7 +103,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
     const effectiveTabOrder = getEffectiveTabOrder(item, collection, preferences);
 
     return sortTabs(tabs, effectiveTabOrder);
-  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, auth?.mode, docs, preferences, collection, item.uid]);
+  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, auth?.mode, docs, preferences, collection, item]);
 
   const handleTabReorder = useCallback(
     (dragIndex, hoverIndex) => {
