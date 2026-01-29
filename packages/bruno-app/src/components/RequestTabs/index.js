@@ -6,6 +6,7 @@ import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
+import { findEnvironmentInCollection } from 'utils/collections';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
@@ -85,6 +86,17 @@ const RequestTabs = () => {
     return null;
   }
 
+  const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+  if (!activeTab) {
+    return <StyledWrapper>Something went wrong!</StyledWrapper>;
+  }
+
+  const activeCollection = find(collections, (c) => c.uid === activeTab.collectionUid);
+  const activeEnvironment = activeCollection
+    ? findEnvironmentInCollection(activeCollection, activeCollection.activeEnvironmentUid)
+    : null;
+  const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
+
   const effectiveSidebarWidth = sidebarCollapsed ? 0 : leftSidebarWidth;
   const maxTablistWidth = screenWidth - effectiveSidebarWidth - 150;
 
@@ -102,9 +114,14 @@ const RequestTabs = () => {
     });
   };
 
+  const getRootClassname = () => {
+    return classnames({
+      'has-chevrons': showChevrons
+    });
+  };
   // Todo: Must support ephemeral requests
   return (
-    <StyledWrapper>
+    <StyledWrapper color={activeEnvironment?.color} className={getRootClassname()}>
       {newRequestModalOpen && (
         <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}
