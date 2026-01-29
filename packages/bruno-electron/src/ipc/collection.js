@@ -84,6 +84,25 @@ const envHasSecrets = (environment = {}) => {
 };
 
 const findCollectionPathByItemPath = (filePath) => {
+  const tmpDir = os.tmpdir();
+  const parts = filePath.split(path.sep);
+  const index = parts.findIndex((part) => part.startsWith('bruno-'));
+
+  if (filePath.startsWith(tmpDir) && index !== -1) {
+    const transientDirPath = parts.slice(0, index + 1).join(path.sep);
+    const metadataPath = path.join(transientDirPath, 'metadata.json');
+    try {
+      const metadataContent = fs.readFileSync(metadataPath, 'utf8');
+      const metadata = JSON.parse(metadataContent);
+      if (metadata.collectionPath) {
+        return metadata.collectionPath;
+      }
+    } catch (error) {
+      return null;
+    }
+    return null;
+  }
+
   const allCollectionPaths = collectionWatcher.getAllWatcherPaths();
 
   // Find the collection path that contains this file
@@ -358,6 +377,52 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const content = await stringifyRequestViaWorker(request, { format });
       await writeFile(pathname, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // save transient request (handles move from temp to permanent location)
+  ipcMain.handle('renderer:save-transient-request', async (event, { sourcePathname, targetDirname, targetFilename, request, format }) => {
+    try {
+      // Validate source exists
+      if (!fs.existsSync(sourcePathname)) {
+        throw new Error(`Source path: ${sourcePathname} does not exist`);
+      }
+
+      // Validate target directory exists
+      if (!fs.existsSync(targetDirname)) {
+        throw new Error(`Target directory: ${targetDirname} does not exist`);
+      }
+
+      // Check if the target directory is inside a collection
+      validatePathIsInsideCollection(targetDirname);
+
+      // Use provided target filename or fall back to source filename
+      const filename = targetFilename || path.basename(sourcePathname);
+      const targetPathname = path.join(targetDirname, filename);
+
+      // Check for filename conflicts and throw error if exists
+      if (fs.existsSync(targetPathname)) {
+        throw new Error(`A file with the name "${filename}" already exists in the target location`);
+      }
+
+      // Step 1: Save the updated content to the transient file
+      syncExampleUidsCache(sourcePathname, request.examples);
+      const content = await stringifyRequestViaWorker(request, { format });
+      await writeFile(sourcePathname, content);
+
+      // Step 2: Read the file content from temp (this is the actual file content)
+      const fileContent = await fs.promises.readFile(sourcePathname, 'utf8');
+
+      // Step 3: Create new file at target location with the content
+      await writeFile(targetPathname, fileContent);
+
+      // Step 4: Delete the old temp file
+      await removePath(sourcePathname);
+
+      // Return the new pathname (file watcher will handle adding to Redux)
+      return { newPathname: targetPathname };
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1607,6 +1672,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   ipcMain.handle('renderer:mount-collection', async (event, { collectionUid, collectionPathname, brunoConfig }) => {
+    let tempDirectoryPath = null;
+    try {
+      tempDirectoryPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-'));
+      const metadata = {
+        collectionPath: collectionPathname
+      };
+      fs.writeFileSync(path.join(tempDirectoryPath, 'metadata.json'), JSON.stringify(metadata));
+    } catch (error) {
+      throw error;
+    }
     const {
       size,
       filesCount,
@@ -1619,6 +1694,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
 
     watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
+
+    // Add watcher for transient directory
+    watcher.addTempDirectoryWatcher(mainWindow, tempDirectoryPath, collectionUid, collectionPathname);
+
+    return tempDirectoryPath;
   });
 
   ipcMain.handle('renderer:show-in-folder', async (event, filePath) => {

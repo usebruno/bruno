@@ -17,11 +17,24 @@ const closeAllCollections = async (page) => {
       await firstCollection.hover();
       await firstCollection.locator('.collection-actions .icon').click();
       await page.locator('.dropdown-item').getByText('Remove').click();
-      // Wait for the remove collection modal to be visible
-      await page.getByTestId('close-collection-modal-title').filter({ hasText: 'Remove Collection' }).waitFor({ state: 'visible' });
-      await page.locator('.bruno-modal-footer .submit').click();
-      // Wait for the remove collection modal to be hidden
-      await page.getByTestId('close-collection-modal-title').filter({ hasText: 'Remove Collection' }).waitFor({ state: 'hidden' });
+
+      // Wait for modal to appear - could be either regular remove or drafts confirmation
+      const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
+      await removeModal.waitFor({ state: 'visible', timeout: 5000 });
+
+      // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
+      const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+
+      if (hasDiscardButton) {
+        // Drafts modal - click "Discard All and Remove"
+        await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+      } else {
+        // Regular modal - click the submit button
+        await page.locator('.bruno-modal-footer .submit').click();
+      }
+
+      // Wait for modal to close
+      await removeModal.waitFor({ state: 'hidden', timeout: 5000 });
     }
 
     // Wait until no collections are left open (check sidebar only)
@@ -140,6 +153,77 @@ const createUntitledRequest = async (
     await expect(page.getByText('New request created!')).toBeVisible({ timeout: 2000 }).catch(() => {
       // Toast might have already disappeared, that's okay
     });
+  });
+};
+
+type CreateTransientRequestOptions = {
+  requestType?: 'HTTP' | 'GraphQL' | 'gRPC' | 'WebSocket';
+};
+
+/**
+ * Create a transient request using the + icon button in the tabs area
+ * Based on the CreateTransientRequest component behavior
+ * @param page - The page object
+ * @param options - Optional settings (requestType)
+ * @returns void
+ */
+const createTransientRequest = async (
+  page: Page,
+  options: CreateTransientRequestOptions = {}
+) => {
+  const { requestType = 'HTTP' } = options;
+
+  await test.step(`Create transient ${requestType} request`, async () => {
+    // Find the + icon button (ActionIcon with aria-label="New Transient Request")
+    const createButton = page.getByRole('button', { name: 'New Transient Request' });
+    await createButton.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Click the + icon to open the dropdown
+    await createButton.click({
+      button: 'right'
+    });
+
+    // Wait for dropdown to be visible
+    await page.locator('.dropdown-item').first().waitFor({ state: 'visible' });
+
+    // Select the request type from dropdown
+    // The dropdown items have both icon and label, we match by the label text
+    await page.locator('.dropdown-item').filter({ hasText: requestType }).click();
+
+    // Wait for the request tab to be active (transient requests show as "Untitled X")
+    await page.locator('.request-tab.active').waitFor({ state: 'visible' });
+    await expect(page.locator('.request-tab.active')).toContainText('Untitled');
+    await page.waitForTimeout(300);
+  });
+};
+
+/**
+ * Fill the URL field in the currently active request
+ * Works with HTTP, GraphQL, gRPC, and WebSocket requests
+ * @param page - The page object
+ * @param url - The URL to fill
+ * @returns void
+ */
+const fillRequestUrl = async (page: Page, url: string) => {
+  await test.step(`Fill request URL: ${url}`, async () => {
+    // HTTP/GraphQL requests use #request-url
+    // gRPC/WebSocket don't have a specific ID, so we need to find the CodeMirror in the active request pane
+    const httpGraphqlUrl = page.locator('#request-url .CodeMirror');
+    const grpcWsUrl = page.locator('.input-container .CodeMirror').first();
+
+    // Try HTTP/GraphQL selector first
+    const isHttpOrGraphql = await httpGraphqlUrl.isVisible().catch(() => false);
+
+    if (isHttpOrGraphql) {
+      await httpGraphqlUrl.click();
+      await page.locator('#request-url textarea').fill(url);
+    } else {
+      // Fall back to generic selector for gRPC/WebSocket
+      await grpcWsUrl.click();
+      await page.locator('.input-container textarea').first().fill(url);
+    }
+
+    await page.waitForTimeout(200);
   });
 };
 
@@ -293,10 +377,23 @@ const removeCollection = async (page: Page, collectionName: string) => {
     await collectionRow.locator('.collection-actions .icon').click();
     await locators.dropdown.item('Remove').click();
 
-    // Wait for and confirm modal
-    await page.getByTestId('close-collection-modal-title').filter({ hasText: 'Remove Collection' }).waitFor({ state: 'visible' });
-    await locators.modal.button('Remove').click();
-    await page.getByTestId('close-collection-modal-title').filter({ hasText: 'Remove Collection' }).waitFor({ state: 'hidden' });
+    // Wait for modal to appear - could be either regular remove or drafts confirmation
+    const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
+    await removeModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
+    const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+
+    if (hasDiscardButton) {
+      // Drafts modal - click "Discard All and Remove"
+      await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+    } else {
+      // Regular modal - click Remove button
+      await locators.modal.button('Remove').click();
+    }
+
+    // Wait for modal to close
+    await removeModal.waitFor({ state: 'hidden', timeout: 5000 });
 
     // Verify collection is removed
     await expect(
@@ -864,6 +961,8 @@ export {
   createCollection,
   createRequest,
   createUntitledRequest,
+  createTransientRequest,
+  fillRequestUrl,
   deleteRequest,
   importCollection,
   removeCollection,
@@ -892,4 +991,4 @@ export {
   saveRequest
 };
 
-export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, AssertionInput };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

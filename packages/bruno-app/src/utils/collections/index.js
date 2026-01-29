@@ -1704,3 +1704,7 @@ export const generateUniqueRequestName = async (collection, baseName = 'Untitled
 
   return `${baseName}${nextNumber}`;
 };
+
+export const isItemTransientRequest = (item) => {
+  return isItemARequest(item) && item?.isTransient;
+};
