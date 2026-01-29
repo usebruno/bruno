@@ -1,10 +1,73 @@
 const parseUrl = require('url').parse;
 const https = require('node:https');
+const crypto = require('node:crypto');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
+
+/**
+ * Agent cache for SSL session reuse.
+ * Agents are cached by their configuration to enable TLS session resumption,
+ * which significantly reduces SSL handshake time for repeated requests.
+ */
+const agentCache = new Map();
+const MAX_AGENT_CACHE_SIZE = 100;
+
+/**
+ * Generate a cache key from agent options.
+ * Uses a hash of the serialized options to create a compact key.
+ */
+function getAgentCacheKey(options, proxyUri = null) {
+  // Extract the TLS-relevant options for the cache key
+  const keyData = {
+    proxyUri,
+    rejectUnauthorized: options.rejectUnauthorized,
+    // Hash certificates and passphrase instead of including full content
+    ca: options.ca ? crypto.createHash('md5').update(String(options.ca)).digest('hex') : null,
+    cert: options.cert ? crypto.createHash('md5').update(String(options.cert)).digest('hex') : null,
+    key: options.key ? crypto.createHash('md5').update(String(options.key)).digest('hex') : null,
+    pfx: options.pfx ? crypto.createHash('md5').update(String(options.pfx)).digest('hex') : null,
+    passphrase: options.passphrase ? crypto.createHash('md5').update(String(options.passphrase)).digest('hex') : null,
+    minVersion: options.minVersion,
+    secureProtocol: options.secureProtocol
+  };
+  return JSON.stringify(keyData);
+}
+
+/**
+ * Get or create a cached agent.
+ * Reuses existing agents to enable SSL session caching.
+ * Uses LRU-style eviction when cache exceeds MAX_AGENT_CACHE_SIZE.
+ */
+function getOrCreateAgent(AgentClass, options, proxyUri = null) {
+  const cacheKey = getAgentCacheKey(options, proxyUri);
+
+  if (agentCache.has(cacheKey)) {
+    // Move to end for LRU (delete and re-add)
+    const agent = agentCache.get(cacheKey);
+    agentCache.delete(cacheKey);
+    agentCache.set(cacheKey, agent);
+    return agent;
+  }
+
+  let agent;
+  if (proxyUri) {
+    agent = new AgentClass(proxyUri, options);
+  } else {
+    agent = new AgentClass(options);
+  }
+
+  // Evict oldest entry if cache is full
+  if (agentCache.size >= MAX_AGENT_CACHE_SIZE) {
+    const oldestKey = agentCache.keys().next().value;
+    agentCache.delete(oldestKey);
+  }
+
+  agentCache.set(cacheKey, agent);
+  return agent;
+}
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -331,12 +394,19 @@ function setupProxyAgents({
     secureProtocol: undefined,
     // Allow Node.js to choose the protocol
     minVersion: 'TLSv1',
-    rejectUnauthorized: httpsAgentRequestFields.rejectUnauthorized !== undefined ? httpsAgentRequestFields.rejectUnauthorized : true
-  };
-
-  const httpProxyAgentOptions = {
+    rejectUnauthorized: httpsAgentRequestFields.rejectUnauthorized !== undefined ? httpsAgentRequestFields.rejectUnauthorized : true,
+    // Enable keepAlive for connection reuse
     keepAlive: true
   };
+
+  // Log SSL validation status to timeline
+  if (timeline) {
+    timeline.push({
+      timestamp: new Date(),
+      type: 'info',
+      message: `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`
+    });
+  }
 
   if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(requestConfig.url, get(proxyConfig, 'bypassProxy', ''));
@@ -358,23 +428,26 @@ function setupProxyAgents({
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
 
+      if (timeline) {
+        timeline.push({
+          timestamp: new Date(),
+          type: 'info',
+          message: `Using proxy: ${proxyProtocol}://${proxyHostname}${uriPort}`
+        });
+      }
+
       if (socksEnabled) {
-        const TimelineSocksProxyAgent = createTimelineAgentClass(SocksProxyAgent);
-        requestConfig.httpAgent = new TimelineSocksProxyAgent({ proxy: proxyUri }, timeline);
-        requestConfig.httpsAgent = new TimelineSocksProxyAgent({ proxy: proxyUri, ...tlsOptions }, timeline);
+        // Use cached agents for SSL session reuse
+        requestConfig.httpAgent = getOrCreateAgent(SocksProxyAgent, { keepAlive: true }, proxyUri);
+        requestConfig.httpsAgent = getOrCreateAgent(SocksProxyAgent, tlsOptions, proxyUri);
       } else {
-        const TimelineHttpProxyAgent = createTimelineHttpAgentClass(HttpProxyAgent);
-        const TimelineHttpsProxyAgent = createTimelineAgentClass(PatchedHttpsProxyAgent);
-        requestConfig.httpAgent = new TimelineHttpProxyAgent({ proxy: proxyUri, httpProxyAgentOptions }, timeline);
-        requestConfig.httpsAgent = new TimelineHttpsProxyAgent(
-          { proxy: proxyUri, ...tlsOptions },
-          timeline
-        );
+        // Use cached agents for SSL session reuse
+        requestConfig.httpAgent = getOrCreateAgent(HttpProxyAgent, { keepAlive: true }, proxyUri);
+        requestConfig.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, proxyUri);
       }
     } else {
-      // If proxy should not be used, set default HTTPS agent
-      const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
-      requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
+      // If proxy should not be used, use cached default HTTPS agent
+      requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
     }
   } else if (proxyMode === 'system') {
     const { http_proxy, https_proxy, no_proxy } = proxyConfig || {};
@@ -385,8 +458,7 @@ function setupProxyAgents({
       try {
         if (http_proxy?.length && !isHttpsRequest) {
           new URL(http_proxy);
-          const TimelineHttpProxyAgent = createTimelineHttpAgentClass(HttpProxyAgent);
-          requestConfig.httpAgent = new TimelineHttpProxyAgent({ proxy: http_proxy, httpProxyAgentOptions }, timeline);
+          requestConfig.httpAgent = getOrCreateAgent(HttpProxyAgent, { keepAlive: true }, http_proxy);
         }
       } catch (error) {
         throw new Error(`Invalid system http_proxy "${http_proxy}": ${error.message}`);
@@ -394,30 +466,47 @@ function setupProxyAgents({
       try {
         if (https_proxy?.length && isHttpsRequest) {
           new URL(https_proxy);
-          const TimelineHttpsProxyAgent = createTimelineAgentClass(PatchedHttpsProxyAgent);
-          requestConfig.httpsAgent = new TimelineHttpsProxyAgent(
-            { proxy: https_proxy, ...tlsOptions },
-            timeline
-          );
+          if (timeline) {
+            timeline.push({
+              timestamp: new Date(),
+              type: 'info',
+              message: `Using system proxy: ${https_proxy}`
+            });
+          }
+          requestConfig.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, https_proxy);
         } else {
-          const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
-          requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
+          requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
         }
       } catch (error) {
         throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
       }
     } else {
-      const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
-      requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
+      requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
     }
   } else {
-    const TimelineHttpsAgent = createTimelineAgentClass(https.Agent);
-    requestConfig.httpsAgent = new TimelineHttpsAgent(tlsOptions, timeline);
+    // No proxy - use cached HTTPS agent for SSL session reuse
+    requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
   }
+}
+
+/**
+ * Clear the agent cache. Useful for testing or when SSL configuration changes.
+ */
+function clearAgentCache() {
+  agentCache.clear();
+}
+
+/**
+ * Get the current size of the agent cache.
+ */
+function getAgentCacheSize() {
+  return agentCache.size;
 }
 
 module.exports = {
   shouldUseProxy,
   PatchedHttpsProxyAgent,
-  setupProxyAgents
+  setupProxyAgents,
+  clearAgentCache,
+  getAgentCacheSize
 };
