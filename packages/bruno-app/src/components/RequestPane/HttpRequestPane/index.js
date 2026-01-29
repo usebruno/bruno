@@ -18,7 +18,6 @@ import React, { useCallback, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import { findParentItemInCollection } from 'utils/collections';
 import { getEffectiveTabOrder, sortTabs } from 'utils/tabs';
 import AuthMode from '../Auth/AuthMode/index';
 
@@ -108,14 +107,7 @@ const HttpRequestPane = ({ item, collection }) => {
     };
   }, [activeCounts, body.mode, auth.mode, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, tags]);
 
-  const effectiveTabOrder = useMemo(() => {
-    const scope = preferences.requestTabOrderPersistenceScope || 'global';
-    if (scope === 'folder') {
-      const parentFolder = findParentItemInCollection(collection, item.uid);
-      return parentFolder?.requestTabOrder;
-    }
-    return getEffectiveTabOrder(item, collection, preferences);
-  }, [item, collection, preferences]);
+  const effectiveTabOrder = useMemo(() => getEffectiveTabOrder(item, collection, preferences), [item, collection, preferences]);
 
   const allTabs = useMemo(() => {
     const tabs = TAB_CONFIG.map(({ key, label }) => ({ key, label, indicator: indicators[key] }));

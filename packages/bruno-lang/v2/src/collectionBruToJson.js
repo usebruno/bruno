@@ -198,7 +198,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   list(_1, _2, _3, listitems, _4, _5, _6, _7) {
-    return listitems.ast.flat();
+    return (listitems.ast ?? []).flat();
   },
   listitems(listitem, _1, rest) {
     return [listitem.ast, ...rest.ast];

@@ -19,7 +19,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import { findParentItemInCollection } from 'utils/collections';
 import { getEffectiveTabOrder, sortTabs } from 'utils/tabs';
 import AuthMode from '../Auth/AuthMode/index';
 import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
@@ -91,14 +90,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     [dispatch, item.uid]
   );
 
-  const effectiveTabOrder = useMemo(() => {
-    const scope = preferences.requestTabOrderPersistenceScope || 'global';
-    if (scope === 'folder') {
-      const parentFolder = findParentItemInCollection(collection, item.uid);
-      return parentFolder?.requestTabOrder;
-    }
-    return getEffectiveTabOrder(item, collection, preferences);
-  }, [item, collection, preferences]);
+  const effectiveTabOrder = useMemo(() => getEffectiveTabOrder(item, collection, preferences), [item, collection, preferences]);
 
   const allTabs = useMemo(() => {
     const tabs = TAB_CONFIG.map(({ key, label }) => ({ key, label }));

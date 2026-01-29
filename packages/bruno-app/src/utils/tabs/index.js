@@ -1,4 +1,5 @@
 import find from 'lodash/find';
+import { findParentItemInCollection } from '../collections';
 
 export const isItemARequest = (item) => {
   return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type);
@@ -61,8 +62,13 @@ export const getEffectiveTabOrder = (item, collection, preferences) => {
   if (scope === 'request') {
     return item.requestTabOrder;
   }
+
   if (scope === 'folder') {
-    return item.requestTabOrder;
+    const parentFolder = findParentItemInCollection(collection, item.uid);
+    if (parentFolder) {
+      return parentFolder.requestTabOrder;
+    }
+    return collection.requestTabOrder;
   }
 
   if (scope === 'collection') {
