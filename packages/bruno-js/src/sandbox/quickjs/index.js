@@ -89,17 +89,6 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   }
 };
 
-/**
- * Execute a script asynchronously in a QuickJS VM
- * @param {Object} options - Execution options
- * @param {string} options.script - The script to execute
- * @param {Object} options.context - Context object with bru, req, res, etc.
- * @param {string} options.collectionPath - Path to the collection
- * @param {boolean} options.persistVm - If true, VM persists and cleanup function is returned.
- *                                      Used for hooks that need to be called later.
- *                                      If false (default), VM is disposed immediately.
- * @returns {Promise<Object|undefined>} Returns { cleanup } if persistVm=true, undefined otherwise
- */
 const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext, collectionPath }) => {
   if (!externalScript?.length || typeof externalScript !== 'string') {
     return externalScript;
@@ -107,7 +96,6 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
   externalScript = externalScript?.trim();
 
   try {
-    // Create new WASM module each time (no memoization)
     const module = await newQuickJSWASMModule();
     const vm = module.newContext();
 
@@ -193,6 +181,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     promiseHandle.dispose();
     const resolvedHandle = vm.unwrapResult(resolvedResult);
     resolvedHandle.dispose();
+    // vm.dispose();
     return;
   } catch (error) {
     console.error('Error executing the script!', error);

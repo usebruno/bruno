@@ -158,8 +158,7 @@ class HooksRuntime {
     const result = await executeQuickJsVmAsync({
       script: hooksFile,
       context: context,
-      collectionPath,
-      persistVm: true // Keep VM alive for hook handler calls
+      collectionPath
     });
 
     // Register VM cleanup with HookManager so it's disposed when HookManager.dispose() is called
