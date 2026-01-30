@@ -173,6 +173,13 @@ const runSingleRequest = async function (
     // Build certsAndProxyConfig for bru.sendRequest
     const cliOptions = getOptions();
     const systemProxyConfig = await getSystemProxy();
+    const sendRequestInterpolationOptions = {
+      envVars: envVariables,
+      runtimeVariables,
+      processEnvVars
+    };
+    const rawClientCertificates = get(brunoConfig, 'clientCertificates');
+    const rawProxyConfig = get(brunoConfig, 'proxy', {});
     const certsAndProxyConfig = {
       collectionPath,
       options: {
@@ -182,8 +189,8 @@ const runSingleRequest = async function (
         customCaCertificateFilePath: cliOptions['cacert'],
         shouldKeepDefaultCaCertificates: !cliOptions['ignoreTruststore']
       },
-      clientCertificates: get(brunoConfig, 'clientCertificates'),
-      collectionLevelProxy: transformProxyConfig(get(brunoConfig, 'proxy', {})),
+      clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
+      collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
       systemProxyConfig
     };
 

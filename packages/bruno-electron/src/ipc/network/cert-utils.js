@@ -5,7 +5,7 @@ const { getCACertificates, getSystemProxy } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { getCachedSystemProxy } = require('../../store/system-proxy');
-const { interpolateString } = require('./interpolate-string');
+const { interpolateString, interpolateObject } = require('./interpolate-string');
 
 /**
  * Gets certificates and proxy configuration for a request
@@ -199,36 +199,13 @@ const buildCertsAndProxyConfig = async ({
 
   // Get client certificates from bruno config and interpolate
   const rawClientCertificates = get(brunoConfig, 'clientCertificates');
-  const clientCertificates = rawClientCertificates ? {
-    ...rawClientCertificates,
-    certs: (rawClientCertificates.certs || []).map((cert) => ({
-      ...cert,
-      domain: interpolateString(cert.domain, interpolationOptions),
-      certFilePath: interpolateString(cert.certFilePath, interpolationOptions),
-      keyFilePath: interpolateString(cert.keyFilePath, interpolationOptions),
-      pfxFilePath: interpolateString(cert.pfxFilePath, interpolationOptions),
-      passphrase: interpolateString(cert.passphrase, interpolationOptions)
-    }))
-  } : undefined;
+  const clientCertificates = rawClientCertificates
+    ? interpolateObject(rawClientCertificates, interpolationOptions)
+    : undefined;
 
   // Get proxy config from bruno config and interpolate
   const collectionProxyConfig = get(brunoConfig, 'proxy', {});
-  const interpolatedCollectionProxyConfig = {
-    ...collectionProxyConfig,
-    config: collectionProxyConfig.config ? {
-      ...collectionProxyConfig.config,
-      hostname: interpolateString(collectionProxyConfig.config.hostname, interpolationOptions),
-      port: interpolateString(collectionProxyConfig.config.port, interpolationOptions),
-      bypassProxy: interpolateString(collectionProxyConfig.config.bypassProxy, interpolationOptions),
-      auth: collectionProxyConfig.config.auth ? {
-        username: interpolateString(collectionProxyConfig.config.auth.username, interpolationOptions),
-        password: interpolateString(collectionProxyConfig.config.auth.password, interpolationOptions)
-      } : undefined
-    } : undefined
-  };
-
-  // Transform to the format expected by getHttpHttpsAgents
-  const collectionLevelProxy = interpolatedCollectionProxyConfig;
+  const collectionLevelProxy = interpolateObject(collectionProxyConfig, interpolationOptions);
 
   // Get system proxy config
   const systemProxyConfig = await getSystemProxy();
