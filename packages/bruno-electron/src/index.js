@@ -171,6 +171,12 @@ app.on('ready', async () => {
     }
   }
 
+  // Initialize system proxy cache early (non-blocking)
+  const { initializeSystemProxy } = require('./store/system-proxy');
+  initializeSystemProxy().catch((err) => {
+    console.warn('Failed to initialize system proxy cache:', err);
+  });
+
   Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
 

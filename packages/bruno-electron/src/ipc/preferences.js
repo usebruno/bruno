@@ -1,7 +1,7 @@
 const { ipcMain, nativeTheme } = require('electron');
 const { getPreferences, savePreferences } = require('../store/preferences');
 const { globalEnvironmentsStore } = require('../store/global-environments');
-const { getSystemProxy } = require('@usebruno/requests');
+const { getCachedSystemProxy, refreshSystemProxy } = require('../store/system-proxy');
 
 const registerPreferencesIpc = (mainWindow) => {
   ipcMain.handle('renderer:ready', async (event) => {
@@ -40,8 +40,17 @@ const registerPreferencesIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:get-system-proxy-variables', async () => {
-    const systemProxyConfig = await getSystemProxy();
-    return systemProxyConfig;
+    // Return cached value (initialized at app startup)
+    const cachedProxy = getCachedSystemProxy();
+    if (cachedProxy) {
+      return cachedProxy;
+    }
+    // Fallback: refresh if cache is empty (shouldn't happen normally)
+    return await refreshSystemProxy();
+  });
+
+  ipcMain.handle('renderer:refresh-system-proxy', async () => {
+    return await refreshSystemProxy();
   });
 };
 

@@ -15,7 +15,6 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
-const { getSystemProxy } = require('@usebruno/requests');
 const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
@@ -241,6 +240,7 @@ const runSingleRequest = async function (
     const options = getOptions();
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
+    const cachedSystemProxy = get(options, 'cachedSystemProxy', null);
     const httpsAgentRequestFields = {};
 
     if (insecure) {
@@ -310,10 +310,11 @@ const runSingleRequest = async function (
       proxyMode = 'on';
     } else if (!collectionProxyDisabled && collectionProxyInherit) {
       // Inherit from system proxy
-      const systemProxy = await getSystemProxy();
-      const { http_proxy, https_proxy } = systemProxy;
-      if (http_proxy?.length || https_proxy?.length) {
-        proxyMode = 'system';
+      if (cachedSystemProxy) {
+        const { http_proxy, https_proxy } = cachedSystemProxy;
+        if (http_proxy?.length || https_proxy?.length) {
+          proxyMode = 'system';
+        }
       }
       // else: no system proxy available, proxyMode stays 'off'
     }
@@ -357,8 +358,7 @@ const runSingleRequest = async function (
       }
     } else if (proxyMode === 'system') {
       try {
-        const systemProxy = await getSystemProxy();
-        const { http_proxy, https_proxy, no_proxy } = systemProxy;
+        const { http_proxy, https_proxy, no_proxy } = cachedSystemProxy || {};
         const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
         const parsedUrl = new URL(request.url);
         const isHttpsRequest = parsedUrl.protocol === 'https:';
@@ -505,7 +505,7 @@ const runSingleRequest = async function (
           const proxyConfig = get(brunoConfig, 'proxy');
           const interpolatedClientCertificates = clientCertificates ? interpolateObject(clientCertificates, oauth2InterpolationOptions) : undefined;
           const interpolatedProxyConfig = proxyConfig ? interpolateObject(proxyConfig, oauth2InterpolationOptions) : undefined;
-          const systemProxyConfig = await getSystemProxy();
+          const systemProxyConfig = cachedSystemProxy;
 
           const { httpAgent: oauth2HttpAgent, httpsAgent: oauth2HttpsAgent } = await getHttpHttpsAgents({
             requestUrl: oauth2RequestUrl,

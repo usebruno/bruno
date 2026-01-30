@@ -248,4 +248,16 @@ export const getSystemProxyVariables = () => (dispatch, getState) => {
   });
 };
 
+export const refreshSystemProxy = () => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:refresh-system-proxy')
+      .then((variables) => {
+        dispatch(updateSystemProxyVariables(variables));
+        return variables;
+      })
+      .then(resolve).catch(reject);
+  });
+};
+
 export default appSlice.reducer;
