@@ -96,7 +96,6 @@ export default class CodeEditor extends React.Component {
         },
         'Cmd-F': (cm) => {
           this.setState({ searchBarVisible: true, searchFocusTrigger: new Date() });
-          console.log('Searching...');
         },
         'Ctrl-F': (cm) => {
           this.setState({ searchBarVisible: true, searchFocusTrigger: new Date() });
