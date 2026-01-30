@@ -124,7 +124,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
       if (brunoConfig.clientCertificates?.certs?.length) {
         oc.config.clientCertificates = brunoConfig.clientCertificates.certs
           .map((cert: any): ClientCertificate | null => {
-            if (cert.type === 'pem') {
+            if (cert.type === 'cert') {
               const pemCert: PemCertificate = {
                 domain: cert.domain,
                 type: 'pem',
@@ -133,7 +133,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
                 ...(cert.passphrase && { passphrase: cert.passphrase })
               };
               return pemCert;
-            } else if (cert.type === 'pkcs12') {
+            } else if (cert.type === 'pfx') {
               const pkcs12Cert: Pkcs12Certificate = {
                 domain: cert.domain,
                 type: 'pkcs12',
