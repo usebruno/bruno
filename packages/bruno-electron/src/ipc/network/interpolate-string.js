@@ -1,7 +1,7 @@
 const { forOwn, cloneDeep } = require('lodash');
-const { interpolate } = require('@usebruno/common');
+const { interpolate, interpolateObject: interpolateObjectCommon } = require('@usebruno/common');
 
-const interpolateString = (str, {
+const buildCombinedVars = ({
   globalEnvironmentVariables,
   collectionVariables,
   envVars,
@@ -11,10 +11,6 @@ const interpolateString = (str, {
   processEnvVars,
   promptVariables
 }) => {
-  if (!str || !str.length || typeof str !== 'string') {
-    return str;
-  }
-
   processEnvVars = processEnvVars || {};
   runtimeVariables = runtimeVariables || {};
   globalEnvironmentVariables = globalEnvironmentVariables || {};
@@ -38,8 +34,7 @@ const interpolateString = (str, {
     });
   });
 
-  // runtimeVariables take precedence over envVars
-  const combinedVars = {
+  return {
     ...globalEnvironmentVariables,
     ...collectionVariables,
     ...envVars,
@@ -53,10 +48,26 @@ const interpolateString = (str, {
       }
     }
   };
+};
 
+const interpolateString = (str, interpolationOptions) => {
+  if (!str || !str.length || typeof str !== 'string') {
+    return str;
+  }
+
+  const combinedVars = buildCombinedVars(interpolationOptions);
   return interpolate(str, combinedVars);
 };
 
+/**
+ * Recursively interpolates all string values in an object
+ */
+const interpolateObject = (obj, interpolationOptions) => {
+  const combinedVars = buildCombinedVars(interpolationOptions);
+  return interpolateObjectCommon(obj, combinedVars);
+};
+
 module.exports = {
-  interpolateString
+  interpolateString,
+  interpolateObject
 };
