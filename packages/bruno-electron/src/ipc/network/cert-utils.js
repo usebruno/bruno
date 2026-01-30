@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('path');
 const { get } = require('lodash');
-const { getCACertificates, getSystemProxy, transformProxyConfig } = require('@usebruno/requests');
+const { getCACertificates, getSystemProxy } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { getCachedSystemProxy } = require('../../store/system-proxy');
@@ -162,9 +162,31 @@ const getCertsAndProxyConfig = async ({
 const buildCertsAndProxyConfig = async ({
   collectionUid,
   collection,
-  collectionPath
+  collectionPath,
+  envVars,
+  runtimeVariables,
+  processEnvVars,
+  request
 }) => {
   const brunoConfig = getBrunoConfig(collectionUid, collection);
+
+  // Build interpolation options (same pattern as getCertsAndProxyConfig)
+  const globalEnvironmentVariables = collection.globalEnvironmentVariables || {};
+  const { promptVariables } = collection;
+  const collectionVariables = request?.collectionVariables || {};
+  const folderVariables = request?.folderVariables || {};
+  const requestVariables = request?.requestVariables || {};
+
+  const interpolationOptions = {
+    globalEnvironmentVariables,
+    collectionVariables,
+    envVars,
+    folderVariables,
+    requestVariables,
+    runtimeVariables,
+    promptVariables,
+    processEnvVars
+  };
 
   // Build options for getHttpHttpsAgents
   const options = {
@@ -175,14 +197,38 @@ const buildCertsAndProxyConfig = async ({
     shouldKeepDefaultCaCertificates: preferencesUtil.shouldKeepDefaultCaCertificates()
   };
 
-  // Get client certificates from bruno config
-  const clientCertificates = get(brunoConfig, 'clientCertificates');
+  // Get client certificates from bruno config and interpolate
+  const rawClientCertificates = get(brunoConfig, 'clientCertificates');
+  const clientCertificates = rawClientCertificates ? {
+    ...rawClientCertificates,
+    certs: (rawClientCertificates.certs || []).map((cert) => ({
+      ...cert,
+      domain: interpolateString(cert.domain, interpolationOptions),
+      certFilePath: interpolateString(cert.certFilePath, interpolationOptions),
+      keyFilePath: interpolateString(cert.keyFilePath, interpolationOptions),
+      pfxFilePath: interpolateString(cert.pfxFilePath, interpolationOptions),
+      passphrase: interpolateString(cert.passphrase, interpolationOptions)
+    }))
+  } : undefined;
 
-  // Get proxy config from bruno config
+  // Get proxy config from bruno config and interpolate
   const collectionProxyConfig = get(brunoConfig, 'proxy', {});
+  const interpolatedCollectionProxyConfig = {
+    ...collectionProxyConfig,
+    config: collectionProxyConfig.config ? {
+      ...collectionProxyConfig.config,
+      hostname: interpolateString(collectionProxyConfig.config.hostname, interpolationOptions),
+      port: interpolateString(collectionProxyConfig.config.port, interpolationOptions),
+      bypassProxy: interpolateString(collectionProxyConfig.config.bypassProxy, interpolationOptions),
+      auth: collectionProxyConfig.config.auth ? {
+        username: interpolateString(collectionProxyConfig.config.auth.username, interpolationOptions),
+        password: interpolateString(collectionProxyConfig.config.auth.password, interpolationOptions)
+      } : undefined
+    } : undefined
+  };
 
   // Transform to the format expected by getHttpHttpsAgents
-  const collectionLevelProxy = transformProxyConfig(collectionProxyConfig);
+  const collectionLevelProxy = interpolatedCollectionProxyConfig;
 
   // Get system proxy config
   const systemProxyConfig = await getSystemProxy();

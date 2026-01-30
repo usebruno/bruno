@@ -684,7 +684,11 @@ const registerNetworkIpc = (mainWindow) => {
       const certsAndProxyConfig = await buildCertsAndProxyConfig({
         collectionUid,
         collection,
-        collectionPath
+        collectionPath,
+        envVars,
+        runtimeVariables,
+        processEnvVars,
+        request
       });
 
       // Add certsAndProxyConfig to request object for bru.sendRequest
@@ -1302,7 +1306,11 @@ const registerNetworkIpc = (mainWindow) => {
             const certsAndProxyConfig = await buildCertsAndProxyConfig({
               collectionUid,
               collection,
-              collectionPath
+              collectionPath,
+              envVars,
+              runtimeVariables,
+              processEnvVars,
+              request
             });
 
             // Add certsAndProxyConfig to request object for bru.sendRequest
