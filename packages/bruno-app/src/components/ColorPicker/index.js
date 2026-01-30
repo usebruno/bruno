@@ -3,6 +3,7 @@ import { IconBan, IconBrush } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import ColorBadge from 'components/ColorBadge';
 import StyledWrapper from './StyledWrapper';
+import { parseToRgb, toColorString } from 'polished';
 
 const PRESET_COLORS = [
   '#CE4F3B',
@@ -15,19 +16,20 @@ const PRESET_COLORS = [
 
 const GRADIENT_COLORS = ['#D85D43', '#F4BB74', '#61DCB1', '#7EBDF2', '#D48ADE', '#B491E5'];
 
+/**
+ * @param {string} hex
+ * @returns {red:string,green:string,blue:string}
+ */
 const hexToRgb = (hex) => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      }
-    : { r: 0, g: 0, b: 0 };
+  try {
+    return parseToRgb(hex);
+  } catch (err) {
+    return { red: 0, green: 0, blue: 0 };
+  }
 };
 
 const rgbToHex = (r, g, b) => {
-  return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+  return toColorString({ red: Math.round(r), green: Math.round(g), blue: Math.round(b) });
 };
 
 const interpolateColor = (position) => {
@@ -43,9 +45,9 @@ const interpolateColor = (position) => {
   const color1 = hexToRgb(GRADIENT_COLORS[index]);
   const color2 = hexToRgb(GRADIENT_COLORS[index + 1]);
 
-  const r = color1.r + (color2.r - color1.r) * fraction;
-  const g = color1.g + (color2.g - color1.g) * fraction;
-  const b = color1.b + (color2.b - color1.b) * fraction;
+  const r = color1.red + (color2.red - color1.red) * fraction;
+  const g = color1.green + (color2.green - color1.green) * fraction;
+  const b = color1.blue + (color2.blue - color1.blue) * fraction;
 
   return rgbToHex(r, g, b);
 };
@@ -59,7 +61,7 @@ const findClosestPosition = (hex) => {
   for (let pos = 0; pos <= 100; pos++) {
     const color = hexToRgb(interpolateColor(pos));
     const distance = Math.sqrt(
-      Math.pow(target.r - color.r, 2) + Math.pow(target.g - color.g, 2) + Math.pow(target.b - color.b, 2)
+      Math.pow(target.red - color.red, 2) + Math.pow(target.green - color.green, 2) + Math.pow(target.blue - color.blue, 2)
     );
     if (distance < minDistance) {
       minDistance = distance;
@@ -114,6 +116,8 @@ const ColorPicker = ({ color, onChange, icon }) => {
       <ColorPickerIcon color={color} />
     </div>
   );
+
+  console.log({ customColor });
 
   const colorPickerContent = (
     <StyledWrapper>
