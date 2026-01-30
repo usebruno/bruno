@@ -93,47 +93,43 @@ const Beta = ({ close }) => {
 
   return (
     <StyledWrapper>
-      <div className="flex flex-col gap-4 w-full">
-        <div>
-          <div className="section-header">Beta Features</div>
+      <div className="section-header">Beta Features</div>
+      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <div className="mb-6">
+          <p className="text-gray-500 dark:text-gray-400 mb-4 text-wrap">
+            Beta features are experimental previews that may change before full release. Try them and share feedback.
+          </p>
         </div>
-        <form className="bruno-form" onSubmit={formik.handleSubmit}>
-          <div className="mb-6">
-            <p className="text-gray-500 dark:text-gray-400 mb-4 text-wrap">
-              Beta features are experimental previews that may change before full release. Try them and share feedback.
-            </p>
-          </div>
 
-          <div className="space-y-4">
-            {BETA_FEATURES.map((feature) => (
-              <div key={feature.id} className="beta-feature-item">
-                <div className="flex items-center">
-                  <input
-                    id={feature.id}
-                    type="checkbox"
-                    name={feature.id}
-                    checked={formik.values[feature.id]}
-                    onChange={formik.handleChange}
-                    className="mousetrap mr-0"
-                  />
-                  <label className="block ml-2 select-none font-medium" htmlFor={feature.id}>
-                    {feature.label}
-                  </label>
-                </div>
-                <div className="beta-feature-description ml-6 text-xs text-gray-500 dark:text-gray-400">
-                  {feature.description}
-                </div>
+        <div className="space-y-4">
+          {BETA_FEATURES.map((feature) => (
+            <div key={feature.id} className="beta-feature-item">
+              <div className="flex items-center">
+                <input
+                  id={feature.id}
+                  type="checkbox"
+                  name={feature.id}
+                  checked={formik.values[feature.id]}
+                  onChange={formik.handleChange}
+                  className="mousetrap mr-0"
+                />
+                <label className="block ml-2 select-none font-medium" htmlFor={feature.id}>
+                  {feature.label}
+                </label>
               </div>
-            ))}
-          </div>
-
-          {!hasAnyBetaFeatures && (
-            <div className="no-features-message">
-              <p>No beta features are currently available</p>
+              <div className="beta-feature-description ml-6 text-xs text-gray-500 dark:text-gray-400">
+                {feature.description}
+              </div>
             </div>
-          )}
-        </form>
-      </div>
+          ))}
+        </div>
+
+        {!hasAnyBetaFeatures && (
+          <div className="no-features-message">
+            <p>No beta features are currently available</p>
+          </div>
+        )}
+      </form>
     </StyledWrapper>
   );
 };
