@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('path');
 const { get } = require('lodash');
-const { getCACertificates } = require('@usebruno/requests');
+const { getCACertificates, getSystemProxy, transformProxyConfig } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { getCachedSystemProxy } = require('../../store/system-proxy');
@@ -155,4 +155,45 @@ const getCertsAndProxyConfig = async ({
   return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
 };
 
-module.exports = { getCertsAndProxyConfig };
+/**
+ * Builds the certsAndProxyConfig object for bru.sendRequest
+ * This allows bru.sendRequest to use the same proxy/certs config as the main request
+ */
+const buildCertsAndProxyConfig = async ({
+  collectionUid,
+  collection,
+  collectionPath
+}) => {
+  const brunoConfig = getBrunoConfig(collectionUid, collection);
+
+  // Build options for getHttpHttpsAgents
+  const options = {
+    noproxy: false,
+    shouldVerifyTls: preferencesUtil.shouldVerifyTls(),
+    shouldUseCustomCaCertificate: preferencesUtil.shouldUseCustomCaCertificate(),
+    customCaCertificateFilePath: preferencesUtil.getCustomCaCertificateFilePath(),
+    shouldKeepDefaultCaCertificates: preferencesUtil.shouldKeepDefaultCaCertificates()
+  };
+
+  // Get client certificates from bruno config
+  const clientCertificates = get(brunoConfig, 'clientCertificates');
+
+  // Get proxy config from bruno config
+  const collectionProxyConfig = get(brunoConfig, 'proxy', {});
+
+  // Transform to the format expected by getHttpHttpsAgents
+  const collectionLevelProxy = transformProxyConfig(collectionProxyConfig);
+
+  // Get system proxy config
+  const systemProxyConfig = await getSystemProxy();
+
+  return {
+    collectionPath,
+    options,
+    clientCertificates,
+    collectionLevelProxy,
+    systemProxyConfig
+  };
+};
+
+module.exports = { getCertsAndProxyConfig, buildCertsAndProxyConfig };

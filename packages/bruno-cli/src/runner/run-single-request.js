@@ -170,6 +170,26 @@ const runSingleRequest = async function (
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = runtime;
 
+    // Build certsAndProxyConfig for bru.sendRequest
+    const cliOptions = getOptions();
+    const systemProxyConfig = await getSystemProxy();
+    const certsAndProxyConfig = {
+      collectionPath,
+      options: {
+        noproxy: get(cliOptions, 'noproxy', false),
+        shouldVerifyTls: !get(cliOptions, 'insecure', false),
+        shouldUseCustomCaCertificate: !!cliOptions['cacert'],
+        customCaCertificateFilePath: cliOptions['cacert'],
+        shouldKeepDefaultCaCertificates: !cliOptions['ignoreTruststore']
+      },
+      clientCertificates: get(brunoConfig, 'clientCertificates'),
+      collectionLevelProxy: transformProxyConfig(get(brunoConfig, 'proxy', {})),
+      systemProxyConfig
+    };
+
+    // Add certsAndProxyConfig to request object for bru.sendRequest
+    request.certsAndProxyConfig = certsAndProxyConfig;
+
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
     const collectionName = collection?.brunoConfig?.name;
