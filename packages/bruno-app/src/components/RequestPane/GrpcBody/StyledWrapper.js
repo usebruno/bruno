@@ -42,6 +42,14 @@ const Wrapper = styled.div`
         margin-bottom: 0;
       }
     }
+
+    &.disabled {
+      opacity: 0.5;
+
+      .editor-container {
+        pointer-events: none;
+      }
+    }
   }
 
   .message-toolbar {
@@ -54,10 +62,23 @@ const Wrapper = styled.div`
     height: 32px;
     flex-shrink: 0;
 
+    .message-label-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-right: auto;
+    }
+
+    .message-checkbox {
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+      accent-color: ${(props) => props.theme.workspace.accent};
+    }
+
     .message-label {
       font-size: ${(props) => props.theme.font.size.sm};
       color: ${(props) => props.theme.colors.text.subtext1};
-      margin-right: auto;
     }
 
     .toolbar-actions {

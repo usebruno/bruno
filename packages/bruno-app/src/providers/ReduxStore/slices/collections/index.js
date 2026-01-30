@@ -1732,6 +1732,27 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    toggleGrpcMessageEnabled: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          const messages = item.draft.request.body.grpc;
+          const messageIndex = action.payload.messageIndex;
+
+          if (messages && messages[messageIndex] !== undefined) {
+            const currentEnabled = messages[messageIndex].enabled !== false;
+            messages[messageIndex].enabled = !currentEnabled;
+          }
+        }
+      }
+    },
     updateRequestGraphqlQuery: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -3770,6 +3791,7 @@ export const {
   updateRequestAuthMode,
   updateRequestBodyMode,
   updateRequestBody,
+  toggleGrpcMessageEnabled,
   updateRequestGraphqlQuery,
   updateRequestGraphqlVariables,
   updateRequestScript,

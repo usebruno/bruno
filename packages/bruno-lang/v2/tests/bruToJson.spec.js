@@ -56,7 +56,8 @@ body:grpc {
           grpc: [
             {
               content: '{"foo":"bar"}',
-              name: 'message 1'
+              name: 'message 1',
+              enabled: true
             }
           ]
         }
@@ -72,7 +73,7 @@ body:grpc {
     name: message 1
     content: '''
       {"id":{{userId}},"name":"{{userName}}"}
-    ''' 
+    '''
 }
 `;
 
@@ -82,7 +83,36 @@ body:grpc {
           grpc: [
             {
               content: '{"id":{{userId}},"name":"{{userName}}"}',
-              name: 'message 1'
+              name: 'message 1',
+              enabled: true
+            }
+          ]
+        }
+      };
+
+      const output = parser(input);
+      expect(output).toEqual(expected);
+    });
+
+    it('parses message with enabled: false', () => {
+      const input = `
+body:grpc {
+    name: message 1
+    enabled: false
+    content: '''
+      {"foo":"bar"}
+    '''
+}
+`;
+
+      const expected = {
+        body: {
+          mode: 'grpc',
+          grpc: [
+            {
+              content: '{"foo":"bar"}',
+              name: 'message 1',
+              enabled: false
             }
           ]
         }
