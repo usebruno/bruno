@@ -3,6 +3,8 @@ const { getValueString, indentString } = require('./utils');
 
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);
+  const color = _.get(json, 'color', null);
+
   const vars = variables
     .filter((variable) => !variable.secret)
     .map((variable) => {
@@ -20,13 +22,14 @@ const envToJson = (json) => {
       return indentString(`${prefix}${name}`);
     });
 
+  let output = '';
+
   if (!variables || !variables.length) {
-    return `vars {
+    output += `vars {
 }
 `;
   }
 
-  let output = '';
   if (vars.length) {
     output += `vars {
 ${vars.join('\n')}
@@ -38,6 +41,10 @@ ${vars.join('\n')}
     output += `vars:secret [
 ${secretVars.join(',\n')}
 ]
+`;
+  }
+  if (color) {
+    output += `color: ${color}
 `;
   }
 

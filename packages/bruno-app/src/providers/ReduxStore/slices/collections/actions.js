@@ -49,6 +49,7 @@ import {
   updateActiveConnections,
   saveRequest as _saveRequest,
   saveEnvironment as _saveEnvironment,
+  updateEnvironmentColor as _updateEnvironmentColor,
   saveCollectionDraft,
   saveFolderDraft,
   addVar,
@@ -1926,6 +1927,31 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
         dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
       })
       .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const updateEnvironmentColor = (environmentUid, color, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
+    if (!environment) {
+      return reject(new Error('Environment not found'));
+    }
+
+    environment.color = color;
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:update-environment-color', collection.pathname, environment.name, color)
+      .then(() => {
+        dispatch(_updateEnvironmentColor({ environmentUid, color, collectionUid }));
+        resolve();
+      })
       .catch(reject);
   });
 };

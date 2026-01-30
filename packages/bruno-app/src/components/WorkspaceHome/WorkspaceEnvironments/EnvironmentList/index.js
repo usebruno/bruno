@@ -6,6 +6,7 @@ import { IconDownload, IconUpload, IconSearch, IconPlus, IconCheck, IconX } from
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
+import ColorBadge from 'components/ColorBadge';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { addGlobalEnvironment, renameGlobalEnvironment, selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
@@ -357,6 +358,7 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
                   </div>
                 ) : (
                   <>
+                    <ColorBadge color={env.color} size={8} />
                     <span className="environment-name">{env.name}</span>
                     <div className="environment-actions">
                       {activeEnvironmentUid === env.uid ? (

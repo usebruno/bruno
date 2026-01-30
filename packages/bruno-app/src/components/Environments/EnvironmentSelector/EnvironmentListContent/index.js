@@ -1,6 +1,7 @@
 import React from 'react';
 import { IconPlus, IconDownload, IconSettings } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
+import ColorBadge from 'components/ColorBadge';
 
 const EnvironmentListContent = ({
   environments,
@@ -38,6 +39,7 @@ const EnvironmentListContent = ({
                     data-tooltip-content={env.name}
                     data-tooltip-hidden={env.name?.length < 90}
                   >
+                    <ColorBadge color={env.color} size={8} showEmptyBorder={false} />
                     <span className="max-w-100% truncate no-wrap">{env.name}</span>
                   </div>
                 ))}
