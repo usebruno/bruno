@@ -112,9 +112,20 @@ function createTimelineAgentClass<T extends ProxyAgentClass | typeof https.Agent
     createConnection(options: any, callback: any) {
       const { host, port } = options;
 
+      // Capture the current timeline reference to avoid race conditions
+      // when multiple concurrent requests reuse the same cached agent
+      const timeline = this.timeline;
+      const log = (type: 'info' | 'tls' | 'error', message: string): void => {
+        timeline.push({
+          timestamp: new Date(),
+          type,
+          message
+        });
+      };
+
       // Log ALPN protocols offered
       if (this.alpnProtocols && this.alpnProtocols.length > 0) {
-        this.log('tls', `ALPN: offers ${this.alpnProtocols.join(', ')}`);
+        log('tls', `ALPN: offers ${this.alpnProtocols.join(', ')}`);
       }
 
       const rootCerts = this.caCertificatesCount.root || 0;
@@ -122,26 +133,26 @@ function createTimelineAgentClass<T extends ProxyAgentClass | typeof https.Agent
       const extraCerts = this.caCertificatesCount.extra || 0;
       const customCerts = this.caCertificatesCount.custom || 0;
 
-      this.log('tls', `CA Certificates: ${rootCerts} root, ${systemCerts} system, ${extraCerts} extra, ${customCerts} custom`);
+      log('tls', `CA Certificates: ${rootCerts} root, ${systemCerts} system, ${extraCerts} extra, ${customCerts} custom`);
 
       // Log "Trying host:port..."
-      this.log('info', `Trying ${host}:${port}...`);
+      log('info', `Trying ${host}:${port}...`);
 
       let socket: any;
       try {
         socket = super.createConnection(options, callback);
       } catch (error: any) {
-        this.log('error', `Error creating connection: ${error.message}`);
-        error.timeline = this.timeline;
+        log('error', `Error creating connection: ${error.message}`);
+        error.timeline = timeline;
         throw error;
       }
 
       // Attach event listeners to the socket
       socket?.on('lookup', (err: Error | null, address: string, family: number, host: string) => {
         if (err) {
-          this.log('error', `DNS lookup error for ${host}: ${err.message}`);
+          log('error', `DNS lookup error for ${host}: ${err.message}`);
         } else {
-          this.log('info', `DNS lookup: ${host} -> ${address}`);
+          log('info', `DNS lookup: ${host} -> ${address}`);
         }
       });
 
@@ -149,7 +160,7 @@ function createTimelineAgentClass<T extends ProxyAgentClass | typeof https.Agent
         const address = socket.remoteAddress || host;
         const remotePort = socket.remotePort || port;
 
-        this.log('info', `Connected to ${host} (${address}) port ${remotePort}`);
+        log('info', `Connected to ${host} (${address}) port ${remotePort}`);
       });
 
       socket?.on('secureConnect', () => {
@@ -157,39 +168,43 @@ function createTimelineAgentClass<T extends ProxyAgentClass | typeof https.Agent
         const cipher = socket.getCipher?.();
         const cipherSuite = cipher ? `${cipher.name} (${cipher.version})` : 'Unknown cipher';
 
-        this.log('tls', `SSL connection using ${protocol} / ${cipherSuite}`);
+        log('tls', `SSL connection using ${protocol} / ${cipherSuite}`);
 
         // ALPN protocol
         const alpnProtocol = socket.alpnProtocol || 'None';
-        this.log('tls', `ALPN: server accepted ${alpnProtocol}`);
+        log('tls', `ALPN: server accepted ${alpnProtocol}`);
 
         // Server certificate
         const cert = socket.getPeerCertificate?.(true);
         if (cert) {
-          this.log('tls', `Server certificate:`);
+          log('tls', `Server certificate:`);
           if (cert.subject) {
-            this.log('tls', ` subject: ${Object.entries(cert.subject).map(([k, v]) => `${k}=${v}`).join(', ')}`);
+            log('tls', ` subject: ${Object.entries(cert.subject).map(([k, v]) => `${k}=${v}`).join(', ')}`);
           }
           if (cert.valid_from) {
-            this.log('tls', ` start date: ${cert.valid_from}`);
+            log('tls', ` start date: ${cert.valid_from}`);
           }
           if (cert.valid_to) {
-            this.log('tls', ` expire date: ${cert.valid_to}`);
+            log('tls', ` expire date: ${cert.valid_to}`);
           }
           if (cert.subjectaltname) {
-            this.log('tls', ` subjectAltName: ${cert.subjectaltname}`);
+            log('tls', ` subjectAltName: ${cert.subjectaltname}`);
           }
           if (cert.issuer) {
-            this.log('tls', ` issuer: ${Object.entries(cert.issuer).map(([k, v]) => `${k}=${v}`).join(', ')}`);
+            log('tls', ` issuer: ${Object.entries(cert.issuer).map(([k, v]) => `${k}=${v}`).join(', ')}`);
           }
 
-          // SSL certificate verify ok
-          this.log('tls', `SSL certificate verify ok.`);
+          // SSL certificate verification status
+          if (socket.authorized !== false) {
+            log('tls', `SSL certificate verify ok.`);
+          } else {
+            log('tls', `SSL certificate verification skipped (rejectUnauthorized: false).`);
+          }
         }
       });
 
       socket?.on('error', (err: Error) => {
-        this.log('error', `Socket error: ${err.message}`);
+        log('error', `Socket error: ${err.message}`);
       });
 
       return socket;
@@ -242,24 +257,35 @@ function createTimelineHttpAgentClass<T extends HttpProxyAgentClass | typeof htt
     createConnection(options: any, callback: any) {
       const { host, port } = options;
 
+      // Capture the current timeline reference to avoid race conditions
+      // when multiple concurrent requests reuse the same cached agent
+      const timeline = this.timeline;
+      const log = (type: 'info' | 'tls' | 'error', message: string): void => {
+        timeline.push({
+          timestamp: new Date(),
+          type,
+          message
+        });
+      };
+
       // Log "Trying host:port..."
-      this.log('info', `Trying ${host}:${port}...`);
+      log('info', `Trying ${host}:${port}...`);
 
       let socket: any;
       try {
         socket = super.createConnection(options, callback);
       } catch (error: any) {
-        this.log('error', `Error creating connection: ${error.message}`);
-        error.timeline = this.timeline;
+        log('error', `Error creating connection: ${error.message}`);
+        error.timeline = timeline;
         throw error;
       }
 
       // Attach event listeners to the socket
       socket?.on('lookup', (err: Error | null, address: string, family: number, host: string) => {
         if (err) {
-          this.log('error', `DNS lookup error for ${host}: ${err.message}`);
+          log('error', `DNS lookup error for ${host}: ${err.message}`);
         } else {
-          this.log('info', `DNS lookup: ${host} -> ${address}`);
+          log('info', `DNS lookup: ${host} -> ${address}`);
         }
       });
 
@@ -267,11 +293,11 @@ function createTimelineHttpAgentClass<T extends HttpProxyAgentClass | typeof htt
         const address = socket.remoteAddress || host;
         const remotePort = socket.remotePort || port;
 
-        this.log('info', `Connected to ${host} (${address}) port ${remotePort}`);
+        log('info', `Connected to ${host} (${address}) port ${remotePort}`);
       });
 
       socket?.on('error', (err: Error) => {
-        this.log('error', `Socket error: ${err.message}`);
+        log('error', `Socket error: ${err.message}`);
       });
 
       return socket;

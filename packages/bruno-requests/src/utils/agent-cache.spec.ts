@@ -1,5 +1,6 @@
 import https from 'node:https';
 import http from 'node:http';
+import { EventEmitter } from 'node:events';
 import { getOrCreateAgent, clearAgentCache, getAgentCacheSize } from './agent-cache';
 
 describe('Agent Cache', () => {
@@ -164,6 +165,114 @@ describe('Agent Cache', () => {
 
       // First agent should have been evicted and destroyed
       expect(destroyMock).toHaveBeenCalled();
+    });
+  });
+
+  describe('concurrent requests timeline isolation', () => {
+    it('isolates timeline events for concurrent requests using the same cached agent', () => {
+      const timeline1: any[] = [];
+      const timeline2: any[] = [];
+
+      // Get the same agent twice with different timelines (simulating concurrent requests)
+      const agent1 = getOrCreateAgent(https.Agent, {}, null, timeline1) as any;
+      const agent2 = getOrCreateAgent(https.Agent, {}, null, timeline2) as any;
+
+      // Both should return the same cached agent
+      expect(agent1).toBe(agent2);
+
+      // Create mock sockets to simulate concurrent connections
+      const mockSocket1 = new EventEmitter() as any;
+      mockSocket1.remoteAddress = '1.2.3.4';
+      mockSocket1.remotePort = 443;
+      mockSocket1.getProtocol = () => 'TLSv1.3';
+      mockSocket1.getCipher = () => ({ name: 'AES-256-GCM', version: 'TLSv1.3' });
+      mockSocket1.alpnProtocol = 'h2';
+      mockSocket1.getPeerCertificate = () => ({
+        subject: { CN: 'example.com' },
+        valid_from: 'Jan 1 00:00:00 2024 GMT',
+        valid_to: 'Jan 1 00:00:00 2025 GMT'
+      });
+      mockSocket1.authorized = true;
+
+      const mockSocket2 = new EventEmitter() as any;
+      mockSocket2.remoteAddress = '5.6.7.8';
+      mockSocket2.remotePort = 443;
+      mockSocket2.getProtocol = () => 'TLSv1.3';
+      mockSocket2.getCipher = () => ({ name: 'AES-256-GCM', version: 'TLSv1.3' });
+      mockSocket2.alpnProtocol = 'http/1.1';
+      mockSocket2.getPeerCertificate = () => ({
+        subject: { CN: 'other.com' },
+        valid_from: 'Jan 1 00:00:00 2024 GMT',
+        valid_to: 'Jan 1 00:00:00 2025 GMT'
+      });
+      mockSocket2.authorized = true;
+
+      // Mock createConnection to return our mock sockets
+      const originalCreateConnection = Object.getPrototypeOf(Object.getPrototypeOf(agent1)).createConnection;
+      let callCount = 0;
+      jest.spyOn(Object.getPrototypeOf(Object.getPrototypeOf(agent1)), 'createConnection').mockImplementation(function (this: any, options: any, callback: any) {
+        callCount++;
+        return callCount === 1 ? mockSocket1 : mockSocket2;
+      });
+
+      // Simulate request 1 starting - this captures timeline1 in the closure
+      agent1.timeline = timeline1;
+      const socket1 = agent1.createConnection({ host: 'example.com', port: 443 }, () => {});
+
+      // Before request 1's events fire, request 2 starts and updates agent.timeline
+      // This simulates the race condition
+      agent1.timeline = timeline2;
+      const socket2 = agent1.createConnection({ host: 'other.com', port: 443 }, () => {});
+
+      // Now fire events for both sockets - they should go to their respective timelines
+      mockSocket1.emit('connect');
+      mockSocket1.emit('secureConnect');
+
+      mockSocket2.emit('connect');
+      mockSocket2.emit('secureConnect');
+
+      // Verify timeline1 only contains events for request 1 (example.com)
+      const timeline1Messages = timeline1.map((e) => e.message);
+      expect(timeline1Messages.some((m) => m.includes('example.com'))).toBe(true);
+      expect(timeline1Messages.some((m) => m.includes('other.com'))).toBe(false);
+
+      // Verify timeline2 only contains events for request 2 (other.com)
+      const timeline2Messages = timeline2.map((e) => e.message);
+      expect(timeline2Messages.some((m) => m.includes('other.com'))).toBe(true);
+      expect(timeline2Messages.some((m) => m.includes('example.com'))).toBe(false);
+
+      // Restore the original implementation
+      jest.restoreAllMocks();
+    });
+
+    it('logs events to captured timeline even after agent.timeline is reassigned', () => {
+      const timeline1: any[] = [];
+      const timeline2: any[] = [];
+
+      const agent = getOrCreateAgent(https.Agent, {}, null, timeline1) as any;
+
+      // Create a mock socket
+      const mockSocket = new EventEmitter() as any;
+      mockSocket.remoteAddress = '1.2.3.4';
+      mockSocket.remotePort = 443;
+
+      // Mock createConnection
+      jest.spyOn(Object.getPrototypeOf(Object.getPrototypeOf(agent)), 'createConnection').mockImplementation(() => mockSocket);
+
+      // Start creating connection - this captures timeline1
+      const socket = agent.createConnection({ host: 'test.com', port: 443 }, () => {});
+
+      // Reassign agent.timeline (simulating another request coming in)
+      agent.timeline = timeline2;
+
+      // Fire the connect event - this should still go to timeline1 (captured reference)
+      mockSocket.emit('connect');
+
+      // Verify event went to timeline1, not timeline2
+      expect(timeline1.some((e) => e.message.includes('Connected to test.com'))).toBe(true);
+      expect(timeline2.some((e) => e.message.includes('Connected to test.com'))).toBe(false);
+
+      jest.restoreAllMocks();
     });
   });
 });
