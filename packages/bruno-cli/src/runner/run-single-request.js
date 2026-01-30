@@ -176,55 +176,80 @@ const runSingleRequest = async function (
     const collectionName = collection?.brunoConfig?.name;
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
-      const result = await scriptRuntime.runRequestScript(
-        decomment(requestScriptFile),
-        request,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        onConsoleLog,
-        processEnvVars,
-        scriptingConfig,
-        runSingleRequestByPathname,
-        collectionName
-      );
-      if (result?.nextRequestName !== undefined) {
-        nextRequestName = result.nextRequestName;
-      }
+      try {
+        const result = await scriptRuntime.runRequestScript(decomment(requestScriptFile),
+          request,
+          envVariables,
+          runtimeVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig,
+          runSingleRequestByPathname,
+          collectionName);
+        if (result?.nextRequestName !== undefined) {
+          nextRequestName = result.nextRequestName;
+        }
 
-      if (result?.stopExecution) {
-        shouldStopRunnerExecution = true;
-      }
+        if (result?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
 
-      if (result?.skipRequest) {
-        return {
-          test: {
-            filename: relativeItemPathname
-          },
-          request: {
-            method: request.method,
-            url: request.url,
-            headers: request.headers,
-            data: request.data
-          },
-          response: {
+        if (result?.skipRequest) {
+          return {
+            test: {
+              filename: relativeItemPathname
+            },
+            request: {
+              method: request.method,
+              url: request.url,
+              headers: request.headers,
+              data: request.data
+            },
+            response: {
+              status: 'skipped',
+              statusText: 'request skipped via pre-request script',
+              data: null,
+              responseTime: 0
+            },
+            error: null,
             status: 'skipped',
-            statusText: 'request skipped via pre-request script',
-            data: null,
-            responseTime: 0
-          },
-          error: null,
-          status: 'skipped',
-          skipped: true,
-          assertionResults: [],
-          testResults: [],
-          preRequestTestResults: result?.results || [],
-          postResponseTestResults: [],
-          shouldStopRunnerExecution
-        };
-      }
+            skipped: true,
+            assertionResults: [],
+            testResults: [],
+            preRequestTestResults: result?.results || [],
+            postResponseTestResults: [],
+            shouldStopRunnerExecution
+          };
+        }
 
-      preRequestTestResults = result?.results || [];
+        preRequestTestResults = result?.results || [];
+      } catch (error) {
+        console.error('Pre-request script execution error:', error);
+
+        // Extract partial results from the error (tests that passed before the error)
+        const partialResults = error?.partialResults?.results || [];
+        preRequestTestResults = [
+          ...partialResults,
+          {
+            status: 'fail',
+            description: 'Pre-Request Script Error',
+            error: error.message || 'An error occurred while executing the pre-request script.'
+          }
+        ];
+
+        // Preserve nextRequestName if it was set before the error
+        if (error?.partialResults?.nextRequestName !== undefined) {
+          nextRequestName = error.partialResults.nextRequestName;
+        }
+
+        // Preserve stopExecution if it was set before the error
+        if (error?.partialResults?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        logResults(preRequestTestResults, 'Pre-Request Tests');
+      }
     }
 
     // interpolate variables inside request
@@ -649,11 +674,6 @@ const runSingleRequest = async function (
 
     response.responseTime = responseTime;
 
-    console.log(
-      chalk.green(stripExtension(relativeItemPathname))
-      + chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
-    );
-
     // Log pre-request test results
     logResults(preRequestTestResults, 'Pre-Request Tests');
 
@@ -702,6 +722,26 @@ const runSingleRequest = async function (
         logResults(postResponseTestResults, 'Post-Response Tests');
       } catch (error) {
         console.error('Post-response script execution error:', error);
+
+        const partialResults = error?.partialResults?.results || [];
+        postResponseTestResults = [
+          ...partialResults,
+          {
+            status: 'fail',
+            description: 'Post-Response Script Error',
+            error: error.message || 'An error occurred while executing the post-response script.'
+          }
+        ];
+
+        if (error?.partialResults?.nextRequestName !== undefined) {
+          nextRequestName = error.partialResults.nextRequestName;
+        }
+
+        if (error?.partialResults?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        logResults(postResponseTestResults, 'Post-Response Tests');
       }
     }
 
@@ -751,10 +791,51 @@ const runSingleRequest = async function (
         logResults(testResults, 'Tests');
       } catch (error) {
         console.error('Test script execution error:', error);
+
+        const partialResults = error?.partialResults?.results || [];
+        testResults = [
+          ...partialResults,
+          {
+            status: 'fail',
+            description: 'Test Script Error',
+            error: error.message || 'An error occurred while executing the test script.'
+          }
+        ];
+
+        if (error?.partialResults?.nextRequestName !== undefined) {
+          nextRequestName = error.partialResults.nextRequestName;
+        }
+
+        if (error?.partialResults?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        logResults(testResults, 'Tests');
       }
     }
 
     logResults(assertionResults, 'Assertions');
+
+    // Determine status based on test/assertion results
+    const hasFailedTests = testResults.some((r) => r.status === 'fail');
+    const hasFailedAssertions = assertionResults.some((r) => r.status === 'fail');
+    const hasFailedPreRequestTests = preRequestTestResults.some((r) => r.status === 'fail');
+    const hasFailedPostResponseTests = postResponseTestResults.some((r) => r.status === 'fail');
+    const hasAnyFailures = hasFailedTests || hasFailedAssertions || hasFailedPreRequestTests || hasFailedPostResponseTests;
+    const requestStatus = hasAnyFailures ? 'fail' : 'pass';
+
+    // Log request status after all tests/assertions are logged
+    if (hasAnyFailures) {
+      console.log(
+        chalk.red(stripExtension(relativeItemPathname))
+        + chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+      );
+    } else {
+      console.log(
+        chalk.green(stripExtension(relativeItemPathname))
+        + chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+      );
+    }
 
     return {
       test: {
@@ -775,7 +856,7 @@ const runSingleRequest = async function (
         responseTime
       },
       error: null,
-      status: 'pass',
+      status: requestStatus,
       assertionResults,
       testResults,
       preRequestTestResults,
