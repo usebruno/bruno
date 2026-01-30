@@ -1,8 +1,9 @@
-import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
-import { uuid } from 'utils/common';
-import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
+import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
 import { hexy as hexdump } from 'hexy';
+import { cloneDeep, concat, each, filter, find, forOwn, get, map, set } from 'lodash';
+import mime from 'mime-types';
+import toast from 'react-hot-toast';
 import {
   addDepth,
   areItemsTheSameExceptSeqUpdate,
@@ -17,12 +18,11 @@ import {
   isItemAFolder,
   isItemARequest
 } from 'utils/collections';
-import { parsePathParams, splitOnFirst } from 'utils/url';
-import { getSubdirectoriesFromRoot } from 'utils/common/platform';
-import toast from 'react-hot-toast';
-import mime from 'mime-types';
-import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
+import { uuid } from 'utils/common';
+import path from 'utils/common/path';
+import { getSubdirectoriesFromRoot } from 'utils/common/platform';
+import { parsePathParams, splitOnFirst } from 'utils/url';
 import * as exampleReducers from './exampleReducers';
 
 // gRPC status code meanings
@@ -309,6 +309,21 @@ export const collectionsSlice = createSlice({
 
         if (item) {
           item.name = action.payload.newName;
+        }
+      }
+    },
+    updateRequestTabOrder: (state, action) => {
+      const { collectionUid, itemUid, tabOrder } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        if (!itemUid) {
+          collection.requestTabOrder = tabOrder;
+        } else {
+          const item = findItemInCollection(collection, itemUid);
+          if (item) {
+            item.requestTabOrder = tabOrder;
+          }
         }
       }
     },
@@ -3468,6 +3483,7 @@ export const {
   newItem,
   deleteItem,
   renameItem,
+  updateRequestTabOrder,
   cloneItem,
   scriptEnvironmentUpdateEvent,
   processEnvUpdateEvent,

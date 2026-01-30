@@ -65,6 +65,8 @@ export const tabsSlice = createSlice({
           preview: preview !== undefined
             ? preview
             : !nonReplaceableTabTypes.includes(type),
+          requestPaneVisible: true,
+          responsePaneVisible: true,
           ...(uid ? { folderUid: uid } : {}),
           ...(exampleUid ? { exampleUid } : {}),
           ...(itemUid ? { itemUid } : {})
@@ -84,6 +86,8 @@ export const tabsSlice = createSlice({
         responseFormat: null,
         responseViewTab: null,
         type: type || 'request',
+        requestPaneVisible: true,
+        responsePaneVisible: true,
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
           ? preview
@@ -163,6 +167,20 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.responseViewTab = action.payload.responseViewTab;
+      }
+    },
+    toggleRequestPane: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+      if (tab) {
+        const current = tab.requestPaneVisible !== false;
+        tab.requestPaneVisible = !current;
+      }
+    },
+    toggleResponsePane: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+      if (tab) {
+        const current = tab.responsePaneVisible !== false;
+        tab.responsePaneVisible = !current;
       }
     },
     closeTabs: (state, action) => {
@@ -254,7 +272,9 @@ export const {
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
-  reorderTabs
+  reorderTabs,
+  toggleRequestPane,
+  toggleResponsePane
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

@@ -1,20 +1,20 @@
 import { IconArrowRight, IconDeviceFloppy, IconPlugConnected, IconPlugConnectedX } from '@tabler/icons';
 import classnames from 'classnames';
+import PaneToggles from 'components/RequestPane/PaneToggles';
 import SingleLineEditor from 'components/SingleLineEditor/index';
-import { requestUrlChanged } from 'providers/ReduxStore/slices/collections';
-import { wsConnectOnly, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { useTheme } from 'providers/Theme';
-import React, { useEffect, useState, useMemo, useRef } from 'react';
-import toast from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
-import { isMacOS } from 'utils/common/platform';
-import { hasRequestChanges } from 'utils/collections';
-import { closeWsConnection, getWsConnectionStatus } from 'utils/network/index';
-import StyledWrapper from './StyledWrapper';
-import { interpolateUrl } from 'utils/url';
-import { getAllVariables } from 'utils/collections';
 import useDebounce from 'hooks/useDebounce';
 import get from 'lodash/get';
+import { requestUrlChanged } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, wsConnectOnly } from 'providers/ReduxStore/slices/collections/actions';
+import { useTheme } from 'providers/Theme';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import { getAllVariables, hasRequestChanges } from 'utils/collections';
+import { isMacOS } from 'utils/common/platform';
+import { closeWsConnection, getWsConnectionStatus } from 'utils/network/index';
+import { interpolateUrl } from 'utils/url';
+import StyledWrapper from './StyledWrapper';
 
 const CONNECTION_STATUS = {
   CONNECTING: 'connecting',
@@ -191,6 +191,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             <div data-testid="run-button" className="cursor-pointer" onClick={handleRunClick}>
               <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={20} />
             </div>
+            <PaneToggles item={item} />
           </div>
         </div>
       </div>
