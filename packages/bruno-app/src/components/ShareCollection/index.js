@@ -87,14 +87,13 @@ const ShareCollection = ({ onClose, collectionUid }) => {
           </div>
 
           <div
-            className={`share-button relative ${
+            className={`share-button ${
               isCollectionLoading
                 ? 'opacity-50 cursor-not-allowed'
                 : 'cursor-pointer'
             }`}
             onClick={isCollectionLoading ? undefined : handleExportOpenCollection}
           >
-            <span className="beta-badge-corner">Beta</span>
             <div className="mr-3 p-1 rounded-full">
               {isCollectionLoading ? (
                 <IconLoader2 size={28} className="animate-spin" />
