@@ -6,6 +6,11 @@ const Wrapper = styled.div`
   flex: 1;
   overflow: hidden;
 
+  &.is-resizing {
+    cursor: col-resize !important;
+    user-select: none;
+  }
+
   .table-container {
     overflow-y: auto;
     border-radius: 8px;
@@ -32,10 +37,6 @@ const Wrapper = styled.div`
       &:nth-child(5) {
         width: 60px;
       }
-
-      &:nth-child(2) {
-        width: 30%;
-      }
     }
 
     thead {
@@ -48,9 +49,25 @@ const Wrapper = styled.div`
         padding: 5px 10px !important;
         border-bottom: solid 1px ${(props) => props.theme.border.border0};
         border-right: solid 1px ${(props) => props.theme.border.border0};
+        position: relative;
 
         &:last-child {
           border-right: none;
+        }
+
+        .resize-handle {
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: 4px;
+          cursor: col-resize;
+          background: transparent;
+          z-index: 100;
+
+          &:hover,
+          &.resizing {
+            background: ${(props) => props.theme.colors.accent};
+          }
         }
       }
     }
@@ -145,21 +162,6 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.brand};
     &:hover {
       opacity: 0.9;
-    }
-  }
-
-  .discard {
-    padding: 6px 16px;
-    font-size: ${(props) => props.theme.font.size.sm};
-    border-radius: ${(props) => props.theme.border.radius.base};
-    background: transparent;
-    color: ${(props) => props.theme.text};
-    border: 1px solid ${(props) => props.theme.border.border1};
-    cursor: pointer;
-    transition: all 0.15s ease;
-
-    &:hover {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }
   }
 `;
