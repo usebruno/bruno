@@ -38,7 +38,8 @@ const EnvironmentVariablesTable = ({
   onDraftChange,
   onDraftClear,
   setIsModified,
-  renderExtraValueContent
+  renderExtraValueContent,
+  searchQuery = ''
 }) => {
   const { storedTheme } = useTheme();
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
@@ -393,13 +394,35 @@ const EnvironmentVariablesTable = ({
     };
   }, []);
 
+  const filteredVariables = useMemo(() => {
+    const allVariables = formik.values.map((variable, index) => ({ variable, index }));
+    if (!searchQuery?.trim()) {
+      return allVariables;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+
+    return allVariables.filter(({ variable, index }) => {
+      const isLastRow = index === formik.values.length - 1;
+      const isEmptyRow = !variable.name || variable.name.trim() === '';
+      if (isLastRow && isEmptyRow) {
+        return true;
+      }
+
+      const nameMatch = variable.name ? variable.name.toLowerCase().includes(query) : false;
+      const valueMatch = typeof variable.value === 'string' ? variable.value.toLowerCase().includes(query) : false;
+
+      return !!(nameMatch || valueMatch);
+    });
+  }, [formik.values, searchQuery]);
+
   return (
     <StyledWrapper className={resizing ? 'is-resizing' : ''}>
       <TableVirtuoso
         className="table-container"
         style={{ height: tableHeight }}
         components={{ TableRow }}
-        data={formik.values}
+        data={filteredVariables}
         totalListHeightChanged={handleTotalHeightChanged}
         fixedHeaderContent={() => (
           <tr>
@@ -418,9 +441,9 @@ const EnvironmentVariablesTable = ({
           </tr>
         )}
         fixedItemHeight={35}
-        computeItemKey={(index, variable) => variable.uid}
-        itemContent={(index, variable) => {
-          const isLastRow = index === formik.values.length - 1;
+        computeItemKey={(index, item) => item.variable.uid}
+        itemContent={(index, { variable, index: actualIndex }) => {
+          const isLastRow = actualIndex === formik.values.length - 1;
           const isEmptyRow = !variable.name || variable.name.trim() === '';
           const isLastEmptyRow = isLastRow && isEmptyRow;
 
@@ -431,7 +454,7 @@ const EnvironmentVariablesTable = ({
                   <input
                     type="checkbox"
                     className="mousetrap"
-                    name={`${index}.enabled`}
+                    name={`${actualIndex}.enabled`}
                     checked={variable.enabled}
                     onChange={formik.handleChange}
                   />
@@ -446,15 +469,15 @@ const EnvironmentVariablesTable = ({
                     autoCapitalize="off"
                     spellCheck="false"
                     className="mousetrap"
-                    id={`${index}.name`}
-                    name={`${index}.name`}
+                    id={`${actualIndex}.name`}
+                    name={`${actualIndex}.name`}
                     value={variable.name}
                     placeholder={isLastEmptyRow ? 'Name' : ''}
-                    onChange={(e) => handleNameChange(index, e)}
-                    onBlur={() => handleNameBlur(index)}
-                    onKeyDown={(e) => handleNameKeyDown(index, e)}
+                    onChange={(e) => handleNameChange(actualIndex, e)}
+                    onBlur={() => handleNameBlur(actualIndex)}
+                    onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
                   />
-                  <ErrorMessage name={`${index}.name`} index={index} />
+                  <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
                 </div>
               </td>
               <td className="flex flex-row flex-nowrap items-center" style={{ width: columnWidths.value }}>
@@ -462,12 +485,12 @@ const EnvironmentVariablesTable = ({
                   <MultiLineEditor
                     theme={storedTheme}
                     collection={_collection}
-                    name={`${index}.value`}
+                    name={`${actualIndex}.value`}
                     value={variable.value}
                     placeholder={isLastEmptyRow ? 'Value' : ''}
                     isSecret={variable.secret}
                     readOnly={typeof variable.value !== 'string'}
-                    onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                    onChange={(newValue) => formik.setFieldValue(`${actualIndex}.value`, newValue, true)}
                     onSave={handleSave}
                   />
                 </div>
@@ -488,7 +511,7 @@ const EnvironmentVariablesTable = ({
                   <input
                     type="checkbox"
                     className="mousetrap"
-                    name={`${index}.secret`}
+                    name={`${actualIndex}.secret`}
                     checked={variable.secret}
                     onChange={formik.handleChange}
                   />

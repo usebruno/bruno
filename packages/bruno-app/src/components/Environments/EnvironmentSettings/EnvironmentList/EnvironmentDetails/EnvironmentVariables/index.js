@@ -9,7 +9,7 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
 import { sensitiveFields } from './constants';
 
-const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
+const EnvironmentVariables = ({ environment, setIsModified, collection, searchQuery = '' }) => {
   const dispatch = useDispatch();
 
   const environmentsDraft = collection?.environmentsDraft;
@@ -111,6 +111,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
       onDraftClear={handleDraftClear}
       setIsModified={setIsModified}
       renderExtraValueContent={renderExtraValueContent}
+      searchQuery={searchQuery}
     />
   );
 };

@@ -1,4 +1,5 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useMemo } from 'react';
+import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -8,7 +9,7 @@ import {
 } from 'providers/ReduxStore/slices/global-environments';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
 
-const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
+const EnvironmentVariables = ({ environment, setIsModified, collection, searchQuery = '' }) => {
   const dispatch = useDispatch();
   const { globalEnvironmentDraft } = useSelector((state) => state.globalEnvironments);
 
@@ -46,6 +47,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection }) => {
       onDraftChange={handleDraftChange}
       onDraftClear={handleDraftClear}
       setIsModified={setIsModified}
+      searchQuery={searchQuery}
     />
   );
 };
