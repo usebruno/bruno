@@ -38,6 +38,15 @@ const parseCollection = (ymlString: string): ParsedCollection => {
       }
     }
 
+    // bruno-specific script extensions
+    const brunoExtensions = oc.extensions?.bruno as any;
+    if (brunoExtensions?.script?.additionalContextRoots?.length) {
+      brunoConfig.scripts = {
+        ...brunoConfig.scripts,
+        additionalContextRoots: brunoExtensions.script.additionalContextRoots
+      };
+    }
+
     // protobuf
     if (oc.config?.protobuf) {
       brunoConfig.protobuf = {
