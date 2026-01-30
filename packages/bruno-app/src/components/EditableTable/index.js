@@ -253,7 +253,6 @@ const EditableTable = ({
       const updatedOrder = [...reorderableRows];
       const [movedRow] = updatedOrder.splice(fromIndex, 1);
       if (!movedRow) {
-        setDragStart(null);
         setHoveredRow(null);
         return;
       }
