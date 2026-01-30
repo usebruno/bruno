@@ -10,8 +10,7 @@ import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
-import CreateUntitledRequest from 'components/CreateUntitledRequest';
-import { IconPlus } from '@tabler/icons';
+import CreateTransientRequest from 'components/CreateTransientRequest';
 import ActionIcon from 'ui/ActionIcon/index';
 
 const RequestTabs = () => {
@@ -161,12 +160,7 @@ const RequestTabs = () => {
             </div>
 
             {activeCollection && (
-              <ActionIcon onClick={() => setNewRequestModalOpen(true)} aria-label="New Request" size="lg" style={{ marginBottom: '3px' }}>
-                <IconPlus
-                  size={18}
-                  strokeWidth={1.5}
-                />
-              </ActionIcon>
+              <CreateTransientRequest collectionUid={activeCollection.uid} />
             )}
 
             <div className={classnames('scroll-chevrons', { hidden: !showChevrons })}>

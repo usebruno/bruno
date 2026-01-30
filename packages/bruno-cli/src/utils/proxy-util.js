@@ -79,17 +79,7 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
   }
 }
 
-const getSystemProxyEnvVariables = () => {
-  const { http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY, no_proxy, NO_PROXY } = process.env;
-  return {
-    http_proxy: http_proxy || HTTP_PROXY,
-    https_proxy: https_proxy || HTTPS_PROXY,
-    no_proxy: no_proxy || NO_PROXY
-  };
-};
-
 module.exports = {
   shouldUseProxy,
-  PatchedHttpsProxyAgent,
-  getSystemProxyEnvVariables
+  PatchedHttpsProxyAgent
 };

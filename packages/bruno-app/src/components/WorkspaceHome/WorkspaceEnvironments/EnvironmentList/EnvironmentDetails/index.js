@@ -2,12 +2,13 @@ import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch } from '@ta
 import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import useDebounce from 'hooks/useDebounce';
-import { renameGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { renameGlobalEnvironment, updateGlobalEnvironmentColor } from 'providers/ReduxStore/slices/global-environments';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import CopyEnvironment from '../../CopyEnvironment';
 import DeleteEnvironment from '../../DeleteEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
+import ColorPicker from 'components/ColorPicker';
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
@@ -132,6 +133,16 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
     }
   };
 
+  const handleColorChange = (color) => {
+    dispatch(updateGlobalEnvironmentColor(environment.uid, color))
+      .then(() => {
+        toast.success('Environment color updated!');
+      })
+      .catch(() => {
+        toast.error('An error occurred while updating the environment color');
+      });
+  };
+
   return (
     <StyledWrapper>
       {openDeleteModal && (
@@ -181,7 +192,10 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
               </div>
             </>
           ) : (
-            <h2 className="title">{environment.name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="title">{environment.name}</h2>
+              <ColorPicker color={environment.color} onChange={handleColorChange} />
+            </div>
           )}
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}

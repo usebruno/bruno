@@ -93,6 +93,7 @@ let appProtocolUrl;
 // Helper function to focus and restore the main window
 const focusMainWindow = () => {
   if (mainWindow) {
+    app.focus({ steal: true });
     if (mainWindow.isMinimized()) {
       mainWindow.restore();
     }

@@ -110,6 +110,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     padding: 4px 8px;
     margin-bottom: 1px;
     font-size: 13px;

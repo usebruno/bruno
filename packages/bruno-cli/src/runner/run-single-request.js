@@ -14,7 +14,8 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
-const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables } = require('../utils/proxy-util');
+const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
+const { getSystemProxy } = require('@usebruno/requests');
 const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
@@ -43,9 +44,10 @@ const getCACertHostRegex = (domain) => {
  * @returns {string[]} An array of extracted prompt variables
  */
 const extractPromptVariablesForRequest = ({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig }) => {
-  const { vars, collectionVariables, folderVariables, requestVariables, ...requestObj } = request;
+  const { vars, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, ...requestObj } = request;
 
   const allVariables = {
+    ...globalEnvironmentVariables,
     ...envVariables,
     ...collectionVariables,
     ...folderVariables,
@@ -62,6 +64,7 @@ const extractPromptVariablesForRequest = ({ request, collection, envVariables, r
   prompts.push(...extractPromptVariables(allVariables));
 
   const interpolationOptions = {
+    globalEnvVars: globalEnvironmentVariables,
     envVars: envVariables,
     runtimeVariables,
     processEnvVars
@@ -93,7 +96,8 @@ const runSingleRequest = async function (
   collectionRoot,
   runtime,
   collection,
-  runSingleRequestByPathname
+  runSingleRequestByPathname,
+  globalEnvVars = {}
 ) {
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
@@ -125,6 +129,9 @@ const runSingleRequest = async function (
     let postResponseTestResults = [];
 
     request = await prepareRequest(item, collection);
+
+    // Set global environment variables on the request for scripts to access via bru.getGlobalEnvVar()
+    request.globalEnvironmentVariables = globalEnvVars;
 
     // Detect prompt variables before proceeding
     const promptVars = extractPromptVariablesForRequest({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig });
@@ -246,6 +253,7 @@ const runSingleRequest = async function (
     }
 
     const interpolationOptions = {
+      globalEnvVars: request.globalEnvironmentVariables || {},
       envVars: envVariables,
       runtimeVariables,
       processEnvVars
@@ -302,7 +310,8 @@ const runSingleRequest = async function (
       proxyMode = 'on';
     } else if (!collectionProxyDisabled && collectionProxyInherit) {
       // Inherit from system proxy
-      const { http_proxy, https_proxy } = getSystemProxyEnvVariables();
+      const systemProxy = await getSystemProxy();
+      const { http_proxy, https_proxy } = systemProxy;
       if (http_proxy?.length || https_proxy?.length) {
         proxyMode = 'system';
       }
@@ -347,33 +356,40 @@ const runSingleRequest = async function (
         });
       }
     } else if (proxyMode === 'system') {
-      const { http_proxy, https_proxy, no_proxy } = getSystemProxyEnvVariables();
-      const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
-      if (shouldUseSystemProxy) {
-        try {
-          if (http_proxy?.length) {
-            new URL(http_proxy);
-            request.httpAgent = new HttpProxyAgent(http_proxy);
+      try {
+        const systemProxy = await getSystemProxy();
+        const { http_proxy, https_proxy, no_proxy } = systemProxy;
+        const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
+        const parsedUrl = new URL(request.url);
+        const isHttpsRequest = parsedUrl.protocol === 'https:';
+        if (shouldUseSystemProxy) {
+          try {
+            if (http_proxy?.length && !isHttpsRequest) {
+              new URL(http_proxy);
+              request.httpAgent = new HttpProxyAgent(http_proxy);
+            }
+          } catch (error) {
+            throw new Error('Invalid system http_proxy');
           }
-        } catch (error) {
-          throw new Error('Invalid system http_proxy');
-        }
-        try {
-          if (https_proxy?.length) {
-            new URL(https_proxy);
-            request.httpsAgent = new PatchedHttpsProxyAgent(
-              https_proxy,
-              Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-            );
-          } else {
-            request.httpsAgent = new https.Agent({
-              ...httpsAgentRequestFields
-            });
+          try {
+            if (https_proxy?.length && isHttpsRequest) {
+              new URL(https_proxy);
+              request.httpsAgent = new PatchedHttpsProxyAgent(https_proxy,
+                Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined);
+            } else {
+              request.httpsAgent = new https.Agent({
+                ...httpsAgentRequestFields
+              });
+            }
+          } catch (error) {
+            throw new Error('Invalid system https_proxy');
           }
-        } catch (error) {
-          throw new Error('Invalid system https_proxy');
+        } else {
+          request.httpsAgent = new https.Agent({
+            ...httpsAgentRequestFields
+          });
         }
-      } else {
+      } catch (error) {
         request.httpsAgent = new https.Agent({
           ...httpsAgentRequestFields
         });
@@ -462,6 +478,7 @@ const runSingleRequest = async function (
       try {
         // Prepare interpolation options with all available variables
         const oauth2InterpolationOptions = {
+          globalEnvVars: request.globalEnvironmentVariables || {},
           envVars: envVariables,
           runtimeVariables,
           processEnvVars,
@@ -488,6 +505,7 @@ const runSingleRequest = async function (
           const proxyConfig = get(brunoConfig, 'proxy');
           const interpolatedClientCertificates = clientCertificates ? interpolateObject(clientCertificates, oauth2InterpolationOptions) : undefined;
           const interpolatedProxyConfig = proxyConfig ? interpolateObject(proxyConfig, oauth2InterpolationOptions) : undefined;
+          const systemProxyConfig = await getSystemProxy();
 
           const { httpAgent: oauth2HttpAgent, httpsAgent: oauth2HttpsAgent } = await getHttpHttpsAgents({
             requestUrl: oauth2RequestUrl,
@@ -495,7 +513,7 @@ const runSingleRequest = async function (
             options: tlsOptions,
             clientCertificates: interpolatedClientCertificates,
             collectionLevelProxy: interpolatedProxyConfig,
-            systemProxyConfig: getSystemProxyEnvVariables()
+            systemProxyConfig
           });
 
           const oauth2AxiosInstance = makeAxiosInstanceForOauth2({
