@@ -120,10 +120,12 @@ const [first, second] = items;
 bru.setEnvVar("userId", id);
 `;
     const translatedCode = translateBruToPostman(code);
-
-    expect(translatedCode).toContain('const { id, name, items } = pm.response.json();');
-    expect(translatedCode).toContain('const [first, second] = items;');
-    expect(translatedCode).toContain('pm.environment.set("userId", id);');
+    const expected = `
+const { id, name, items } = pm.response.json();
+const [first, second] = items;
+pm.environment.set("userId", id);
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
   });
 
   it('should handle response JSON with optional chaining', () => {
@@ -132,9 +134,11 @@ const userId = res.getBody()?.user?.id ?? "anonymous";
 const items = res.getBody()?.data?.items || [];
 `;
     const translatedCode = translateBruToPostman(code);
-
-    expect(translatedCode).toContain('const userId = pm.response.json()?.user?.id ?? "anonymous";');
-    expect(translatedCode).toContain('const items = pm.response.json()?.data?.items || [];');
+    const expected = `
+const userId = pm.response.json()?.user?.id ?? "anonymous";
+const items = pm.response.json()?.data?.items || [];
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
   });
 
   it('should handle response in complex conditionals', () => {
@@ -156,13 +160,24 @@ if (res.getStatus() >= 200 && res.getStatus() < 300) {
 }
 `;
     const translatedCode = translateBruToPostman(code);
+    const expected = `
+if (pm.response.code >= 200 && pm.response.code < 300) {
+    if (pm.response.headers.get('Content-Type').includes('application/json')) {
+        const data = pm.response.json();
 
-    expect(translatedCode).toContain('if (pm.response.code >= 200 && pm.response.code < 300) {');
-    expect(translatedCode).toContain('if (pm.response.headers.get(\'Content-Type\').includes(\'application/json\')) {');
-    expect(translatedCode).toContain('const data = pm.response.json();');
-    expect(translatedCode).toContain('pm.environment.set("authToken", data.token);');
-    expect(translatedCode).toContain('} else if (pm.response.code === 404) {');
-    expect(translatedCode).toContain('console.error("Request failed with status:", pm.response.code);');
+        if (data.success === true && data.token) {
+            pm.environment.set("authToken", data.token);
+        } else if (data.error) {
+            console.error("API error:", data.error);
+        }
+    }
+} else if (pm.response.code === 404) {
+    console.log("Resource not found");
+} else {
+    console.error("Request failed with status:", pm.response.code);
+}
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
   });
 
   it('should handle all response property methods together', () => {
@@ -174,11 +189,14 @@ const statusText = res.statusText;
 const responseTime = res.getResponseTime();
 `;
     const translatedCode = translateBruToPostman(code);
-
-    expect(translatedCode).toContain('const statusCode = pm.response.code;');
-    expect(translatedCode).toContain('const responseBody = pm.response.json();');
-    expect(translatedCode).toContain('const statusText = pm.response.status;');
-    expect(translatedCode).toContain('const responseTime = pm.response.responseTime;');
+    const expected = `
+// All response property methods
+const statusCode = pm.response.code;
+const responseBody = pm.response.json();
+const statusText = pm.response.status;
+const responseTime = pm.response.responseTime;
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
   });
 
   it('should handle response processing in arrow functions', () => {
@@ -192,10 +210,65 @@ const itemIds = processItems();
 bru.setEnvVar("itemIds", JSON.stringify(itemIds));
 `;
     const translatedCode = translateBruToPostman(code);
+    const expected = `
+const processItems = () => {
+    const items = pm.response.json().items;
+    return items.map(item => item.id);
+};
 
-    expect(translatedCode).toContain('const items = pm.response.json().items;');
-    expect(translatedCode).toContain('return items.map(item => item.id);');
-    expect(translatedCode).toContain('const itemIds = processItems();');
-    expect(translatedCode).toContain('pm.environment.set("itemIds", JSON.stringify(itemIds));');
+const itemIds = processItems();
+pm.environment.set("itemIds", JSON.stringify(itemIds));
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
+  });
+
+  it('should translate res.responseTime property to pm.response.responseTime', () => {
+    const code = 'const time = res.responseTime;';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const time = pm.response.responseTime;');
+  });
+
+  it('should translate res.headers property to pm.response.headers', () => {
+    const code = 'const headers = res.headers;';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const headers = pm.response.headers;');
+  });
+
+  it('should handle res.responseTime in conditionals', () => {
+    const code = 'if (res.responseTime > 1000) { console.log("Slow response"); }';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('if (pm.response.responseTime > 1000) { console.log("Slow response"); }');
+  });
+
+  it('should handle res.headers property access', () => {
+    const code = 'const contentType = res.headers["Content-Type"];';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const contentType = pm.response.headers["Content-Type"];');
+  });
+
+  it('should handle both res.responseTime property and res.getResponseTime() method', () => {
+    const code = `
+const time1 = res.responseTime;
+const time2 = res.getResponseTime();
+`;
+    const translatedCode = translateBruToPostman(code);
+    const expected = `
+const time1 = pm.response.responseTime;
+const time2 = pm.response.responseTime;
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
+  });
+
+  it('should handle both res.headers property and res.getHeaders() method', () => {
+    const code = `
+const headers1 = res.headers;
+const headers2 = res.getHeaders();
+`;
+    const translatedCode = translateBruToPostman(code);
+    const expected = `
+const headers1 = pm.response.headers;
+const headers2 = pm.response.headers;
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
   });
 });
