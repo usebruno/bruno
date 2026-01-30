@@ -88,8 +88,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
 
-  // Check if request has examples (only for HTTP and GraphQL requests)
-  const hasExamples = isItemARequest(item) && (item.type === 'http-request' || item.type === 'graphql-request') && item.examples && item.examples.length > 0;
+  // Check if request has examples (only for HTTP requests)
+  const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
 
   const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
 
@@ -487,7 +487,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }));
 
     // Save the request
-    await dispatch(saveRequest(item.uid, collectionUid));
+    await dispatch(saveRequest(item.uid, collectionUid, true));
 
     // Task middleware will track this and open the example in a new tab once the file is reloaded
     dispatch(insertTaskIntoQueue({
@@ -502,8 +502,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setCreateExampleModalOpen(false);
   };
 
-  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i)));
-  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
+  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i) && !i.isTransient));
+  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
 
   const handleGenerateCode = () => {
     if (
@@ -711,8 +711,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         </div>
       ) : null}
 
-      {/* Show examples when expanded (only for HTTP and GraphQL requests) */}
-      {isItemARequest(item) && (item.type === 'http-request' || item.type === 'graphql-request') && examplesExpanded && hasExamples && (
+      {/* Show examples when expanded (only for HTTP requests) */}
+      {isItemARequest(item) && item.type === 'http-request' && examplesExpanded && hasExamples && (
         <div>
           {(item.examples || []).map((example, index) => {
             return (

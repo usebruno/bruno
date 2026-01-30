@@ -40,8 +40,8 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
     isDisabled
   }), [isDisabled]);
 
-  // Only show for HTTP and GraphQL requests
-  if (!['http-request', 'graphql-request'].includes(item.type)) {
+  // Only show for HTTP requests
+  if (item.type !== 'http-request') {
     return null;
   }
 
