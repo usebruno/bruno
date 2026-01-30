@@ -18,6 +18,7 @@ const constants = require('../constants');
 const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
+const { getSystemProxy } = require('@usebruno/requests');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -607,6 +608,15 @@ const handler = async function (argv) {
     });
 
     const runtime = getJsSandboxRuntime(sandbox);
+
+    // Fetch system proxy once for all requests (skip if --noproxy flag is set)
+    if (!noproxy) {
+      try {
+        options['cachedSystemProxy'] = await getSystemProxy();
+      } catch (error) {
+        console.warn(chalk.yellow('Failed to detect system proxy, continuing without system proxy'));
+      }
+    }
 
     const runSingleRequestByPathname = async (relativeItemPathname) => {
       const ext = FORMAT_CONFIG[collection.format].ext;

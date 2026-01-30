@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconLoader2 } from '@tabler/icons';
-import { getSystemProxyVariables } from 'providers/ReduxStore/slices/app';
+import { IconLoader2, IconRefresh } from '@tabler/icons';
+import { getSystemProxyVariables, refreshSystemProxy } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from '../StyledWrapper';
 
 const SystemProxy = () => {
@@ -11,12 +11,23 @@ const SystemProxy = () => {
   const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    dispatch(getSystemProxyVariables())
+  const fetchProxy = (forceRefresh = false) => {
+    setIsFetching(true);
+    setError(null);
+    const action = forceRefresh ? refreshSystemProxy : getSystemProxyVariables;
+    dispatch(action())
       .then(() => setError(null))
       .catch((err) => setError(err.message || String(err)))
       .finally(() => setIsFetching(false));
+  };
+
+  useEffect(() => {
+    fetchProxy(false);
   }, [dispatch]);
+
+  const handleRefresh = () => {
+    fetchProxy(true);
+  };
 
   return (
     <StyledWrapper>
@@ -24,8 +35,8 @@ const SystemProxy = () => {
         <div className="flex items-start justify-start flex-col gap-2 mt-2">
           <div className="flex flex-row items-center gap-2">
             <div>
-              <h2 className="text-xs system-proxy-title">
-                System Proxy {isFetching ? <IconLoader2 className="animate-spin ml-1" size={18} strokeWidth={1.5} /> : null}
+              <h2 className="text-xs system-proxy-title flex flex-row">
+                System Proxy {isFetching ? <IconLoader2 className="animate-spin ml-1" size={16} strokeWidth={1.5} /> : null}
               </h2>
               <small className="system-proxy-description">
                 Below values are sourced from your system proxy settings.
@@ -75,6 +86,13 @@ const SystemProxy = () => {
             <div className="system-proxy-value">{no_proxy || '-'}</div>
           </div>
         </div>
+        <span
+          className="text-link cursor-pointer hover:underline default-collection-location-browse flex flex-row items-center"
+          onClick={handleRefresh}
+        >
+          <IconRefresh size={14} strokeWidth={1.5} className="mr-1" />
+          Refresh
+        </span>
       </div>
     </StyledWrapper>
   );
