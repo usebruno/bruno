@@ -231,10 +231,12 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   let collectionPreReqScript = get(collectionRoot, 'request.script.req', '');
   let collectionPostResScript = get(collectionRoot, 'request.script.res', '');
   let collectionTests = get(collectionRoot, 'request.tests', '');
+  let collectionHooks = get(collectionRoot, 'request.script.hooks', '');
 
   let combinedPreReqScript = [];
   let combinedPostResScript = [];
   let combinedTests = [];
+  let combinedHooks = [];
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
@@ -251,6 +253,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       let tests = get(folderRoot, 'request.tests', '');
       if (tests && tests?.trim?.() !== '') {
         combinedTests.push(tests);
+      }
+
+      let hooks = get(folderRoot, 'request.script.hooks', '');
+      if (hooks && hooks.trim() !== '') {
+        combinedHooks.push(hooks);
       }
     }
   }
@@ -301,6 +308,21 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     ];
     request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   }
+
+  // Handle hooks - always merged sequentially: collection -> folders -> request
+  let requestHooks = request?.script?.hooks || '';
+  const hooksScripts = [
+    collectionHooks,
+    ...combinedHooks,
+    requestHooks
+  ];
+
+  // Ensure request.script exists
+  if (!request.script) {
+    request.script = {};
+  }
+
+  request.script.hooks = compact(hooksScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
 };
 
 const findItem = (items = [], pathname) => {
@@ -368,6 +390,17 @@ const mergeAuth = (collection, request, requestTreePath) => {
     request.auth = effectiveAuth;
   }
 };
+
+/**
+ * Hook event names used throughout the application.
+ * This object is frozen to prevent accidental modifications and improve maintainability.
+ */
+const HOOK_EVENTS = Object.freeze({
+  HTTP_BEFORE_REQUEST: 'http:beforeRequest',
+  HTTP_AFTER_RESPONSE: 'http:afterResponse',
+  RUNNER_BEFORE_COLLECTION_RUN: 'runner:beforeCollectionRun',
+  RUNNER_AFTER_COLLECTION_RUN: 'runner:afterCollectionRun'
+});
 
 const getAllRequestsInFolder = (folderItems = [], recursive = true) => {
   let requests = [];
@@ -598,5 +631,6 @@ module.exports = {
   mergeAuth,
   getAllRequestsInFolder,
   getAllRequestsAtFolderRoot,
-  getCallStack
+  getCallStack,
+  HOOK_EVENTS
 };

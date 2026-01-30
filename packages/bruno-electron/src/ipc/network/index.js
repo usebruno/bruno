@@ -8,7 +8,7 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, HooksRuntime } = require('@usebruno/js');
 const { encodeUrl } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
@@ -24,7 +24,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence, HOOK_EVENTS } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -443,8 +443,130 @@ const registerNetworkIpc = (mainWindow) => {
     });
   };
 
-  const runPreRequest = async (
-    request,
+  /**
+   * Send script environment updates to the renderer
+   * This is a reusable helper for updating the UI after script/hook execution
+   * @param {object} options - Update options
+   * @param {object} options.scriptResult - The result from script/hook execution
+   * @param {object} options.collection - The collection object
+   * @param {string} options.collectionUid - The collection UID
+   * @param {string} [options.requestUid] - The request UID (optional, not needed for collection-level hooks)
+   * @param {boolean} [options.updateCookies=true] - Whether to update cookies
+   */
+  const sendScriptEnvironmentUpdates = async ({
+    scriptResult,
+    collection,
+    collectionUid,
+    requestUid,
+    updateCookies = true
+  }) => {
+    if (!scriptResult) return;
+
+    mainWindow.webContents.send('main:script-environment-update', {
+      envVariables: scriptResult.envVariables,
+      runtimeVariables: scriptResult.runtimeVariables,
+      persistentEnvVariables: scriptResult.persistentEnvVariables,
+      ...(requestUid && { requestUid }),
+      collectionUid
+    });
+
+    mainWindow.webContents.send('main:persistent-env-variables-update', {
+      persistentEnvVariables: scriptResult.persistentEnvVariables,
+      collectionUid
+    });
+
+    mainWindow.webContents.send('main:global-environment-variables-update', {
+      globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+    });
+
+    if (scriptResult.globalEnvironmentVariables) {
+      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+    }
+
+    if (updateCookies) {
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    }
+  };
+
+  /**
+   * Execute merged hooks for a specific event
+   * @param {string} hookEvent - Hook event to trigger
+   * @param {object} eventData - Data to pass to hook handlers
+   * @param {object} options - Configuration options
+   * @returns {Promise<object|null>} Execution result or null if error
+   */
+  const executeHooks = async (hookEvent, eventData, options) => {
+    try {
+      const hooksRuntime = new HooksRuntime({ runtime: options.scriptingConfig?.runtime });
+      const result = await hooksRuntime.runHooks({
+        hooksFile: options.request?.script?.hooks,
+        request: options.request || {},
+        response: eventData.response,
+        envVariables: options.envVars,
+        runtimeVariables: options.runtimeVariables,
+        collectionPath: options.collectionPath,
+        onConsoleLog: options.onConsoleLog,
+        processEnvVars: options.processEnvVars,
+        scriptingConfig: options.scriptingConfig,
+        runRequestByItemPathname: options.runRequestByItemPathname,
+        collectionName: options.collectionName
+      });
+
+      if (result?.hookManager) {
+        // Enrich eventData with runtime-created req/res wrappers
+        const enrichedEventData = {
+          ...eventData,
+          req: result.req || eventData.req,
+          res: result.res || eventData.res
+        };
+        await result.hookManager.call(hookEvent, enrichedEventData);
+
+        // Re-read runner control signals from bru instance AFTER handlers have executed
+        // Handlers may have called bru.runner.setNextRequest(), skipRequest(), or stopExecution()
+        // which update the bru instance but were not captured in the initial result
+        const bru = result.__bru;
+        if (bru) {
+          result.nextRequestName = bru.nextRequest;
+          result.skipRequest = bru.skipRequest;
+          result.stopExecution = bru.stopExecution;
+        }
+
+        result.hookManager.dispose();
+      }
+
+      // Send UI updates if we have a result
+      if (result) {
+        await sendScriptEnvironmentUpdates({
+          scriptResult: result,
+          collection: options.collection,
+          collectionUid: options.collectionUid,
+          requestUid: options.requestUid,
+          updateCookies: true
+        });
+      }
+
+      return result;
+    } catch (error) {
+      console.error(`Error executing hooks for ${hookEvent}:`, error);
+      options.onConsoleLog?.('error', [`Error executing hooks for ${hookEvent}: ${error.message}`]);
+      if (!options.runInBackground && options.notifyScriptExecution && typeof options.notifyScriptExecution === 'function') {
+        options.notifyScriptExecution({
+          channel: 'main:run-request-event',
+          basePayload: {
+            requestUid: options.requestUid,
+            collectionUid: options.collectionUid,
+            itemUid: options.itemUid
+          },
+          scriptType: 'hooks',
+          error
+        });
+      }
+      return null;
+    }
+  };
+
+  const runPreRequest = async (request,
     requestUid,
     envVars,
     collectionPath,
@@ -475,27 +597,13 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName
       );
 
-      mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: scriptResult.envVariables,
-        runtimeVariables: scriptResult.runtimeVariables,
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
+      await sendScriptEnvironmentUpdates({
+        scriptResult,
+        collection,
+        collectionUid,
         requestUid,
-        collectionUid
+        updateCookies: true
       });
-
-      mainWindow.webContents.send('main:persistent-env-variables-update', {
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
-        collectionUid
-      });
-
-      mainWindow.webContents.send('main:global-environment-variables-update', {
-        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
-      });
-
-      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
-
-      const domainsWithCookies = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
     }
 
     // interpolate variables inside request
@@ -564,24 +672,13 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       if (result) {
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: result.envVariables,
-          runtimeVariables: result.runtimeVariables,
-          persistentEnvVariables: result.persistentEnvVariables,
+        await sendScriptEnvironmentUpdates({
+          scriptResult: result,
+          collection,
+          collectionUid,
           requestUid,
-          collectionUid
+          updateCookies: false
         });
-
-        mainWindow.webContents.send('main:persistent-env-variables-update', {
-          persistentEnvVariables: result.persistentEnvVariables,
-          collectionUid
-        });
-
-        mainWindow.webContents.send('main:global-environment-variables-update', {
-          globalEnvironmentVariables: result.globalEnvironmentVariables
-        });
-
-        collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
       }
 
       if (result?.error) {
@@ -609,27 +706,13 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName
       );
 
-      mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: scriptResult.envVariables,
-        runtimeVariables: scriptResult.runtimeVariables,
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
+      await sendScriptEnvironmentUpdates({
+        scriptResult,
+        collection,
+        collectionUid,
         requestUid,
-        collectionUid
+        updateCookies: true
       });
-
-      mainWindow.webContents.send('main:persistent-env-variables-update', {
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
-        collectionUid
-      });
-
-      mainWindow.webContents.send('main:global-environment-variables-update', {
-        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
-      });
-
-      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
-
-      const domainsWithCookiesPost = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPost)));
     }
     return scriptResult;
   };
@@ -676,9 +759,41 @@ const registerNetworkIpc = (mainWindow) => {
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
+    // Get request tree path for hooks execution
+    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+
     try {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
+
+      // Call beforeRequest hooks before running pre-request scripts
+      // Hooks are merged in prepareRequest via mergeScripts
+      // Hooks are called in registration order: collection -> folder(s) -> request
+      const beforeRequestEventData = { request, collection, collectionUid };
+      const hookOptions = {
+        request,
+        envVars,
+        runtimeVariables,
+        collectionPath,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        runRequestByItemPathname,
+        collectionName: collection?.name,
+        collection,
+        requestUid,
+        itemUid: item.uid,
+        collectionUid,
+        runInBackground,
+        notifyScriptExecution
+      };
+
+      // Call beforeRequest hooks using merged hooks
+      await executeHooks(
+        HOOK_EVENTS.HTTP_BEFORE_REQUEST,
+        beforeRequestEventData,
+        hookOptions
+      );
 
       let preRequestScriptResult = null;
       let preRequestError = null;
@@ -844,6 +959,17 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
       cookiesStore.saveCookieJar();
 
+      // Call afterResponse hooks after response is received but before post-response scripts
+      // Hooks are called in registration order: collection -> folder(s) -> request
+      const afterResponseEventData = { request, response, collection, collectionUid };
+
+      // Call afterResponse hooks using merged hooks
+      await executeHooks(
+        HOOK_EVENTS.HTTP_AFTER_RESPONSE,
+        afterResponseEventData,
+        hookOptions
+      );
+
       const runPostScripts = async () => {
         let postResponseScriptResult = null;
         let postResponseError = null;
@@ -945,23 +1071,14 @@ const registerNetworkIpc = (mainWindow) => {
             collectionUid
           });
 
-          mainWindow.webContents.send('main:script-environment-update', {
-            envVariables: testResults.envVariables,
-            runtimeVariables: testResults.runtimeVariables,
+          await sendScriptEnvironmentUpdates({
+            scriptResult: testResults,
+            collection,
+            collectionUid,
             requestUid,
-            collectionUid
+            updateCookies: true
           });
-
-          mainWindow.webContents.send('main:persistent-env-variables-update', {
-            persistentEnvVariables: testResults.persistentEnvVariables,
-            collectionUid
-          });
-
-          mainWindow.webContents.send('main:global-environment-variables-update', {
-            globalEnvironmentVariables: testResults.globalEnvironmentVariables
-          });
-
-          collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+          cookiesStore.saveCookieJar();
 
           !runInBackground && notifyScriptExecution({
             channel: 'main:run-request-event',
@@ -969,10 +1086,6 @@ const registerNetworkIpc = (mainWindow) => {
             scriptType: 'test',
             error: testError
           });
-
-          const domainsWithCookiesTest = await getDomainsWithCookies();
-          mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
-          cookiesStore.saveCookieJar();
         }
       };
       if (isResponseStream) {
@@ -1171,6 +1284,65 @@ const registerNetworkIpc = (mainWindow) => {
         cancelTokenUid
       });
 
+      const isCollectionRun = folder?.uid === collection?.uid;
+
+      // Helper function to execute collection-level hooks at runtime
+      const executeCollectionHooks = async (hookEvent, eventData) => {
+        const collectionRoot = collection?.draft?.root || collection?.root || {};
+        const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
+
+        if (!collectionHooks || !collectionHooks.trim()) {
+          return;
+        }
+
+        try {
+          const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
+          const result = await hooksRuntime.runHooks({
+            hooksFile: decomment(collectionHooks),
+            request: {}, // Placeholder request for collection-level hooks
+            envVariables: envVars,
+            runtimeVariables,
+            collectionPath,
+            onConsoleLog: (type, args) => {
+              console[type](...args);
+              mainWindow.webContents.send('main:console-log', {
+                type,
+                args
+              });
+            },
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname,
+            collectionName: collection?.name
+          });
+
+          if (result?.hookManager) {
+            await result.hookManager.call(hookEvent, eventData);
+            // Dispose HookManager to free VM resources
+            if (result.hookManager && typeof result.hookManager.dispose === 'function') {
+              result.hookManager.dispose();
+            }
+          }
+
+          // Send UI updates after collection-level hooks execution
+          if (result) {
+            await sendScriptEnvironmentUpdates({
+              scriptResult: result,
+              collection,
+              collectionUid,
+              updateCookies: true
+            });
+          }
+        } catch (error) {
+          console.error(`Error executing collection-level hooks for ${hookEvent}:`, error);
+        }
+      };
+
+      // Call onBeforeCollectionRun hook before starting to run requests
+      if (isCollectionRun) {
+        await executeCollectionHooks(HOOK_EVENTS.RUNNER_BEFORE_COLLECTION_RUN, { collection, collectionUid });
+      }
+
       try {
         let folderRequests = [];
 
@@ -1216,6 +1388,7 @@ const registerNetworkIpc = (mainWindow) => {
 
         let currentRequestIndex = 0;
         let nJumps = 0; // count the number of jumps to avoid infinite loops
+
         while (currentRequestIndex < folderRequests.length) {
           // user requested to cancel runner
           if (abortController.signal.aborted) {
@@ -1287,7 +1460,73 @@ const registerNetworkIpc = (mainWindow) => {
             continue;
           }
 
+          // Get request tree path for hooks execution (hooks are merged in prepareRequest via mergeScripts)
+          const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+
+          // Hook execution options
+          const hookOptions = {
+            request,
+            envVars,
+            runtimeVariables,
+            collectionPath,
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname,
+            collectionName: collection?.name,
+            collection,
+            onConsoleLog: (type, args) => {
+              console[type](...args);
+              mainWindow.webContents.send('main:console-log', {
+                type,
+                args
+              });
+            },
+            requestUid,
+            itemUid: item.uid,
+            collectionUid,
+            runInBackground: false,
+            notifyScriptExecution: (notification) => {
+              notifyScriptExecution({
+                ...notification,
+                basePayload: eventData
+              });
+            }
+          };
+
           try {
+            // Call beforeRequest hooks using merged hooks
+            const beforeRequestEventData = { request, collection, collectionUid };
+
+            const beforeRequestHooksResult = await executeHooks(
+              HOOK_EVENTS.HTTP_BEFORE_REQUEST,
+              beforeRequestEventData,
+              hookOptions
+            );
+
+            // Check runner control from hooks
+            if (beforeRequestHooksResult?.nextRequestName !== undefined) {
+              nextRequestName = beforeRequestHooksResult.nextRequestName;
+            }
+            if (beforeRequestHooksResult?.stopExecution) {
+              stopRunnerExecution = true;
+            }
+            if (beforeRequestHooksResult?.skipRequest) {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'runner-request-skipped',
+                error: 'Request has been skipped from beforeRequest hook',
+                responseReceived: {
+                  status: 'skipped',
+                  statusText: 'request skipped via beforeRequest hook',
+                  data: null,
+                  responseTime: 0,
+                  headers: null
+                },
+                ...eventData
+              });
+              currentRequestIndex++;
+              continue;
+            }
+
             let preRequestScriptResult;
             let preRequestError = null;
             try {
@@ -1509,6 +1748,23 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
+            // Call afterResponse hooks using merged hooks
+            const afterResponseEventData = { request, response, collection, collectionUid };
+
+            const afterResponseHooksResult = await executeHooks(
+              HOOK_EVENTS.HTTP_AFTER_RESPONSE,
+              afterResponseEventData,
+              hookOptions
+            );
+
+            // Check runner control from hooks
+            if (afterResponseHooksResult?.nextRequestName !== undefined) {
+              nextRequestName = afterResponseHooksResult.nextRequestName;
+            }
+            if (afterResponseHooksResult?.stopExecution) {
+              stopRunnerExecution = true;
+            }
+
             let postResponseScriptResult;
             let postResponseError = null;
             try {
@@ -1626,17 +1882,13 @@ const registerNetworkIpc = (mainWindow) => {
                 ...eventData
               });
 
-              mainWindow.webContents.send('main:script-environment-update', {
-                envVariables: testResults.envVariables,
-                runtimeVariables: testResults.runtimeVariables,
-                collectionUid
+              await sendScriptEnvironmentUpdates({
+                scriptResult: testResults,
+                collection,
+                collectionUid,
+                requestUid: undefined,
+                updateCookies: true
               });
-
-              mainWindow.webContents.send('main:global-environment-variables-update', {
-                globalEnvironmentVariables: testResults.globalEnvironmentVariables
-              });
-
-              collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
 
               notifyScriptExecution({
                 channel: 'main:run-folder-event',
@@ -1644,9 +1896,6 @@ const registerNetworkIpc = (mainWindow) => {
                 scriptType: 'test',
                 error: testError
               });
-
-              const domainsWithCookiesTest = await getDomainsWithCookies();
-              mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
             }
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {
@@ -1689,6 +1938,11 @@ const registerNetworkIpc = (mainWindow) => {
           }
         }
 
+        // Call onAfterCollectionRun hook after all requests are done
+        if (isCollectionRun) {
+          await executeCollectionHooks(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection, collectionUid });
+        }
+
         deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',
@@ -1698,6 +1952,12 @@ const registerNetworkIpc = (mainWindow) => {
         });
       } catch (error) {
         console.log('error', error);
+
+        // Call onAfterCollectionRun hook even on error
+        if (isCollectionRun) {
+          await executeCollectionHooks(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection, collectionUid });
+        }
+
         deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',

@@ -402,7 +402,8 @@ const requestSchema = Yup.object({
   body: requestBodySchema,
   script: Yup.object({
     req: Yup.string().nullable(),
-    res: Yup.string().nullable()
+    res: Yup.string().nullable(),
+    hooks: Yup.string().nullable()
   })
     .noUnknown(true)
     .strict(),
@@ -438,7 +439,8 @@ const grpcRequestSchema = Yup.object({
     .required('body is required'),
   script: Yup.object({
     req: Yup.string().nullable(),
-    res: Yup.string().nullable()
+    res: Yup.string().nullable(),
+    hooks: Yup.string().nullable()
   })
     .noUnknown(true)
     .strict(),
@@ -476,7 +478,8 @@ const wsRequestSchema = Yup.object({
     .required('body is required'),
   script: Yup.object({
     req: Yup.string().nullable(),
-    res: Yup.string().nullable()
+    res: Yup.string().nullable(),
+    hooks: Yup.string().nullable()
   })
     .noUnknown(true)
     .strict(),
@@ -511,7 +514,8 @@ const folderRootSchema = Yup.object({
     auth: authSchema,
     script: Yup.object({
       req: Yup.string().nullable(),
-      res: Yup.string().nullable()
+      res: Yup.string().nullable(),
+      hooks: Yup.string().nullable()
     })
       .noUnknown(true)
       .strict()

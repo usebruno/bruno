@@ -1,0 +1,30 @@
+meta {
+  name: set-next-request-skipped
+  type: http
+  seq: 201
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] ERROR: This request should have been skipped by setNextRequest!');
+    
+    // If this request runs, set an error marker
+    bru.setVar('set-next-request-skipped-ran', 'true');
+    
+    console.log('[beforeRequest] Setting error marker - setNextRequest jump failed');
+  });
+}
+
+tests {
+  test("this request should be skipped due to setNextRequest jump", function() {
+    // If we get here, the request ran when it should have been skipped
+    const ran = bru.getVar('set-next-request-skipped-ran');
+    expect(ran).to.be.undefined;
+  });
+}

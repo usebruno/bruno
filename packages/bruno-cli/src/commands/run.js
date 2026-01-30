@@ -2,7 +2,7 @@ const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
 const yaml = require('js-yaml');
-const { forOwn, cloneDeep } = require('lodash');
+const { forOwn, cloneDeep, get } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
@@ -15,9 +15,11 @@ const { rpad } = require('../utils/common');
 const { getOptions } = require('../utils/bru');
 const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
-const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
+const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG, HOOK_EVENTS } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
+const { HooksRuntime } = require('@usebruno/js');
+const decomment = require('decomment');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -315,7 +317,7 @@ const handler = async function (argv) {
     const collectionPath = process.cwd();
 
     let collection = createCollectionJsonFromPathname(collectionPath);
-    const { root: collectionRoot, brunoConfig } = collection;
+    let { root: collectionRoot, brunoConfig } = collection;
 
     if (clientCertConfig) {
       try {
@@ -607,7 +609,15 @@ const handler = async function (argv) {
     });
 
     const runtime = getJsSandboxRuntime(sandbox);
+    const scriptingConfig = get(brunoConfig, 'scripts', {});
+    scriptingConfig.runtime = runtime;
 
+    const collectionName = collection?.brunoConfig?.name;
+    const onConsoleLog = (type, args) => {
+      console[type](...args);
+    };
+
+    // Define runSingleRequestByPathname before executeCollectionHooks so it's available at all hook levels
     const runSingleRequestByPathname = async (relativeItemPathname) => {
       const ext = FORMAT_CONFIG[collection.format].ext;
       return new Promise(async (resolve, reject) => {
@@ -635,6 +645,45 @@ const handler = async function (argv) {
         reject(`bru.runRequest: invalid request path - ${itemPathname}`);
       });
     };
+
+    // Helper function to execute collection-level hooks at runtime
+    const executeCollectionHooks = async (hookEvent, eventData) => {
+      collectionRoot = collection?.draft?.root || collection?.root || {};
+      const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
+
+      if (!collectionHooks || !collectionHooks.trim()) {
+        return;
+      }
+
+      try {
+        const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
+        const result = await hooksRuntime.runHooks({
+          hooksFile: decomment(collectionHooks),
+          request: {}, // Placeholder request for collection-level hooks
+          envVariables: envVars,
+          runtimeVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname: runSingleRequestByPathname,
+          collectionName
+        });
+
+        if (result?.hookManager) {
+          await result.hookManager.call(hookEvent, eventData);
+          // Dispose HookManager to free VM resources
+          if (result.hookManager && typeof result.hookManager.dispose === 'function') {
+            result.hookManager.dispose();
+          }
+        }
+      } catch (error) {
+        console.error(`Error executing collection-level hooks for ${hookEvent}:`, error);
+      }
+    };
+
+    // Call onBeforeCollectionRun hook before starting to run requests
+    await executeCollectionHooks(HOOK_EVENTS.RUNNER_BEFORE_COLLECTION_RUN, { collection });
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
@@ -748,6 +797,9 @@ const handler = async function (argv) {
 
     const skippedFileResults = createSkippedFileResults(global.brunoSkippedFiles || [], collectionPath);
     results.push(...skippedFileResults);
+
+    // Call onAfterCollectionRun hook after all requests are done
+    await executeCollectionHooks(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection });
 
     const summary = printRunSummary(results);
     const runCompletionTime = new Date().toISOString();
