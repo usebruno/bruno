@@ -443,3 +443,5 @@ const getHttpHttpsAgents = async ({
 };
 
 export { getHttpHttpsAgents };
+
+export type { GetHttpHttpsAgentsParams };

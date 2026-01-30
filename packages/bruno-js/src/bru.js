@@ -1,13 +1,33 @@
 const { cloneDeep } = require('lodash');
 const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
-const { sendRequest } = require('@usebruno/requests').scripting;
+const { sendRequest, createSendRequest } = require('@usebruno/requests').scripting;
 const { jar: createCookieJar } = require('@usebruno/requests').cookies;
 
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables) {
+  /**
+   * @param {string} runtime - The runtime environment ('quickjs' or 'nodevm')
+   * @param {object} envVariables - Environment variables
+   * @param {object} runtimeVariables - Runtime variables
+   * @param {object} processEnvVars - Process environment variables
+   * @param {string} collectionPath - Path to the collection
+   * @param {object} collectionVariables - Collection-level variables
+   * @param {object} folderVariables - Folder-level variables
+   * @param {object} requestVariables - Request-level variables
+   * @param {object} globalEnvironmentVariables - Global environment variables
+   * @param {object} oauth2CredentialVariables - OAuth2 credential variables
+   * @param {string} collectionName - Name of the collection
+   * @param {object} promptVariables - Prompt variables
+   * @param {object} certsAndProxyConfig - Configuration for bru.sendRequest (proxy, certs, TLS)
+   * @param {string} certsAndProxyConfig.collectionPath - Path to the collection
+   * @param {object} certsAndProxyConfig.options - TLS and proxy options
+   * @param {object} [certsAndProxyConfig.clientCertificates] - Client certificate configuration
+   * @param {object} [certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
+   * @param {object} [certsAndProxyConfig.systemProxyConfig] - System proxy configuration
+   */
+  constructor(runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.promptVariables = promptVariables || {};
@@ -19,7 +39,8 @@ class Bru {
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
-    this.sendRequest = sendRequest;
+    // Use createSendRequest with config if provided, otherwise use default sendRequest
+    this.sendRequest = certsAndProxyConfig ? createSendRequest(certsAndProxyConfig) : sendRequest;
     this.runtime = runtime;
     this.cookies = {
       jar: () => {

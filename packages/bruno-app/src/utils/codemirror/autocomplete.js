@@ -76,6 +76,8 @@ const STATIC_API_HINTS = {
     'bru.setNextRequest(requestName)',
     'bru.getRequestVar(key)',
     'bru.runRequest(requestPathName)',
+    'bru.sendRequest(requestConfig)',
+    'bru.sendRequest(requestConfig, callback)',
     'bru.getAssertionResults()',
     'bru.getTestResults()',
     'bru.sleep(ms)',
