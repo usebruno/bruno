@@ -1,6 +1,74 @@
 const stringify = require('../src/jsonToBru');
 
 describe('jsonToBru stringify', () => {
+  describe('body:grpc', () => {
+    it('stringifies grpc messages with enabled true (default)', () => {
+      const input = {
+        grpc: {
+          url: 'grpc://localhost:50051',
+          method: '/hello.HelloService/SayHello',
+          body: 'grpc',
+          auth: 'inherit',
+          methodType: 'unary'
+        },
+        body: {
+          mode: 'grpc',
+          grpc: [
+            {
+              content: '{"greeting":"hello"}',
+              name: 'message 1',
+              enabled: true
+            }
+          ]
+        }
+      };
+
+      const output = stringify(input);
+
+      expect(output).toContain('body:grpc {');
+      expect(output).toContain('name: message 1');
+      expect(output).toContain('{"greeting":"hello"}');
+      // enabled: true should NOT be written (it's the default)
+      expect(output).not.toContain('enabled: true');
+      expect(output).not.toContain('enabled: false');
+    });
+
+    it('stringifies grpc messages with enabled false', () => {
+      const input = {
+        grpc: {
+          url: 'grpc://localhost:50051',
+          method: '/hello.HelloService/SayHello',
+          body: 'grpc',
+          auth: 'inherit',
+          methodType: 'client-streaming'
+        },
+        body: {
+          mode: 'grpc',
+          grpc: [
+            {
+              content: '{"greeting":"hello"}',
+              name: 'message 1',
+              enabled: true
+            },
+            {
+              content: '{"greeting":"world"}',
+              name: 'message 2',
+              enabled: false
+            }
+          ]
+        }
+      };
+
+      const output = stringify(input);
+
+      expect(output).toContain('body:grpc {');
+      // First message should not have enabled field
+      expect(output).toMatch(/name: message 1\n\s*content:/);
+      // Second message should have enabled: false
+      expect(output).toContain('enabled: false');
+    });
+  });
+
   describe('body:ws', () => {
     it('stringifies a valid bruno request | smoke', () => {
       const input = {

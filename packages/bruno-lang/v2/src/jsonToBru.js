@@ -587,11 +587,16 @@ ${indentString(body.sparql)}
     // Convert each gRPC message to a separate body:grpc block
     if (Array.isArray(body.grpc)) {
       body.grpc.forEach((m) => {
-        const { name, content } = m;
+        const { name, content, enabled = true } = m;
 
         bru += `body:grpc {\n`;
 
         bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
+
+        // Only write enabled field when false (defaults to true)
+        if (enabled === false) {
+          bru += `${indentString('enabled: false')}\n`;
+        }
 
         // Convert content to JSON string if it's an object
         let jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
