@@ -1,15 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 const fsExtra = require('fs-extra');
+const archiver = require('archiver');
+const extractZip = require('extract-zip');
 const { ipcMain, dialog } = require('electron');
-const { createDirectory, sanitizeName } = require('../utils/filesystem');
-const { generateUidBasedOnHash } = require('../utils/common');
+const isDev = require('electron-is-dev');
+const { createDirectory, sanitizeName, writeFile, DEFAULT_GITIGNORE } = require('../utils/filesystem');
 const yaml = require('js-yaml');
 const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
 const { globalEnvironmentsManager } = require('../store/workspace-environments');
 
-// Workspace configuration module (includes path and validation utilities)
 const {
   createWorkspaceConfig,
   readWorkspaceConfig,
@@ -22,8 +23,39 @@ const {
   getWorkspaceCollections,
   normalizeCollectionEntry,
   validateWorkspacePath,
-  validateWorkspaceDirectory
+  validateWorkspaceDirectory,
+  getWorkspaceUid
 } = require('../utils/workspace-config');
+
+const { isValidCollectionDirectory } = require('../utils/filesystem');
+
+const DEFAULT_WORKSPACE_NAME = 'My Workspace';
+
+const prepareWorkspaceConfigForClient = (workspaceConfig, workspacePath, isDefault) => {
+  const collections = workspaceConfig.collections || [];
+  const filteredCollections = collections
+    .map((collection) => {
+      if (collection.path && !path.isAbsolute(collection.path)) {
+        return { ...collection, path: path.resolve(workspacePath, collection.path) };
+      }
+      return collection;
+    })
+    .filter((collection) => collection.path && isValidCollectionDirectory(collection.path));
+
+  const config = {
+    ...workspaceConfig,
+    collections: filteredCollections
+  };
+
+  if (isDefault) {
+    return {
+      ...config,
+      name: DEFAULT_WORKSPACE_NAME,
+      type: 'default'
+    };
+  }
+  return config;
+};
 
 const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
   const lastOpenedWorkspaces = new LastOpenedWorkspaces();
@@ -49,21 +81,25 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
         await createDirectory(path.join(dirPath, 'collections'));
 
-        const workspaceUid = generateUidBasedOnHash(dirPath);
+        const workspaceUid = getWorkspaceUid(dirPath);
+        const isDefault = workspaceUid === 'default';
         const workspaceConfig = createWorkspaceConfig(workspaceName);
 
         await writeWorkspaceConfig(dirPath, workspaceConfig);
+        await writeFile(path.join(dirPath, '.gitignore'), DEFAULT_GITIGNORE);
 
-        lastOpenedWorkspaces.add(dirPath, workspaceConfig);
+        lastOpenedWorkspaces.add(dirPath);
 
-        mainWindow.webContents.send('main:workspace-opened', dirPath, workspaceUid, workspaceConfig);
+        const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, dirPath, isDefault);
+
+        mainWindow.webContents.send('main:workspace-opened', dirPath, workspaceUid, configForClient);
 
         if (workspaceWatcher) {
           workspaceWatcher.addWatcher(mainWindow, dirPath);
         }
 
         return {
-          workspaceConfig,
+          workspaceConfig: configForClient,
           workspaceUid,
           workspacePath: dirPath
         };
@@ -79,18 +115,20 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const workspaceConfig = readWorkspaceConfig(workspacePath);
       validateWorkspaceConfig(workspaceConfig);
 
-      const workspaceUid = generateUidBasedOnHash(workspacePath);
+      const workspaceUid = getWorkspaceUid(workspacePath);
+      const isDefault = workspaceUid === 'default';
+      const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, isDefault);
 
-      lastOpenedWorkspaces.add(workspacePath, workspaceConfig);
+      lastOpenedWorkspaces.add(workspacePath);
 
-      mainWindow.webContents.send('main:workspace-opened', workspacePath, workspaceUid, workspaceConfig);
+      mainWindow.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
 
       if (workspaceWatcher) {
         workspaceWatcher.addWatcher(mainWindow, workspacePath);
       }
 
       return {
-        workspaceConfig,
+        workspaceConfig: configForClient,
         workspaceUid,
         workspacePath
       };
@@ -117,18 +155,20 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const workspaceConfig = readWorkspaceConfig(workspacePath);
       validateWorkspaceConfig(workspaceConfig);
 
-      const workspaceUid = generateUidBasedOnHash(workspacePath);
+      const workspaceUid = getWorkspaceUid(workspacePath);
+      const isDefault = workspaceUid === 'default';
+      const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, isDefault);
 
-      lastOpenedWorkspaces.add(workspacePath, workspaceConfig);
+      lastOpenedWorkspaces.add(workspacePath);
 
-      mainWindow.webContents.send('main:workspace-opened', workspacePath, workspaceUid, workspaceConfig);
+      mainWindow.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
 
       if (workspaceWatcher) {
         workspaceWatcher.addWatcher(mainWindow, workspacePath);
       }
 
       return {
-        workspaceConfig,
+        workspaceConfig: configForClient,
         workspaceUid,
         workspacePath
       };
@@ -150,32 +190,61 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
+  ipcMain.handle('renderer:load-workspace-apispecs', async (event, workspacePath) => {
+    try {
+      if (!workspacePath) {
+        throw new Error('Workspace path is undefined');
+      }
+
+      const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+
+      if (!fs.existsSync(workspaceFilePath)) {
+        throw new Error('Invalid workspace: workspace.yml not found');
+      }
+
+      const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
+      const workspaceConfig = yaml.load(yamlContent);
+
+      if (!workspaceConfig || typeof workspaceConfig !== 'object') {
+        return [];
+      }
+
+      const specs = workspaceConfig.specs || [];
+
+      const resolvedSpecs = specs.map((spec) => {
+        if (spec.path && !path.isAbsolute(spec.path)) {
+          return {
+            ...spec,
+            path: path.join(workspacePath, spec.path)
+          };
+        }
+        return spec;
+      });
+
+      return resolvedSpecs;
+    } catch (error) {
+      throw error;
+    }
+  });
+
   ipcMain.handle('renderer:get-last-opened-workspaces', async () => {
     try {
-      const workspaces = lastOpenedWorkspaces.getAll();
+      const workspacePaths = lastOpenedWorkspaces.getAll();
       const validWorkspaces = [];
-      const invalidWorkspaceUids = [];
+      const invalidPaths = [];
 
-      // Check each workspace to see if workspace.yml still exists
-      for (const workspace of workspaces) {
-        if (workspace.pathname) {
-          const workspaceYmlPath = path.join(workspace.pathname, 'workspace.yml');
+      for (const workspacePath of workspacePaths) {
+        const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
 
-          if (fs.existsSync(workspaceYmlPath)) {
-            validWorkspaces.push(workspace);
-          } else {
-            invalidWorkspaceUids.push(workspace.uid);
-          }
+        if (fs.existsSync(workspaceYmlPath)) {
+          validWorkspaces.push(workspacePath);
         } else {
-          invalidWorkspaceUids.push(workspace.uid);
+          invalidPaths.push(workspacePath);
         }
       }
 
-      // Remove invalid workspaces from preferences
-      if (invalidWorkspaceUids.length > 0) {
-        for (const uid of invalidWorkspaceUids) {
-          lastOpenedWorkspaces.remove(uid);
-        }
+      for (const invalidPath of invalidPaths) {
+        lastOpenedWorkspaces.remove(invalidPath);
       }
 
       return validWorkspaces;
@@ -187,15 +256,6 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
   ipcMain.handle('renderer:rename-workspace', async (event, workspacePath, newName) => {
     try {
       await updateWorkspaceName(workspacePath, newName);
-
-      // Update in last opened workspaces
-      const workspaces = lastOpenedWorkspaces.getAll();
-      const workspaceIndex = workspaces.findIndex((w) => w.pathname === workspacePath);
-      if (workspaceIndex !== -1) {
-        workspaces[workspaceIndex].name = newName;
-        lastOpenedWorkspaces.store.set('workspaces.lastOpenedWorkspaces', workspaces);
-      }
-
       return { success: true };
     } catch (error) {
       throw error;
@@ -204,16 +264,154 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
   ipcMain.handle('renderer:close-workspace', async (event, workspacePath) => {
     try {
-      const workspaces = lastOpenedWorkspaces.getAll();
-      const filteredWorkspaces = workspaces.filter((w) => w.pathname !== workspacePath);
-
-      lastOpenedWorkspaces.store.set('workspaces.lastOpenedWorkspaces', filteredWorkspaces);
+      lastOpenedWorkspaces.remove(workspacePath);
 
       if (workspaceWatcher) {
         workspaceWatcher.removeWatcher(workspacePath);
       }
 
       return { success: true };
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:export-workspace', async (event, workspacePath, workspaceName) => {
+    try {
+      if (!workspacePath || !fs.existsSync(workspacePath)) {
+        throw new Error('Workspace path does not exist');
+      }
+
+      const defaultFileName = `${sanitizeName(workspaceName)}.zip`;
+      const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+        title: 'Export Workspace',
+        defaultPath: defaultFileName,
+        filters: [{ name: 'Zip Files', extensions: ['zip'] }]
+      });
+
+      if (canceled || !filePath) {
+        return { success: false, canceled: true };
+      }
+
+      const ignoredDirectories = ['node_modules', '.git'];
+
+      await new Promise((resolve, reject) => {
+        const output = fs.createWriteStream(filePath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+
+        output.on('close', () => {
+          resolve();
+        });
+
+        archive.on('error', (err) => {
+          reject(err);
+        });
+
+        archive.pipe(output);
+
+        const addDirectoryToArchive = (dirPath, archivePath) => {
+          const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+
+          for (const entry of entries) {
+            const fullPath = path.join(dirPath, entry.name);
+            const entryArchivePath = archivePath ? path.join(archivePath, entry.name) : entry.name;
+
+            if (entry.isDirectory()) {
+              if (!ignoredDirectories.includes(entry.name)) {
+                addDirectoryToArchive(fullPath, entryArchivePath);
+              }
+            } else {
+              archive.file(fullPath, { name: entryArchivePath });
+            }
+          }
+        };
+
+        addDirectoryToArchive(workspacePath, '');
+        archive.finalize();
+      });
+
+      return { success: true, filePath };
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:import-workspace', async (event, zipFilePath, extractLocation) => {
+    try {
+      if (!zipFilePath || !fs.existsSync(zipFilePath)) {
+        throw new Error('Zip file does not exist');
+      }
+
+      if (!extractLocation || !fs.existsSync(extractLocation)) {
+        throw new Error('Extract location does not exist');
+      }
+
+      const tempDir = path.join(extractLocation, `_bruno_temp_${Date.now()}`);
+      await fsExtra.ensureDir(tempDir);
+
+      try {
+        await extractZip(zipFilePath, { dir: tempDir });
+
+        const extractedItems = fs.readdirSync(tempDir);
+        let workspaceDir = tempDir;
+
+        if (extractedItems.length === 1) {
+          const singleItem = path.join(tempDir, extractedItems[0]);
+          if (fs.statSync(singleItem).isDirectory()) {
+            workspaceDir = singleItem;
+          }
+        }
+
+        const workspaceYmlPath = path.join(workspaceDir, 'workspace.yml');
+        if (!fs.existsSync(workspaceYmlPath)) {
+          throw new Error('Invalid workspace: workspace.yml not found in the zip file');
+        }
+
+        const workspaceConfig = yaml.load(fs.readFileSync(workspaceYmlPath, 'utf8'));
+        const workspaceName = workspaceConfig.info.name || 'Imported Workspace';
+        const sanitizedName = sanitizeName(workspaceName);
+
+        let finalWorkspacePath = path.join(extractLocation, sanitizedName);
+        let counter = 1;
+        while (fs.existsSync(finalWorkspacePath)) {
+          finalWorkspacePath = path.join(extractLocation, `${sanitizedName} (${counter})`);
+          counter++;
+        }
+
+        if (workspaceDir !== tempDir) {
+          await fsExtra.move(workspaceDir, finalWorkspacePath);
+          await fsExtra.remove(tempDir);
+        } else {
+          await fsExtra.move(tempDir, finalWorkspacePath);
+        }
+
+        validateWorkspacePath(finalWorkspacePath);
+
+        const finalConfig = readWorkspaceConfig(finalWorkspacePath);
+        validateWorkspaceConfig(finalConfig);
+
+        const workspaceUid = getWorkspaceUid(finalWorkspacePath);
+        const isDefault = workspaceUid === 'default';
+        const configForClient = prepareWorkspaceConfigForClient(finalConfig, finalWorkspacePath, isDefault);
+
+        lastOpenedWorkspaces.add(finalWorkspacePath);
+
+        mainWindow.webContents.send('main:workspace-opened', finalWorkspacePath, workspaceUid, configForClient);
+
+        if (workspaceWatcher) {
+          workspaceWatcher.addWatcher(mainWindow, finalWorkspacePath);
+        }
+
+        return {
+          success: true,
+          workspaceConfig: configForClient,
+          workspaceUid,
+          workspacePath: finalWorkspacePath
+        };
+      } catch (error) {
+        await fsExtra.remove(tempDir).catch(() => {});
+        throw error;
+      }
     } catch (error) {
       throw error;
     }
@@ -321,8 +519,10 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const updatedCollections = await addCollectionToWorkspace(workspacePath, normalizedCollection);
 
       const workspaceConfig = readWorkspaceConfig(workspacePath);
-      const workspaceUid = generateUidBasedOnHash(workspacePath);
-      mainWindow.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, workspaceConfig);
+      const workspaceUid = getWorkspaceUid(workspacePath);
+      const isDefault = workspaceUid === 'default';
+      const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, isDefault);
+      mainWindow.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, configForClient);
 
       return updatedCollections;
     } catch (error) {
@@ -353,17 +553,19 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
-  ipcMain.handle('renderer:remove-collection-from-workspace', async (event, workspaceUid, workspacePath, collectionPath) => {
+  ipcMain.handle('renderer:remove-collection-from-workspace', async (event, workspaceUid, workspacePath, collectionPath, options = {}) => {
     try {
+      const { deleteFiles = false } = options;
       const result = await removeCollectionFromWorkspace(workspacePath, collectionPath);
 
-      // Delete collection files if it's a workspace collection
-      if (result.shouldDeleteFiles && result.removedCollection && fs.existsSync(collectionPath)) {
+      if (deleteFiles && result.removedCollection && fs.existsSync(collectionPath)) {
         await fsExtra.remove(collectionPath);
       }
 
-      const correctWorkspaceUid = generateUidBasedOnHash(workspacePath);
-      mainWindow.webContents.send('main:workspace-config-updated', workspacePath, correctWorkspaceUid, result.updatedConfig);
+      const correctWorkspaceUid = getWorkspaceUid(workspacePath);
+      const isDefault = correctWorkspaceUid === 'default';
+      const configForClient = prepareWorkspaceConfigForClient(result.updatedConfig, workspacePath, isDefault);
+      mainWindow.webContents.send('main:workspace-config-updated', workspacePath, correctWorkspaceUid, configForClient);
 
       return true;
     } catch (error) {
@@ -373,31 +575,29 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
   ipcMain.handle('renderer:get-collection-workspaces', async (event, collectionPath) => {
     try {
-      const workspaces = lastOpenedWorkspaces.getAll();
+      const workspacePaths = lastOpenedWorkspaces.getAll();
       const workspacesWithCollection = [];
 
-      for (const workspace of workspaces) {
-        if (workspace.pathname) {
-          try {
-            const workspaceYmlPath = path.join(workspace.pathname, 'workspace.yml');
-            if (fs.existsSync(workspaceYmlPath)) {
-              const workspaceConfig = yaml.load(fs.readFileSync(workspaceYmlPath, 'utf8')) || {};
-              const collections = workspaceConfig.collections || [];
+      for (const workspacePath of workspacePaths) {
+        try {
+          const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
+          if (fs.existsSync(workspaceYmlPath)) {
+            const workspaceConfig = yaml.load(fs.readFileSync(workspaceYmlPath, 'utf8')) || {};
+            const collections = workspaceConfig.collections || [];
 
-              const hasCollection = collections.some((c) => {
-                const resolvedPath = path.isAbsolute(c.path)
-                  ? c.path
-                  : path.resolve(workspace.pathname, c.path);
-                return resolvedPath === collectionPath;
-              });
+            const hasCollection = collections.some((c) => {
+              const resolvedPath = path.isAbsolute(c.path)
+                ? c.path
+                : path.resolve(workspacePath, c.path);
+              return resolvedPath === collectionPath;
+            });
 
-              if (hasCollection) {
-                workspacesWithCollection.push(workspace);
-              }
+            if (hasCollection) {
+              workspacesWithCollection.push(workspacePath);
             }
-          } catch (error) {
-            console.warn('Failed to check workspace collection:', error.message);
           }
+        } catch (error) {
+          console.warn('Failed to check workspace collection:', error.message);
         }
       }
 
@@ -410,88 +610,85 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
   ipcMain.handle('renderer:get-default-workspace', async (event) => {
     try {
       const result = await defaultWorkspaceManager.ensureDefaultWorkspaceExists();
-
       if (!result) {
         return null;
       }
 
       const { workspacePath, workspaceUid } = result;
-
-      const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-      if (!fs.existsSync(workspaceFilePath)) {
-        return null;
-      }
-
-      const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-      const workspaceConfig = yaml.load(yamlContent);
+      const workspaceConfig = readWorkspaceConfig(workspacePath);
+      const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, true);
 
       return {
-        workspaceConfig: {
-          ...workspaceConfig,
-          type: 'default'
-        },
+        workspaceConfig: configForClient,
         workspaceUid,
         workspacePath
       };
     } catch (error) {
+      console.error('Error getting default workspace:', error);
       return null;
     }
   });
 
+  // Guard to prevent main:renderer-ready from running multiple times (only needed in dev mode due to strict mode)
+  let rendererReadyProcessed = false;
+
   ipcMain.on('main:renderer-ready', async (win) => {
+    if (isDev && rendererReadyProcessed) {
+      return;
+    }
+    rendererReadyProcessed = true;
+
     try {
+      let defaultWorkspacePath = null;
+
       const defaultResult = await defaultWorkspaceManager.ensureDefaultWorkspaceExists();
       if (defaultResult) {
         const { workspacePath, workspaceUid } = defaultResult;
-        const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+        defaultWorkspacePath = workspacePath;
+        const workspaceConfig = readWorkspaceConfig(workspacePath);
+        const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, true);
 
-        if (fs.existsSync(workspaceFilePath)) {
-          const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-          const workspaceConfig = yaml.load(yamlContent);
+        win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
 
-          win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, {
-            ...workspaceConfig,
-            type: 'default'
-          });
-
-          if (workspaceWatcher) {
-            workspaceWatcher.addWatcher(win, workspacePath);
-          }
+        if (workspaceWatcher) {
+          workspaceWatcher.addWatcher(win, workspacePath);
         }
       }
 
-      const workspaces = lastOpenedWorkspaces.getAll();
-      const invalidWorkspaceUids = [];
+      const workspacePaths = lastOpenedWorkspaces.getAll();
+      const invalidPaths = [];
 
-      for (const workspace of workspaces) {
-        if (workspace.pathname) {
-          const workspaceYmlPath = path.join(workspace.pathname, 'workspace.yml');
+      for (const workspacePath of workspacePaths) {
+        if (defaultWorkspacePath && workspacePath === defaultWorkspacePath) {
+          continue;
+        }
 
-          if (fs.existsSync(workspaceYmlPath)) {
-            try {
-              const workspaceConfig = readWorkspaceConfig(workspace.pathname);
-              validateWorkspaceConfig(workspaceConfig);
-              const workspaceUid = generateUidBasedOnHash(workspace.pathname);
+        const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
 
-              win.webContents.send('main:workspace-opened', workspace.pathname, workspaceUid, workspaceConfig);
+        if (fs.existsSync(workspaceYmlPath)) {
+          try {
+            const workspaceConfig = readWorkspaceConfig(workspacePath);
+            validateWorkspaceConfig(workspaceConfig);
+            const workspaceUid = getWorkspaceUid(workspacePath);
+            const isDefault = workspaceUid === 'default';
+            const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, isDefault);
 
-              if (workspaceWatcher) {
-                workspaceWatcher.addWatcher(win, workspace.pathname);
-              }
-            } catch (error) {
-              console.error(`Error loading workspace ${workspace.pathname}:`, error);
-              invalidWorkspaceUids.push(workspace.uid);
+            win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
+
+            if (workspaceWatcher) {
+              workspaceWatcher.addWatcher(win, workspacePath);
             }
-          } else {
-            invalidWorkspaceUids.push(workspace.uid);
+          } catch (error) {
+            console.error(`Error loading workspace ${workspacePath}:`, error);
+            invalidPaths.push(workspacePath);
           }
         } else {
-          invalidWorkspaceUids.push(workspace.uid);
+          invalidPaths.push(workspacePath);
         }
       }
 
-      for (const uid of invalidWorkspaceUids) {
-        lastOpenedWorkspaces.remove(uid);
+      for (const invalidPath of invalidPaths) {
+        lastOpenedWorkspaces.remove(invalidPath);
       }
     } catch (error) {
       console.error('Error initializing workspaces:', error);

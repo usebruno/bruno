@@ -8,16 +8,36 @@ const { getCertsAndProxyConfig } = require('./cert-utils');
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
 const prepareGrpcRequest = require('./prepare-grpc-request');
+const { normalizeAndResolvePath } = require('../../utils/filesystem');
+const { configureRequest } = require('./prepare-grpc-request');
 
 // Creating grpcClient at module level so it can be accessed from window-all-closed event
 let grpcClient;
+
+/**
+ * Extract protobuf include directories from collection config
+ * @param {Object} collection - The collection object
+ * @returns {string[]} Array of resolved include directory paths
+ */
+const getProtobufIncludeDirs = (collection) => {
+  if (!collection) {
+    return [];
+  }
+
+  const brunoConfig = collection.draft?.brunoConfig || collection.brunoConfig;
+  const importPaths = brunoConfig?.protobuf?.importPaths ?? [];
+
+  return importPaths
+    .filter(({ enabled }) => Boolean(enabled))
+    .map(({ path: relativePath }) => normalizeAndResolvePath(path.resolve(collection.pathname, relativePath)));
+};
 
 /**
  * Register IPC handlers for gRPC
  */
 const registerGrpcEventHandlers = (window) => {
   const sendEvent = (eventName, ...args) => {
-    if (window && window.webContents) {
+    if (window && !window.isDestroyed() && window.webContents && !window.webContents.isDestroyed()) {
       window.webContents.send(eventName, ...args);
     } else {
       console.warn(`Unable to send message "${eventName}": Window not available`);
@@ -34,20 +54,35 @@ const registerGrpcEventHandlers = (window) => {
   ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables }) => {
     try {
       const requestCopy = cloneDeep(request);
-
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
+
+      const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+      if (!protocolRegex.test(preparedRequest.url)) {
+        preparedRequest.url = `http://${preparedRequest.url}`;
+      }
 
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
         collectionUid: collection.uid,
         collection,
-        request: requestCopy.request,
+        request: preparedRequest,
         envVars: preparedRequest.envVars,
         runtimeVariables,
         processEnvVars: preparedRequest.processEnvVars,
         collectionPath: collection.pathname,
         globalEnvironmentVariables: collection.globalEnvironmentVariables
       });
+
+      await configureRequest(
+        preparedRequest,
+        requestCopy,
+        collection,
+        preparedRequest.envVars,
+        runtimeVariables,
+        preparedRequest.processEnvVars,
+        preparedRequest.promptVariables,
+        certsAndProxyConfig
+      );
 
       // Extract certificate information from the config
       const { httpsAgentRequestFields } = certsAndProxyConfig;
@@ -73,6 +108,9 @@ const registerGrpcEventHandlers = (window) => {
         body: preparedRequest.body,
         timestamp: Date.now()
       };
+
+      const includeDirs = getProtobufIncludeDirs(collection);
+
       // Start gRPC connection with the processed request and certificates
       await grpcClient.startConnection({
         request: preparedRequest,
@@ -82,7 +120,8 @@ const registerGrpcEventHandlers = (window) => {
         certificateChain,
         passphrase,
         pfx,
-        verifyOptions
+        verifyOptions,
+        includeDirs
       });
 
       sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);
@@ -169,17 +208,33 @@ const registerGrpcEventHandlers = (window) => {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables);
 
+      const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+      if (!protocolRegex.test(preparedRequest.url)) {
+        preparedRequest.url = `http://${preparedRequest.url}`;
+      }
+
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
         collectionUid: collection.uid,
         collection,
-        request: requestCopy.request,
+        request: preparedRequest,
         envVars: preparedRequest.envVars,
         runtimeVariables,
         processEnvVars: preparedRequest.processEnvVars,
         collectionPath: collection.pathname,
         globalEnvironmentVariables: collection.globalEnvironmentVariables
       });
+
+      await configureRequest(
+        preparedRequest,
+        requestCopy,
+        collection,
+        preparedRequest.envVars,
+        runtimeVariables,
+        preparedRequest.processEnvVars,
+        preparedRequest.promptVariables,
+        certsAndProxyConfig
+      );
 
       // Extract certificate information from the config
       const { httpsAgentRequestFields } = certsAndProxyConfig;
@@ -228,8 +283,10 @@ const registerGrpcEventHandlers = (window) => {
   });
 
   // Load methods from proto file
-  ipcMain.handle('grpc:load-methods-proto', async (event, { filePath, includeDirs }) => {
+  ipcMain.handle('grpc:load-methods-proto', async (event, { filePath, collection }) => {
     try {
+      const includeDirs = getProtobufIncludeDirs(collection);
+
       const methods = await grpcClient.loadMethodsFromProtoFile(filePath, includeDirs);
       return { success: true, methods: safeParseJSON(safeStringifyJSON(methods)) };
     } catch (error) {
@@ -274,6 +331,12 @@ const registerGrpcEventHandlers = (window) => {
     try {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
+
+      const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+      if (!protocolRegex.test(preparedRequest.url)) {
+        preparedRequest.url = `http://${preparedRequest.url}`;
+      }
+
       const interpolationOptions = {
         envVars: preparedRequest.envVars,
         runtimeVariables,

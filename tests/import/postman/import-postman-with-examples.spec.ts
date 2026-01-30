@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils/page';
+import { closeAllCollections, openCollection } from '../../utils/page';
 
 test.describe('Import Postman Collection with Examples', () => {
   let originalShowOpenDialog;
@@ -35,7 +35,7 @@ test.describe('Import Postman Collection with Examples', () => {
     }, { importDir });
 
     await test.step('Open import collection modal', async () => {
-      await page.locator('.plus-icon-button').click();
+      await page.getByTestId('collections-header-add-menu').click();
       await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
     });
 
@@ -81,8 +81,8 @@ test.describe('Import Postman Collection with Examples', () => {
       await locationModal.getByRole('button', { name: 'Import' }).click();
     });
 
-    await test.step('Handle sandboox modal', async () => {
-      await openCollectionAndAcceptSandbox(page, 'collection with examples', 'safe');
+    await test.step('Open collection', async () => {
+      await openCollection(page, 'collection with examples');
     });
 
     await test.step('Verify collection name appears in sidebar', async () => {

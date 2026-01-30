@@ -7,6 +7,12 @@ const { writeFile, createDirectory } = require('../utils/filesystem');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
 const EnvironmentSecretsStore = require('./env-secrets');
+const {
+  readWorkspaceConfig,
+  generateYamlContent,
+  writeWorkspaceFileAtomic
+} = require('../utils/workspace-config');
+const { withLock, getWorkspaceLockKey } = require('../utils/workspace-lock');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -146,33 +152,23 @@ class GlobalEnvironmentsManager {
   }
 
   async setActiveGlobalEnvironmentUid(workspacePath, environmentUid) {
-    try {
-      if (!workspacePath) {
-        throw new Error('Workspace path is required');
-      }
-
-      const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-
-      if (!fs.existsSync(workspaceFilePath)) {
-        throw new Error('Invalid workspace: workspace.yml not found');
-      }
-
-      const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-      const workspaceConfig = yaml.load(yamlContent);
-
-      workspaceConfig.activeEnvironmentUid = environmentUid;
-
-      const yamlOutput = yaml.dump(workspaceConfig, {
-        indent: 2,
-        lineWidth: -1,
-        noRefs: true
-      });
-
-      await writeFile(workspaceFilePath, yamlOutput);
-      return true;
-    } catch (error) {
-      throw error;
+    if (!workspacePath) {
+      throw new Error('Workspace path is required');
     }
+
+    const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+
+    if (!fs.existsSync(workspaceFilePath)) {
+      throw new Error('Invalid workspace: workspace.yml not found');
+    }
+
+    return withLock(getWorkspaceLockKey(workspacePath), async () => {
+      const workspaceConfig = readWorkspaceConfig(workspacePath);
+      workspaceConfig.activeEnvironmentUid = environmentUid;
+      const yamlOutput = generateYamlContent(workspaceConfig);
+      await writeWorkspaceFileAtomic(workspacePath, yamlOutput);
+      return true;
+    });
   }
 
   async createGlobalEnvironment(workspacePath, { uid, name, variables }) {

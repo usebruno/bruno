@@ -8,7 +8,7 @@
 import React from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
-import { setupAutoComplete } from 'utils/codemirror/autocomplete';
+import { setupAutoComplete, showRootHints } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
@@ -111,8 +111,12 @@ export default class CodeEditor extends React.Component {
             : cm.replaceSelection('  ', 'end');
         },
         'Shift-Tab': 'indentLess',
-        'Ctrl-Space': 'autocomplete',
-        'Cmd-Space': 'autocomplete',
+        'Ctrl-Space': (cm) => {
+          showRootHints(cm, this.props.showHintsFor);
+        },
+        'Cmd-Space': (cm) => {
+          showRootHints(cm, this.props.showHintsFor);
+        },
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
@@ -192,7 +196,6 @@ export default class CodeEditor extends React.Component {
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
-      editor.on('scroll', this.onScroll);
       editor.scrollTo(null, this.props.initialScroll);
       this.addOverlay();
 
@@ -229,8 +232,10 @@ export default class CodeEditor extends React.Component {
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
+      const cursor = this.editor.getCursor();
       this.cachedValue = this.props.value;
       this.editor.setValue(this.props.value);
+      this.editor.setCursor(cursor);
     }
 
     if (this.editor) {
@@ -275,12 +280,18 @@ export default class CodeEditor extends React.Component {
 
   componentWillUnmount() {
     if (this.editor) {
+      if (this.props.onScroll) {
+        this.props.onScroll(this.editor);
+      }
+
       this.editor?._destroyLinkAware?.();
       this.editor.off('change', this._onEdit);
-      this.editor.off('scroll', this.onScroll);
 
       // Clean up lint error tooltip
       this.cleanupLintErrorTooltip?.();
+
+      const wrapper = this.editor.getWrapperElement();
+      wrapper?.parentNode?.removeChild(wrapper);
 
       this.editor = null;
     }
@@ -324,8 +335,6 @@ export default class CodeEditor extends React.Component {
     defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');
   };
-
-  onScroll = (event) => this.props.onScroll?.(event);
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {

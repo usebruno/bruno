@@ -174,6 +174,7 @@ const openTerminalIntoContainer = async (container, sessionId) => {
   await new Promise((resolve) => setTimeout(resolve, 50));
   try {
     fitAddon.fit();
+    terminal.focus();
     const { cols, rows } = terminal;
     if (cols && rows && window.ipcRenderer) {
       window.ipcRenderer.send('terminal:resize', sessionId, { cols, rows });
@@ -181,6 +182,29 @@ const openTerminalIntoContainer = async (container, sessionId) => {
   } catch (e) {
     console.warn('Error fitting terminal:', e);
   }
+};
+
+let fitFrameRef;
+const fitTerminal = (activeSessionId, container) => {
+  if (!container) return;
+
+  const instance = terminalInstances.get(activeSessionId);
+  if (!instance?.fitAddon) return;
+
+  if (fitFrameRef) {
+    cancelAnimationFrame(fitFrameRef);
+  }
+
+  fitFrameRef = requestAnimationFrame(() => {
+    fitFrameRef = null;
+
+    // Avoid fitting when hidden/0-sized (common during tab switches/layout transitions)
+    if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
+
+    try {
+      instance.fitAddon.fit();
+    } catch (e) {}
+  });
 };
 
 const TerminalTab = () => {
@@ -223,22 +247,25 @@ const TerminalTab = () => {
   }, []);
 
   // Create new terminal session
-  const createNewSession = useCallback(async (cwd = null) => {
-    if (!window.ipcRenderer) return null;
+  const createNewSession = useCallback(
+    async (cwd = null) => {
+      if (!window.ipcRenderer) return null;
 
-    try {
-      const options = cwd ? { cwd } : {};
-      const newSessionId = await window.ipcRenderer.invoke('terminal:create', options);
-      if (newSessionId) {
-        await loadSessions(newSessionId);
-        setActiveSessionId(newSessionId);
-        return newSessionId;
+      try {
+        const options = cwd ? { cwd } : {};
+        const newSessionId = await window.ipcRenderer.invoke('terminal:create', options);
+        if (newSessionId) {
+          await loadSessions(newSessionId);
+          setActiveSessionId(newSessionId);
+          return newSessionId;
+        }
+      } catch (err) {
+        console.error('Failed to create terminal session:', err);
       }
-    } catch (err) {
-      console.error('Failed to create terminal session:', err);
-    }
-    return null;
-  }, [loadSessions]);
+      return null;
+    },
+    [loadSessions]
+  );
 
   // Listen for requests to open terminal at specific CWD
   useEffect(() => {
@@ -339,31 +366,17 @@ const TerminalTab = () => {
 
       if (mounted) {
         const instance = terminalInstances.get(activeSessionId);
-        if (instance && instance.fitAddon) {
-          const onResize = () => {
-            try {
-              instance.fitAddon.fit();
-            } catch (e) {}
-          };
-
-          window.addEventListener('resize', onResize);
-
-          // Initial resize
-          setTimeout(() => {
-            try {
-              instance.fitAddon.fit();
-              const { cols, rows } = instance.terminal;
-              if (cols && rows && window.ipcRenderer) {
-                window.ipcRenderer.send('terminal:resize', activeSessionId, { cols, rows });
-              }
-            } catch (err) {
-              console.warn('Failed to perform initial resize:', err);
+        if (instance) {
+          try {
+            const { cols, rows } = instance.terminal;
+            if (cols && rows && window.ipcRenderer) {
+              window.ipcRenderer.send('terminal:resize', activeSessionId, { cols, rows });
             }
-          }, 100);
+          } catch (err) {
+            console.warn('Failed to perform initial resize:', err);
+          }
 
           return () => {
-            window.removeEventListener('resize', onResize);
-
             // Park terminal element when switching sessions
             if (instance.terminal && instance.terminal.element) {
               const host = ensureParkingHost();
@@ -386,6 +399,18 @@ const TerminalTab = () => {
     };
   }, [activeSessionId]);
 
+  const onSessionMount = useCallback(
+    (node) => {
+      if (!node) return;
+      terminalRef.current = node;
+      fitTerminal(activeSessionId, node);
+      const ro = new ResizeObserver(() => fitTerminal(activeSessionId, node));
+      ro.observe(node.parentNode);
+      return () => ro.disconnect();
+    },
+    [activeSessionId]
+  );
+
   return (
     <StyledWrapper>
       <div className="terminal-content">
@@ -405,13 +430,9 @@ const TerminalTab = () => {
           </div>
           <div className="terminal-sessions-list">
             {isLoading ? (
-              <div style={{ padding: '12px', color: '#888', fontSize: '13px' }}>
-                Loading sessions...
-              </div>
+              <div style={{ padding: '12px', color: '#888', fontSize: '13px' }}>Loading sessions...</div>
             ) : sessions.length === 0 ? (
-              <div style={{ padding: '12px', color: '#888', fontSize: '13px' }}>
-                No active sessions
-              </div>
+              <div style={{ padding: '12px', color: '#888', fontSize: '13px' }}>No active sessions</div>
             ) : (
               <SessionList
                 sessions={sessions}
@@ -432,7 +453,7 @@ const TerminalTab = () => {
             </div>
           )}
           <div
-            ref={terminalRef}
+            ref={onSessionMount}
             className="terminal-container"
             style={{
               height: '100%',

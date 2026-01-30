@@ -7,7 +7,7 @@ import {
   IconNetwork
 } from '@tabler/icons';
 import { clearSelectedRequest } from 'providers/ReduxStore/slices/logs';
-import QueryResult from 'components/ResponsePane/QueryResult';
+import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 import Network from 'components/ResponsePane/Timeline/TimelineItem/Network';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common/index';
@@ -116,7 +116,7 @@ const ResponseTab = ({ response, request, collection }) => {
         <h4>Response Body</h4>
         <div className="response-body-container">
           {response?.data || response?.dataBuffer ? (
-            <QueryResult
+            <QueryResponse
               item={{ uid: uuid() }}
               collection={collection}
               data={response.data}
@@ -141,7 +141,7 @@ const NetworkTab = ({ response }) => {
     <div className="tab-content">
       <div className="section">
         <h4>Network Logs</h4>
-        <div className="network-logs-container">
+        <div className="network-logs-wrapper">
           {timeline.length > 0 ? (
             <Network logs={timeline} />
           ) : (

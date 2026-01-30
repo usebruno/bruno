@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils/page/actions';
+import { closeAllCollections, openCollection } from '../../utils/page/actions';
 
 test.describe('Import WSDL Collection', () => {
   const testDataDir = path.join(__dirname, 'fixtures');
@@ -13,7 +13,7 @@ test.describe('Import WSDL Collection', () => {
     const wsdlFile = path.join(testDataDir, 'wsdl.xml');
 
     await test.step('Open import collection modal', async () => {
-      await page.locator('.plus-icon-button').click();
+      await page.getByTestId('collections-header-add-menu').click();
       await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
       // Wait for import collection modal to be ready
@@ -45,7 +45,7 @@ test.describe('Import WSDL Collection', () => {
       await expect(page.locator('#sidebar-collection-name').getByText('TestWSDLServiceXML')).toBeVisible();
 
       // open the collection and accept the sandbox modal
-      await openCollectionAndAcceptSandbox(page, 'TestWSDLServiceXML', 'safe');
+      await openCollection(page, 'TestWSDLServiceXML');
 
       // verify that all requests were imported correctly
       await expect(page.locator('#collection-testwsdlservicexml .collection-item-name')).toHaveCount(1);
@@ -71,7 +71,7 @@ test.describe('Import WSDL Collection', () => {
     const wsdlFile = path.join(testDataDir, 'wsdl-bruno.json');
 
     await test.step('Open import collection modal', async () => {
-      await page.locator('.plus-icon-button').click();
+      await page.getByTestId('collections-header-add-menu').click();
       await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
       // Wait for import collection modal to be ready
@@ -105,7 +105,7 @@ test.describe('Import WSDL Collection', () => {
       await expect(page.locator('#sidebar-collection-name').getByText('TestWSDLServiceJSON')).toBeVisible();
 
       // open the collection and accept the sandbox modal
-      await openCollectionAndAcceptSandbox(page, 'TestWSDLServiceJSON', 'safe');
+      await openCollection(page, 'TestWSDLServiceJSON');
 
       // verify that all requests were imported correctly
       await expect(page.locator('#collection-testwsdlservicejson .collection-item-name')).toHaveCount(1);

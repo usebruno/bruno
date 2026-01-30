@@ -84,7 +84,7 @@ describe('ResponseLayoutToggle', () => {
   describe('Initial Render', () => {
     it('should render with horizontal orientation by default', () => {
       renderWithProviders(<ResponseLayoutToggle />);
-      const button = screen.getByRole('button');
+      const button = screen.getByTestId('response-layout-toggle-btn');
       expect(button).toBeInTheDocument();
       expect(button).toHaveAttribute('title', 'Switch to vertical layout');
     });
@@ -100,7 +100,7 @@ describe('ResponseLayoutToggle', () => {
         }
       };
       renderWithProviders(<ResponseLayoutToggle />, customState);
-      const button = screen.getByRole('button');
+      const button = screen.getByTestId('response-layout-toggle-btn');
       expect(button).toBeInTheDocument();
       expect(button).toHaveAttribute('title', 'Switch to horizontal layout');
     });
@@ -109,7 +109,7 @@ describe('ResponseLayoutToggle', () => {
   describe('Interaction', () => {
     it('should switch to vertical layout when clicked in horizontal mode', () => {
       const { store } = renderWithProviders(<ResponseLayoutToggle />);
-      const button = screen.getByRole('button');
+      const button = screen.getByTestId('response-layout-toggle-btn');
 
       // Initial state check
       expect(button).toHaveAttribute('title', 'Switch to vertical layout');
@@ -145,7 +145,7 @@ describe('ResponseLayoutToggle', () => {
         }
       };
       const { store } = renderWithProviders(<ResponseLayoutToggle />, customState);
-      const button = screen.getByRole('button');
+      const button = screen.getByTestId('response-layout-toggle-btn');
 
       // Initial state check
       expect(button).toHaveAttribute('title', 'Switch to horizontal layout');

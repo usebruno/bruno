@@ -12,7 +12,7 @@ test.describe('OpenAPI Newline Handling', () => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-newline-in-operation-name.yaml');
 
     // start the import process
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // wait for the import collection modal to appear
@@ -36,8 +36,6 @@ test.describe('OpenAPI Newline Handling', () => {
 
     // configure the collection settings
     await page.locator('#sidebar-collection-name').getByText('Newline Test Collection').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // verify that all requests were imported correctly despite newlines in operation names
     // the parser should clean up the operation names and create valid request names

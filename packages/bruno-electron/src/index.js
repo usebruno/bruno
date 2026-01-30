@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('node:child_process');
 const isDev = require('electron-is-dev');
 const os = require('os');
 
@@ -12,7 +13,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain } = require('electron');
+const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeTheme } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
@@ -39,8 +40,10 @@ const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
 const registerSystemMonitorIpc = require('./ipc/system-monitor');
 const registerWorkspaceIpc = require('./ipc/workspace');
+const registerApiSpecIpc = require('./ipc/apiSpec');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
+const ApiSpecWatcher = require('./app/apiSpecsWatcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
@@ -52,12 +55,14 @@ const { cookiesStore } = require('./store/cookies');
 const onboardUser = require('./app/onboarding');
 const SystemMonitor = require('./app/system-monitor');
 const { getIsRunningInRosetta } = require('./utils/arch');
+const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/deeplink');
 
 const lastOpenedCollections = new LastOpenedCollections();
 const systemMonitor = new SystemMonitor();
 const terminalManager = new TerminalManager();
 
 const workspaceWatcher = new WorkspaceWatcher();
+const apiSpecWatcher = new ApiSpecWatcher();
 
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
@@ -78,8 +83,73 @@ const contentSecurityPolicy = [
 setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 
 const menu = Menu.buildFromTemplate(menuTemplate);
+const isMac = process.platform === 'darwin';
+const isWindows = process.platform === 'win32';
+const isLinux = process.platform === 'linux';
 
 let mainWindow;
+let appProtocolUrl;
+
+// Helper function to focus and restore the main window
+const focusMainWindow = () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow.focus();
+  }
+};
+
+// Parse protocol URL from command line arguments (if any)
+appProtocolUrl = getAppProtocolUrlFromArgv(process.argv);
+
+// Single instance lock - ensures only one instance of Bruno runs at a time (enabled by default)
+const useSingleInstance = process.env.DISABLE_SINGLE_INSTANCE !== 'true';
+const gotTheLock = useSingleInstance ? app.requestSingleInstanceLock() : true;
+
+if (useSingleInstance && !gotTheLock) {
+  // Another instance is already running, quit immediately
+  app.quit();
+} else {
+  // This is the primary instance (or single instance is disabled)
+
+  // Try to remove any existing registrations
+  app.removeAsDefaultProtocolClient('bruno');
+  // Register as default handler for `bruno://` protocol URLs
+  app.setAsDefaultProtocolClient('bruno');
+
+  if (isLinux) {
+    try {
+      execSync('xdg-mime default bruno.desktop x-scheme-handler/bruno');
+    } catch (err) {}
+  }
+
+  // Handle protocol URLs for MacOS
+  if (isMac) {
+    app.on('open-url', (event, url) => {
+      event.preventDefault();
+      if (url) {
+        if (mainWindow) {
+          focusMainWindow();
+          handleAppProtocolUrl(url);
+        } else {
+          // Store for handling after window is ready
+          appProtocolUrl = url;
+        }
+      }
+    });
+  }
+
+  // Handle second instance attempts - focus primary window on all platforms
+  app.on('second-instance', (event, commandLine) => {
+    focusMainWindow();
+    // Extract and handle protocol URL from the second instance attempt
+    const url = getAppProtocolUrlFromArgv(commandLine);
+    if (url) {
+      handleAppProtocolUrl(url);
+    }
+  });
+}
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
@@ -118,7 +188,10 @@ app.on('ready', async () => {
       webviewTag: true
     },
     title: 'Bruno',
-    icon: path.join(__dirname, 'about/256x256.png')
+    icon: path.join(__dirname, 'about/256x256.png'),
+    titleBarStyle: isMac ? 'hiddenInset' : isWindows ? 'hidden' : undefined,
+    frame: isLinux ? false : true,
+    trafficLightPosition: isMac ? { x: 12, y: 10 } : undefined
     // we will bring this back
     // see https://github.com/usebruno/bruno/issues/440
     // autoHideMenuBar: true
@@ -128,11 +201,36 @@ app.on('ready', async () => {
     mainWindow.maximize();
   }
 
+  ipcMain.on('renderer:window-minimize', () => {
+    if (!isWindows && !isLinux) return;
+    mainWindow.minimize();
+  });
+
+  ipcMain.on('renderer:window-maximize', () => {
+    if (!isWindows && !isLinux) return;
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  });
+
+  ipcMain.on('renderer:window-close', () => {
+    if (!isWindows && !isLinux) return;
+    mainWindow.close();
+  });
+
+  ipcMain.handle('renderer:window-is-maximized', () => {
+    if (!isWindows && !isLinux) return false;
+    return mainWindow.isMaximized();
+  });
+
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
   });
+  const devPort = process.env.BRUNO_DEV_PORT || 3000;
   const url = isDev
-    ? 'http://localhost:3000'
+    ? `http://localhost:${devPort}`
     : format({
         pathname: path.join(__dirname, '../web/index.html'),
         protocol: 'file:',
@@ -155,17 +253,38 @@ app.on('ready', async () => {
     }
   });
 
+  let boundsTimeout;
   const handleBoundsChange = () => {
     if (!mainWindow.isMaximized()) {
-      saveBounds(mainWindow);
+      if (boundsTimeout) {
+        clearTimeout(boundsTimeout);
+      }
+      boundsTimeout = setTimeout(() => {
+        saveBounds(mainWindow);
+      }, 100);
     }
   };
 
   mainWindow.on('resize', handleBoundsChange);
   mainWindow.on('move', handleBoundsChange);
 
-  mainWindow.on('maximize', () => saveMaximized(true));
-  mainWindow.on('unmaximize', () => saveMaximized(false));
+  mainWindow.on('maximize', () => {
+    saveMaximized(true);
+    mainWindow.webContents.send('main:window-maximized');
+  });
+  mainWindow.on('unmaximize', () => {
+    saveMaximized(false);
+    mainWindow.webContents.send('main:window-unmaximized');
+  });
+
+  // Full screen events for title bar padding adjustment
+  mainWindow.on('enter-full-screen', () => {
+    mainWindow.webContents.send('main:enter-full-screen');
+  });
+  mainWindow.on('leave-full-screen', () => {
+    mainWindow.webContents.send('main:leave-full-screen');
+  });
+
   mainWindow.on('close', (e) => {
     e.preventDefault();
     terminalManager.cleanup(mainWindow.webContents);
@@ -176,6 +295,12 @@ app.on('ready', async () => {
     event.preventDefault();
     if (/^(http:\/\/|https:\/\/)/.test(url)) {
       require('electron').shell.openExternal(url);
+    }
+  });
+
+  mainWindow.webContents.once('did-finish-load', () => {
+    if (appProtocolUrl) {
+      handleAppProtocolUrl(appProtocolUrl);
     }
   });
 
@@ -223,6 +348,7 @@ app.on('ready', async () => {
   registerCollectionsIpc(mainWindow, collectionWatcher);
   registerPreferencesIpc(mainWindow, collectionWatcher);
   registerWorkspaceIpc(mainWindow, workspaceWatcher);
+  registerApiSpecIpc(mainWindow, apiSpecWatcher);
   registerNotificationsIpc(mainWindow, collectionWatcher);
   registerFilesystemIpc(mainWindow);
   registerSystemMonitorIpc(mainWindow, systemMonitor);
@@ -230,6 +356,11 @@ app.on('ready', async () => {
 
 // Quit the app once all windows are closed
 app.on('before-quit', () => {
+  // Release single instance lock to allow other instances to take over
+  if (useSingleInstance && gotTheLock) {
+    app.releaseSingleInstanceLock();
+  }
+
   try {
     cookiesStore.saveCookieJar(true);
   } catch (err) {

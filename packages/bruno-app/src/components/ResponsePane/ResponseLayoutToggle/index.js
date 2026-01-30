@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
+import { IconLayoutColumns, IconLayoutRows } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon/index';
 
-const IconDockToBottom = () => {
+export const IconDockToBottom = () => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="16"
       height="16"
       viewBox="0 0 24 24"
-      strokeWidth="1.5"
+      strokeWidth="2"
       stroke="currentColor"
       fill="none"
     >
@@ -25,14 +27,14 @@ const IconDockToBottom = () => {
   );
 };
 
-const IconDockToRight = () => {
+export const IconDockToRight = () => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="16"
       height="16"
       viewBox="0 0 24 24"
-      strokeWidth="1.5"
+      strokeWidth="2"
       stroke="currentColor"
       fill="none"
     >
@@ -48,7 +50,8 @@ const IconDockToRight = () => {
   );
 };
 
-const ResponseLayoutToggle = () => {
+// Hook to get orientation and toggle function
+export const useResponseLayoutToggle = () => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
   const orientation = preferences?.layout?.responsePaneOrientation || 'horizontal';
@@ -65,20 +68,42 @@ const ResponseLayoutToggle = () => {
     dispatch(savePreferences(updatedPreferences));
   };
 
-  return (
-    <StyledWrapper className="ml-2 flex items-center">
-      <button
-        onClick={toggleOrientation}
-        title={orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout'}
-      >
-        {orientation === 'horizontal' ? (
-          <IconDockToBottom />
-        ) : (
-          <IconDockToRight />
-        )}
-      </button>
-    </StyledWrapper>
-  );
+  return { orientation, toggleOrientation };
 };
+
+const ResponseLayoutToggle = forwardRef(({ children }, ref) => {
+  const { orientation, toggleOrientation } = useResponseLayoutToggle();
+  const elementRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    click: () => elementRef.current?.click(),
+    isDisabled: false
+  }), []);
+
+  const title = !children ? (orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout') : null;
+
+  return (
+    <div
+      ref={elementRef}
+      onClick={toggleOrientation}
+      title={title}
+      data-testid="response-layout-toggle-btn"
+    >
+      {children ? children : (
+        <StyledWrapper className="flex items-center w-full">
+          <ActionIcon size="lg" className="p-1">
+            {orientation === 'vertical' ? (
+              <IconLayoutColumns size={16} strokeWidth={2} />
+            ) : (
+              <IconLayoutRows size={16} strokeWidth={2} />
+            )}
+          </ActionIcon>
+        </StyledWrapper>
+      )}
+    </div>
+  );
+});
+
+ResponseLayoutToggle.displayName = 'ResponseLayoutToggle';
 
 export default ResponseLayoutToggle;

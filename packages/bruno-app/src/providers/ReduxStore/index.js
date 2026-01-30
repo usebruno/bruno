@@ -4,11 +4,13 @@ import debugMiddleware from './middlewares/debug/middleware';
 import appReducer from './slices/app';
 import collectionsReducer from './slices/collections';
 import tabsReducer from './slices/tabs';
+import workspaceTabsReducer from './slices/workspaceTabs';
 import notificationsReducer from './slices/notifications';
 import globalEnvironmentsReducer from './slices/global-environments';
 import logsReducer from './slices/logs';
 import performanceReducer from './slices/performance';
 import workspacesReducer from './slices/workspaces';
+import apiSpecReducer from './slices/apiSpec';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
 import { autosaveMiddleware } from './middlewares/autosave/middleware';
 
@@ -26,11 +28,13 @@ export const store = configureStore({
     app: appReducer,
     collections: collectionsReducer,
     tabs: tabsReducer,
+    workspaceTabs: workspaceTabsReducer,
     notifications: notificationsReducer,
     globalEnvironments: globalEnvironmentsReducer,
     logs: logsReducer,
     performance: performanceReducer,
-    workspaces: workspacesReducer
+    workspaces: workspacesReducer,
+    apiSpec: apiSpecReducer
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
 });

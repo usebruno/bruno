@@ -57,7 +57,7 @@ test.describe('Open Multiple Collections', () => {
     await expect(page.locator('#sidebar-collection-name').getByText('Test Collection 1')).not.toBeVisible();
 
     // Click on plus icon button and then "Open collection" in the dropdown
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
 
     // Wait for both collections to appear in the sidebar
@@ -92,7 +92,7 @@ test.describe('Open Multiple Collections', () => {
     },
     { collection1Dir, collection2Dir });
 
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
 
     // Wait for error toasts to appear

@@ -9,6 +9,7 @@ import Headers from './Headers';
 import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
+import Presets from './Presets';
 import Protobuf from './Protobuf';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
@@ -32,17 +33,34 @@ const CollectionSettings = ({ collection }) => {
   const hasTests = root?.request?.tests;
   const hasDocs = root?.docs;
 
-  const headers = collection.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
+  const headers = collection.draft?.root
+    ? get(collection, 'draft.root.request.headers', [])
+    : get(collection, 'root.request.headers', []);
   const activeHeadersCount = headers.filter((header) => header.enabled).length;
 
-  const requestVars = collection.draft?.root ? get(collection, 'draft.root.request.vars.req', []) : get(collection, 'root.request.vars.req', []);
-  const activeVarsCount = requestVars.filter((v) => v.enabled).length;
-  const authMode = (collection.draft?.root ? get(collection, 'draft.root.request.auth', {}) : get(collection, 'root.request.auth', {})).mode || 'none';
+  const requestVars = collection.draft?.root
+    ? get(collection, 'draft.root.request.vars.req', [])
+    : get(collection, 'root.request.vars.req', []);
+  const responseVars = collection.draft?.root
+    ? get(collection, 'draft.root.request.vars.res', [])
+    : get(collection, 'root.request.vars.res', []);
+  const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
+  const authMode
+    = (collection.draft?.root ? get(collection, 'draft.root.request.auth', {}) : get(collection, 'root.request.auth', {}))
+      .mode || 'none';
 
-  const proxyConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.proxy', {}) : get(collection, 'brunoConfig.proxy', {});
+  const proxyConfig = collection.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.proxy', {})
+    : get(collection, 'brunoConfig.proxy', {});
   const proxyEnabled = proxyConfig.hostname ? true : false;
-  const clientCertConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
-  const protobufConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.protobuf', {}) : get(collection, 'brunoConfig.protobuf', {});
+  const clientCertConfig = collection.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.clientCertificates.certs', [])
+    : get(collection, 'brunoConfig.clientCertificates.certs', []);
+  const protobufConfig = collection.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.protobuf', {})
+    : get(collection, 'brunoConfig.protobuf', {});
+  const presets = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.presets', {}) : get(collection, 'brunoConfig.presets', {});
+  const hasPresets = presets && presets.requestUrl !== '';
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -64,15 +82,14 @@ const CollectionSettings = ({ collection }) => {
       case 'tests': {
         return <Test collection={collection} />;
       }
+      case 'presets': {
+        return <Presets collection={collection} />;
+      }
       case 'proxy': {
         return <ProxySettings collection={collection} />;
       }
       case 'clientCert': {
-        return (
-          <ClientCertSettings
-            collection={collection}
-          />
-        );
+        return <ClientCertSettings collection={collection} />;
       }
       case 'protobuf': {
         return <Protobuf collection={collection} />;
@@ -111,6 +128,10 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
           Tests
           {hasTests && <StatusDot />}
+        </div>
+        <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
+          Presets
+          {hasPresets && <StatusDot />}
         </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy

@@ -4,6 +4,7 @@ const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
+const path = require('path');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
@@ -93,6 +94,41 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       value,
       enabled: true,
       type: 'request'
+    }));
+  }
+
+  let resVars = new Map();
+  let collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
+  collectionResponseVars.forEach((_var) => {
+    if (_var.enabled) {
+      resVars.set(_var.name, _var.value);
+    }
+  });
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      const folderRoot = i?.draft || i?.root;
+      let vars = get(folderRoot, 'request.vars.res', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          resVars.set(_var.name, _var.value);
+        }
+      });
+    } else {
+      const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          resVars.set(_var.name, _var.value);
+        }
+      });
+    }
+  }
+
+  if (request?.vars) {
+    request.vars.res = Array.from(resVars, ([name, value]) => ({
+      name,
+      value,
+      enabled: true,
+      type: 'response'
     }));
   }
 };
@@ -367,6 +403,8 @@ const parseFileMeta = (data, format = 'bru') => {
 
 const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = getRequestUid(pathname);
+  const prefix = path.join(os.tmpdir(), 'bruno-');
+  request.isTransient = pathname.startsWith(prefix);
 
   const params = get(request, 'request.params', []);
   const headers = get(request, 'request.headers', []);

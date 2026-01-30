@@ -18,9 +18,6 @@ test.describe('Onboarding', () => {
 
     // Click on the sample collection to open it
     await sampleCollection.click();
-    const modeSaveButton = page.getByRole('button', { name: 'Save' });
-    await expect(modeSaveButton).toBeVisible();
-    await modeSaveButton.click();
 
     // Verify the sample request is visible and clickable
     const request = page.locator('.collection-item-name').getByText('Get Users');
@@ -44,9 +41,6 @@ test.describe('Onboarding', () => {
     const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
     await expect(sampleCollection).toBeVisible();
     await sampleCollection.click();
-    const modeSaveButton = page.getByRole('button', { name: 'Save' });
-    await expect(modeSaveButton).toBeVisible();
-    await modeSaveButton.click();
 
     // Verify the sample request
     const request = page.locator('.collection-item-name').getByText('Get Users');
@@ -98,9 +92,20 @@ test.describe('Onboarding', () => {
     await expect(removeOption).toBeVisible();
     await removeOption.click();
 
-    // Confirm removal in the modal
-    const removeModal = page.getByRole('dialog').filter({ has: page.getByText('Remove Collection') });
-    await removeModal.getByRole('button', { name: 'Remove' }).click();
+    // Wait for modal to appear - could be either regular remove or drafts confirmation
+    const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
+    await removeModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
+    const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+
+    if (hasDiscardButton) {
+      // Drafts modal - click "Discard All and Remove"
+      await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+    } else {
+      // Regular modal - click the submit button
+      await page.locator('.bruno-modal-footer .submit').click();
+    }
 
     // Verify collection is closed (no longer visible in sidebar)
     await expect(sampleCollection).not.toBeVisible();

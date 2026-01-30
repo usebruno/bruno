@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import { test, expect } from '../../../playwright';
 import { Page, ElectronApplication } from '@playwright/test';
 import path from 'path';
-import { openCollectionAndAcceptSandbox } from '../../utils/page/actions';
+import { openCollection } from '../../utils/page/actions';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 /**
@@ -17,7 +17,7 @@ const restartAppAndGetLocators = async (restartApp: (options?: { initUserDataPat
 };
 
 // TODO: These tests need to be updated for the new workspace UI
-// The CollectionsHeader component (with close-all-collections-button) is not rendered in workspace mode
+// The CollectionsHeader component (with collections-header-actions-menu-close-all) is not rendered in workspace mode
 // The "Remove from workspace" flow is different from the old "Close collection" flow
 test.describe.skip('Close All Collections', () => {
   test.afterAll(async () => {
@@ -99,7 +99,7 @@ test.describe.skip('Close All Collections', () => {
     });
 
     await test.step('Create unsaved changes', async () => {
-      await openCollectionAndAcceptSandbox(page, 'collection 1');
+      await openCollection(page, 'collection 1');
       await newLocators.sidebar.request('test-request').click();
 
       const urlContainer = page.locator('#request-url');
@@ -129,7 +129,7 @@ test.describe.skip('Close All Collections', () => {
       const { page: restartedPage, locators: restartedLocators } = await restartAppAndGetLocators(restartApp);
 
       await expect(restartedLocators.sidebar.collection('collection 1')).toBeVisible();
-      await openCollectionAndAcceptSandbox(restartedPage, 'collection 1');
+      await openCollection(restartedPage, 'collection 1');
       await restartedLocators.sidebar.request('test-request').click();
 
       const urlContainerAfterReopen = restartedPage.locator('#request-url');
@@ -148,7 +148,7 @@ test.describe.skip('Close All Collections', () => {
     });
 
     await test.step('Create unsaved changes', async () => {
-      await openCollectionAndAcceptSandbox(page, 'collection 1');
+      await openCollection(page, 'collection 1');
       await newLocators.sidebar.request('test-request').click();
 
       const urlContainer = page.locator('#request-url');
@@ -177,7 +177,7 @@ test.describe.skip('Close All Collections', () => {
       const { page: restartedPage, locators: restartedLocators } = await restartAppAndGetLocators(restartApp);
 
       await expect(restartedLocators.sidebar.collection('collection 1')).toBeVisible();
-      await openCollectionAndAcceptSandbox(restartedPage, 'collection 1');
+      await openCollection(restartedPage, 'collection 1');
       await restartedLocators.sidebar.request('test-request').click();
 
       const urlContainerAfterReopen = restartedPage.locator('#request-url');

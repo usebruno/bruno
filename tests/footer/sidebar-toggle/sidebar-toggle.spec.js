@@ -4,7 +4,7 @@ test.describe('Sidebar Toggle', () => {
   test('should toggle sidebar visibility when clicking the toggle button', async ({ page }) => {
     // Get the sidebar and toggle button elements
     const sidebar = page.locator('aside.sidebar');
-    const toggleButton = page.getByLabel('Toggle Sidebar');
+    const toggleButton = page.getByTestId('toggle-sidebar-button');
     const dragHandle = page.locator('.sidebar-drag-handle');
 
     // Initial state - sidebar and drag handle should be visible

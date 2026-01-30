@@ -5,6 +5,7 @@ import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
 import { toBrunoScripts } from './common/scripts';
+import { ensureString } from '../../utils';
 
 interface ParsedCollection {
   collectionRoot: FolderRoot;
@@ -18,12 +19,23 @@ const parseCollection = (ymlString: string): ParsedCollection => {
     // bruno config
     const brunoConfig: Record<string, any> = {
       opencollection: oc.opencollection || '1.0.0',
-      name: oc.info?.name || 'Untitled Collection',
+      name: ensureString(oc.info?.name, 'Untitled Collection'),
       type: 'collection',
       ignore: []
     };
     if (oc.extensions?.ignore && Array.isArray(oc.extensions.ignore)) {
       brunoConfig.ignore = oc.extensions.ignore;
+    }
+
+    // presets
+    if (oc.extensions?.presets) {
+      const presets = oc.extensions.presets as any;
+      if (presets.request) {
+        brunoConfig.presets = {
+          requestType: presets.request.type || [],
+          requestUrl: presets.request.url || []
+        };
+      }
     }
 
     // protobuf
@@ -39,43 +51,53 @@ const parseCollection = (ymlString: string): ParsedCollection => {
       };
     }
 
-    // proxy
+    // proxy - only support newer format
+    // Default: inherit from global preferences
     brunoConfig.proxy = {
-      enabled: false,
-      protocol: '',
-      hostname: '',
-      port: '',
-      auth: {
-        enabled: false,
-        username: '',
-        password: ''
+      inherit: true,
+      config: {
+        protocol: 'http',
+        hostname: '',
+        port: '',
+        auth: {
+          username: '',
+          password: ''
+        },
+        bypassProxy: ''
       }
     };
 
-    if (oc.config?.proxy) {
-      if (oc.config.proxy === 'inherit') {
-        brunoConfig.proxy.enabled = 'global';
-      } else if (typeof oc.config.proxy === 'object') {
+    if (oc.config?.proxy && typeof oc.config.proxy === 'object') {
+      // Validate newer format: must have 'inherit' and 'config' properties
+      const proxyConfig = oc.config.proxy as any;
+
+      if ('inherit' in proxyConfig && typeof proxyConfig.inherit === 'boolean' && proxyConfig.config && typeof proxyConfig.config === 'object') {
+        // Valid newer format
         brunoConfig.proxy = {
-          enabled: true,
-          protocol: oc.config.proxy.protocol || '',
-          hostname: oc.config.proxy.hostname || '',
-          port: oc.config.proxy.port || '',
-          auth: {
-            enabled: false,
-            username: '',
-            password: ''
+          inherit: proxyConfig.inherit,
+          config: {
+            protocol: proxyConfig.config.protocol || 'http',
+            hostname: proxyConfig.config.hostname || '',
+            port: proxyConfig.config.port || '',
+            auth: {
+              username: proxyConfig.config.auth?.username || '',
+              password: proxyConfig.config.auth?.password || ''
+            },
+            bypassProxy: proxyConfig.config.bypassProxy || ''
           }
         };
 
-        if (oc.config.proxy.auth && typeof oc.config.proxy.auth === 'object') {
-          brunoConfig.proxy.auth = {
-            enabled: true,
-            username: oc.config.proxy.auth.username || '',
-            password: oc.config.proxy.auth.password || ''
-          };
+        // Handle optional disabled field
+        if (proxyConfig.disabled === true) {
+          brunoConfig.proxy.disabled = true;
+        }
+
+        // Handle optional auth.disabled field
+        if (proxyConfig.config.auth?.disabled === true) {
+          brunoConfig.proxy.config.auth.disabled = true;
         }
       }
+      // If not in newer format, use default (inherit: true)
     }
 
     // client certificates

@@ -27,15 +27,15 @@ const Response = ({ collection, response, item }) => {
       {/* Status */}
       <div className="mb-1">
         <Status statusCode={status || statusCode} statusText={statusText} />
-        {response.duration && <span className="text-gray-400 ml-2">{response.duration}ms</span>}
-        {response.size && <span className="text-gray-400 ml-2">{response.size}B</span>}
+        {response.duration && <span className="timeline-item-metadata">{response.duration}ms</span>}
+        {response.size && <span className="timeline-item-metadata">{response.size}B</span>}
       </div>
 
       {/* Headers */}
       <Headers headers={headers} type="response" />
 
       {/* Body */}
-      <BodyBlock collection={collection} data={data} dataBuffer={dataBuffer} error={error} headers={headers} item={item} />
+      <BodyBlock collection={collection} data={data} dataBuffer={dataBuffer} error={error} headers={headers} item={item} type="response" />
     </div>
   );
 };

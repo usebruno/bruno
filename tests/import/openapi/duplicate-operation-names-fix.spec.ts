@@ -12,7 +12,7 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-duplicate-operation-name.yaml');
 
     // start the import process
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // wait for the import collection modal to appear
@@ -37,8 +37,6 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
 
     // configure the collection settings
     await page.locator('#sidebar-collection-name').getByText('Duplicate Test Collection').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // verify that all 3 requests were imported correctly despite duplicate operation names
     await expect(page.locator('#collection-duplicate-test-collection .collection-item-name')).toHaveCount(3);

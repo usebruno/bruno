@@ -8,9 +8,36 @@ import StyledWrapper from './StyledWrapper';
 import { isItemARequest } from 'utils/collections';
 import path from 'utils/common/path';
 import { cloneDeep, get } from 'lodash';
+import Button from 'ui/Button/index';
 
 const ItemTypes = {
   REQUEST_ITEM: 'request-item'
+};
+
+const getMethodInfo = (item) => {
+  const isGrpc = item.type === 'grpc-request';
+  const isWS = item.type === 'ws-request';
+  const isGraphQL = item.type === 'graphql-request';
+
+  let methodText;
+  let methodClass;
+
+  if (isGrpc) {
+    methodText = 'GRPC';
+    methodClass = 'method-grpc';
+  } else if (isWS) {
+    methodText = 'WS';
+    methodClass = 'method-ws';
+  } else if (isGraphQL) {
+    methodText = 'GQL';
+    methodClass = 'method-gql';
+  } else {
+    const method = item.request?.method || '';
+    methodText = method.length > 5 ? method.substring(0, 3).toUpperCase() : method.toUpperCase();
+    methodClass = `method-${method.toLowerCase()}`;
+  }
+
+  return { methodText, methodClass };
 };
 
 const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) => {
@@ -106,12 +133,12 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) =>
 
       <div className="checkbox-container" onClick={() => onSelect(item)}>
         <div className="checkbox">
-          {isSelected && <IconCheck size={12} />}
+          {isSelected && <IconCheck className="checkbox-icon" size={12} strokeWidth={3} />}
         </div>
       </div>
 
-      <div className={`method method-${item.request?.method.toLowerCase()}`}>
-        {item.request?.method.toUpperCase()}
+      <div className={`method ${getMethodInfo(item).methodClass}`}>
+        {getMethodInfo(item).methodText}
       </div>
 
       <div className="request-name">
@@ -285,13 +312,19 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
           {selectedItems.length} of {flattenedRequests.length} selected
         </div>
         <div className="actions">
-          <button className="btn-select-all" onClick={handleSelectAll}>
+          <Button
+            variant="ghost"
+            onClick={handleSelectAll}
+          >
             {selectedItems.length === flattenedRequests.length ? 'Deselect All' : 'Select All'}
-          </button>
-          <button className="btn-reset" onClick={handleReset} title="Reset selection and order">
-            <IconAdjustmentsAlt size={16} strokeWidth={1.5} />
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handleReset}
+            title="Reset selection and order"
+          >
             Reset
-          </button>
+          </Button>
         </div>
       </div>
 

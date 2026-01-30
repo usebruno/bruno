@@ -1,4 +1,20 @@
-import { Page, expect } from '../../../playwright';
+import { Page, expect, test } from '../../../playwright';
+import { buildSandboxLocators } from './locators';
+
+/**
+ * Builds locators for the runner results view
+ * @param page - The Playwright page object
+ * @returns Object with locators for runner elements
+ */
+export const buildRunnerLocators = (page: Page) => ({
+  allButton: () => page.locator('button').filter({ hasText: /^All/ }),
+  passedButton: () => page.locator('button').filter({ hasText: /^Passed/ }),
+  failedButton: () => page.locator('button').filter({ hasText: /^Failed/ }),
+  skippedButton: () => page.locator('button').filter({ hasText: /^Skipped/ }),
+  resetButton: () => page.getByRole('button', { name: 'Reset' }),
+  runCollectionButton: () => page.getByRole('button', { name: 'Run Collection' }),
+  runAgainButton: () => page.getByRole('button', { name: 'Run Again' })
+});
 
 /**
  * Reads test result counts from the filter buttons in the runner results view
@@ -6,15 +22,12 @@ import { Page, expect } from '../../../playwright';
  * @returns An object with totalRequests, passed, failed, and skipped counts
  */
 export const getRunnerResultCounts = async (page: Page) => {
-  const allButton = page.locator('button').filter({ hasText: /^All/ });
-  const passedButton = page.locator('button').filter({ hasText: /^Passed/ });
-  const failedButton = page.locator('button').filter({ hasText: /^Failed/ });
-  const skippedButton = page.locator('button').filter({ hasText: /^Skipped/ });
+  const locators = buildRunnerLocators(page);
 
-  const totalRequests = parseInt(await allButton.locator('span').innerText());
-  const passed = parseInt(await passedButton.locator('span').innerText());
-  const failed = parseInt(await failedButton.locator('span').innerText());
-  const skipped = parseInt(await skippedButton.locator('span').innerText());
+  const totalRequests = parseInt(await locators.allButton().locator('span').innerText());
+  const passed = parseInt(await locators.passedButton().locator('span').innerText());
+  const failed = parseInt(await locators.failedButton().locator('span').innerText());
+  const skipped = parseInt(await locators.skippedButton().locator('span').innerText());
 
   return { totalRequests, passed, failed, skipped };
 };
@@ -27,40 +40,43 @@ export const getRunnerResultCounts = async (page: Page) => {
  * @returns void
  */
 export const runCollection = async (page: Page, collectionName: string) => {
-  // Ensure collection is visible and loaded (scope to sidebar)
-  const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
-  await collectionContainer.waitFor({ state: 'visible' });
-  // Wait a bit for the UI to stabilize
-  await page.waitForTimeout(300);
+  await test.step(`Run collection "${collectionName}"`, async () => {
+    // Ensure collection is visible and loaded (scope to sidebar)
+    const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
+    await collectionContainer.waitFor({ state: 'visible' });
 
-  // Open collection actions menu
-  await collectionContainer.locator('.collection-actions').hover();
-  const icon = collectionContainer.locator('.collection-actions .icon');
-  await icon.waitFor({ state: 'visible', timeout: 5000 });
-  await page.waitForTimeout(200); // Small delay to ensure hover state is stable
-  await icon.click();
+    // Open collection actions menu - hover first to reveal the hidden actions button
+    const actionsContainer = collectionContainer.locator('.collection-actions');
+    await collectionContainer.hover();
+    await actionsContainer.waitFor({ state: 'visible' });
 
-  // Click Run menu item
-  await page.getByText('Run', { exact: true }).click();
+    const icon = actionsContainer.locator('.icon');
+    await icon.waitFor({ state: 'visible', timeout: 5000 });
+    await icon.click();
 
-  // Handle runner tab - reset if needed, then run
-  const resetButton = page.getByRole('button', { name: 'Reset' });
-  const runCollectionButton = page.getByRole('button', { name: 'Run Collection' });
+    // Click Run menu item
+    const runMenuItem = page.getByText('Run', { exact: true });
+    await runMenuItem.waitFor({ state: 'visible' });
+    await runMenuItem.click();
 
-  // Check if Reset button is visible (means there are existing results)
-  const resetVisible = await resetButton.isVisible().catch(() => false);
-  if (resetVisible) {
-    await resetButton.click();
-    // Wait a bit for the reset to complete
-    await page.waitForTimeout(500);
-  }
+    // Handle runner tab - reset if needed, then run
+    const locators = buildRunnerLocators(page);
 
-  // Now wait for and click Run Collection button
-  await runCollectionButton.waitFor({ state: 'visible', timeout: 10000 });
-  await runCollectionButton.click();
+    // Check if Reset button is visible (means there are existing results)
+    const resetVisible = await locators.resetButton().isVisible({ timeout: 1000 }).catch(() => false);
+    if (resetVisible) {
+      await locators.resetButton().click();
+      // Wait for the Run Collection button to become visible after reset
+      await locators.runCollectionButton().waitFor({ state: 'visible', timeout: 5000 });
+    }
 
-  // Wait for the run to complete
-  await page.getByRole('button', { name: 'Run Again' }).waitFor({ timeout: 2 * 60 * 1000 });
+    // Now wait for and click Run Collection button
+    await locators.runCollectionButton().waitFor({ state: 'visible', timeout: 10000 });
+    await locators.runCollectionButton().click();
+
+    // Wait for the run to complete
+    await locators.runAgainButton().waitFor({ timeout: 2 * 60 * 1000 });
+  });
 };
 
 /**
@@ -71,81 +87,42 @@ export const runCollection = async (page: Page, collectionName: string) => {
  * @returns void
  */
 export const setSandboxMode = async (page: Page, collectionName: string, mode: 'developer' | 'safe') => {
-  // Click on the collection name in the sidebar
-  // Use the collections testid to scope to the sidebar, then find the specific collection
-  const sidebarCollection = page.getByTestId('collections').locator('#sidebar-collection-name').filter({ hasText: collectionName }).first();
+  await test.step(`Set sandbox mode to "${mode}" for "${collectionName}"`, async () => {
+    const sandboxLocators = buildSandboxLocators(page);
 
-  // Wait for the sidebar to be loaded
-  await page.waitForTimeout(500);
+    // Click on the collection name in the sidebar
+    const sidebarCollection = page.getByTestId('collections').locator('#sidebar-collection-name').filter({ hasText: collectionName }).first();
+    await sidebarCollection.waitFor({ state: 'visible' });
+    await sidebarCollection.click();
 
-  await sidebarCollection.click();
+    // Check if there's already a mode selected - if so, we need to click the badge to open settings tab
+    const sandboxBadgeVisible = await sandboxLocators.sandboxModeSelector().isVisible().catch(() => false);
+    // If a badge exists, click it to open the security settings tab
+    if (sandboxBadgeVisible) {
+      await sandboxLocators.sandboxModeSelector().click();
 
-  // Wait a moment for the UI to load
-  await page.waitForTimeout(300);
+      // Wait for the security settings tab to be active
+      await sandboxLocators.jsSandboxHeading().waitFor({ state: 'visible', timeout: 10000 });
+    }
+    // If no badge exists, the modal should have appeared automatically (first time selection)
 
-  // Check if there's already a mode selected - if so, we need to click the badge to open settings tab
-  // Look for the Developer Mode or Safe Mode badge/button
-  const developerModeBadge = page.locator('.developer-mode').filter({ hasText: 'Developer Mode' });
-  const safeModeBadge = page.locator('.safe-mode').filter({ hasText: 'Safe Mode' });
+    // Wait for security settings form to be visible - wait for either radio button
+    await Promise.race([
+      sandboxLocators.safeModeRadio().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
+      sandboxLocators.developerModeRadio().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {})
+    ]);
 
-  const developerBadgeExists = await developerModeBadge.count().then((count) => count > 0).catch(() => false);
-  const safeBadgeExists = await safeModeBadge.count().then((count) => count > 0).catch(() => false);
-
-  // If a badge exists, click it to open the security settings tab
-  if (developerBadgeExists || safeBadgeExists) {
-    // Click the appropriate badge to open the security settings tab
-    if (developerBadgeExists) {
-      await developerModeBadge.click();
+    if (mode === 'developer') {
+      await sandboxLocators.developerModeRadio().waitFor({ state: 'visible', timeout: 5000 });
+      await sandboxLocators.developerModeRadio().check();
     } else {
-      await safeModeBadge.click();
+      // Ensure Safe Mode radio is visible and check it
+      await sandboxLocators.safeModeRadio().waitFor({ state: 'visible', timeout: 5000 });
+      await sandboxLocators.safeModeRadio().check();
     }
 
-    // Wait for the security settings tab to be active and form to be visible
-    // Look for the security settings content - it should have "JavaScript Sandbox" heading
-    await page.getByText('JavaScript Sandbox').waitFor({ state: 'visible', timeout: 10000 });
-    await page.waitForTimeout(300);
-  }
-  // If no badge exists, the modal should have appeared automatically (first time selection)
-
-  // Wait for security settings form to be visible - wait for either radio button
-  // These should be in the active tab (either modal or tab)
-  const safeModeRadio = page.getByLabel('Safe Mode');
-  const developerRadio = page.getByLabel('Developer Mode(use only if');
-
-  // Wait for at least one of them to be visible
-  await Promise.race([
-    safeModeRadio.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
-    developerRadio.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {})
-  ]);
-
-  // Additional wait to ensure UI is stable
-  await page.waitForTimeout(300);
-
-  if (mode === 'developer') {
-    await developerRadio.waitFor({ state: 'visible', timeout: 5000 });
-    await developerRadio.check();
-  } else {
-    // For safe mode, check if developer mode is currently selected
-    const developerModeChecked = await developerRadio.isChecked().catch(() => false);
-
-    if (developerModeChecked) {
-      // Click the Developer Mode label text inside the security settings form
-      // Scope to the form container to avoid clicking the badge
-      // The form should have the "JavaScript Sandbox" heading, so scope to that container
-      const securityForm = page.locator('div').filter({ hasText: 'JavaScript Sandbox' }).locator('..').first();
-      const developerLabel = securityForm.locator('label').filter({ hasText: /^Developer Mode/ }).first();
-      await developerLabel.waitFor({ state: 'visible', timeout: 5000 });
-      await developerLabel.click();
-      // Wait for UI to update
-      await page.waitForTimeout(300);
-    }
-
-    // Ensure Safe Mode radio is visible and check it
-    await safeModeRadio.waitFor({ state: 'visible', timeout: 5000 });
-    await safeModeRadio.check();
-  }
-
-  await page.getByRole('button', { name: 'Save' }).click();
+    await page.keyboard.press('Escape');
+  });
 };
 
 /**

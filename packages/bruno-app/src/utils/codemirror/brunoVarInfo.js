@@ -6,7 +6,7 @@
  *  LICENSE file at https://github.com/graphql/codemirror-graphql/tree/v0.8.3
  */
 
-import { interpolate } from '@usebruno/common';
+import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
 import { getVariableScope, isVariableSecret, getAllVariables } from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import store from 'providers/ReduxStore';
@@ -73,7 +73,10 @@ const getScopeLabel = (scopeType) => {
     'request': 'Request',
     'runtime': 'Runtime',
     'process.env': 'Process Env',
-    'undefined': 'Undefined'
+    'dynamic': 'Dynamic',
+    'oauth2': 'OAuth2',
+    'undefined': 'Undefined',
+    'pathParam': 'Path Param'
   };
   return labels[scopeType] || scopeType;
 };
@@ -178,13 +181,40 @@ export const renderVarInfo = (token, options) => {
   const collection = options.collection;
   const item = options.item;
 
-  // Check if this is a process.env variable (starts with "process.env.")
+  // Check if this is a dynamic/faker variable (starts with "$")
   let scopeInfo;
-  if (variableName.startsWith('process.env.')) {
+  if (variableName.startsWith('$oauth2.')) {
+    // OAuth2 token variable - look up in variables object
+    const oauth2Value = get(options.variables, variableName);
+    scopeInfo = {
+      type: 'oauth2',
+      value: oauth2Value !== undefined ? oauth2Value : '',
+      data: null,
+      isValidOAuth2Variable: oauth2Value !== undefined
+    };
+  } else if (variableName.startsWith('$')) {
+    const fakerKeyword = variableName.substring(1); // Remove the $ prefix
+    const fakerFunction = mockDataFunctions[fakerKeyword];
+    const isTimeBased = timeBasedDynamicVars.has(fakerKeyword);
+    scopeInfo = {
+      type: 'dynamic',
+      value: '',
+      data: null,
+      isValidDynamicVariable: !!fakerFunction,
+      isTimeBased
+    };
+  } else if (variableName.startsWith('process.env.')) {
+    // Check if this is a process.env variable (starts with "process.env.")
     scopeInfo = {
       type: 'process.env',
       value: variableValue || '',
       data: null
+    };
+  } else if (token.string.startsWith('/:')) {
+    scopeInfo = {
+      type: 'pathParam',
+      value: variableValue || '',
+      data: { item }
     };
   } else {
     // Detect variable scope
@@ -229,8 +259,10 @@ export const renderVarInfo = (token, options) => {
     }
   }
 
-  // Check if variable is read-only (process.env, runtime, and undefined variables cannot be edited)
-  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'undefined';
+  // Check if a runtime variable exists with the same name (even if scope is detected as collection/folder/environment)
+  const hasRuntimeVariable = collection && collection.runtimeVariables && collection.runtimeVariables[variableName];
+  // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, and undefined variables cannot be edited)
+  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined' || hasRuntimeVariable;
 
   // Get raw value from scope
   const rawValue = scopeInfo.value || '';
@@ -256,8 +288,10 @@ export const renderVarInfo = (token, options) => {
   const scopeBadge = document.createElement('span');
   scopeBadge.className = 'var-scope-badge';
 
+  // Check if a runtime variable exists - if so, show Runtime scope (even if detected as collection/folder/environment)
+  const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
   // Show scope label with indication if it's a new variable
-  const scopeLabel = scopeInfo ? getScopeLabel(scopeInfo.type) : 'Unknown';
+  const scopeLabel = getScopeLabel(displayScopeType);
   const isNewVariable = scopeInfo && scopeInfo.data && scopeInfo.data.variable === null;
   scopeBadge.textContent = isNewVariable ? `${scopeLabel}` : scopeLabel;
 
@@ -265,8 +299,8 @@ export const renderVarInfo = (token, options) => {
   header.appendChild(scopeBadge);
   into.appendChild(header);
 
-  // Check if variable name is valid (only for non-process.env variables)
-  const isValidVariableName = scopeInfo.type === 'process.env' || variableNameRegex.test(variableName);
+  // Check if variable name is valid
+  const isValidVariableName = scopeInfo.type === 'process.env' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || variableNameRegex.test(variableName);
 
   // Show warning if variable name is invalid
   if (!isValidVariableName) {
@@ -276,6 +310,35 @@ export const renderVarInfo = (token, options) => {
     into.appendChild(warningNote);
 
     // Don't show value or any other content for invalid variable names
+    return into;
+  }
+
+  // Show warning for invalid dynamic variable (starts with $ but not a valid dynamic function)
+  if (scopeInfo.type === 'dynamic' && !scopeInfo.isValidDynamicVariable) {
+    const warningNote = document.createElement('div');
+    warningNote.className = 'var-warning-note';
+    warningNote.textContent = `Unknown dynamic variable "${variableName}". Check the variable name.`;
+    into.appendChild(warningNote);
+    return into;
+  }
+
+  // For valid dynamic variables, show appropriate read-only note based on type
+  if (scopeInfo.type === 'dynamic' && scopeInfo.isValidDynamicVariable) {
+    const readOnlyNote = document.createElement('div');
+    readOnlyNote.className = 'var-readonly-note';
+    readOnlyNote.textContent = scopeInfo.isTimeBased
+      ? 'Generates current timestamp on each request'
+      : 'Generates random value on each request';
+    into.appendChild(readOnlyNote);
+    return into;
+  }
+
+  // Show warning for invalid OAuth2 variable (token not found)
+  if (scopeInfo.type === 'oauth2' && !scopeInfo.isValidOAuth2Variable) {
+    const warningNote = document.createElement('div');
+    warningNote.className = 'var-warning-note';
+    warningNote.textContent = `OAuth2 token not found. Make sure you have fetched the token with the correct Token ID.`;
+    into.appendChild(warningNote);
     return into;
   }
 
@@ -526,10 +589,15 @@ export const renderVarInfo = (token, options) => {
       readOnlyNote.className = 'var-readonly-note';
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
-    } else if (scopeInfo.type === 'runtime') {
+    } else if (scopeInfo.type === 'runtime' || hasRuntimeVariable) {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
       readOnlyNote.textContent = 'Set by scripts (read-only)';
+      into.appendChild(readOnlyNote);
+    } else if (scopeInfo.type === 'oauth2') {
+      const readOnlyNote = document.createElement('div');
+      readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'undefined') {
       const readOnlyNote = document.createElement('div');
@@ -625,53 +693,95 @@ if (!SERVER_RENDERED) {
 
     const state = cm.state.brunoVarInfo;
     const options = state.options;
-    let token = cm.getTokenAt(pos, true);
 
-    if (token) {
-      const line = cm.getLine(pos.line);
+    const line = cm.getLine(pos.line);
+    if (!line) return;
 
-      // Find the opening {{ before the cursor
-      let start = token.start;
-      while (start > 0 && !line.substring(start - 2, start).includes('{{')) {
-        // Stop if we encounter }} - we've gone past the start of our variable
-        if (line.substring(start - 2, start) === '}}') {
-          break;
+    // ---------- 1) MODE: Double-Brace Variable {{ ... }} ----------
+    // We check this first as it's the most common variable type.
+    if (line.includes('{{') && line.includes('}}')) {
+      // Check if the cursor is roughly between a '{{' to the left and '}}' to the right
+      if (line.lastIndexOf('{{', pos.ch) !== -1 && line.indexOf('}}', pos.ch) !== -1) {
+        let start = pos.ch;
+        let end = pos.ch;
+
+        // Scan LEFT to find the nearest '{{'
+        while (start > 0) {
+          const leftTwo = line.substring(start - 2, start);
+          if (leftTwo === '{{') {
+            start -= 2;
+            break;
+          }
+          // If we hit a '}}' while looking for '{{', the cursor is outside a pair
+          if (leftTwo === '}}') break;
+          start--;
         }
-        start--;
-      }
-      if (line.substring(start - 2, start) === '{{') {
-        start = start - 2;
-      }
 
-      // Find the closing }} after the cursor
-      let end = token.end;
-      while (end < line.length && !line.substring(end, end + 2).includes('}}')) {
-        // Stop if we encounter {{ - we've gone past the end of our variable
-        if (line.substring(end, end + 2) === '{{') {
-          break;
+        // Validate we actually found a '{{'
+        if (start >= 0 && line.substring(start, start + 2) === '{{') {
+          // Scan RIGHT to find the nearest '}}'
+          while (end < line.length) {
+            const rightTwo = line.substring(end, end + 2);
+            if (rightTwo === '}}') {
+              end += 2;
+              break;
+            }
+            // If we hit another '{{' before a closing '}}', the structure is invalid
+            if (rightTwo === '{{') {
+              end = line.length + 1;
+              break;
+            }
+            end++;
+          }
+
+          // Validate the final string and show popup
+          if (end <= line.length && line.substring(end - 2, end) === '}}') {
+            const fullVariableString = line.substring(start, end);
+            const inner = fullVariableString.slice(2, -2).trim();
+
+            if (inner) {
+              const token = { string: fullVariableString, start, end };
+              const brunoVarInfo = renderVarInfo(token, options);
+              if (brunoVarInfo) {
+                showPopup(cm, box, brunoVarInfo);
+                return; // EXIT: We found a variable, don't look for path params
+              }
+            }
+          }
         }
-        end++;
       }
-      if (line.substring(end, end + 2) === '}}') {
-        end = end + 2;
-      }
+    }
 
-      // Extract the full variable string including {{ and }}
-      const fullVariableString = line.substring(start, end);
+    // ---------- 2) MODE: Path Parameter /:varName ----------
+    // If we didn't return from the brace logic, check if cursor is on a path param
+    const pathParamStart = line.substring(0, pos.ch + 1).lastIndexOf('/:');
 
-      // Only use the expanded string if it looks like a complete variable
-      if (fullVariableString.startsWith('{{') && fullVariableString.endsWith('}}')) {
-        token = {
-          ...token,
-          string: fullVariableString,
-          start: start,
-          end: end
-        };
+    if (pathParamStart !== -1) {
+      let pathValueEnd = pathParamStart + 2;
+
+      // Path params end at the next URL separator (/, ?, &, =) or end of line
+      const separators = ['/', '?', '&', '='];
+      while (pathValueEnd < line.length && !separators.includes(line[pathValueEnd])) {
+        pathValueEnd++;
       }
 
-      const brunoVarInfo = renderVarInfo(token, options);
-      if (brunoVarInfo) {
-        showPopup(cm, box, brunoVarInfo);
+      // Check if cursor is actually inside the detected /:param range
+      if (pos.ch >= pathParamStart && pos.ch < pathValueEnd) {
+        const fullVariableString = line.substring(pathParamStart, pathValueEnd);
+
+        // Ensure it's not just "/:" but has a name (e.g., "/:id")
+        if (fullVariableString.length > 2) {
+          const token = {
+            string: fullVariableString,
+            start: pathParamStart,
+            end: pathValueEnd
+          };
+          const brunoVarInfo = renderVarInfo(token, options);
+          if (brunoVarInfo) {
+            showPopup(cm, box, brunoVarInfo);
+            return; // EXIT: Popup shown
+          }
+        }
       }
     }
   }

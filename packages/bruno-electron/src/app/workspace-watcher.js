@@ -4,23 +4,31 @@ const path = require('path');
 const chokidar = require('chokidar');
 const yaml = require('js-yaml');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
-const { parseEnvironment } = require('@usebruno/filestore');
+const { getWorkspaceUid } = require('../utils/workspace-config');
+const { parseEnvironment, parseDotEnv } = require('@usebruno/filestore');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const { decryptStringSafe } = require('../utils/encryption');
+const { setWorkspaceDotEnvVars, clearWorkspaceDotEnvVars } = require('../store/process-env');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
-/**
- * Check if environment has secret variables
- */
+const DEFAULT_WORKSPACE_NAME = 'My Workspace';
+
 const envHasSecrets = (environment) => {
   const secrets = _.filter(environment.variables, (v) => v.secret === true);
   return secrets && secrets.length > 0;
 };
 
-/**
- * Handle workspace.yml file changes
- */
+const normalizeWorkspaceConfig = (config) => {
+  return {
+    ...config,
+    name: config.info?.name,
+    type: config.info?.type,
+    collections: config.collections || [],
+    apiSpecs: config.specs || []
+  };
+};
+
 const handleWorkspaceFileChange = (win, workspacePath) => {
   try {
     const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
@@ -30,23 +38,27 @@ const handleWorkspaceFileChange = (win, workspacePath) => {
     }
 
     const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-    const workspaceConfig = yaml.load(yamlContent);
+    const rawConfig = yaml.load(yamlContent);
+    const workspaceConfig = normalizeWorkspaceConfig(rawConfig);
 
-    if (workspaceConfig.type !== 'workspace') {
+    const type = workspaceConfig.info?.type || workspaceConfig.type;
+    if (type !== 'workspace') {
       return;
     }
 
-    const workspaceUid = generateUidBasedOnHash(workspacePath);
+    const workspaceUid = getWorkspaceUid(workspacePath);
+    const isDefault = workspaceUid === 'default';
 
-    win.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, workspaceConfig);
+    win.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, {
+      ...workspaceConfig,
+      name: isDefault ? DEFAULT_WORKSPACE_NAME : workspaceConfig.name,
+      type: isDefault ? 'default' : workspaceConfig.type
+    });
   } catch (error) {
     console.error('Error handling workspace file change:', error);
   }
 };
 
-/**
- * Parse global environment file and handle secrets
- */
 const parseGlobalEnvironmentFile = async (pathname, workspacePath, workspaceUid) => {
   const basename = path.basename(pathname);
   const environmentName = basename.slice(0, -'.yml'.length);
@@ -64,14 +76,12 @@ const parseGlobalEnvironmentFile = async (pathname, workspacePath, workspaceUid)
   file.data.name = environmentName;
   file.data.uid = generateUidBasedOnHash(pathname);
 
-  // Ensure all variables have UIDs
   _.each(_.get(file, 'data.variables', []), (variable) => {
     if (!variable.uid) {
       variable.uid = uuid();
     }
   });
 
-  // Decrypt secrets if present
   if (envHasSecrets(file.data)) {
     const envSecrets = environmentSecretsStore.getEnvSecrets(workspacePath, file.data);
     _.each(envSecrets, (secret) => {
@@ -86,9 +96,6 @@ const parseGlobalEnvironmentFile = async (pathname, workspacePath, workspaceUid)
   return file;
 };
 
-/**
- * Handle global environment file add
- */
 const handleGlobalEnvironmentFileAdd = async (win, pathname, workspacePath, workspaceUid) => {
   try {
     const file = await parseGlobalEnvironmentFile(pathname, workspacePath, workspaceUid);
@@ -98,9 +105,6 @@ const handleGlobalEnvironmentFileAdd = async (win, pathname, workspacePath, work
   }
 };
 
-/**
- * Handle global environment file change
- */
 const handleGlobalEnvironmentFileChange = async (win, pathname, workspacePath, workspaceUid) => {
   try {
     const file = await parseGlobalEnvironmentFile(pathname, workspacePath, workspaceUid);
@@ -110,9 +114,6 @@ const handleGlobalEnvironmentFileChange = async (win, pathname, workspacePath, w
   }
 };
 
-/**
- * Handle global environment file unlink
- */
 const handleGlobalEnvironmentFileUnlink = async (win, pathname, workspaceUid) => {
   try {
     const environmentUid = generateUidBasedOnHash(pathname);
@@ -122,39 +123,74 @@ const handleGlobalEnvironmentFileUnlink = async (win, pathname, workspaceUid) =>
   }
 };
 
-/**
- * Workspace Watcher
- * Watches workspace files for changes and notifies the renderer
- */
+const handleWorkspaceDotEnvFile = (win, workspacePath, workspaceUid) => {
+  try {
+    const dotEnvPath = path.join(workspacePath, '.env');
+    if (!fs.existsSync(dotEnvPath)) {
+      return;
+    }
+
+    const content = fs.readFileSync(dotEnvPath, 'utf8');
+    const jsonData = parseDotEnv(content);
+
+    setWorkspaceDotEnvVars(workspacePath, jsonData);
+    win.webContents.send('main:workspace-dotenv-update', {
+      workspaceUid,
+      workspacePath,
+      processEnvVariables: { ...jsonData }
+    });
+  } catch (error) {
+    console.error('Error handling workspace .env file:', error);
+  }
+};
+
+const handleWorkspaceDotEnvUnlink = (win, workspacePath, workspaceUid) => {
+  try {
+    clearWorkspaceDotEnvVars(workspacePath);
+    win.webContents.send('main:workspace-dotenv-update', {
+      workspaceUid,
+      workspacePath,
+      processEnvVariables: {}
+    });
+  } catch (error) {
+    console.error('Error handling workspace .env file unlink:', error);
+  }
+};
+
 class WorkspaceWatcher {
   constructor() {
     this.watchers = {};
     this.environmentWatchers = {};
+    this.dotEnvWatchers = {};
   }
 
   addWatcher(win, workspacePath) {
     const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
     const environmentsDir = path.join(workspacePath, 'environments');
-    const workspaceUid = generateUidBasedOnHash(workspacePath);
+    const dotEnvFilePath = path.join(workspacePath, '.env');
+    const workspaceUid = getWorkspaceUid(workspacePath);
 
-    // Close existing watchers if any
     if (this.watchers[workspacePath]) {
       this.watchers[workspacePath].close();
     }
     if (this.environmentWatchers[workspacePath]) {
       this.environmentWatchers[workspacePath].close();
     }
+    if (this.dotEnvWatchers[workspacePath]) {
+      this.dotEnvWatchers[workspacePath].close();
+    }
 
     const self = this;
     setTimeout(() => {
-      // Guard against window being destroyed during delay
       if (win.isDestroyed()) {
         return;
       }
 
-      // Watch workspace.yml file
+      // Load initial .env file if exists
+      handleWorkspaceDotEnvFile(win, workspacePath, workspaceUid);
+
       const watcher = chokidar.watch(workspaceFilePath, {
-        ignoreInitial: false,
+        ignoreInitial: true,
         persistent: true,
         ignorePermissionErrors: true,
         awaitWriteFinish: {
@@ -163,12 +199,30 @@ class WorkspaceWatcher {
         }
       });
 
+      // Only listen for 'change' events - 'add' event is not needed because:
+      // 1. The workspace is already loaded when the watcher is started
+      // 2. ignoreInitial: true prevents firing for existing files
+      // 3. If workspace.yml is deleted and recreated, 'change' will catch it
       watcher.on('change', () => handleWorkspaceFileChange(win, workspacePath));
-      watcher.on('add', () => handleWorkspaceFileChange(win, workspacePath));
 
       self.watchers[workspacePath] = watcher;
 
-      // Watch global environment files (.yml)
+      const dotEnvWatcher = chokidar.watch(dotEnvFilePath, {
+        ignoreInitial: true,
+        persistent: true,
+        ignorePermissionErrors: true,
+        awaitWriteFinish: {
+          stabilityThreshold: 80,
+          pollInterval: 250
+        }
+      });
+
+      dotEnvWatcher.on('add', () => handleWorkspaceDotEnvFile(win, workspacePath, workspaceUid));
+      dotEnvWatcher.on('change', () => handleWorkspaceDotEnvFile(win, workspacePath, workspaceUid));
+      dotEnvWatcher.on('unlink', () => handleWorkspaceDotEnvUnlink(win, workspacePath, workspaceUid));
+
+      self.dotEnvWatchers[workspacePath] = dotEnvWatcher;
+
       if (fs.existsSync(environmentsDir)) {
         const envWatcher = chokidar.watch(path.join(environmentsDir, `*.yml`), {
           ignoreInitial: true,
@@ -194,7 +248,6 @@ class WorkspaceWatcher {
 
         self.environmentWatchers[workspacePath] = envWatcher;
       } else {
-        // Watch for environments directory creation
         const dirWatcher = chokidar.watch(environmentsDir, {
           ignoreInitial: false,
           persistent: true,
@@ -222,6 +275,12 @@ class WorkspaceWatcher {
         this.environmentWatchers[workspacePath].close();
         delete this.environmentWatchers[workspacePath];
       }
+      if (this.dotEnvWatchers[workspacePath]) {
+        this.dotEnvWatchers[workspacePath].close();
+        delete this.dotEnvWatchers[workspacePath];
+      }
+      // Clear workspace env vars when watcher is removed
+      clearWorkspaceDotEnvVars(workspacePath);
     } catch (error) {
       console.error('Error removing workspace watcher:', error);
     }

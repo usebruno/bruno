@@ -20,6 +20,7 @@ test.describe.serial('Collection Environment Import Tests', () => {
 
     await test.step('Navigate to collection environment import', async () => {
       // Open environment import
+      await page.getByTestId('environment-selector-trigger').hover();
       await page.getByTestId('environment-selector-trigger').click();
       await page.getByTestId('env-tab-collection').click();
       await expect(page.getByTestId('env-tab-collection')).toHaveClass(/active/);
@@ -39,16 +40,14 @@ test.describe.serial('Collection Environment Import Tests', () => {
     });
 
     await test.step('Verify imported environment and variables', async () => {
-      // The environment settings modal should now be visible with the imported environment
-      const envModal = page.locator('.bruno-modal').filter({ hasText: 'Environments' });
-      await expect(envModal).toBeVisible();
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+      await expect(envTab).toBeVisible();
 
-      // Verify imported variables
       await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
       await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
 
-      // Close modal
-      await page.getByText('×').click();
+      await envTab.hover();
+      await envTab.getByTestId('request-tab-close-icon').click();
     });
 
     await test.step('Clean up after test', async () => {
@@ -76,7 +75,10 @@ test.describe.serial('Collection Environment Import Tests', () => {
 
     await test.step('Navigate to collection environment import', async () => {
       // Open environment import
+
+      await page.getByTestId('environment-selector-trigger').hover();
       await page.getByTestId('environment-selector-trigger').click();
+
       await page.getByTestId('env-tab-collection').click();
       await expect(page.getByTestId('env-tab-collection')).toHaveClass(/active/);
       await page.getByText('Import', { exact: true }).click();
@@ -93,19 +95,19 @@ test.describe.serial('Collection Environment Import Tests', () => {
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles(multiEnvFile);
 
-      // The environment settings modal should now be visible with the imported environments
-      const envModal = page.locator('.bruno-modal').filter({ hasText: 'Environments' });
-      await expect(envModal).toBeVisible();
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+      await expect(envTab).toBeVisible();
     });
 
     await test.step('Verify both environments are available in selector', async () => {
-      // Check that both environments are available in the selector
-      await page.getByText('×').click(); // Close environment settings modal
+      await page.waitForTimeout(500);
+
+      await page.getByTestId('environment-selector-trigger').hover();
       await page.getByTestId('environment-selector-trigger').click();
 
-      // Verify both environments are in the dropdown
-      await expect(page.locator('.dropdown-item').filter({ hasText: /^local$/ })).toBeVisible();
-      await expect(page.locator('.dropdown-item').filter({ hasText: /^prod$/ })).toBeVisible();
+      await page.waitForTimeout(300);
+      await expect(page.locator('.dropdown-item').filter({ hasText: /^local$/ })).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.dropdown-item').filter({ hasText: /^prod$/ })).toBeVisible({ timeout: 10000 });
     });
 
     await test.step('Test switching to prod environment and verify variables', async () => {
@@ -114,17 +116,19 @@ test.describe.serial('Collection Environment Import Tests', () => {
       await expect(page.locator('.current-environment')).toContainText('prod');
 
       // Verify prod environment variables by opening settings again
+      await page.getByTestId('environment-selector-trigger').hover();
       await page.getByTestId('environment-selector-trigger').click();
       await page.getByText('Configure', { exact: true }).click();
-      const envModal = page.locator('.bruno-modal').filter({ hasText: 'Environments' });
-      await expect(envModal).toBeVisible();
+
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+      await expect(envTab).toBeVisible();
 
       // Verify prod environment variables
       await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
       await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
 
-      // Close modal
-      await page.getByText('×').click();
+      await envTab.hover();
+      await envTab.getByTestId('request-tab-close-icon').click();
     });
 
     await test.step('Clean up after test', async () => {

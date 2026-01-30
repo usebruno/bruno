@@ -6,18 +6,23 @@ import { toBrunoHttpHeaders } from '../common/headers';
 import { toBrunoParams } from '../common/params';
 import { toBrunoBody } from '../common/body';
 import { toBrunoVariables } from '../common/variables';
+import { toBrunoPostResponseVariables } from '../common/actions';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
-import { uuid } from '../../../utils';
+import { uuid, ensureString } from '../../../utils';
 
 const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
+  const info = ocRequest.info;
+  const http = ocRequest.http;
+  const runtime = ocRequest.runtime;
+
   const brunoRequest: BrunoHttpRequest = {
-    url: ocRequest.url || '',
-    method: ocRequest.method || 'GET',
-    headers: toBrunoHttpHeaders(ocRequest.headers) || [],
-    params: toBrunoParams(ocRequest.params) || [],
-    auth: toBrunoAuth(ocRequest.auth),
-    body: toBrunoBody(ocRequest.body as HttpRequestBody) || {
+    url: ensureString(http?.url),
+    method: ensureString(http?.method, 'GET'),
+    headers: toBrunoHttpHeaders(http?.headers) || [],
+    params: toBrunoParams(http?.params) || [],
+    auth: toBrunoAuth(http?.auth),
+    body: toBrunoBody(http?.body as HttpRequestBody) || {
       mode: 'none',
       json: null,
       text: null,
@@ -42,7 +47,7 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   };
 
   // scripts
-  const scripts = toBrunoScripts(ocRequest.scripts);
+  const scripts = toBrunoScripts(runtime?.scripts);
   if (scripts?.script && brunoRequest.script) {
     if (scripts.script.req) {
       brunoRequest.script.req = scripts.script.req;
@@ -55,12 +60,16 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     brunoRequest.tests = scripts.tests;
   }
 
-  // variables
-  const variables = toBrunoVariables(ocRequest.variables);
-  brunoRequest.vars = variables;
+  // variables (pre-request from variables, post-response from actions)
+  const variables = toBrunoVariables(runtime?.variables);
+  const postResponseVars = toBrunoPostResponseVariables(runtime?.actions);
+  brunoRequest.vars = {
+    req: variables.req,
+    res: postResponseVars
+  };
 
   // assertions
-  const assertions = toBrunoAssertions(ocRequest.assertions);
+  const assertions = toBrunoAssertions(runtime?.assertions);
   if (assertions) {
     brunoRequest.assertions = assertions;
   }
@@ -74,9 +83,9 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   const brunoItem: BrunoItem = {
     uid: uuid(),
     type: 'http-request',
-    seq: ocRequest.seq || 1,
-    name: ocRequest.name || 'Untitled Request',
-    tags: ocRequest.tags || [],
+    seq: info?.seq || 1,
+    name: ensureString(info?.name, 'Untitled Request'),
+    tags: info?.tags || [],
     request: brunoRequest,
     settings: null,
     fileContent: null,
@@ -126,7 +135,7 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
       const brunoExample: any = {
         uid: uuid(),
         itemUid: uuid(),
-        name: example.name || 'Untitled Example',
+        name: ensureString(example.name, 'Untitled Example'),
         type: 'http-request',
         request: null,
         response: null
@@ -142,8 +151,8 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
 
       if (example.request) {
         brunoExample.request = {
-          url: example.request.url || '',
-          method: example.request.method || 'GET',
+          url: ensureString(example.request.url),
+          method: ensureString(example.request.method, 'GET'),
           headers: toBrunoHttpHeaders(example.request.headers) || [],
           params: toBrunoParams(example.request.params) || [],
           body: toBrunoBody(example.request.body) || {

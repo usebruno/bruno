@@ -12,7 +12,7 @@ test.describe('OpenAPI Path-Based Grouping', () => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-path-grouping.json');
 
     // Start the import process
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready
@@ -40,8 +40,6 @@ test.describe('OpenAPI Path-Based Grouping', () => {
 
     // Configure the collection settings
     await page.locator('#sidebar-collection-name').getByText('Path Grouping Test API').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Verify path-based folder structure was created
     // Should have 'users' and 'products' folders

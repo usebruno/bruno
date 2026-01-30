@@ -11,7 +11,7 @@ test.describe('Multiline Variables - Write Test', () => {
 
     // open request
     await expect(page.getByTitle('multiline-test', { exact: true })).toBeVisible();
-    await page.getByTitle('multiline-test', { exact: true }).click();
+    await page.getByTitle('multiline-test', { exact: true }).dblclick();
 
     // open environment dropdown
     await page.locator('div.current-environment').click();
@@ -28,10 +28,12 @@ test.describe('Multiline Variables - Write Test', () => {
     await expect(page.getByText('Configure', { exact: true })).toBeVisible();
     await page.getByText('Configure', { exact: true }).click();
 
-    // add variable
-    await page.getByRole('button', { name: /Add.*Variable/i }).click();
-    const valueTextarea = page.locator('.bruno-modal-card textarea').last();
-    await expect(valueTextarea).toBeVisible();
+    const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+    await expect(envTab).toBeVisible();
+
+    const emptyRowNameInput = page.locator('tbody tr').last().locator('input[placeholder="Name"]');
+    await expect(emptyRowNameInput).toBeVisible();
+    await emptyRowNameInput.fill('multiline_data_json');
 
     const jsonValue = `{
   "user": {
@@ -48,23 +50,17 @@ test.describe('Multiline Variables - Write Test', () => {
   }
 }`;
 
-    // fill variable value
-    await valueTextarea.fill(jsonValue);
-    await page.keyboard.press('Shift+Tab');
-    await page.keyboard.type('multiline_data_json');
+    const variableRow = page.locator('tbody tr').filter({ has: page.locator('input[value="multiline_data_json"]') });
+    const codeMirror = variableRow.locator('.CodeMirror');
+    await codeMirror.click();
+    await page.keyboard.insertText(jsonValue);
 
-    // save variable and close config
-    const saveVarButton = page.getByRole('button', { name: /Save/i });
-    await expect(saveVarButton).toBeVisible();
-    await saveVarButton.click();
+    await page.getByTestId('save-env').click();
 
-    await expect(page.locator('.close.cursor-pointer')).toBeVisible();
-    await page.locator('.close.cursor-pointer').click();
+    await envTab.hover();
+    await envTab.getByTestId('request-tab-close-icon').click();
 
-    // send request
-    const sendButton = page.locator('#send-request').getByRole('img').nth(2);
-    await expect(sendButton).toBeVisible();
-    await sendButton.click();
+    await page.getByTestId('send-arrow-icon').click();
 
     // wait for response status
     await expect(page.locator('.response-status-code.text-ok')).toBeVisible();

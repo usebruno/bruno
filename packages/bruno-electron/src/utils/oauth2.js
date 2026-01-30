@@ -1,10 +1,14 @@
 const { get, cloneDeep, filter } = require('lodash');
 const crypto = require('crypto');
 const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-window');
+const { authorizeUserInSystemBrowser } = require('../ipc/network/authorize-user-in-system-browser');
 const Oauth2Store = require('../store/oauth2');
 const { makeAxiosInstance } = require('../ipc/network/axios-instance');
 const { safeParseJSON, safeStringifyJSON } = require('./common');
+const { preferencesUtil } = require('../store/preferences');
 const qs = require('qs');
+
+const BRUNO_OAUTH2_CALLBACK_URL = 'https://oauth.usebruno.com/callback';
 
 const oauth2Store = new Oauth2Store();
 
@@ -48,7 +52,7 @@ const safeParseJSONBuffer = (data) => {
 const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }) => {
   const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
-  let requestDetails, parsedResponseData;
+  let requestDetails = { request: {}, response: {} }, parsedResponseData;
   try {
     const response = await axiosInstance(requestConfig);
     const { url: responseUrl, headers: responseHeaders, status: responseStatus, statusText: responseStatusText, data: responseData, timeline, config } = response || {};
@@ -108,7 +112,7 @@ const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }
           statusText: error?.code,
           headers: {},
           data: safeStringifyJSON(error?.errors),
-          timeline: error?.response?.timeline
+          timeline: error?.timeline
         }
       };
     }
@@ -128,7 +132,7 @@ const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }
 
 // AUTHORIZATION CODE
 
-const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfig }) => {
+const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }) => {
   let codeVerifier = generateCodeVerifier();
   let codeChallenge = generateCodeChallenge(codeVerifier);
 
@@ -147,6 +151,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     autoFetchToken,
     additionalParameters
   } = oAuth;
+  const effectiveCallbackUrl = callbackUrl && callbackUrl.length ? callbackUrl : BRUNO_OAUTH2_CALLBACK_URL;
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
   // Validate required fields
@@ -168,7 +173,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     };
   }
 
-  if (!callbackUrl) {
+  if (!effectiveCallbackUrl) {
     return {
       error: 'Callback URL is required for OAuth2 authorization code flow',
       credentials: null,
@@ -199,7 +204,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
         if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
-            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig: certsAndProxyConfigForRefreshUrl });
             return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
           } catch (error) {
             // Refresh failed
@@ -249,12 +254,14 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     'Accept': 'application/json'
   };
   if (credentialsPlacement === 'basic_auth_header') {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+    const secret = clientSecret ?? '';
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
   }
+
   const data = {
     grant_type: 'authorization_code',
     code: authorizationCode,
-    redirect_uri: callbackUrl
+    redirect_uri: effectiveCallbackUrl
   };
   if (credentialsPlacement !== 'basic_auth_header') {
     data.client_id = clientId;
@@ -274,7 +281,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   }
   axiosRequestConfig.data = qs.stringify(data);
   try {
-    const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig });
+    const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig: certsAndProxyConfigForTokenUrl });
 
     // Ensure debugInfo.data is initialized
     if (!debugInfo) {
@@ -295,13 +302,17 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
   return new Promise(async (resolve, reject) => {
     const { oauth2 } = request;
     const { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl, additionalParameters } = oauth2;
+    const useSystemBrowser = preferencesUtil.shouldUseSystemBrowser();
+    const effectiveCallbackUrl = callbackUrl && callbackUrl.length ? callbackUrl : BRUNO_OAUTH2_CALLBACK_URL;
 
     const authorizationUrlWithQueryParams = new URL(authorizationUrl);
     authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
     authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
-    if (callbackUrl) {
-      authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
+
+    if (effectiveCallbackUrl) {
+      authorizationUrlWithQueryParams.searchParams.append('redirect_uri', effectiveCallbackUrl);
     }
+
     if (scope) {
       authorizationUrlWithQueryParams.searchParams.append('scope', scope);
     }
@@ -324,9 +335,10 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
 
     try {
       const authorizeUrl = authorizationUrlWithQueryParams.toString();
-      const { authorizationCode, debugInfo } = await authorizeUserInWindow({
+      const authorizeFunction = useSystemBrowser ? authorizeUserInSystemBrowser : authorizeUserInWindow;
+      const { authorizationCode, debugInfo } = await authorizeFunction({
         authorizeUrl,
-        callbackUrl,
+        callbackUrl: effectiveCallbackUrl,
         session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl }),
         additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
       });
@@ -354,7 +366,7 @@ const getAdditionalHeaders = (params) => {
 
 // CLIENT CREDENTIALS
 
-const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfig }) => {
+const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
   const {
@@ -402,7 +414,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
         if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
-            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig: certsAndProxyConfigForRefreshUrl });
             return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
           } catch (error) {
             clearOauth2Credentials({ collectionUid, url, credentialsId });
@@ -447,8 +459,9 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     'content-type': 'application/x-www-form-urlencoded',
     'Accept': 'application/json'
   };
-  if (credentialsPlacement === 'basic_auth_header' && clientSecret && clientSecret.trim() !== '') {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+  if (credentialsPlacement === 'basic_auth_header') {
+    const secret = clientSecret ?? '';
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'client_credentials'
@@ -470,7 +483,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   axiosRequestConfig.data = qs.stringify(data);
   let debugInfo = { data: [] };
   try {
-    const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig });
+    const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig: certsAndProxyConfigForTokenUrl });
     debugInfo.data.push(requestDetails);
     credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
     return { collectionUid, url, credentials, credentialsId, debugInfo };
@@ -481,7 +494,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
 
 // PASSWORD CREDENTIALS
 
-const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfig }) => {
+const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
   const {
@@ -548,7 +561,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
         if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
-            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+            const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig: certsAndProxyConfigForRefreshUrl });
             return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
           } catch (error) {
             clearOauth2Credentials({ collectionUid, url, credentialsId });
@@ -594,8 +607,9 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     'content-type': 'application/x-www-form-urlencoded',
     'Accept': 'application/json'
   };
-  if (credentialsPlacement === 'basic_auth_header' && clientSecret && clientSecret.trim() !== '') {
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+  if (credentialsPlacement === 'basic_auth_header') {
+    const secret = clientSecret ?? '';
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
   }
   const data = {
     grant_type: 'password',
@@ -619,7 +633,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   axiosRequestConfig.data = qs.stringify(data);
   let debugInfo = { data: [] };
   try {
-    const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig });
+    const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig: certsAndProxyConfigForTokenUrl });
     debugInfo.data.push(requestDetails);
     credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
     return { collectionUid, url, credentials, credentialsId, debugInfo };
@@ -656,7 +670,8 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       'Accept': 'application/json'
     };
     if (credentialsPlacement === 'basic_auth_header') {
-      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+      const secret = clientSecret ?? '';
+      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
     }
     axiosRequestConfig.url = url;
     axiosRequestConfig.responseType = 'arraybuffer';
@@ -739,6 +754,8 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
     autoFetchToken = true,
     additionalParameters
   } = oauth2;
+  const useSystemBrowser = preferencesUtil.shouldUseSystemBrowser();
+  const effectiveCallbackUrl = callbackUrl && callbackUrl.length ? callbackUrl : BRUNO_OAUTH2_CALLBACK_URL;
 
   // Validate required fields
   if (!authorizationUrl) {
@@ -750,7 +767,7 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
     };
   }
 
-  if (!callbackUrl) {
+  if (!effectiveCallbackUrl) {
     return {
       error: 'Callback URL is required for OAuth2 implicit flow',
       credentials: null,
@@ -815,7 +832,11 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   const authorizationUrlWithQueryParams = new URL(authorizationUrl);
   authorizationUrlWithQueryParams.searchParams.append('response_type', 'token');
   authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
-  authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
+
+  if (effectiveCallbackUrl) {
+    authorizationUrlWithQueryParams.searchParams.append('redirect_uri', effectiveCallbackUrl);
+  }
+
   if (scope) {
     authorizationUrlWithQueryParams.searchParams.append('scope', scope);
   }
@@ -835,13 +856,16 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   const authorizeUrl = authorizationUrlWithQueryParams.toString();
 
   try {
-    const { implicitTokens, debugInfo } = await authorizeUserInWindow({
+    const authorizeFunction = useSystemBrowser ? authorizeUserInSystemBrowser : authorizeUserInWindow;
+    const result = await authorizeFunction({
       authorizeUrl,
-      callbackUrl,
+      callbackUrl: effectiveCallbackUrl,
       session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: authorizationUrl }),
       grantType: 'implicit',
       additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
     });
+
+    const { implicitTokens, debugInfo } = result;
 
     if (!implicitTokens || !implicitTokens.access_token) {
       return {

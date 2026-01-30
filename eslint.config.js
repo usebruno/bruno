@@ -18,7 +18,9 @@ module.exports = runESMImports().then(() => defineConfig([
       '**/dist/**/*',
       '**/*.bru',
       'packages/bruno-js/src/sandbox/bundle-browser-rollup.js',
-      'packages/bruno-app/public/static/**/*'
+      'packages/bruno-app/public/static/**/*',
+      'packages/bruno-app/.next/**/*',
+      'packages/bruno-electron/web/**/*'
     ]
   },
   {
@@ -109,6 +111,18 @@ module.exports = runESMImports().then(() => defineConfig([
       globals: {
         ...globals.node,
         ...globals.jest
+      }
+    },
+    rules: {
+      'no-undef': 'error'
+    }
+  },
+  {
+    // Storybook config files use CommonJS with __dirname and module.exports
+    files: ['packages/bruno-app/storybook/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node
       }
     },
     rules: {

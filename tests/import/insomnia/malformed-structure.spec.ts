@@ -5,7 +5,7 @@ test.describe('Invalid Insomnia Collection - Malformed Structure', () => {
   test('Handle malformed Insomnia collection structure', async ({ page }) => {
     const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-malformed.json');
 
-    await page.locator('.plus-icon-button').click();
+    await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready
@@ -20,6 +20,6 @@ test.describe('Invalid Insomnia Collection - Malformed Structure', () => {
     expect(hasError).toBe(true);
 
     // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
   });
 });

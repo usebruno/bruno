@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  height: 2.3rem;
+  height: 2.1rem;
   border: ${(props) => props.theme.requestTabPanel.url.border};
   border-radius: ${(props) => props.theme.border.radius.base};
 
@@ -49,7 +49,7 @@ const Wrapper = styled.div`
   .infotip-text {
     visibility: hidden;
     width: auto;
-    background-color: ${(props) => props.theme.requestTabs.active.bg};
+    background-color: ${(props) => props.theme.background.surface2};
     color: ${(props) => props.theme.text};
     text-align: center;
     border-radius: 4px;
@@ -72,7 +72,7 @@ const Wrapper = styled.div`
     margin-left: -4px;
     border-width: 4px;
     border-style: solid;
-    border-color: ${(props) => props.theme.requestTabs.active.bg} transparent transparent transparent;
+    border-color: ${(props) => props.theme.background.surface2} transparent transparent transparent;
   }
 
   .shortcut {

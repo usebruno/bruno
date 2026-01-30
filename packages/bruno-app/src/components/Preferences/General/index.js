@@ -1,5 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import get from 'lodash/get';
+import debounce from 'lodash/debounce';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
@@ -10,7 +11,7 @@ import toast from 'react-hot-toast';
 import path from 'utils/common/path';
 import { IconTrash } from '@tabler/icons';
 
-const General = ({ close }) => {
+const General = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
   const inputFileCaCertificateRef = useRef();
@@ -56,6 +57,9 @@ const General = ({ close }) => {
       }
       return true;
     }),
+    oauth2: Yup.object({
+      useSystemBrowser: Yup.boolean()
+    }),
     defaultCollectionLocation: Yup.string().max(1024)
   });
 
@@ -76,6 +80,9 @@ const General = ({ close }) => {
         enabled: get(preferences, 'autoSave.enabled', false),
         interval: get(preferences, 'autoSave.interval', 1000)
       },
+      oauth2: {
+        useSystemBrowser: get(preferences, 'request.oauth2.useSystemBrowser', false)
+      },
       defaultCollectionLocation: get(preferences, 'general.defaultCollectionLocation', '')
     },
     validationSchema: preferencesSchema,
@@ -89,7 +96,7 @@ const General = ({ close }) => {
     }
   });
 
-  const handleSave = (newPreferences) => {
+  const handleSave = useCallback((newPreferences) => {
     dispatch(
       savePreferences({
         ...preferences,
@@ -104,7 +111,10 @@ const General = ({ close }) => {
           },
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
-          sendCookies: newPreferences.sendCookies
+          sendCookies: newPreferences.sendCookies,
+          oauth2: {
+            useSystemBrowser: newPreferences.oauth2.useSystemBrowser
+          }
         },
         autoSave: {
           enabled: newPreferences.autoSave.enabled,
@@ -114,12 +124,29 @@ const General = ({ close }) => {
           defaultCollectionLocation: newPreferences.defaultCollectionLocation
         }
       }))
-      .then(() => {
-        toast.success('Preferences saved successfully');
-        close();
-      })
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
-  };
+  }, [dispatch, preferences]);
+
+  const debouncedSave = useCallback(
+    debounce((values) => {
+      preferencesSchema.validate(values, { abortEarly: true })
+        .then((validatedValues) => {
+          handleSave(validatedValues);
+        })
+        .catch((error) => {
+        });
+    }, 500),
+    [handleSave]
+  );
+
+  useEffect(() => {
+    if (formik.dirty && formik.isValid) {
+      debouncedSave(formik.values);
+    }
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 
   const addCaCertificate = (e) => {
     const filePath = window?.ipcRenderer?.getFilePath(e?.target?.files?.[0]);
@@ -146,7 +173,7 @@ const General = ({ close }) => {
   };
 
   return (
-    <StyledWrapper>
+    <StyledWrapper className="w-full">
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="flex items-center my-2">
           <input
@@ -258,6 +285,19 @@ const General = ({ close }) => {
             Send Cookies automatically
           </label>
         </div>
+        <div className="flex items-center mt-2">
+          <input
+            id="oauth2.useSystemBrowser"
+            type="checkbox"
+            name="oauth2.useSystemBrowser"
+            checked={formik.values.oauth2.useSystemBrowser}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="oauth2.useSystemBrowser">
+            Use System Browser for OAuth2 Authorization
+          </label>
+        </div>
         <div className="flex flex-col mt-6">
           <label className="block select-none" htmlFor="timeout">
             Request Timeout (in ms)
@@ -327,6 +367,7 @@ const General = ({ close }) => {
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck="false"
+            readOnly={true}
             onChange={formik.handleChange}
             value={formik.values.defaultCollectionLocation || ''}
             onClick={browseDefaultLocation}
@@ -344,11 +385,6 @@ const General = ({ close }) => {
         {formik.touched.defaultCollectionLocation && formik.errors.defaultCollectionLocation ? (
           <div className="text-red-500">{formik.errors.defaultCollectionLocation}</div>
         ) : null}
-        <div className="mt-10">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
-            Save
-          </button>
-        </div>
       </form>
     </StyledWrapper>
   );

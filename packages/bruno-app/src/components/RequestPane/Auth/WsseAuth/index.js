@@ -52,9 +52,9 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
   };
 
   return (
-    <StyledWrapper className="mt-2 w-full">
-      <label className="block font-medium mb-2">Username</label>
-      <div className="single-line-editor-wrapper mb-2">
+    <StyledWrapper className="w-full">
+      <label className="block mb-1">Username</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={wsseAuth.username || ''}
           theme={storedTheme}
@@ -63,10 +63,11 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Password</label>
+      <label className="block mb-1">Password</label>
       <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
           value={wsseAuth.password || ''}
@@ -77,8 +78,9 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
           collection={collection}
           item={item}
           isSecret={true}
+          isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="wsse-password" message={warningMessage} />}
+        {showWarning && <SensitiveFieldWarning fieldName="wsse-password" warningMessage={warningMessage} />}
       </div>
     </StyledWrapper>
   );

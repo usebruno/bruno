@@ -48,11 +48,14 @@ yarn-error.log*
 bruno.iml
 .idea
 .vscode
+.cursor
 
 # Playwright
 /blob-report/
 
 # Development plan files
+CLAUDE.md
+AGENTS.md
 *.plan.md
 
 # packages dist

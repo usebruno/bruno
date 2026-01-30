@@ -1,4 +1,4 @@
-import React, { useState, useRef, forwardRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import {
@@ -8,16 +8,21 @@ import {
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
-import { IconDots } from '@tabler/icons';
+import { IconDots, IconEdit, IconCopy, IconTrash, IconCode } from '@tabler/icons';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import range from 'lodash/range';
 import classnames from 'classnames';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
+import ActionIcon from 'ui/ActionIcon';
 import Modal from 'components/Modal';
 import DeleteResponseExampleModal from './DeleteResponseExampleModal';
+import GenerateCodeItem from '../GenerateCodeItem';
+import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
+import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 
 const ExampleItem = ({ example, item, collection }) => {
+  const { dropdownContainerRef } = useSidebarAccordion();
   const dispatch = useDispatch();
   // Check if this example is the active tab
   const activeTabUid = useSelector((state) => state.tabs?.activeTabUid);
@@ -25,7 +30,9 @@ const ExampleItem = ({ example, item, collection }) => {
   const [editName, setEditName] = useState(example.name);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const dropdownTippyRef = useRef(null);
+  const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
+  const exampleRef = useRef(null);
+  const menuDropdownRef = useRef(null);
 
   // Calculate indentation: item depth + 1 for examples
   const indents = range((item.depth || 0) + 1);
@@ -47,15 +54,22 @@ const ExampleItem = ({ example, item, collection }) => {
   const handleRename = () => {
     setEditName(example.name); // Set current name when opening modal
     setShowRenameModal(true);
-    if (dropdownTippyRef.current) {
-      dropdownTippyRef.current.hide();
-    }
   };
 
   // Update editName when example changes
   useEffect(() => {
     setEditName(example.name);
   }, [example.name]);
+
+  useEffect(() => {
+    if (isExampleActive && exampleRef.current) {
+      try {
+        exampleRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (err) {
+        // ignore scroll errors
+      }
+    }
+  }, [isExampleActive]);
 
   const handleClone = async () => {
     // Calculate the index where the cloned example will be saved
@@ -72,7 +86,7 @@ const ExampleItem = ({ example, item, collection }) => {
     }));
 
     // Save the request
-    await dispatch(saveRequest(item.uid, collection.uid));
+    await dispatch(saveRequest(item.uid, collection.uid, true));
 
     // Task middleware will track this and open the example in a new tab once the file is reloaded
     dispatch(insertTaskIntoQueue({
@@ -82,26 +96,22 @@ const ExampleItem = ({ example, item, collection }) => {
       itemUid: item.uid,
       exampleIndex: clonedExampleIndex
     }));
-
-    if (dropdownTippyRef.current) {
-      dropdownTippyRef.current.hide();
-    }
   };
 
   const handleDelete = () => {
     setShowDeleteModal(true);
-    if (dropdownTippyRef.current) {
-      dropdownTippyRef.current.hide();
-    }
   };
 
-  const handleRightClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Show the dropdown menu programmatically
-    if (dropdownTippyRef.current) {
-      dropdownTippyRef.current.show();
+  const handleGenerateCode = () => {
+    // Check if example has a request URL
+    if (
+      (example?.request?.url !== '' && example?.request?.url !== undefined)
+      || (item?.request?.url !== '' && item?.request?.url !== undefined)
+      || (item?.draft?.request?.url !== undefined && item?.draft?.request?.url !== '')
+    ) {
+      setGenerateCodeItemModalOpen(true);
+    } else {
+      toast.error('URL is required');
     }
   };
 
@@ -115,21 +125,55 @@ const ExampleItem = ({ example, item, collection }) => {
         name: newName
       }
     }));
-    dispatch(saveRequest(item.uid, collection.uid));
-    setShowRenameModal(false);
+    dispatch(saveRequest(item.uid, collection.uid, true))
+      .then(() => {
+        toast.success(`Example renamed to "${newName}"`);
+        setShowRenameModal(false);
+      });
   };
 
-  const onDropdownCreate = (instance) => {
-    dropdownTippyRef.current = instance;
+  // Build menu items for MenuDropdown
+  const buildMenuItems = () => {
+    return [
+      {
+        id: 'rename',
+        leftSection: IconEdit,
+        label: 'Rename',
+        onClick: handleRename,
+        testId: 'response-example-rename-option'
+      },
+      {
+        id: 'clone',
+        leftSection: IconCopy,
+        label: 'Clone',
+        onClick: handleClone,
+        testId: 'response-example-clone-option'
+      },
+      {
+        id: 'generate-code',
+        leftSection: IconCode,
+        label: 'Generate Code',
+        onClick: handleGenerateCode,
+        testId: 'response-example-generate-code-option'
+      },
+      { id: 'separator-1', type: 'divider' },
+      {
+        id: 'delete',
+        leftSection: IconTrash,
+        label: 'Delete',
+        className: 'delete-item',
+        onClick: handleDelete,
+        testId: 'response-example-delete-option'
+      }
+    ];
   };
 
-  const MenuIcon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} data-testid="response-example-menu-icon">
-        <IconDots size={22} />
-      </div>
-    );
-  });
+  // Handle right-click context menu
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    menuDropdownRef.current?.show();
+  };
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
     'item-focused-in-tab': isExampleActive
@@ -137,10 +181,11 @@ const ExampleItem = ({ example, item, collection }) => {
 
   return (
     <StyledWrapper
+      ref={exampleRef}
       className={itemRowClassName}
       onClick={handleExampleClick}
       onDoubleClick={handleDoubleClick}
-      onContextMenu={handleRightClick}
+      onContextMenu={handleContextMenu}
     >
       {indents && indents.length
         ? indents.map((i) => (
@@ -148,7 +193,6 @@ const ExampleItem = ({ example, item, collection }) => {
               className="indent-block"
               key={i}
               style={{ width: 16, minWidth: 16, height: '100%' }}
-              onContextMenu={handleRightClick}
             >
               &nbsp;{/* Indent */}
             </div>
@@ -157,45 +201,22 @@ const ExampleItem = ({ example, item, collection }) => {
       <div
         className="flex flex-grow items-center h-full overflow-hidden"
         style={{ paddingLeft: 8 }}
-        onContextMenu={handleRightClick}
       >
         <div style={{ width: 16, minWidth: 16 }}></div>
-        <ExampleIcon size={16} color="currentColor" className="mr-2 text-gray-400 flex-shrink-0" />
-        <span className="item-name truncate text-gray-700 dark:text-gray-300 ">{example.name}</span>
+        <ExampleIcon size={16} color="currentColor" className="example-icon mr-1 flex-shrink-0" />
+        <span className="item-name truncate">{example.name}</span>
       </div>
       <div className="menu-icon pr-2">
-        <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
-          <div
-            className="dropdown-item"
-            onClick={(e) => {
-              dropdownTippyRef.current.hide();
-              handleRename();
-            }}
-            data-testid="response-example-rename-option"
-          >
-            Rename
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={(e) => {
-              dropdownTippyRef.current.hide();
-              handleClone();
-            }}
-            data-testid="response-example-clone-option"
-          >
-            Clone
-          </div>
-          <div
-            className="dropdown-item text-red-600"
-            onClick={(e) => {
-              dropdownTippyRef.current.hide();
-              handleDelete();
-            }}
-            data-testid="response-example-delete-option"
-          >
-            Delete
-          </div>
-        </Dropdown>
+        <MenuDropdown
+          ref={menuDropdownRef}
+          items={buildMenuItems()}
+          placement="bottom-start"
+          appendTo={dropdownContainerRef?.current || document.body}
+          popperOptions={{ strategy: 'fixed' }}
+          data-testid="response-example-menu"
+        >
+          <IconDots size={22} data-testid="response-example-menu-icon" />
+        </MenuDropdown>
       </div>
 
       {showRenameModal && (
@@ -236,6 +257,16 @@ const ExampleItem = ({ example, item, collection }) => {
           example={example}
           item={item}
           collection={collection}
+        />
+      )}
+
+      {generateCodeItemModalOpen && (
+        <GenerateCodeItem
+          collectionUid={collection.uid}
+          item={item}
+          onClose={() => setGenerateCodeItemModalOpen(false)}
+          isExample={true}
+          exampleUid={example.uid}
         />
       )}
     </StyledWrapper>

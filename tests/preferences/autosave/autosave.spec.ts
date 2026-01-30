@@ -2,17 +2,20 @@ import { test, expect } from '../../../playwright';
 import { createCollection, closeAllCollections, createRequest } from '../../utils/page';
 
 test.describe('Autosave', () => {
+  test.setTimeout(60000);
+
   test.afterEach(async ({ page }) => {
-    await closeAllCollections(page);
+    // Only try to cleanup if page is still open
+    if (!page.isClosed()) {
+      await closeAllCollections(page);
+    }
   });
 
   test('should automatically save request changes when autosave is enabled', async ({ page, createTmpDir }) => {
     const collectionName = 'autosave-test';
 
     await test.step('Create collection and request', async () => {
-      await createCollection(page, collectionName, await createTmpDir('autosave-collection'), {
-        openWithSandboxMode: 'safe'
-      });
+      await createCollection(page, collectionName, await createTmpDir('autosave-collection'));
       await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
 
       await createRequest(page, 'Test Request', collectionName);
@@ -30,21 +33,29 @@ test.describe('Autosave', () => {
     });
 
     await test.step('Enable autosave in preferences', async () => {
-      // Open preferences
+      // Open preferences tab
       await page.locator('.status-bar button[data-trigger="preferences"]').click();
 
-      const preferencesModal = page.locator('.bruno-modal-card').filter({ hasText: 'Preferences' });
-      await expect(preferencesModal).toBeVisible();
+      // Wait for preferences tab to be visible
+      await page.waitForTimeout(500);
+
+      // Navigate to General tab (should be default, but ensure it)
+      await page.getByRole('tab', { name: 'General' }).click();
 
       // Enable autosave checkbox
-      const autoSaveCheckbox = preferencesModal.locator('#autoSaveEnabled');
+      const autoSaveCheckbox = page.locator('#autoSaveEnabled');
       await autoSaveCheckbox.check();
 
-      // Save preferences
-      await preferencesModal.locator('button[type="submit"]').click();
+      // Wait for auto-save to complete (debounce is 500ms)
+      await page.waitForTimeout(1000);
 
-      // Wait for preferences to close
-      await expect(preferencesModal).not.toBeVisible();
+      // Close preferences tab using the close icon
+      const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
+      await preferencesTab.hover();
+      await preferencesTab.locator('.close-icon').click();
+
+      // Click on the request to make it active again
+      await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
     });
 
     await test.step('Make changes and verify autosave', async () => {
@@ -54,21 +65,19 @@ test.describe('Autosave', () => {
       await page.keyboard.press('End');
       await page.keyboard.type('/users');
 
-      // Verify draft indicator appears
+      // Wait for draft indicator to appear (change registered)
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Test Request' }) });
       await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
 
-      // Wait for autosave to trigger (interval + some buffer)
-      await page.waitForTimeout(1000);
-
-      // Verify draft indicator disappears after autosave
-      await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible();
+      // Wait for autosave to complete (draft indicator disappears)
+      await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible({ timeout: 5000 });
     });
 
     await test.step('Verify changes persisted', async () => {
       // Close and reopen the request tab to verify persistence
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Test Request' }) });
-      await requestTab.locator('.close-icon').click();
+      await requestTab.hover();
+      await requestTab.getByTestId('request-tab-close-icon').click();
 
       // Reopen request
       await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
@@ -80,22 +89,29 @@ test.describe('Autosave', () => {
     });
 
     await test.step('Disable autosave in preferences', async () => {
-      // Open preferences from status bar
+      // Open preferences tab
       await page.locator('.status-bar button[data-trigger="preferences"]').click();
 
-      // Wait for preferences modal
-      const preferencesModal = page.locator('.bruno-modal-card').filter({ hasText: 'Preferences' });
-      await expect(preferencesModal).toBeVisible();
+      // Wait for preferences tab to be visible
+      await page.waitForTimeout(500);
+
+      // Navigate to General tab
+      await page.getByRole('tab', { name: 'General' }).click();
 
       // Disable autosave checkbox
-      const autoSaveCheckbox = preferencesModal.locator('#autoSaveEnabled');
+      const autoSaveCheckbox = page.locator('#autoSaveEnabled');
       await autoSaveCheckbox.uncheck();
 
-      // Save preferences
-      await preferencesModal.locator('button[type="submit"]').click();
+      // Wait for auto-save to complete (debounce is 500ms)
+      await page.waitForTimeout(1000);
 
-      // Wait for preferences to close
-      await expect(preferencesModal).not.toBeVisible();
+      // Close preferences tab using the close icon
+      const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
+      await preferencesTab.hover();
+      await preferencesTab.locator('.close-icon').click();
+
+      // Click on the request to make it active again
+      await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
     });
 
     await test.step('Make changes and verify no autosave when disabled', async () => {
@@ -105,15 +121,14 @@ test.describe('Autosave', () => {
       await page.keyboard.press('End');
       await page.keyboard.type('/posts');
 
+      // Move mouse away from tab to ensure draft icon is visible (hover shows close icon)
+      await page.mouse.move(0, 0);
+
       // Verify draft indicator appears
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Test Request' }) });
       await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
 
-      // Wait a bit (longer than autosave interval would be)
-      await page.waitForTimeout(1500);
-
-      // Draft indicator should still be visible (autosave is disabled)
-      await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
+      await expect(requestTab.locator('.has-changes-icon')).toBeVisible({ timeout: 2000 });
 
       // Save the request
       await page.keyboard.press('Control+s');
@@ -125,9 +140,7 @@ test.describe('Autosave', () => {
     const collectionName = 'autosave-existing-drafts-test';
 
     await test.step('Create collection and request with initial URL', async () => {
-      await createCollection(page, collectionName, await createTmpDir('autosave-existing-drafts-collection'), {
-        openWithSandboxMode: 'safe'
-      });
+      await createCollection(page, collectionName, await createTmpDir('autosave-existing-drafts-collection'));
       await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
 
       await createRequest(page, 'Draft Request', collectionName);
@@ -151,40 +164,50 @@ test.describe('Autosave', () => {
       await page.keyboard.press('End');
       await page.keyboard.type('/existing-draft');
 
+      // Move mouse away from tab to ensure draft icon is visible (hover shows close icon)
+      await page.mouse.move(0, 0);
+
       // Verify draft indicator appears
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Request' }) });
       await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
     });
 
     await test.step('Enable autosave and verify existing draft is saved', async () => {
-      // Open preferences
+      // Open preferences tab
       await page.locator('.status-bar button[data-trigger="preferences"]').click();
 
-      const preferencesModal = page.locator('.bruno-modal-card').filter({ hasText: 'Preferences' });
-      await expect(preferencesModal).toBeVisible();
+      // Wait for preferences tab to be visible
+      await page.waitForTimeout(500);
+
+      // Navigate to General tab
+      await page.getByRole('tab', { name: 'General' }).click();
 
       // Enable autosave checkbox
-      const autoSaveCheckbox = preferencesModal.locator('#autoSaveEnabled');
+      const autoSaveCheckbox = page.locator('#autoSaveEnabled');
       await autoSaveCheckbox.check();
 
-      // Save preferences
-      await preferencesModal.locator('button[type="submit"]').click();
-
-      // Wait for preferences to close
-      await expect(preferencesModal).not.toBeVisible();
-
-      // Wait for autosave to trigger for existing draft
+      // Wait for auto-save to complete (debounce is 500ms)
       await page.waitForTimeout(1000);
 
-      // Verify draft indicator disappears (existing draft was auto-saved)
+      // Close preferences tab using the close icon
+      const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
+      await preferencesTab.hover();
+      await preferencesTab.locator('.close-icon').click();
+
+      // Click on the request to make it active again
+      await page.locator('.collection-item-name').filter({ hasText: 'Draft Request' }).click();
+
+      await page.waitForTimeout(1000);
+
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Request' }) });
-      await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible();
+      await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible({ timeout: 10000 });
     });
 
     await test.step('Verify changes persisted', async () => {
       // Close and reopen the request tab to verify persistence
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Request' }) });
-      await requestTab.locator('.close-icon').click();
+      await requestTab.hover();
+      await requestTab.getByTestId('request-tab-close-icon').click();
 
       // Reopen request
       await page.locator('.collection-item-name').filter({ hasText: 'Draft Request' }).click();

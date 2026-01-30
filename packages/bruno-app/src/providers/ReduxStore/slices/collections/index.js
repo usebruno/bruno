@@ -69,7 +69,9 @@ const wsStatusCodes = {
 const initialState = {
   collections: [],
   collectionSortOrder: 'default',
-  activeConnections: []
+  activeConnections: [],
+  tempDirectories: {},
+  saveTransientRequestModals: []
 };
 
 const initiatedGrpcResponse = {
@@ -334,6 +336,9 @@ export const collectionsSlice = createSlice({
         const activeEnvironment = findEnvironmentInCollection(collection, activeEnvironmentUid);
 
         if (activeEnvironment) {
+          const existingEnvVarNames = new Set(Object.keys(envVariables));
+
+          // Update or add variables that exist in envVariables
           forOwn(envVariables, (value, key) => {
             const variable = find(activeEnvironment.variables, (v) => v.name === key);
             const isPersistent = persistentEnvVariables && persistentEnvVariables[key] !== undefined;
@@ -369,6 +374,26 @@ export const collectionsSlice = createSlice({
               }
             }
           });
+
+          // Handle variables that were deleted via bru.deleteEnvVar()
+          activeEnvironment.variables = activeEnvironment.variables.filter((variable) => {
+            // Variable still exists in envVariables after script execution - keep it
+            if (existingEnvVarNames.has(variable.name)) {
+              return true;
+            }
+
+            // Variable was deleted via bru.deleteEnvVar() - handle based on its state
+            // If variable was modified by script (has persistedValue), restore original value
+            if (variable.persistedValue !== undefined) {
+              variable.value = variable.persistedValue;
+              variable.ephemeral = false;
+              delete variable.persistedValue;
+              return true;
+            }
+
+            // Remove variable: either ephemeral (created by scripts) or non-ephemeral deleted via API
+            return false;
+          });
         }
 
         collection.runtimeVariables = runtimeVariables;
@@ -382,8 +407,14 @@ export const collectionsSlice = createSlice({
         collection.processEnvVariables = processEnvVariables;
       }
     },
+    workspaceEnvUpdateEvent: (state, action) => {
+      const { processEnvVariables } = action.payload;
+      state.collections.forEach((collection) => {
+        collection.workspaceProcessEnvVariables = processEnvVariables;
+      });
+    },
     requestCancelled: (state, action) => {
-      const { itemUid, collectionUid } = action.payload;
+      const { itemUid, collectionUid, seq, timestamp } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -394,7 +425,7 @@ export const collectionsSlice = createSlice({
 
             const startTimestamp = item.requestSent.timestamp;
             item.response.duration = startTimestamp ? Date.now() - startTimestamp : item.response.duration;
-            item.response.data = [{ type: 'info', timestamp: Date.now(), message: 'Connection Closed' }].concat(item.response.data);
+            item.response.data = [{ type: 'info', timestamp: Date.now(), seq: seq, message: 'Connection Closed' }].concat(item.response.data);
           } else {
             item.response = null;
             item.requestUid = null;
@@ -694,6 +725,19 @@ export const collectionsSlice = createSlice({
         folder.draft = null;
       }
     },
+    setEnvironmentsDraft: (state, action) => {
+      const { collectionUid, environmentUid, variables } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        collection.environmentsDraft = { environmentUid, variables };
+      }
+    },
+    clearEnvironmentsDraft: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.environmentsDraft = null;
+      }
+    },
     newEphemeralHttpRequest: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -733,6 +777,7 @@ export const collectionsSlice = createSlice({
           uid: action.payload.uid,
           name: action.payload.requestName,
           type: action.payload.requestType,
+          isTransient: false,
           request: {
             url: action.payload.requestUrl,
             method: action.payload.requestMethod,
@@ -939,12 +984,12 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       const existingOtherParams = item.draft.request.params?.filter((p) => p.type !== 'query') || [];
-      const newQueryParams = map(params, ({ name = '', value = '', enabled = true }) => ({
-        uid: uuid(),
+      const newQueryParams = map(params, ({ uid, name = '', value = '', description = '', type = 'query', enabled = true }) => ({
+        uid: uid || uuid(),
         name,
         value,
-        description: '',
-        type: 'query',
+        description,
+        type,
         enabled
       }));
 
@@ -1185,12 +1230,12 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.headers = map(action.payload.headers, ({ name = '', value = '', enabled = true }) => ({
-        uid: uuid(),
-        name: name,
-        value: value,
-        description: '',
-        enabled: enabled
+      item.draft.request.headers = map(action.payload.headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        description,
+        enabled
       }));
     },
     setCollectionHeaders: (state, action) => {
@@ -1203,16 +1248,22 @@ export const collectionsSlice = createSlice({
 
       if (!collection.draft) {
         collection.draft = {
-          root: cloneDeep(collection.root)
+          root: cloneDeep(collection.root) || {}
         };
       }
+      if (!collection.draft.root) {
+        collection.draft.root = {};
+      }
+      if (!collection.draft.root.request) {
+        collection.draft.root.request = {};
+      }
 
-      collection.draft.root.request.headers = map(headers, ({ name = '', value = '', enabled = true }) => ({
-        uid: uuid(),
-        name: name,
-        value: value,
-        description: '',
-        enabled: enabled
+      collection.draft.root.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        description,
+        enabled
       }));
     },
     setFolderHeaders: (state, action) => {
@@ -1228,12 +1279,18 @@ export const collectionsSlice = createSlice({
         return;
       }
 
-      folder.root.request.headers = map(headers, ({ name = '', value = '', enabled = true }) => ({
-        uid: uuid(),
-        name: name,
-        value: value,
-        description: '',
-        enabled: enabled
+      if (!folder.draft) {
+        folder.draft = cloneDeep(folder.root) || {};
+      }
+      if (!folder.draft.request) {
+        folder.draft.request = {};
+      }
+      folder.draft.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        description,
+        enabled
       }));
     },
     addFormUrlEncodedParam: (state, action) => {
@@ -1294,6 +1351,25 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setFormUrlEncodedParams: (state, action) => {
+      const { collectionUid, itemUid, params } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !isItemARequest(item)) return;
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+      item.draft.request.body.formUrlEncoded = map(params, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        description,
+        enabled
+      }));
+    },
     moveFormUrlEncodedParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1301,12 +1377,10 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, action.payload.itemUid);
 
         if (item && isItemARequest(item)) {
-          // Ensure item.draft is a deep clone of item if not already present
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
 
-          // Extract payload data
           const { updateReorderedItem } = action.payload;
           const params = item.draft.request.body.formUrlEncoded;
 
@@ -1378,6 +1452,26 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setMultipartFormParams: (state, action) => {
+      const { collectionUid, itemUid, params } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !isItemARequest(item)) return;
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+      item.draft.request.body.multipartForm = map(params, ({ uid, name = '', value = '', contentType = '', type = 'text', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        contentType,
+        type,
+        enabled
+      }));
+    },
     moveMultipartFormParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1385,12 +1479,10 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, action.payload.itemUid);
 
         if (item && isItemARequest(item)) {
-          // Ensure item.draft is a deep clone of item if not already present
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
 
-          // Extract payload data
           const { updateReorderedItem } = action.payload;
           const params = item.draft.request.body.multipartForm;
 
@@ -1711,6 +1803,25 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setRequestAssertions: (state, action) => {
+      const { collectionUid, itemUid, assertions } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !isItemARequest(item)) return;
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+      item.draft.request.assertions = map(assertions, ({ uid, name = '', value = '', operator = 'eq', enabled = true }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        operator,
+        enabled
+      }));
+    },
     moveAssertion: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1718,12 +1829,10 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, action.payload.itemUid);
 
         if (item && isItemARequest(item)) {
-          // Ensure item.draft is a deep clone of item if not already present
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
 
-          // Extract payload data
           const { updateReorderedItem } = action.payload;
           const params = item.draft.request.assertions;
 
@@ -1826,6 +1935,31 @@ export const collectionsSlice = createSlice({
             item.draft.request.vars.res = item.draft.request.vars.res.filter((v) => v.uid !== action.payload.varUid);
           }
         }
+      }
+    },
+    setRequestVars: (state, action) => {
+      const { collectionUid, itemUid, vars, type } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !isItemARequest(item)) return;
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+      item.draft.request.vars = item.draft.request.vars || {};
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        enabled,
+        ...(type === 'response' ? { local } : {})
+      }));
+      if (type === 'request') {
+        item.draft.request.vars.req = mappedVars;
+      } else if (type === 'response') {
+        item.draft.request.vars.res = mappedVars;
       }
     },
     moveVar: (state, action) => {
@@ -1991,6 +2125,22 @@ export const collectionsSlice = createSlice({
         set(collection, 'draft.brunoConfig.clientCertificates', action.payload.clientCertificates);
       }
     },
+    updateCollectionPresets: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root),
+            brunoConfig: cloneDeep(collection.brunoConfig)
+          };
+        }
+        if (!collection.draft.brunoConfig) {
+          collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
+        }
+        set(collection, 'draft.brunoConfig.presets', action.payload.presets);
+      }
+    },
     updateCollectionProtobuf: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -2134,6 +2284,29 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setFolderVars: (state, action) => {
+      const { collectionUid, folderUid, vars, type } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      const folder = collection ? findItemInCollection(collection, folderUid) : null;
+      if (!folder) {
+        return;
+      }
+      if (!folder.draft) {
+        folder.draft = cloneDeep(folder.root);
+      }
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        enabled,
+        ...(type === 'response' ? { local } : {})
+      }));
+      if (type === 'request') {
+        set(folder, 'draft.request.vars.req', mappedVars);
+      } else if (type === 'response') {
+        set(folder, 'draft.request.vars.res', mappedVars);
+      }
+    },
     updateFolderRequestScript: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -2168,7 +2341,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (!collection) return;
 
-      const folder = collection ? findItemInCollection(collection, action.payload.itemUid) : null;
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (!folder) return;
 
       if (folder) {
@@ -2345,6 +2518,30 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setCollectionVars: (state, action) => {
+      const { collectionUid, vars, type } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+      if (!collection.draft) {
+        collection.draft = {
+          root: cloneDeep(collection.root)
+        };
+      }
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+        uid: uid || uuid(),
+        name,
+        value,
+        enabled,
+        ...(type === 'response' ? { local } : {})
+      }));
+      if (type === 'request') {
+        set(collection, 'draft.root.request.vars.req', mappedVars);
+      } else if (type === 'response') {
+        set(collection, 'draft.root.request.vars.res', mappedVars);
+      }
+    },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
@@ -2374,6 +2571,10 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         const dirname = path.dirname(file.meta.pathname);
+
+        const tempDirectory = state.tempDirectories?.[file.meta.collectionUid];
+        const isTransientFile = tempDirectory && file.meta.pathname.startsWith(tempDirectory);
+
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
@@ -2387,9 +2588,13 @@ export const collectionsSlice = createSlice({
               name: directoryName,
               collapsed: true,
               type: 'folder',
+              isTransient: isTransientFile,
               items: []
             };
             currentSubItems.push(childItem);
+          } else if (isTransientFile && !childItem.isTransient) {
+            // Update existing folder to be transient if the file is transient
+            childItem.isTransient = true;
           }
           currentSubItems = childItem.items;
         }
@@ -2414,6 +2619,7 @@ export const collectionsSlice = createSlice({
             currentItem.loading = file.loading;
             currentItem.size = file.size;
             currentItem.error = file.error;
+            currentItem.isTransient = isTransientFile;
           } else {
             currentSubItems.push({
               uid: file.data.uid,
@@ -2430,7 +2636,8 @@ export const collectionsSlice = createSlice({
               partial: file.partial,
               loading: file.loading,
               size: file.size,
-              error: file.error
+              error: file.error,
+              isTransient: isTransientFile
             });
           }
         }
@@ -2442,6 +2649,10 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, dir.meta.collectionUid);
 
       if (collection) {
+        // Check if this directory is in a temp directory (transient request)
+        const tempDirectory = state.tempDirectories?.[dir.meta.collectionUid];
+        const isTransientDir = tempDirectory && dir.meta.pathname.startsWith(tempDirectory);
+
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
@@ -2457,9 +2668,13 @@ export const collectionsSlice = createSlice({
               filename: directoryName,
               collapsed: true,
               type: 'folder',
+              isTransient: isTransientDir,
               items: []
             };
             currentSubItems.push(childItem);
+          } else if (isTransientDir && !childItem.isTransient) {
+            // Update existing folder to be transient if the directory is transient
+            childItem.isTransient = true;
           }
           currentSubItems = childItem.items;
         }
@@ -2518,7 +2733,12 @@ export const collectionsSlice = createSlice({
             item.examples = file.data.examples;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
-            item.draft = null;
+
+            // Only clear draft if it matches the file content
+            // This preserves characters typed during autosave
+            if (item.draft && areItemsTheSameExceptSeqUpdate(item.draft, file.data)) {
+              item.draft = null;
+            }
           }
         }
       }
@@ -2948,21 +3168,25 @@ export const collectionsSlice = createSlice({
       }
     },
     streamDataReceived: (state, action) => {
-      const { itemUid, collectionUid, data } = action.payload;
+      const { itemUid, collectionUid, seq, timestamp, data } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (data.data) {
           item.response.data ||= [];
-          item.response.data = [{
+          item.response.data.push({
             type: 'incoming',
+            seq,
             message: data.data,
             messageHexdump: hexdump(data.data),
-            timestamp: Date.now()
-          }].concat(item.response.data);
+            timestamp: timestamp || Date.now()
+          });
         }
-        item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
+        if (item.response.dataBuffer && item.response.dataBuffer.length && data.dataBuffer) {
+          item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
+        }
+
         item.response.size = data.data?.length + (item.response.size || 0);
       }
     },
@@ -3085,7 +3309,8 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             message: eventData.message,
             type: eventData.type,
-            timestamp: eventData.timestamp
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
           });
           break;
 
@@ -3101,7 +3326,8 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             message: `Connected to ${eventData.url}`,
             type: 'info',
-            timestamp: eventData.timestamp
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
           });
           break;
 
@@ -3117,7 +3343,8 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             type: code !== 1000 ? 'info' : 'error',
             message: reason.trim().length ? ['Closed:', reason.trim()].join(' ') : 'Closed',
-            timestamp
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
           });
           break;
 
@@ -3132,7 +3359,8 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             type: 'error',
             message: errorDetails || 'WebSocket error occurred',
-            timestamp
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
           });
 
           break;
@@ -3156,6 +3384,26 @@ export const collectionsSlice = createSlice({
       }
     },
 
+    addTransientDirectory: (state, action) => {
+      state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
+    },
+    addSaveTransientRequestModal: (state, action) => {
+      const { item, collection } = action.payload;
+      // Avoid duplicates - check if this item is already in the array
+      const exists = state.saveTransientRequestModals.some((modal) => modal.item.uid === item.uid);
+      if (!exists) {
+        state.saveTransientRequestModals.push({ item, collection });
+      }
+    },
+    removeSaveTransientRequestModal: (state, action) => {
+      const { itemUid } = action.payload;
+      state.saveTransientRequestModals = state.saveTransientRequestModals.filter(
+        (modal) => modal.item.uid !== itemUid
+      );
+    },
+    clearAllSaveTransientRequestModals: (state) => {
+      state.saveTransientRequestModals = [];
+    },
     /* Response Example Actions */
     addResponseExample: exampleReducers.addResponseExample,
     cloneResponseExample: exampleReducers.cloneResponseExample,
@@ -3223,6 +3471,7 @@ export const {
   cloneItem,
   scriptEnvironmentUpdateEvent,
   processEnvUpdateEvent,
+  workspaceEnvUpdateEvent,
   requestCancelled,
   responseReceived,
   runGrpcRequestEvent,
@@ -3236,6 +3485,8 @@ export const {
   saveFolderDraft,
   deleteCollectionDraft,
   deleteFolderDraft,
+  setEnvironmentsDraft,
+  clearEnvironmentsDraft,
   newEphemeralHttpRequest,
   collapseFullCollection,
   toggleCollection,
@@ -3259,10 +3510,12 @@ export const {
   addFormUrlEncodedParam,
   updateFormUrlEncodedParam,
   deleteFormUrlEncodedParam,
+  setFormUrlEncodedParams,
   moveFormUrlEncodedParam,
   addMultipartFormParam,
   updateMultipartFormParam,
   deleteMultipartFormParam,
+  setMultipartFormParams,
   addFile,
   updateFile,
   deleteFile,
@@ -3280,10 +3533,12 @@ export const {
   addAssertion,
   updateAssertion,
   deleteAssertion,
+  setRequestAssertions,
   moveAssertion,
   addVar,
   updateVar,
   deleteVar,
+  setRequestVars,
   moveVar,
   addFolderHeader,
   updateFolderHeader,
@@ -3291,6 +3546,7 @@ export const {
   addFolderVar,
   updateFolderVar,
   deleteFolderVar,
+  setFolderVars,
   updateFolderRequestScript,
   updateFolderResponseScript,
   updateFolderTests,
@@ -3300,6 +3556,7 @@ export const {
   addCollectionVar,
   updateCollectionVar,
   deleteCollectionVar,
+  setCollectionVars,
   updateCollectionAuthMode,
   updateCollectionAuth,
   updateCollectionRequestScript,
@@ -3308,6 +3565,7 @@ export const {
   updateCollectionDocs,
   updateCollectionProxy,
   updateCollectionClientCertificates,
+  updateCollectionPresets,
   updateCollectionProtobuf,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
@@ -3371,8 +3629,12 @@ export const {
   deleteResponseExampleRequestHeader,
   moveResponseExampleRequestHeader,
   setResponseExampleRequestHeaders,
-  setResponseExampleParams
+  setResponseExampleParams,
   /* Response Example Actions - End */
+  addTransientDirectory,
+  addSaveTransientRequestModal,
+  removeSaveTransientRequestModal,
+  clearAllSaveTransientRequestModals
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

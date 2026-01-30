@@ -26,7 +26,7 @@ export const Checkbox = styled.input`
   height: 0;
 
   &:checked + label div {
-    background-color: ${(props) => props.activeColor || props.theme.textLink};
+    background-color: ${(props) => props.activeColor || props.theme.primary.solid};
   }
 
   &:checked + label div:before {

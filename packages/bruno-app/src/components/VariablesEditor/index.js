@@ -88,8 +88,8 @@ const VariablesEditor = ({ collection }) => {
 
   const reactInspectorTheme
     = displayedTheme === 'light'
-      ? { ...chromeLight, OBJECT_VALUE_STRING_COLOR: theme.variables.runtime.color }
-      : { ...chromeDark, OBJECT_VALUE_STRING_COLOR: theme.variables.runtime.color };
+      ? { ...chromeLight, OBJECT_VALUE_STRING_COLOR: theme.text.base }
+      : { ...chromeDark, OBJECT_VALUE_STRING_COLOR: theme.text.base };
 
   return (
     <StyledWrapper className="px-4 py-4 overflow-auto">

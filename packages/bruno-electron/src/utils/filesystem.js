@@ -5,6 +5,18 @@ const { dialog } = require('electron');
 const isValidPathname = require('is-valid-path');
 const os = require('os');
 
+const DEFAULT_GITIGNORE = [
+  '# Secrets',
+  '.env*',
+  '',
+  '# Dependencies',
+  'node_modules',
+  '',
+  '# OS files',
+  '.DS_Store',
+  'Thumbs.db'
+].join('\n');
+
 const exists = async (p) => {
   try {
     await fsPromises.access(p);
@@ -36,6 +48,15 @@ const isDirectory = (dirPath) => {
   } catch (_) {
     return false;
   }
+};
+
+const isValidCollectionDirectory = (dirPath) => {
+  if (!isDirectory(dirPath)) {
+    return false;
+  }
+  const brunoJsonPath = path.join(dirPath, 'bruno.json');
+  const opencollectionYmlPath = path.join(dirPath, 'opencollection.yml');
+  return fs.existsSync(brunoJsonPath) || fs.existsSync(opencollectionYmlPath);
 };
 
 const hasSubDirectories = (dir) => {
@@ -417,12 +438,43 @@ const isLargeFile = (filePath, threshold = 10 * 1024 * 1024) => {
   return size > threshold;
 };
 
+const isDotEnvFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === '.env';
+};
+
+const isBrunoConfigFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === 'bruno.json';
+};
+
+const isBruEnvironmentConfig = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const envDirectory = path.join(collectionPath, 'environments');
+  const basename = path.basename(pathname);
+
+  return dirname === envDirectory && hasBruExtension(basename);
+};
+
+const isCollectionRootBruFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === 'collection.bru';
+};
+
 module.exports = {
+  DEFAULT_GITIGNORE,
   isValidPathname,
   exists,
   isSymbolicLink,
   isFile,
   isDirectory,
+  isValidCollectionDirectory,
   normalizeAndResolvePath,
   isWSLPath,
   normalizeWSLPath,
@@ -450,5 +502,9 @@ module.exports = {
   getPaths,
   isLargeFile,
   generateUniqueName,
-  getCollectionFormat
+  getCollectionFormat,
+  isDotEnvFile,
+  isBrunoConfigFile,
+  isBruEnvironmentConfig,
+  isCollectionRootBruFile
 };

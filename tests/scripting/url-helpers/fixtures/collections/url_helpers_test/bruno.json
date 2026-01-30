@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "url_helpers_test",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

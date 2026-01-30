@@ -2,53 +2,37 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .collection-name {
-    height: 1.75rem;
+    height: 1.6rem;
     cursor: pointer;
     user-select: none;
-    padding-left: 8px;
+    padding-left: 4px;
     border: ${(props) => props.theme.dragAndDrop.borderStyle} transparent;
 
     .rotate-90 {
       transform: rotateZ(90deg);
     }
+    .collection-actions {
+      visibility: hidden;
+    }
+
+    /* Single source of truth for hover/focus states: background and menu icon visibility */
+    &:hover,
+    &:focus-within,
+    &.collection-keyboard-focused {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      .collection-actions {
+        visibility: visible;
+        background-color: transparent !important;
+      }
+    }
 
     &.item-hovered {
       border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
       border-bottom: 2px solid transparent;
-      .collection-actions {
-        .dropdown {
-          div[aria-expanded='false'] {
-            visibility: visible;
-          }
-        }
-      }
-    }
-
-    .collection-actions {
-      .dropdown {
-        div[aria-expanded='true'] {
-          visibility: visible;
-        }
-        div[aria-expanded='false'] {
-          visibility: hidden;
-        }
-      }
-
-      svg {
-        height: 22px;
-        color: ${(props) => props.theme.sidebar.dropdownIcon.color};
-      }
     }
 
     &:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      .collection-actions {
-        .dropdown {
-          div[aria-expanded='false'] {
-            visibility: visible;
-          }
-        }
-      }
     }
 
     div.tippy-box {
@@ -96,10 +80,11 @@ const Wrapper = styled.div`
     }
 
     &.collection-keyboard-focused {
-      background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg};
+      border-top: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+      border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
       outline: none;
 
-      &:hover {
+       &:hover {
         background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg} !important;
       }
     }

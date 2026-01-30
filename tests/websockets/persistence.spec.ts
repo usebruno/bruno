@@ -8,8 +8,8 @@ const BRU_REQ_NAME = /^base$/;
 
 // TODO: reaper move to someplace common
 const isRequestSaved = async (saveButton: Locator) => {
-  const savedColor = '#9f9f9f';
-  return (await saveButton.evaluate((d) => d.querySelector('svg')?.getAttribute('stroke') ?? '#invalid')) === savedColor;
+  // Saved state uses the className cursor-default; unsaved uses cursor-pointer.
+  return await saveButton.locator('svg').evaluate((node) => (node as HTMLElement).classList.contains('cursor-default'));
 };
 
 test.describe.serial('persistence', () => {
@@ -55,14 +55,14 @@ test.describe.serial('persistence', () => {
     await page.keyboard.insertText(replacementUrl);
 
     // check if the request is now unsaved
-    expect(await isRequestSaved(locators.saveButton())).toBe(false);
+    await expect(await isRequestSaved(locators.saveButton())).toBe(false);
 
     await locators.saveButton().click();
 
     const result = await waitForPredicate(() => isRequestSaved(locators.saveButton()));
-    expect(result).toBe(true);
+    await expect(result).toBe(true);
 
     // check if the replacementUrl is now visually available
-    expect(page.locator('.input-container').filter({ hasText: replacementUrl }).first()).toBeAttached();
+    await expect(page.locator('.input-container').filter({ hasText: replacementUrl }).first()).toBeAttached();
   });
 });

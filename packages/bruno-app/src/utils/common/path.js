@@ -163,5 +163,10 @@ const getAbsoluteFilePath = (basePath, relativePath, shouldPosixify = false) => 
   return shouldPosixify ? posixify(result) : result;
 };
 
+const normalizePath = (p) => {
+  if (!p) return '';
+  return p.replace(/\\/g, '/').replace(/\/+$/, '');
+};
+
 export default brunoPath;
-export { getRelativePath, getBasename, getAbsoluteFilePath };
+export { getRelativePath, getBasename, getAbsoluteFilePath, normalizePath };

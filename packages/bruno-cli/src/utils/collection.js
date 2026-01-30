@@ -7,116 +7,90 @@ const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringi
 const constants = require('../constants');
 const chalk = require('chalk');
 
-const createCollectionJsonFromPathname = (collectionPath) => {
-  const environmentsPath = path.join(collectionPath, `environments`);
-
-  // get the collection bruno json config [<collection-path>/bruno.json]
-  const brunoConfig = getCollectionBrunoJsonConfig(collectionPath);
-
-  // get the collection root [<collection-path>/collection.bru]
-  const collectionRoot = getCollectionRoot(collectionPath);
-
-  // get the collection items recursively
-  const traverse = (currentPath) => {
-    const filesInCurrentDir = fs.readdirSync(currentPath);
-    if (currentPath.includes('node_modules')) {
-      return;
-    }
-    const currentDirItems = [];
-    for (const file of filesInCurrentDir) {
-      const filePath = path.join(currentPath, file);
-      const stats = fs.lstatSync(filePath);
-      if (stats.isDirectory()) {
-        if (filePath === environmentsPath) continue;
-        if (filePath.startsWith('.git') || filePath.startsWith('node_modules')) continue;
-
-        // get the folder root
-        let folderItem = { name: file, pathname: filePath, type: 'folder', items: traverse(filePath) };
-        const folderBruJson = getFolderRoot(filePath);
-        if (folderBruJson) {
-          folderItem.root = folderBruJson;
-          folderItem.seq = folderBruJson.meta.seq;
-        }
-        currentDirItems.push(folderItem);
-      } else {
-        if (['collection.bru', 'folder.bru'].includes(file)) continue;
-        if (path.extname(filePath) !== '.bru') continue;
-
-        // get the request item
-        try {
-          const bruContent = fs.readFileSync(filePath, 'utf8');
-          const requestItem = parseRequest(bruContent);
-          currentDirItems.push({
-            name: file,
-            pathname: filePath,
-            ...requestItem
-          });
-        } catch (err) {
-          // Log warning for invalid .bru file but continue processing
-          console.warn(chalk.yellow(`Warning: Skipping invalid file ${filePath}\nError: ${err.message}`));
-          // Track skipped files for later reporting
-          if (!global.brunoSkippedFiles) {
-            global.brunoSkippedFiles = [];
-          }
-          global.brunoSkippedFiles.push({ path: filePath, error: err.message });
-        }
-      }
-    }
-    let currentDirFolderItems = currentDirItems?.filter((iter) => iter.type === 'folder');
-    let sortedFolderItems = sortByNameThenSequence(currentDirFolderItems);
-
-    let currentDirRequestItems = currentDirItems?.filter((iter) => iter.type !== 'folder');
-    let sortedRequestItems = currentDirRequestItems?.sort((a, b) => a.seq - b.seq);
-
-    return sortedFolderItems?.concat(sortedRequestItems);
-  };
-  let collectionItems = traverse(collectionPath);
-
-  let collection = {
-    brunoConfig,
-    root: collectionRoot,
-    pathname: collectionPath,
-    items: collectionItems
-  };
-
-  return collection;
+const FORMAT_CONFIG = {
+  yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
+  bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
 };
 
-const getCollectionBrunoJsonConfig = (dir) => {
-  // right now, bru must be run from the root of the collection
-  // will add support in the future to run it from anywhere inside the collection
-  const brunoJsonPath = path.join(dir, 'bruno.json');
-  const brunoJsonExists = fs.existsSync(brunoJsonPath);
-  if (!brunoJsonExists) {
+const getCollectionFormat = (collectionPath) => {
+  if (fs.existsSync(path.join(collectionPath, 'opencollection.yml'))) return 'yml';
+  if (fs.existsSync(path.join(collectionPath, 'bruno.json'))) return 'bru';
+  return null;
+};
+
+const getCollectionConfig = (collectionPath, format) => {
+  if (format === 'yml') {
+    const content = fs.readFileSync(path.join(collectionPath, 'opencollection.yml'), 'utf8');
+    const parsed = parseCollection(content, { format: 'yml' });
+    return { brunoConfig: parsed.brunoConfig, collectionRoot: parsed.collectionRoot || {} };
+  }
+  const brunoConfig = JSON.parse(fs.readFileSync(path.join(collectionPath, 'bruno.json'), 'utf8'));
+  const collectionBruPath = path.join(collectionPath, 'collection.bru');
+  const collectionRoot = fs.existsSync(collectionBruPath)
+    ? parseCollection(fs.readFileSync(collectionBruPath, 'utf8'), { format: 'bru' })
+    : {};
+  return { brunoConfig, collectionRoot };
+};
+
+const getFolderRoot = (dir, format) => {
+  const folderPath = path.join(dir, FORMAT_CONFIG[format].folderFile);
+  if (!fs.existsSync(folderPath)) return null;
+  return parseFolder(fs.readFileSync(folderPath, 'utf8'), { format });
+};
+
+const createCollectionJsonFromPathname = (collectionPath) => {
+  const format = getCollectionFormat(collectionPath);
+  if (!format) {
     console.error(chalk.red(`You can run only at the root of a collection`));
     process.exit(constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
   }
 
-  const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
-  const brunoConfig = JSON.parse(brunoConfigFile);
-  return brunoConfig;
-};
+  const { brunoConfig, collectionRoot } = getCollectionConfig(collectionPath, format);
+  const { ext, collectionFile, folderFile } = FORMAT_CONFIG[format];
+  const environmentsPath = path.join(collectionPath, 'environments');
 
-const getCollectionRoot = (dir) => {
-  const collectionRootPath = path.join(dir, 'collection.bru');
-  const exists = fs.existsSync(collectionRootPath);
-  if (!exists) {
-    return {};
-  }
+  const traverse = (currentPath) => {
+    if (currentPath.includes('node_modules')) return [];
+    const currentDirItems = [];
 
-  const content = fs.readFileSync(collectionRootPath, 'utf8');
-  return parseCollection(content);
-};
+    for (const file of fs.readdirSync(currentPath)) {
+      const filePath = path.join(currentPath, file);
+      const stats = fs.lstatSync(filePath);
 
-const getFolderRoot = (dir) => {
-  const folderRootPath = path.join(dir, 'folder.bru');
-  const exists = fs.existsSync(folderRootPath);
-  if (!exists) {
-    return null;
-  }
+      if (stats.isDirectory()) {
+        if (filePath === environmentsPath || file === '.git' || file === 'node_modules') continue;
+        const folderItem = { name: file, pathname: filePath, type: 'folder', items: traverse(filePath) };
+        const folderRoot = getFolderRoot(filePath, format);
+        if (folderRoot) {
+          folderItem.root = folderRoot;
+          folderItem.seq = folderRoot.meta?.seq;
+        }
+        currentDirItems.push(folderItem);
+      } else {
+        if (file === collectionFile || file === folderFile || path.extname(filePath) !== ext) continue;
+        try {
+          const requestItem = parseRequest(fs.readFileSync(filePath, 'utf8'), { format });
+          currentDirItems.push({ name: file, ...requestItem, pathname: filePath });
+        } catch (err) {
+          console.warn(chalk.yellow(`Warning: Skipping invalid file ${filePath}\nError: ${err.message}`));
+          global.brunoSkippedFiles = global.brunoSkippedFiles || [];
+          global.brunoSkippedFiles.push({ path: filePath, error: err.message });
+        }
+      }
+    }
 
-  const content = fs.readFileSync(folderRootPath, 'utf8');
-  return parseFolder(content);
+    const folders = sortByNameThenSequence(currentDirItems.filter((i) => i.type === 'folder'));
+    const requests = currentDirItems.filter((i) => i.type !== 'folder').sort((a, b) => a.seq - b.seq);
+    return folders.concat(requests);
+  };
+
+  return {
+    brunoConfig,
+    format,
+    root: collectionRoot,
+    pathname: collectionPath,
+    items: traverse(collectionPath)
+  };
 };
 
 const mergeHeaders = (collection, request, requestTreePath) => {
@@ -196,6 +170,41 @@ const mergeVars = (collection, request, requestTreePath) => {
       value,
       enabled: true,
       type: 'request'
+    }));
+  }
+
+  let resVars = new Map();
+  let collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
+  collectionResponseVars.forEach((_var) => {
+    if (_var.enabled) {
+      resVars.set(_var.name, _var.value);
+    }
+  });
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      const folderRoot = i?.draft || i?.root;
+      let vars = get(folderRoot, 'request.vars.res', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          resVars.set(_var.name, _var.value);
+        }
+      });
+    } else {
+      const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          resVars.set(_var.name, _var.value);
+        }
+      });
+    }
+  }
+
+  if (request?.vars) {
+    request.vars.res = Array.from(resVars, ([name, value]) => ({
+      name,
+      value,
+      enabled: true,
+      type: 'response'
     }));
   }
 };
@@ -577,6 +586,8 @@ const sortByNameThenSequence = (items) => {
 };
 
 module.exports = {
+  FORMAT_CONFIG,
+  getCollectionFormat,
   createCollectionJsonFromPathname,
   mergeHeaders,
   mergeVars,

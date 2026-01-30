@@ -115,6 +115,9 @@ export const findParentItemInCollectionByPathname = (collection, pathname) => {
 };
 
 export const findItemInCollection = (collection, itemUid) => {
+  if (!collection || !collection.items) {
+    return null;
+  }
   let flattenedItems = flattenItems(collection.items);
 
   return findItem(flattenedItems, itemUid);
@@ -280,6 +283,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
+  const normalizeFilenameToBru = (filename) => {
+    if (!filename) return filename;
+    return filename.replace(/\.(yml|yaml)$/i, '.bru');
+  };
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
@@ -292,7 +300,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         uid: si.uid,
         type: si.type,
         name: si.name,
-        filename: si.filename,
+        filename: isItemARequest(si) ? normalizeFilenameToBru(si.filename) : si.filename,
         seq: si.seq,
         settings: si.settings,
         tags: si.tags,
@@ -1055,6 +1063,16 @@ export const hasExampleChanges = (_item, exampleUid) => {
 
 export const getDefaultRequestPaneTab = (item) => {
   if (item.type === 'http-request') {
+    // If no params are enabled and body mode is set, default to 'body' tab
+    // This provides better UX for POST/PUT requests with a body
+    const request = item.draft?.request || item.request;
+    const params = request?.params || [];
+    const bodyMode = request?.body?.mode;
+    const hasEnabledParams = params.some((p) => p.enabled);
+
+    if (!hasEnabledParams && bodyMode && bodyMode !== 'none') {
+      return 'body';
+    }
     return 'params';
   }
 
@@ -1159,7 +1177,14 @@ export const getAllVariables = (collection, item) => {
   const pathParams = getPathParams(item);
   const { globalEnvironmentVariables = {} } = collection;
 
-  const { processEnvVariables = {}, runtimeVariables = {}, promptVariables = {} } = collection;
+  const { processEnvVariables = {}, runtimeVariables = {}, promptVariables = {}, workspaceProcessEnvVariables = {} } = collection;
+
+  // Merge workspace and collection processEnvVariables (collection takes priority)
+  const mergedProcessEnvVariables = {
+    ...workspaceProcessEnvVariables,
+    ...processEnvVariables
+  };
+
   const mergedVariables = {
     ...folderVariables,
     ...requestVariables,
@@ -1201,7 +1226,7 @@ export const getAllVariables = (collection, item) => {
     maskedEnvVariables: uniqueMaskedVariables,
     process: {
       env: {
-        ...processEnvVariables
+        ...mergedProcessEnvVariables
       }
     }
   };
@@ -1628,4 +1653,58 @@ export const isVariableSecret = (scopeInfo) => {
   }
 
   return false;
+};
+
+/**
+ * Generate a unique request name by checking existing filenames in the collection and filesystem
+ * @param {Object} collection - The collection object
+ * @param {string} baseName - The base name (default: 'Untitled')
+ * @param {string} itemUid - The parent item UID (null for root level, folder UID for folder level)
+ * @returns {Promise<string>} - A unique request name (Untitled, Untitled1, Untitled2, etc.)
+ */
+export const generateUniqueRequestName = async (collection, baseName = 'Untitled', itemUid = null) => {
+  if (!collection) {
+    return baseName;
+  }
+
+  const trim = require('lodash/trim');
+  const parentItem = itemUid ? findItemInCollection(collection, itemUid) : null;
+  const parentItems = parentItem ? (parentItem.items || []) : (collection.items || []);
+  const baseNamePattern = new RegExp(`^${baseName}(\\d+)?$`);
+  // Support .bru, .yml, and .yaml file extensions
+  const requestExtensions = /\.(bru|yml|yaml)$/i;
+  const matchingItems = parentItems
+    .filter((item) => {
+      if (item.type === 'folder') return false;
+
+      const filename = trim(item.filename);
+      if (!requestExtensions.test(filename)) return false;
+
+      const filenameWithoutExt = filename.replace(requestExtensions, '');
+      return baseNamePattern.test(filenameWithoutExt);
+    })
+    .map((item) => {
+      const filenameWithoutExt = trim(item.filename).replace(requestExtensions, '');
+      const match = filenameWithoutExt.match(baseNamePattern);
+
+      if (!match) return null;
+
+      const number = match[1] ? parseInt(match[1], 10) : 0;
+      return { name: filenameWithoutExt, number: isNaN(number) ? null : number };
+    })
+    .filter((item) => item !== null && item.number !== null);
+
+  if (matchingItems.length === 0) {
+    return baseName;
+  }
+
+  const sortedMatches = matchingItems.sort((a, b) => a.number - b.number);
+  const lastElement = sortedMatches[sortedMatches.length - 1];
+  const nextNumber = lastElement.number + 1;
+
+  return `${baseName}${nextNumber}`;
+};
+
+export const isItemTransientRequest = (item) => {
+  return isItemARequest(item) && item?.isTransient;
 };

@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { normalizePath } from 'utils/common/path';
 
 const DEFAULT_WORKSPACE_UID = 'default';
 
@@ -61,9 +62,11 @@ export const workspacesSlice = createSlice({
       const { workspaceUid, collectionLocation } = action.payload;
       const workspace = state.workspaces.find((w) => w.uid === workspaceUid);
       if (workspace?.collections) {
-        // Filter by both path and location since path could be relative or absolute
-        workspace.collections = workspace.collections.filter((c) =>
-          c.path !== collectionLocation && c.location !== collectionLocation);
+        const normalizedLocation = normalizePath(collectionLocation);
+        workspace.collections = workspace.collections.filter((c) => {
+          const normalizedPath = normalizePath(c.path);
+          return normalizedPath !== normalizedLocation;
+        });
       }
     },
 
@@ -72,6 +75,14 @@ export const workspacesSlice = createSlice({
       const workspace = state.workspaces.find((w) => w.uid === workspaceUid);
       if (workspace) {
         workspace.loadingState = loadingState;
+      }
+    },
+
+    workspaceDotEnvUpdateEvent: (state, action) => {
+      const { workspaceUid, processEnvVariables } = action.payload;
+      const workspace = state.workspaces.find((w) => w.uid === workspaceUid);
+      if (workspace) {
+        workspace.processEnvVariables = processEnvVariables;
       }
     }
   }
@@ -84,7 +95,8 @@ export const {
   updateWorkspace,
   addCollectionToWorkspace,
   removeCollectionFromWorkspace,
-  updateWorkspaceLoadingState
+  updateWorkspaceLoadingState,
+  workspaceDotEnvUpdateEvent
 } = workspacesSlice.actions;
 
 export default workspacesSlice.reducer;

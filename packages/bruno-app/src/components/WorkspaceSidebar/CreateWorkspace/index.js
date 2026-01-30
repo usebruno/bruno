@@ -3,36 +3,50 @@ import { useFormik } from 'formik';
 import { useDispatch, useSelector } from 'react-redux';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import { IconArrowBackUp, IconEdit } from '@tabler/icons';
 import Modal from 'components/Modal';
+import Help from 'components/Help';
+import PathDisplay from 'components/PathDisplay/index';
 import { createWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { multiLineMsg } from 'utils/common/index';
 import { formatIpcError } from 'utils/common/error';
+import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 
 const CreateWorkspace = ({ onClose }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       workspaceName: '',
+      workspaceFolderName: '',
       workspaceLocation: ''
     },
     validationSchema: Yup.object({
       workspaceName: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(255, 'must be 255 characters or less')
-        .required('workspace name is required')
+        .min(1, 'Must be at least 1 character')
+        .max(255, 'Must be 255 characters or less')
+        .required('Workspace name is required')
         .test('unique-name', 'A workspace with this name already exists', function (value) {
           if (!value) return true;
 
           return !workspaces.some((w) =>
             w.name.toLowerCase() === value.toLowerCase());
         }),
-      workspaceLocation: Yup.string().min(1, 'location is required').required('location is required')
+      workspaceFolderName: Yup.string()
+        .min(1, 'Must be at least 1 character')
+        .max(255, 'Must be 255 characters or less')
+        .test('is-valid-folder-name', function (value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
+        })
+        .required('Folder name is required'),
+      workspaceLocation: Yup.string().min(1, 'Location is required').required('Location is required')
     }),
     onSubmit: async (values) => {
       if (isSubmitting) return;
@@ -40,7 +54,7 @@ const CreateWorkspace = ({ onClose }) => {
       try {
         setIsSubmitting(true);
 
-        await dispatch(createWorkspaceAction(values.workspaceName, values.workspaceName, values.workspaceLocation));
+        await dispatch(createWorkspaceAction(values.workspaceName, values.workspaceFolderName, values.workspaceLocation));
         toast.success('Workspace created!');
         onClose();
       } catch (error) {
@@ -97,7 +111,12 @@ const CreateWorkspace = ({ onClose }) => {
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
-              onChange={formik.handleChange}
+              onChange={(e) => {
+                formik.handleChange(e);
+                if (!isEditing) {
+                  formik.setFieldValue('workspaceFolderName', sanitizeName(e.target.value));
+                }
+              }}
               value={formik.values.workspaceName || ''}
             />
             {formik.touched.workspaceName && formik.errors.workspaceName ? (
@@ -105,35 +124,94 @@ const CreateWorkspace = ({ onClose }) => {
             ) : null}
           </div>
 
-          <div className="mb-4">
-            <label htmlFor="workspaceLocation" className="block font-semibold mb-2">
-              Location
-              <span className="ml-1 text-gray-500 text-sm">
-                <svg className="inline w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-              </span>
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="workspace-location"
-                type="text"
-                name="workspaceLocation"
-                readOnly={true}
-                className="block textbox flex-1 bg-gray-50"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                value={formik.values.workspaceLocation || ''}
-              />
-              <button type="button" className="btn btn-sm btn-secondary" onClick={browse}>
-                Browse
-              </button>
+          {formik.values.workspaceName?.trim()?.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="workspaceFolderName" className="flex items-center font-semibold">
+                  Folder Name
+                  <Help width="300">
+                    <p>
+                      The name of the folder used to store the workspace.
+                    </p>
+                    <p className="mt-2">
+                      You can choose a folder name different from your workspace's name or one compatible with filesystem rules.
+                    </p>
+                  </Help>
+                </label>
+                {isEditing ? (
+                  <IconArrowBackUp
+                    className="cursor-pointer opacity-50 hover:opacity-80"
+                    size={16}
+                    strokeWidth={1.5}
+                    onClick={() => setIsEditing(false)}
+                  />
+                ) : (
+                  <IconEdit
+                    className="cursor-pointer opacity-50 hover:opacity-80"
+                    size={16}
+                    strokeWidth={1.5}
+                    onClick={() => setIsEditing(true)}
+                  />
+                )}
+              </div>
+              {isEditing ? (
+                <input
+                  id="workspace-folder-name"
+                  type="text"
+                  name="workspaceFolderName"
+                  className="block textbox w-full"
+                  onChange={formik.handleChange}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  value={formik.values.workspaceFolderName || ''}
+                />
+              ) : (
+                <PathDisplay baseName={formik.values.workspaceFolderName} />
+              )}
+              {formik.touched.workspaceFolderName && formik.errors.workspaceFolderName ? (
+                <div className="text-red-500 text-sm mt-1">{formik.errors.workspaceFolderName}</div>
+              ) : null}
             </div>
+          )}
+
+          <div className="mb-4">
+            <label htmlFor="workspaceLocation" className="font-semibold mb-2 flex items-center">
+              Location
+              <Help>
+                <p>
+                  Bruno stores your workspaces on your computer's filesystem.
+                </p>
+                <p className="mt-2">
+                  Choose the location where you want to store this workspace.
+                </p>
+              </Help>
+            </label>
+            <input
+              id="workspace-location"
+              type="text"
+              name="workspaceLocation"
+              readOnly={true}
+              className="block textbox mt-2 w-full cursor-pointer"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              value={formik.values.workspaceLocation || ''}
+              onClick={browse}
+            />
             {formik.touched.workspaceLocation && formik.errors.workspaceLocation ? (
               <div className="text-red-500 text-sm mt-1">{formik.errors.workspaceLocation}</div>
             ) : null}
+            <div className="mt-1">
+              <span
+                className="text-link cursor-pointer hover:underline"
+                onClick={browse}
+              >
+                Browse
+              </span>
+            </div>
           </div>
         </form>
       </div>

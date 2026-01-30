@@ -1,5 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
-import { buildFormUrlEncodedPayload } from './form-data';
+import { buildFormUrlEncodedPayload, isFormData } from './form-data';
+import FormData from 'form-data';
 
 describe('buildFormUrlEncodedPayload', () => {
   it('should handle single key-value pair', () => {
@@ -108,5 +109,55 @@ describe('buildFormUrlEncodedPayload', () => {
     const expected = 'item1=a&item2=b&item3=&=empty_name&valid=c';
     const result = buildFormUrlEncodedPayload(requestObj);
     expect(result).toEqual(expected);
+  });
+});
+
+describe('isFormData', () => {
+  it('should return true for objects with FormData constructor name', () => {
+    const mockFormData = {
+      constructor: { name: 'FormData' }
+    };
+    expect(isFormData(mockFormData)).toBe(true);
+  });
+
+  it('should return false for null', () => {
+    expect(isFormData(null)).toBe(false);
+  });
+
+  it('should return false for undefined', () => {
+    expect(isFormData(undefined)).toBe(false);
+  });
+
+  it('should return false for plain objects', () => {
+    expect(isFormData({})).toBe(false);
+    expect(isFormData({ key: 'value' })).toBe(false);
+  });
+
+  it('should return false for arrays', () => {
+    expect(isFormData([])).toBe(false);
+    expect(isFormData([1, 2, 3])).toBe(false);
+  });
+
+  it('should return false for primitives', () => {
+    expect(isFormData('string')).toBe(false);
+    expect(isFormData(123)).toBe(false);
+    expect(isFormData(true)).toBe(false);
+  });
+
+  it('should return false for objects with different constructor names', () => {
+    class CustomClass {}
+    const customObj = new CustomClass();
+    expect(isFormData(customObj)).toBe(false);
+  });
+
+  it('should return false for objects without constructor', () => {
+    const obj = Object.create(null);
+    expect(isFormData(obj)).toBe(false);
+  });
+
+  it('should return true for actual FormData instance from form-data library', () => {
+    const formData = new FormData();
+    formData.append('key', 'value');
+    expect(isFormData(formData)).toBe(true);
   });
 });

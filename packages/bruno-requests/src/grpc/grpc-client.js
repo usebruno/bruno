@@ -316,10 +316,11 @@ class GrpcClient {
    * @param {string} [options.collectionUid] - Collection UID
    * @param {Object} [options.certificates] - Certificate configuration
    * @param {Object} [options.verifyOptions] - Additional options for verifying the server certificate
+   * @param {string[]} [options.includeDirs] - Include directories for proto file resolution
    * @returns {Promise<boolean>} Whether methods were successfully refreshed
    * @private
    */
-  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions }) {
+  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions, includeDirs = [] }) {
     try {
       // Try reflection first if no proto path is specified
       if (!protoPath) {
@@ -339,8 +340,8 @@ class GrpcClient {
 
       // Try proto file if available
       if (protoPath) {
-        const absoluteProtoPath = nodePath.join(collectionPath, protoPath);
-        await this.loadMethodsFromProtoFile(absoluteProtoPath, []);
+        const absoluteProtoPath = nodePath.resolve(collectionPath, protoPath);
+        await this.loadMethodsFromProtoFile(absoluteProtoPath, includeDirs);
         return true;
       }
 
@@ -463,6 +464,7 @@ class GrpcClient {
    * @param {string} [params.pfx] - The PFX/P12 certificate data
    * @param {Object} [params.verifyOptions] - Additional options for verifying the server certificate
    * @param {import('@grpc/grpc-js').ChannelOptions} [params.channelOptions] - Additional options for the gRPC channel
+   * @param {string[]} [params.includeDirs] - Include directories for proto file resolution
    */
   async startConnection({
     request,
@@ -473,7 +475,8 @@ class GrpcClient {
     passphrase,
     pfx,
     verifyOptions,
-    channelOptions = {}
+    channelOptions = {},
+    includeDirs = []
   }) {
     const credentials = this.#getChannelCredentials({
       url: request.url,
@@ -509,7 +512,8 @@ class GrpcClient {
           passphrase,
           pfx
         },
-        verifyOptions
+        verifyOptions,
+        includeDirs
       });
 
       if (!refreshSuccess) {
@@ -524,8 +528,19 @@ class GrpcClient {
       }
     }
 
+    // Extract user-agent from headers if provided (case-insensitive)
+    // Set it as grpc.primary_user_agent channel option to prepend to the default user-agent
+    const userAgentKey = Object.keys(request.headers).find(
+      (key) => key.toLowerCase() === 'user-agent'
+    );
+    const userAgentValue = userAgentKey ? request.headers[userAgentKey] : null;
+
+    const mergedChannelOptions = userAgentValue
+      ? { 'grpc.primary_user_agent': userAgentValue, ...channelOptions }
+      : channelOptions;
+
     const Client = makeGenericClientConstructor({});
-    const client = new Client(host, credentials, channelOptions);
+    const client = new Client(host, credentials, mergedChannelOptions);
     if (!client) {
       throw new Error('Failed to create client');
     }
@@ -608,9 +623,19 @@ class GrpcClient {
     passphrase,
     pfx,
     verifyOptions,
-    sendEvent
+    sendEvent,
+    channelOptions = {}
   }) {
     const { host, path } = getParsedGrpcUrlObject(request.url);
+
+    // Extract user-agent from headers if provided (case-insensitive)
+    // Set it as grpc.primary_user_agent channel option to prepend to the default user-agent
+    const userAgentKey = Object.keys(request.headers).find(
+      (key) => key.toLowerCase() === 'user-agent'
+    );
+    const userAgentValue = userAgentKey ? request.headers[userAgentKey] : null;
+    const mergedChannelOptions = userAgentValue ? { 'grpc.primary_user_agent': userAgentValue, ...channelOptions } : channelOptions;
+
     const metadata = new Metadata();
     Object.entries(request.headers).forEach(([name, value]) => {
       metadata.add(name, value);
@@ -626,7 +651,7 @@ class GrpcClient {
     });
 
     try {
-      const { client, services, callOptions } = await this.#getReflectionClient(host, credentials, metadata, {});
+      const { client, services, callOptions } = await this.#getReflectionClient(host, credentials, metadata, mergedChannelOptions);
 
       const methods = [];
       for (const service of services) {

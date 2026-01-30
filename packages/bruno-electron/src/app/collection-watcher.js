@@ -27,7 +27,7 @@ const EnvironmentSecretsStore = require('../store/env-secrets');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
 const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
-const { transformBrunoConfigAfterRead } = require('../utils/transfomBrunoConfig');
+const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
@@ -583,7 +583,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       const fileStats = fs.statSync(pathname);
 
       if (fileStats.size >= MAX_FILE_SIZE && format === 'bru') {
-        file.data = await parseLargeRequestWithRedaction(content);
+        file.data = await parseLargeRequestWithRedaction(content, 'bru');
       } else {
         file.data = await parseRequest(content, { format });
       }
@@ -666,6 +666,7 @@ class CollectionWatcher {
   constructor() {
     this.watchers = {};
     this.loadingStates = {};
+    this.tempDirectoryMap = {};
   }
 
   // Initialize loading state tracking for a collection
@@ -745,7 +746,12 @@ class CollectionWatcher {
 
     this.startCollectionDiscovery(win, collectionUid);
 
-    const ignores = brunoConfig?.ignore || [];
+    // Always ignore node_modules and .git, regardless of user config
+    // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
+    const defaultIgnores = ['node_modules', '.git'];
+    const userIgnores = brunoConfig?.ignore || [];
+    const ignores = [...new Set([...defaultIgnores, ...userIgnores])];
+
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
@@ -753,6 +759,12 @@ class CollectionWatcher {
         ignored: (filepath) => {
           const normalizedPath = normalizeAndResolvePath(filepath);
           const relativePath = path.relative(watchPath, normalizedPath);
+
+          // Check if any path segment matches a default ignore pattern (handles symlinks)
+          const pathSegments = relativePath.split(path.sep);
+          if (pathSegments.some((segment) => defaultIgnores.includes(segment))) {
+            return true;
+          }
 
           return ignores.some((ignorePattern) => {
             return relativePath === ignorePattern || relativePath.startsWith(ignorePattern);
@@ -812,6 +824,13 @@ class CollectionWatcher {
       this.watchers[watchPath] = null;
     }
 
+    const tempDirectoryPath = this.tempDirectoryMap[watchPath];
+    if (tempDirectoryPath && this.watchers[tempDirectoryPath]) {
+      this.watchers[tempDirectoryPath].close();
+      delete this.watchers[tempDirectoryPath];
+      delete this.tempDirectoryMap[watchPath];
+    }
+
     if (collectionUid) {
       this.cleanupLoadingState(collectionUid);
     }
@@ -842,6 +861,106 @@ class CollectionWatcher {
     if (watcher && !watcher?.has?.(itemPath)) {
       watcher?.add?.(itemPath);
     }
+  }
+
+  // Helper function to get collection path from temp directory metadata
+  getCollectionPathFromTempDirectory(tempDirectoryPath) {
+    const metadataPath = path.join(tempDirectoryPath, 'metadata.json');
+    try {
+      const metadataContent = fs.readFileSync(metadataPath, 'utf8');
+      const metadata = JSON.parse(metadataContent);
+      return metadata.collectionPath;
+    } catch (error) {
+      console.error(`Error reading metadata from temp directory ${tempDirectoryPath}:`, error);
+      return null;
+    }
+  }
+
+  // Add watcher for transient directory
+  // The tempDirectoryPath is stored in this.tempDirectoryMap[collectionPath] so removeWatcher can clean it up
+  addTempDirectoryWatcher(win, tempDirectoryPath, collectionUid, collectionPath) {
+    if (this.watchers[tempDirectoryPath]) {
+      this.watchers[tempDirectoryPath].close();
+    }
+
+    // Store the mapping from collectionPath to tempDirectoryPath for cleanup in removeWatcher
+    this.tempDirectoryMap[collectionPath] = tempDirectoryPath;
+
+    // Ignore metadata.json file
+    const ignored = (filepath) => {
+      const basename = path.basename(filepath);
+      return basename === 'metadata.json';
+    };
+
+    const watcher = chokidar.watch(tempDirectoryPath, {
+      ignoreInitial: true, // Don't process existing files
+      usePolling: isWSLPath(tempDirectoryPath) ? true : false,
+      ignored,
+      persistent: true,
+      ignorePermissionErrors: true,
+      awaitWriteFinish: {
+        stabilityThreshold: 80,
+        pollInterval: 10
+      },
+      depth: 1, // Only watch the temp directory itself, not subdirectories
+      disableGlobbing: true
+    });
+
+    // Wrapper function to handle temp directory files
+    const addTempFile = async (pathname) => {
+      // Skip metadata.json
+      if (path.basename(pathname) === 'metadata.json') {
+        return;
+      }
+
+      // Get the actual collection path from metadata
+      const actualCollectionPath = this.getCollectionPathFromTempDirectory(tempDirectoryPath);
+      if (!actualCollectionPath) {
+        console.error(`Could not determine collection path for temp directory: ${tempDirectoryPath}`);
+        return;
+      }
+
+      // Use the collection format from the actual collection
+      const format = getCollectionFormat(actualCollectionPath);
+
+      // Only process request files
+      if (hasRequestExtension(pathname, format)) {
+        // Call the regular add function with the actual collection path
+        // This will hydrate and send the file to the renderer
+        await add(win, pathname, collectionUid, actualCollectionPath, false, this);
+      }
+    };
+    const unlinkTempFile = async (pathname) => {
+      // Skip metadata.json
+      if (path.basename(pathname) === 'metadata.json') {
+        return;
+      }
+
+      // Get the actual collection path from metadata
+      const actualCollectionPath = this.getCollectionPathFromTempDirectory(tempDirectoryPath);
+      if (!actualCollectionPath) {
+        console.error(`Could not determine collection path for temp directory: ${tempDirectoryPath}`);
+        return;
+      }
+
+      // Use the collection format from the actual collection
+      const format = getCollectionFormat(actualCollectionPath);
+
+      // Only process request files
+      if (hasRequestExtension(pathname, format)) {
+        // Call the regular unlink function with the actual collection path
+        await unlink(win, pathname, collectionUid, actualCollectionPath);
+      }
+    };
+
+    watcher
+      .on('add', (pathname) => addTempFile(pathname))
+      .on('unlink', (pathname) => unlinkTempFile(pathname))
+      .on('error', (error) => {
+        console.error(`An error occurred in the temp directory watcher for: ${tempDirectoryPath}`, error);
+      });
+
+    this.watchers[tempDirectoryPath] = watcher;
   }
 
   getAllWatcherPaths() {

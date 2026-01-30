@@ -102,6 +102,7 @@ const FileBody = ({ item, collection }) => {
                             'filePath'
                           )}
                         collection={collection}
+                        displayMode="labelAndIcon"
                       />
                     </td>
                     <td>
