@@ -1,7 +1,7 @@
 import https from 'node:https';
 import http from 'node:http';
 import { EventEmitter } from 'node:events';
-import { getOrCreateAgent, clearAgentCache, getAgentCacheSize } from './agent-cache';
+import { getOrCreateAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize } from './agent-cache';
 
 describe('Agent Cache', () => {
   beforeEach(() => {
@@ -87,6 +87,34 @@ describe('Agent Cache', () => {
       const agent2 = getOrCreateAgent(https.Agent, {}, null, timeline2) as any;
       expect(agent1).toBe(agent2);
       expect(agent2.timeline).toBe(timeline2);
+    });
+
+    it('logs when reusing a cached HTTPS agent', () => {
+      const timeline1: any[] = [];
+      const timeline2: any[] = [];
+
+      // First call creates new agent - no reuse message
+      getOrCreateAgent(https.Agent, {}, null, timeline1);
+      expect(timeline1.some((e) => e.message.includes('Reusing cached agent'))).toBe(false);
+
+      // Second call reuses cached agent - should log reuse message with SSL session reuse
+      getOrCreateAgent(https.Agent, {}, null, timeline2);
+      expect(timeline2.some((e) => e.message.includes('Reusing cached agent'))).toBe(true);
+      expect(timeline2.some((e) => e.message.includes('SSL session reuse'))).toBe(true);
+    });
+
+    it('logs when reusing a cached HTTP agent', () => {
+      const timeline1: any[] = [];
+      const timeline2: any[] = [];
+
+      // First call creates new agent - no reuse message
+      getOrCreateHttpAgent(http.Agent, { keepAlive: true }, null, timeline1);
+      expect(timeline1.some((e) => e.message.includes('Reusing cached agent'))).toBe(false);
+
+      // Second call reuses cached agent - should log reuse message with connection reuse
+      getOrCreateHttpAgent(http.Agent, { keepAlive: true }, null, timeline2);
+      expect(timeline2.some((e) => e.message.includes('Reusing cached agent'))).toBe(true);
+      expect(timeline2.some((e) => e.message.includes('connection reuse'))).toBe(true);
     });
 
     it('logs SSL validation status on agent creation', () => {
