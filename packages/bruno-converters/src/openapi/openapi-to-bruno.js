@@ -435,6 +435,8 @@ const populateRequestBody = ({ body, bodySchema, contentType }) => {
  * @returns {Object} Bruno example object
  */
 const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType, requestBodySchema = null, requestBodyContentType = null }) => {
+  const sanitized = String(exampleName ?? '').replace(/\r?\n/g, ' ').trim();
+  const name = sanitized || `${statusCode} Response`;
   // Deep copy the body to avoid shared references
   const bodyCopy = {
     mode: brunoRequestItem.request.body.mode,
@@ -449,7 +451,7 @@ const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, examp
   const brunoExample = {
     uid: uuid(),
     itemUid: brunoRequestItem.uid,
-    name: exampleName,
+    name,
     description: exampleDescription,
     type: 'http-request',
     request: {
