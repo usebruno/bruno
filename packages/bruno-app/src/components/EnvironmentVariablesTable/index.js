@@ -48,12 +48,6 @@ const EnvironmentVariablesTable = ({
   const [tableHeight, setTableHeight] = useState(MIN_H);
   const [columnWidths, setColumnWidths] = useState({ name: '30%', value: 'auto' });
   const [resizing, setResizing] = useState(null);
-  const resizeRef = useRef({
-    startX: 0,
-    startWidth: 0,
-    nextColumnKey: null,
-    nextColumnStartWidth: 0
-  });
 
   const handleResizeStart = useCallback((e, columnKey) => {
     e.preventDefault();
@@ -63,42 +57,34 @@ const EnvironmentVariablesTable = ({
     const nextCell = currentCell?.nextElementSibling;
     if (!currentCell || !nextCell) return;
 
-    resizeRef.current = {
-      startX: e.clientX,
-      startWidth: currentCell.offsetWidth,
-      nextColumnKey: 'value',
-      nextColumnStartWidth: nextCell.offsetWidth
-    };
+    const startX = e.clientX;
+    const startWidth = currentCell.offsetWidth;
+    const nextColumnKey = 'value';
+    const nextColumnStartWidth = nextCell.offsetWidth;
 
     setResizing(columnKey);
-  }, []);
 
-  useEffect(() => {
-    if (!resizing) return;
-
-    const { startX, startWidth, nextColumnKey, nextColumnStartWidth } = resizeRef.current;
-
-    const handleMouseMove = (e) => {
-      const diff = e.clientX - startX;
+    const handleMouseMove = (moveEvent) => {
+      const diff = moveEvent.clientX - startX;
       const maxGrow = nextColumnStartWidth - MIN_COLUMN_WIDTH;
       const maxShrink = startWidth - MIN_COLUMN_WIDTH;
       const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
 
       setColumnWidths({
-        [resizing]: `${startWidth + clampedDiff}px`,
+        [columnKey]: `${startWidth + clampedDiff}px`,
         [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
       });
     };
 
-    const handleMouseUp = () => setResizing(null);
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => {
+    const handleMouseUp = () => {
+      setResizing(null);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizing]);
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, []);
 
   const handleTotalHeightChanged = useCallback((h) => {
     setTableHeight(h);
