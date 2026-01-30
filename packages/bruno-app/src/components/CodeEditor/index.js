@@ -43,7 +43,8 @@ export default class CodeEditor extends React.Component {
     };
 
     this.state = {
-      searchBarVisible: false
+      searchBarVisible: false,
+      searchFocusTrigger: null
     };
   }
 
@@ -94,14 +95,11 @@ export default class CodeEditor extends React.Component {
           }
         },
         'Cmd-F': (cm) => {
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
+          this.setState({ searchBarVisible: true, searchFocusTrigger: new Date() });
+          console.log('Searching...');
         },
         'Ctrl-F': (cm) => {
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
+          this.setState({ searchBarVisible: true, searchFocusTrigger: new Date() });
         },
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
@@ -309,8 +307,9 @@ export default class CodeEditor extends React.Component {
         fontSize={this.props.fontSize}
       >
         <CodeMirrorSearch
-          visible={this.state.searchBarVisible}
           editor={this.editor}
+          visible={this.state.searchBarVisible}
+          focusTrigger={this.state.searchFocusTrigger}
           onClose={() => this.setState({ searchBarVisible: false })}
         />
         <div
