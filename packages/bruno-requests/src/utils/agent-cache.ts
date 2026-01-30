@@ -154,7 +154,8 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
   proxyUri: string | null,
   timeline: TimelineEntry[] | null,
   getCacheKey: CacheKeyFn<TOptions>,
-  getTimelineClass: TimelineClassFn
+  getTimelineClass: TimelineClassFn,
+  cacheHitMessage: string
 ): HttpAgent | HttpsAgent {
   const agentClassId = getAgentClassId(BaseAgentClass);
   const cacheKey = getCacheKey(agentClassId, options, proxyUri);
@@ -170,6 +171,15 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
     // but we need events to go to the current request's timeline
     if (timeline && 'timeline' in agent) {
       (agent as any).timeline = timeline;
+    }
+
+    // Log that we're reusing a cached agent
+    if (timeline) {
+      timeline.push({
+        timestamp: new Date(),
+        type: 'info',
+        message: cacheHitMessage
+      });
     }
 
     return agent;
@@ -222,7 +232,8 @@ function getOrCreateAgent(
     proxyUri,
     timeline,
     getAgentCacheKey,
-    getTimelineAgentClass
+    getTimelineAgentClass,
+    'Reusing cached agent (SSL session reuse enabled)'
   );
 }
 
@@ -249,7 +260,8 @@ function getOrCreateHttpAgent(
     proxyUri,
     timeline,
     getHttpAgentCacheKey,
-    getTimelineHttpAgentClass
+    getTimelineHttpAgentClass,
+    'Reusing cached agent (connection reuse enabled)'
   ) as HttpAgent;
 }
 
