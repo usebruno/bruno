@@ -4,6 +4,7 @@ import Dropdown from 'components/Dropdown';
 import ColorBadge from 'components/ColorBadge';
 import StyledWrapper from './StyledWrapper';
 import { parseToRgb, toColorString } from 'polished';
+import ColorRangePicker from 'components/ColorRange/index';
 
 const PRESET_COLORS = [
   '#CE4F3B',
@@ -14,7 +15,7 @@ const PRESET_COLORS = [
   '#8D44B2'
 ];
 
-const GRADIENT_COLORS = ['#D85D43', '#F4BB74', '#61DCB1', '#7EBDF2', '#D48ADE', '#B491E5'];
+const COLOR_RANGE_SEQUENCE = ['#D85D43', '#F4BB74', '#61DCB1', '#7EBDF2', '#D48ADE', '#B491E5'];
 
 /**
  * @param {string} hex
@@ -33,17 +34,17 @@ const rgbToHex = (r, g, b) => {
 };
 
 const interpolateColor = (position) => {
-  const numColors = GRADIENT_COLORS.length;
+  const numColors = COLOR_RANGE_SEQUENCE.length;
   const scaledPos = (position / 100) * (numColors - 1);
   const index = Math.floor(scaledPos);
   const fraction = scaledPos - index;
 
   if (index >= numColors - 1) {
-    return GRADIENT_COLORS[numColors - 1];
+    return COLOR_RANGE_SEQUENCE[numColors - 1];
   }
 
-  const color1 = hexToRgb(GRADIENT_COLORS[index]);
-  const color2 = hexToRgb(GRADIENT_COLORS[index + 1]);
+  const color1 = hexToRgb(COLOR_RANGE_SEQUENCE[index]);
+  const color2 = hexToRgb(COLOR_RANGE_SEQUENCE[index + 1]);
 
   const r = color1.red + (color2.red - color1.red) * fraction;
   const g = color1.green + (color2.green - color1.green) * fraction;
@@ -83,17 +84,9 @@ const ColorPicker = ({ color, onChange, icon }) => {
     color && !PRESET_COLORS.includes(color) ? findClosestPosition(color) : 0
   );
   const [customColor, setCustomColor] = useState(() =>
-    color && !PRESET_COLORS.includes(color) ? color : GRADIENT_COLORS[0]
+    color && !PRESET_COLORS.includes(color) ? color : COLOR_RANGE_SEQUENCE[0]
   );
   const pendingColorRef = useRef(customColor);
-
-  useEffect(() => {
-    if (color && !PRESET_COLORS.includes(color)) {
-      setSliderPosition(findClosestPosition(color));
-      setCustomColor(color);
-      pendingColorRef.current = color;
-    }
-  }, [color]);
 
   const handleColorSelect = (selectedColor) => {
     onChange(selectedColor);
@@ -116,8 +109,6 @@ const ColorPicker = ({ color, onChange, icon }) => {
       <ColorPickerIcon color={color} />
     </div>
   );
-
-  console.log({ customColor });
 
   const colorPickerContent = (
     <StyledWrapper>
@@ -150,20 +141,13 @@ const ColorPicker = ({ color, onChange, icon }) => {
             onClick={() => handleColorSelect(customColor)}
             title="Custom color"
           />
-          <input
-            type="range"
-            min="0"
-            max="100"
+          <ColorRangePicker
+            className="flex-1"
             value={sliderPosition}
             onChange={handleSliderChange}
             onMouseUp={handleSliderEnd}
-            onTouchEnd={handleSliderEnd}
-            className="hue-slider flex-1"
-            style={{
-              '--thumb-color': customColor,
-              'background': `linear-gradient(to right, #D85D43, #F4BB74, #61DCB1, #7EBDF2, #D48ADE, #B491E5)`
-            }}
-            title="Adjust color"
+            selectedColor={customColor}
+            colorRange={COLOR_RANGE_SEQUENCE}
           />
         </div>
       </div>
