@@ -373,8 +373,6 @@ const runSingleRequest = async function (
             if (https_proxy?.length && isHttpsRequest) {
               new URL(https_proxy);
               request.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, https_proxy);
-            } else {
-              request.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions);
             }
           } catch (error) {
             throw new Error('Invalid system https_proxy');

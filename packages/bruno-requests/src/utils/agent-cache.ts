@@ -54,7 +54,23 @@ function getAgentClassId(AgentClass: any): number {
  */
 function hashValue(value: string | Buffer | undefined): string | null {
   if (!value) return null;
-  return crypto.createHash('sha256').update(String(value)).digest('hex').slice(0, 16);
+  const data = Buffer.isBuffer(value) ? value : String(value);
+  return crypto.createHash('sha256').update(data).digest('hex').slice(0, 16);
+}
+
+/**
+ * Hash a CA value which can be a single value or an array of certificates.
+ * Node.js TLS options allow ca to be string | Buffer | (string | Buffer)[].
+ */
+function hashCaValue(value: string | Buffer | (string | Buffer)[] | undefined): string | null {
+  if (!value) return null;
+  if (Array.isArray(value)) {
+    // Concatenate all values with separator and hash together
+    const combined = value.map((v) => (Buffer.isBuffer(v) ? v.toString('base64') : String(v))).join('|');
+    return crypto.createHash('sha256').update(combined).digest('hex').slice(0, 16);
+  }
+  const data = Buffer.isBuffer(value) ? value : String(value);
+  return crypto.createHash('sha256').update(data).digest('hex').slice(0, 16);
 }
 
 /**
@@ -68,7 +84,7 @@ function getAgentCacheKey(agentClassId: number, options: AgentOptions, proxyUri:
     proxyUri,
     rejectUnauthorized: options.rejectUnauthorized,
     // Hash certificates and passphrase instead of including full content
-    ca: hashValue(options.ca as string | Buffer | undefined),
+    ca: hashCaValue(options.ca),
     cert: hashValue(options.cert),
     key: hashValue(options.key),
     pfx: hashValue(options.pfx),

@@ -158,6 +158,13 @@ function setupProxyAgents({
       try {
         if (http_proxy?.length && !isHttpsRequest) {
           new URL(http_proxy);
+          if (timeline) {
+            timeline.push({
+              timestamp: new Date(),
+              type: 'info',
+              message: `Using system proxy: ${http_proxy}`
+            });
+          }
           requestConfig.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, http_proxy, timeline);
         }
       } catch (error) {
@@ -174,8 +181,6 @@ function setupProxyAgents({
             });
           }
           requestConfig.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, https_proxy, timeline);
-        } else {
-          requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null, timeline);
         }
       } catch (error) {
         throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
