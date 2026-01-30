@@ -505,4 +505,357 @@ describe('GrpcClient', () => {
       });
     });
   });
+
+  describe('JSON5 comment support', () => {
+    const baseRequest = {
+      url: 'grpc://localhost:50051',
+      uid: 'test-request-uid',
+      method: '/test.Service/TestMethod',
+      headers: {},
+      body: {
+        grpc: []
+      }
+    };
+
+    const baseCollection = {
+      uid: 'test-collection-uid',
+      pathname: '/test/path'
+    };
+
+    beforeEach(() => {
+      // Pre-register a method so startConnection can find it
+      grpcClient.methods.set('/test.Service/TestMethod', {
+        path: '/test.Service/TestMethod',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (val) => Buffer.from(JSON.stringify(val)),
+        responseDeserialize: (val) => JSON.parse(val.toString())
+      });
+    });
+
+    describe('startConnection with JSON5 comments', () => {
+      test('should parse JSON5 with single-line comments', async () => {
+        const request = {
+          ...baseRequest,
+          body: {
+            grpc: [{
+              content: '{\n  "name": "test" // This is a comment\n}'
+            }]
+          }
+        };
+
+        await grpcClient.startConnection({
+          request,
+          collection: baseCollection
+        });
+
+        // Should not throw an error and should parse correctly
+        expect(mockEventCallback).not.toHaveBeenCalledWith(
+          'grpc:error',
+          expect.any(String),
+          expect.any(String),
+          expect.objectContaining({
+            error: expect.any(Error)
+          })
+        );
+      });
+
+      test('should parse JSON5 with multi-line comments', async () => {
+        const request = {
+          ...baseRequest,
+          body: {
+            grpc: [{
+              content: '{\n  "name": "test", /* This is a\n     multi-line comment */\n  "age": 30\n}'
+            }]
+          }
+        };
+
+        await grpcClient.startConnection({
+          request,
+          collection: baseCollection
+        });
+
+        expect(mockEventCallback).not.toHaveBeenCalledWith(
+          'grpc:error',
+          expect.any(String),
+          expect.any(String),
+          expect.objectContaining({
+            error: expect.any(Error)
+          })
+        );
+      });
+
+      test('should parse JSON5 with trailing commas', async () => {
+        const request = {
+          ...baseRequest,
+          body: {
+            grpc: [{
+              content: '{\n  "name": "test",\n  "age": 30,\n}'
+            }]
+          }
+        };
+
+        await grpcClient.startConnection({
+          request,
+          collection: baseCollection
+        });
+
+        expect(mockEventCallback).not.toHaveBeenCalledWith(
+          'grpc:error',
+          expect.any(String),
+          expect.any(String),
+          expect.objectContaining({
+            error: expect.any(Error)
+          })
+        );
+      });
+
+      test('should parse JSON5 with comments and trailing commas', async () => {
+        const request = {
+          ...baseRequest,
+          body: {
+            grpc: [{
+              content: '{\n  "name": "test", // Name field\n  "age": 30, // Age field\n}'
+            }]
+          }
+        };
+
+        await grpcClient.startConnection({
+          request,
+          collection: baseCollection
+        });
+
+        expect(mockEventCallback).not.toHaveBeenCalledWith(
+          'grpc:error',
+          expect.any(String),
+          expect.any(String),
+          expect.objectContaining({
+            error: expect.any(Error)
+          })
+        );
+      });
+
+      test('should parse standard JSON (backward compatibility)', async () => {
+        const request = {
+          ...baseRequest,
+          body: {
+            grpc: [{
+              content: '{"name": "test", "age": 30}'
+            }]
+          }
+        };
+
+        await grpcClient.startConnection({
+          request,
+          collection: baseCollection
+        });
+
+        expect(mockEventCallback).not.toHaveBeenCalledWith(
+          'grpc:error',
+          expect.any(String),
+          expect.any(String),
+          expect.objectContaining({
+            error: expect.any(Error)
+          })
+        );
+      });
+
+      test('should handle multiple messages with JSON5 comments', async () => {
+        const request = {
+          ...baseRequest,
+          body: {
+            grpc: [
+              { content: '{"id": 1} // First message' },
+              { content: '{"id": 2} // Second message' }
+            ]
+          }
+        };
+
+        await grpcClient.startConnection({
+          request,
+          collection: baseCollection
+        });
+
+        expect(mockEventCallback).not.toHaveBeenCalledWith(
+          'grpc:error',
+          expect.any(String),
+          expect.any(String),
+          expect.objectContaining({
+            error: expect.any(Error)
+          })
+        );
+      });
+
+      test('should throw error for invalid JSON5', async () => {
+        const request = {
+          ...baseRequest,
+          body: {
+            grpc: [{
+              content: '{"name": "test" // Unclosed comment'
+            }]
+          }
+        };
+
+        await grpcClient.startConnection({
+          request,
+          collection: baseCollection
+        });
+
+        expect(mockEventCallback).toHaveBeenCalledWith(
+          'grpc:error',
+          'test-request-uid',
+          'test-collection-uid',
+          expect.objectContaining({
+            error: expect.any(Error)
+          })
+        );
+      });
+
+      test('should throw error with descriptive message for invalid JSON5', async () => {
+        const request = {
+          ...baseRequest,
+          body: {
+            grpc: [{
+              content: '{"name": "test" invalid}'
+            }]
+          }
+        };
+
+        await grpcClient.startConnection({
+          request,
+          collection: baseCollection
+        });
+
+        const errorCall = mockEventCallback.mock.calls.find(
+          (call) => call[0] === 'grpc:error'
+        );
+        expect(errorCall).toBeDefined();
+        expect(errorCall[3].error.message).toContain('Failed to parse message content');
+      });
+    });
+
+    describe('sendMessage with JSON5 comments', () => {
+      let mockConnection;
+
+      beforeEach(() => {
+        mockConnection = {
+          write: jest.fn((data, callback) => {
+            callback(null);
+          })
+        };
+        grpcClient.activeConnections.set('test-connection-id', mockConnection);
+      });
+
+      afterEach(() => {
+        grpcClient.activeConnections.clear();
+      });
+
+      test('should parse JSON5 with single-line comments in sendMessage', () => {
+        const body = '{\n  "name": "test" // This is a comment\n}';
+
+        grpcClient.sendMessage('test-connection-id', 'test-collection-uid', body);
+
+        expect(mockConnection.write).toHaveBeenCalledWith(
+          { name: 'test' },
+          expect.any(Function)
+        );
+        expect(mockEventCallback).not.toHaveBeenCalledWith(
+          'grpc:error',
+          expect.any(String),
+          expect.any(String),
+          expect.objectContaining({
+            error: expect.any(Error)
+          })
+        );
+      });
+
+      test('should parse JSON5 with multi-line comments in sendMessage', () => {
+        const body = '{\n  "name": "test", /* This is a\n     multi-line comment */\n  "age": 30\n}';
+
+        grpcClient.sendMessage('test-connection-id', 'test-collection-uid', body);
+
+        expect(mockConnection.write).toHaveBeenCalledWith(
+          { name: 'test', age: 30 },
+          expect.any(Function)
+        );
+        expect(mockEventCallback).not.toHaveBeenCalledWith(
+          'grpc:error',
+          expect.any(String),
+          expect.any(String),
+          expect.objectContaining({
+            error: expect.any(Error)
+          })
+        );
+      });
+
+      test('should parse JSON5 with trailing commas in sendMessage', () => {
+        const body = '{\n  "name": "test",\n  "age": 30,\n}';
+
+        grpcClient.sendMessage('test-connection-id', 'test-collection-uid', body);
+
+        expect(mockConnection.write).toHaveBeenCalledWith(
+          { name: 'test', age: 30 },
+          expect.any(Function)
+        );
+      });
+
+      test('should parse standard JSON in sendMessage (backward compatibility)', () => {
+        const body = '{"name": "test", "age": 30}';
+
+        grpcClient.sendMessage('test-connection-id', 'test-collection-uid', body);
+
+        expect(mockConnection.write).toHaveBeenCalledWith(
+          { name: 'test', age: 30 },
+          expect.any(Function)
+        );
+      });
+
+      test('should handle object body directly in sendMessage', () => {
+        const body = { name: 'test', age: 30 };
+
+        grpcClient.sendMessage('test-connection-id', 'test-collection-uid', body);
+
+        expect(mockConnection.write).toHaveBeenCalledWith(
+          body,
+          expect.any(Function)
+        );
+      });
+
+      test('should throw error for invalid JSON5 in sendMessage', () => {
+        const body = '{"name": "test" invalid}';
+
+        grpcClient.sendMessage('test-connection-id', 'test-collection-uid', body);
+
+        expect(mockConnection.write).not.toHaveBeenCalled();
+        expect(mockEventCallback).toHaveBeenCalledWith(
+          'grpc:error',
+          'test-connection-id',
+          'test-collection-uid',
+          expect.objectContaining({
+            error: expect.any(Error)
+          })
+        );
+      });
+
+      test('should throw error with descriptive message for invalid JSON5 in sendMessage', () => {
+        const body = '{"name": "test" invalid}';
+
+        grpcClient.sendMessage('test-connection-id', 'test-collection-uid', body);
+
+        const errorCall = mockEventCallback.mock.calls.find(
+          (call) => call[0] === 'grpc:error' && call[1] === 'test-connection-id'
+        );
+        expect(errorCall).toBeDefined();
+        expect(errorCall[3].error.message).toContain('Failed to parse request body');
+      });
+
+      test('should handle non-existent connection gracefully', () => {
+        const body = '{"name": "test"}';
+
+        grpcClient.sendMessage('non-existent-id', 'test-collection-uid', body);
+
+        expect(mockEventCallback).not.toHaveBeenCalled();
+      });
+    });
+  });
 });

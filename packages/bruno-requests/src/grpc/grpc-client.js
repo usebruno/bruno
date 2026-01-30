@@ -5,6 +5,7 @@ import { generateGrpcSampleMessage } from './grpcMessageGenerator';
 import * as tls from 'tls';
 import { isString } from 'lodash';
 import * as nodePath from 'node:path';
+import JSON5 from 'json5';
 
 /**
  * Configuration options for loading and parsing Protocol Buffers definitions.
@@ -52,15 +53,16 @@ const ensureBuffer = (data) => {
 };
 
 /**
- * Safely parse JSON string with error handling
- * @param {string} jsonString - The JSON string to parse
+ * Safely parse JSON5 string with error handling
+ * Supports JSON5 features including comments, trailing commas, and unquoted keys
+ * @param {string} jsonString - The JSON5 string to parse
  * @param {string} context - Context for error messages (e.g., 'message content', 'request body')
  * @returns {Object} Parsed object or throws error with context
- * @throws {Error} If JSON parsing fails
+ * @throws {Error} If JSON5 parsing fails
  */
 const safeJsonParse = (jsonString, context = 'JSON string') => {
   try {
-    return JSON.parse(jsonString);
+    return JSON5.parse(jsonString);
   } catch (error) {
     const errorMessage = `Failed to parse ${context}: ${error.message}`;
     console.error(errorMessage, { originalString: jsonString, parseError: error });
