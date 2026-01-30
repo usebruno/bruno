@@ -18,6 +18,10 @@ const StyledWrapper = styled.div`
       font-size: 0.8125rem;
     }
   }
+
+  .default-collection-location-input {
+    max-width: 28rem;
+  }
 `;
 
 export default StyledWrapper;
