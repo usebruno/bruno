@@ -487,7 +487,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }));
 
     // Save the request
-    await dispatch(saveRequest(item.uid, collectionUid, true));
+    await dispatch(saveRequest(item.uid, collectionUid));
 
     // Task middleware will track this and open the example in a new tab once the file is reloaded
     dispatch(insertTaskIntoQueue({
@@ -502,8 +502,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setCreateExampleModalOpen(false);
   };
 
-  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i) && !i.isTransient));
-  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
+  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i)));
+  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
 
   const handleGenerateCode = () => {
     if (
