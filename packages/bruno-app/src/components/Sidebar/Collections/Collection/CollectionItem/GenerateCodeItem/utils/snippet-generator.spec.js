@@ -608,82 +608,6 @@ describe('generateSnippet with edge-case bodies', () => {
   });
 });
 
-describe('generateSnippet – digest and NTLM auth curl export', () => {
-  const language = { target: 'shell', client: 'curl' };
-
-  const baseCollection = {
-    root: {
-      request: {
-        headers: [],
-        auth: { mode: 'none' }
-      }
-    }
-  };
-
-  it('should add --digest flag and --user for digest auth', () => {
-    const item = {
-      uid: 'digest-req',
-      request: {
-        method: 'GET',
-        url: 'https://example.com/api',
-        headers: [],
-        body: { mode: 'none' },
-        auth: {
-          mode: 'digest',
-          digest: {
-            username: 'myuser',
-            password: 'mypass'
-          }
-        }
-      }
-    };
-
-    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
-    expect(result).toMatch(/^curl --digest --user 'myuser:mypass'/);
-  });
-
-  it('should add --ntlm flag and --user for NTLM auth', () => {
-    const item = {
-      uid: 'ntlm-req',
-      request: {
-        method: 'GET',
-        url: 'https://example.com/api',
-        headers: [],
-        body: { mode: 'none' },
-        auth: {
-          mode: 'ntlm',
-          ntlm: {
-            username: 'myuser',
-            password: 'mypass'
-          }
-        }
-      }
-    };
-
-    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
-    expect(result).toMatch(/^curl --ntlm --user 'myuser:mypass'/);
-  });
-
-  it('should handle digest auth with username only (no password)', () => {
-    const item = {
-      uid: 'digest-no-pass',
-      request: {
-        method: 'GET',
-        url: 'https://example.com/api',
-        headers: [],
-        body: { mode: 'none' },
-        auth: {
-          mode: 'digest',
-          digest: {
-            username: 'myuser',
-            password: ''
-          }
-        }
-      }
-    };
-
-    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
-    expect(result).toMatch(/^curl --digest --user 'myuser'/);
 describe('generateSnippet with OAuth2 authentication', () => {
   const language = { target: 'shell', client: 'curl' };
   const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
@@ -901,5 +825,84 @@ describe('generateSnippet with OAuth2 authentication', () => {
         })
       ])
     );
+  });
+});
+
+describe('generateSnippet – digest and NTLM auth curl export', () => {
+  const language = { target: 'shell', client: 'curl' };
+
+  const baseCollection = {
+    root: {
+      request: {
+        headers: [],
+        auth: { mode: 'none' }
+      }
+    }
+  };
+
+  it('should add --digest flag and --user for digest auth', () => {
+    const item = {
+      uid: 'digest-req',
+      request: {
+        method: 'GET',
+        url: 'https://example.com/api',
+        headers: [],
+        body: { mode: 'none' },
+        auth: {
+          mode: 'digest',
+          digest: {
+            username: 'myuser',
+            password: 'mypass'
+          }
+        }
+      }
+    };
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toMatch(/^curl --digest --user 'myuser:mypass'/);
+  });
+
+  it('should add --ntlm flag and --user for NTLM auth', () => {
+    const item = {
+      uid: 'ntlm-req',
+      request: {
+        method: 'GET',
+        url: 'https://example.com/api',
+        headers: [],
+        body: { mode: 'none' },
+        auth: {
+          mode: 'ntlm',
+          ntlm: {
+            username: 'myuser',
+            password: 'mypass'
+          }
+        }
+      }
+    };
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toMatch(/^curl --ntlm --user 'myuser:mypass'/);
+  });
+
+  it('should handle digest auth with username only (no password)', () => {
+    const item = {
+      uid: 'digest-no-pass',
+      request: {
+        method: 'GET',
+        url: 'https://example.com/api',
+        headers: [],
+        body: { mode: 'none' },
+        auth: {
+          mode: 'digest',
+          digest: {
+            username: 'myuser',
+            password: ''
+          }
+        }
+      }
+    };
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toMatch(/^curl --digest --user 'myuser'/);
   });
 });
