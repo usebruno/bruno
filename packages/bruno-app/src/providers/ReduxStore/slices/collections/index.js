@@ -25,6 +25,33 @@ import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import * as exampleReducers from './exampleReducers';
 
+// Helper to find query string delimiter index, skipping ? inside {{...}} template blocks
+const findQueryStringDelimiterIndex = (url) => {
+  return url.replace(/\{\{.*?\}\}/g, (m) => '_'.repeat(m.length)).indexOf('?');
+};
+
+// Helper to split URL on query string delimiter, respecting template variables
+const splitUrlOnQueryString = (url) => {
+  const delimiterIndex = findQueryStringDelimiterIndex(url);
+  if (delimiterIndex === -1) {
+    return [url];
+  }
+  return [url.substring(0, delimiterIndex), url.substring(delimiterIndex + 1)];
+};
+
+// Helper to sync URL with enabled query params (reused in setQueryParams and file event handlers)
+const syncUrlWithQueryParams = (url, params) => {
+  if (!params) return url;
+  const enabledQueryParams = filter(params, (p) => p.type === 'query' && p.enabled);
+  const queryString = stringifyQueryParams(enabledQueryParams);
+  const parts = splitUrlOnQueryString(url);
+
+  if (queryString && queryString.length > 0) {
+    return `${parts[0]}?${queryString}`;
+  }
+  return parts[0];
+};
+
 // gRPC status code meanings
 const grpcStatusCodes = {
   0: 'OK',
@@ -1008,18 +1035,7 @@ export const collectionsSlice = createSlice({
       item.draft.request.params = [...newQueryParams, ...existingOtherParams];
 
       // Update the request URL to reflect the new query params
-      const parts = splitOnFirst(item.draft.request.url, '?');
-      const query = stringifyQueryParams(
-        filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
-      );
-
-      // If there are enabled query params, append them to the URL
-      if (query && query.length) {
-        item.draft.request.url = parts[0] + '?' + query;
-      } else {
-        // If no enabled query params, remove the query part from URL
-        item.draft.request.url = parts[0];
-      }
+      item.draft.request.url = syncUrlWithQueryParams(item.draft.request.url, item.draft.request.params);
     },
     moveQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -1047,13 +1063,7 @@ export const collectionsSlice = createSlice({
           item.draft.request.params = [...reorderedQueryParams, ...pathParams];
 
           // Update request URL
-          const parts = splitOnFirst(item.draft.request.url, '?');
-          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
-          if (query && query.length) {
-            item.draft.request.url = parts[0] + '?' + query;
-          } else {
-            item.draft.request.url = parts[0];
-          }
+          item.draft.request.url = syncUrlWithQueryParams(item.draft.request.url, item.draft.request.params);
         }
       }
     },
@@ -1078,27 +1088,7 @@ export const collectionsSlice = createSlice({
             queryParam.enabled = action.payload.queryParam.enabled;
 
             // update request url
-            const parts = splitOnFirst(item.draft.request.url, '?');
-            const query = stringifyQueryParams(
-              filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
-            );
-
-            // if no query is found, then strip the query params in url
-            if (!query || !query.length) {
-              if (parts.length) {
-                item.draft.request.url = parts[0];
-              }
-              return;
-            }
-
-            // if no parts were found, then append the query
-            if (!parts.length) {
-              item.draft.request.url += '?' + query;
-              return;
-            }
-
-            // control reaching here means the request has parts and query is present
-            item.draft.request.url = parts[0] + '?' + query;
+            item.draft.request.url = syncUrlWithQueryParams(item.draft.request.url, item.draft.request.params);
           }
         }
       }
@@ -1116,13 +1106,7 @@ export const collectionsSlice = createSlice({
           item.draft.request.params = filter(item.draft.request.params, (p) => p.uid !== action.payload.paramUid);
 
           // update request url
-          const parts = splitOnFirst(item.draft.request.url, '?');
-          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
-          if (query && query.length) {
-            item.draft.request.url = parts[0] + '?' + query;
-          } else {
-            item.draft.request.url = parts[0];
-          }
+          item.draft.request.url = syncUrlWithQueryParams(item.draft.request.url, item.draft.request.params);
         }
       }
     },
@@ -2616,12 +2600,19 @@ export const collectionsSlice = createSlice({
           // the add event might get triggered first, before the unlink event
           // this results in duplicate uids causing react renderer to go mad
           const currentItem = find(currentSubItems, (i) => i.uid === file.data.uid);
+
+          // Sync URL with enabled query params from file
+          const request = file.data.request;
+          if (request?.url && request?.params) {
+            request.url = syncUrlWithQueryParams(request.url, request.params);
+          }
+
           if (currentItem) {
             currentItem.name = file.data.name;
             currentItem.type = file.data.type;
             currentItem.seq = file.data.seq;
             currentItem.tags = file.data.tags;
-            currentItem.request = file.data.request;
+            currentItem.request = request;
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
             currentItem.settings = file.data.settings;
@@ -2639,7 +2630,7 @@ export const collectionsSlice = createSlice({
               type: file.data.type,
               seq: file.data.seq,
               tags: file.data.tags,
-              request: file.data.request,
+              request: request,
               settings: file.data.settings,
               examples: file.data.examples,
               filename: file.meta.name,
@@ -2736,11 +2727,17 @@ export const collectionsSlice = createSlice({
               item.draft = null;
             }
           } else {
+            // Sync URL with enabled query params from file
+            const request = file.data.request;
+            if (request?.url && request?.params) {
+              request.url = syncUrlWithQueryParams(request.url, request.params);
+            }
+
             item.name = file.data.name;
             item.type = file.data.type;
             item.seq = file.data.seq;
             item.tags = file.data.tags;
-            item.request = file.data.request;
+            item.request = request;
             item.settings = file.data.settings;
             item.examples = file.data.examples;
             item.filename = file.meta.name;
