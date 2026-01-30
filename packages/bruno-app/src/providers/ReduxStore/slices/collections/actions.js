@@ -82,7 +82,7 @@ import {
   mergeHeaders
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { buildPersistedEnvVariables } from 'utils/environments';
+import { buildPersistedEnvVariables, mergeEnvVariables, buildPersistedNames } from 'utils/environments';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -2206,7 +2206,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 };
 
 export const mergeAndPersistEnvironment
-  = ({ persistentEnvVariables, collectionUid }) =>
+  = ({ persistentEnvVariables, envVariables, collectionUid }) =>
     (_dispatch, getState) => {
       return new Promise((resolve, reject) => {
         const state = getState();
@@ -2232,39 +2232,9 @@ export const mergeAndPersistEnvironment
           return resolve();
         }
 
-        let existingVars = environment.variables || [];
-
-        let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => ({
-          uid: uuid(),
-          name,
-          value,
-          type: 'text',
-          enabled: true,
-          secret: false
-        }));
-
-        const merged = existingVars.map((v) => {
-          const found = normalizedNewVars.find((nv) => nv.name === v.name);
-          if (found) {
-            return { ...v, value: found.value };
-          }
-          return v;
-        });
-        normalizedNewVars.forEach((nv) => {
-          if (!merged.some((v) => v.name === nv.name)) {
-            merged.push(nv);
-          }
-        });
-
-        // Save all non-ephemeral vars and all variables that were previously persisted
-        const persistedNames = new Set(Object.keys(persistentEnvVariables));
-
-        // Add all existing non-ephemeral variables to persistedNames so they are preserved
-        existingVars.forEach((v) => {
-          if (!v.ephemeral) {
-            persistedNames.add(v.name);
-          }
-        });
+        const existingVars = environment.variables || [];
+        const merged = mergeEnvVariables(existingVars, persistentEnvVariables);
+        const persistedNames = buildPersistedNames(persistentEnvVariables, existingVars, envVariables);
 
         const environmentToSave = cloneDeep(environment);
         environmentToSave.variables = buildPersistedEnvVariables(merged, { mode: 'merge', persistedNames });
