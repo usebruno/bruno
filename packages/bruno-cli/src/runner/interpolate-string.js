@@ -7,13 +7,15 @@ const buildCombinedVars = ({
   folderVariables,
   requestVariables,
   runtimeVariables,
-  processEnvVars
+  processEnvVars,
+  globalEnvVars
 }) => {
   processEnvVars = processEnvVars || {};
   runtimeVariables = runtimeVariables || {};
   collectionVariables = collectionVariables || {};
   folderVariables = folderVariables || {};
   requestVariables = requestVariables || {};
+  globalEnvVars = globalEnvVars || {};
 
   // we clone envVars because we don't want to modify the original object
   envVars = envVars ? cloneDeep(envVars) : {};
@@ -32,6 +34,7 @@ const buildCombinedVars = ({
 
   // runtimeVariables take precedence over envVars
   return {
+    ...globalEnvVars,
     ...collectionVariables,
     ...envVars,
     ...folderVariables,
