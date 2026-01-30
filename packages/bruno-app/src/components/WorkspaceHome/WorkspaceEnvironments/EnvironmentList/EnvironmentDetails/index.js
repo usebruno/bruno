@@ -124,13 +124,11 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
 
   const handleClearSearch = () => {
     setSearchQuery('');
-    setIsSearchExpanded(false);
   };
 
-  const handleSearchKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      handleClearSearch();
+  const handleSearchBlur = () => {
+    if (searchQuery === '') {
+      setIsSearchExpanded(false);
     }
   };
 
@@ -197,20 +195,23 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
                 placeholder="Search variables..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
+                onBlur={handleSearchBlur}
                 className="search-input"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
               />
-              <button
-                className="clear-search"
-                onClick={handleClearSearch}
-                title="Clear search"
-              >
-                <IconX size={14} strokeWidth={1.5} />
-              </button>
+              {searchQuery && (
+                <button
+                  className="clear-search"
+                  onClick={handleClearSearch}
+                  onMouseDown={(e) => e.preventDefault()}
+                  title="Clear search"
+                >
+                  <IconX size={14} strokeWidth={1.5} />
+                </button>
+              )}
             </div>
           ) : (
             <button onClick={handleSearchIconClick} title="Search variables">
