@@ -94,7 +94,7 @@ const Beta = ({ close }) => {
   return (
     <StyledWrapper>
       <div className="section-header">Beta Features</div>
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+      <form onSubmit={formik.handleSubmit}>
         <div className="mb-6">
           <p className="text-gray-500 dark:text-gray-400 mb-4 text-wrap">
             Beta features are experimental previews that may change before full release. Try them and share feedback.
