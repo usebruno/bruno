@@ -97,14 +97,14 @@ const StyledWrapper = styled.div`
       align-items: center;
       gap: 2px;
 
-      .search-container {
+      .search-input-wrapper {
         position: relative;
-        top: 6px;
         display: flex;
         align-items: center;
 
         .search-icon {
           position: absolute;
+          left: 8px;
           color: ${(props) => props.theme.colors.text.muted};
           pointer-events: none;
         }
@@ -132,7 +132,7 @@ const StyledWrapper = styled.div`
 
         .clear-search {
           position: absolute;
-          right: 8px;
+          right: 1px;
           padding: 4px;
           display: flex;
           align-items: center;

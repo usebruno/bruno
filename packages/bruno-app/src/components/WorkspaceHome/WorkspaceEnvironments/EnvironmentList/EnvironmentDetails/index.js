@@ -20,8 +20,10 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
   const [newName, setNewName] = useState('');
   const [nameError, setNameError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const inputRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   const validateEnvironmentName = (name) => {
     if (!name || name.trim() === '') {
@@ -113,6 +115,23 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
     }
   };
 
+  const handleSearchIconClick = () => {
+    setIsSearchExpanded(true);
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 50);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+  };
+
+  const handleSearchBlur = () => {
+    if (searchQuery === '') {
+      setIsSearchExpanded(false);
+    }
+  };
+
   return (
     <StyledWrapper>
       {openDeleteModal && (
@@ -167,29 +186,38 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}
         <div className="actions">
-          <div className="search-container">
-            <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search variables..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-            />
-            {searchQuery && (
-              <button
-                className="clear-search"
-                onClick={() => setSearchQuery('')}
-                title="Clear search"
-              >
-                <IconX size={14} strokeWidth={1.5} />
-              </button>
-            )}
-          </div>
+          {isSearchExpanded ? (
+            <div className="search-input-wrapper">
+              <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search variables..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onBlur={handleSearchBlur}
+                className="search-input"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+              />
+              {searchQuery && (
+                <button
+                  className="clear-search"
+                  onClick={handleClearSearch}
+                  onMouseDown={(e) => e.preventDefault()}
+                  title="Clear search"
+                >
+                  <IconX size={14} strokeWidth={1.5} />
+                </button>
+              )}
+            </div>
+          ) : (
+            <button onClick={handleSearchIconClick} title="Search variables">
+              <IconSearch size={15} strokeWidth={1.5} />
+            </button>
+          )}
           <button onClick={handleRenameClick} title="Rename">
             <IconEdit size={15} strokeWidth={1.5} />
           </button>
