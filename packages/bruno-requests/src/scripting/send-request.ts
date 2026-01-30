@@ -20,35 +20,38 @@ type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'>;
  * @returns A sendRequest function that applies the config to each request
  */
 const createSendRequest = (config?: SendRequestConfig) => {
-  return async (requestConfig: AxiosRequestConfig, callback?: T_SendRequestCallback) => {
-    const mergedConfig: AxiosRequestConfig = { ...requestConfig };
+  return async (requestConfig: AxiosRequestConfig | string, callback?: T_SendRequestCallback) => {
+    // Handle case where requestConfig is a URL string
+    const normalizedConfig: AxiosRequestConfig = typeof requestConfig === 'string'
+      ? { url: requestConfig }
+      : { ...requestConfig };
 
     // If config is provided, create agents with the request URL for proper proxy bypass
     if (config) {
-      const requestUrl = typeof requestConfig.url === 'string' ? requestConfig.url : undefined;
+      const requestUrl = normalizedConfig.url;
 
       const { httpAgent, httpsAgent } = await getHttpHttpsAgents({
         ...config,
         requestUrl
       });
 
-      // Apply agents if not explicitly set in requestConfig
-      if (httpAgent && !requestConfig.httpAgent) {
-        mergedConfig.httpAgent = httpAgent;
+      // Apply agents if not explicitly set in normalizedConfig
+      if (httpAgent && !normalizedConfig.httpAgent) {
+        normalizedConfig.httpAgent = httpAgent;
       }
-      if (httpsAgent && !requestConfig.httpsAgent) {
-        mergedConfig.httpsAgent = httpsAgent;
+      if (httpsAgent && !normalizedConfig.httpsAgent) {
+        normalizedConfig.httpsAgent = httpsAgent;
       }
     }
 
     const axiosInstance = makeAxiosInstance();
 
     if (!callback) {
-      return await axiosInstance(mergedConfig);
+      return await axiosInstance(normalizedConfig);
     }
 
     try {
-      const response = await axiosInstance(mergedConfig);
+      const response = await axiosInstance(normalizedConfig);
       try {
         await callback(null, response);
         return response;

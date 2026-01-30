@@ -40,6 +40,20 @@ describe('sendRequest', () => {
 
       await expect(sendRequest({ url: 'http://example.com' })).rejects.toThrow('Network error');
     });
+
+    test('should handle URL string instead of config object', async () => {
+      const mockResponse = { data: 'pong', status: 200 };
+      mockAxios.mockResolvedValue(mockResponse);
+
+      const result = await sendRequest('http://example.com/ping');
+
+      expect(result).toBe(mockResponse);
+      expect(mockAxios).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'http://example.com/ping'
+        })
+      );
+    });
   });
 
   describe('with callback', () => {
@@ -153,5 +167,32 @@ describe('createSendRequest', () => {
     await customSendRequest({ url: 'https://example.com' });
 
     expect(mockGetHttpHttpsAgents).not.toHaveBeenCalled();
+  });
+
+  test('should handle URL string and apply agents from config', async () => {
+    const mockHttpAgent = { name: 'httpAgent' };
+    const mockHttpsAgent = { name: 'httpsAgent' };
+    mockGetHttpHttpsAgents.mockResolvedValue({
+      httpAgent: mockHttpAgent,
+      httpsAgent: mockHttpsAgent
+    });
+    const mockResponse = { data: 'pong' };
+    mockAxios.mockResolvedValue(mockResponse);
+
+    const customSendRequest = createSendRequest({ collectionPath: '/test' });
+    const result = await customSendRequest('https://example.com/ping');
+
+    expect(result).toBe(mockResponse);
+    expect(mockGetHttpHttpsAgents).toHaveBeenCalledWith({
+      collectionPath: '/test',
+      requestUrl: 'https://example.com/ping'
+    });
+    expect(mockAxios).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://example.com/ping',
+        httpAgent: mockHttpAgent,
+        httpsAgent: mockHttpsAgent
+      })
+    );
   });
 });
