@@ -186,12 +186,21 @@ export const buildGrpcCommonLocators = (page: Page) => ({
   },
   request: {
     queryUrlContainer: () => page.getByTestId('grpc-query-url-container'),
+    // For unary and server-streaming methods
     sendButton: () => page.getByTestId('grpc-send-request-button'),
+    // For client-streaming and bidi-streaming methods (two separate buttons)
+    connectButton: () => page.getByTestId('grpc-connect-only'),
+    connectAndSendButton: () => page.getByTestId('grpc-connect-and-send'),
     messagesContainer: () => page.getByTestId('grpc-messages-container'),
     addMessageButton: () => page.getByTestId('grpc-add-message-button'),
     sendMessage: (index: number) => page.getByTestId(`grpc-send-message-${index}`),
+    // Connection controls (when connected)
     endConnectionButton: () => page.getByTestId('grpc-end-connection-button'),
-    cancelConnectionButton: () => page.getByTestId('grpc-cancel-connection-button')
+    cancelConnectionButton: () => page.getByTestId('grpc-cancel-connection-button'),
+    // Send message dropdown (when connected for client/bidi streaming)
+    sendMessageDropdownTrigger: () => page.getByTestId('grpc-send-message-dropdown-trigger'),
+    sendFirstMessageOption: () => page.getByTestId('grpc-send-first-message'),
+    sendAllMessagesOption: () => page.getByTestId('grpc-send-all-messages')
   },
   response: {
     statusCode: () => page.getByTestId('grpc-response-status-code'),

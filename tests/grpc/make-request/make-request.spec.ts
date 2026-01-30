@@ -114,11 +114,13 @@ test.describe('make grpc requests', () => {
       await expect(locators.request.messagesContainer()).toBeVisible();
       await expect(locators.request.addMessageButton()).toBeVisible();
       await expect(locators.request.sendMessage(0)).toBeVisible();
-      await expect(locators.request.sendButton()).toBeVisible();
+      // For client-streaming, there are two buttons: Connect and Connect & Send
+      await expect(locators.request.connectButton()).toBeVisible();
+      await expect(locators.request.connectAndSendButton()).toBeVisible();
     });
 
-    await test.step('start client streaming connection', async () => {
-      await locators.request.sendButton().click();
+    await test.step('start client streaming connection (interactive mode)', async () => {
+      await locators.request.connectButton().click();
       await expect(locators.request.endConnectionButton()).toBeVisible();
     });
 
@@ -164,11 +166,13 @@ test.describe('make grpc requests', () => {
       await expect(locators.request.messagesContainer()).toBeVisible();
       await expect(locators.request.addMessageButton()).toBeVisible();
       await expect(locators.request.sendMessage(0)).toBeVisible();
-      await expect(locators.request.sendButton()).toBeVisible();
+      // For bidi-streaming, there are two buttons: Connect and Connect & Send
+      await expect(locators.request.connectButton()).toBeVisible();
+      await expect(locators.request.connectAndSendButton()).toBeVisible();
     });
 
-    await test.step('start bidirectional streaming connection', async () => {
-      await locators.request.sendButton().click();
+    await test.step('start bidirectional streaming connection (interactive mode)', async () => {
+      await locators.request.connectButton().click();
       await expect(locators.request.endConnectionButton()).toBeVisible();
     });
 
@@ -199,6 +203,81 @@ test.describe('make grpc requests', () => {
     /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
     await test.step('save request via shortcut', async () => {
       await page.keyboard.press(saveShortcut);
+    });
+  });
+
+  test('make client streaming request with connect & send (atomic mode)', async ({ pageWithUserData: page }) => {
+    await setupGrpcTest(page);
+    const locators = buildGrpcCommonLocators(page);
+
+    await test.step('select client streaming method', async () => {
+      await locators.sidebar.request('LotOfGreetings').click();
+      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/LotsOfGreetings');
+    });
+
+    await test.step('verify Connect & Send button is visible', async () => {
+      await expect(locators.request.connectAndSendButton()).toBeVisible();
+    });
+
+    await test.step('click Connect & Send to send all messages atomically', async () => {
+      await locators.request.connectAndSendButton().click();
+      await expect(locators.response.statusCode()).toBeVisible({ timeout: 5000 });
+      await expect(locators.response.statusText()).toBeVisible({ timeout: 5000 });
+      await expect(locators.response.statusCode()).toHaveText(/0/);
+      await expect(locators.response.statusText()).toHaveText(/OK/);
+    });
+
+    await test.step('verify response message count', async () => {
+      await expect(locators.response.tabCount()).toHaveText('1');
+    });
+
+    await test.step('verify response items are rendered', async () => {
+      await expect(locators.response.content()).toBeVisible();
+      await expect(locators.response.container()).toBeVisible();
+      await expect(locators.response.singleResponse()).toBeVisible();
+    });
+
+    /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
+    await test.step('save request via shortcut', async () => {
+      await page.keyboard.press('Meta+s');
+    });
+  });
+
+  test('make bidi streaming request with connect & send (atomic mode)', async ({ pageWithUserData: page }) => {
+    await setupGrpcTest(page);
+    const locators = buildGrpcCommonLocators(page);
+
+    await test.step('select bidirectional streaming method', async () => {
+      await locators.sidebar.request('BidiHello').click();
+      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/BidiHello');
+    });
+
+    await test.step('verify Connect & Send button is visible', async () => {
+      await expect(locators.request.connectAndSendButton()).toBeVisible();
+    });
+
+    await test.step('click Connect & Send to send all messages atomically', async () => {
+      await locators.request.connectAndSendButton().click();
+      await expect(locators.response.statusCode()).toBeVisible({ timeout: 5000 });
+      await expect(locators.response.statusText()).toBeVisible({ timeout: 5000 });
+      await expect(locators.response.statusCode()).toHaveText(/0/);
+      await expect(locators.response.statusText()).toHaveText(/OK/);
+    });
+
+    await test.step('verify response message count', async () => {
+      await expect(locators.response.tabCount()).toHaveText('2');
+    });
+
+    await test.step('verify response items are rendered', async () => {
+      await expect(locators.response.content()).toBeVisible();
+      await expect(locators.response.container()).toBeVisible();
+      await expect(locators.response.list()).toBeVisible();
+      await expect(locators.response.responseItems()).toHaveCount(2);
+    });
+
+    /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
+    await test.step('save request via shortcut', async () => {
+      await page.keyboard.press('Meta+s');
     });
   });
 });
