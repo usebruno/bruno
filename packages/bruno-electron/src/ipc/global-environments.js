@@ -99,6 +99,19 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
       return Promise.reject(error);
     }
   });
+
+  ipcMain.handle('renderer:update-global-environment-color', async (event, { environmentUid, color, workspacePath }) => {
+    try {
+      if (workspacePath && workspaceEnvironmentsManager) {
+        return await workspaceEnvironmentsManager.updateGlobalEnvironmentColorByPath(workspacePath, { environmentUid, color });
+      }
+
+      globalEnvironmentsStore.updateGlobalEnvironmentColor({ environmentUid, color });
+    } catch (error) {
+      console.error('Error in renderer:update-global-environment-color:', error);
+      return Promise.reject(error);
+    }
+  });
 };
 
 module.exports = registerGlobalEnvironmentsIpc;

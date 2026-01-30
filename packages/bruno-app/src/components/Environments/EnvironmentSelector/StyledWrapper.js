@@ -5,19 +5,14 @@ const Wrapper = styled.div`
     border-radius: ${(props) => props.theme.border.radius.base};
     padding: 0.25rem 0.3rem 0.25rem 0.5rem;
     user-select: none;
-    background-color: ${(props) => props.color ? undefined : 'transparent'};
-    border: 2px solid ${(props) => props.color ?? props.theme.dropdown.selectedColor};
+    background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.bg};
+    border: 1px solid ${(props) => props.theme.app.collection.toolbar.environmentSelector.border};
     line-height: 1rem;
     transition: all 0.15s ease;
 
     &:hover {
       border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBorder};
       background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBg};
-    }
-
-    .active-env-toolhint {
-      display: flex;
-      flex-direction: row;
     }
 
     .caret {
@@ -29,18 +24,16 @@ const Wrapper = styled.div`
 
     .env-icon {
       margin-right: 0.25rem;
-      color: ${(props) => props.color ?? props.theme.dropdown.selectedColor};
+      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.icon};
     }
 
     .env-text {
-      color: ${(props) => props.color ?? props.theme.dropdown.selectedColor};
-      font-size: ${(props) => props.theme.font.size.base};
+      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.text};
       display: block;
     }
 
     .env-separator {
-      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.separator};
-      margin: 0 0.35rem;
+      background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.separator};
     }
 
     .env-text-inactive {
@@ -69,37 +62,6 @@ const Wrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.base};
     position: relative;
     overflow: hidden;
-  }
-
-  .tippy-box .tippy-content {
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-
-    .dropdown-item {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      column-gap: 0.35em;
-      padding: 0.35rem 0.6rem;
-      cursor: pointer;
-      font-size: ${(props) => props.theme.font.size.base};
-      color: ${(props) => props.theme.dropdown.primaryText};
-
-      &:hover:not(:disabled) {
-        background-color: ${(props) => props.theme.dropdown.hoverBg};
-      }
-
-      &.active {
-        background-color: ${(props) => props.theme.dropdown.selectedBg};
-        color: ${(props) => props.color ?? props.theme.dropdown.selectedColor} !important;
-      }
-
-      &.no-environment {
-        color: ${(props) => props.theme.dropdown.mutedText};
-      }
-    }
   }
 
   .configure-button {

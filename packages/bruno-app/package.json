@@ -18,7 +18,6 @@
     "@tabler/icons": "^1.46.0",
     "@testing-library/user-event": "^14.6.1",
     "@tippyjs/react": "^4.2.6",
-    "@uiw/react-color": "^2.9.2",
     "@usebruno/common": "0.1.0",
     "@usebruno/graphql-docs": "0.1.0",
     "@usebruno/schema": "0.7.0",

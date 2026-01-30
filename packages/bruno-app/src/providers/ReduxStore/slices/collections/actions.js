@@ -36,7 +36,6 @@ import {
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
   moveCollection,
-  saveEnvironmentColor as _saveEnvironmentColor,
   workspaceEnvUpdateEvent,
   requestCancelled,
   resetRunResults,
@@ -50,6 +49,7 @@ import {
   updateActiveConnections,
   saveRequest as _saveRequest,
   saveEnvironment as _saveEnvironment,
+  updateEnvironmentColor as _updateEnvironmentColor,
   saveCollectionDraft,
   saveFolderDraft,
   addVar,
@@ -1931,6 +1931,31 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
   });
 };
 
+export const updateEnvironmentColor = (environmentUid, color, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
+    if (!environment) {
+      return reject(new Error('Environment not found'));
+    }
+
+    environment.color = color;
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:update-environment-color', collection.pathname, environment.name, color)
+      .then(() => {
+        dispatch(_updateEnvironmentColor({ environmentUid, color, collectionUid }));
+        resolve();
+      })
+      .catch(reject);
+  });
+};
+
 /**
  * Update a variable value directly in the file without affecting draft state
  * @param {string} pathname - File path
@@ -2252,27 +2277,6 @@ export const mergeAndPersistEnvironment
           .catch(reject);
       });
     };
-
-export const saveEnvironmentColor = (color, environmentUid, collectionUid) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
-    const collection =
-      findCollectionByUid(getState().collections.collections, collectionUid) ??
-      reject(new Error('Collection not found'));
-    const environment =
-      findEnvironmentInCollection(collection, environmentUid) ?? reject(new Error('Environment not found'));
-    const updatedEnvironment = { ...environment, color: color };
-
-    const { ipcRenderer } = window;
-    environmentSchema
-      .validate(updatedEnvironment)
-      // save to file
-      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, updatedEnvironment))
-      // update store
-      .then(() => dispatch(_saveEnvironmentColor({ color, environmentUid, collectionUid })))
-      .then(resolve)
-      .catch(reject);
-  });
-};
 
 export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {

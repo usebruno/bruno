@@ -1,14 +1,13 @@
 import { IconCopy, IconEdit, IconTrash, IconCheck, IconX } from '@tabler/icons';
 import { useState, useRef } from 'react';
 import { useDispatch } from 'react-redux';
-import { renameEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { renameEnvironment, updateEnvironmentColor } from 'providers/ReduxStore/slices/collections/actions';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import CopyEnvironment from 'components/Environments/EnvironmentSettings/CopyEnvironment';
 import DeleteEnvironment from 'components/Environments/EnvironmentSettings/DeleteEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
-import EnvironmentColor from '../EnvironmentDetails/EnvironmentColor';
-import ToolHint from 'components/ToolHint/index';
+import ColorPicker from 'components/ColorPicker';
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
@@ -113,6 +112,16 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
     }
   };
 
+  const handleColorChange = (color) => {
+    dispatch(updateEnvironmentColor(environment.uid, color, collection.uid))
+      .then(() => {
+        toast.success('Environment color updated!');
+      })
+      .catch(() => {
+        toast.error('An error occurred while updating the environment color');
+      });
+  };
+
   return (
     <StyledWrapper>
       {openDeleteModal && (
@@ -121,6 +130,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
       {openCopyModal && (
         <CopyEnvironment onClose={() => setOpenCopyModal(false)} environment={environment} collection={collection} />
       )}
+
       <div className="header">
         <div className={`title-container ${isRenaming ? 'renaming' : ''}`}>
           {isRenaming ? (
@@ -158,7 +168,10 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
               </div>
             </>
           ) : (
-            <h2 className="title">{environment.name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="title">{environment.name}</h2>
+              <ColorPicker color={environment.color} onChange={handleColorChange} />
+            </div>
           )}
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}
@@ -175,8 +188,9 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
         </div>
       </div>
 
-      <EnvironmentColor environment={environment} collectionUid={collection.uid} />
-      <EnvironmentVariables environment={environment} collection={collection} setIsModified={setIsModified} onClose={onClose} />
+      <div className="content">
+        <EnvironmentVariables environment={environment} setIsModified={setIsModified} collection={collection} />
+      </div>
     </StyledWrapper>
   );
 };

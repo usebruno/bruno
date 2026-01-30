@@ -620,6 +620,28 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  // update environment color
+  ipcMain.handle('renderer:update-environment-color', async (event, collectionPathname, environmentName, color) => {
+    try {
+      const format = getCollectionFormat(collectionPathname);
+      const envDirPath = path.join(collectionPathname, 'environments');
+      const envFilePath = path.join(envDirPath, `${environmentName}.${format}`);
+
+      if (!fs.existsSync(envFilePath)) {
+        throw new Error(`environment: ${envFilePath} does not exist`);
+      }
+
+      // Read, update color, and write back to file
+      const fileContent = fs.readFileSync(envFilePath, 'utf8');
+      const environment = parseEnvironment(fileContent, { format });
+      environment.color = color;
+      const updatedContent = stringifyEnvironment(environment, { format });
+      fs.writeFileSync(envFilePath, updatedContent, 'utf8');
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // Generic environment export handler
   ipcMain.handle('renderer:export-environment', async (event, { environments, environmentType, filePath, exportFormat = 'folder' }) => {
     try {
