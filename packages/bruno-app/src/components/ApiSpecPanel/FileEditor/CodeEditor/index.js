@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import { focusAddressBar } from 'utils/common/keybinding-commons';
 import StyledWrapper from './StyledWrapper';
 import yamlPlugin from './Plugins/Yaml/index';
 
@@ -67,6 +68,8 @@ export default class CodeEditor extends React.Component {
             this.props.onSave();
           }
         },
+        'Cmd-L': focusAddressBar, // making ready for any future feature like split panes
+        'Ctrl-L': focusAddressBar, // making ready for any future feature like split panes
         'Cmd-F': 'findPersistent',
         'Ctrl-F': 'findPersistent',
         'Cmd-H': 'replace',
