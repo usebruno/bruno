@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import { uuid } from 'utils/common';
@@ -312,7 +312,7 @@ const EditableTable = ({
           className="mousetrap"
           value={value || ''}
           readOnly={column.readOnly}
-          placeholder={isEmpty ? column.placeholder || column.name : ''}
+          placeholder={!value ? column.placeholder || column.name : ''}
           onChange={(e) => handleValueChange(row.uid, column.key, e.target.value)}
         />
         {errorIcon}

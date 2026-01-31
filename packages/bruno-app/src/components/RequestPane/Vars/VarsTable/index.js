@@ -61,7 +61,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -70,7 +70,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
-          placeholder={isLastEmptyRow ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+          placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
         />
       )
     }
