@@ -1,6 +1,11 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  
   .settings-label {
     width: 100px;
   }
@@ -37,6 +42,7 @@ const StyledWrapper = styled.div`
     .system-proxy-error-container {
       background: ${(props) => props.theme.status.danger.background};
       border: 1px solid ${(props) => props.theme.status.danger.border};
+      width: fit-content;
     }
 
     .system-proxy-error-text {

@@ -1,6 +1,11 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  
   table {
     width: 80%;
     border-collapse: collapse;
