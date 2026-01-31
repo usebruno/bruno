@@ -338,7 +338,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       }
     };
 
-    const batchAggregator = getAggregator(win);
+    const batchAggregator = getAggregator(win, collectionUid);
 
     try {
       const fileStats = await fsPromises.stat(pathname);
@@ -455,7 +455,7 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
     }
   };
 
-  const batchAggregator = getAggregator(win);
+  const batchAggregator = getAggregator(win, collectionUid);
   batchAggregator.add('addDir', directory);
 };
 
@@ -682,7 +682,7 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {
-  const batchAggregator = getAggregator(win);
+  const batchAggregator = getAggregator(win, collectionUid);
   batchAggregator.flush();
 
   watcher.completeCollectionDiscovery(win, collectionUid);

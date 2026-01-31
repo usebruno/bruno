@@ -224,7 +224,8 @@ class ParsedFileCacheStore {
     }
 
     try {
-      const prefix = `${collectionPath}\0${dirPath}`;
+      const normalizedDirPath = dirPath.endsWith(path.sep) ? dirPath : `${dirPath}${path.sep}`;
+      const prefix = `${collectionPath}\0${normalizedDirPath}`;
       const keysToDelete = [];
 
       // Find all keys that start with this directory prefix
