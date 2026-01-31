@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { IconRegex, IconArrowUp, IconArrowDown, IconX, IconLetterCase, IconLetterW } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
@@ -8,7 +8,7 @@ function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
 }
 
-const CodeMirrorSearch = ({ editor, visible, focusTrigger, onClose }) => {
+const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   const [searchText, setSearchText] = useState('');
   const [regex, setRegex] = useState(false);
   const [caseSensitive, setCaseSensitive] = useState(false);
@@ -107,16 +107,18 @@ const CodeMirrorSearch = ({ editor, visible, focusTrigger, onClose }) => {
     }
   }, [debouncedSearchText, regex, caseSensitive, wholeWord, editor, memoizedMatches]);
 
-  useEffect(() => {
-    if (visible && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
     }
-  }, [visible, focusTrigger]); // Focus only on open/hotkey
+  }));
 
   useEffect(() => {
     doSearch(0, debouncedSearchText);
-  }, [debouncedSearchText, doSearch, visible, focusTrigger]);
+  }, [debouncedSearchText, doSearch]);
 
   const handleSearchBarClose = useCallback(() => {
     searchMarks.current.forEach((mark) => mark.clear());
@@ -205,6 +207,6 @@ const CodeMirrorSearch = ({ editor, visible, focusTrigger, onClose }) => {
       </div>
     </StyledWrapper>
   );
-};
+});
 
 export default CodeMirrorSearch;

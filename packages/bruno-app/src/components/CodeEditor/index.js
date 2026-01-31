@@ -5,7 +5,7 @@
  *  LICENSE file in the root directory of this source tree.
  */
 
-import React from 'react';
+import React, { createRef } from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete, showRootHints } from 'utils/codemirror/autocomplete';
@@ -16,7 +16,7 @@ import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
-import CodeMirrorSearch from 'components/CodeMirrorSearch';
+import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
@@ -34,6 +34,7 @@ export default class CodeEditor extends React.Component {
     this.cachedValue = props.value || '';
     this.variables = {};
     this.searchResultsCountElementId = 'search-results-count';
+    this.searchBarRef = createRef();
 
     this.lintOptions = {
       esversion: 11,
@@ -43,8 +44,7 @@ export default class CodeEditor extends React.Component {
     };
 
     this.state = {
-      searchBarVisible: false,
-      searchFocusTrigger: null
+      searchBarVisible: false
     };
   }
 
@@ -95,10 +95,14 @@ export default class CodeEditor extends React.Component {
           }
         },
         'Cmd-F': (cm) => {
-          this.setState({ searchBarVisible: true, searchFocusTrigger: new Date() });
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+          });
         },
         'Ctrl-F': (cm) => {
-          this.setState({ searchBarVisible: true, searchFocusTrigger: new Date() });
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+          });
         },
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
@@ -306,9 +310,9 @@ export default class CodeEditor extends React.Component {
         fontSize={this.props.fontSize}
       >
         <CodeMirrorSearch
-          editor={this.editor}
+          ref={this.searchBarRef}
           visible={this.state.searchBarVisible}
-          focusTrigger={this.state.searchFocusTrigger}
+          editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}
         />
         <div
