@@ -23,7 +23,7 @@ describe('OpenAPI with Examples', () => {
     // Check specific examples
     const successExample = getUsersRequest.examples.find((ex) => ex.name === 'Success Response');
     expect(successExample).toBeDefined();
-    expect(successExample.response.status).toBe('200');
+    expect(successExample.response.status).toEqual(200);
     expect(successExample.response.statusText).toBe('OK');
     expect(successExample.response.headers).toHaveLength(1);
     expect(successExample.response.headers[0].name).toBe('Content-Type');
@@ -36,17 +36,17 @@ describe('OpenAPI with Examples', () => {
     });
 
     const emptyExample = getUsersRequest.examples.find((ex) => ex.name === 'Empty Response');
-    expect(emptyExample.response.status).toBe('200');
+    expect(emptyExample.response.status).toEqual(200);
     expect(JSON.parse(emptyExample.response.body.content)).toEqual({ users: [] });
 
     const validationErrorExample = getUsersRequest.examples.find((ex) => ex.name === 'Validation Error');
     expect(validationErrorExample).toBeDefined();
-    expect(validationErrorExample.response.status).toBe('400');
+    expect(validationErrorExample.response.status).toEqual(400);
     expect(validationErrorExample.response.statusText).toBe('Bad Request');
 
     const serverErrorExample = getUsersRequest.examples.find((ex) => ex.name === 'Server Error');
     expect(serverErrorExample).toBeDefined();
-    expect(serverErrorExample.response.status).toBe('500');
+    expect(serverErrorExample.response.status).toEqual(500);
     expect(serverErrorExample.response.statusText).toBe('Internal Server Error');
 
     // Test POST /users endpoint
@@ -58,7 +58,7 @@ describe('OpenAPI with Examples', () => {
     // Check response examples
     const createdExample = createUserRequest.examples.find((ex) => ex.name === 'User Created (Valid User)');
     expect(createdExample).toBeDefined();
-    expect(createdExample.response.status).toBe('201');
+    expect(createdExample.response.status).toEqual(201);
     expect(createdExample.response.statusText).toBe('Created');
     expect(JSON.parse(createdExample.response.body.content)).toEqual({
       id: 123,
@@ -80,7 +80,7 @@ paths:
       summary: 'Get data'
       operationId: 'getData'
       responses:
-        '200':
+        200:
           description: 'Successful response'
           content:
             application/json:
@@ -126,7 +126,7 @@ paths:
       summary: 'Test endpoint'
       operationId: 'test'
       responses:
-        '200':
+        200:
           description: 'OK'
           content:
             application/json:
@@ -161,7 +161,7 @@ paths:
       summary: 'Test endpoint'
       operationId: 'test'
       responses:
-        '200':
+        200:
           description: 'OK'
           content:
             application/json:
@@ -193,7 +193,7 @@ paths:
       summary: 'Get all users'
       operationId: 'getUsers'
       responses:
-        '200':
+        200:
           description: 'OK'
           content:
             application/json:
@@ -206,7 +206,7 @@ paths:
       summary: 'Create user'
       operationId: 'createUser'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -220,7 +220,7 @@ paths:
       summary: 'Get all products'
       operationId: 'getProducts'
       responses:
-        '200':
+        200:
           description: 'OK'
           content:
             application/json:
@@ -272,7 +272,7 @@ paths:
       operationId: 'getUsers'
       tags: ['Users']
       responses:
-        '200':
+        200:
           description: 'OK'
   /products:
     get:
@@ -280,7 +280,7 @@ paths:
       operationId: 'getProducts'
       tags: ['Products']
       responses:
-        '200':
+        200:
           description: 'OK'
 servers:
   - url: 'https://api.example.com'
@@ -334,7 +334,7 @@ paths:
                   name: ''
                   email: 'invalid'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -409,7 +409,7 @@ paths:
                   name: ''
                   email: 'invalid'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -418,7 +418,7 @@ paths:
                   summary: 'User Created'
                   value:
                     id: 123
-        '400':
+        400:
           description: 'Bad Request'
           content:
             application/json:
@@ -441,7 +441,7 @@ servers:
       // Check combinations for 201 response
       const createdWithValid = request.examples.find((ex) => ex.name === 'User Created (Valid User)');
       expect(createdWithValid).toBeDefined();
-      expect(createdWithValid.response.status).toBe('201');
+      expect(createdWithValid.response.status).toEqual(201);
       expect(JSON.parse(createdWithValid.request.body.json)).toEqual({
         name: 'John Doe',
         email: 'john@example.com'
@@ -449,7 +449,7 @@ servers:
 
       const createdWithInvalid = request.examples.find((ex) => ex.name === 'User Created (Invalid User)');
       expect(createdWithInvalid).toBeDefined();
-      expect(createdWithInvalid.response.status).toBe('201');
+      expect(createdWithInvalid.response.status).toEqual(201);
       expect(JSON.parse(createdWithInvalid.request.body.json)).toEqual({
         name: '',
         email: 'invalid'
@@ -458,11 +458,11 @@ servers:
       // Check combinations for 400 response
       const errorWithValid = request.examples.find((ex) => ex.name === 'Validation Error (Valid User)');
       expect(errorWithValid).toBeDefined();
-      expect(errorWithValid.response.status).toBe('400');
+      expect(errorWithValid.response.status).toEqual(400);
 
       const errorWithInvalid = request.examples.find((ex) => ex.name === 'Validation Error (Invalid User)');
       expect(errorWithInvalid).toBeDefined();
-      expect(errorWithInvalid.response.status).toBe('400');
+      expect(errorWithInvalid.response.status).toEqual(400);
     });
 
     it('should use single request body example for all response examples', () => {
@@ -484,7 +484,7 @@ paths:
               name: 'John Doe'
               email: 'john@example.com'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -553,7 +553,7 @@ paths:
                   format: email
                   example: 'john@example.com'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -615,7 +615,7 @@ paths:
                 summary: 'Text Data'
                 value: 'Hello World'
       responses:
-        '200':
+        200:
           description: 'OK'
           content:
             application/json:
@@ -673,7 +673,7 @@ paths:
                   name: ''
                   email: 'invalid'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -725,7 +725,7 @@ paths:
       summary: 'Get users'
       operationId: 'getUsers'
       responses:
-        '200':
+        200:
           description: 'OK'
           content:
             application/json:
@@ -768,7 +768,7 @@ paths:
               name: 'Jane Doe'
               email: 'jane@example.com'
       responses:
-        '201':
+        201:
           description: 'Created'
           content:
             application/json:
@@ -781,7 +781,7 @@ paths:
                   summary: 'Duplicate'
                   value:
                     id: 2
-        '400':
+        400:
           description: 'Bad Request'
           content:
             application/json:
