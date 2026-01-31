@@ -164,11 +164,16 @@ export const workspaceTabsSlice = createSlice({
 
       if (!tab) {
         const newTabUid = `${workspaceUid}-${type}`;
+        const labels = {
+          overview: 'Overview',
+          environments: 'Global Environments',
+          preferences: 'Preferences'
+        };
         const newTab = {
           uid: newTabUid,
           workspaceUid,
           type,
-          label: type === 'overview' ? 'Overview' : type,
+          label: labels[type] || type,
           permanent: false
         };
         state.tabs.push(newTab);

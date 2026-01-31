@@ -58,6 +58,7 @@ const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 const interpolateVars = require('./network/interpolate-vars');
+const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
@@ -83,6 +84,25 @@ const envHasSecrets = (environment = {}) => {
 };
 
 const findCollectionPathByItemPath = (filePath) => {
+  const tmpDir = os.tmpdir();
+  const parts = filePath.split(path.sep);
+  const index = parts.findIndex((part) => part.startsWith('bruno-'));
+
+  if (filePath.startsWith(tmpDir) && index !== -1) {
+    const transientDirPath = parts.slice(0, index + 1).join(path.sep);
+    const metadataPath = path.join(transientDirPath, 'metadata.json');
+    try {
+      const metadataContent = fs.readFileSync(metadataPath, 'utf8');
+      const metadata = JSON.parse(metadataContent);
+      if (metadata.collectionPath) {
+        return metadata.collectionPath;
+      }
+    } catch (error) {
+      return null;
+    }
+    return null;
+  }
+
   const allCollectionPaths = collectionWatcher.getAllWatcherPaths();
 
   // Find the collection path that contains this file
@@ -362,6 +382,52 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  // save transient request (handles move from temp to permanent location)
+  ipcMain.handle('renderer:save-transient-request', async (event, { sourcePathname, targetDirname, targetFilename, request, format }) => {
+    try {
+      // Validate source exists
+      if (!fs.existsSync(sourcePathname)) {
+        throw new Error(`Source path: ${sourcePathname} does not exist`);
+      }
+
+      // Validate target directory exists
+      if (!fs.existsSync(targetDirname)) {
+        throw new Error(`Target directory: ${targetDirname} does not exist`);
+      }
+
+      // Check if the target directory is inside a collection
+      validatePathIsInsideCollection(targetDirname);
+
+      // Use provided target filename or fall back to source filename
+      const filename = targetFilename || path.basename(sourcePathname);
+      const targetPathname = path.join(targetDirname, filename);
+
+      // Check for filename conflicts and throw error if exists
+      if (fs.existsSync(targetPathname)) {
+        throw new Error(`A file with the name "${filename}" already exists in the target location`);
+      }
+
+      // Step 1: Save the updated content to the transient file
+      syncExampleUidsCache(sourcePathname, request.examples);
+      const content = await stringifyRequestViaWorker(request, { format });
+      await writeFile(sourcePathname, content);
+
+      // Step 2: Read the file content from temp (this is the actual file content)
+      const fileContent = await fs.promises.readFile(sourcePathname, 'utf8');
+
+      // Step 3: Create new file at target location with the content
+      await writeFile(targetPathname, fileContent);
+
+      // Step 4: Delete the old temp file
+      await removePath(sourcePathname);
+
+      // Return the new pathname (file watcher will handle adding to Redux)
+      return { newPathname: targetPathname };
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // save multiple requests
   ipcMain.handle('renderer:save-multiple-requests', async (event, requestsToSave) => {
     try {
@@ -382,14 +448,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // Helper: Parse file content based on scope type
-  const parseFileByType = async (fileContent, scopeType) => {
+  const parseFileByType = async (fileContent, scopeType, format) => {
     switch (scopeType) {
       case 'request':
-        return await parseRequestViaWorker(fileContent);
+        return await parseRequestViaWorker(fileContent, { format });
       case 'folder':
-        return parseFolder(fileContent);
+        return parseFolder(fileContent, { format });
       case 'collection':
-        return parseCollection(fileContent);
+        return parseCollection(fileContent, { format });
       default:
         throw new Error(`Invalid scope type: ${scopeType}`);
     }
@@ -430,7 +496,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       // Read and parse the file
       const fileContent = fs.readFileSync(pathname, 'utf8');
-      const parsedData = await parseFileByType(fileContent, scopeType);
+      const parsedData = await parseFileByType(fileContent, scopeType, format);
 
       // Update the specific variable or create it if it doesn't exist
       const varsPath = 'request.vars.req';
@@ -549,6 +615,28 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       fs.unlinkSync(envFilePath);
 
       environmentSecretsStore.deleteEnvironment(collectionPathname, environmentName);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // update environment color
+  ipcMain.handle('renderer:update-environment-color', async (event, collectionPathname, environmentName, color) => {
+    try {
+      const format = getCollectionFormat(collectionPathname);
+      const envDirPath = path.join(collectionPathname, 'environments');
+      const envFilePath = path.join(envDirPath, `${environmentName}.${format}`);
+
+      if (!fs.existsSync(envFilePath)) {
+        throw new Error(`environment: ${envFilePath} does not exist`);
+      }
+
+      // Read, update color, and write back to file
+      const fileContent = fs.readFileSync(envFilePath, 'utf8');
+      const environment = parseEnvironment(fileContent, { format });
+      environment.color = color;
+      const updatedContent = stringifyEnvironment(environment, { format });
+      fs.writeFileSync(envFilePath, updatedContent, 'utf8');
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1290,19 +1378,63 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
         mergeVars(collection, requestCopy, requestTreePath);
         const globalEnvironmentVariables = collection.globalEnvironmentVariables;
-
+        const promptVariables = collection.promptVariables;
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const certsAndProxyConfig = await getCertsAndProxyConfig({
-          collectionUid,
-          collection,
-          request: requestCopy,
-          envVars,
-          runtimeVariables,
-          processEnvVars,
-          collectionPath,
-          globalEnvironmentVariables
-        });
-        const { oauth2: { grantType } } = requestCopy || {};
+        const { oauth2: { grantType, accessTokenUrl, refreshTokenUrl }, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
+
+        // For OAuth2 token requests, use accessTokenUrl for cert/proxy config instead of main request URL
+        let certsAndProxyConfigForTokenUrl = null;
+        let certsAndProxyConfigForRefreshUrl = null;
+
+        if (accessTokenUrl && grantType !== 'implicit') {
+          const interpolatedTokenUrl = interpolateString(accessTokenUrl, {
+            globalEnvironmentVariables,
+            collectionVariables,
+            envVars,
+            folderVariables,
+            requestVariables,
+            runtimeVariables,
+            processEnvVars,
+            promptVariables
+          });
+          let tokenRequestForConfig = { ...requestCopy, url: interpolatedTokenUrl };
+          certsAndProxyConfigForTokenUrl = await getCertsAndProxyConfig({
+            collectionUid,
+            collection,
+            request: tokenRequestForConfig,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath,
+            globalEnvironmentVariables
+          });
+        }
+
+        // For refresh token requests, use refreshTokenUrl if available, otherwise accessTokenUrl
+        const tokenUrlForRefresh = refreshTokenUrl || accessTokenUrl;
+        if (tokenUrlForRefresh && grantType !== 'implicit') {
+          const interpolatedRefreshUrl = interpolateString(tokenUrlForRefresh, {
+            globalEnvironmentVariables,
+            collectionVariables,
+            envVars,
+            folderVariables,
+            requestVariables,
+            runtimeVariables,
+            processEnvVars,
+            promptVariables
+          });
+          let refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
+          certsAndProxyConfigForRefreshUrl = await getCertsAndProxyConfig({
+            collectionUid,
+            collection,
+            request: refreshRequestForConfig,
+            envVars,
+            runtimeVariables,
+            processEnvVars,
+            collectionPath,
+            globalEnvironmentVariables
+          });
+        }
 
         const handleOAuth2Response = (response) => {
           if (response.error && !response.debugInfo) {
@@ -1318,7 +1450,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               request: requestCopy,
               collectionUid,
               forceFetch: true,
-              certsAndProxyConfig
+              certsAndProxyConfigForTokenUrl,
+              certsAndProxyConfigForRefreshUrl
             }).then(handleOAuth2Response);
 
           case 'client_credentials':
@@ -1327,7 +1460,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               request: requestCopy,
               collectionUid,
               forceFetch: true,
-              certsAndProxyConfig
+              certsAndProxyConfigForTokenUrl,
+              certsAndProxyConfigForRefreshUrl
             }).then(handleOAuth2Response);
 
           case 'password':
@@ -1336,7 +1470,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               request: requestCopy,
               collectionUid,
               forceFetch: true,
-              certsAndProxyConfig
+              certsAndProxyConfigForTokenUrl,
+              certsAndProxyConfigForRefreshUrl
             }).then(handleOAuth2Response);
 
           case 'implicit':
@@ -1429,7 +1564,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = await parseRequestViaWorker(bruContent);
+        file.data = await parseRequestViaWorker(bruContent, { format: 'bru' });
         file.partial = false;
         file.loading = true;
         file.size = sizeInMB(fileStats?.size);
@@ -1536,7 +1671,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       await mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
 
       try {
-        const parsedData = await parseLargeRequestWithRedaction(bruContent);
+        const parsedData = await parseLargeRequestWithRedaction(bruContent, 'bru');
 
         file.data = parsedData;
         file.loading = false;
@@ -1559,6 +1694,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   ipcMain.handle('renderer:mount-collection', async (event, { collectionUid, collectionPathname, brunoConfig }) => {
+    let tempDirectoryPath = null;
+    try {
+      tempDirectoryPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-'));
+      const metadata = {
+        collectionPath: collectionPathname
+      };
+      fs.writeFileSync(path.join(tempDirectoryPath, 'metadata.json'), JSON.stringify(metadata));
+    } catch (error) {
+      throw error;
+    }
     const {
       size,
       filesCount,
@@ -1571,6 +1716,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
 
     watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
+
+    // Add watcher for transient directory
+    watcher.addTempDirectoryWatcher(mainWindow, tempDirectoryPath, collectionUid, collectionPathname);
+
+    return tempDirectoryPath;
   });
 
   ipcMain.handle('renderer:show-in-folder', async (event, filePath) => {

@@ -18,6 +18,7 @@ class BrunoRequest {
     this.headers = req.headers;
     this.timeout = req.timeout;
     this.name = req.name;
+    this.pathParams = req.pathParams;
     this.tags = req.tags || [];
     /**
      * We automatically parse the JSON body if the content type is JSON
@@ -39,6 +40,53 @@ class BrunoRequest {
   setUrl(url) {
     this.url = url;
     this.req.url = url;
+  }
+
+  getHost() {
+    try {
+      const url = new URL(this.req.url);
+      return url.host;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  getPath() {
+    try {
+      const url = new URL(this.req.url);
+      let pathname = url.pathname;
+
+      // If path params exist, interpolate them into the pathname
+      if (this.req.pathParams && Array.isArray(this.req.pathParams)) {
+        pathname = pathname
+          .split('/')
+          .map((segment) => {
+            if (segment.startsWith(':')) {
+              const paramName = segment.slice(1);
+              const pathParam = this.req.pathParams.find((param) => param.name === paramName);
+              if (pathParam && pathParam.value) {
+                return pathParam.value;
+              }
+            }
+            return segment;
+          })
+          .join('/');
+      }
+
+      return pathname;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  getQueryString() {
+    try {
+      const url = new URL(this.req.url);
+      // Return query string without the leading '?'
+      return url.search ? url.search.substring(1) : '';
+    } catch (e) {
+      return '';
+    }
   }
 
   getMethod() {
@@ -189,6 +237,16 @@ class BrunoRequest {
 
   getName() {
     return this.req.name;
+  }
+
+  getPathParams() {
+    const params = Array.isArray(this.req.pathParams) ? this.req.pathParams : [];
+
+    return params.map((param) => ({
+      name: param.name,
+      value: param.value,
+      type: param.type
+    }));
   }
 
   /**

@@ -248,14 +248,14 @@ describe('runtime', () => {
   });
 
   describe('bru.setVar random variable', () => {
-    it('should not be equal to {{$randomFirstName}}', async () => {
+    it('should be able to set random variables as values', async () => {
       const script = `bru.setVar('title', '{{$randomFirstName}}')`;
 
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
 
       const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
 
-      expect(result.runtimeVariables.title).not.toBe('{{$randomFirstName}}');
+      expect(result.runtimeVariables.title).toBe('{{$randomFirstName}}');
     });
   });
 });

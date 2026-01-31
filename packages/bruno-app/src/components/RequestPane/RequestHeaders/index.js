@@ -10,6 +10,7 @@ import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from '../../BulkEditor';
+import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
@@ -37,6 +38,22 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       updateReorderedItem
     }));
   }, [dispatch, collection.uid, item.uid]);
+
+  const getRowError = useCallback((row, index, key) => {
+    if (key === 'name') {
+      if (!row.name || row.name.trim() === '') return null;
+      if (!headerNameRegex.test(row.name)) {
+        return 'Header name cannot contain spaces or newlines';
+      }
+    }
+    if (key === 'value') {
+      if (!row.value) return null;
+      if (!headerValueRegex.test(row.value)) {
+        return 'Header value cannot contain newlines';
+      }
+    }
+    return null;
+  }, []);
 
   const toggleBulkEditMode = () => {
     setIsBulkEditMode(!isBulkEditMode);
@@ -110,6 +127,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         rows={headers || []}
         onChange={handleHeadersChange}
         defaultRow={defaultRow}
+        getRowError={getRowError}
         reorderable={true}
         onReorder={handleHeaderDrag}
       />

@@ -5,7 +5,7 @@ const fs = require('fs');
 const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
-const { interpolateString } = require('./interpolate-string');
+const { interpolateString, interpolateObject } = require('./interpolate-string');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
@@ -14,15 +14,15 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
-const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables } = require('../utils/proxy-util');
+const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
-const { addDigestInterceptor } = require('@usebruno/requests');
-const { getCACertificates } = require('@usebruno/requests');
+const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2 } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
 const { getOAuth2Token } = require('../utils/oauth2');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData } = require('@usebruno/common').utils;
 
@@ -43,9 +43,10 @@ const getCACertHostRegex = (domain) => {
  * @returns {string[]} An array of extracted prompt variables
  */
 const extractPromptVariablesForRequest = ({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig }) => {
-  const { vars, collectionVariables, folderVariables, requestVariables, ...requestObj } = request;
+  const { vars, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, ...requestObj } = request;
 
   const allVariables = {
+    ...globalEnvironmentVariables,
     ...envVariables,
     ...collectionVariables,
     ...folderVariables,
@@ -62,6 +63,7 @@ const extractPromptVariablesForRequest = ({ request, collection, envVariables, r
   prompts.push(...extractPromptVariables(allVariables));
 
   const interpolationOptions = {
+    globalEnvVars: globalEnvironmentVariables,
     envVars: envVariables,
     runtimeVariables,
     processEnvVars
@@ -93,7 +95,8 @@ const runSingleRequest = async function (
   collectionRoot,
   runtime,
   collection,
-  runSingleRequestByPathname
+  runSingleRequestByPathname,
+  globalEnvVars = {}
 ) {
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
@@ -125,6 +128,9 @@ const runSingleRequest = async function (
     let postResponseTestResults = [];
 
     request = await prepareRequest(item, collection);
+
+    // Set global environment variables on the request for scripts to access via bru.getGlobalEnvVar()
+    request.globalEnvironmentVariables = globalEnvVars;
 
     // Detect prompt variables before proceeding
     const promptVars = extractPromptVariablesForRequest({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig });
@@ -234,6 +240,7 @@ const runSingleRequest = async function (
     const options = getOptions();
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
+    const cachedSystemProxy = get(options, 'cachedSystemProxy', null);
     const httpsAgentRequestFields = {};
 
     if (insecure) {
@@ -246,6 +253,7 @@ const runSingleRequest = async function (
     }
 
     const interpolationOptions = {
+      globalEnvVars: request.globalEnvironmentVariables || {},
       envVars: envVariables,
       runtimeVariables,
       processEnvVars
@@ -288,25 +296,29 @@ const runSingleRequest = async function (
     let proxyMode = 'off';
     let proxyConfig = {};
 
-    const collectionProxyConfig = get(brunoConfig, 'proxy', {});
-    const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', false);
+    const collectionProxyConfig = transformProxyConfig(get(brunoConfig, 'proxy', {}));
+    const collectionProxyDisabled = get(collectionProxyConfig, 'disabled', false);
+    const collectionProxyInherit = get(collectionProxyConfig, 'inherit', true);
+    const collectionProxyConfigData = get(collectionProxyConfig, 'config', {});
 
-    if (noproxy) {
-      // If noproxy flag is set, don't use any proxy
+    if (noproxy || collectionProxyDisabled) {
+      // If noproxy flag is set or collection proxy is disabled, don't use any proxy
       proxyMode = 'off';
-    } else if (collectionProxyEnabled === true) {
-      // If collection proxy is enabled, use it
-      proxyConfig = collectionProxyConfig;
+    } else if (!collectionProxyDisabled && !collectionProxyInherit) {
+      // Use collection-specific proxy
+      proxyConfig = collectionProxyConfigData;
       proxyMode = 'on';
-    } else if (collectionProxyEnabled === 'global') {
-      // If collection proxy is set to 'global', use system proxy
-      const { http_proxy, https_proxy } = getSystemProxyEnvVariables();
-      if (http_proxy?.length || https_proxy?.length) {
-        proxyMode = 'system';
+    } else if (!collectionProxyDisabled && collectionProxyInherit) {
+      // Inherit from system proxy
+      if (cachedSystemProxy) {
+        const { http_proxy, https_proxy } = cachedSystemProxy;
+        if (http_proxy?.length || https_proxy?.length) {
+          proxyMode = 'system';
+        }
       }
-    } else {
-      proxyMode = 'off';
+      // else: no system proxy available, proxyMode stays 'off'
     }
+    // else: collection proxy is disabled, proxyMode stays 'off'
 
     if (proxyMode === 'on') {
       const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
@@ -314,7 +326,7 @@ const runSingleRequest = async function (
         const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
         const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
         const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
-        const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
+        const proxyAuthEnabled = !get(proxyConfig, 'auth.disabled', false);
         const socksEnabled = proxyProtocol.includes('socks');
         let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
         let proxyUri;
@@ -345,33 +357,39 @@ const runSingleRequest = async function (
         });
       }
     } else if (proxyMode === 'system') {
-      const { http_proxy, https_proxy, no_proxy } = getSystemProxyEnvVariables();
-      const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
-      if (shouldUseSystemProxy) {
-        try {
-          if (http_proxy?.length) {
-            new URL(http_proxy);
-            request.httpAgent = new HttpProxyAgent(http_proxy);
+      try {
+        const { http_proxy, https_proxy, no_proxy } = cachedSystemProxy || {};
+        const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
+        const parsedUrl = new URL(request.url);
+        const isHttpsRequest = parsedUrl.protocol === 'https:';
+        if (shouldUseSystemProxy) {
+          try {
+            if (http_proxy?.length && !isHttpsRequest) {
+              new URL(http_proxy);
+              request.httpAgent = new HttpProxyAgent(http_proxy);
+            }
+          } catch (error) {
+            throw new Error('Invalid system http_proxy');
           }
-        } catch (error) {
-          throw new Error('Invalid system http_proxy');
-        }
-        try {
-          if (https_proxy?.length) {
-            new URL(https_proxy);
-            request.httpsAgent = new PatchedHttpsProxyAgent(
-              https_proxy,
-              Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-            );
-          } else {
-            request.httpsAgent = new https.Agent({
-              ...httpsAgentRequestFields
-            });
+          try {
+            if (https_proxy?.length && isHttpsRequest) {
+              new URL(https_proxy);
+              request.httpsAgent = new PatchedHttpsProxyAgent(https_proxy,
+                Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined);
+            } else {
+              request.httpsAgent = new https.Agent({
+                ...httpsAgentRequestFields
+              });
+            }
+          } catch (error) {
+            throw new Error('Invalid system https_proxy');
           }
-        } catch (error) {
-          throw new Error('Invalid system https_proxy');
+        } else {
+          request.httpsAgent = new https.Agent({
+            ...httpsAgentRequestFields
+          });
         }
-      } else {
+      } catch (error) {
         request.httpsAgent = new https.Agent({
           ...httpsAgentRequestFields
         });
@@ -458,7 +476,56 @@ const runSingleRequest = async function (
     // Handle OAuth2 authentication
     if (request.oauth2) {
       try {
-        const token = await getOAuth2Token(request.oauth2);
+        // Prepare interpolation options with all available variables
+        const oauth2InterpolationOptions = {
+          globalEnvVars: request.globalEnvironmentVariables || {},
+          envVars: envVariables,
+          runtimeVariables,
+          processEnvVars,
+          collectionVariables: request.collectionVariables || {},
+          folderVariables: request.folderVariables || {},
+          requestVariables: request.requestVariables || {}
+        };
+
+        const accessTokenUrl = request.oauth2.accessTokenUrl ? interpolateString(request.oauth2.accessTokenUrl, oauth2InterpolationOptions) : undefined;
+        const refreshTokenUrl = request.oauth2.refreshTokenUrl ? interpolateString(request.oauth2.refreshTokenUrl, oauth2InterpolationOptions) : undefined;
+        const oauth2RequestUrl = accessTokenUrl || refreshTokenUrl;
+
+        let token;
+        if (oauth2RequestUrl) {
+          const tlsOptions = {
+            noproxy: options.noproxy,
+            shouldVerifyTls: !insecure,
+            shouldUseCustomCaCertificate: !!options['cacert'],
+            customCaCertificateFilePath: options['cacert'],
+            shouldKeepDefaultCaCertificates: !options['ignoreTruststore']
+          };
+
+          const clientCertificates = get(brunoConfig, 'clientCertificates');
+          const proxyConfig = get(brunoConfig, 'proxy');
+          const interpolatedClientCertificates = clientCertificates ? interpolateObject(clientCertificates, oauth2InterpolationOptions) : undefined;
+          const interpolatedProxyConfig = proxyConfig ? interpolateObject(proxyConfig, oauth2InterpolationOptions) : undefined;
+          const systemProxyConfig = cachedSystemProxy;
+
+          const { httpAgent: oauth2HttpAgent, httpsAgent: oauth2HttpsAgent } = await getHttpHttpsAgents({
+            requestUrl: oauth2RequestUrl,
+            collectionPath,
+            options: tlsOptions,
+            clientCertificates: interpolatedClientCertificates,
+            collectionLevelProxy: interpolatedProxyConfig,
+            systemProxyConfig
+          });
+
+          const oauth2AxiosInstance = makeAxiosInstanceForOauth2({
+            requestMaxRedirects: requestMaxRedirects,
+            disableCookies: options.disableCookies,
+            httpAgent: oauth2HttpAgent,
+            httpsAgent: oauth2HttpsAgent
+          });
+
+          token = await getOAuth2Token(request.oauth2, oauth2AxiosInstance);
+        }
+
         if (token) {
           const { tokenPlacement = 'header', tokenHeaderPrefix = '', tokenQueryKey = 'access_token' } = request.oauth2;
 

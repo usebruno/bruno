@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import brunoClipboard from 'utils/bruno-clipboard';
-import { addTab, focusTab } from './tabs';
+import { addTab, focusTab, closeTabs } from './tabs';
 
 const initialState = {
   isDragging: false,
@@ -10,11 +10,11 @@ const initialState = {
   sidebarCollapsed: false,
   screenWidth: 500,
   showHomePage: false,
-  showPreferences: false,
   showApiSpecPage: false,
   showManageWorkspacePage: false,
   isEnvironmentSettingsModalOpen: false,
   isGlobalEnvironmentSettingsModalOpen: false,
+  activePreferencesTab: 'general',
   preferences: {
     request: {
       sslVerification: true,
@@ -48,10 +48,10 @@ const initialState = {
   },
   cookies: [],
   taskQueue: [],
-  systemProxyEnvVariables: {},
   clipboard: {
     hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
-  }
+  },
+  systemProxyVariables: {}
 };
 
 export const appSlice = createSlice({
@@ -88,17 +88,16 @@ export const appSlice = createSlice({
     },
     showApiSpecPage: (state) => {
       state.showHomePage = false;
-      state.showPreferences = false;
       state.showApiSpecPage = true;
     },
     hideApiSpecPage: (state) => {
       state.showApiSpecPage = false;
     },
-    showPreferences: (state, action) => {
-      state.showPreferences = action.payload;
-    },
     updatePreferences: (state, action) => {
       state.preferences = action.payload;
+    },
+    updateActivePreferencesTab: (state, action) => {
+      state.activePreferencesTab = action.payload.tab;
     },
     updateCookies: (state, action) => {
       state.cookies = action.payload;
@@ -112,8 +111,8 @@ export const appSlice = createSlice({
     removeAllTasksFromQueue: (state) => {
       state.taskQueue = [];
     },
-    updateSystemProxyEnvVariables: (state, action) => {
-      state.systemProxyEnvVariables = action.payload;
+    updateSystemProxyVariables: (state, action) => {
+      state.systemProxyVariables = action.payload;
     },
     updateGenerateCode: (state, action) => {
       state.generateCode = {
@@ -156,13 +155,13 @@ export const {
   hideManageWorkspacePage,
   showApiSpecPage,
   hideApiSpecPage,
-  showPreferences,
   updatePreferences,
+  updateActivePreferencesTab,
   updateCookies,
   insertTaskIntoQueue,
   removeTaskFromQueue,
   removeAllTasksFromQueue,
-  updateSystemProxyEnvVariables,
+  updateSystemProxyVariables,
   updateGenerateCode,
   toggleSidebarCollapse,
   setClipboard
@@ -235,6 +234,30 @@ export const copyRequest = (item) => (dispatch, getState) => {
   brunoClipboard.write(item);
   dispatch(setClipboard({ hasCopiedItems: true }));
   return Promise.resolve();
+};
+
+export const getSystemProxyVariables = () => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:get-system-proxy-variables')
+      .then((variables) => {
+        dispatch(updateSystemProxyVariables(variables));
+        return variables;
+      })
+      .then(resolve).catch(reject);
+  });
+};
+
+export const refreshSystemProxy = () => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:refresh-system-proxy')
+      .then((variables) => {
+        dispatch(updateSystemProxyVariables(variables));
+        return variables;
+      })
+      .then(resolve).catch(reject);
+  });
 };
 
 export default appSlice.reducer;

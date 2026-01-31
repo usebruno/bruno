@@ -250,11 +250,6 @@ export const detectContentTypeFromBuffer = (buffer) => {
     return 'application/gzip';
   }
 
-  // Check if it's likely text (UTF-8)
-  if (isLikelyText(buffer.slice(0, Math.min(512, buffer.length)))) {
-    return 'text/plain';
-  }
-
   return null;
 };
 

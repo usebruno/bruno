@@ -272,6 +272,101 @@ describe('parseCurlCommand', () => {
         urlWithoutQuery: 'https://api.example.com'
       });
     });
+
+    it('should parse digest authentication', () => {
+      const result = parseCurlCommand(`
+        curl --digest -u "myuser:mypass" https://api.example.com/digest
+      `);
+
+      expect(result).toEqual({
+        method: 'get',
+        auth: {
+          mode: 'digest',
+          digest: {
+            username: 'myuser',
+            password: 'mypass'
+          }
+        },
+        url: 'https://api.example.com/digest',
+        urlWithoutQuery: 'https://api.example.com/digest'
+      });
+    });
+
+    it('should parse digest authentication with --user flag', () => {
+      const result = parseCurlCommand(`
+        curl --digest --user "admin:secret" https://api.example.com/secure
+      `);
+
+      expect(result).toEqual({
+        method: 'get',
+        auth: {
+          mode: 'digest',
+          digest: {
+            username: 'admin',
+            password: 'secret'
+          }
+        },
+        url: 'https://api.example.com/secure',
+        urlWithoutQuery: 'https://api.example.com/secure'
+      });
+    });
+
+    it('should parse NTLM authentication', () => {
+      const result = parseCurlCommand(`
+        curl --ntlm -u "myuser:mypass" https://api.example.com/ntlm
+      `);
+
+      expect(result).toEqual({
+        method: 'get',
+        auth: {
+          mode: 'ntlm',
+          ntlm: {
+            username: 'myuser',
+            password: 'mypass'
+          }
+        },
+        url: 'https://api.example.com/ntlm',
+        urlWithoutQuery: 'https://api.example.com/ntlm'
+      });
+    });
+
+    it('should parse NTLM authentication with --user flag', () => {
+      const result = parseCurlCommand(`
+        curl --ntlm --user "domain\\username:password" https://api.example.com/ntlm
+      `);
+
+      expect(result).toEqual({
+        method: 'get',
+        auth: {
+          mode: 'ntlm',
+          ntlm: {
+            username: 'domain\\username',
+            password: 'password'
+          }
+        },
+        url: 'https://api.example.com/ntlm',
+        urlWithoutQuery: 'https://api.example.com/ntlm'
+      });
+    });
+
+    it('should handle digest auth flag before -u flag', () => {
+      const result = parseCurlCommand(`
+        curl -u "user:pass" --digest https://api.example.com
+      `);
+
+      expect(result).toEqual({
+        method: 'get',
+        auth: {
+          mode: 'digest',
+          digest: {
+            username: 'user',
+            password: 'pass'
+          }
+        },
+        url: 'https://api.example.com',
+        urlWithoutQuery: 'https://api.example.com'
+      });
+    });
   });
 
   describe('Form Data', () => {

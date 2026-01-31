@@ -4,6 +4,7 @@ const { get } = require('lodash');
 const { getCACertificates } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
+const { getCachedSystemProxy } = require('../../store/system-proxy');
 const { interpolateString } = require('./interpolate-string');
 
 /**
@@ -28,14 +29,20 @@ const getCertsAndProxyConfig = async ({
     httpsAgentRequestFields['rejectUnauthorized'] = false;
   }
 
-  let caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
-  let caCertificatesData = getCACertificates({
-    caCertFilePath,
-    shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates()
-  });
+  let caCertificates = '';
+  let caCertificatesCount = { system: 0, root: 0, custom: 0, extra: 0 };
 
-  let caCertificates = caCertificatesData.caCertificates;
-  let caCertificatesCount = caCertificatesData.caCertificatesCount;
+  // Only load CA certificates if SSL validation is enabled (otherwise they're unused)
+  if (preferencesUtil.shouldVerifyTls()) {
+    let caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
+    let caCertificatesData = getCACertificates({
+      caCertFilePath,
+      shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates()
+    });
+
+    caCertificates = caCertificatesData.caCertificates;
+    caCertificatesCount = caCertificatesData.caCertificatesCount;
+  }
 
   // configure HTTPS agent with aggregated CA certificates
   httpsAgentRequestFields['caCertificatesCount'] = caCertificatesCount;
@@ -136,8 +143,10 @@ const getCertsAndProxyConfig = async ({
       proxyConfig = globalProxyConfigData;
       proxyMode = 'on';
     } else if (!globalDisabled && globalInherit) {
-      // Use system proxy
+      // Use system proxy (cached at app startup)
       proxyMode = 'system';
+      const systemProxyConfig = getCachedSystemProxy();
+      proxyConfig = systemProxyConfig || { http_proxy: null, https_proxy: null, no_proxy: null, source: 'cache-miss' };
     }
     // else: global proxy is disabled, proxyMode stays 'off'
   }

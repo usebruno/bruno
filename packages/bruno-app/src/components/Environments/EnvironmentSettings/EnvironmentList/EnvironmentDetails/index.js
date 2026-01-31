@@ -1,12 +1,14 @@
-import { IconCopy, IconEdit, IconTrash, IconCheck, IconX } from '@tabler/icons';
+import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch } from '@tabler/icons';
 import { useState, useRef } from 'react';
 import { useDispatch } from 'react-redux';
-import { renameEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import useDebounce from 'hooks/useDebounce';
+import { renameEnvironment, updateEnvironmentColor } from 'providers/ReduxStore/slices/collections/actions';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import CopyEnvironment from 'components/Environments/EnvironmentSettings/CopyEnvironment';
 import DeleteEnvironment from 'components/Environments/EnvironmentSettings/DeleteEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
+import ColorPicker from 'components/ColorPicker';
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
@@ -18,7 +20,11 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState('');
   const [nameError, setNameError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const inputRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   const validateEnvironmentName = (name) => {
     if (!name || name.trim() === '') {
@@ -111,6 +117,33 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
     }
   };
 
+  const handleSearchIconClick = () => {
+    setIsSearchExpanded(true);
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 50);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+  };
+
+  const handleSearchBlur = () => {
+    if (searchQuery === '') {
+      setIsSearchExpanded(false);
+    }
+  };
+
+  const handleColorChange = (color) => {
+    dispatch(updateEnvironmentColor(environment.uid, color, collection.uid))
+      .then(() => {
+        toast.success('Environment color updated!');
+      })
+      .catch(() => {
+        toast.error('An error occurred while updating the environment color');
+      });
+  };
+
   return (
     <StyledWrapper>
       {openDeleteModal && (
@@ -157,11 +190,46 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
               </div>
             </>
           ) : (
-            <h2 className="title">{environment.name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="title">{environment.name}</h2>
+              <ColorPicker color={environment.color} onChange={handleColorChange} />
+            </div>
           )}
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}
         <div className="actions">
+          {isSearchExpanded ? (
+            <div className="search-input-wrapper">
+              <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search variables..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onBlur={handleSearchBlur}
+                className="search-input"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+              />
+              {searchQuery && (
+                <button
+                  className="clear-search"
+                  onClick={handleClearSearch}
+                  onMouseDown={(e) => e.preventDefault()}
+                  title="Clear search"
+                >
+                  <IconX size={14} strokeWidth={1.5} />
+                </button>
+              )}
+            </div>
+          ) : (
+            <button onClick={handleSearchIconClick} title="Search variables">
+              <IconSearch size={15} strokeWidth={1.5} />
+            </button>
+          )}
           <button onClick={handleRenameClick} title="Rename">
             <IconEdit size={15} strokeWidth={1.5} />
           </button>
@@ -175,7 +243,12 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
       </div>
 
       <div className="content">
-        <EnvironmentVariables environment={environment} setIsModified={setIsModified} collection={collection} />
+        <EnvironmentVariables
+          environment={environment}
+          setIsModified={setIsModified}
+          collection={collection}
+          searchQuery={debouncedSearchQuery}
+        />
       </div>
     </StyledWrapper>
   );

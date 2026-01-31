@@ -162,6 +162,15 @@ class GlobalEnvironmentsStore {
     }
     this.setGlobalEnvironments(globalEnvironments);
   }
+
+  updateGlobalEnvironmentColor({ environmentUid, color }) {
+    let globalEnvironments = this.getGlobalEnvironments();
+    const environment = globalEnvironments.find((env) => env?.uid == environmentUid);
+    if (environment) {
+      environment.color = color;
+    }
+    this.setGlobalEnvironments(globalEnvironments);
+  }
 }
 
 const globalEnvironmentsStore = new GlobalEnvironmentsStore();
