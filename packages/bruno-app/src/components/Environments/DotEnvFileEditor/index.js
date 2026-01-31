@@ -7,7 +7,6 @@ import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
-import * as Yup from 'yup';
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
@@ -18,6 +17,26 @@ const TableRow = React.memo(({ children, item }) => (
   const prevUid = prevProps?.item?.uid;
   const nextUid = nextProps?.item?.uid;
   return prevUid === nextUid && prevProps.children === nextProps.children;
+});
+
+const ErrorMessage = React.memo(({ formik, name, index }) => {
+  const meta = formik.getFieldMeta(name);
+  const id = `error-${name}-${index}`;
+
+  const isLastRow = index === formik.values.length - 1;
+  const variable = formik.values[index];
+  const isEmptyRow = !variable?.name || variable.name.trim() === '';
+
+  if ((isLastRow && isEmptyRow) || !meta.error || !meta.touched) {
+    return null;
+  }
+
+  return (
+    <span>
+      <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
+      <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
+    </span>
+  );
 });
 
 const MIN_H = 35 * 2;
@@ -95,6 +114,7 @@ const DotEnvFileEditor = ({
   const initialRawValue = rawContent !== undefined ? rawContent : variablesToRaw(variables || []);
   const [rawValue, setRawValue] = useState(initialRawValue);
   const [prevViewMode, setPrevViewMode] = useState(viewMode);
+  const [isSaving, setIsSaving] = useState(false);
 
   const formikRef = useRef(null);
 
@@ -117,25 +137,6 @@ const DotEnvFileEditor = ({
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: initialValues,
-    validationSchema: Yup.array().of(
-      Yup.object({
-        name: Yup.string()
-          .when('$isLastRow', {
-            is: true,
-            then: (schema) => schema.optional(),
-            otherwise: (schema) =>
-              schema
-                .required('Name cannot be empty')
-                .matches(
-                  variableNameRegex,
-                  'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.'
-                )
-                .trim()
-          }),
-        uid: Yup.string(),
-        value: Yup.mixed().nullable()
-      })
-    ),
     validate: (values) => {
       const errors = {};
       values.forEach((variable, index) => {
@@ -208,31 +209,11 @@ const DotEnvFileEditor = ({
     }
   }, [formik.values, savedValuesJson, setIsModified, viewMode, rawValue, rawContent]);
 
-  const ErrorMessage = ({ name, index }) => {
-    const meta = formik.getFieldMeta(name);
-    const id = `error-${name}-${index}`;
-
-    const isLastRow = index === formik.values.length - 1;
-    const variable = formik.values[index];
-    const isEmptyRow = !variable?.name || variable.name.trim() === '';
-
-    if (isLastRow && isEmptyRow) {
-      return null;
-    }
-
-    if (!meta.error || !meta.touched) {
-      return null;
-    }
-    return (
-      <span>
-        <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
-        <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
-      </span>
-    );
-  };
+  const valuesRef = useRef(formik.values);
+  valuesRef.current = formik.values;
 
   const handleRemoveVar = useCallback((id) => {
-    const currentValues = formik.values;
+    const currentValues = valuesRef.current;
 
     if (!currentValues || currentValues.length === 0) {
       return;
@@ -264,20 +245,22 @@ const DotEnvFileEditor = ({
         ];
 
     formik.setValues(newValues);
-  }, [formik.values]);
+  }, []);
 
   const handleNameChange = (index, e) => {
     formik.handleChange(e);
-    const isLastRow = index === formik.values.length - 1;
+    const isLastRow = index === valuesRef.current.length - 1;
 
     if (isLastRow) {
-      const newVariable = {
-        uid: uuid(),
-        name: '',
-        value: ''
-      };
+      const newVariable = { uid: uuid(), name: '', value: '' };
       setTimeout(() => {
-        formik.setFieldValue(formik.values.length, newVariable, false);
+        formik.setValues((prev) => {
+          const lastRow = prev[prev.length - 1];
+          if (lastRow?.name?.trim()) {
+            return [...prev, newVariable];
+          }
+          return prev;
+        });
       }, 0);
     }
   };
@@ -294,6 +277,8 @@ const DotEnvFileEditor = ({
   };
 
   const handleSave = () => {
+    if (isSaving) return;
+
     const variablesToSave = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
 
     const hasValidationErrors = variablesToSave.some((variable) => {
@@ -311,6 +296,7 @@ const DotEnvFileEditor = ({
       return;
     }
 
+    setIsSaving(true);
     onSave(variablesToSave)
       .then(() => {
         toast.success('Changes saved successfully');
@@ -328,15 +314,21 @@ const DotEnvFileEditor = ({
       .catch((error) => {
         console.error(error);
         toast.error('An error occurred while saving the changes');
+      })
+      .finally(() => {
+        setIsSaving(false);
       });
   };
 
   const handleSaveRaw = () => {
+    if (isSaving) return;
+
     if (!onSaveRaw) {
       toast.error('Raw save is not supported');
       return;
     }
 
+    setIsSaving(true);
     onSaveRaw(rawValue)
       .then(() => {
         toast.success('Changes saved successfully');
@@ -345,6 +337,9 @@ const DotEnvFileEditor = ({
       .catch((error) => {
         console.error(error);
         toast.error('An error occurred while saving the changes');
+      })
+      .finally(() => {
+        setIsSaving(false);
       });
   };
 
@@ -411,10 +406,10 @@ const DotEnvFileEditor = ({
         </div>
         <div className="button-container">
           <div className="flex items-center">
-            <button type="button" className="submit" onClick={handleSaveRaw} data-testid="save-dotenv-raw">
-              Save
+            <button type="button" className="submit" onClick={handleSaveRaw} disabled={isSaving} data-testid="save-dotenv-raw">
+              {isSaving ? 'Saving...' : 'Save'}
             </button>
-            <button type="button" className="submit reset ml-2" onClick={handleReset} data-testid="reset-dotenv-raw">
+            <button type="button" className="submit reset ml-2" onClick={handleReset} disabled={isSaving} data-testid="reset-dotenv-raw">
               Reset
             </button>
           </div>
@@ -471,12 +466,12 @@ const DotEnvFileEditor = ({
                       onBlur={() => handleNameBlur(index)}
                       onKeyDown={(e) => handleNameKeyDown(index, e)}
                     />
-                    <ErrorMessage name={`${index}.name`} index={index} />
+                    <ErrorMessage formik={formik} name={`${index}.name`} index={index} />
                   </div>
                 </td>
                 <td className="delete-col">
                   {!isLastEmptyRow && (
-                    <button onClick={() => handleRemoveVar(variable.uid)}>
+                    <button type="button" onClick={() => handleRemoveVar(variable.uid)}>
                       <IconTrash strokeWidth={1.5} size={18} />
                     </button>
                   )}
@@ -487,10 +482,10 @@ const DotEnvFileEditor = ({
         />
         <div className="button-container">
           <div className="flex items-center">
-            <button type="button" className="submit" onClick={handleSave} data-testid="save-dotenv">
-              Save
+            <button type="button" className="submit" onClick={handleSave} disabled={isSaving} data-testid="save-dotenv">
+              {isSaving ? 'Saving...' : 'Save'}
             </button>
-            <button type="button" className="submit reset ml-2" onClick={handleReset} data-testid="reset-dotenv">
+            <button type="button" className="submit reset ml-2" onClick={handleReset} disabled={isSaving} data-testid="reset-dotenv">
               Reset
             </button>
           </div>
@@ -540,7 +535,7 @@ const DotEnvFileEditor = ({
                     onBlur={() => handleNameBlur(index)}
                     onKeyDown={(e) => handleNameKeyDown(index, e)}
                   />
-                  <ErrorMessage name={`${index}.name`} index={index} />
+                  <ErrorMessage formik={formik} name={`${index}.name`} index={index} />
                 </div>
               </td>
               <td className="flex flex-row flex-nowrap items-center">
@@ -557,7 +552,7 @@ const DotEnvFileEditor = ({
               </td>
               <td className="delete-col">
                 {!isLastEmptyRow && (
-                  <button onClick={() => handleRemoveVar(variable.uid)}>
+                  <button type="button" onClick={() => handleRemoveVar(variable.uid)}>
                     <IconTrash strokeWidth={1.5} size={18} />
                   </button>
                 )}

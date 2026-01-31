@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import { IconDownload, IconUpload, IconSearch, IconPlus, IconCheck, IconX, IconFileAlert } from '@tabler/icons';
@@ -47,17 +47,12 @@ const EnvironmentList = ({
 
   const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
   const [originalEnvironmentVariables, setOriginalEnvironmentVariables] = useState([]);
-
   const [environmentsExpanded, setEnvironmentsExpanded] = useState(true);
   const [dotEnvExpanded, setDotEnvExpanded] = useState(false);
-
   const [activeView, setActiveView] = useState('environment');
   const [isDotEnvModified, setIsDotEnvModified] = useState(false);
-
   const [dotEnvViewMode, setDotEnvViewMode] = useState('table');
-
   const [selectedDotEnvFile, setSelectedDotEnvFile] = useState(null);
-
   const [isCreatingDotEnvInline, setIsCreatingDotEnvInline] = useState(false);
   const [newDotEnvName, setNewDotEnvName] = useState('.env');
   const [dotEnvNameError, setDotEnvNameError] = useState('');
@@ -73,14 +68,16 @@ const EnvironmentList = ({
   const prevEnvUids = usePrevious(envUids);
 
   useEffect(() => {
-    if (dotEnvFiles.length > 0) {
-      if (!selectedDotEnvFile || !dotEnvFiles.find((f) => f.filename === selectedDotEnvFile)) {
-        setSelectedDotEnvFile(dotEnvFiles[0].filename);
-      }
-    } else {
+    if (dotEnvFiles.length === 0) {
       setSelectedDotEnvFile(null);
+      return;
     }
-  }, [dotEnvFiles, selectedDotEnvFile]);
+
+    const fileExists = dotEnvFiles.some((f) => f.filename === selectedDotEnvFile);
+    if (!selectedDotEnvFile || !fileExists) {
+      setSelectedDotEnvFile(dotEnvFiles[0].filename);
+    }
+  }, [dotEnvFiles]);
 
   useEffect(() => {
     if (!isCreatingDotEnvInline) return;
@@ -222,7 +219,7 @@ const EnvironmentList = ({
     }, 50);
   };
 
-  const handleActivateEnvironment = (e, env) => {
+  const handleActivateEnvironment = useCallback((e, env) => {
     e.stopPropagation();
     dispatch(selectGlobalEnvironment({ environmentUid: env.uid }))
       .then(() => {
@@ -231,7 +228,7 @@ const EnvironmentList = ({
       .catch(() => {
         toast.error('Failed to activate environment');
       });
-  };
+  }, [dispatch]);
 
   const validateEnvironmentName = (name, excludeUid = null) => {
     if (!name || name.trim() === '') {

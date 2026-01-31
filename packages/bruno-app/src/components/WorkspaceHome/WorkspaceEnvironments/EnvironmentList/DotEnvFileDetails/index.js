@@ -30,21 +30,25 @@ const DotEnvFileDetails = ({
         <div className="actions">
           {dotEnvExists && (
             <>
-              <div className="view-toggle">
+              <div className="view-toggle" role="group" aria-label="View mode">
                 <button
+                  type="button"
                   className={`toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
-                  onClick={() => onViewModeChange && onViewModeChange('table')}
+                  onClick={() => onViewModeChange?.('table')}
+                  aria-pressed={viewMode === 'table'}
                 >
                   Table
                 </button>
                 <button
+                  type="button"
                   className={`toggle-btn ${viewMode === 'raw' ? 'active' : ''}`}
-                  onClick={() => onViewModeChange && onViewModeChange('raw')}
+                  onClick={() => onViewModeChange?.('raw')}
+                  aria-pressed={viewMode === 'raw'}
                 >
                   Raw
                 </button>
               </div>
-              <button onClick={handleDeleteClick} title="Delete .env file" className="action-btn delete-btn">
+              <button type="button" onClick={handleDeleteClick} title="Delete .env file" className="action-btn delete-btn">
                 <IconTrash size={15} strokeWidth={1.5} />
               </button>
             </>
