@@ -220,6 +220,16 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
       } as any;
     }
 
+    // bruno-specific script extensions
+    if (brunoConfig.scripts?.additionalContextRoots?.length) {
+      if (!oc.extensions.bruno) {
+        oc.extensions.bruno = {};
+      }
+      (oc.extensions.bruno as any).script = {
+        additionalContextRoots: brunoConfig.scripts.additionalContextRoots
+      };
+    }
+
     return stringifyYml(oc);
   } catch (error) {
     console.error('Error stringifying opencollection.yml:', error);
