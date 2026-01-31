@@ -60,6 +60,10 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   const previousDeboundedInterpolatedURL = useRef(debouncedInterpolatedURL);
 
   const handleConnect = async () => {
+    if (connectionStatus === CONNECTION_STATUS.CONNECTED || connectionStatus === CONNECTION_STATUS.CONNECTING) {
+      toast.error('WebSocket is already connected or connecting');
+      return;
+    }
     dispatch(wsConnectOnly(item, collection.uid));
     previousDeboundedInterpolatedURL.current = debouncedInterpolatedURL;
   };
