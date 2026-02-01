@@ -58,12 +58,28 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   // Debounce interpolated URL to avoid excessive reconnections
   const debouncedInterpolatedURL = useDebounce(interpolatedURL, 400);
   const previousDeboundedInterpolatedURL = useRef(debouncedInterpolatedURL);
+  const connectAttemptRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      connectionStatus === CONNECTION_STATUS.CONNECTED ||
+      connectionStatus === CONNECTION_STATUS.DISCONNECTED
+    ) {
+      connectAttemptRef.current = false;
+    }
+  }, [connectionStatus]);
 
   const handleConnect = async () => {
-    if (connectionStatus === CONNECTION_STATUS.CONNECTED || connectionStatus === CONNECTION_STATUS.CONNECTING) {
+    if (
+      connectionStatus === CONNECTION_STATUS.CONNECTED ||
+      connectionStatus === CONNECTION_STATUS.CONNECTING ||
+      connectAttemptRef.current
+    ) {
       toast.error('WebSocket is already connected or connecting');
       return;
     }
+    connectAttemptRef.current = true;
+    setConnectionStatus(CONNECTION_STATUS.CONNECTING);
     dispatch(wsConnectOnly(item, collection.uid));
     previousDeboundedInterpolatedURL.current = debouncedInterpolatedURL;
   };
