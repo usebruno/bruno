@@ -85,6 +85,7 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
         body.multipartForm = parsedBody;
       } else if (isPlainTextContentType(contentType)) {
         body.mode = 'text';
+        body.text = typeof parsedBody === 'string' ? parsedBody : (typeof parsedBody === 'object' ? JSON.stringify(parsedBody) : String(parsedBody));
       }
     } else if (parsedBody) {
       body.mode = 'formUrlEncoded';
