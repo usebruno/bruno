@@ -225,7 +225,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
       if (!oc.extensions.bruno) {
         oc.extensions.bruno = {};
       }
-      (oc.extensions.bruno as any).script = {
+      (oc.extensions.bruno as any).scripts = {
         additionalContextRoots: brunoConfig.scripts.additionalContextRoots
       };
     }
