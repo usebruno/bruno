@@ -171,23 +171,27 @@ const runSingleRequest = async function (
     scriptingConfig.runtime = runtime;
 
     // Build certsAndProxyConfig for bru.sendRequest
-    const cliOptions = getOptions();
-    const systemProxyConfig = await getSystemProxy();
+    const options = getOptions();
+    const systemProxyConfig = options['cachedSystemProxy'];
     const sendRequestInterpolationOptions = {
       envVars: envVariables,
       runtimeVariables,
-      processEnvVars
+      processEnvVars,
+      globalEnvVars,
+      collectionVariables: request.collectionVariables || {},
+      folderVariables: request.folderVariables || {},
+      requestVariables: request.requestVariables || {}
     };
     const rawClientCertificates = get(brunoConfig, 'clientCertificates');
     const rawProxyConfig = get(brunoConfig, 'proxy', {});
     const certsAndProxyConfig = {
       collectionPath,
       options: {
-        noproxy: get(cliOptions, 'noproxy', false),
-        shouldVerifyTls: !get(cliOptions, 'insecure', false),
-        shouldUseCustomCaCertificate: !!cliOptions['cacert'],
-        customCaCertificateFilePath: cliOptions['cacert'],
-        shouldKeepDefaultCaCertificates: !cliOptions['ignoreTruststore']
+        noproxy: get(options, 'noproxy', false),
+        shouldVerifyTls: !get(options, 'insecure', false),
+        shouldUseCustomCaCertificate: !!options['cacert'],
+        customCaCertificateFilePath: options['cacert'],
+        shouldKeepDefaultCaCertificates: !options['ignoreTruststore']
       },
       clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
       collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
@@ -264,7 +268,6 @@ const runSingleRequest = async function (
       request.url = `http://${request.url}`;
     }
 
-    const options = getOptions();
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
     const cachedSystemProxy = get(options, 'cachedSystemProxy', null);

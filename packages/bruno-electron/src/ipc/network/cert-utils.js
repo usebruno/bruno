@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('path');
 const { get } = require('lodash');
-const { getCACertificates, getSystemProxy } = require('@usebruno/requests');
+const { getCACertificates } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { getCachedSystemProxy } = require('../../store/system-proxy');
@@ -208,7 +208,7 @@ const buildCertsAndProxyConfig = async ({
   const collectionLevelProxy = interpolateObject(collectionProxyConfig, interpolationOptions);
 
   // Get system proxy config
-  const systemProxyConfig = await getSystemProxy();
+  const systemProxyConfig = getCachedSystemProxy();
 
   return {
     collectionPath,
