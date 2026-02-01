@@ -174,7 +174,7 @@ function loadLocalModule({
   const isWithinAllowedRoot = additionalContextRootsAbsolute.some((allowedRoot) => {
     const normalizedAllowedRoot = path.normalize(allowedRoot);
     const relativePath = path.relative(normalizedAllowedRoot, normalizedFilePath);
-    return !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+    return !relativePath.startsWith('..') || !path.isAbsolute(relativePath);
   });
 
   if (!isWithinAllowedRoot) {
