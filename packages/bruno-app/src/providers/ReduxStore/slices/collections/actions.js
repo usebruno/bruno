@@ -1,6 +1,6 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables } from '@usebruno/common/utils';
-import { REQUEST_TYPES } from 'utils/common/constants';
+import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
@@ -2616,7 +2616,7 @@ export const importCollection = (collection, collectionLocation, options = {}) =
       const state = getState();
       const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
 
-      const collectionPath = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, options.format || 'bru');
+      const collectionPath = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, options.format || DEFAULT_COLLECTION_FORMAT);
 
       if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
         const workspaceCollection = {

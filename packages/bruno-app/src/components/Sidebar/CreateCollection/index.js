@@ -13,6 +13,7 @@ import Help from 'components/Help';
 import Dropdown from 'components/Dropdown';
 import { multiLineMsg } from 'utils/common';
 import { formatIpcError } from 'utils/common/error';
+import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
 import Button from 'ui/Button';
@@ -39,7 +40,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
       collectionName: '',
       collectionFolderName: '',
       collectionLocation: defaultLocation || '',
-      format: 'yml'
+      format: DEFAULT_COLLECTION_FORMAT
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()

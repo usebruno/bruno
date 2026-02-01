@@ -1,5 +1,7 @@
 export type CollectionFormat = 'bru' | 'yml';
 
+export const DEFAULT_COLLECTION_FORMAT: CollectionFormat = 'yml';
+
 export interface ParseOptions {
   format?: CollectionFormat;
 }
