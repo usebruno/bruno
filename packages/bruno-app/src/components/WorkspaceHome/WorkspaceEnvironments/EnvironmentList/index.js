@@ -20,6 +20,7 @@ import {
 } from 'providers/ReduxStore/slices/workspaces/actions';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
+import classnames from 'classnames';
 
 const EMPTY_ARRAY = [];
 
@@ -587,7 +588,11 @@ const EnvironmentList = ({
                   <div
                     key={env.uid}
                     id={env.uid}
-                    className={`environment-item ${activeView === 'environment' && selectedEnvironment?.uid === env.uid ? 'active' : ''} ${renamingEnvUid === env.uid ? 'renaming' : ''} ${activeEnvironmentUid === env.uid ? 'activated' : ''}`}
+                    className={classnames('environment-item', {
+                      active: activeView === 'environment' && selectedEnvironment?.uid === env.uid,
+                      renaming: renamingEnvUid === env.uid,
+                      activated: activeEnvironmentUid === env.uid
+                    })}
                     onClick={() => renamingEnvUid !== env.uid && handleEnvironmentClick(env)}
                     onDoubleClick={() => handleEnvironmentDoubleClick(env)}
                   >
@@ -712,7 +717,9 @@ const EnvironmentList = ({
                 {dotEnvFiles.map((file) => (
                   <div
                     key={file.filename}
-                    className={`environment-item ${activeView === 'dotenv' && selectedDotEnvFile === file.filename ? 'active' : ''}`}
+                    className={classnames('environment-item', {
+                      active: activeView === 'dotenv' && selectedDotEnvFile === file.filename
+                    })}
                     onClick={() => handleDotEnvClick(file.filename)}
                   >
                     <span className="environment-name">{file.filename}</span>

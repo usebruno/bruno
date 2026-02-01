@@ -25,7 +25,9 @@ const DotEnvFileEditor = ({
 }) => {
   const { displayedTheme } = useTheme();
   const [tableHeight, setTableHeight] = useState(MIN_TABLE_HEIGHT);
-  const initialRawValue = rawContent !== undefined ? rawContent : variablesToRaw(variables || []);
+  // Derive a single baseline raw value for consistent dirty-tracking
+  const baselineRaw = rawContent ?? variablesToRaw(variables || []);
+  const initialRawValue = baselineRaw;
   const [rawValue, setRawValue] = useState(initialRawValue);
   const [prevViewMode, setPrevViewMode] = useState(viewMode);
   const [isSaving, setIsSaving] = useState(false);
@@ -75,12 +77,8 @@ const DotEnvFileEditor = ({
 
   // Sync raw value with external changes
   useEffect(() => {
-    if (rawContent !== undefined) {
-      setRawValue(rawContent);
-    } else {
-      setRawValue(variablesToRaw(variables || []));
-    }
-  }, [rawContent, variables]);
+    setRawValue(baselineRaw);
+  }, [baselineRaw]);
 
   // Handle view mode switching
   useEffect(() => {
@@ -108,7 +106,7 @@ const DotEnvFileEditor = ({
 
   useEffect(() => {
     if (viewMode === 'raw') {
-      const hasRawChanges = rawValue !== (rawContent || '');
+      const hasRawChanges = rawValue !== baselineRaw;
       setIsModified(hasRawChanges);
     } else {
       const currentValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
@@ -116,7 +114,7 @@ const DotEnvFileEditor = ({
       const hasActualChanges = currentValuesJson !== savedValuesJson;
       setIsModified(hasActualChanges);
     }
-  }, [formik.values, savedValuesJson, setIsModified, viewMode, rawValue, rawContent]);
+  }, [formik.values, savedValuesJson, setIsModified, viewMode, rawValue, baselineRaw]);
 
   // Ref for stable formik.values access
   const valuesRef = useRef(formik.values);
@@ -247,7 +245,7 @@ const DotEnvFileEditor = ({
 
   const handleReset = useCallback(() => {
     if (viewMode === 'raw') {
-      setRawValue(rawContent || '');
+      setRawValue(baselineRaw);
       setIsModified(false);
     } else {
       const originalVars = variables || [];
@@ -258,7 +256,7 @@ const DotEnvFileEditor = ({
       formik.resetForm({ values: resetValues });
       setIsModified(false);
     }
-  }, [viewMode, rawContent, variables, setIsModified]);
+  }, [viewMode, baselineRaw, variables, setIsModified]);
 
   const handleRawChange = useCallback((newValue) => {
     setRawValue(newValue);
