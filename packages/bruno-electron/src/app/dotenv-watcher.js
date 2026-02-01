@@ -17,199 +17,195 @@ const parseVariablesToArray = (envObject) => {
   }));
 };
 
+const DEFAULT_WATCHER_OPTIONS = {
+  ignoreInitial: false,
+  persistent: true,
+  ignorePermissionErrors: true,
+  depth: 0
+};
+
+const createFileHandler = (win, options) => (pathname) => {
+  const { type, uid, uidKey, pathKey, basePath, setEnvVars } = options;
+  const filename = path.basename(pathname);
+
+  if (!isDotEnvFile(filename)) {
+    return;
+  }
+
+  try {
+    const content = fs.readFileSync(pathname, 'utf8');
+    const jsonData = parseDotEnv(content);
+
+    if (filename === '.env') {
+      setEnvVars(jsonData);
+    }
+
+    const variables = parseVariablesToArray(jsonData);
+
+    if (!win.isDestroyed()) {
+      const payload = {
+        type,
+        [uidKey]: uid,
+        filename,
+        variables,
+        exists: true,
+        processEnvVariables: { ...jsonData }
+      };
+      if (pathKey) {
+        payload[pathKey] = basePath;
+      }
+      win.webContents.send('main:dotenv-file-update', payload);
+    }
+  } catch (err) {
+    console.error(`Error processing dotenv file ${pathname}:`, err);
+  }
+};
+
+const createUnlinkHandler = (win, options) => (pathname) => {
+  const { type, uid, uidKey, pathKey, basePath, clearEnvVars } = options;
+  const filename = path.basename(pathname);
+
+  if (!isDotEnvFile(filename)) {
+    return;
+  }
+
+  if (filename === '.env') {
+    clearEnvVars();
+  }
+
+  if (!win.isDestroyed()) {
+    const payload = {
+      type,
+      [uidKey]: uid,
+      filename,
+      variables: [],
+      exists: false,
+      processEnvVariables: {}
+    };
+    if (pathKey) {
+      payload[pathKey] = basePath;
+    }
+    win.webContents.send('main:dotenv-file-update', payload);
+  }
+};
+
 class DotEnvWatcher {
   constructor() {
-    this.collectionWatchers = {};
-    this.workspaceWatchers = {};
+    this.collectionWatchers = new Map();
+    this.workspaceWatchers = new Map();
   }
 
   addCollectionWatcher(win, collectionPath, collectionUid) {
-    if (this.collectionWatchers[collectionPath]) {
-      this.collectionWatchers[collectionPath].close();
+    if (this.collectionWatchers.has(collectionPath)) {
+      this.collectionWatchers.get(collectionPath).close();
     }
 
     const dotEnvPattern = path.join(collectionPath, '.env*');
 
     const watcher = chokidar.watch(dotEnvPattern, {
-      ignoreInitial: false,
-      persistent: true,
-      ignorePermissionErrors: true,
+      ...DEFAULT_WATCHER_OPTIONS,
       awaitWriteFinish: {
         stabilityThreshold: 80,
         pollInterval: 100
-      },
-      depth: 0
+      }
     });
 
-    const handleFile = (pathname) => {
-      const filename = path.basename(pathname);
-      if (!isDotEnvFile(filename)) {
-        return;
-      }
-
-      try {
-        if (!fs.existsSync(pathname)) {
-          return;
-        }
-
-        const content = fs.readFileSync(pathname, 'utf8');
-        const jsonData = parseDotEnv(content);
-
-        if (filename === '.env') {
-          setDotEnvVars(collectionUid, jsonData);
-        }
-
-        const variables = parseVariablesToArray(jsonData);
-
-        if (!win.isDestroyed()) {
-          win.webContents.send('main:dotenv-file-update', {
-            type: 'collection',
-            collectionUid,
-            filename,
-            variables,
-            exists: true,
-            processEnvVariables: { ...jsonData }
-          });
-        }
-      } catch (err) {
-        console.error(`Error processing dotenv file ${pathname}:`, err);
-      }
+    const handlerOptions = {
+      type: 'collection',
+      uid: collectionUid,
+      uidKey: 'collectionUid',
+      basePath: collectionPath,
+      setEnvVars: (data) => setDotEnvVars(collectionUid, data),
+      clearEnvVars: () => clearDotEnvVars(collectionUid)
     };
 
-    const handleUnlink = (pathname) => {
-      const filename = path.basename(pathname);
-      if (!isDotEnvFile(filename)) {
-        return;
-      }
-
-      if (filename === '.env') {
-        clearDotEnvVars(collectionUid);
-      }
-
-      if (!win.isDestroyed()) {
-        win.webContents.send('main:dotenv-file-update', {
-          type: 'collection',
-          collectionUid,
-          filename,
-          variables: [],
-          exists: false,
-          processEnvVariables: {}
-        });
-      }
-    };
+    const handleFile = createFileHandler(win, handlerOptions);
+    const handleUnlink = createUnlinkHandler(win, handlerOptions);
 
     watcher.on('add', handleFile);
     watcher.on('change', handleFile);
     watcher.on('unlink', handleUnlink);
+    watcher.on('error', (err) => {
+      console.error(`Collection watcher error for ${collectionPath}:`, err);
+    });
 
-    this.collectionWatchers[collectionPath] = watcher;
+    this.collectionWatchers.set(collectionPath, watcher);
   }
 
-  removeCollectionWatcher(collectionPath) {
-    if (this.collectionWatchers[collectionPath]) {
-      this.collectionWatchers[collectionPath].close();
-      delete this.collectionWatchers[collectionPath];
+  removeCollectionWatcher(collectionPath, collectionUid) {
+    if (this.collectionWatchers.has(collectionPath)) {
+      this.collectionWatchers.get(collectionPath).close();
+      this.collectionWatchers.delete(collectionPath);
+    }
+    if (collectionUid) {
+      clearDotEnvVars(collectionUid);
     }
   }
 
   hasCollectionWatcher(collectionPath) {
-    return Boolean(this.collectionWatchers[collectionPath]);
+    return this.collectionWatchers.has(collectionPath);
   }
 
   addWorkspaceWatcher(win, workspacePath, workspaceUid) {
-    if (this.workspaceWatchers[workspacePath]) {
-      this.workspaceWatchers[workspacePath].close();
+    if (this.workspaceWatchers.has(workspacePath)) {
+      this.workspaceWatchers.get(workspacePath).close();
     }
 
     const dotEnvPattern = path.join(workspacePath, '.env*');
 
     const watcher = chokidar.watch(dotEnvPattern, {
-      ignoreInitial: false,
-      persistent: true,
-      ignorePermissionErrors: true,
+      ...DEFAULT_WATCHER_OPTIONS,
       awaitWriteFinish: {
         stabilityThreshold: 80,
         pollInterval: 250
-      },
-      depth: 0
+      }
     });
 
-    const handleFile = (pathname) => {
-      const filename = path.basename(pathname);
-      if (!isDotEnvFile(filename)) {
-        return;
-      }
-
-      try {
-        if (!fs.existsSync(pathname)) {
-          return;
-        }
-
-        const content = fs.readFileSync(pathname, 'utf8');
-        const jsonData = parseDotEnv(content);
-
-        if (filename === '.env') {
-          setWorkspaceDotEnvVars(workspacePath, jsonData);
-        }
-
-        const variables = parseVariablesToArray(jsonData);
-
-        if (!win.isDestroyed()) {
-          win.webContents.send('main:dotenv-file-update', {
-            type: 'workspace',
-            workspaceUid,
-            workspacePath,
-            filename,
-            variables,
-            exists: true,
-            processEnvVariables: { ...jsonData }
-          });
-        }
-      } catch (err) {
-        console.error(`Error processing workspace dotenv file ${pathname}:`, err);
-      }
+    const handlerOptions = {
+      type: 'workspace',
+      uid: workspaceUid,
+      uidKey: 'workspaceUid',
+      pathKey: 'workspacePath',
+      basePath: workspacePath,
+      setEnvVars: (data) => setWorkspaceDotEnvVars(workspacePath, data),
+      clearEnvVars: () => clearWorkspaceDotEnvVars(workspacePath)
     };
 
-    const handleUnlink = (pathname) => {
-      const filename = path.basename(pathname);
-      if (!isDotEnvFile(filename)) {
-        return;
-      }
-
-      if (filename === '.env') {
-        clearWorkspaceDotEnvVars(workspacePath);
-      }
-
-      if (!win.isDestroyed()) {
-        win.webContents.send('main:dotenv-file-update', {
-          type: 'workspace',
-          workspaceUid,
-          workspacePath,
-          filename,
-          variables: [],
-          exists: false,
-          processEnvVariables: {}
-        });
-      }
-    };
+    const handleFile = createFileHandler(win, handlerOptions);
+    const handleUnlink = createUnlinkHandler(win, handlerOptions);
 
     watcher.on('add', handleFile);
     watcher.on('change', handleFile);
     watcher.on('unlink', handleUnlink);
+    watcher.on('error', (err) => {
+      console.error(`Workspace watcher error for ${workspacePath}:`, err);
+    });
 
-    this.workspaceWatchers[workspacePath] = watcher;
+    this.workspaceWatchers.set(workspacePath, watcher);
   }
 
   removeWorkspaceWatcher(workspacePath) {
-    if (this.workspaceWatchers[workspacePath]) {
-      this.workspaceWatchers[workspacePath].close();
-      delete this.workspaceWatchers[workspacePath];
+    if (this.workspaceWatchers.has(workspacePath)) {
+      this.workspaceWatchers.get(workspacePath).close();
+      this.workspaceWatchers.delete(workspacePath);
     }
     clearWorkspaceDotEnvVars(workspacePath);
   }
 
   hasWorkspaceWatcher(workspacePath) {
-    return Boolean(this.workspaceWatchers[workspacePath]);
+    return this.workspaceWatchers.has(workspacePath);
+  }
+
+  closeAll() {
+    for (const [path, watcher] of this.collectionWatchers) {
+      watcher.close();
+    }
+    this.collectionWatchers.clear();
+
+    for (const [path, watcher] of this.workspaceWatchers) {
+      watcher.close();
+    }
+    this.workspaceWatchers.clear();
   }
 }
 

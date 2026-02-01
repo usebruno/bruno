@@ -1,101 +1,15 @@
 import React, { useCallback, useRef, useMemo, useEffect, useState } from 'react';
-import { TableVirtuoso } from 'react-virtuoso';
-import { IconTrash, IconAlertCircle, IconFileOff } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
-import MultiLineEditor from 'components/MultiLineEditor/index';
-import CodeEditor from 'components/CodeEditor';
-import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
-import { Tooltip } from 'react-tooltip';
 
-const TableRow = React.memo(({ children, item }) => (
-  <tr key={item.uid} data-testid={`dotenv-var-row-${item.name}`}>{children}</tr>
-), (prevProps, nextProps) => {
-  const prevUid = prevProps?.item?.uid;
-  const nextUid = nextProps?.item?.uid;
-  return prevUid === nextUid && prevProps.children === nextProps.children;
-});
-
-const ErrorMessage = React.memo(({ formik, name, index }) => {
-  const meta = formik.getFieldMeta(name);
-  const id = `error-${name}-${index}`;
-
-  const isLastRow = index === formik.values.length - 1;
-  const variable = formik.values[index];
-  const isEmptyRow = !variable?.name || variable.name.trim() === '';
-
-  if ((isLastRow && isEmptyRow) || !meta.error || !meta.touched) {
-    return null;
-  }
-
-  return (
-    <span>
-      <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
-      <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
-    </span>
-  );
-});
-
-const MIN_H = 35 * 2;
-
-const variablesToRaw = (variables) => {
-  return variables
-    .filter((v) => v.name && v.name.trim() !== '')
-    .map((v) => {
-      const value = v.value || '';
-      if (value.includes('\n') || value.includes('"') || value.includes('\'')) {
-        const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
-        return `${v.name}="${escapedValue}"`;
-      }
-      return `${v.name}=${value}`;
-    })
-    .join('\n');
-};
-
-const rawToVariables = (rawContent) => {
-  if (!rawContent || rawContent.trim() === '') {
-    return [];
-  }
-
-  const variables = [];
-  const lines = rawContent.split('\n');
-
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-
-    if (!trimmedLine || trimmedLine.startsWith('#')) {
-      continue;
-    }
-
-    const equalIndex = trimmedLine.indexOf('=');
-    if (equalIndex === -1) {
-      continue;
-    }
-
-    const name = trimmedLine.substring(0, equalIndex).trim();
-    let value = trimmedLine.substring(equalIndex + 1);
-
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith('\'') && value.endsWith('\''))) {
-      value = value.slice(1, -1);
-      value = value.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-    }
-
-    if (name) {
-      variables.push({
-        uid: uuid(),
-        name,
-        value,
-        enabled: true,
-        secret: false
-      });
-    }
-  }
-
-  return variables;
-};
+import StyledWrapper from './StyledWrapper';
+import DotEnvTableView from './DotEnvTableView';
+import DotEnvRawView from './DotEnvRawView';
+import DotEnvEmptyState from './DotEnvEmptyState';
+import { variablesToRaw, rawToVariables, MIN_TABLE_HEIGHT } from './utils';
 
 const DotEnvFileEditor = ({
   variables,
@@ -109,18 +23,14 @@ const DotEnvFileEditor = ({
   collection,
   item
 }) => {
-  const { storedTheme } = useTheme();
-  const [tableHeight, setTableHeight] = useState(MIN_H);
+  const { displayedTheme } = useTheme();
+  const [tableHeight, setTableHeight] = useState(MIN_TABLE_HEIGHT);
   const initialRawValue = rawContent !== undefined ? rawContent : variablesToRaw(variables || []);
   const [rawValue, setRawValue] = useState(initialRawValue);
   const [prevViewMode, setPrevViewMode] = useState(viewMode);
   const [isSaving, setIsSaving] = useState(false);
 
   const formikRef = useRef(null);
-
-  const handleTotalHeightChanged = useCallback((h) => {
-    setTableHeight(h);
-  }, []);
 
   const initialValues = useMemo(() => {
     const vars = variables || [];
@@ -163,6 +73,7 @@ const DotEnvFileEditor = ({
 
   formikRef.current = formik;
 
+  // Sync raw value with external changes
   useEffect(() => {
     if (rawContent !== undefined) {
       setRawValue(rawContent);
@@ -171,6 +82,7 @@ const DotEnvFileEditor = ({
     }
   }, [rawContent, variables]);
 
+  // Handle view mode switching
   useEffect(() => {
     if (viewMode !== prevViewMode) {
       if (viewMode === 'raw' && prevViewMode === 'table') {
@@ -181,11 +93,7 @@ const DotEnvFileEditor = ({
         const parsedVars = rawToVariables(rawValue);
         const newValues = [
           ...parsedVars,
-          {
-            uid: uuid(),
-            name: '',
-            value: ''
-          }
+          { uid: uuid(), name: '', value: '' }
         ];
         formikRef.current.setValues(newValues);
       }
@@ -193,6 +101,7 @@ const DotEnvFileEditor = ({
     }
   }, [viewMode, prevViewMode, rawValue]);
 
+  // Track modifications
   const savedValuesJson = useMemo(() => {
     return JSON.stringify(variables || []);
   }, [variables]);
@@ -209,6 +118,7 @@ const DotEnvFileEditor = ({
     }
   }, [formik.values, savedValuesJson, setIsModified, viewMode, rawValue, rawContent]);
 
+  // Ref for stable formik.values access
   const valuesRef = useRef(formik.values);
   valuesRef.current = formik.values;
 
@@ -237,17 +147,13 @@ const DotEnvFileEditor = ({
       ? filteredValues
       : [
           ...filteredValues,
-          {
-            uid: uuid(),
-            name: '',
-            value: ''
-          }
+          { uid: uuid(), name: '', value: '' }
         ];
 
     formik.setValues(newValues);
   }, []);
 
-  const handleNameChange = (index, e) => {
+  const handleNameChange = useCallback((index, e) => {
     formik.handleChange(e);
     const isLastRow = index === valuesRef.current.length - 1;
 
@@ -263,20 +169,20 @@ const DotEnvFileEditor = ({
         });
       }, 0);
     }
-  };
+  }, []);
 
-  const handleNameBlur = (index) => {
+  const handleNameBlur = useCallback((index) => {
     formik.setFieldTouched(`${index}.name`, true, true);
-  };
+  }, []);
 
-  const handleNameKeyDown = (index, e) => {
+  const handleNameKeyDown = useCallback((index, e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       formik.setFieldTouched(`${index}.name`, true, true);
     }
-  };
+  }, []);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (isSaving) return;
 
     const variablesToSave = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
@@ -302,11 +208,7 @@ const DotEnvFileEditor = ({
         toast.success('Changes saved successfully');
         const newValues = [
           ...variablesToSave,
-          {
-            uid: uuid(),
-            name: '',
-            value: ''
-          }
+          { uid: uuid(), name: '', value: '' }
         ];
         formik.resetForm({ values: newValues });
         setIsModified(false);
@@ -318,9 +220,9 @@ const DotEnvFileEditor = ({
       .finally(() => {
         setIsSaving(false);
       });
-  };
+  }, [isSaving, formik.values, onSave, setIsModified]);
 
-  const handleSaveRaw = () => {
+  const handleSaveRaw = useCallback(() => {
     if (isSaving) return;
 
     if (!onSaveRaw) {
@@ -341,9 +243,9 @@ const DotEnvFileEditor = ({
       .finally(() => {
         setIsSaving(false);
       });
-  };
+  }, [isSaving, rawValue, onSaveRaw, setIsModified]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     if (viewMode === 'raw') {
       setRawValue(rawContent || '');
       setIsModified(false);
@@ -351,21 +253,18 @@ const DotEnvFileEditor = ({
       const originalVars = variables || [];
       const resetValues = [
         ...originalVars,
-        {
-          uid: uuid(),
-          name: '',
-          value: ''
-        }
+        { uid: uuid(), name: '', value: '' }
       ];
       formik.resetForm({ values: resetValues });
       setIsModified(false);
     }
-  };
+  }, [viewMode, rawContent, variables, setIsModified]);
 
-  const handleRawChange = (newValue) => {
+  const handleRawChange = useCallback((newValue) => {
     setRawValue(newValue);
-  };
+  }, []);
 
+  // Global save event listener
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
 
@@ -388,190 +287,44 @@ const DotEnvFileEditor = ({
     };
   }, [viewMode]);
 
+  // Raw view mode
   if (viewMode === 'raw') {
     return (
       <StyledWrapper>
-        <div className="raw-editor-container">
-          <CodeEditor
-            collection={collection}
-            item={item}
-            theme={storedTheme}
-            value={rawValue}
-            onEdit={handleRawChange}
-            onSave={handleSaveRaw}
-            mode="text/plain"
-            enableVariableHighlighting={false}
-            enableBrunoVarInfo={false}
-          />
-        </div>
-        <div className="button-container">
-          <div className="flex items-center">
-            <button type="button" className="submit" onClick={handleSaveRaw} disabled={isSaving} data-testid="save-dotenv-raw">
-              {isSaving ? 'Saving...' : 'Save'}
-            </button>
-            <button type="button" className="submit reset ml-2" onClick={handleReset} disabled={isSaving} data-testid="reset-dotenv-raw">
-              Reset
-            </button>
-          </div>
-        </div>
-      </StyledWrapper>
-    );
-  }
-
-  if (!dotEnvExists && (!variables || variables.length === 0)) {
-    return (
-      <StyledWrapper>
-        <div className="empty-state">
-          <IconFileOff size={48} strokeWidth={1.5} />
-          <div className="title">No .env File</div>
-          <div className="description">
-            Add a variable below to create a .env file in this location.
-          </div>
-        </div>
-        <TableVirtuoso
-          className="table-container"
-          style={{ height: MIN_H }}
-          components={{ TableRow }}
-          data={formik.values}
-          totalListHeightChanged={handleTotalHeightChanged}
-          fixedHeaderContent={() => (
-            <tr>
-              <td>Name</td>
-              <td className="delete-col"></td>
-            </tr>
-          )}
-          fixedItemHeight={35}
-          computeItemKey={(index, variable) => variable.uid}
-          itemContent={(index, variable) => {
-            const isLastRow = index === formik.values.length - 1;
-            const isEmptyRow = !variable.name || variable.name.trim() === '';
-            const isLastEmptyRow = isLastRow && isEmptyRow;
-
-            return (
-              <>
-                <td>
-                  <div className="flex items-center">
-                    <input
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      className="mousetrap"
-                      id={`${index}.name`}
-                      name={`${index}.name`}
-                      value={variable.name}
-                      placeholder={isLastEmptyRow ? 'Name' : ''}
-                      onChange={(e) => handleNameChange(index, e)}
-                      onBlur={() => handleNameBlur(index)}
-                      onKeyDown={(e) => handleNameKeyDown(index, e)}
-                    />
-                    <ErrorMessage formik={formik} name={`${index}.name`} index={index} />
-                  </div>
-                </td>
-                <td className="delete-col">
-                  {!isLastEmptyRow && (
-                    <button type="button" onClick={() => handleRemoveVar(variable.uid)}>
-                      <IconTrash strokeWidth={1.5} size={18} />
-                    </button>
-                  )}
-                </td>
-              </>
-            );
-          }}
+        <DotEnvRawView
+          collection={collection}
+          item={item}
+          theme={displayedTheme}
+          value={rawValue}
+          onChange={handleRawChange}
+          onSave={handleSaveRaw}
+          onReset={handleReset}
+          isSaving={isSaving}
         />
-        <div className="button-container">
-          <div className="flex items-center">
-            <button type="button" className="submit" onClick={handleSave} disabled={isSaving} data-testid="save-dotenv">
-              {isSaving ? 'Saving...' : 'Save'}
-            </button>
-            <button type="button" className="submit reset ml-2" onClick={handleReset} disabled={isSaving} data-testid="reset-dotenv">
-              Reset
-            </button>
-          </div>
-        </div>
       </StyledWrapper>
     );
   }
+
+  // Empty state (no .env file exists yet)
+  const showEmptyState = !dotEnvExists && (!variables || variables.length === 0);
 
   return (
     <StyledWrapper>
-      <TableVirtuoso
-        className="table-container"
-        style={{ height: tableHeight }}
-        components={{ TableRow }}
-        data={formik.values}
-        totalListHeightChanged={handleTotalHeightChanged}
-        fixedHeaderContent={() => (
-          <tr>
-            <td>Name</td>
-            <td>Value</td>
-            <td className="delete-col"></td>
-          </tr>
-        )}
-        fixedItemHeight={35}
-        computeItemKey={(index, variable) => variable.uid}
-        itemContent={(index, variable) => {
-          const isLastRow = index === formik.values.length - 1;
-          const isEmptyRow = !variable.name || variable.name.trim() === '';
-          const isLastEmptyRow = isLastRow && isEmptyRow;
-
-          return (
-            <>
-              <td>
-                <div className="flex items-center">
-                  <input
-                    type="text"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    className="mousetrap"
-                    id={`${index}.name`}
-                    name={`${index}.name`}
-                    value={variable.name}
-                    placeholder={isLastEmptyRow ? 'Name' : ''}
-                    onChange={(e) => handleNameChange(index, e)}
-                    onBlur={() => handleNameBlur(index)}
-                    onKeyDown={(e) => handleNameKeyDown(index, e)}
-                  />
-                  <ErrorMessage formik={formik} name={`${index}.name`} index={index} />
-                </div>
-              </td>
-              <td className="flex flex-row flex-nowrap items-center">
-                <div className="overflow-hidden grow w-full relative">
-                  <MultiLineEditor
-                    theme={storedTheme}
-                    name={`${index}.value`}
-                    value={variable.value}
-                    placeholder={isLastEmptyRow ? 'Value' : ''}
-                    onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
-                    onSave={handleSave}
-                  />
-                </div>
-              </td>
-              <td className="delete-col">
-                {!isLastEmptyRow && (
-                  <button type="button" onClick={() => handleRemoveVar(variable.uid)}>
-                    <IconTrash strokeWidth={1.5} size={18} />
-                  </button>
-                )}
-              </td>
-            </>
-          );
-        }}
+      {showEmptyState && <DotEnvEmptyState />}
+      <DotEnvTableView
+        formik={formik}
+        theme={displayedTheme}
+        showValueColumn={!showEmptyState}
+        tableHeight={showEmptyState ? MIN_TABLE_HEIGHT : tableHeight}
+        onHeightChange={setTableHeight}
+        onNameChange={handleNameChange}
+        onNameBlur={handleNameBlur}
+        onNameKeyDown={handleNameKeyDown}
+        onRemoveVar={handleRemoveVar}
+        onSave={handleSave}
+        onReset={handleReset}
+        isSaving={isSaving}
       />
-
-      <div className="button-container">
-        <div className="flex items-center">
-          <button type="button" className="submit" onClick={handleSave} data-testid="save-dotenv">
-            Save
-          </button>
-          <button type="button" className="submit reset ml-2" onClick={handleReset} data-testid="reset-dotenv">
-            Reset
-          </button>
-        </div>
-      </div>
     </StyledWrapper>
   );
 };

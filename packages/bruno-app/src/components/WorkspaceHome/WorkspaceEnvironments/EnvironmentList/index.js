@@ -8,7 +8,7 @@ import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
 import CollapsibleSection from 'components/Environments/CollapsibleSection';
 import DotEnvFileEditor from 'components/Environments/DotEnvFileEditor';
-import DotEnvFileDetails from './DotEnvFileDetails';
+import DotEnvFileDetails from 'components/Environments/DotEnvFileDetails';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { addGlobalEnvironment, renameGlobalEnvironment, selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
@@ -20,6 +20,8 @@ import {
 } from 'providers/ReduxStore/slices/workspaces/actions';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
+
+const EMPTY_ARRAY = [];
 
 const EnvironmentList = ({
   environments,
@@ -61,7 +63,7 @@ const EnvironmentList = ({
 
   const dotEnvFiles = useSelector((state) => {
     const ws = state.workspaces.workspaces.find((w) => w.uid === workspace?.uid);
-    return ws?.dotEnvFiles || [];
+    return ws?.dotEnvFiles || EMPTY_ARRAY;
   });
 
   const envUids = environments ? environments.map((env) => env.uid) : [];
@@ -195,18 +197,6 @@ const EnvironmentList = ({
     setSelectedDotEnvFile(filename);
     setActiveView('dotenv');
     setDotEnvExpanded(true);
-  };
-
-  const handleDotEnvClose = () => {
-    if (isDotEnvModified) {
-      setSwitchEnvConfirmClose(true);
-      return;
-    }
-    setActiveView('environment');
-    if (environments?.length) {
-      const env = environments.find((e) => e.uid === activeEnvironmentUid) || environments[0];
-      setSelectedEnvironment(env);
-    }
   };
 
   const handleEnvironmentDoubleClick = (env) => {
@@ -580,13 +570,13 @@ const EnvironmentList = ({
               onToggle={() => setEnvironmentsExpanded(!environmentsExpanded)}
               actions={(
                 <>
-                  <button className="btn-action" onClick={() => handleCreateEnvClick()} title="Create environment">
+                  <button type="button" className="btn-action" onClick={() => handleCreateEnvClick()} title="Create environment">
                     <IconPlus size={14} strokeWidth={1.5} />
                   </button>
-                  <button className="btn-action" onClick={() => handleImportClick()} title="Import environment">
+                  <button type="button" className="btn-action" onClick={() => handleImportClick()} title="Import environment">
                     <IconDownload size={14} strokeWidth={1.5} />
                   </button>
-                  <button className="btn-action" onClick={() => handleExportClick()} title="Export environment">
+                  <button type="button" className="btn-action" onClick={() => handleExportClick()} title="Export environment">
                     <IconUpload size={14} strokeWidth={1.5} />
                   </button>
                 </>
