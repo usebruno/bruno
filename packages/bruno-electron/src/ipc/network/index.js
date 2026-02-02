@@ -443,6 +443,38 @@ const registerNetworkIpc = (mainWindow) => {
     });
   };
 
+  const appendScriptErrorResult = (scriptType, scriptResult, error) => {
+    if (!error) {
+      return scriptResult;
+    }
+
+    const descriptionMap = {
+      'test': 'Test Script Error',
+      'post-response': 'Post-Response Script Error',
+      'pre-request': 'Pre-Request Script Error'
+    };
+
+    const messageMap = {
+      'test': 'An error occurred while executing the test script.',
+      'post-response': 'An error occurred while executing the post-response script.',
+      'pre-request': 'An error occurred while executing the pre-request script.'
+    };
+
+    const results = [
+      ...(scriptResult?.results || []),
+      {
+        status: 'fail',
+        description: descriptionMap[scriptType] || 'Script Error',
+        error: error.message || messageMap[scriptType] || 'An error occurred while executing the script.'
+      }
+    ];
+
+    return {
+      ...(scriptResult || {}),
+      results
+    };
+  };
+
   const runPreRequest = async (
     request,
     requestUid,
@@ -699,6 +731,12 @@ const registerNetworkIpc = (mainWindow) => {
         preRequestError = error;
       }
 
+      if (preRequestError?.partialResults) {
+        preRequestScriptResult = preRequestError.partialResults;
+      }
+
+      preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
+
       if (preRequestScriptResult?.results) {
         mainWindow.webContents.send('main:run-request-event', {
           type: 'test-results-pre-request',
@@ -864,6 +902,15 @@ const registerNetworkIpc = (mainWindow) => {
           postResponseError = error;
         }
 
+        // Extract partial results from error if available
+        // This preserves any test() calls that passed before the script errored
+        // (e.g., if 2 tests pass then script throws, we still want to show those 2 passing tests)
+        if (postResponseError?.partialResults) {
+          postResponseScriptResult = postResponseError.partialResults;
+        }
+
+        postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
+
         if (postResponseScriptResult?.results) {
           mainWindow.webContents.send('main:run-request-event', {
             type: 'test-results-post-response',
@@ -936,6 +983,8 @@ const registerNetworkIpc = (mainWindow) => {
               };
             }
           }
+
+          testResults = appendScriptErrorResult('test', testResults, testError);
 
           !runInBackground && mainWindow.webContents.send('main:run-request-event', {
             type: 'test-results',
@@ -1308,6 +1357,12 @@ const registerNetworkIpc = (mainWindow) => {
               preRequestError = error;
             }
 
+            if (preRequestError?.partialResults) {
+              preRequestScriptResult = preRequestError.partialResults;
+            }
+
+            preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
+
             if (preRequestScriptResult?.results) {
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'test-results-pre-request',
@@ -1530,6 +1585,14 @@ const registerNetworkIpc = (mainWindow) => {
               postResponseError = error;
             }
 
+            // Extract partial results from error if available
+            // (e.g., if 2 tests pass then script throws, we still want to show those 2 passing tests)
+            if (postResponseError?.partialResults) {
+              postResponseScriptResult = postResponseError.partialResults;
+            }
+
+            postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
+
             notifyScriptExecution({
               channel: 'main:run-folder-event',
               basePayload: eventData,
@@ -1615,6 +1678,8 @@ const registerNetworkIpc = (mainWindow) => {
                   };
                 }
               }
+
+              testResults = appendScriptErrorResult('test', testResults, testError);
 
               if (testResults?.nextRequestName !== undefined) {
                 nextRequestName = testResults.nextRequestName;
