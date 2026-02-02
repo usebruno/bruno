@@ -24,11 +24,12 @@ import {
   runFolderEvent,
   runRequestEvent,
   scriptEnvironmentUpdateEvent,
-  streamDataReceived
+  streamDataReceived,
+  setDotEnvVariables
 } from 'providers/ReduxStore/slices/collections';
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { workspaceOpenedEvent, workspaceConfigUpdatedEvent } from 'providers/ReduxStore/slices/workspaces/actions';
-import { workspaceDotEnvUpdateEvent } from 'providers/ReduxStore/slices/workspaces';
+import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
 import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
@@ -226,6 +227,33 @@ const useIpcEvents = () => {
       dispatch(workspaceEnvUpdateEvent({ processEnvVariables: val.processEnvVariables }));
     });
 
+    const removeDotEnvFileUpdateListener = ipcRenderer.on('main:dotenv-file-update', (val) => {
+      const { type, collectionUid, workspaceUid, filename, variables, exists, processEnvVariables } = val;
+
+      if (type === 'collection' && collectionUid) {
+        dispatch(setDotEnvVariables({
+          collectionUid,
+          variables,
+          exists,
+          filename
+        }));
+        if (filename === '.env') {
+          dispatch(processEnvUpdateEvent({ collectionUid, processEnvVariables }));
+        }
+      } else if (type === 'workspace' && workspaceUid) {
+        dispatch(setWorkspaceDotEnvVariables({
+          workspaceUid,
+          variables,
+          exists,
+          filename
+        }));
+        if (filename === '.env') {
+          dispatch(workspaceDotEnvUpdateEvent(val));
+          dispatch(workspaceEnvUpdateEvent({ processEnvVariables }));
+        }
+      }
+    });
+
     const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => {
       console[val.type](...val.args);
       dispatch(addLog({
@@ -321,6 +349,7 @@ const useIpcEvents = () => {
       removeRunRequestEventListener();
       removeProcessEnvUpdatesListener();
       removeWorkspaceDotEnvUpdatesListener();
+      removeDotEnvFileUpdateListener();
       removeConsoleLogListener();
       removeConfigUpdatesListener();
       removeShowPreferencesListener();
