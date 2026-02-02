@@ -102,9 +102,14 @@ const DotEnvFileEditor = ({
     }
   }, [viewMode, prevViewMode, rawValue]);
 
-  // Track modifications
+  const normalizeForComparison = (vars) => {
+    return vars
+      .filter((v) => v.name && v.name.trim() !== '')
+      .map(({ name, value }) => ({ name, value: value || '' }));
+  };
+
   const savedValuesJson = useMemo(() => {
-    return JSON.stringify(variables || []);
+    return JSON.stringify(normalizeForComparison(variables || []));
   }, [variables]);
 
   useEffect(() => {
@@ -112,8 +117,7 @@ const DotEnvFileEditor = ({
       const hasRawChanges = rawValue !== baselineRaw;
       setIsModified(hasRawChanges);
     } else {
-      const currentValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
-      const currentValuesJson = JSON.stringify(currentValues);
+      const currentValuesJson = JSON.stringify(normalizeForComparison(formik.values));
       const hasActualChanges = currentValuesJson !== savedValuesJson;
       setIsModified(hasActualChanges);
     }
