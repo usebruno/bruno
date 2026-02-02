@@ -14,6 +14,7 @@ import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { transformRequestToSaveToFilesystem, findCollectionByUid, findItemInCollection } from 'utils/collections';
+import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import { itemSchema } from '@usebruno/schema';
 
 const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose }) => {
@@ -115,7 +116,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       const transformedItem = transformRequestToSaveToFilesystem(itemToSave);
       await itemSchema.validate(transformedItem);
 
-      const format = collection.format || 'bru';
+      const format = collection.format || DEFAULT_COLLECTION_FORMAT;
       const targetFilename = resolveRequestFilename(sanitizedFilename, format);
 
       await ipcRenderer.invoke('renderer:save-transient-request', {

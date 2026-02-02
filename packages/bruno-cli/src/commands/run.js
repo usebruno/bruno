@@ -375,7 +375,7 @@ const handler = async function (argv) {
         result.__name__ = nameOverride || path.basename(filePath, fileExt);
       } else {
         const content = fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
-        const envJson = parseEnvironment(content);
+        const envJson = parseEnvironment(content, { format: 'bru' });
         result = getEnvVars(envJson);
         result.__name__ = nameOverride || path.basename(filePath, '.bru');
       }

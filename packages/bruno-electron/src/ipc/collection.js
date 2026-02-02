@@ -14,7 +14,8 @@ const {
   parseFolder,
   stringifyFolder,
   stringifyEnvironment,
-  parseEnvironment
+  parseEnvironment,
+  DEFAULT_COLLECTION_FORMAT
 } = require('@usebruno/filestore');
 const { dotenvToJson } = require('@usebruno/lang');
 const brunoConverters = require('@usebruno/converters');
@@ -133,7 +134,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     'renderer:create-collection',
     async (event, collectionName, collectionFolderName, collectionLocation, options = {}) => {
       try {
-        const format = options.format || 'bru';
+        const format = options.format || DEFAULT_COLLECTION_FORMAT;
         collectionFolderName = sanitizeName(collectionFolderName);
         const dirPath = path.join(collectionLocation, collectionFolderName);
         if (fs.existsSync(dirPath)) {
@@ -1049,7 +1050,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, format = 'bru') => {
+  ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, format = DEFAULT_COLLECTION_FORMAT) => {
     try {
       let collectionName = sanitizeName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);
