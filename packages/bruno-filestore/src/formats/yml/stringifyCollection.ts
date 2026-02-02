@@ -3,11 +3,13 @@ import type { ProtoFileItem, ProtoFileImportPath } from '@opencollection/types/c
 import type { HttpRequestHeader } from '@opencollection/types/requests/http';
 import type { ClientCertificate, PemCertificate, Pkcs12Certificate } from '@opencollection/types/config/certificates';
 import type { Variable } from '@opencollection/types/common/variables';
+import type { Action } from '@opencollection/types/common/actions';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import { stringifyYml } from './utils';
 import { toOpenCollectionAuth } from './common/auth';
 import { toOpenCollectionHttpHeaders } from './common/headers';
 import { toOpenCollectionVariables } from './common/variables';
+import { toOpenCollectionActions } from './common/actions';
 import { toOpenCollectionScripts } from './common/scripts';
 import type { Auth } from '@opencollection/types/common/auth';
 
@@ -39,6 +41,7 @@ const hasRequestDefaults = (collectionRoot: any): boolean => {
 
   return Boolean((requestRoot?.headers?.length)
     || (requestRoot?.vars?.req?.length)
+    || (requestRoot?.vars?.res?.length)
     || hasRequestScripts(collectionRoot)
     || hasRequestAuth(collectionRoot));
 };
@@ -175,6 +178,14 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
         const ocVariables: Variable[] | undefined = toOpenCollectionVariables(collectionRoot.request?.vars);
         if (ocVariables) {
           oc.request.variables = ocVariables;
+        }
+      }
+
+      // actions (post-response variables)
+      if (collectionRoot.request?.vars?.res?.length) {
+        const ocActions: Action[] | undefined = toOpenCollectionActions(collectionRoot.request?.vars?.res);
+        if (ocActions) {
+          (oc.request as any).actions = ocActions;
         }
       }
 
