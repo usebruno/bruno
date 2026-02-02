@@ -1909,8 +1909,8 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
      Modal Save writes what the user sees:
      - Non-ephemeral vars are saved as-is (without metadata)
      - Ephemeral vars:
-       - if persistedValue exists, save that (restore original value)
-       - otherwise filter out (don't save script-created ephemeral vars)
+       - if persistedValue exists, save that (explicit persisted case)
+       - otherwise save the current UI value (treat as user-authored)
      */
     const persisted = buildPersistedEnvVariables(variables, { mode: 'save' });
     environment.variables = persisted;
