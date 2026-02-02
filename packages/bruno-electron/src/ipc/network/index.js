@@ -34,7 +34,7 @@ const { isRequestTagsIncluded } = require('@usebruno/common');
 const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
-const { getCertsAndProxyConfig } = require('./cert-utils');
+const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { buildFormUrlEncodedPayload, isFormData } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
@@ -680,6 +680,20 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
+      // Build certsAndProxyConfig for bru.sendRequest
+      const certsAndProxyConfig = await buildCertsAndProxyConfig({
+        collectionUid,
+        collection,
+        collectionPath,
+        envVars,
+        runtimeVariables,
+        processEnvVars,
+        request
+      });
+
+      // Add certsAndProxyConfig to request object for bru.sendRequest
+      request.certsAndProxyConfig = certsAndProxyConfig;
+
       let preRequestScriptResult = null;
       let preRequestError = null;
       try {
@@ -1288,6 +1302,20 @@ const registerNetworkIpc = (mainWindow) => {
           }
 
           try {
+            // Build certsAndProxyConfig for bru.sendRequest
+            const certsAndProxyConfig = await buildCertsAndProxyConfig({
+              collectionUid,
+              collection,
+              collectionPath,
+              envVars,
+              runtimeVariables,
+              processEnvVars,
+              request
+            });
+
+            // Add certsAndProxyConfig to request object for bru.sendRequest
+            request.certsAndProxyConfig = certsAndProxyConfig;
+
             let preRequestScriptResult;
             let preRequestError = null;
             try {

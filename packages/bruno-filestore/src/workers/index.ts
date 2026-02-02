@@ -1,5 +1,6 @@
 import WorkerQueue from './WorkerQueue';
 import { Lane, CollectionFormat } from '../types';
+import { DEFAULT_COLLECTION_FORMAT } from '../constants';
 import path from 'node:path';
 
 const sizeInMB = (size: number): number => {
@@ -54,7 +55,7 @@ class BruParserWorker {
     return queueForSize?.workerQueue ?? this.workerQueues[this.workerQueues.length - 1].workerQueue;
   }
 
-  private async enqueueTask({ data, taskType, format = 'bru' }: { data: any; taskType: 'parse' | 'stringify'; format?: CollectionFormat }): Promise<any> {
+  private async enqueueTask({ data, taskType, format = DEFAULT_COLLECTION_FORMAT }: { data: any; taskType: 'parse' | 'stringify'; format?: CollectionFormat }): Promise<any> {
     const size = getSize(data);
     const workerQueue = this.getWorkerQueue(size);
     const workerScriptPath = path.join(__dirname, './workers/worker-script.js');
@@ -67,11 +68,11 @@ class BruParserWorker {
     });
   }
 
-  async parseRequest(data: any, format: CollectionFormat = 'bru'): Promise<any> {
+  async parseRequest(data: any, format: CollectionFormat = DEFAULT_COLLECTION_FORMAT): Promise<any> {
     return this.enqueueTask({ data, taskType: 'parse', format });
   }
 
-  async stringifyRequest(data: any, format: CollectionFormat = 'bru'): Promise<any> {
+  async stringifyRequest(data: any, format: CollectionFormat = DEFAULT_COLLECTION_FORMAT): Promise<any> {
     return this.enqueueTask({ data, taskType: 'stringify', format });
   }
 

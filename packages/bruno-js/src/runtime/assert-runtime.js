@@ -256,6 +256,7 @@ class AssertRuntime {
     }
 
     const promptVariables = request?.promptVariables || {};
+    const certsAndProxyConfig = request?.certsAndProxyConfig;
     const bru = new Bru(
       this.runtime,
       envVariables,
@@ -268,7 +269,8 @@ class AssertRuntime {
       globalEnvironmentVariables,
       {},
       undefined,
-      promptVariables
+      promptVariables,
+      certsAndProxyConfig
     );
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);

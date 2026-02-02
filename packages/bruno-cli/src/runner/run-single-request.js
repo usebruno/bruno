@@ -170,6 +170,37 @@ const runSingleRequest = async function (
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = runtime;
 
+    // Build certsAndProxyConfig for bru.sendRequest
+    const options = getOptions();
+    const systemProxyConfig = options['cachedSystemProxy'];
+    const sendRequestInterpolationOptions = {
+      envVars: envVariables,
+      runtimeVariables,
+      processEnvVars,
+      globalEnvVars,
+      collectionVariables: request.collectionVariables || {},
+      folderVariables: request.folderVariables || {},
+      requestVariables: request.requestVariables || {}
+    };
+    const rawClientCertificates = get(brunoConfig, 'clientCertificates');
+    const rawProxyConfig = get(brunoConfig, 'proxy', {});
+    const certsAndProxyConfig = {
+      collectionPath,
+      options: {
+        noproxy: get(options, 'noproxy', false),
+        shouldVerifyTls: !get(options, 'insecure', false),
+        shouldUseCustomCaCertificate: !!options['cacert'],
+        customCaCertificateFilePath: options['cacert'],
+        shouldKeepDefaultCaCertificates: !options['ignoreTruststore']
+      },
+      clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
+      collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
+      systemProxyConfig
+    };
+
+    // Add certsAndProxyConfig to request object for bru.sendRequest
+    request.certsAndProxyConfig = certsAndProxyConfig;
+
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
     const collectionName = collection?.brunoConfig?.name;
@@ -237,7 +268,6 @@ const runSingleRequest = async function (
       request.url = `http://${request.url}`;
     }
 
-    const options = getOptions();
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
     const cachedSystemProxy = get(options, 'cachedSystemProxy', null);

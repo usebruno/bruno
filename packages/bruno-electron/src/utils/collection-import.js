@@ -3,7 +3,7 @@ const path = require('node:path');
 const { ipcMain } = require('electron');
 const { sanitizeName, createDirectory, writeFile, safeWriteFileSync, getCollectionStats } = require('./filesystem');
 const { generateUidBasedOnHash, stringifyJson } = require('./common');
-const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, stringifyFolder } = require('@usebruno/filestore');
+const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, stringifyFolder, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 
 /**
  * Recursively find a unique folder name by appending incremental numbers
@@ -22,7 +22,7 @@ async function findUniqueFolderName(baseName, collectionLocation, counter = 0) {
 /**
  * Import a collection - shared logic used by both IPC handler and onboarding service
  */
-async function importCollection(collection, collectionLocation, mainWindow, uniqueFolderName = null, format = 'bru') {
+async function importCollection(collection, collectionLocation, mainWindow, uniqueFolderName = null, format = DEFAULT_COLLECTION_FORMAT) {
   // Use provided unique folder name or use collection name
   let folderName = uniqueFolderName ? sanitizeName(uniqueFolderName) : sanitizeName(collection.name);
   let collectionPath = path.join(collectionLocation, folderName);
