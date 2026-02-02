@@ -117,7 +117,7 @@ export const collectionsSlice = createSlice({
       collection.settingsSelectedTab = 'overview';
       collection.folderLevelSettingsSelectedTab = {};
       collection.allTags = []; // Initialize collection-level tags
-      collection.isLoading = true;
+      collection.isLoading = false;
 
       // Collection mount status is used to track the mount status of the collection
       // values can be 'unmounted', 'mounting', 'mounted'
@@ -2706,6 +2706,7 @@ export const collectionsSlice = createSlice({
       for (const [collectionUid, collectionItems] of itemsByCollection) {
         const collection = findCollectionByUid(state.collections, collectionUid);
         if (!collection) continue;
+        const tempDirectory = state.tempDirectories?.[collectionUid];
 
         // Process directories first to ensure folder structure exists
         const directories = collectionItems.filter((i) => i.eventType === 'addDir');
@@ -2713,6 +2714,7 @@ export const collectionsSlice = createSlice({
 
         // Add directories
         for (const { payload: dir } of directories) {
+          const isTransientDir = tempDirectory && dir.meta.pathname.startsWith(tempDirectory);
           const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
           let currentPath = collection.pathname;
           let currentSubItems = collection.items;
@@ -2728,9 +2730,12 @@ export const collectionsSlice = createSlice({
                 filename: directoryName,
                 collapsed: true,
                 type: 'folder',
-                items: []
+                items: [],
+                isTransient: isTransientDir
               };
               currentSubItems.push(childItem);
+            } else if (isTransientDir && !childItem.isTransient) {
+              childItem.isTransient = true;
             }
             currentSubItems = childItem.items;
           }
@@ -2740,7 +2745,7 @@ export const collectionsSlice = createSlice({
         for (const { payload: file } of files) {
           const isCollectionRoot = file.meta.collectionRoot ? true : false;
           const isFolderRoot = file.meta.folderRoot ? true : false;
-
+          const isTransientFile = tempDirectory && file.meta.pathname.startsWith(tempDirectory);
           if (isCollectionRoot) {
             collection.root = file.data;
             continue;
@@ -2775,9 +2780,12 @@ export const collectionsSlice = createSlice({
                 name: directoryName,
                 collapsed: true,
                 type: 'folder',
-                items: []
+                items: [],
+                isTransient: isTransientFile
               };
               currentSubItems.push(childItem);
+            } else if (isTransientFile && !childItem.isTransient) {
+              childItem.isTransient = true;
             }
             currentSubItems = childItem.items;
           }
@@ -2799,6 +2807,7 @@ export const collectionsSlice = createSlice({
               currentItem.loading = file.loading;
               currentItem.size = file.size;
               currentItem.error = file.error;
+              currentItem.isTransient = isTransientFile;
             } else {
               currentSubItems.push({
                 uid: file.data.uid,
@@ -2815,7 +2824,8 @@ export const collectionsSlice = createSlice({
                 partial: file.partial,
                 loading: file.loading,
                 size: file.size,
-                error: file.error
+                error: file.error,
+                isTransient: isTransientFile
               });
             }
           }
