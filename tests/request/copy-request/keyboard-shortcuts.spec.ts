@@ -34,7 +34,7 @@ test.describe('Copy and Paste with Keyboard Shortcuts', () => {
     await page.keyboard.press(`${modifier}+KeyC`);
 
     // Verify copy success (toast message)
-    await expect(page.getByText(/copied to clipboard/i).first()).toBeVisible();
+    await expect(page.getByText(/Request copied/i).first()).toBeVisible();
 
     // Focus the collection to paste
     await collection.click();
@@ -75,7 +75,7 @@ test.describe('Copy and Paste with Keyboard Shortcuts', () => {
     await page.keyboard.press(`${modifier}+KeyC`);
 
     // Verify copy success
-    await expect(page.getByText(/copied to clipboard/i).first()).toBeVisible();
+    await expect(page.getByText(/Folder copied/i).first()).toBeVisible();
 
     // Focus the collection to paste
     await collection.click();
