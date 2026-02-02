@@ -1,5 +1,6 @@
 import WorkerQueue from './WorkerQueue';
-import { Lane, CollectionFormat, DEFAULT_COLLECTION_FORMAT } from '../types';
+import { Lane, CollectionFormat } from '../types';
+import { DEFAULT_COLLECTION_FORMAT } from '../constants';
 import path from 'node:path';
 
 const sizeInMB = (size: number): number => {

@@ -1,7 +1,8 @@
 import { parentPort } from 'node:worker_threads';
 import { parseBruRequest, stringifyBruRequest } from '../formats/bru';
 import { parseYmlItem, stringifyYmlItem } from '../formats/yml';
-import { CollectionFormat, DEFAULT_COLLECTION_FORMAT } from '../types';
+import { CollectionFormat } from '../types';
+import { DEFAULT_COLLECTION_FORMAT } from '../constants';
 
 interface WorkerMessage {
   taskType: 'parse' | 'stringify';

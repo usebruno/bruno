@@ -23,9 +23,9 @@ import BruParserWorker from './workers';
 import {
   ParseOptions,
   StringifyOptions,
-  CollectionFormat,
-  DEFAULT_COLLECTION_FORMAT
+  CollectionFormat
 } from './types';
+import { DEFAULT_COLLECTION_FORMAT } from './constants';
 import { bruRequestParseAndRedactBodyData } from './formats/bru/utils/request-parse-and-redact-body-data';
 
 // request
@@ -38,7 +38,7 @@ export const parseRequest = (content: string, options: ParseOptions = { format: 
   throw new Error(`Unsupported format: ${options.format}`);
 };
 
-export const parseRequestAndRedactBody = (content: string, options: ParseOptions = { format: DEFAULT_COLLECTION_FORMAT }): any => {
+export const parseRequestAndRedactBody = (content: string, options: ParseOptions = { format: 'bru' }): any => {
   if (options.format === 'bru') {
     return bruRequestParseAndRedactBodyData(content);
   }
@@ -137,3 +137,4 @@ export const parseDotEnv = (content: string): Record<string, string> => {
 
 export { BruParserWorker };
 export * from './types';
+export * from './constants';
