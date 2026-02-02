@@ -35,7 +35,10 @@ const DotEnvFileEditor = ({
   const formikRef = useRef(null);
 
   const initialValues = useMemo(() => {
-    const vars = variables || [];
+    const vars = (variables || []).map((v) => ({
+      ...v,
+      uid: v.uid || uuid()
+    }));
     return [
       ...vars,
       {
@@ -148,7 +151,7 @@ const DotEnvFileEditor = ({
           { uid: uuid(), name: '', value: '' }
         ];
 
-    formik.setValues(newValues);
+    formikRef.current.setValues(newValues);
   }, []);
 
   const handleNameChange = useCallback((index, e) => {
@@ -248,7 +251,10 @@ const DotEnvFileEditor = ({
       setRawValue(baselineRaw);
       setIsModified(false);
     } else {
-      const originalVars = variables || [];
+      const originalVars = (variables || []).map((v) => ({
+        ...v,
+        uid: v.uid || uuid()
+      }));
       const resetValues = [
         ...originalVars,
         { uid: uuid(), name: '', value: '' }
