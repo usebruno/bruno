@@ -100,6 +100,10 @@ const runSingleRequest = async function (
 ) {
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
+  let postResponseScriptError = false;
+  let postResponseScriptErrorMessage = null;
+  let testScriptError = false;
+  let testScriptErrorMessage = null;
 
   const logResults = (results, title) => {
     if (results?.length) {
@@ -225,17 +229,7 @@ const runSingleRequest = async function (
         preRequestTestResults = result?.results || [];
       } catch (error) {
         console.error('Pre-request script execution error:', error);
-
-        // Extract partial results from the error (tests that passed before the error)
-        const partialResults = error?.partialResults?.results || [];
-        preRequestTestResults = [
-          ...partialResults,
-          {
-            status: 'fail',
-            description: 'Pre-Request Script Error',
-            error: error.message || 'An error occurred while executing the pre-request script.'
-          }
-        ];
+        preRequestTestResults = error?.partialResults?.results || [];
 
         // Preserve nextRequestName if it was set before the error
         if (error?.partialResults?.nextRequestName !== undefined) {
@@ -248,6 +242,35 @@ const runSingleRequest = async function (
         }
 
         logResults(preRequestTestResults, 'Pre-Request Tests');
+
+        // Pre-request script error: execution didn't complete (request never sent). Return early so we don't run the HTTP request, post-response script, assertions, or tests.
+        return {
+          test: {
+            filename: relativeItemPathname
+          },
+          request: {
+            method: request.method,
+            url: request.url,
+            headers: request.headers,
+            data: request.data
+          },
+          response: {
+            status: 'error',
+            statusText: 'pre-request script error',
+            headers: null,
+            data: null,
+            url: null,
+            responseTime: 0
+          },
+          error: error.message || 'An error occurred while executing the pre-request script.',
+          status: 'error',
+          assertionResults: [],
+          testResults: [],
+          preRequestTestResults,
+          postResponseTestResults: [],
+          nextRequestName: nextRequestName,
+          shouldStopRunnerExecution
+        };
       }
     }
 
@@ -727,16 +750,9 @@ const runSingleRequest = async function (
         logResults(postResponseTestResults, 'Post-Response Tests');
       } catch (error) {
         console.error('Post-response script execution error:', error);
-
-        const partialResults = error?.partialResults?.results || [];
-        postResponseTestResults = [
-          ...partialResults,
-          {
-            status: 'fail',
-            description: 'Post-Response Script Error',
-            error: error.message || 'An error occurred while executing the post-response script.'
-          }
-        ];
+        postResponseScriptError = true;
+        postResponseScriptErrorMessage = error.message || 'An error occurred while executing the post-response script.';
+        postResponseTestResults = error?.partialResults?.results || [];
 
         if (error?.partialResults?.nextRequestName !== undefined) {
           nextRequestName = error.partialResults.nextRequestName;
@@ -796,16 +812,9 @@ const runSingleRequest = async function (
         logResults(testResults, 'Tests');
       } catch (error) {
         console.error('Test script execution error:', error);
-
-        const partialResults = error?.partialResults?.results || [];
-        testResults = [
-          ...partialResults,
-          {
-            status: 'fail',
-            description: 'Test Script Error',
-            error: error.message || 'An error occurred while executing the test script.'
-          }
-        ];
+        testScriptError = true;
+        testScriptErrorMessage = error.message || 'An error occurred while executing the test script.';
+        testResults = error?.partialResults?.results || [];
 
         if (error?.partialResults?.nextRequestName !== undefined) {
           nextRequestName = error.partialResults.nextRequestName;
@@ -820,6 +829,27 @@ const runSingleRequest = async function (
     }
 
     logResults(assertionResults, 'Assertions');
+
+    // Determine status based on test/assertion results
+    const hasFailedTests = testResults.some((r) => r.status === 'fail') || testScriptError;
+    const hasFailedAssertions = assertionResults.some((r) => r.status === 'fail');
+    const hasFailedPreRequestTests = preRequestTestResults.some((r) => r.status === 'fail');
+    const hasFailedPostResponseTests = postResponseTestResults.some((r) => r.status === 'fail') || postResponseScriptError;
+    const hasAnyFailures = hasFailedTests || hasFailedAssertions || hasFailedPreRequestTests || hasFailedPostResponseTests;
+    const requestStatus = hasAnyFailures ? 'fail' : 'pass';
+
+    // Log request status after all tests/assertions are logged
+    if (hasAnyFailures) {
+      console.log(
+        chalk.red(stripExtension(relativeItemPathname))
+        + chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+      );
+    } else {
+      console.log(
+        chalk.green(stripExtension(relativeItemPathname))
+        + chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+      );
+    }
 
     return {
       test: {
@@ -839,8 +869,8 @@ const runSingleRequest = async function (
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
         responseTime
       },
-      error: null,
-      status: 'pass',
+      error: postResponseScriptError ? postResponseScriptErrorMessage : (testScriptError ? testScriptErrorMessage : null),
+      status: requestStatus,
       assertionResults,
       testResults,
       preRequestTestResults,

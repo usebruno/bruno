@@ -67,9 +67,9 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
       }
     }
 
-    if (!anyFailed && status !== 'error') {
+    if (!anyFailed && status !== 'error' && status !== 'fail') {
       passedRequests += 1;
-    } else if (anyFailed) {
+    } else if (anyFailed || status === 'fail') {
       failedRequests += 1;
     } else {
       errorRequests += 1;

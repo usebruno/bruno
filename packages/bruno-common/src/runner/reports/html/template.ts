@@ -622,7 +622,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             () => props.res.summary.failedTests + props.res.summary.failedAssertions
           );
           const summarySkippedRequests = computed(() => props?.res?.summary?.skippedRequests || 0);
-          const summaryErrors = computed(() => props?.res?.results?.filter((r) => r.error || r.status === 'error').length) || 0;
+          const summaryErrors = computed(() => props?.res?.results?.filter((r) => r.status === 'error').length) || 0;
           const totalRunDuration = computed(() => props.res?.results?.reduce((total, result) => result.runDuration + total, 0));
           const iterationIndex = Number(props.res.iterationIndex) + 1;
           return {
@@ -649,6 +649,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
               return props?.res?.results?.filter(
                 (r) =>
                   r.status === 'error' ||
+                  r.status === 'fail' ||
                   !!r?.testResults?.find((t) => t.status !== 'pass') ||
                   !!r?.assertionResults?.find((t) => t.status !== 'pass')
               );
@@ -757,7 +758,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             return (props?.result?.testResults?.length || 0) + (props?.result?.assertionResults?.length || 0);
           });
 
-          const hasError = computed(() => !!props?.result?.error || props?.result?.status === 'error' || (props?.result?.response?.status === 'skipped' && props?.result?.error));
+          const hasError = computed(() => !!props?.result?.error || props?.result?.status === 'error' || props?.result?.status === 'fail' || (props?.result?.response?.status === 'skipped' && props?.result?.error));
           const hasFailure = computed(() => total.value !== totalPassed.value);
           const testDuration = computed(() => Math.round(props?.result?.runDuration * 1000) + ' ms');
           const resultTitle = computed(() => props?.result?.path + ' ' + props?.result?.response?.status + ' ' + props?.result?.response?.statusText);
