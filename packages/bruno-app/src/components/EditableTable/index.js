@@ -80,12 +80,17 @@ const EditableTable = ({
     return index === rowsWithEmpty.length - 1 && isEmptyRow(row);
   }, [rowsWithEmpty.length, isEmptyRow, showAddRow]);
 
-  const rowHasValue = useCallback((row) => {
-    return columns.some((column) => {
-      const value = column.getValue ? column.getValue(row) : row[column.key];
-      return value && (typeof value !== 'string' || value.trim() !== '');
+  const hasAnyValue = useCallback((row) => {
+    return columns.some((col) => {
+      const val = col.getValue ? col.getValue(row) : row[col.key];
+      if (val == null) return false;
+      const defaultVal = defaultRow[col.key];
+      if (typeof val === 'string') {
+        return val.trim() !== '' && val !== defaultVal;
+      }
+      return val !== defaultVal;
     });
-  }, [columns]);
+  }, [columns, defaultRow]);
 
   const handleValueChange = useCallback((rowUid, key, value) => {
     const rowIndex = rowsWithEmpty.findIndex((r) => r.uid === rowUid);
@@ -115,17 +120,6 @@ const EditableTable = ({
       });
     }
 
-    const hasAnyValue = (row) => {
-      for (const col of columns) {
-        const val = col.getValue ? col.getValue(row) : row[col.key];
-        const defaultVal = defaultRow[col.key];
-        if (val && val !== defaultVal && (typeof val !== 'string' || val.trim() !== '')) {
-          return true;
-        }
-      }
-      return false;
-    };
-
     const result = updatedRows.filter((row, i) => {
       if (showAddRow && i === updatedRows.length - 1) {
         return hasAnyValue(row);
@@ -134,7 +128,7 @@ const EditableTable = ({
     });
 
     onChange(result);
-  }, [rowsWithEmpty, columns, onChange, checkboxKey, defaultRow, isEmptyRow, showAddRow]);
+  }, [rowsWithEmpty, columns, onChange, checkboxKey, defaultRow, isEmptyRow, showAddRow, hasAnyValue]);
 
   const handleCheckboxChange = useCallback((rowUid, checked) => {
     handleValueChange(rowUid, checkboxKey, checked);
@@ -178,12 +172,12 @@ const EditableTable = ({
       updatedOrder.splice(toIndex, 0, movedRow);
 
       // Preserve last row if it has any content
-      const finalOrder = lastRow && rowHasValue(lastRow) ? [...updatedOrder, lastRow] : updatedOrder;
+      const finalOrder = lastRow && hasAnyValue(lastRow) ? [...updatedOrder, lastRow] : updatedOrder;
       onReorder({ updateReorderedItem: finalOrder.map((row) => row.uid) });
     }
     setDragStart(null);
     setHoveredRow(null);
-  }, [onReorder, rowsWithEmpty, showAddRow, rowHasValue]);
+  }, [onReorder, rowsWithEmpty, showAddRow, hasAnyValue]);
 
   const handleDragEnd = useCallback(() => {
     setDragStart(null);
