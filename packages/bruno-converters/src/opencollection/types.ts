@@ -204,6 +204,9 @@ export interface BrunoConfig {
       passphrase?: string;
     }>;
   };
+  scripts?: {
+    additionalContextRoots?: string[];
+  };
 }
 
 export interface BrunoCollectionRoot {
