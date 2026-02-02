@@ -214,18 +214,18 @@ const getCertsAndProxyConfig = ({
 }: GetCertsAndProxyConfigParams): GetCertsAndProxyConfigResult => {
   const certsConfig: CertsConfig = {};
 
-  const caCertFilePath = options.shouldUseCustomCaCertificate && options.customCaCertificateFilePath ? options.customCaCertificateFilePath : undefined;
-  const caCertificatesData = getCACertificates({
-    caCertFilePath,
-    shouldKeepDefaultCerts: options.shouldKeepDefaultCaCertificates
-  });
+  // Only load CA certificates when TLS verification is enabled
+  if (options.shouldVerifyTls) {
+    const caCertFilePath = options.shouldUseCustomCaCertificate && options.customCaCertificateFilePath ? options.customCaCertificateFilePath : undefined;
+    const caCertificatesData = getCACertificates({
+      caCertFilePath,
+      shouldKeepDefaultCerts: options.shouldKeepDefaultCaCertificates
+    });
 
-  const caCertificates = caCertificatesData.caCertificates;
-  const caCertificatesCount = caCertificatesData.caCertificatesCount;
-
-  // configure HTTPS agent with aggregated CA certificates
-  certsConfig.caCertificatesCount = caCertificatesCount;
-  certsConfig.ca = caCertificates || [];
+    // configure HTTPS agent with aggregated CA certificates
+    certsConfig.caCertificatesCount = caCertificatesData.caCertificatesCount;
+    certsConfig.ca = caCertificatesData.caCertificates || [];
+  }
 
   // client certificate config
   const clientCertConfig = get(clientCertificates, 'certs', []) as ClientCertificate[];
