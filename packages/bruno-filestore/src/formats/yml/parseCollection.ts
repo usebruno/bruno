@@ -4,6 +4,7 @@ import { parseYml } from './utils';
 import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
+import { toBrunoPostResponseVariables } from './common/actions';
 import { toBrunoScripts } from './common/scripts';
 import { ensureString } from '../../utils';
 
@@ -160,7 +161,11 @@ const parseCollection = (ymlString: string): ParsedCollection => {
 
       // variables
       const variables = toBrunoVariables(oc.request.variables);
-      collectionRoot.request.vars = variables;
+      const postResponseVars = toBrunoPostResponseVariables((oc.request as any).actions);
+      collectionRoot.request.vars = {
+        req: variables.req,
+        res: postResponseVars
+      };
 
       // scripts
       const scripts = toBrunoScripts(oc.request.scripts);
