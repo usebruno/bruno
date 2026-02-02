@@ -702,7 +702,10 @@ const switchResponseFormat = async (page: Page, format: string) => {
   await test.step(`Switch response format to ${format}`, async () => {
     const responseFormatTab = page.getByTestId('format-response-tab');
     await responseFormatTab.click();
-    await page.getByTestId('format-response-tab-dropdown').getByText(format).click();
+    // Wait for dropdown to be visible before clicking the format option
+    const dropdown = page.getByTestId('format-response-tab-dropdown');
+    await dropdown.waitFor({ state: 'visible' });
+    await dropdown.getByText(format).click();
   });
 };
 
