@@ -12,7 +12,7 @@ paths:
       summary: 'Get all users'
       operationId: 'getUsers'
       responses:
-        200:
+        '200':
           description: 'Successful response'
           content:
             application/json:
@@ -33,7 +33,7 @@ paths:
                   description: 'No users found'
                   value:
                     users: []
-        400:
+        '400':
           description: 'Bad Request'
           content:
             application/json:
@@ -45,7 +45,7 @@ paths:
                     error: 'Invalid parameters'
                     message: 'The request contains invalid data'
                     code: 'VALIDATION_ERROR'
-        500:
+        '500':
           description: 'Internal Server Error'
           content:
             application/json:
@@ -91,7 +91,7 @@ paths:
                   name: ''
                   email: 'invalid-email'
       responses:
-        201:
+        '201':
           description: 'User created successfully'
           content:
             application/json:
@@ -104,7 +104,7 @@ paths:
                     name: 'John Doe'
                     email: 'john@example.com'
                     created_at: '2023-01-01T00:00:00Z'
-        400:
+        '400':
           description: 'Bad Request'
           content:
             application/json:
@@ -128,7 +128,7 @@ paths:
             type: integer
           example: 123
       responses:
-        200:
+        '200':
           description: 'User found'
           content:
             application/json:
@@ -141,7 +141,7 @@ paths:
                     name: 'John Doe'
                     email: 'john@example.com'
                     created_at: '2023-01-01T00:00:00Z'
-        404:
+        '404':
           description: 'User not found'
           content:
             application/json:
