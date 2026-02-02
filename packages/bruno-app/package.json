@@ -8,8 +8,6 @@
     "build": "rsbuild build -m production",
     "preview": "rsbuild preview",
     "test": "jest",
-    "test:prettier": "prettier --check \"./src/**/*.{js,jsx,json,ts,tsx}\"",
-    "prettier": "prettier --write \"./src/**/*.{js,jsx,json,ts,tsx}\"",
     "storybook": "storybook dev -p 6006 --config-dir storybook",
     "build-storybook": "storybook build --config-dir storybook"
   },

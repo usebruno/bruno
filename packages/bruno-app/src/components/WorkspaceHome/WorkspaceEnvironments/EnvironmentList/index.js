@@ -9,6 +9,7 @@ import ImportEnvironmentModal from 'components/Environments/Common/ImportEnviron
 import CollapsibleSection from 'components/Environments/CollapsibleSection';
 import DotEnvFileEditor from 'components/Environments/DotEnvFileEditor';
 import DotEnvFileDetails from 'components/Environments/DotEnvFileDetails';
+import ColorBadge from 'components/ColorBadge';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { addGlobalEnvironment, renameGlobalEnvironment, selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
@@ -631,6 +632,7 @@ const EnvironmentList = ({
                       </div>
                     ) : (
                       <>
+                        <ColorBadge color={env.color} size={8} />
                         <span className="environment-name">{env.name}</span>
                         <div className="environment-actions">
                           {activeEnvironmentUid === env.uid ? (

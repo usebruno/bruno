@@ -26,6 +26,8 @@ const FLAG_CATEGORIES = {
   'head': ['-I', '--head'],
   'compressed': ['--compressed'],
   'insecure': ['-k', '--insecure'],
+  'digest': ['--digest'],
+  'ntlm': ['--ntlm'],
   /**
    * Query flags: mark data for conversion to query parameters.
    * While this is an immediate action flag, the actual conversion to a query string occurs later during post-build request processing.
@@ -149,6 +151,14 @@ const handleFlagCategory = (category, arg, request) => {
       request.insecure = true;
       return null;
 
+    case 'digest':
+      request.isDigestAuth = true;
+      return null;
+
+    case 'ntlm':
+      request.isNtlmAuth = true;
+      return null;
+
     case 'query':
       // set temporary property isQuery to true to indicate that the data should be converted to query string
       // this is processed later at post build request processing
@@ -198,7 +208,8 @@ const setUserAgent = (request, value) => {
 };
 
 /**
- * Set authentication
+ * Set authentication credentials
+ * Stores credentials temporarily for finalization in post-processing
  */
 const setAuth = (request, value) => {
   if (typeof value !== 'string') {
@@ -206,13 +217,43 @@ const setAuth = (request, value) => {
   }
 
   const [username, password] = value.split(':');
-  request.auth = {
-    mode: 'basic',
-    basic: {
-      username: username || '',
-      password: password || ''
-    }
+
+  // Store credentials temporarily for finalization in post-processing
+  request.authCredentials = {
+    username: username || '',
+    password: password || ''
   };
+};
+
+/**
+ * Finalize authentication object based on credentials and auth type flags
+ */
+const normalizeAuthProperties = (request) => {
+  if (!request.authCredentials) {
+    delete request.isDigestAuth;
+    delete request.isNtlmAuth;
+    return;
+  }
+
+  const { username, password } = request.authCredentials;
+
+  // Determine auth mode based on flags
+  let mode = 'basic';
+  if (request.isDigestAuth) {
+    mode = 'digest';
+  } else if (request.isNtlmAuth) {
+    mode = 'ntlm';
+  }
+
+  request.auth = {
+    mode: mode,
+    [mode]: { username, password }
+  };
+
+  // Clean up temporary properties
+  delete request.authCredentials;
+  delete request.isDigestAuth;
+  delete request.isNtlmAuth;
 };
 
 /**
@@ -433,7 +474,7 @@ const convertDataToQueryString = (request) => {
 
 /**
  * Post-build processing of request
- * Handles method conversion and query parameter processing
+ * Handles method conversion, query parameter processing, and auth finalization
  */
 const postBuildProcessRequest = (request) => {
   if (request.isQuery && request.data) {
@@ -447,6 +488,8 @@ const postBuildProcessRequest = (request) => {
       request.method = 'POST';
     }
   }
+
+  normalizeAuthProperties(request);
 
   // if method is not set, set it to GET
   if (!request.method) {

@@ -72,7 +72,7 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};
     font-weight: 500;
-    margin-bottom: 8px;
+    margin: 6px 0 8px 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }

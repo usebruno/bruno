@@ -94,8 +94,63 @@ const StyledWrapper = styled.div`
     
     .actions {
       display: flex;
+      align-items: center;
       gap: 2px;
-      
+
+      .search-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        .search-icon {
+          position: absolute;
+          left: 8px;
+          color: ${(props) => props.theme.colors.text.muted};
+          pointer-events: none;
+        }
+
+        .search-input {
+          width: 200px;
+          padding: 5px 32px 5px 32px;
+          border: 1px solid ${(props) => props.theme.input.border};
+          border-radius: ${(props) => props.theme.border.radius.sm};
+          background: ${(props) => props.theme.input.bg};
+          color: ${(props) => props.theme.text};
+          font-size: ${(props) => props.theme.font.size.base};
+          outline: none;
+          transition: border-color 0.15s ease;
+
+          &:focus {
+            border-color: ${(props) => props.theme.input.focusBorder};
+          }
+
+          &::placeholder {
+            color: ${(props) => props.theme.input.placeholder.color};
+            opacity: ${(props) => props.theme.input.placeholder.opacity};
+          }
+        }
+
+        .clear-search {
+          position: absolute;
+          right: 1px;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: ${(props) => props.theme.colors.text.muted};
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          border-radius: ${(props) => props.theme.border.radius.sm};
+          transition: all 0.15s ease;
+
+          &:hover {
+            color: ${(props) => props.theme.text};
+            background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+          }
+        }
+      }
+
       button {
         display: inline-flex;
         align-items: center;

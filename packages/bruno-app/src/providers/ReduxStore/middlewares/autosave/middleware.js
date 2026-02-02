@@ -1,6 +1,6 @@
 import { saveRequest, saveCollectionSettings, saveFolderRoot, saveEnvironment } from '../../slices/collections/actions';
 import { saveGlobalEnvironment } from '../../slices/global-environments';
-import { flattenItems, isItemARequest, isItemAFolder } from 'utils/collections';
+import { flattenItems, isItemARequest, isItemAFolder, findItemInCollection, findCollectionByUid, isItemTransientRequest } from 'utils/collections';
 
 const actionsToIntercept = [
   // Request-level actions
@@ -134,6 +134,10 @@ const saveExistingDrafts = (dispatch, getState, interval) => {
     allItems.forEach((item) => {
       if (item.draft) {
         if (isItemARequest(item)) {
+          // Skip auto-save for transient requests
+          if (isItemTransientRequest(item)) {
+            return;
+          }
           const key = `request-${item.uid}`;
           scheduleAutoSave(key, () => dispatch(saveRequest(item.uid, collection.uid, true)), interval);
         } else if (isItemAFolder(item)) {
@@ -199,6 +203,16 @@ const determineSaveHandler = (actionType, payload, dispatch, getState) => {
 
   // Handle request actions
   if (itemUid) {
+    // Check if this is a transient request and skip auto-save
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (collection) {
+      const item = findItemInCollection(collection, itemUid);
+      if (item && isItemTransientRequest(item)) {
+        return null; // Skip auto-save for transient requests
+      }
+    }
+
     return {
       key: `request-${itemUid}`,
       save: () => dispatch(saveRequest(itemUid, collectionUid, true))
