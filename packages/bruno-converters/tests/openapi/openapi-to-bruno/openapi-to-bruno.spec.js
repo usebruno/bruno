@@ -27,7 +27,7 @@ paths:
       summary: 'Request'
       operationId: 'getRequest'
       responses:
-        200:
+        '200':
           description: 'OK'
 servers:
   - url: 'https://example.com'
@@ -48,7 +48,7 @@ paths:
       summary: 'Request'
       operationId: 'getRequest'
       responses:
-        200:
+        '200':
           description: 'OK'
 servers:
   - url: 'https://example.com'
@@ -69,7 +69,7 @@ paths:
       summary: 'Request'
       operationId: 'getRequest'
       responses:
-        200:
+        '200':
           description: 'OK'
 servers:
   - url: 'https://example.com'
@@ -89,7 +89,7 @@ paths:
       summary: 'Request'
       operationId: 'getRequest'
       responses:
-        200:
+        '200':
           description: 'OK'
 servers:
   - url: 'https://example.com'
@@ -107,7 +107,7 @@ paths:
       summary: 'Request'
       operationId: 'getRequest'
       responses:
-        200:
+        '200':
           description: 'OK'
 servers:
   - url: 'https://example.com'
@@ -129,7 +129,7 @@ paths:
       summary: 'Test endpoint'
       operationId: 'testEndpoint'
       responses:
-        200:
+        '200':
           description: 'OK'
 servers:
   - url: 'https://example.com'
@@ -151,7 +151,7 @@ paths:
       summary: 'Test endpoint'
       operationId: 'testEndpoint'
       responses:
-        200:
+        '200':
           description: 'OK'
 servers:
   - url: 'https://example.com'
@@ -174,7 +174,7 @@ paths:
       summary: 'Test endpoint'
       operationId: 'testEndpoint'
       responses:
-        200:
+        '200':
           description: 'OK'
 servers:
   - url: 'https://example.com'
@@ -201,7 +201,7 @@ paths:
       operationId: 'testEndpoint'
       security: []
       responses:
-        200:
+        '200':
           description: 'OK'
 servers:
   - url: 'https://example.com'
@@ -224,7 +224,7 @@ paths:
       summary: 'Test endpoint'
       operationId: 'testEndpoint'
       responses:
-        200:
+        '200':
           description: 'OK'
 servers:
   - url: 'https://example.com'
@@ -249,7 +249,7 @@ paths:
       requestBody:
         content: {}
       responses:
-        200:
+        '200':
           description: 'OK'
 servers:
   - url: 'https://example.com'
@@ -276,7 +276,7 @@ paths:
       summary: "Request1 and Request2"
       operationId: "getRequests"
       responses:
-        200:
+        '200':
           description: "Successful response"
 components:
   parameters:

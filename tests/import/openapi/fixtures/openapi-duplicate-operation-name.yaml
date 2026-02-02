@@ -13,7 +13,7 @@ paths:
       description: 'Get all users'
       operationId: getUsers
       responses:
-        200:
+        '200':
           description: Success
           content:
             application/json:
@@ -24,7 +24,7 @@ paths:
       description: 'Create a new user (same summary as GET)'
       operationId: createUser
       responses:
-        201:
+        '201':
           description: Created
           content:
             application/json:
@@ -36,7 +36,7 @@ paths:
       description: 'Get all products (same summary as users GET)'
       operationId: getProducts
       responses:
-        200:
+        '200':
           description: Success
           content:
             application/json:

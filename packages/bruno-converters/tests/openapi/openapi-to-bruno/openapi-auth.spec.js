@@ -19,7 +19,7 @@ paths:
       security:
         - DigestAuth: []
       responses:
-        200: { description: OK }
+        '200': { description: OK }
 servers:
   - url: https://example.com
 `;
@@ -51,7 +51,7 @@ paths:
           name: q
           schema: { type: string }
       responses:
-        200: { description: OK }
+        '200': { description: OK }
 servers:
   - url: https://example.com
 `;
@@ -81,7 +81,7 @@ paths:
       security:
         - ApiKeyCookie: []
       responses:
-        200: { description: OK }
+        '200': { description: OK }
 servers:
   - url: https://example.com
 `;
@@ -113,7 +113,7 @@ paths:
       security:
         - OAuthAuthCode: []
       responses:
-        200: { description: OK }
+        '200': { description: OK }
 servers:
   - url: https://example.com
 `;
@@ -133,7 +133,7 @@ paths:
     get:
       security: []
       responses:
-        200: { description: OK }
+        '200': { description: OK }
 servers:
   - url: https://example.com
 `;

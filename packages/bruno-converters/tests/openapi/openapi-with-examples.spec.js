@@ -80,7 +80,7 @@ paths:
       summary: 'Get data'
       operationId: 'getData'
       responses:
-        200:
+        '200':
           description: 'Successful response'
           content:
             application/json:
@@ -126,7 +126,7 @@ paths:
       summary: 'Test endpoint'
       operationId: 'test'
       responses:
-        200:
+        '200':
           description: 'OK'
           content:
             application/json:
@@ -161,7 +161,7 @@ paths:
       summary: 'Test endpoint'
       operationId: 'test'
       responses:
-        200:
+        '200':
           description: 'OK'
           content:
             application/json:
@@ -193,7 +193,7 @@ paths:
       summary: 'Get all users'
       operationId: 'getUsers'
       responses:
-        200:
+        '200':
           description: 'OK'
           content:
             application/json:
@@ -206,7 +206,7 @@ paths:
       summary: 'Create user'
       operationId: 'createUser'
       responses:
-        201:
+        '201':
           description: 'Created'
           content:
             application/json:
@@ -220,7 +220,7 @@ paths:
       summary: 'Get all products'
       operationId: 'getProducts'
       responses:
-        200:
+        '200':
           description: 'OK'
           content:
             application/json:
@@ -272,7 +272,7 @@ paths:
       operationId: 'getUsers'
       tags: ['Users']
       responses:
-        200:
+        '200':
           description: 'OK'
   /products:
     get:
@@ -280,7 +280,7 @@ paths:
       operationId: 'getProducts'
       tags: ['Products']
       responses:
-        200:
+        '200':
           description: 'OK'
 servers:
   - url: 'https://api.example.com'
@@ -334,7 +334,7 @@ paths:
                   name: ''
                   email: 'invalid'
       responses:
-        201:
+        '201':
           description: 'Created'
           content:
             application/json:
@@ -409,7 +409,7 @@ paths:
                   name: ''
                   email: 'invalid'
       responses:
-        201:
+        '201':
           description: 'Created'
           content:
             application/json:
@@ -484,7 +484,7 @@ paths:
               name: 'John Doe'
               email: 'john@example.com'
       responses:
-        201:
+        '201':
           description: 'Created'
           content:
             application/json:
@@ -553,7 +553,7 @@ paths:
                   format: email
                   example: 'john@example.com'
       responses:
-        201:
+        '201':
           description: 'Created'
           content:
             application/json:
@@ -615,7 +615,7 @@ paths:
                 summary: 'Text Data'
                 value: 'Hello World'
       responses:
-        200:
+        '200':
           description: 'OK'
           content:
             application/json:
@@ -673,7 +673,7 @@ paths:
                   name: ''
                   email: 'invalid'
       responses:
-        201:
+        '201':
           description: 'Created'
           content:
             application/json:
@@ -725,7 +725,7 @@ paths:
       summary: 'Get users'
       operationId: 'getUsers'
       responses:
-        200:
+        '200':
           description: 'OK'
           content:
             application/json:
@@ -768,7 +768,7 @@ paths:
               name: 'Jane Doe'
               email: 'jane@example.com'
       responses:
-        201:
+        '201':
           description: 'Created'
           content:
             application/json:
