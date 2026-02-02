@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import usePrevious from 'hooks/usePrevious';
+import useOnClickOutside from 'hooks/useOnClickOutside';
 import EnvironmentDetails from './EnvironmentDetails';
 import { IconDownload, IconUpload, IconSearch, IconPlus, IconCheck, IconX, IconFileAlert } from '@tabler/icons';
 import Button from 'ui/Button';
@@ -86,21 +87,6 @@ const EnvironmentList = ({
   }, [dotEnvFiles]);
 
   useEffect(() => {
-    if (!isCreatingDotEnvInline) return;
-
-    const handleClickOutside = (event) => {
-      if (dotEnvCreateContainerRef.current && !dotEnvCreateContainerRef.current.contains(event.target)) {
-        handleCancelDotEnvCreate();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isCreatingDotEnvInline]);
-
-  useEffect(() => {
     if (!environments?.length) {
       setSelectedEnvironment(null);
       setOriginalEnvironmentVariables([]);
@@ -144,36 +130,6 @@ const EnvironmentList = ({
       setSelectedEnvironment(environments && environments.length ? environments[0] : null);
     }
   }, [envUids, environments, prevEnvUids]);
-
-  useEffect(() => {
-    if (!renamingEnvUid) return;
-
-    const handleClickOutside = (event) => {
-      if (renameContainerRef.current && !renameContainerRef.current.contains(event.target)) {
-        handleCancelRename();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [renamingEnvUid]);
-
-  useEffect(() => {
-    if (!isCreatingInline) return;
-
-    const handleClickOutside = (event) => {
-      if (createContainerRef.current && !createContainerRef.current.contains(event.target)) {
-        handleCancelCreate();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isCreatingInline]);
 
   const handleEnvironmentClick = (env) => {
     if (activeView === 'dotenv' && isDotEnvModified) {
@@ -257,11 +213,13 @@ const EnvironmentList = ({
     }
   };
 
-  const handleCancelCreate = () => {
+  const handleCancelCreate = useCallback(() => {
     setIsCreatingInline(false);
     setNewEnvName('');
     setEnvNameError('');
-  };
+  }, []);
+
+  useOnClickOutside(createContainerRef, handleCancelCreate, isCreatingInline);
 
   const handleSaveNewEnv = () => {
     const error = validateEnvironmentName(newEnvName);
@@ -328,11 +286,13 @@ const EnvironmentList = ({
       });
   };
 
-  const handleCancelRename = () => {
+  const handleCancelRename = useCallback(() => {
     setRenamingEnvUid(null);
     setNewEnvName('');
     setEnvNameError('');
-  };
+  }, []);
+
+  useOnClickOutside(renameContainerRef, handleCancelRename, !!renamingEnvUid);
 
   const handleImportClick = () => {
     if (!isModified && !isDotEnvModified) {
@@ -381,11 +341,13 @@ const EnvironmentList = ({
     }, 50);
   };
 
-  const handleCancelDotEnvCreate = () => {
+  const handleCancelDotEnvCreate = useCallback(() => {
     setIsCreatingDotEnvInline(false);
     setNewDotEnvName('.env');
     setDotEnvNameError('');
-  };
+  }, []);
+
+  useOnClickOutside(dotEnvCreateContainerRef, handleCancelDotEnvCreate, isCreatingDotEnvInline);
 
   const validateDotEnvName = (name) => {
     if (!name || name.trim() === '') {
