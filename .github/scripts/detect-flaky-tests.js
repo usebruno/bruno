@@ -1,5 +1,5 @@
 const fs = require('fs');
-const path = require('path');
+
 
 // Read Playwright JSON report
 const resultsPath = 'playwright-report/results.json';
@@ -31,7 +31,7 @@ function traverseSuites(suites) {
             flakyTests.push({
               file: spec.file,
               title: spec.title,
-              testTitle: test.results[0]?.title || spec.title,
+              testTitle: spec.title,
               line: spec.line,
               status: result.status,
               retryAttempt: result.retry
