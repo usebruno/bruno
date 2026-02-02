@@ -23,13 +23,15 @@ const parseCollection = (ymlString: string): ParsedCollection => {
       type: 'collection',
       ignore: []
     };
-    if (oc.extensions?.ignore && Array.isArray(oc.extensions.ignore)) {
-      brunoConfig.ignore = oc.extensions.ignore;
+
+    const brunoExtension = (oc.extensions as any)?.bruno;
+    if (brunoExtension?.ignore && Array.isArray(brunoExtension.ignore)) {
+      brunoConfig.ignore = brunoExtension.ignore;
     }
 
     // presets
-    if (oc.extensions?.presets) {
-      const presets = oc.extensions.presets as any;
+    if (brunoExtension?.presets) {
+      const presets = brunoExtension.presets as any;
       if (presets.request) {
         brunoConfig.presets = {
           requestType: presets.request.type || [],

@@ -200,24 +200,34 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
 
     // extensions
     oc.extensions = {};
-    if (brunoConfig.ignore?.length) {
-      const ignoreList: string[] = [];
-      brunoConfig.ignore.forEach((ignore: string) => {
-        ignoreList.push(ignore);
-      });
-      oc.extensions.ignore = ignoreList;
-    }
-    if (hasPresets(brunoConfig)) {
-      const presetsRequest: any = {};
-      if (brunoConfig.presets.requestType?.length) {
-        presetsRequest.type = brunoConfig.presets.requestType;
+
+    const hasBrunoExtensions = brunoConfig.ignore?.length || hasPresets(brunoConfig);
+
+    if (hasBrunoExtensions) {
+      const brunoExtension: any = {};
+
+      if (brunoConfig.ignore?.length) {
+        const ignoreList: string[] = [];
+        brunoConfig.ignore.forEach((ignore: string) => {
+          ignoreList.push(ignore);
+        });
+        brunoExtension.ignore = ignoreList;
       }
-      if (brunoConfig.presets.requestUrl?.length) {
-        presetsRequest.url = brunoConfig.presets.requestUrl;
+
+      if (hasPresets(brunoConfig)) {
+        const presetsRequest: any = {};
+        if (brunoConfig.presets.requestType?.length) {
+          presetsRequest.type = brunoConfig.presets.requestType;
+        }
+        if (brunoConfig.presets.requestUrl?.length) {
+          presetsRequest.url = brunoConfig.presets.requestUrl;
+        }
+        brunoExtension.presets = {
+          request: presetsRequest
+        };
       }
-      oc.extensions.presets = {
-        request: presetsRequest
-      } as any;
+
+      oc.extensions.bruno = brunoExtension;
     }
 
     // bruno-specific script extensions
