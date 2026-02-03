@@ -79,12 +79,15 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
       }
     }
 
+    // Check status === 'error' before anyFailed so request errors (e.g. pre-request script error) count as error, not failed.
     if (!anyFailed && status !== 'error') {
       passedRequests += 1;
+    } else if (status === 'error') {
+      errorRequests += 1;
     } else if (anyFailed) {
       failedRequests += 1;
     } else {
-      errorRequests += 1;
+      passedRequests += 1;
     }
   }
 
