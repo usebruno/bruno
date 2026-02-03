@@ -1,8 +1,10 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import { uuid } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
+
+const MIN_COLUMN_WIDTH = 80;
 
 const EditableTable = ({
   columns,
@@ -23,7 +25,101 @@ const EditableTable = ({
   const tableRef = useRef(null);
   const emptyRowUidRef = useRef(null);
   const [hoveredRow, setHoveredRow] = useState(null);
-  const [dragStart, setDragStart] = useState(null);
+  const [resizing, setResizing] = useState(null);
+  const [tableHeight, setTableHeight] = useState(0);
+  const [columnWidths, setColumnWidths] = useState(() => {
+    const initialWidths = {};
+    columns.forEach((col) => {
+      initialWidths[col.key] = col.width || 'auto';
+    });
+    return initialWidths;
+  });
+
+  const handleResizeStart = useCallback((e, columnKey) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const currentCell = e.target.closest('td');
+    const nextCell = currentCell?.nextElementSibling;
+    if (!currentCell || !nextCell) return;
+
+    const columnIndex = columns.findIndex((col) => col.key === columnKey);
+    if (columnIndex >= columns.length - 1) return;
+
+    const startX = e.clientX;
+    const startWidth = currentCell.offsetWidth;
+    const nextColumnKey = columns[columnIndex + 1].key;
+    const nextColumnStartWidth = nextCell.offsetWidth;
+
+    setResizing(columnKey);
+
+    const handleMouseMove = (moveEvent) => {
+      const diff = moveEvent.clientX - startX;
+      const maxGrow = nextColumnStartWidth - MIN_COLUMN_WIDTH;
+      const maxShrink = startWidth - MIN_COLUMN_WIDTH;
+      const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
+
+      setColumnWidths((prev) => ({
+        ...prev,
+        [columnKey]: `${startWidth + clampedDiff}px`,
+        [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
+      }));
+    };
+
+    const handleMouseUp = () => {
+      // Convert pixel widths to percentages for responsive scaling
+      const table = tableRef.current?.querySelector('table');
+      if (table) {
+        const tableWidth = table.offsetWidth;
+        const headerCells = table.querySelectorAll('thead td');
+        const newWidths = {};
+
+        headerCells.forEach((cell, cellIndex) => {
+          const checkboxOffset = showCheckbox ? 1 : 0;
+          const colIndex = cellIndex - checkboxOffset;
+
+          if (colIndex >= 0 && colIndex < columns.length) {
+            const colKey = columns[colIndex]?.key;
+            if (colKey) {
+              const percentage = (cell.offsetWidth / tableWidth) * 100;
+              newWidths[colKey] = `${percentage}%`;
+            }
+          }
+        });
+
+        if (Object.keys(newWidths).length > 0) {
+          setColumnWidths((prev) => ({ ...prev, ...newWidths }));
+        }
+      }
+      setResizing(null);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [columns, showCheckbox]);
+
+  // Track table height for resize handles
+  useEffect(() => {
+    const table = tableRef.current?.querySelector('table');
+    if (!table) return;
+
+    const updateHeight = () => {
+      setTableHeight(table.offsetHeight);
+    };
+
+    updateHeight();
+
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(table);
+
+    return () => resizeObserver.disconnect();
+  }, [rows.length]);
+
+  const getColumnWidth = useCallback((column) => {
+    return columnWidths[column.key] || column.width || 'auto';
+  }, [columnWidths]);
 
   const createEmptyRow = useCallback(() => {
     const newUid = uuid();
@@ -138,15 +234,9 @@ const EditableTable = ({
     onChange(filteredRows);
   }, [rows, onChange]);
 
-  const getColumnWidth = useCallback((column) => {
-    if (column.width) return column.width;
-    return 'auto';
-  }, []);
-
   const handleDragStart = useCallback((e, index) => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', index);
-    setDragStart(index);
   }, []);
 
   const handleDragOver = useCallback((e, index) => {
@@ -163,19 +253,16 @@ const EditableTable = ({
       const updatedOrder = [...reorderableRows];
       const [movedRow] = updatedOrder.splice(fromIndex, 1);
       if (!movedRow) {
-        setDragStart(null);
         setHoveredRow(null);
         return;
       }
       updatedOrder.splice(toIndex, 0, movedRow);
       onReorder({ updateReorderedItem: updatedOrder.map((row) => row.uid) });
     }
-    setDragStart(null);
     setHoveredRow(null);
   }, [onReorder, rowsWithEmpty, showAddRow]);
 
   const handleDragEnd = useCallback(() => {
-    setDragStart(null);
     setHoveredRow(null);
   }, []);
 
@@ -225,7 +312,7 @@ const EditableTable = ({
           className="mousetrap"
           value={value || ''}
           readOnly={column.readOnly}
-          placeholder={isEmpty ? column.placeholder || column.name : ''}
+          placeholder={!value ? column.placeholder || column.name : ''}
           onChange={(e) => handleValueChange(row.uid, column.key, e.target.value)}
         />
         {errorIcon}
@@ -236,7 +323,7 @@ const EditableTable = ({
   const reorderableRowCount = showAddRow ? rowsWithEmpty.length - 1 : rowsWithEmpty.length;
 
   return (
-    <StyledWrapper className={showCheckbox ? 'has-checkbox' : 'no-checkbox'}>
+    <StyledWrapper className={`${showCheckbox ? 'has-checkbox' : 'no-checkbox'} ${resizing ? 'is-resizing' : ''}`}>
       <div className="table-container" ref={tableRef} data-testid={testId}>
         <table>
           <thead>
@@ -244,12 +331,19 @@ const EditableTable = ({
               {showCheckbox && (
                 <td className="text-center">{checkboxLabel}</td>
               )}
-              {columns.map((column) => (
+              {columns.map((column, colIndex) => (
                 <td
                   key={column.key}
                   style={{ width: getColumnWidth(column) }}
                 >
-                  {column.name}
+                  <span className="column-name">{column.name}</span>
+                  {colIndex < columns.length - 1 && (
+                    <div
+                      className={`resize-handle ${resizing === column.key ? 'resizing' : ''}`}
+                      style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
+                      onMouseDown={(e) => handleResizeStart(e, column.key)}
+                    />
+                  )}
                 </td>
               ))}
               {showDelete && (

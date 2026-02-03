@@ -5,7 +5,12 @@ const Wrapper = styled.div`
   flex-direction: column;
   flex: 1;
   overflow: hidden;
-  
+
+  &.is-resizing {
+    cursor: col-resize !important;
+    user-select: none;
+  }
+
   .table-container {
     overflow-y: auto;
     border-radius: 8px;
@@ -16,6 +21,7 @@ const Wrapper = styled.div`
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
+    font-size: 12px;
 
     td {
       vertical-align: middle;
@@ -31,10 +37,6 @@ const Wrapper = styled.div`
       &:nth-child(5) {
         width: 60px;
       }
-
-      &:nth-child(2) {
-        width: 30%;
-      }
     }
 
     thead {
@@ -42,30 +44,46 @@ const Wrapper = styled.div`
       background: ${(props) => props.theme.sidebar.bg};
       font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
-      
+
       td {
         padding: 5px 10px !important;
         border-bottom: solid 1px ${(props) => props.theme.border.border0};
         border-right: solid 1px ${(props) => props.theme.border.border0};
-        
+        position: relative;
+
         &:last-child {
           border-right: none;
         }
+
+        .resize-handle {
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: 4px;
+          cursor: col-resize;
+          background: transparent;
+          z-index: 100;
+
+          &:hover,
+          &.resizing {
+            background: ${(props) => props.theme.colors.accent};
+          }
+        }
       }
     }
-    
+
     tbody {
       tr {
         transition: background 0.1s ease;
-        
+
         &:last-child td {
           border-bottom: none;
         }
-        
+
         td {
           border-bottom: solid 1px ${(props) => props.theme.border.border0};
           border-right: solid 1px ${(props) => props.theme.border.border0};
-          
+
           &:last-child {
             border-right: none;
           }
@@ -101,11 +119,50 @@ const Wrapper = styled.div`
     vertical-align: middle;
     margin: 0;
   }
-  
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: ${(props) => props.theme.colors.text.muted};
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
   .button-container {
+    padding: 12px 2px;
+    background: ${(props) => props.theme.bg};
     flex-shrink: 0;
     display: flex;
     gap: 8px;
+  }
+
+  .submit {
+    padding: 6px 16px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    border: none;
+    background: ${(props) => props.theme.brand};
+    color: ${(props) => props.theme.bg};
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  .reset {
+    background: transparent;
+    padding: 6px 16px;
+    color: ${(props) => props.theme.brand};
+    &:hover {
+      opacity: 0.9;
+    }
   }
 `;
 

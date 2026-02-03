@@ -3,6 +3,7 @@ const fs = require('fs');
 const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
+const archiver = require('archiver');
 const { ipcMain, shell, dialog, app } = require('electron');
 const {
   parseRequest,
@@ -14,7 +15,8 @@ const {
   parseFolder,
   stringifyFolder,
   stringifyEnvironment,
-  parseEnvironment
+  parseEnvironment,
+  DEFAULT_COLLECTION_FORMAT
 } = require('@usebruno/filestore');
 const { dotenvToJson } = require('@usebruno/lang');
 const brunoConverters = require('@usebruno/converters');
@@ -46,6 +48,7 @@ const {
   getPaths,
   generateUniqueName,
   isDotEnvFile,
+  isValidDotEnvFilename,
   isBrunoConfigFile,
   isBruEnvironmentConfig,
   isCollectionRootBruFile
@@ -132,7 +135,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     'renderer:create-collection',
     async (event, collectionName, collectionFolderName, collectionLocation, options = {}) => {
       try {
-        const format = options.format || 'bru';
+        const format = options.format || DEFAULT_COLLECTION_FORMAT;
         collectionFolderName = sanitizeName(collectionFolderName);
         const dirPath = path.join(collectionLocation, collectionFolderName);
         if (fs.existsSync(dirPath)) {
@@ -620,6 +623,121 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  // Save .env file variables for collection
+  ipcMain.handle('renderer:save-dotenv-variables', async (event, collectionPathname, variables, filename = '.env') => {
+    try {
+      if (!isValidDotEnvFilename(filename)) {
+        throw new Error('Invalid .env filename');
+      }
+
+      const dotEnvPath = path.join(collectionPathname, filename);
+
+      // Convert variables array to .env format
+      const content = variables
+        .filter((v) => v.name && v.name.trim() !== '')
+        .map((v) => {
+          const value = v.value || '';
+          // If value contains newlines or special characters, wrap in quotes
+          if (value.includes('\n') || value.includes('"') || value.includes('\'') || value.includes('\\')) {
+            // Escape backslashes first, then double quotes
+            const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+            return `${v.name}="${escapedValue}"`;
+          }
+          return `${v.name}=${value}`;
+        })
+        .join('\n');
+
+      await writeFile(dotEnvPath, content);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error saving .env file:', error);
+      return Promise.reject(error);
+    }
+  });
+
+  // Save .env file raw content for collection
+  ipcMain.handle('renderer:save-dotenv-raw', async (event, collectionPathname, content, filename = '.env') => {
+    try {
+      if (!isValidDotEnvFilename(filename)) {
+        throw new Error('Invalid .env filename');
+      }
+
+      const dotEnvPath = path.join(collectionPathname, filename);
+      await writeFile(dotEnvPath, content);
+      return { success: true };
+    } catch (error) {
+      console.error('Error saving .env file:', error);
+      return Promise.reject(error);
+    }
+  });
+
+  // Create .env file for collection
+  ipcMain.handle('renderer:create-dotenv-file', async (event, collectionPathname, filename = '.env') => {
+    try {
+      if (!isValidDotEnvFilename(filename)) {
+        throw new Error('Invalid .env filename');
+      }
+
+      const dotEnvPath = path.join(collectionPathname, filename);
+
+      if (fs.existsSync(dotEnvPath)) {
+        throw new Error(`${filename} file already exists`);
+      }
+
+      await writeFile(dotEnvPath, '');
+
+      return { success: true, filename };
+    } catch (error) {
+      console.error('Error creating .env file:', error);
+      return Promise.reject(error);
+    }
+  });
+
+  // Delete .env file for collection
+  ipcMain.handle('renderer:delete-dotenv-file', async (event, collectionPathname, filename = '.env') => {
+    try {
+      if (!isValidDotEnvFilename(filename)) {
+        throw new Error('Invalid .env filename');
+      }
+
+      const dotEnvPath = path.join(collectionPathname, filename);
+
+      if (!fs.existsSync(dotEnvPath)) {
+        throw new Error(`${filename} file does not exist`);
+      }
+
+      fs.unlinkSync(dotEnvPath);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting .env file:', error);
+      return Promise.reject(error);
+    }
+  });
+
+  // update environment color
+  ipcMain.handle('renderer:update-environment-color', async (event, collectionPathname, environmentName, color) => {
+    try {
+      const format = getCollectionFormat(collectionPathname);
+      const envDirPath = path.join(collectionPathname, 'environments');
+      const envFilePath = path.join(envDirPath, `${environmentName}.${format}`);
+
+      if (!fs.existsSync(envFilePath)) {
+        throw new Error(`environment: ${envFilePath} does not exist`);
+      }
+
+      // Read, update color, and write back to file
+      const fileContent = fs.readFileSync(envFilePath, 'utf8');
+      const environment = parseEnvironment(fileContent, { format });
+      environment.color = color;
+      const updatedContent = stringifyEnvironment(environment, { format });
+      fs.writeFileSync(envFilePath, updatedContent, 'utf8');
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // Generic environment export handler
   ipcMain.handle('renderer:export-environment', async (event, { environments, environmentType, filePath, exportFormat = 'folder' }) => {
     try {
@@ -933,7 +1051,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, format = 'bru') => {
+  ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, format = DEFAULT_COLLECTION_FORMAT) => {
     try {
       let collectionName = sanitizeName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);
@@ -1834,6 +1952,66 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
     const files = await getBruFilesRecursively(collectionPath);
     return { name, files, ...variables };
+  });
+
+  ipcMain.handle('renderer:export-collection-zip', async (event, collectionPath, collectionName) => {
+    try {
+      if (!collectionPath || !fs.existsSync(collectionPath)) {
+        throw new Error('Collection path does not exist');
+      }
+
+      const defaultFileName = `${sanitizeName(collectionName)}.zip`;
+      const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+        title: 'Export Collection as ZIP',
+        defaultPath: defaultFileName,
+        filters: [{ name: 'Zip Files', extensions: ['zip'] }]
+      });
+
+      if (canceled || !filePath) {
+        return { success: false, canceled: true };
+      }
+
+      const ignoredDirectories = ['node_modules', '.git'];
+
+      await new Promise((resolve, reject) => {
+        const output = fs.createWriteStream(filePath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+
+        output.on('close', () => {
+          resolve();
+        });
+
+        archive.on('error', (err) => {
+          reject(err);
+        });
+
+        archive.pipe(output);
+
+        const addDirectoryToArchive = (dirPath, archivePath) => {
+          const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+
+          for (const entry of entries) {
+            const fullPath = path.join(dirPath, entry.name);
+            const entryArchivePath = archivePath ? path.join(archivePath, entry.name) : entry.name;
+
+            if (entry.isDirectory()) {
+              if (!ignoredDirectories.includes(entry.name)) {
+                addDirectoryToArchive(fullPath, entryArchivePath);
+              }
+            } else {
+              archive.file(fullPath, { name: entryArchivePath });
+            }
+          }
+        };
+
+        addDirectoryToArchive(collectionPath, '');
+        archive.finalize();
+      });
+
+      return { success: true, filePath };
+    } catch (error) {
+      throw error;
+    }
   });
 };
 

@@ -1,5 +1,6 @@
 import React, { forwardRef, useRef, useCallback, useState, useImperativeHandle, useEffect, useMemo } from 'react';
 import Dropdown from 'components/Dropdown';
+import SubMenuItem from './SubMenuItem';
 
 // Constants
 const NAVIGATION_KEYS = ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape'];
@@ -31,6 +32,7 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  *   - testId: string (optional, for testing, for items only)
  *   - disabled: boolean (optional, for items only)
  *   - className: string (optional, additional CSS classes for the item)
+ *   - submenu: Array (optional, array of menu items for nested submenu, opens on hover)
  *
  *   Grouped format: [{name: string, options: [{id, label, ...}]}, ...]
  *   Flat format: [{id, label, ...}, ...]
@@ -46,6 +48,7 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  * @param {boolean} props.showGroupDividers - Optional flag to show dividers between groups in grouped format (default: true)
  * @param {string} props.groupStyle - Style for grouped items: 'action' (default, normal case) or 'select' (uppercase labels, indented items)
  * @param {boolean} props.autoFocusFirstOption - Optional flag to auto-focus first option when dropdown opens (default: false)
+ * @param {string} props.submenuPlacement - Placement of submenus: 'right' (default) or 'left'. Controls both position and arrow direction.
  * @param {Object} props.dropdownProps - Other props passed to underlying Dropdown component
  * @param {React.Ref} ref - Optional ref to expose open/close methods
  */
@@ -63,6 +66,7 @@ const MenuDropdown = forwardRef(({
   showGroupDividers = true,
   groupStyle = 'action',
   autoFocusFirstOption = false,
+  submenuPlacement = 'right',
   'data-testid': testId = 'menu-dropdown',
   ...dropdownProps
 }, ref) => {
@@ -264,7 +268,11 @@ const MenuDropdown = forwardRef(({
   }, [isOpen, updateOpenState]);
 
   // Close dropdown when clicking outside
-  const handleClickOutside = useCallback(() => {
+  const handleClickOutside = useCallback((instance, event) => {
+    // Don't close if clicking inside a submenu (another tippy popper)
+    if (event?.target?.closest?.('[data-tippy-root]')) {
+      return;
+    }
     updateOpenState(false);
   }, [updateOpenState]);
 
@@ -346,39 +354,75 @@ const MenuDropdown = forwardRef(({
     return section;
   };
 
-  // Render menu item
-  const renderMenuItem = (item) => {
+  // Get common props for menu items (shared between regular items and submenu triggers)
+  const getMenuItemProps = (item, extraProps = {}) => {
     const selectIndentClass = item.groupStyle === 'select' ? 'dropdown-item-select' : '';
     const isActive = item.id === selectedItemId;
     const activeClass = isActive ? 'dropdown-item-active' : '';
 
+    // Destructure className from extraProps to avoid it being overwritten by spread
+    const { className: extraClassName, ...restExtraProps } = extraProps;
+
+    return {
+      'className': `dropdown-item ${item.disabled ? 'disabled' : ''} ${selectIndentClass} ${activeClass} ${extraClassName || ''} ${item.className || ''}`.trim(),
+      'role': 'menuitem',
+      'data-item-id': item.id,
+      'tabIndex': item.disabled ? -1 : 0,
+      'aria-label': item.ariaLabel,
+      'aria-disabled': item.disabled,
+      'aria-current': isActive ? 'true' : undefined,
+      'title': item.title,
+      'data-testid': `${testId}-${String(item.id).toLowerCase()}`,
+      ...restExtraProps
+    };
+  };
+
+  // Render the content inside a menu item (leftSection, label, and rightSection/arrow)
+  const renderMenuItemContent = (item, rightContent = null) => (
+    <>
+      {renderSection(item.leftSection)}
+      <span className="dropdown-label">{item.label}</span>
+      {rightContent}
+    </>
+  );
+
+  // Render menu item
+  const renderMenuItem = (item) => {
+    if (item.submenu) {
+      return (
+        <SubMenuItem
+          key={item.id}
+          item={item}
+          onRootClose={() => updateOpenState(false)}
+          submenuPlacement={submenuPlacement}
+          getMenuItemProps={getMenuItemProps}
+          renderMenuItemContent={renderMenuItemContent}
+          MenuDropdownComponent={MenuDropdown}
+        />
+      );
+    }
+
+    const itemProps = getMenuItemProps(item);
+
+    const rightContent = item.rightSection ? (
+      <div
+        className="dropdown-right-section"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
+        {renderSection(item.rightSection)}
+      </div>
+    ) : null;
+
     return (
       <div
         key={item.id}
-        className={`dropdown-item ${item.disabled ? 'disabled' : ''} ${selectIndentClass} ${activeClass} ${item.className || ''}`.trim()}
-        role="menuitem"
-        data-item-id={item.id}
+        {...itemProps}
         onClick={() => !item.disabled && handleItemClick(item)}
-        tabIndex={item.disabled ? -1 : 0}
-        aria-label={item.ariaLabel}
-        aria-disabled={item.disabled}
-        aria-current={isActive ? 'true' : undefined}
-        title={item.title}
-        data-testid={`${testId}-${String(item.id).toLowerCase()}`}
       >
-        {renderSection(item.leftSection)}
-        <span className="dropdown-label">{item.label}</span>
-        {item.rightSection && (
-          <div
-            className="dropdown-right-section"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          >
-            {renderSection(item.rightSection)}
-          </div>
-        )}
+        {renderMenuItemContent(item, rightContent)}
       </div>
     );
   };

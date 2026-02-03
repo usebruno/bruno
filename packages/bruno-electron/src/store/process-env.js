@@ -32,6 +32,10 @@ const setDotEnvVars = (collectionUid, envVars) => {
   dotEnvVars[collectionUid] = envVars;
 };
 
+const clearDotEnvVars = (collectionUid) => {
+  delete dotEnvVars[collectionUid];
+};
+
 const setWorkspaceDotEnvVars = (workspacePath, envVars) => {
   workspaceDotEnvVars[workspacePath] = envVars;
 };
@@ -51,6 +55,7 @@ const clearCollectionWorkspace = (collectionUid) => {
 module.exports = {
   getProcessEnvVars,
   setDotEnvVars,
+  clearDotEnvVars,
   setWorkspaceDotEnvVars,
   clearWorkspaceDotEnvVars,
   setCollectionWorkspace,

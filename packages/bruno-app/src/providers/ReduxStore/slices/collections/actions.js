@@ -1,6 +1,6 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables } from '@usebruno/common/utils';
-import { REQUEST_TYPES } from 'utils/common/constants';
+import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
@@ -49,6 +49,7 @@ import {
   updateActiveConnections,
   saveRequest as _saveRequest,
   saveEnvironment as _saveEnvironment,
+  updateEnvironmentColor as _updateEnvironmentColor,
   saveCollectionDraft,
   saveFolderDraft,
   addVar,
@@ -1908,8 +1909,8 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
      Modal Save writes what the user sees:
      - Non-ephemeral vars are saved as-is (without metadata)
      - Ephemeral vars:
-       - if persistedValue exists, save that (restore original value)
-       - otherwise filter out (don't save script-created ephemeral vars)
+       - if persistedValue exists, save that (explicit persisted case)
+       - otherwise save the current UI value (treat as user-authored)
      */
     const persisted = buildPersistedEnvVariables(variables, { mode: 'save' });
     environment.variables = persisted;
@@ -1926,6 +1927,31 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
         dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
       })
       .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const updateEnvironmentColor = (environmentUid, color, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
+    if (!environment) {
+      return reject(new Error('Environment not found'));
+    }
+
+    environment.color = color;
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:update-environment-color', collection.pathname, environment.name, color)
+      .then(() => {
+        dispatch(_updateEnvironmentColor({ environmentUid, color, collectionUid }));
+        resolve();
+      })
       .catch(reject);
   });
 };
@@ -2616,7 +2642,7 @@ export const importCollection = (collection, collectionLocation, options = {}) =
       const state = getState();
       const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
 
-      const collectionPath = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, options.format || 'bru');
+      const collectionPath = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, options.format || DEFAULT_COLLECTION_FORMAT);
 
       if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
         const workspaceCollection = {
@@ -2870,3 +2896,71 @@ export const openCollectionSettings
         resolve();
       });
     };
+
+export const saveDotEnvVariables = (collectionUid, variables, filename = '.env') => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:save-dotenv-variables', collection.pathname, variables, filename)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const saveDotEnvRaw = (collectionUid, content, filename = '.env') => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:save-dotenv-raw', collection.pathname, content, filename)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const createDotEnvFile = (collectionUid, filename = '.env') => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:create-dotenv-file', collection.pathname, filename)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const deleteDotEnvFile = (collectionUid, filename = '.env') => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:delete-dotenv-file', collection.pathname, filename)
+      .then(resolve)
+      .catch(reject);
+  });
+};

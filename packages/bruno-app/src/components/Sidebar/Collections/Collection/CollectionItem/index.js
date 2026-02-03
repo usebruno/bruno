@@ -535,7 +535,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const handleCopyItem = () => {
     dispatch(copyRequest(item));
     const itemType = isFolder ? 'Folder' : 'Request';
-    toast.success(`${itemType} copied to clipboard`);
+    toast.success(`${itemType} copied`);
   };
 
   const handlePasteItem = () => {

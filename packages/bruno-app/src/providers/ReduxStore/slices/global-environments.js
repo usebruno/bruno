@@ -81,6 +81,12 @@ export const globalEnvironmentsSlice = createSlice({
     },
     clearGlobalEnvironmentDraft: (state) => {
       state.globalEnvironmentDraft = null;
+    },
+    _updateGlobalEnvironmentColor: (state, action) => {
+      const { environmentUid, color } = action.payload;
+      if (environmentUid) {
+        state.globalEnvironments = state.globalEnvironments.map((env) => env?.uid == environmentUid ? { ...env, color } : env);
+      }
     }
   }
 });
@@ -93,6 +99,7 @@ export const {
   _copyGlobalEnvironment,
   _selectGlobalEnvironment,
   _deleteGlobalEnvironment,
+  _updateGlobalEnvironmentColor,
   setGlobalEnvironmentDraft,
   clearGlobalEnvironmentDraft
 } = globalEnvironmentsSlice.actions;
@@ -298,6 +305,18 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
         workspacePath
       }))
       .then(() => dispatch(_saveGlobalEnvironment({ environmentUid, variables })))
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const updateGlobalEnvironmentColor = (environmentUid, color) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    const state = getState();
+    const { workspaceUid, workspacePath } = getWorkspaceContext(state);
+    ipcRenderer.invoke('renderer:update-global-environment-color', { environmentUid, color, workspaceUid, workspacePath })
+      .then(() => dispatch(_updateGlobalEnvironmentColor({ environmentUid, color })))
       .then(resolve)
       .catch(reject);
   });

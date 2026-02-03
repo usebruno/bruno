@@ -1,6 +1,11 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  
   color: ${(props) => props.theme.text};
 
   .text-link {
@@ -17,6 +22,10 @@ const StyledWrapper = styled.div`
     label {
       font-size: 0.8125rem;
     }
+  }
+
+  .default-collection-location-input {
+    max-width: 28rem;
   }
 `;
 

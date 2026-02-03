@@ -93,6 +93,7 @@ let appProtocolUrl;
 // Helper function to focus and restore the main window
 const focusMainWindow = () => {
   if (mainWindow) {
+    app.focus({ steal: true });
     if (mainWindow.isMinimized()) {
       mainWindow.restore();
     }
@@ -170,6 +171,12 @@ app.on('ready', async () => {
     }
   }
 
+  // Initialize system proxy cache early (non-blocking)
+  const { initializeSystemProxy } = require('./store/system-proxy');
+  initializeSystemProxy().catch((err) => {
+    console.warn('Failed to initialize system proxy cache:', err);
+  });
+
   Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
 
@@ -223,6 +230,50 @@ app.on('ready', async () => {
   ipcMain.handle('renderer:window-is-maximized', () => {
     if (!isWindows && !isLinux) return false;
     return mainWindow.isMaximized();
+  });
+
+  ipcMain.handle('renderer:open-preferences', () => {
+    ipcMain.emit('main:open-preferences');
+  });
+
+  ipcMain.handle('renderer:toggle-devtools', () => {
+    mainWindow.webContents.toggleDevTools();
+  });
+
+  ipcMain.handle('renderer:reset-zoom', () => {
+    mainWindow.webContents.setZoomLevel(0);
+  });
+
+  ipcMain.handle('renderer:zoom-in', () => {
+    const currentZoom = mainWindow.webContents.getZoomLevel();
+    mainWindow.webContents.setZoomLevel(currentZoom + 0.5);
+  });
+
+  ipcMain.handle('renderer:zoom-out', () => {
+    const currentZoom = mainWindow.webContents.getZoomLevel();
+    mainWindow.webContents.setZoomLevel(currentZoom - 0.5);
+  });
+
+  ipcMain.handle('renderer:toggle-fullscreen', () => {
+    mainWindow.setFullScreen(!mainWindow.isFullScreen());
+  });
+
+  ipcMain.handle('renderer:open-docs', () => {
+    ipcMain.emit('main:open-docs');
+  });
+
+  ipcMain.handle('renderer:open-about', () => {
+    const { version } = require('../package.json');
+    const aboutBruno = require('./app/about-bruno');
+    const aboutWindow = new BrowserWindow({
+      width: 350,
+      height: 250,
+      webPreferences: {
+        nodeIntegration: true
+      }
+    });
+    aboutWindow.removeMenu();
+    aboutWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(aboutBruno({ version }))}`);
   });
 
   mainWindow.once('ready-to-show', () => {

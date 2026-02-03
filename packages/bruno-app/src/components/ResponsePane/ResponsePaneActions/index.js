@@ -47,6 +47,49 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
   const copyButtonRef = useRef(null);
   const layoutToggleButtonRef = useRef(null);
 
+  /**
+   * GQL response actions missing with Save response - because their is schema validation missing for saving GQL response will undo once example
+   * scehem is updated
+   */
+  const gqlMenuItems = [
+    {
+      id: 'copy-response',
+      label: 'Copy response',
+      leftSection: IconCopy,
+      get disabled() {
+        return copyButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => copyButtonRef.current?.click()
+    },
+    {
+      id: 'download-response',
+      label: 'Download response',
+      leftSection: IconDownload,
+      get disabled() {
+        return downloadButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => downloadButtonRef.current?.click()
+    },
+    {
+      id: 'clear-response',
+      label: 'Clear response',
+      leftSection: IconEraser,
+      get disabled() {
+        return clearButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => clearButtonRef.current?.click()
+    },
+    {
+      id: 'change-layout',
+      label: 'Change layout',
+      leftSection: orientation === 'vertical' ? IconLayoutColumns : IconLayoutRows,
+      get disabled() {
+        return layoutToggleButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => layoutToggleButtonRef.current?.click()
+    }
+  ];
+
   const menuItems = [
     {
       id: 'copy-response',
@@ -95,7 +138,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     }
   ];
 
-  if (item.type !== 'http-request') {
+  if (!['http-request', 'graphql-request'].includes(item.type)) {
     return null;
   }
 
@@ -103,7 +146,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     <StyledWrapper className="response-pane-actions-wrapper">
       <div className="actions-dropdown">
         <MenuDropdown
-          items={menuItems}
+          items={item.type !== 'graphql-request' ? menuItems : gqlMenuItems}
           placement="bottom-end"
           data-testid="response-actions-menu"
         >
@@ -119,7 +162,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
           data={data}
           dataBuffer={dataBuffer}
         />
-        <ResponseBookmark ref={bookmarkButtonRef} item={item} collection={collection} responseSize={responseSize} />
+        {item.type !== 'graphql-request' && <ResponseBookmark ref={bookmarkButtonRef} item={item} collection={collection} responseSize={responseSize} />}
         <ResponseDownload ref={downloadButtonRef} item={item} />
         <ResponseClear ref={clearButtonRef} item={item} collection={collection} />
         <ResponseLayoutToggle ref={layoutToggleButtonRef} />

@@ -43,7 +43,8 @@ const parseEnvironment = (ymlString: string): BrunoEnvironment => {
     const brunoEnvironment: BrunoEnvironment = {
       uid: uuid(),
       name: ensureString(ocEnvironment.name, 'Untitled Environment'),
-      variables: toBrunoEnvironmentVariables(ocEnvironment.variables)
+      variables: toBrunoEnvironmentVariables(ocEnvironment.variables),
+      color: ocEnvironment.color || null
     };
 
     return brunoEnvironment;

@@ -66,6 +66,51 @@ const wsStatusCodes = {
   1015: 'TLS_HANDSHAKE'
 };
 
+/**
+ * Preserves UIDs from existing array items when merging with new data.
+ * UIDs are matched by position to keep React keys stable after file reloads.
+ */
+const preserveUidsAtPaths = (existing, updated, paths) => {
+  if (!existing || !updated) return updated;
+
+  const merged = cloneDeep(updated);
+
+  paths.forEach((path) => {
+    const newArray = get(merged, path);
+    const existingArray = get(existing, path, []);
+
+    if (Array.isArray(newArray) && newArray.length) {
+      set(
+        merged,
+        path,
+        newArray.map((item, i) => (existingArray[i]?.uid ? { ...item, uid: existingArray[i].uid } : item))
+      );
+    }
+  });
+
+  return merged;
+};
+
+// Paths containing arrays with UIDs that need preservation
+const REQUEST_UID_PATHS = [
+  'params',
+  'headers',
+  'vars.req',
+  'vars.res',
+  'assertions',
+  'body.formUrlEncoded',
+  'body.multipartForm',
+  'body.file'
+];
+
+const ROOT_UID_PATHS = ['request.headers', 'request.vars.req', 'request.vars.res'];
+
+const mergeRequestWithPreservedUids = (existingRequest, newRequest) =>
+  preserveUidsAtPaths(existingRequest, newRequest, REQUEST_UID_PATHS);
+
+const mergeRootWithPreservedUids = (existingRoot, newRoot) =>
+  preserveUidsAtPaths(existingRoot, newRoot, ROOT_UID_PATHS);
+
 const initialState = {
   collections: [],
   collectionSortOrder: 'default',
@@ -278,6 +323,18 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateEnvironmentColor: (state, action) => {
+      const { environmentUid, color, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const environment = findEnvironmentInCollection(collection, environmentUid);
+
+        if (environment) {
+          environment.color = color;
+        }
+      }
+    },
     newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -413,6 +470,37 @@ export const collectionsSlice = createSlice({
       state.collections.forEach((collection) => {
         collection.workspaceProcessEnvVariables = processEnvVariables;
       });
+    },
+    setDotEnvVariables: (state, action) => {
+      const { collectionUid, variables, exists, filename = '.env' } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        if (!collection.dotEnvFiles) {
+          collection.dotEnvFiles = [];
+        }
+
+        const existingIndex = collection.dotEnvFiles.findIndex((f) => f.filename === filename);
+        if (existingIndex >= 0) {
+          if (exists) {
+            collection.dotEnvFiles[existingIndex] = { filename, variables, exists };
+          } else {
+            collection.dotEnvFiles.splice(existingIndex, 1);
+          }
+        } else if (exists) {
+          collection.dotEnvFiles.push({ filename, variables, exists });
+        }
+
+        collection.dotEnvFiles.sort((a, b) => {
+          if (a.filename === '.env') return -1;
+          if (b.filename === '.env') return 1;
+          return a.filename.localeCompare(b.filename);
+        });
+
+        const mainEnvFile = collection.dotEnvFiles.find((f) => f.filename === '.env');
+        collection.dotEnvVariables = mainEnvFile?.variables || [];
+        collection.dotEnvExists = mainEnvFile?.exists || false;
+      }
     },
     requestCancelled: (state, action) => {
       const { itemUid, collectionUid, seq, timestamp } = action.payload;
@@ -2550,7 +2638,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
       if (isCollectionRoot) {
         if (collection) {
-          collection.root = file.data;
+          collection.root = mergeRootWithPreservedUids(collection.root, file.data);
         }
         return;
       }
@@ -2562,7 +2650,7 @@ export const collectionsSlice = createSlice({
           if (file?.data?.meta?.name) {
             folderItem.name = file?.data?.meta?.name;
           }
-          folderItem.root = file.data;
+          folderItem.root = mergeRootWithPreservedUids(folderItem.root, file.data);
           if (file?.data?.meta?.seq) {
             folderItem.seq = file.data?.meta?.seq;
           }
@@ -2610,7 +2698,7 @@ export const collectionsSlice = createSlice({
             currentItem.type = file.data.type;
             currentItem.seq = file.data.seq;
             currentItem.tags = file.data.tags;
-            currentItem.request = file.data.request;
+            currentItem.request = mergeRequestWithPreservedUids(currentItem.request, file.data.request);
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
             currentItem.settings = file.data.settings;
@@ -2842,7 +2930,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
       if (isCollectionRoot) {
         if (collection) {
-          collection.root = file.data;
+          collection.root = mergeRootWithPreservedUids(collection.root, file.data);
         }
         return;
       }
@@ -2857,7 +2945,7 @@ export const collectionsSlice = createSlice({
           if (file?.data?.meta?.seq) {
             folderItem.seq = file?.data?.meta?.seq;
           }
-          folderItem.root = file.data;
+          folderItem.root = mergeRootWithPreservedUids(folderItem.root, file.data);
         }
         return;
       }
@@ -2882,7 +2970,7 @@ export const collectionsSlice = createSlice({
             item.type = file.data.type;
             item.seq = file.data.seq;
             item.tags = file.data.tags;
-            item.request = file.data.request;
+            item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
             item.settings = file.data.settings;
             item.examples = file.data.examples;
             item.filename = file.meta.name;
@@ -3619,6 +3707,7 @@ export const {
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
+  updateEnvironmentColor,
   newItem,
   deleteItem,
   renameItem,
@@ -3626,6 +3715,7 @@ export const {
   scriptEnvironmentUpdateEvent,
   processEnvUpdateEvent,
   workspaceEnvUpdateEvent,
+  setDotEnvVariables,
   requestCancelled,
   responseReceived,
   runGrpcRequestEvent,

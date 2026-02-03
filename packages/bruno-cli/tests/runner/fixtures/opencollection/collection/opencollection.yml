@@ -3,9 +3,10 @@ info:
   name: Test OpenCollection
 
 extensions:
-  ignore:
-    - node_modules
-    - .git
+  bruno:
+    ignore:
+      - node_modules
+      - .git
 
 request:
   headers:

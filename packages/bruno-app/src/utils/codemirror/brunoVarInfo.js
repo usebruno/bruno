@@ -7,7 +7,7 @@
  */
 
 import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
-import { getVariableScope, isVariableSecret, getAllVariables } from 'utils/collections';
+import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid } from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
@@ -524,6 +524,18 @@ export const renderVarInfo = (token, options) => {
         dispatch(updateVariableInScope(variableName, newValue, scopeInfo, collection.uid))
           .then(() => {
             originalValue = newValue;
+
+            // Re-fetch scopeInfo to get the updated variable reference after save
+            const state = store.getState();
+            const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
+            if (collection) {
+              const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
+              const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
+              if (updatedScopeInfo) {
+                scopeInfo = updatedScopeInfo;
+              }
+            }
+
             // Re-interpolate the new value to show the resolved value in display
             const interpolatedValue = interpolate(newValue, allVariables);
             // Check if the NEW value contains secret references

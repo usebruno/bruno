@@ -1,10 +1,21 @@
 import styled from 'styled-components';
 
-const Wrapper = styled.div`
+const StyledWrapper = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1;
   overflow: hidden;
+
+  .raw-editor-container {
+    flex: 1;
+    overflow: hidden;
+    border-radius: 8px;
+    border: solid 1px ${(props) => props.theme.border.border0};
+
+    .CodeMirror {
+      font-size: ${(props) => props.theme.font.size.base};
+    }
+  }
 
   .table-container {
     overflow-y: auto;
@@ -22,19 +33,14 @@ const Wrapper = styled.div`
       vertical-align: middle;
       padding: 2px 10px;
 
-      &:nth-child(1) {
-        width: 25px;
-        border-right: none;
-      }
-      &:nth-child(4) {
-        width: 80px;
-      }
-      &:nth-child(5) {
-        width: 60px;
+      &:first-child {
+        width: 35%;
       }
 
-      &:nth-child(2) {
-        width: 30%;
+      &.delete-col {
+        width: 40px;
+        text-align: center;
+        padding: 2px 4px;
       }
     }
 
@@ -148,20 +154,32 @@ const Wrapper = styled.div`
     }
   }
 
-  .discard {
-    padding: 6px 16px;
-    font-size: ${(props) => props.theme.font.size.sm};
-    border-radius: ${(props) => props.theme.border.radius.base};
-    background: transparent;
-    color: ${(props) => props.theme.text};
-    border: 1px solid ${(props) => props.theme.border.border1};
-    cursor: pointer;
-    transition: all 0.15s ease;
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: ${(props) => props.theme.colors.text.muted};
 
-    &:hover {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    svg {
+      opacity: 0.4;
+      margin-bottom: 12px;
+    }
+
+    .title {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .description {
+      font-size: 12px;
+      text-align: center;
+      max-width: 300px;
+      line-height: 1.5;
     }
   }
 `;
 
-export default Wrapper;
+export default StyledWrapper;
