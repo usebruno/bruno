@@ -84,8 +84,7 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
   });
 
   instance.interceptors.request.use((config) => {
-    config.headers['request-start-time'] = Date.now();
-
+    config.requestStartTime = Date.now();
     // Add cookies to request if available and not disabled
     if (!disableCookies) {
       const cookieString = getCookieStringForUrl(config.url);
@@ -93,14 +92,13 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
         config.headers['cookie'] = cookieString;
       }
     }
-
     return config;
   });
 
   instance.interceptors.response.use(
     (response) => {
       const end = Date.now();
-      const start = response.config.headers['request-start-time'];
+      const start = response.config.requestStartTime;
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
 
@@ -109,7 +107,7 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
     (error) => {
       if (error.response) {
         const end = Date.now();
-        const start = error.config.headers['request-start-time'];
+        const start = error.config.requestStartTime;
         error.response.headers['request-duration'] = end - start;
 
         if (redirectResponseCodes.includes(error.response.status)) {
