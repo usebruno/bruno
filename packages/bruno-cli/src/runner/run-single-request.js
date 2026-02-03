@@ -224,20 +224,12 @@ const runSingleRequest = async function (
 
         preRequestTestResults = result?.results || [];
       } catch (error) {
+        // Pre-request errors are treated as request errors (we return early with status: 'error'), not as failures. Unlike post-response and test script errors, we do not add a synthetic fail and continue.
         console.error('Pre-request script execution error:', error);
         console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${error.message})`));
 
         // Extract partial results from the error (tests that passed before the error)
-        const partialResults = error?.partialResults?.results || [];
-        preRequestTestResults = [
-          ...partialResults,
-          {
-            status: 'fail',
-            description: 'Pre-Request Script Error',
-            error: error.message || 'An error occurred while executing the pre-request script.',
-            isScriptError: true
-          }
-        ];
+        preRequestTestResults = error?.partialResults?.results || [];
 
         // Preserve nextRequestName if it was set before the error
         if (error?.partialResults?.nextRequestName !== undefined) {
