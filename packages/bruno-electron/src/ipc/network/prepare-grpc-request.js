@@ -60,7 +60,8 @@ const configureRequest = async (grpcRequest, request, collection, envVars, runti
         runtimeVariables,
         processEnvVars,
         collectionPath,
-        globalEnvironmentVariables
+        globalEnvironmentVariables,
+        originalRequestUrl: requestCopy.url
       });
     }
 
@@ -85,7 +86,8 @@ const configureRequest = async (grpcRequest, request, collection, envVars, runti
         runtimeVariables,
         processEnvVars,
         collectionPath,
-        globalEnvironmentVariables
+        globalEnvironmentVariables,
+        originalRequestUrl: requestCopy.url
       });
     }
 

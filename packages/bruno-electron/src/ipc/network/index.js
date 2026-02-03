@@ -185,7 +185,8 @@ const configureRequest = async (
         runtimeVariables,
         processEnvVars,
         collectionPath,
-        globalEnvironmentVariables
+        globalEnvironmentVariables,
+        originalRequestUrl: requestCopy.url
       });
     }
 
@@ -210,7 +211,8 @@ const configureRequest = async (
         runtimeVariables,
         processEnvVars,
         collectionPath,
-        globalEnvironmentVariables
+        globalEnvironmentVariables,
+        originalRequestUrl: requestCopy.url
       });
     }
 

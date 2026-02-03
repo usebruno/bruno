@@ -121,7 +121,8 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
         runtimeVariables,
         processEnvVars,
         collectionPath: collection.pathname,
-        globalEnvironmentVariables: request.globalEnvironmentVariables
+        globalEnvironmentVariables: request.globalEnvironmentVariables,
+        originalRequestUrl: requestCopy.url
       });
     }
 
@@ -146,7 +147,8 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
         runtimeVariables,
         processEnvVars,
         collectionPath: collection.pathname,
-        globalEnvironmentVariables: request.globalEnvironmentVariables
+        globalEnvironmentVariables: request.globalEnvironmentVariables,
+        originalRequestUrl: requestCopy.url
       });
     }
 

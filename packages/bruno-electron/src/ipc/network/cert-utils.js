@@ -9,6 +9,8 @@ const { interpolateString, interpolateObject } = require('./interpolate-string')
 
 /**
  * Gets certificates and proxy configuration for a request
+ * @param {Object} options - Configuration options
+ * @param {string} [options.originalRequestUrl] - Original request URL (used for OAuth2 token URLs to check cert compatibility with original request)
  */
 const getCertsAndProxyConfig = async ({
   collectionUid,
@@ -18,7 +20,8 @@ const getCertsAndProxyConfig = async ({
   runtimeVariables,
   processEnvVars,
   collectionPath,
-  globalEnvironmentVariables
+  globalEnvironmentVariables,
+  originalRequestUrl
 }) => {
   /**
    * @see https://github.com/usebruno/bruno/issues/211 set keepAlive to true, this should fix socket hang up errors
@@ -75,7 +78,13 @@ const getCertsAndProxyConfig = async ({
       const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/|ws:\\/\\/|wss:\\/\\/)?'
         + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
       const requestUrl = interpolateString(request.url, interpolationOptions);
-      if (requestUrl && requestUrl.match(hostRegex)) {
+      // For OAuth2 token requests, also check against the original request URL
+      // This allows using client certs from the original request when the token URL is on the same domain
+      const originalUrl = originalRequestUrl ? interpolateString(originalRequestUrl, interpolationOptions) : null;
+      const urlMatches = (requestUrl && requestUrl.match(hostRegex)) ||
+                         (originalUrl && originalUrl.match(hostRegex));
+
+      if (urlMatches) {
         if (type === 'cert') {
           try {
             let certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);

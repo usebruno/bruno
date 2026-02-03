@@ -1502,7 +1502,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             runtimeVariables,
             processEnvVars,
             collectionPath,
-            globalEnvironmentVariables
+            globalEnvironmentVariables,
+            originalRequestUrl: requestCopy.url
           });
         }
 
@@ -1528,7 +1529,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             runtimeVariables,
             processEnvVars,
             collectionPath,
-            globalEnvironmentVariables
+            globalEnvironmentVariables,
+            originalRequestUrl: requestCopy.url
           });
         }
 
