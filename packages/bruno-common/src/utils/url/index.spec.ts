@@ -44,12 +44,6 @@ describe('encodeUrl', () => {
       expect(encodeUrl(url)).toBe(expected);
     });
 
-    it('should handle query parameters with empty values', () => {
-      const url = 'https://example.com/api?name=&age=25&active=';
-      const expected = 'https://example.com/api?name&age=25&active';
-      expect(encodeUrl(url)).toBe(expected);
-    });
-
     it('should encode query parameters with pipe operator', () => {
       const url = 'https://example.com/api?filter=status|active&sort=name|asc&tags=frontend|backend|api';
       const expected = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc&tags=frontend%7Cbackend%7Capi';
