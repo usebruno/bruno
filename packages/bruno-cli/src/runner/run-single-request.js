@@ -225,6 +225,7 @@ const runSingleRequest = async function (
         preRequestTestResults = result?.results || [];
       } catch (error) {
         console.error('Pre-request script execution error:', error);
+        console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${error.message})`));
 
         // Extract partial results from the error (tests that passed before the error)
         const partialResults = error?.partialResults?.results || [];
@@ -233,7 +234,8 @@ const runSingleRequest = async function (
           {
             status: 'fail',
             description: 'Pre-Request Script Error',
-            error: error.message || 'An error occurred while executing the pre-request script.'
+            error: error.message || 'An error occurred while executing the pre-request script.',
+            isScriptError: true
           }
         ];
 
@@ -248,6 +250,35 @@ const runSingleRequest = async function (
         }
 
         logResults(preRequestTestResults, 'Pre-Request Tests');
+
+        // Pre-request script error: execution didn't complete (request never sent). Return early so we don't run the HTTP request, post-response script, assertions, or tests.
+        return {
+          test: {
+            filename: relativeItemPathname
+          },
+          request: {
+            method: request.method,
+            url: request.url,
+            headers: request.headers,
+            data: request.data
+          },
+          response: {
+            status: 'error',
+            statusText: null,
+            headers: null,
+            data: null,
+            url: null,
+            responseTime: 0
+          },
+          error: error?.message || 'An error occurred while executing the pre-request script.',
+          status: 'error',
+          assertionResults: [],
+          testResults: [],
+          preRequestTestResults,
+          postResponseTestResults: [],
+          nextRequestName: nextRequestName,
+          shouldStopRunnerExecution
+        };
       }
     }
 
@@ -734,7 +765,8 @@ const runSingleRequest = async function (
           {
             status: 'fail',
             description: 'Post-Response Script Error',
-            error: error.message || 'An error occurred while executing the post-response script.'
+            error: error.message || 'An error occurred while executing the post-response script.',
+            isScriptError: true
           }
         ];
 
@@ -803,7 +835,8 @@ const runSingleRequest = async function (
           {
             status: 'fail',
             description: 'Test Script Error',
-            error: error.message || 'An error occurred while executing the test script.'
+            error: error.message || 'An error occurred while executing the test script.',
+            isScriptError: true
           }
         ];
 
