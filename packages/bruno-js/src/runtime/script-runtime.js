@@ -46,7 +46,10 @@ class ScriptRuntime {
       test,
       expect: chai.expect,
       assert: chai.assert,
-      __brunoTestResults: __brunoTestResults
+      __brunoTestResults: __brunoTestResults,
+      process: {
+        env: processEnvVars || {}
+      }
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -144,7 +147,10 @@ class ScriptRuntime {
       test,
       expect: chai.expect,
       assert: chai.assert,
-      __brunoTestResults: __brunoTestResults
+      __brunoTestResults: __brunoTestResults,
+      process: {
+        env: processEnvVars || {}
+      }
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
