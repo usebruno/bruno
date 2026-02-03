@@ -474,19 +474,39 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     } catch (err) { }
   }
 
+  // Helper to save and close multiple tabs
+  async function saveAndCloseTabs(tabs) {
+    // Save unsaved changes for request tabs that have items in the collection
+    const savePromises = tabs.map(async (tab) => {
+      try {
+        const item = findItemInCollection(collection, tab.uid);
+        if (item && hasRequestChanges(item)) {
+          await dispatch(saveRequest(item.uid, collection.uid, true));
+        }
+      } catch (err) {
+        // Ignore save errors - still close the tab
+      }
+    });
+    await Promise.all(savePromises);
+
+    // Close all specified tabs
+    const tabUids = tabs.map((tab) => tab.uid);
+    dispatch(closeTabs({ tabUids }));
+  }
+
   async function handleCloseOtherTabs() {
     const otherTabs = collectionRequestTabs.filter((_, index) => index !== tabIndex);
-    await Promise.all(otherTabs.map((tab) => handleCloseTab(tab.uid)));
+    await saveAndCloseTabs(otherTabs);
   }
 
   async function handleCloseTabsToTheLeft() {
     const leftTabs = collectionRequestTabs.filter((_, index) => index < tabIndex);
-    await Promise.all(leftTabs.map((tab) => handleCloseTab(tab.uid)));
+    await saveAndCloseTabs(leftTabs);
   }
 
   async function handleCloseTabsToTheRight() {
     const rightTabs = collectionRequestTabs.filter((_, index) => index > tabIndex);
-    await Promise.all(rightTabs.map((tab) => handleCloseTab(tab.uid)));
+    await saveAndCloseTabs(rightTabs);
   }
 
   function handleCloseSavedTabs() {
@@ -497,7 +517,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   }
 
   async function handleCloseAllTabs() {
-    await Promise.all(collectionRequestTabs.map((tab) => handleCloseTab(tab.uid)));
+    await saveAndCloseTabs(collectionRequestTabs);
   }
 
   const menuItems = useMemo(() => [
