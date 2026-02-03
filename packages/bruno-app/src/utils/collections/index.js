@@ -988,6 +988,9 @@ export const deleteUidsInItem = (item) => {
 };
 
 export const areItemsTheSameExceptSeqUpdate = (_item1, _item2) => {
+  // handle case when there is no sequence update
+  if (_item1.seq === _item2.seq)  return false
+  
   let item1 = cloneDeep(_item1);
   let item2 = cloneDeep(_item2);
 
