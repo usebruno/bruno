@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "dependencies": {
     "@faker-js/faker": "^8.4.0",
+    "ajv": "~8.17.1",
     "jsonwebtoken": "^9.0.3",
     "lru-map-cache": "^0.1.0"
   }
