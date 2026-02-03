@@ -207,7 +207,7 @@ const complexTransformations = [
     pattern: 'req.getAuthMode',
     transform: () => buildMemberExpressionFromString('pm.request.auth.type')
   },
-  // req.getPathParams() -> pm.request.url.variables (function to property)
+  // req.getPathParams() -> pm.request.url.variables
   {
     pattern: 'req.getPathParams',
     transform: () => buildMemberExpressionFromString('pm.request.url.variables')
