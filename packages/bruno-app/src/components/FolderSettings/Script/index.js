@@ -7,6 +7,7 @@ import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions'
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
+import { flattenItems, isItemARequest } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 
@@ -75,6 +76,10 @@ const Script = ({ collection, folder }) => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
   };
 
+  const items = flattenItems(folder.items || []);
+  const hasPreRequestScriptError = items.some((i) => isItemARequest(i) && i.preRequestScriptErrorMessage);
+  const hasPostResponseScriptError = items.some((i) => isItemARequest(i) && i.postResponseScriptErrorMessage);
+
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">
@@ -85,11 +90,15 @@ const Script = ({ collection, folder }) => {
         <TabsList>
           <TabsTrigger value="pre-request">
             Pre Request
-            {requestScript && requestScript.trim().length > 0 && <StatusDot />}
+            {requestScript && requestScript.trim().length > 0 && (
+              <StatusDot type={hasPreRequestScriptError ? 'error' : 'default'} />
+            )}
           </TabsTrigger>
           <TabsTrigger value="post-response">
             Post Response
-            {responseScript && responseScript.trim().length > 0 && <StatusDot />}
+            {responseScript && responseScript.trim().length > 0 && (
+              <StatusDot type={hasPostResponseScriptError ? 'error' : 'default'} />
+            )}
           </TabsTrigger>
         </TabsList>
 
