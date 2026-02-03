@@ -77,6 +77,7 @@ class VarsRuntime {
       runtimeVariables,
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
+      persistentGlobalEnvVariables: cleanJson(bru.persistentGlobalEnvVariables),
       error
     };
   }

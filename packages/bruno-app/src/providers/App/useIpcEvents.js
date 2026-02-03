@@ -33,7 +33,7 @@ import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'provide
 import toast from 'react-hot-toast';
 import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
-import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
+import { globalEnvironmentsUpdateEvent, mergeAndPersistGlobalEnvironment, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
@@ -206,6 +206,10 @@ const useIpcEvents = () => {
       dispatch(globalEnvironmentsUpdateEvent(val));
     });
 
+    const removePersistentGlobalEnvVariablesUpdateListener = ipcRenderer.on('main:persistent-global-env-variables-update', (val) => {
+      dispatch(mergeAndPersistGlobalEnvironment(val));
+    });
+
     const removeCollectionRenamedListener = ipcRenderer.on('main:collection-renamed', (val) => {
       dispatch(collectionRenamedEvent(val));
     });
@@ -344,6 +348,7 @@ const useIpcEvents = () => {
       removeDisplayErrorListener();
       removeScriptEnvUpdateListener();
       removeGlobalEnvironmentVariablesUpdateListener();
+      removePersistentGlobalEnvVariablesUpdateListener();
       removeCollectionRenamedListener();
       removeRunFolderEventListener();
       removeRunRequestEventListener();

@@ -109,6 +109,7 @@ class TestRuntime {
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
+      persistentGlobalEnvVariables: cleanJson(bru.persistentGlobalEnvVariables),
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest
     };

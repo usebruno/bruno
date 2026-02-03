@@ -254,13 +254,15 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
   });
 };
 
+/**
+ * Updates the global environment variables in Redux state only (runtime/in-memory).
+ * This does NOT persist to file - use mergeAndPersistGlobalEnvironment for persistence.
+ */
 export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-    if (!globalEnvironmentVariables) resolve();
+    if (!globalEnvironmentVariables) return resolve();
 
     const state = getState();
-    const { workspaceUid, workspacePath } = getWorkspaceContext(state);
     const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
     const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
     const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
@@ -283,6 +285,59 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     Object.entries(globalEnvironmentVariables)?.forEach?.(([key, value]) => {
       const isAnExistingVariable = variables?.find((v) => v?.name == key);
       if (!isAnExistingVariable) {
+        variables.push({
+          uid: uuid(),
+          name: key,
+          value,
+          type: 'text',
+          secret: false,
+          enabled: true
+        });
+      }
+    });
+
+    // Only update Redux state, don't save to file
+    dispatch(_saveGlobalEnvironment({ environmentUid, variables }));
+    resolve();
+  });
+};
+
+/**
+ * Merges and persists only the persistent global environment variables to file.
+ * This is called when bru.setGlobalEnvVar is used with { persist: true } option.
+ */
+export const mergeAndPersistGlobalEnvironment = ({ persistentGlobalEnvVariables }) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    // Only proceed if there are persistent variables to save
+    if (!persistentGlobalEnvVariables || Object.keys(persistentGlobalEnvVariables).length === 0) {
+      return resolve();
+    }
+
+    const state = getState();
+    const { workspaceUid, workspacePath } = getWorkspaceContext(state);
+    const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
+    const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
+    const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
+
+    if (!environment || !environmentUid) {
+      return resolve();
+    }
+
+    let variables = cloneDeep(environment?.variables || []);
+
+    // Merge persistent variables into the existing variables
+    Object.entries(persistentGlobalEnvVariables).forEach(([key, value]) => {
+      const existingVarIndex = variables.findIndex((v) => v.name === key);
+      if (existingVarIndex !== -1) {
+        // Update existing variable
+        variables[existingVarIndex] = {
+          ...variables[existingVarIndex],
+          value
+        };
+      } else {
+        // Add new variable
         variables.push({
           uid: uuid(),
           name: key,

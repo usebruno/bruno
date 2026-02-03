@@ -87,6 +87,8 @@ class Bru {
     };
     // Holds variables that are marked as persistent by scripts
     this.persistentEnvVariables = {};
+    // Holds global environment variables that are marked as persistent by scripts
+    this.persistentGlobalEnvVariables = {};
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
@@ -224,12 +226,31 @@ class Bru {
     return this.interpolate(this.globalEnvironmentVariables[key]);
   }
 
-  setGlobalEnvVar(key, value) {
+  setGlobalEnvVar(key, value, options = {}) {
     if (!key) {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters! Names must only contain alpha-numeric characters, "-", "_", "."`
+      );
+    }
+
+    // When persist is true, only string values are allowed
+    if (options?.persist && typeof value !== 'string') {
+      throw new Error(`Persistent global environment variables must be strings. Received ${typeof value} for key "${key}".`);
+    }
+
     this.globalEnvironmentVariables[key] = value;
+
+    if (options?.persist) {
+      this.persistentGlobalEnvVariables[key] = value;
+    } else {
+      if (this.persistentGlobalEnvVariables[key]) {
+        delete this.persistentGlobalEnvVariables[key];
+      }
+    }
   }
 
   getOauth2CredentialVar(key) {
