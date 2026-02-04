@@ -62,6 +62,11 @@ const simpleTranslations = {
   'req.getHeader': 'pm.request.headers.get',
   'req.setHeader': 'pm.request.headers.set',
 
+  // URL helper methods
+  'req.getHost': 'pm.request.url.getHost',
+  'req.getPath': 'pm.request.url.getPath',
+  'req.getQueryString': 'pm.request.url.getQueryString',
+
   // Response helpers
   // Note: res.getStatus(), res.getResponseTime(), res.getHeaders(), res.getUrl() are handled
   // in complexTransformations because they're function -> property conversions
@@ -201,6 +206,11 @@ const complexTransformations = [
   {
     pattern: 'req.getAuthMode',
     transform: () => buildMemberExpressionFromString('pm.request.auth.type')
+  },
+  // req.getPathParams() -> pm.request.url.variables
+  {
+    pattern: 'req.getPathParams',
+    transform: () => buildMemberExpressionFromString('pm.request.url.variables')
   },
 
   // Response helpers: function -> property conversions
