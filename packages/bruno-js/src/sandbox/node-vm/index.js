@@ -3,7 +3,7 @@ const path = require('node:path');
 const { get } = require('lodash');
 const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
-const { ScriptError } = require('./utils');
+const { ScriptError, buildSanitizedProcess } = require('./utils');
 const { createCustomRequire } = require('./cjs-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
@@ -85,6 +85,8 @@ function buildScriptContext(context, scriptingConfig) {
     
     // Configuration for nested module loading
     scriptingConfig: scriptingConfig,
+
+    process: buildSanitizedProcess(),
 
     // Safe globals from allowlist (Node.js/Web APIs only, not ECMAScript built-ins)
     ...Object.fromEntries(
