@@ -4,7 +4,15 @@ import { useRef } from 'react';
 import { useState } from 'react';
 import { Tooltip as ReactInfotip } from 'react-tooltip';
 
-const QueryResultFilter = ({ filter, onChange, mode }) => {
+const QueryResultFilter = ({
+  filter,
+  onChange,
+  mode,
+  placeholderText: placeholderOverride,
+  infotipText: infotipOverride,
+  inputId = 'response-filter',
+  iconId = 'request-filter-icon'
+}) => {
   const inputRef = useRef(null);
   const [isExpanded, toggleExpand] = useState(false);
 
@@ -20,6 +28,10 @@ const QueryResultFilter = ({ filter, onChange, mode }) => {
   };
 
   const infotipText = useMemo(() => {
+    if (infotipOverride) {
+      return infotipOverride;
+    }
+
     if (mode.includes('json')) {
       return 'Filter with JSONPath';
     }
@@ -32,6 +44,10 @@ const QueryResultFilter = ({ filter, onChange, mode }) => {
   }, [mode]);
 
   const placeholderText = useMemo(() => {
+    if (placeholderOverride) {
+      return placeholderOverride;
+    }
+
     if (mode.includes('json')) {
       return '$.store.books..author';
     }
@@ -47,12 +63,12 @@ const QueryResultFilter = ({ filter, onChange, mode }) => {
     <div
       className="response-filter absolute bottom-2 w-full justify-end right-0 flex flex-row items-center gap-2 py-4 px-2 pointer-events-none"
     >
-      {infotipText && !isExpanded && <ReactInfotip anchorId="request-filter-icon" html={infotipText} />}
+      {infotipText && !isExpanded && <ReactInfotip anchorId={iconId} html={infotipText} />}
       <input
         ref={inputRef}
         type="text"
         name="response-filter"
-        id="response-filter"
+        id={inputId}
         placeholder={placeholderText}
         autoComplete="off"
         autoCorrect="off"
@@ -63,7 +79,7 @@ const QueryResultFilter = ({ filter, onChange, mode }) => {
         }`}
         onChange={onChange}
       />
-      <div className="text-gray-500 cursor-pointer pointer-events-auto" id="request-filter-icon" onClick={handleFilterClick}>
+      <div className="text-gray-500 cursor-pointer pointer-events-auto" id={iconId} onClick={handleFilterClick}>
         {isExpanded ? <IconX size={20} strokeWidth={1.5} /> : <IconFilter size={20} strokeWidth={1.5} />}
       </div>
     </div>

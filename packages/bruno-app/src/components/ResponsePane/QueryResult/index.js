@@ -1,7 +1,10 @@
 import { debounce } from 'lodash';
 import { useTheme } from 'providers/Theme/index';
 import React, { useMemo, useState } from 'react';
-import { formatResponse, getContentType } from 'utils/common';
+import { useSelector } from 'react-redux';
+import get from 'lodash/get';
+import { formatResponse, getContentType, safeParseJSON } from 'utils/common';
+import { JSONPath } from 'jsonpath-plus';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
 import LargeResponseWarning from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';
@@ -89,6 +92,65 @@ export const useResponsePreviewFormatOptions = (dataBuffer, headers) => {
   }, [dataBuffer, headers]);
 };
 
+const parseJsonPayload = (data) => {
+  if (data && typeof data === 'object') {
+    return data;
+  }
+
+  if (typeof data === 'string') {
+    const parsed = safeParseJSON(data);
+    return typeof parsed === 'object' ? parsed : null;
+  }
+
+  return null;
+};
+
+const getJsonPathFirstValue = (source, path) => {
+  if (!source || !path || typeof path !== 'string') {
+    return null;
+  }
+
+  try {
+    const result = JSONPath({ path: path, json: source });
+    return Array.isArray(result) ? result[0] : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+const normalizeBase64String = (value) => {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  const dataUrlPrefix = value.match(/^data:[^;]*;base64,/);
+  if (dataUrlPrefix) {
+    return value.slice(dataUrlPrefix[0].length);
+  }
+
+  return value;
+};
+
+const getBinaryBase64 = (payload, path) => {
+  if (!payload) {
+    return null;
+  }
+
+  if (path) {
+    return normalizeBase64String(getJsonPathFirstValue(payload, path));
+  }
+
+  return normalizeBase64String(payload.data);
+};
+
+const getBinaryMimeType = (payload) => {
+  if (!payload) {
+    return null;
+  }
+
+  return typeof payload.mimeType === 'string' ? payload.mimeType : null;
+};
+
 const QueryResult = ({
   item,
   collection,
@@ -104,6 +166,8 @@ const QueryResult = ({
   const [filter, setFilter] = useState(null);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
   const { displayedTheme } = useTheme();
+  const preferences = useSelector((state) => state.app.preferences);
+  const isJsonBase64PreviewEnabled = get(preferences, 'beta.jsonBase64Preview', false);
 
   const responseSize = useMemo(() => {
     const response = item.response || {};
@@ -120,18 +184,50 @@ const QueryResult = ({
 
   const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
 
+  const [binarySourcePath, setBinarySourcePath] = useState('');
+  const jsonPayload = useMemo(() => parseJsonPayload(data), [data]);
+
+  const binaryBase64 = useMemo(() => {
+    if (!isJsonBase64PreviewEnabled) {
+      return null;
+    }
+
+    return getBinaryBase64(jsonPayload, binarySourcePath);
+  }, [jsonPayload, binarySourcePath, isJsonBase64PreviewEnabled]);
+
+  const binaryMimeType = useMemo(() => {
+    if (!isJsonBase64PreviewEnabled) {
+      return null;
+    }
+
+    return getBinaryMimeType(jsonPayload);
+  }, [jsonPayload, isJsonBase64PreviewEnabled]);
+
+  const effectiveDataBuffer = useMemo(() => {
+    if (
+      isJsonBase64PreviewEnabled
+      && selectedTab === 'preview'
+      && (selectedFormat === 'base64' || selectedFormat === 'hex')
+      && binaryBase64
+    ) {
+      return binaryBase64;
+    }
+
+    return dataBuffer;
+  }, [dataBuffer, selectedFormat, binaryBase64, selectedTab, isJsonBase64PreviewEnabled]);
+
   const detectedContentType = useMemo(() => {
-    return detectContentTypeFromBase64(dataBuffer);
-  }, [dataBuffer, isLargeResponse]);
+    return detectContentTypeFromBase64(effectiveDataBuffer);
+  }, [effectiveDataBuffer, isLargeResponse]);
 
   const formattedData = useMemo(
     () => {
       if (isLargeResponse && !showLargeResponse) {
         return '';
       }
-      return formatResponse(data, dataBuffer, selectedFormat, filter);
+      return formatResponse(data, effectiveDataBuffer, selectedFormat, filter);
     },
-    [data, dataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse]
+    [data, effectiveDataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse]
   );
 
   const debouncedResultFilterOnChange = debounce((e) => {
@@ -139,6 +235,9 @@ const QueryResult = ({
   }, 250);
 
   const previewMode = useMemo(() => {
+    const previewContentType = selectedTab === 'preview'
+      ? (binaryMimeType || detectedContentType)
+      : detectedContentType;
     // Derive preview mode based on selected format
     if (selectedFormat === 'html') return 'preview-web';
     if (selectedFormat === 'json') return 'preview-json';
@@ -148,17 +247,17 @@ const QueryResult = ({
 
     // For base64/hex, check content type to determine binary preview type
     if (selectedFormat === 'base64' || selectedFormat === 'hex') {
-      if (detectedContentType) {
-        if (detectedContentType.includes('image')) return 'preview-image';
-        if (detectedContentType.includes('pdf')) return 'preview-pdf';
-        if (detectedContentType.includes('audio')) return 'preview-audio';
-        if (detectedContentType.includes('video')) return 'preview-video';
+      if (previewContentType) {
+        if (previewContentType.includes('image')) return 'preview-image';
+        if (previewContentType.includes('pdf')) return 'preview-pdf';
+        if (previewContentType.includes('audio')) return 'preview-audio';
+        if (previewContentType.includes('video')) return 'preview-video';
       }
       // for all other content types, return preview-text
       return 'preview-text';
     }
     return 'preview-text';
-  }, [selectedFormat, detectedContentType]);
+  }, [selectedFormat, detectedContentType, binaryMimeType]);
 
   const codeMirrorMode = useMemo(() => {
     // Find the codeMirrorMode from PREVIEW_FORMAT_OPTIONS (contains all format options)
@@ -167,7 +266,15 @@ const QueryResult = ({
       .find((option) => option.id === selectedFormat)?.codeMirrorMode || 'text/plain';
   }, [selectedFormat]);
 
-  const queryFilterEnabled = useMemo(() => codeMirrorMode.includes('json') && selectedFormat === 'json' && selectedTab === 'editor', [codeMirrorMode, selectedFormat, selectedTab]);
+  const queryFilterEnabled = useMemo(() => {
+    return codeMirrorMode.includes('json') && selectedFormat === 'json' && selectedTab === 'editor';
+  }, [codeMirrorMode, selectedFormat, selectedTab]);
+  const binarySourceFilterEnabled = useMemo(() => {
+    return isJsonBase64PreviewEnabled
+      && (selectedFormat === 'base64' || selectedFormat === 'hex')
+      && jsonPayload
+      && selectedTab === 'preview';
+  }, [selectedFormat, jsonPayload, selectedTab, isJsonBase64PreviewEnabled]);
   const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
 
   return (
@@ -201,10 +308,10 @@ const QueryResult = ({
               <QueryResultPreview
                 selectedTab={selectedTab}
                 data={data}
-                dataBuffer={dataBuffer}
+                dataBuffer={effectiveDataBuffer}
                 formattedData={formattedData}
                 item={item}
-                contentType={detectedContentType ?? contentType}
+                contentType={binaryMimeType || (detectedContentType ?? contentType)}
                 previewMode={previewMode}
                 codeMirrorMode={codeMirrorMode}
                 collection={collection}
@@ -214,6 +321,17 @@ const QueryResult = ({
             </div>
             {queryFilterEnabled && (
               <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={codeMirrorMode} />
+            )}
+            {binarySourceFilterEnabled && (
+              <QueryResultFilter
+                filter={binarySourcePath}
+                onChange={(event) => setBinarySourcePath(event.target.value)}
+                mode="application/ld+json"
+                placeholderText="$.data"
+                infotipText="Binary source JSONPath (defaults to $.data, uses $.mimeType if present)"
+                inputId="response-binary-source"
+                iconId="response-binary-source-icon"
+              />
             )}
           </div>
         </div>
