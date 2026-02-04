@@ -77,8 +77,9 @@ function createCustomRequire({
   additionalContextRootsAbsolute = []
 }) {
   return (moduleName) => {
-    // 1. Handle local modules (./path, ../path)
     const normalizedModuleName = moduleName.replace(/\\/g, '/');
+
+    // 1. Handle local modules (./path, ../path)
     if (normalizedModuleName.startsWith('./') || normalizedModuleName.startsWith('../')) {
       return loadLocalModule({
         moduleName: normalizedModuleName,
@@ -90,14 +91,27 @@ function createCustomRequire({
       });
     }
 
-    // 2. Handle Node.js builtin modules
+    // 2. Handle absolute paths - route through local module security checks
+    // This prevents bypassing additionalContextRoots by using absolute paths
+    if (path.isAbsolute(normalizedModuleName)) {
+      return loadLocalModule({
+        moduleName: normalizedModuleName,
+        collectionPath,
+        isolatedContext,
+        localModuleCache,
+        currentModuleDir,
+        additionalContextRootsAbsolute
+      });
+    }
+
+    // 3. Handle Node.js builtin modules
     // Note: Builtins are loaded via native require, bypassing VM isolation.
     // This is intentional - [`developer` mode] node-vm isolation need not be strict for builtins.
     if (isBuiltinModule(moduleName)) {
       return require(moduleName);
     }
 
-    // 3. Handle npm modules - load INTO vm context
+    // 4. Handle npm modules - load INTO vm context
     return loadNpmModule({
       moduleName,
       collectionPath,

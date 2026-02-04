@@ -106,6 +106,43 @@ describe('node-vm sandbox', () => {
         runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
       ).rejects.toThrow('Access to files outside of the allowed context roots is not allowed');
     });
+
+    it('should block absolute paths outside allowed roots', async () => {
+      // Try to require an absolute path outside the collection
+      const script = `
+        const secret = require('/etc/passwd');
+      `;
+
+      const context = { console: console };
+
+      await expect(
+        runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
+      ).rejects.toThrow('Access to files outside of the allowed context roots is not allowed');
+    });
+
+    it('should allow absolute paths within allowed roots', async () => {
+      // Create a module in the collection
+      fs.writeFileSync(
+        path.join(collectionPath, 'absolute-test.js'),
+        'module.exports = { loaded: true };'
+      );
+
+      // Use absolute path to require it
+      const absolutePath = path.join(collectionPath, 'absolute-test.js');
+      const script = `
+        const mod = require('${absolutePath.replace(/\\/g, '\\\\')}');
+        bru.setVar('result', mod.loaded);
+      `;
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
+    });
   });
 
   describe('createCustomRequire - additionalContextRoots', () => {
@@ -225,18 +262,23 @@ describe('node-vm sandbox', () => {
 
   describe('createCustomRequire - module caching', () => {
     it('should cache loaded modules', async () => {
-      let callCount = 0;
+      // Module increments a counter each time it's executed
+      // If caching works, counter should only be 1 after multiple requires
       fs.writeFileSync(
         path.join(collectionPath, 'cached.js'),
         `
-        module.exports = { count: ${++callCount} };
+        if (!global._cacheTestCount) global._cacheTestCount = 0;
+        global._cacheTestCount++;
+        module.exports = { id: Date.now() };
         `
       );
 
       const script = `
         const mod1 = require('./cached');
         const mod2 = require('./cached');
-        bru.setVar('same', mod1.count === mod2.count);
+        const mod3 = require('./cached');
+        bru.setVar('sameInstance', mod1 === mod2 && mod2 === mod3);
+        bru.setVar('loadCount', global._cacheTestCount);
       `;
 
       const context = {
@@ -246,7 +288,10 @@ describe('node-vm sandbox', () => {
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
-      expect(context.bru.setVar).toHaveBeenCalledWith('same', true);
+      // All requires should return the same cached instance
+      expect(context.bru.setVar).toHaveBeenCalledWith('sameInstance', true);
+      // Module should only be executed once
+      expect(context.bru.setVar).toHaveBeenCalledWith('loadCount', 1);
     });
 
     it('should handle circular dependencies', async () => {
@@ -1033,8 +1078,8 @@ describe('node-vm sandbox', () => {
       };
 
       // global exists but points to isolated context, so global.bru should exist
-      // process is not available in the isolated context
-      const script = `bru.setVar('result', typeof global.bru === 'object' && typeof global.process === 'undefined')`;
+      // process is a sanitized object in the isolated context
+      const script = `bru.setVar('result', typeof global.bru === 'object' && typeof global.process === 'object')`;
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
@@ -1091,18 +1136,24 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'function');
     });
 
-    it('should NOT have access to process (security)', async () => {
+    it('should have access to sanitized process object', async () => {
       const context = {
         bru: { setVar: jest.fn() },
         console: console
       };
 
-      // process is not available in the isolated context
-      const script = `bru.setVar('result', typeof process)`;
+      // process is a sanitized object with safe properties only
+      const script = `
+        const hasSafeProps = typeof process.version === 'string' && typeof process.platform === 'string';
+        const noExit = typeof process.exit === 'undefined';
+        const noKill = typeof process.kill === 'undefined';
+        const emptyEnv = Object.keys(process.env).length === 0;
+        bru.setVar('result', hasSafeProps && noExit && noKill && emptyEnv);
+      `;
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
-      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'undefined');
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
     });
 
     it('should work with Array.isArray across context boundaries', async () => {
