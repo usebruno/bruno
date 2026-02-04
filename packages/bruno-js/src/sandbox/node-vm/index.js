@@ -78,16 +78,11 @@ async function runScriptInNodeVm({ script, context, collectionPath, scriptingCon
  */
 function buildScriptContext(context, scriptingConfig) {
   const scriptContext = {
+    ...context,
+
     // Bruno context (wrap console with Set/Map support)
     console: wrapConsoleWithSerializers(context.console),
-    req: context.req,
-    res: context.res,
-    bru: context.bru,
-    expect: context.expect,
-    assert: context.assert,
-    __brunoTestResults: context.__brunoTestResults,
-    test: context.test,
-
+    
     // Configuration for nested module loading
     scriptingConfig: scriptingConfig,
 
