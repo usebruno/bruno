@@ -248,6 +248,44 @@ describe('node-vm sandbox', () => {
 
       expect(context.bru.setVar).toHaveBeenCalledWith('same', true);
     });
+
+    it('should handle circular dependencies', async () => {
+      // Create two modules that require each other
+      fs.writeFileSync(
+        path.join(collectionPath, 'circularA.js'),
+        `
+        exports.name = 'A';
+        const B = require('./circularB');
+        exports.fromB = B.name;
+        `
+      );
+      fs.writeFileSync(
+        path.join(collectionPath, 'circularB.js'),
+        `
+        exports.name = 'B';
+        const A = require('./circularA');
+        exports.fromA = A.name;
+        `
+      );
+
+      const script = `
+        const A = require('./circularA');
+        // A loads first, sets exports.name='A', then requires B
+        // B loads, sets exports.name='B', requires A (gets partial: {name:'A'})
+        // B finishes with {name:'B', fromA:'A'}
+        // A finishes with {name:'A', fromB:'B'}
+        bru.setVar('result', A.name + '-' + A.fromB);
+      `;
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'A-B');
+    });
   });
 
   describe('createCustomRequire - Node.js builtin modules', () => {

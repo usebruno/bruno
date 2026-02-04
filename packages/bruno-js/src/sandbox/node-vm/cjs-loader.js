@@ -143,9 +143,9 @@ function loadLocalModule({
     );
   }
 
-  // Check cache
+  // Check cache - we cache moduleObj, return its exports
   if (localModuleCache.has(normalizedFilePath)) {
-    return localModuleCache.get(normalizedFilePath);
+    return localModuleCache.get(normalizedFilePath).exports;
   }
 
   if (!fs.existsSync(normalizedFilePath)) {
@@ -155,6 +155,11 @@ function loadLocalModule({
   const moduleCode = fs.readFileSync(normalizedFilePath, 'utf8');
   const moduleObj = { exports: {} };
   const moduleDir = path.dirname(normalizedFilePath);
+
+  // Pre-populate cache with moduleObj BEFORE execution to handle circular dependencies
+  // This allows re-entrant requires to get partial exports (Node.js behavior)
+  // We cache moduleObj (not moduleObj.exports) so that module.exports reassignment works
+  localModuleCache.set(normalizedFilePath, moduleObj);
 
   // Create require function for nested imports
   const moduleRequire = createCustomRequire({
@@ -171,9 +176,10 @@ function loadLocalModule({
     const compiledScript = new vm.Script(wrappedCode, { filename: normalizedFilePath });
     const moduleFunction = compiledScript.runInContext(isolatedContext);
     moduleFunction(moduleObj, moduleObj.exports, moduleRequire, normalizedFilePath, moduleDir);
-    localModuleCache.set(normalizedFilePath, moduleObj.exports);
     return moduleObj.exports;
   } catch (error) {
+    // Remove failed module from cache to allow retry
+    localModuleCache.delete(normalizedFilePath);
     throw new Error(`Error loading local module ${moduleName}: ${error.message}`);
   }
 }
@@ -191,9 +197,9 @@ function executeModuleInVmContext({
   collectionPath,
   localModuleCache
 }) {
-  // Check cache
+  // Check cache - we cache moduleObj, return its exports
   if (localModuleCache.has(resolvedPath)) {
-    return localModuleCache.get(resolvedPath);
+    return localModuleCache.get(resolvedPath).exports;
   }
 
   // Native modules (.node files) - fall back to host require
@@ -201,7 +207,8 @@ function executeModuleInVmContext({
   // This is intentional - [`developer` mode] node-vm isolation need not be strict for native modules.
   if (resolvedPath.endsWith('.node')) {
     const result = require(resolvedPath);
-    localModuleCache.set(resolvedPath, result);
+    // Wrap in moduleObj format for consistent cache retrieval
+    localModuleCache.set(resolvedPath, { exports: result });
     return result;
   }
 
@@ -209,7 +216,8 @@ function executeModuleInVmContext({
   if (resolvedPath.endsWith('.json')) {
     const jsonContent = fs.readFileSync(resolvedPath, 'utf8');
     const result = JSON.parse(jsonContent);
-    localModuleCache.set(resolvedPath, result);
+    // Wrap in moduleObj format for consistent cache retrieval
+    localModuleCache.set(resolvedPath, { exports: result });
     return result;
   }
 
@@ -217,6 +225,11 @@ function executeModuleInVmContext({
   const moduleSource = fs.readFileSync(resolvedPath, 'utf8');
   const moduleDir = path.dirname(resolvedPath);
   const moduleObj = { exports: {} };
+
+  // Pre-populate cache with moduleObj BEFORE execution to handle circular dependencies
+  // This allows re-entrant requires to get partial exports (Node.js behavior)
+  // We cache moduleObj (not moduleObj.exports) so that module.exports reassignment works
+  localModuleCache.set(resolvedPath, moduleObj);
 
   const moduleRequire = createNpmModuleRequire({
     collectionPath,
@@ -232,11 +245,12 @@ function executeModuleInVmContext({
     const moduleFunction = compiledScript.runInContext(isolatedContext);
     moduleFunction(moduleObj, moduleObj.exports, moduleRequire, resolvedPath, moduleDir);
   } catch (error) {
+    // Remove failed module from cache to allow retry
+    localModuleCache.delete(resolvedPath);
     const stack = error.stack || '';
     throw new Error(`Error loading module ${moduleName}: ${error.message}\nStack: ${stack}`);
   }
 
-  localModuleCache.set(resolvedPath, moduleObj.exports);
   return moduleObj.exports;
 }
 
