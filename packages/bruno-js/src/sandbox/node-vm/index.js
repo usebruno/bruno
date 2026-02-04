@@ -5,7 +5,8 @@ const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
 const { ScriptError } = require('./utils');
 const { createCustomRequire } = require('./cjs-loader');
-const { safeGlobals, createSanitizedProcess } = require('./constants');
+const { safeGlobals } = require('./constants');
+const { mixinTypedArrays } = require('../mixins/typed-arrays');
 
 /**
  * Executes a script in a Node.js VM context with enhanced security and module loading
@@ -98,8 +99,8 @@ function buildScriptContext(context, scriptingConfig) {
     )
   };
 
-  // Add sanitized process (includes env, platform, etc. but blocks exit, kill)
-  scriptContext.process = createSanitizedProcess();
+  // Add TypedArrays from host for compatibility with host APIs (TextEncoder, crypto, etc.)
+  mixinTypedArrays(scriptContext);
 
   return scriptContext;
 }

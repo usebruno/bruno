@@ -7,90 +7,14 @@
  *
  * Handled separately in index.js:
  * - global/globalThis: Points to isolated context (not host)
- * - process: createSanitizedProcess() (blocks exit, kill, etc.)
  * - require: createCustomRequire() (custom module loader)
  */
-
-/**
- * Creates a sanitized process object with safe properties only.
- * Blocks methods like exit(), kill(), binding(), dlopen().
- *
- * Allowed:
- * - process.env: Environment variables
- * - process.platform, process.arch, process.version: System info
- * - process.nextTick, process.hrtime: Timing utilities
- * - process.cwd(): Current working directory (read-only info)
- * - process.memoryUsage(): Memory stats
- *
- * Blocked:
- * - process.exit(): Can crash the application
- * - process.kill(): Can kill processes
- * - process.binding(): Access to native bindings
- * - process.dlopen(): Load native modules
- * - process.chdir(): Change working directory
- * - process._* (internal properties)
- */
-function createSanitizedProcess() {
-  const safeProcessProperties = [
-    // Environment
-    'env',
-
-    // System info (read-only)
-    'platform',
-    'arch',
-    'version',
-    'versions',
-    'release',
-
-    // Timing utilities
-    'nextTick',
-    'hrtime',
-
-    // Safe methods
-    'cwd',
-    'memoryUsage',
-    'uptime',
-    'cpuUsage',
-
-    // Event emitter methods (needed by some libraries)
-    'on',
-    'once',
-    'off',
-    'emit',
-    'addListener',
-    'removeListener',
-    'removeAllListeners',
-    'listeners',
-    'listenerCount',
-
-    // Stdio (read-only access)
-    'stdout',
-    'stderr',
-    'stdin'
-  ];
-
-  const sanitizedProcess = {};
-
-  for (const prop of safeProcessProperties) {
-    if (prop in process) {
-      const value = process[prop];
-      if (typeof value === 'function') {
-        // Bind functions to the real process object
-        sanitizedProcess[prop] = value.bind(process);
-      } else {
-        sanitizedProcess[prop] = value;
-      }
-    }
-  }
-
-  return sanitizedProcess;
-}
 
 /**
  * Safe globals to pass from host to VM context.
  *
  * ECMAScript built-ins (Object, Array, Function, String, Number,
- * Boolean, Symbol, Date, RegExp, Map, Set, Promise, Error types, JSON, Math,
+ * Boolean, Symbol, Date, RegExp, Map, Set, Promise, JSON, Math,
  * parseInt, etc.) are intentionally NOT included here.
  *
  * The VM context provides its own versions of these, which ensures consistent
@@ -110,6 +34,16 @@ const safeGlobals = [
 
   // Node.js globals
   'Buffer',
+
+  // Error types - needed for instanceof checks with errors from host APIs/modules
+  'Error',
+  'TypeError',
+  'ReferenceError',
+  'SyntaxError',
+  'RangeError',
+  'URIError',
+  'EvalError',
+  'AggregateError',
 
   // URL APIs (WHATWG - not ECMAScript)
   'URL',
@@ -162,6 +96,5 @@ const safeGlobals = [
 ];
 
 module.exports = {
-  safeGlobals,
-  createSanitizedProcess
+  safeGlobals
 };

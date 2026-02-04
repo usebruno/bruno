@@ -995,8 +995,8 @@ describe('node-vm sandbox', () => {
       };
 
       // global exists but points to isolated context, so global.bru should exist
-      // but global.process.exit should not (it's sanitized)
-      const script = `bru.setVar('result', typeof global.bru === 'object' && typeof global.process.exit === 'undefined')`;
+      // process is not available in the isolated context
+      const script = `bru.setVar('result', typeof global.bru === 'object' && typeof global.process === 'undefined')`;
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
@@ -1053,26 +1053,14 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'function');
     });
 
-    it('should have access to sanitized process with env', async () => {
+    it('should NOT have access to process (security)', async () => {
       const context = {
         bru: { setVar: jest.fn() },
         console: console
       };
 
-      const script = `bru.setVar('result', typeof process.env)`;
-
-      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
-
-      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'object');
-    });
-
-    it('should NOT have access to process.exit (security)', async () => {
-      const context = {
-        bru: { setVar: jest.fn() },
-        console: console
-      };
-
-      const script = `bru.setVar('result', typeof process.exit)`;
+      // process is not available in the isolated context
+      const script = `bru.setVar('result', typeof process)`;
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
