@@ -1,0 +1,49 @@
+meta {
+  name: variables interpolation
+  type: graphql
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: graphql
+  auth: none
+}
+
+body:graphql {
+  query { __typename }
+}
+
+body:graphql:vars {
+  {"input": {{testData}}}
+}
+
+script:pre-request {
+  bru.setVar("testData", {
+    a: [1, 2, 3],
+    b: {
+      c: "test",
+      d: "another value"
+    }
+  });
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("GraphQL variables with nested object and array are interpolated then sent as parsed object", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("variables");
+    expect(body.variables).to.be.an("object");
+    expect(body.variables).to.have.property("input");
+    expect(body.variables.input).to.eql({
+      a: [1, 2, 3],
+      b: {
+        c: "test",
+        d: "another value"
+      }
+    });
+  });
+}

@@ -39,4 +39,23 @@ describe('prepare-request: prepareRequest', () => {
       expect(result.headers['content-type']).toEqual('application/json');
     });
   });
+
+  describe('GraphQL request', () => {
+    it('keeps variables as string for interpolation', async () => {
+      const request = {
+        method: 'POST',
+        url: 'https://example.com',
+        body: {
+          mode: 'graphql',
+          graphql: {
+            query: 'query { x }',
+            variables: '{"apiPermissions": {{permissionsJSON}}}'
+          }
+        }
+      };
+      const result = await prepareRequest({ request, collection: { pathname: '' } });
+      expect(typeof result.data.variables).toBe('string');
+      expect(result.data.variables).toBe('{"apiPermissions": {{permissionsJSON}}}');
+    });
+  });
 });

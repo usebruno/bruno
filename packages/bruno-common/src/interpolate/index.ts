@@ -75,6 +75,7 @@ const interpolate = (
   }
 
   const { escapeJSONStrings } = options;
+  const escapeJson = escapeJSONStrings ?? false;
 
   const preparedStr = prepareMock(str, escapeJSONStrings ?? false);
 
@@ -83,7 +84,7 @@ const interpolate = (
   }
   // process the object with the mock data functions
   const preparedObj = prepareMockObj(obj, escapeJSONStrings ?? false);
-  return replace(preparedStr, preparedObj, new Set(), new Map(), { escapeJSONStrings: escapeJSONStrings ?? false });
+  return replace(preparedStr, preparedObj, new Set(), new Map(), { escapeJSONStrings: escapeJson });
 };
 
 const replace = (
