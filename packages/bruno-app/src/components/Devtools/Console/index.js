@@ -64,80 +64,106 @@ const LogTimestamp = ({ timestamp }) => {
   return <span className="log-timestamp">{time}</span>;
 };
 
+// Helper function to check if an object is a plain object (not a class instance)
+const isPlainObject = (obj) => {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const proto = Object.getPrototypeOf(obj);
+  return proto === null || proto === Object.prototype;
+};
+
+// Helper function to transform Bruno special types back to readable format
+// Extracted outside component to avoid recreation on every render
+const transformBrunoTypes = (obj, seen = new WeakSet()) => {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
+  }
+
+  // Guard against circular references
+  if (seen.has(obj)) {
+    return '[Circular]';
+  }
+  seen.add(obj);
+
+  // Handle Bruno special types
+  if (obj.__brunoType) {
+    switch (obj.__brunoType) {
+      case 'Set':
+        // Transform Set to display values at top level with numeric indices
+        if (Array.isArray(obj.__brunoValue)) {
+          return Object.fromEntries(
+            obj.__brunoValue.map((value, index) => [index, transformBrunoTypes(value, seen)])
+          );
+        }
+        return {};
+      case 'Map':
+        // Transform Map to display entries at top level with => notation
+        if (Array.isArray(obj.__brunoValue)) {
+          const mapEntries = {};
+          for (const entry of obj.__brunoValue) {
+            // Defensive check: ensure entry is a valid [key, value] pair
+            if (Array.isArray(entry) && entry.length >= 2) {
+              const [key, value] = entry;
+              mapEntries[`${String(key)} =>`] = transformBrunoTypes(value, seen);
+            }
+          }
+          return mapEntries;
+        }
+        return {};
+      case 'Function':
+        return `[Function: ${obj.__brunoValue?.split?.('\n')?.[0]?.substring(0, 50) ?? 'anonymous'}...]`;
+      case 'undefined':
+        return 'undefined';
+      default:
+        return obj;
+    }
+  }
+
+  // Handle arrays - recurse into elements
+  if (Array.isArray(obj)) {
+    return obj.map((item) => transformBrunoTypes(item, seen));
+  }
+
+  // Preserve non-plain objects (Date, Error, RegExp, class instances, etc.)
+  if (!isPlainObject(obj)) {
+    return obj;
+  }
+
+  // Only deep-clone plain objects
+  const transformed = {};
+  for (const [key, value] of Object.entries(obj)) {
+    transformed[key] = transformBrunoTypes(value, seen);
+  }
+  return transformed;
+};
+
+// Helper to get metadata about Bruno types for display purposes
+const getBrunoTypeMetadata = (obj) => {
+  if (typeof obj !== 'object' || obj === null) {
+    return {};
+  }
+  if (obj.__brunoType === 'Set' || obj.__brunoType === 'Map') {
+    return { type: obj.__brunoType };
+  }
+  return {};
+};
+
 const LogMessage = ({ message, args }) => {
   const { displayedTheme } = useTheme();
-
-  // Helper function to transform Bruno special types back to readable format
-  // Returns { data, metadata } where metadata contains type information
-  const transformBrunoTypes = (obj, returnMetadata = false) => {
-    if (typeof obj !== 'object' || obj === null) {
-      return returnMetadata ? { data: obj, metadata: {} } : obj;
-    }
-
-    // Handle Bruno special types
-    if (obj.__brunoType) {
-      switch (obj.__brunoType) {
-        case 'Set':
-          // Transform Set to display values at top level with numeric indices
-          // Convert array of values to object with numeric keys (0, 1, 2, ...)
-          const setEntries = {};
-          if (Array.isArray(obj.__brunoValue)) {
-            obj.__brunoValue.forEach((value, index) => {
-              setEntries[index] = transformBrunoTypes(value, false);
-            });
-          }
-          return returnMetadata ? { data: setEntries, metadata: { type: 'Set' } } : setEntries;
-        case 'Map':
-          // Transform Map to display entries at top level with => notation
-          // Convert array of [key, value] pairs to object with "key => value" format
-          const mapEntries = {};
-          if (Array.isArray(obj.__brunoValue)) {
-            obj.__brunoValue.forEach(([key, value]) => {
-              // Use => notation to clearly indicate Map entries
-              const displayKey = `${String(key)} =>`;
-              mapEntries[displayKey] = transformBrunoTypes(value, false);
-            });
-          }
-          return returnMetadata ? { data: mapEntries, metadata: { type: 'Map' } } : mapEntries;
-        case 'Function':
-          const funcData = `[Function: ${obj.__brunoValue.split('\n')[0].substring(0, 50)}...]`;
-          return returnMetadata ? { data: funcData, metadata: {} } : funcData;
-        case 'undefined':
-          return returnMetadata ? { data: 'undefined', metadata: {} } : 'undefined';
-        default:
-          return returnMetadata ? { data: obj, metadata: {} } : obj;
-      }
-    }
-
-    // Recursively transform nested objects
-    if (Array.isArray(obj)) {
-      const transformed = obj.map((item) => transformBrunoTypes(item, false));
-      return returnMetadata ? { data: transformed, metadata: {} } : transformed;
-    }
-
-    const transformed = {};
-    for (const [key, value] of Object.entries(obj)) {
-      transformed[key] = transformBrunoTypes(value, false);
-    }
-    return returnMetadata ? { data: transformed, metadata: {} } : transformed;
-  };
 
   const formatMessage = (msg, originalArgs) => {
     if (originalArgs && originalArgs.length > 0) {
       return originalArgs.map((arg, index) => {
         if (typeof arg === 'object' && arg !== null) {
-          const { data: transformedArg, metadata } = transformBrunoTypes(arg, true);
+          const metadata = getBrunoTypeMetadata(arg);
+          const transformedArg = transformBrunoTypes(arg);
 
           // Determine the name to display based on the type
           let displayName = false;
           let shouldCollapse = 1; // Default: collapse at depth 1 for regular objects
 
-          if (metadata.type === 'Map') {
-            displayName = 'Map';
-            shouldCollapse = true; // Fully collapse Maps by default
-          } else if (metadata.type === 'Set') {
-            displayName = 'Set';
-            shouldCollapse = true; // Fully collapse Sets by default
+          if (metadata.type === 'Map' || metadata.type === 'Set') {
+            displayName = metadata.type;
+            shouldCollapse = true; // Fully collapse Maps/Sets by default
           }
 
           return (
