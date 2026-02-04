@@ -200,7 +200,7 @@ test.describe('make grpc requests', () => {
     });
   });
 
-  test('make unary request with JSON5 comments in body', async ({ pageWithUserData: page }) => {
+  test('make unary request with comments in body', async ({ pageWithUserData: page }) => {
     await setupGrpcTest(page);
     const locators = buildGrpcCommonLocators(page);
 
@@ -216,7 +216,7 @@ test.describe('make grpc requests', () => {
       await expect(locators.request.messagesContainer()).toBeVisible();
     });
 
-    await test.step('edit body content with JSON5 comments', async () => {
+    await test.step('edit body content with comments', async () => {
       // Find the message editor container
       const messageContainer = locators.request.messagesContainer().locator('.message-container').first();
       await expect(messageContainer).toBeVisible();
@@ -232,11 +232,11 @@ test.describe('make grpc requests', () => {
       await page.keyboard.press('Meta+a');
       await page.keyboard.press('Backspace');
 
-      // Type JSON5 content with single-line comment
-      const json5Content = `{
-  "greeting": "test" // This is a JSON5 comment
+      // Type JSON content with single-line comment
+      const jsonContent = `{
+  "greeting": "test" // This is a comment
 }`;
-      await page.keyboard.insertText(json5Content);
+      await page.keyboard.insertText(jsonContent);
     });
 
     await test.step('send request', async () => {

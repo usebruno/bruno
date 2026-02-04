@@ -506,7 +506,7 @@ describe('GrpcClient', () => {
     });
   });
 
-  describe('JSON5 comment support', () => {
+  describe('JSON parsing', () => {
     const baseRequest = {
       url: 'grpc://localhost:50051',
       uid: 'test-request-uid',
@@ -533,109 +533,8 @@ describe('GrpcClient', () => {
       });
     });
 
-    describe('startConnection with JSON5 comments', () => {
-      test('should parse JSON5 with single-line comments', async () => {
-        const request = {
-          ...baseRequest,
-          body: {
-            grpc: [{
-              content: '{\n  "name": "test" // This is a comment\n}'
-            }]
-          }
-        };
-
-        await grpcClient.startConnection({
-          request,
-          collection: baseCollection
-        });
-
-        // Should not throw an error and should parse correctly
-        expect(mockEventCallback).not.toHaveBeenCalledWith(
-          'grpc:error',
-          expect.any(String),
-          expect.any(String),
-          expect.objectContaining({
-            error: expect.any(Error)
-          })
-        );
-      });
-
-      test('should parse JSON5 with multi-line comments', async () => {
-        const request = {
-          ...baseRequest,
-          body: {
-            grpc: [{
-              content: '{\n  "name": "test", /* This is a\n     multi-line comment */\n  "age": 30\n}'
-            }]
-          }
-        };
-
-        await grpcClient.startConnection({
-          request,
-          collection: baseCollection
-        });
-
-        expect(mockEventCallback).not.toHaveBeenCalledWith(
-          'grpc:error',
-          expect.any(String),
-          expect.any(String),
-          expect.objectContaining({
-            error: expect.any(Error)
-          })
-        );
-      });
-
-      test('should parse JSON5 with trailing commas', async () => {
-        const request = {
-          ...baseRequest,
-          body: {
-            grpc: [{
-              content: '{\n  "name": "test",\n  "age": 30,\n}'
-            }]
-          }
-        };
-
-        await grpcClient.startConnection({
-          request,
-          collection: baseCollection
-        });
-
-        expect(mockEventCallback).not.toHaveBeenCalledWith(
-          'grpc:error',
-          expect.any(String),
-          expect.any(String),
-          expect.objectContaining({
-            error: expect.any(Error)
-          })
-        );
-      });
-
-      test('should parse JSON5 with comments and trailing commas', async () => {
-        const request = {
-          ...baseRequest,
-          body: {
-            grpc: [{
-              content: '{\n  "name": "test", // Name field\n  "age": 30, // Age field\n}'
-            }]
-          }
-        };
-
-        await grpcClient.startConnection({
-          request,
-          collection: baseCollection
-        });
-
-        expect(mockEventCallback).not.toHaveBeenCalledWith(
-          'grpc:error',
-          expect.any(String),
-          expect.any(String),
-          expect.objectContaining({
-            error: expect.any(Error)
-          })
-        );
-      });
-
-      test('should parse standard JSON (backward compatibility)', async () => {
+    describe('startConnection with JSON parsing', () => {
+      test('should parse standard JSON', async () => {
         const request = {
           ...baseRequest,
           body: {
@@ -660,13 +559,13 @@ describe('GrpcClient', () => {
         );
       });
 
-      test('should handle multiple messages with JSON5 comments', async () => {
+      test('should handle multiple messages', async () => {
         const request = {
           ...baseRequest,
           body: {
             grpc: [
-              { content: '{"id": 1} // First message' },
-              { content: '{"id": 2} // Second message' }
+              { content: '{"id": 1}' },
+              { content: '{"id": 2}' }
             ]
           }
         };
@@ -686,12 +585,12 @@ describe('GrpcClient', () => {
         );
       });
 
-      test('should throw error for invalid JSON5', async () => {
+      test('should throw error for invalid JSON', async () => {
         const request = {
           ...baseRequest,
           body: {
             grpc: [{
-              content: '{"name": "test" // Unclosed comment'
+              content: '{"name": "test" invalid}'
             }]
           }
         };
@@ -711,7 +610,7 @@ describe('GrpcClient', () => {
         );
       });
 
-      test('should throw error with descriptive message for invalid JSON5', async () => {
+      test('should throw error with descriptive message for invalid JSON', async () => {
         const request = {
           ...baseRequest,
           body: {
@@ -734,7 +633,7 @@ describe('GrpcClient', () => {
       });
     });
 
-    describe('sendMessage with JSON5 comments', () => {
+    describe('sendMessage with JSON parsing', () => {
       let mockConnection;
 
       beforeEach(() => {
@@ -750,56 +649,7 @@ describe('GrpcClient', () => {
         grpcClient.activeConnections.clear();
       });
 
-      test('should parse JSON5 with single-line comments in sendMessage', () => {
-        const body = '{\n  "name": "test" // This is a comment\n}';
-
-        grpcClient.sendMessage('test-connection-id', 'test-collection-uid', body);
-
-        expect(mockConnection.write).toHaveBeenCalledWith(
-          { name: 'test' },
-          expect.any(Function)
-        );
-        expect(mockEventCallback).not.toHaveBeenCalledWith(
-          'grpc:error',
-          expect.any(String),
-          expect.any(String),
-          expect.objectContaining({
-            error: expect.any(Error)
-          })
-        );
-      });
-
-      test('should parse JSON5 with multi-line comments in sendMessage', () => {
-        const body = '{\n  "name": "test", /* This is a\n     multi-line comment */\n  "age": 30\n}';
-
-        grpcClient.sendMessage('test-connection-id', 'test-collection-uid', body);
-
-        expect(mockConnection.write).toHaveBeenCalledWith(
-          { name: 'test', age: 30 },
-          expect.any(Function)
-        );
-        expect(mockEventCallback).not.toHaveBeenCalledWith(
-          'grpc:error',
-          expect.any(String),
-          expect.any(String),
-          expect.objectContaining({
-            error: expect.any(Error)
-          })
-        );
-      });
-
-      test('should parse JSON5 with trailing commas in sendMessage', () => {
-        const body = '{\n  "name": "test",\n  "age": 30,\n}';
-
-        grpcClient.sendMessage('test-connection-id', 'test-collection-uid', body);
-
-        expect(mockConnection.write).toHaveBeenCalledWith(
-          { name: 'test', age: 30 },
-          expect.any(Function)
-        );
-      });
-
-      test('should parse standard JSON in sendMessage (backward compatibility)', () => {
+      test('should parse standard JSON in sendMessage', () => {
         const body = '{"name": "test", "age": 30}';
 
         grpcClient.sendMessage('test-connection-id', 'test-collection-uid', body);
@@ -821,7 +671,7 @@ describe('GrpcClient', () => {
         );
       });
 
-      test('should throw error for invalid JSON5 in sendMessage', () => {
+      test('should throw error for invalid JSON in sendMessage', () => {
         const body = '{"name": "test" invalid}';
 
         grpcClient.sendMessage('test-connection-id', 'test-collection-uid', body);
@@ -837,7 +687,7 @@ describe('GrpcClient', () => {
         );
       });
 
-      test('should throw error with descriptive message for invalid JSON5 in sendMessage', () => {
+      test('should throw error with descriptive message for invalid JSON in sendMessage', () => {
         const body = '{"name": "test" invalid}';
 
         grpcClient.sendMessage('test-connection-id', 'test-collection-uid', body);
