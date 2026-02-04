@@ -465,7 +465,8 @@ const registerNetworkIpc = (mainWindow) => {
       {
         status: 'fail',
         description: descriptionMap[scriptType] || 'Script Error',
-        error: error.message || messageMap[scriptType] || 'An error occurred while executing the script.'
+        error: error.message || messageMap[scriptType] || 'An error occurred while executing the script.',
+        isScriptError: true
       }
     ];
 
