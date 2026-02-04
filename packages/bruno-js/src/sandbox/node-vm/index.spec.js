@@ -874,20 +874,26 @@ describe('node-vm sandbox', () => {
         expect(context.bru.setVar).toHaveBeenCalledWith('result', 'aGVsbG8=-hello');
       });
 
-      it('should have access to process.env', async () => {
-        const nodeModulesDir = path.join(collectionPath, 'node_modules', 'process-module');
+      it('should have access to URL and URLSearchParams', async () => {
+        const nodeModulesDir = path.join(collectionPath, 'node_modules', 'url-module');
         fs.mkdirSync(nodeModulesDir, { recursive: true });
         fs.writeFileSync(
           path.join(nodeModulesDir, 'index.js'),
           `module.exports = {
-            getNodeEnv: function() { return process.env.NODE_ENV || 'not-set'; },
-            getPlatform: function() { return process.platform; }
+            parseUrl: function(urlStr) {
+              const url = new URL(urlStr);
+              return url.hostname;
+            },
+            buildQuery: function(params) {
+              const search = new URLSearchParams(params);
+              return search.toString();
+            }
           };`
         );
 
         const script = `
-          const procMod = require('process-module');
-          bru.setVar('result', typeof procMod.getPlatform());
+          const urlMod = require('url-module');
+          bru.setVar('result', urlMod.parseUrl('https://example.com/path'));
         `;
 
         const context = {
@@ -897,7 +903,7 @@ describe('node-vm sandbox', () => {
 
         await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
-        expect(context.bru.setVar).toHaveBeenCalledWith('result', 'string');
+        expect(context.bru.setVar).toHaveBeenCalledWith('result', 'example.com');
       });
 
       it('should have access to setTimeout/clearTimeout', async () => {
@@ -978,6 +984,131 @@ describe('node-vm sandbox', () => {
           runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
         ).rejects.toThrow('Module initialization failed');
       });
+    });
+  });
+
+  describe('context isolation', () => {
+    it('should have global pointing to isolated context (not host)', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      // global exists but points to isolated context, so global.bru should exist
+      // but global.process.exit should not (it's sanitized)
+      const script = `bru.setVar('result', typeof global.bru === 'object' && typeof global.process.exit === 'undefined')`;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
+    });
+
+    it('should not have access to host fs module via globalThis', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const script = `bru.setVar('result', typeof globalThis.fs)`;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'undefined');
+    });
+
+    it('should throw ReferenceError for undeclared variables', async () => {
+      const context = { console: console };
+
+      const script = `const x = someUndeclaredVar`;
+
+      await expect(
+        runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
+      ).rejects.toThrow('someUndeclaredVar is not defined');
+    });
+
+    it('should have access to context objects via globalThis', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        req: { url: 'http://test.com' },
+        console: console
+      };
+
+      const script = `bru.setVar('result', typeof globalThis.req)`;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'object');
+    });
+
+    it('should have access to allowed globals like Buffer', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const script = `bru.setVar('result', typeof globalThis.Buffer)`;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'function');
+    });
+
+    it('should have access to sanitized process with env', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const script = `bru.setVar('result', typeof process.env)`;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'object');
+    });
+
+    it('should NOT have access to process.exit (security)', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const script = `bru.setVar('result', typeof process.exit)`;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'undefined');
+    });
+
+    it('should work with Array.isArray across context boundaries', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const script = `
+        const arr = [1, 2, 3];
+        bru.setVar('result', Array.isArray(arr));
+      `;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
+    });
+
+    it('should have working Object methods', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const script = `
+        const obj = { a: 1, b: 2 };
+        bru.setVar('result', Object.keys(obj).join(','));
+      `;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'a,b');
     });
   });
 });

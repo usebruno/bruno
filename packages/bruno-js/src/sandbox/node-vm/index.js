@@ -2,10 +2,10 @@ const vm = require('node:vm');
 const path = require('node:path');
 const { get } = require('lodash');
 const lodash = require('lodash');
-const { mixinTypedArrays } = require('../mixins/typed-arrays');
 const { wrapConsoleWithSerializers } = require('./console');
 const { ScriptError } = require('./utils');
 const { createCustomRequire } = require('./cjs-loader');
+const { safeGlobals, createSanitizedProcess } = require('./constants');
 
 /**
  * Executes a script in a Node.js VM context with enhanced security and module loading
@@ -36,25 +36,34 @@ async function runScriptInNodeVm({ script, context, collectionPath, scriptingCon
     // Build the script context with Bruno objects and globals
     const scriptContext = buildScriptContext(context, scriptingConfig);
 
+    // Create truly isolated context - scriptContext becomes the global object
+    // Scripts can ONLY access what's explicitly in scriptContext
+    const isolatedContext = vm.createContext(scriptContext);
+
+    // Add global/globalThis pointing to the isolated context (not host global)
+    // This allows libraries that reference 'global' to work while maintaining isolation
+    scriptContext.global = scriptContext;
+    scriptContext.globalThis = scriptContext;
+
     // Create module cache for CJS modules
     const localModuleCache = new Map();
 
     // Add require() function for CJS module loading
     scriptContext.require = createCustomRequire({
       collectionPath,
-      scriptContext,
+      isolatedContext,
       currentModuleDir: collectionPath,
       localModuleCache,
       additionalContextRootsAbsolute
     });
 
-    // Execute the script
-    const scriptFunction = vm.compileFunction(`return (async function(){ ${script} \n})();`, [], {
-      filename: path.join(collectionPath, 'script.js'),
-      contextExtensions: [scriptContext]
+    // Execute the script in the isolated context
+    const wrappedScript = `(async function(){ ${script} \n})();`;
+    const compiledScript = new vm.Script(wrappedScript, {
+      filename: path.join(collectionPath, 'script.js')
     });
 
-    await scriptFunction();
+    await compiledScript.runInContext(isolatedContext);
   } catch (error) {
     throw new ScriptError(error, script);
   }
@@ -81,68 +90,16 @@ function buildScriptContext(context, scriptingConfig) {
     // Configuration for nested module loading
     scriptingConfig: scriptingConfig,
 
-    // Global objects - shared from host process
-    // Note: This exposes host globals (process, Buffer, timers) to scripts.
-    // This is intentional - [`developer` mode] node-vm isolation need not be strict for globals.
-    Buffer: global.Buffer,
-    process: global.process,
-    setTimeout: global.setTimeout,
-    setInterval: global.setInterval,
-    clearTimeout: global.clearTimeout,
-    clearInterval: global.clearInterval,
-    setImmediate: global.setImmediate,
-    clearImmediate: global.clearImmediate,
-    queueMicrotask: global.queueMicrotask,
-
-    // Error types
-    Error: global.Error,
-    TypeError: global.TypeError,
-    ReferenceError: global.ReferenceError,
-    SyntaxError: global.SyntaxError,
-    RangeError: global.RangeError,
-    URIError: global.URIError,
-    EvalError: global.EvalError,
-    AggregateError: global.AggregateError,
-
-    // Core JavaScript globals needed by bundled modules
-    Object: global.Object,
-    Array: global.Array,
-    Function: global.Function,
-    String: global.String,
-    Number: global.Number,
-    Boolean: global.Boolean,
-    Symbol: global.Symbol,
-    Date: global.Date,
-    RegExp: global.RegExp,
-    JSON: global.JSON,
-    Math: global.Math,
-    Map: global.Map,
-    Set: global.Set,
-    WeakMap: global.WeakMap,
-    WeakSet: global.WeakSet,
-    Promise: global.Promise,
-    Proxy: global.Proxy,
-    Reflect: global.Reflect,
-
-    // Additional globals
-    parseInt: global.parseInt,
-    parseFloat: global.parseFloat,
-    isNaN: global.isNaN,
-    isFinite: global.isFinite,
-    encodeURI: global.encodeURI,
-    decodeURI: global.decodeURI,
-    encodeURIComponent: global.encodeURIComponent,
-    decodeURIComponent: global.decodeURIComponent,
-    BigInt: global.BigInt,
-    URL: global.URL,
-    URLSearchParams: global.URLSearchParams,
-    TextEncoder: global.TextEncoder,
-    TextDecoder: global.TextDecoder,
-    atob: global.atob,
-    btoa: global.btoa
+    // Safe globals from allowlist (Node.js/Web APIs only, not ECMAScript built-ins)
+    ...Object.fromEntries(
+      safeGlobals
+        .filter((key) => global[key] !== undefined)
+        .map((key) => [key, global[key]])
+    )
   };
 
-  mixinTypedArrays(scriptContext);
+  // Add sanitized process (includes env, platform, etc. but blocks exit, kill)
+  scriptContext.process = createSanitizedProcess();
 
   return scriptContext;
 }

@@ -62,11 +62,16 @@ function resolveLocalModulePath(fromDir, moduleName) {
 /**
  * Creates a custom require function with enhanced security and local module support
  * @param {Object} options - Configuration options
+ * @param {string} options.collectionPath - Path to the collection directory
+ * @param {Object} options.isolatedContext - The VM isolated context created with vm.createContext()
+ * @param {string} options.currentModuleDir - Current module directory for resolving relative paths
+ * @param {Map} options.localModuleCache - Cache for loaded modules
+ * @param {string[]} options.additionalContextRootsAbsolute - Additional allowed root paths
  * @returns {Function} Custom require function
  */
 function createCustomRequire({
   collectionPath,
-  scriptContext,
+  isolatedContext,
   currentModuleDir = collectionPath,
   localModuleCache = new Map(),
   additionalContextRootsAbsolute = []
@@ -78,7 +83,7 @@ function createCustomRequire({
       return loadLocalModule({
         moduleName: normalizedModuleName,
         collectionPath,
-        scriptContext,
+        isolatedContext,
         localModuleCache,
         currentModuleDir,
         additionalContextRootsAbsolute
@@ -96,7 +101,7 @@ function createCustomRequire({
     return loadNpmModule({
       moduleName,
       collectionPath,
-      scriptContext,
+      isolatedContext,
       localModuleCache
     });
   };
@@ -111,7 +116,7 @@ function createCustomRequire({
 function loadLocalModule({
   moduleName,
   collectionPath,
-  scriptContext,
+  isolatedContext,
   localModuleCache,
   currentModuleDir,
   additionalContextRootsAbsolute = []
@@ -154,17 +159,17 @@ function loadLocalModule({
   // Create require function for nested imports
   const moduleRequire = createCustomRequire({
     collectionPath,
-    scriptContext,
+    isolatedContext,
     currentModuleDir: moduleDir,
     localModuleCache,
     additionalContextRootsAbsolute
   });
 
   try {
-    const moduleFunction = vm.compileFunction(moduleCode, ['module', 'exports', 'require', '__filename', '__dirname'], {
-      filename: normalizedFilePath,
-      contextExtensions: [scriptContext]
-    });
+    // Wrap module code in a function that receives CJS parameters
+    const wrappedCode = `(function(module, exports, require, __filename, __dirname) {\n${moduleCode}\n})`;
+    const compiledScript = new vm.Script(wrappedCode, { filename: normalizedFilePath });
+    const moduleFunction = compiledScript.runInContext(isolatedContext);
     moduleFunction(moduleObj, moduleObj.exports, moduleRequire, normalizedFilePath, moduleDir);
     localModuleCache.set(normalizedFilePath, moduleObj.exports);
     return moduleObj.exports;
@@ -182,7 +187,7 @@ function loadLocalModule({
 function executeModuleInVmContext({
   resolvedPath,
   moduleName,
-  scriptContext,
+  isolatedContext,
   collectionPath,
   localModuleCache
 }) {
@@ -215,16 +220,16 @@ function executeModuleInVmContext({
 
   const moduleRequire = createNpmModuleRequire({
     collectionPath,
-    scriptContext,
+    isolatedContext,
     currentModuleDir: moduleDir,
     localModuleCache
   });
 
   try {
-    const moduleFunction = vm.compileFunction(moduleSource, ['module', 'exports', 'require', '__filename', '__dirname'], {
-      filename: resolvedPath,
-      contextExtensions: [scriptContext]
-    });
+    // Wrap module code in a function that receives CJS parameters
+    const wrappedCode = `(function(module, exports, require, __filename, __dirname) {\n${moduleSource}\n})`;
+    const compiledScript = new vm.Script(wrappedCode, { filename: resolvedPath });
+    const moduleFunction = compiledScript.runInContext(isolatedContext);
     moduleFunction(moduleObj, moduleObj.exports, moduleRequire, resolvedPath, moduleDir);
   } catch (error) {
     const stack = error.stack || '';
@@ -244,7 +249,7 @@ function executeModuleInVmContext({
 function loadNpmModule({
   moduleName,
   collectionPath,
-  scriptContext,
+  isolatedContext,
   localModuleCache
 }) {
   let resolvedPath;
@@ -280,7 +285,7 @@ function loadNpmModule({
   return executeModuleInVmContext({
     resolvedPath,
     moduleName,
-    scriptContext,
+    isolatedContext,
     collectionPath,
     localModuleCache
   });
@@ -293,7 +298,7 @@ function loadNpmModule({
  */
 function createNpmModuleRequire({
   collectionPath,
-  scriptContext,
+  isolatedContext,
   currentModuleDir,
   localModuleCache
 }) {
@@ -306,7 +311,7 @@ function createNpmModuleRequire({
       return executeModuleInVmContext({
         resolvedPath,
         moduleName,
-        scriptContext,
+        isolatedContext,
         collectionPath,
         localModuleCache
       });
@@ -324,7 +329,7 @@ function createNpmModuleRequire({
     return executeModuleInVmContext({
       resolvedPath,
       moduleName,
-      scriptContext,
+      isolatedContext,
       collectionPath,
       localModuleCache
     });
