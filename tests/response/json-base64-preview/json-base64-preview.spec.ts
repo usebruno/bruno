@@ -26,9 +26,6 @@ test.describe.serial('JSON Base64 preview', () => {
 
     await test.step('Switch to preview and render image from JSON base64', async () => {
       await switchToPreviewTab(page);
-      await page.locator('#response-binary-source-icon').click();
-      const binarySourceInput = page.locator('#response-binary-source');
-      await binarySourceInput.fill('$.data');
       await expect(previewContainer.locator('img')).toBeVisible();
     });
   });

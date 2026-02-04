@@ -3,13 +3,13 @@ import { useTheme } from 'providers/Theme/index';
 import React, { useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import get from 'lodash/get';
-import { formatResponse, getContentType, safeParseJSON } from 'utils/common';
-import { JSONPath } from 'jsonpath-plus';
+import { formatResponse, getContentType } from 'utils/common';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
 import LargeResponseWarning from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
+import useJsonBase64Preview from './useJsonBase64Preview';
 
 // Raw format options (for byte format types)
 const RAW_FORMAT_OPTIONS = [
@@ -92,65 +92,6 @@ export const useResponsePreviewFormatOptions = (dataBuffer, headers) => {
   }, [dataBuffer, headers]);
 };
 
-const parseJsonPayload = (data) => {
-  if (data && typeof data === 'object') {
-    return data;
-  }
-
-  if (typeof data === 'string') {
-    const parsed = safeParseJSON(data);
-    return typeof parsed === 'object' ? parsed : null;
-  }
-
-  return null;
-};
-
-const getJsonPathFirstValue = (source, path) => {
-  if (!source || !path || typeof path !== 'string') {
-    return null;
-  }
-
-  try {
-    const result = JSONPath({ path: path, json: source });
-    return Array.isArray(result) ? result[0] : null;
-  } catch (error) {
-    return null;
-  }
-};
-
-const normalizeBase64String = (value) => {
-  if (!value || typeof value !== 'string') {
-    return null;
-  }
-
-  const dataUrlPrefix = value.match(/^data:[^;]*;base64,/);
-  if (dataUrlPrefix) {
-    return value.slice(dataUrlPrefix[0].length);
-  }
-
-  return value;
-};
-
-const getBinaryBase64 = (payload, path) => {
-  if (!payload) {
-    return null;
-  }
-
-  if (path) {
-    return normalizeBase64String(getJsonPathFirstValue(payload, path));
-  }
-
-  return normalizeBase64String(payload.data);
-};
-
-const getBinaryMimeType = (payload) => {
-  if (!payload) {
-    return null;
-  }
-
-  return typeof payload.mimeType === 'string' ? payload.mimeType : null;
-};
-
 const QueryResult = ({
   item,
   collection,
@@ -184,41 +125,20 @@ const QueryResult = ({
 
   const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
 
-  const [binarySourcePath, setBinarySourcePath] = useState('');
-  const jsonPayload = useMemo(() => parseJsonPayload(data), [data]);
-
-  const binaryBase64 = useMemo(() => {
-    if (!isJsonBase64PreviewEnabled) {
-      return null;
-    }
-
-    return getBinaryBase64(jsonPayload, binarySourcePath);
-  }, [jsonPayload, binarySourcePath, isJsonBase64PreviewEnabled]);
-
-  const binaryMimeType = useMemo(() => {
-    if (!isJsonBase64PreviewEnabled) {
-      return null;
-    }
-
-    return getBinaryMimeType(jsonPayload);
-  }, [jsonPayload, isJsonBase64PreviewEnabled]);
-
-  const effectiveDataBuffer = useMemo(() => {
-    if (
-      isJsonBase64PreviewEnabled
-      && selectedTab === 'preview'
-      && (selectedFormat === 'base64' || selectedFormat === 'hex')
-      && binaryBase64
-    ) {
-      return binaryBase64;
-    }
-
-    return dataBuffer;
-  }, [dataBuffer, selectedFormat, binaryBase64, selectedTab, isJsonBase64PreviewEnabled]);
-
-  const detectedContentType = useMemo(() => {
-    return detectContentTypeFromBase64(effectiveDataBuffer);
-  }, [effectiveDataBuffer, isLargeResponse]);
+  const {
+    binarySourcePath,
+    setBinarySourcePath,
+    binarySourceFilterEnabled,
+    binaryMimeType,
+    effectiveDataBuffer,
+    detectedContentType
+  } = useJsonBase64Preview({
+    data,
+    dataBuffer,
+    selectedFormat,
+    selectedTab,
+    isEnabled: isJsonBase64PreviewEnabled
+  });
 
   const formattedData = useMemo(
     () => {
@@ -269,12 +189,6 @@ const QueryResult = ({
   const queryFilterEnabled = useMemo(() => {
     return codeMirrorMode.includes('json') && selectedFormat === 'json' && selectedTab === 'editor';
   }, [codeMirrorMode, selectedFormat, selectedTab]);
-  const binarySourceFilterEnabled = useMemo(() => {
-    return isJsonBase64PreviewEnabled
-      && (selectedFormat === 'base64' || selectedFormat === 'hex')
-      && jsonPayload
-      && selectedTab === 'preview';
-  }, [selectedFormat, jsonPayload, selectedTab, isJsonBase64PreviewEnabled]);
   const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
 
   return (
@@ -327,8 +241,8 @@ const QueryResult = ({
                 filter={binarySourcePath}
                 onChange={(event) => setBinarySourcePath(event.target.value)}
                 mode="application/ld+json"
-                placeholderText="$.data"
-                infotipText="Binary source JSONPath (defaults to $.data, uses $.mimeType if present)"
+                placeholderText="Optional JSONPath (auto-detects if empty)"
+                infotipText="Binary source JSONPath (auto-detects if empty, uses $.mimeType when present)"
                 inputId="response-binary-source"
                 iconId="response-binary-source-icon"
               />
