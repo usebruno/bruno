@@ -89,10 +89,7 @@ const safeGlobals = [
 
   // Message passing
   'MessageChannel',
-  'MessagePort',
-
-  // Structured cloning (Node 17+)
-  'structuredClone'
+  'MessagePort'
 ];
 
 module.exports = {

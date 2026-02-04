@@ -1,0 +1,54 @@
+meta {
+  name: process
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  test("process exists with expected properties", function() {
+    expect(process).to.be.an('object');
+    expect(process.version).to.match(/^v\d+\.\d+\.\d+/);
+    expect(process.versions).to.have.property('node');
+    expect(process.versions).to.have.property('v8');
+  });
+
+  test("process.arch and process.platform", function() {
+    expect(['x64', 'arm64', 'arm', 'ia32']).to.include(process.arch);
+    expect(['darwin', 'linux', 'win32']).to.include(process.platform);
+  });
+
+  test("process.pid and process.title", function() {
+    expect(process.pid).to.be.a('number').and.to.be.greaterThan(0);
+    expect(process.title).to.be.a('string');
+  });
+
+  test("process.argv is array", function() {
+    expect(process.argv).to.be.an('array');
+  });
+
+  test("process.env is sanitized (empty)", function() {
+    expect(process.env).to.be.an('object');
+    expect(Object.keys(process.env)).to.have.lengthOf(0);
+  });
+
+  test("dangerous methods not available", function() {
+    expect(process.exit).to.be.undefined;
+    expect(process.kill).to.be.undefined;
+    expect(process.chdir).to.be.undefined;
+    expect(process.cwd).to.be.undefined;
+  });
+}
