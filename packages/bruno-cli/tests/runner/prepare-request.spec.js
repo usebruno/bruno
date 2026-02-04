@@ -600,4 +600,27 @@ describe('prepare-request: prepareRequest', () => {
       expect(readFileSyncSpy).not.toHaveBeenCalled();
     });
   });
+
+  describe('GraphQL request', () => {
+    it('keeps variables as string for interpolation', async () => {
+      const item = {
+        request: {
+          method: 'POST',
+          headers: [],
+          params: [],
+          url: 'https://example.com',
+          body: {
+            mode: 'graphql',
+            graphql: {
+              query: 'query { x }',
+              variables: '{"apiPermissions": {{permissionsJSON}}}'
+            }
+          }
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(typeof result.data.variables).toBe('string');
+      expect(result.data.variables).toBe('{"apiPermissions": {{permissionsJSON}}}');
+    });
+  });
 });

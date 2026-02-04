@@ -83,15 +83,17 @@ const interpolate = (
   }
   // process the object with the mock data functions
   const preparedObj = prepareMockObj(obj, escapeJSONStrings ?? false);
-  return replace(preparedStr, preparedObj);
+  return replace(preparedStr, preparedObj, new Set(), new Map(), { escapeJSONStrings: escapeJSONStrings ?? false });
 };
 
 const replace = (
   str: string,
   obj: Record<string, any>,
   visited = new Set<string>(),
-  results = new Map<string, string>()
+  results = new Map<string, string>(),
+  options: { escapeJSONStrings?: boolean } = {}
 ): string => {
+  const { escapeJSONStrings = false } = options;
   let resultStr = str;
   let matchFound = true;
 
@@ -110,7 +112,7 @@ const replace = (
 
       if (patternRegex.test(replacement) && !visited.has(match)) {
         visited.add(match);
-        const result = replace(replacement, obj, visited, results);
+        const result = replace(replacement, obj, visited, results, options);
         results.set(match, result);
 
         matchFound = true;
@@ -118,7 +120,18 @@ const replace = (
       }
 
       visited.add(match);
-      const result = replacement !== undefined ? replacement : match;
+      let result = replacement !== undefined ? replacement : match;
+      if (escapeJSONStrings && typeof result === 'string') {
+        // If the string parses as a JSON object or array, insert it unescaped (raw value). Otherwise escape for JSON safety.
+        try {
+          const parsed = JSON.parse(result);
+          if (typeof parsed !== 'object' || parsed === null) {
+            result = escapeJSONString(result);
+          }
+        } catch {
+          result = escapeJSONString(result);
+        }
+      }
       results.set(match, result);
 
       matchFound = true;

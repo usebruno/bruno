@@ -45,7 +45,8 @@ const prepareRequest = async (item = {}, collection = {}) => {
     tags: item.tags || [],
     pathParams: request.params?.filter((param) => param.type === 'path'),
     settings: item.settings,
-    responseType: 'arraybuffer'
+    responseType: 'arraybuffer',
+    mode: request.body?.mode
   };
 
   const collectionRoot = collection?.draft?.root || collection?.root || {};
@@ -371,7 +372,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
   if (request.body.mode === 'graphql') {
     const graphqlQuery = {
       query: get(request, 'body.graphql.query'),
-      variables: JSON.parse(decomment(get(request, 'body.graphql.variables') || '{}'))
+      variables: decomment(get(request, 'body.graphql.variables') || '{}')
     };
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';

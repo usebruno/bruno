@@ -260,6 +260,11 @@ const runSingleRequest = async function (
     // interpolate variables inside request
     interpolateVars(request, envVariables, runtimeVariables, processEnvVars);
 
+    // parse GraphQL variables after interpolation
+    if (request.mode === 'graphql') {
+      request.data.variables = JSON.parse(request.data.variables);
+    }
+
     if (request.settings?.encodeUrl) {
       request.url = encodeUrl(request.url);
     }

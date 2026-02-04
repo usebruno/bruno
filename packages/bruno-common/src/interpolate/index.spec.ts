@@ -433,6 +433,20 @@ describe('interpolate - recursive', () => {
   });
 });
 
+it('should escape substituted variable values when escapeJSONStrings is true', () => {
+  const inputString = '{"name": "{{var}}"}';
+  const inputObject = {
+    var: 'O"Reilly'
+  };
+
+  const result = interpolate(inputString, inputObject, { escapeJSONStrings: true });
+
+  expect(() => {
+    const parsed = JSON.parse(result);
+    expect(parsed.name).toBe('O"Reilly');
+  }).not.toThrow();
+});
+
 describe('interpolate - object handling', () => {
   it('should stringify simple objects', () => {
     const inputString = 'User: {{user}}';
