@@ -260,6 +260,12 @@ const runSingleRequest = async function (
     // interpolate variables inside request
     interpolateVars(request, envVariables, runtimeVariables, processEnvVars);
 
+    // if this is a graphql request, parse the variables, only after interpolation
+    // https://github.com/usebruno/bruno/issues/884
+    if (request.mode === 'graphql') {
+      request.data.variables = JSON.parse(request.data.variables);
+    }
+
     if (request.settings?.encodeUrl) {
       request.url = encodeUrl(request.url);
     }
