@@ -1,10 +1,11 @@
-import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { openNewRequestModal, openCollectionCloneItemModal, toggleConfirmRequestModal, closeNewRequestModal } from 'providers/ReduxStore/slices/keyBindings';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { findItemInCollection, hasRequestChanges } from 'utils/collections';
@@ -30,11 +31,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const tabNameRef = useRef(null);
   const tabLabelRef = useRef(null);
   const lastOverflowStateRef = useRef(null);
-  const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [showConfirmCollectionClose, setShowConfirmCollectionClose] = useState(false);
   const [showConfirmFolderClose, setShowConfirmFolderClose] = useState(false);
   const [showConfirmEnvironmentClose, setShowConfirmEnvironmentClose] = useState(false);
   const [showConfirmGlobalEnvironmentClose, setShowConfirmGlobalEnvironmentClose] = useState(false);
+  const { showConfirmRequestCloseModal } = useSelector((state) => state.keyBindings);
 
   const menuDropdownRef = useRef();
 
@@ -337,10 +338,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-2">
-      {showConfirmClose && (
+      {showConfirmRequestCloseModal.show && (
         <ConfirmRequestClose
           item={item}
-          onCancel={() => setShowConfirmClose(false)}
+          onCancel={() => dispatch(toggleConfirmRequestModal({ show: false }))}
           onCloseWithoutSave={() => {
             isWS && closeWsConnection(item.uid);
             dispatch(
@@ -354,7 +355,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                 tabUids: [tab.uid]
               })
             );
-            setShowConfirmClose(false);
+            dispatch(toggleConfirmRequestModal({ show: false }));
           }}
           onSaveAndClose={() => {
             dispatch(saveRequest(item.uid, collection.uid))
@@ -364,7 +365,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                     tabUids: [tab.uid]
                   })
                 );
-                setShowConfirmClose(false);
+                dispatch(toggleConfirmRequestModal({ show: false }));
               })
               .catch((err) => {
                 console.log('err', err);
@@ -383,7 +384,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           if (e.button === 1) {
             e.stopPropagation();
             e.preventDefault();
-            setShowConfirmClose(true);
+            dispatch(toggleConfirmRequestModal({ show: true }));
           }
         }}
       >
@@ -413,7 +414,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
           e.stopPropagation();
           e.preventDefault();
-          setShowConfirmClose(true);
+          dispatch(toggleConfirmRequestModal({ show: true }));
         }}
       />
     </StyledWrapper>
@@ -437,6 +438,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   const currentTabUid = collectionRequestTabs[tabIndex]?.uid;
   const currentTabItem = findItemInCollection(collection, currentTabUid);
   const currentTabHasChanges = useMemo(() => hasRequestChanges(currentTabItem), [currentTabItem]);
+  const { newRequestModal } = useSelector((state) => state.keyBindings);
 
   const hasLeftTabs = tabIndex !== 0;
   const hasRightTabs = totalTabs > tabIndex + 1;
@@ -503,13 +505,17 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   const menuItems = useMemo(() => [
     {
       id: 'new-request',
-      label: 'New Request',
-      onClick: () => setShowAddNewRequestModal(true)
+      label: 'New Request F1',
+      onClick: () => {
+        dispatch(openNewRequestModal({ collectionUid: collection.uid }));
+      }
     },
     {
       id: 'clone-request',
       label: 'Clone Request',
-      onClick: () => setShowCloneRequestModal(true)
+      onClick: () => {
+        dispatch(openCollectionCloneItemModal({ item: currentTabItem, collectionUid: collection.uid }));
+      }
     },
     {
       id: 'revert-changes',
@@ -565,21 +571,15 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   );
 
   return (
-    <Fragment>
-      {showAddNewRequestModal && (
-        <NewRequest collectionUid={collection.uid} onClose={() => setShowAddNewRequestModal(false)} />
-      )}
-
-      {showCloneRequestModal && (
-        <CloneCollectionItem
-          item={currentTabItem}
+    <>
+      {/* {newRequestModal.open && (
+        <NewRequest
           collectionUid={collection.uid}
-          onClose={() => setShowCloneRequestModal(false)}
+          onClose={() => dispatch(closeNewRequestModal())}
         />
-      )}
-
+      )} */}
       {menuDropdown}
-    </Fragment>
+    </>
   );
 }
 

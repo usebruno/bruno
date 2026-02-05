@@ -1,5 +1,4 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { useDispatch } from 'react-redux';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -9,10 +8,12 @@ import ConfirmRequestClose from '../RequestTab/ConfirmRequestClose';
 import RequestTabNotFound from '../RequestTab/RequestTabNotFound';
 import StyledWrapper from '../RequestTab/StyledWrapper';
 import GradientCloseButton from '../RequestTab/GradientCloseButton';
+import { useSelector, useDispatch } from 'react-redux';
+import { toggleConfirmRequestModal } from 'providers/ReduxStore/slices/keyBindings';
 
 const ExampleTab = ({ tab, collection }) => {
   const dispatch = useDispatch();
-  const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const { showConfirmRequestCloseModal } = useSelector((state) => state.keyBindings);
 
   const dropdownTippyRef = useRef();
 
@@ -75,11 +76,11 @@ const ExampleTab = ({ tab, collection }) => {
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-2">
-      {showConfirmClose && (
+      {showConfirmRequestCloseModal.show && (
         <ConfirmRequestClose
           item={item}
           example={example}
-          onCancel={() => setShowConfirmClose(false)}
+          onCancel={() => dispatch(toggleConfirmRequestModal({ show: false }))}
           onCloseWithoutSave={() => {
             dispatch(deleteRequestDraft({
               itemUid: item.uid,
@@ -88,7 +89,7 @@ const ExampleTab = ({ tab, collection }) => {
             dispatch(closeTabs({
               tabUids: [tab.uid]
             }));
-            setShowConfirmClose(false);
+            dispatch(toggleConfirmRequestModal({ show: false }));
           }}
           onSaveAndClose={() => {
             // For examples, we don't have a separate save action
@@ -97,7 +98,7 @@ const ExampleTab = ({ tab, collection }) => {
             dispatch(closeTabs({
               tabUids: [tab.uid]
             }));
-            setShowConfirmClose(false);
+            dispatch(toggleConfirmRequestModal({ show: false }));
           }}
         />
       )}
@@ -111,7 +112,7 @@ const ExampleTab = ({ tab, collection }) => {
           if (e.button === 1) {
             e.stopPropagation();
             e.preventDefault();
-            setShowConfirmClose(true);
+            dispatch(toggleConfirmRequestModal({ show: true }));
           }
         }}
       >
@@ -129,7 +130,7 @@ const ExampleTab = ({ tab, collection }) => {
 
           e.stopPropagation();
           e.preventDefault();
-          setShowConfirmClose(true);
+          dispatch(toggleConfirmRequestModal({ show: true }));
         }}
       />
     </StyledWrapper>

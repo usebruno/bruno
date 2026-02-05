@@ -49,11 +49,11 @@ import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
+import { openNewRequestModal, closeNewRequestModal, openCollectionCloneModal } from 'providers/ReduxStore/slices/keyBindings';
 
 const Collection = ({ collection, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
-  const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
@@ -64,6 +64,7 @@ const Collection = ({ collection, searchText }) => {
   const dispatch = useDispatch();
   const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
+  const { newRequestModal } = useSelector((state) => state.keyBindings);
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
@@ -283,10 +284,10 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'new-request',
       leftSection: IconFilePlus,
-      label: 'New Request',
+      label: 'New Request F2',
       onClick: () => {
         ensureCollectionIsMounted();
-        setShowNewRequestModal(true);
+        dispatch(openNewRequestModal({ collectionUid: collection.uid }));
       }
     },
     {
@@ -313,7 +314,7 @@ const Collection = ({ collection, searchText }) => {
       label: 'Clone',
       testId: 'clone-collection',
       onClick: () => {
-        setShowCloneCollectionModalOpen(true);
+        dispatch(openCollectionCloneModal({ collectionUid: collection.uid }));
       }
     },
     ...(hasCopiedItems
@@ -395,7 +396,12 @@ const Collection = ({ collection, searchText }) => {
 
   return (
     <StyledWrapper className="flex flex-col" id={`collection-${collection.name.replace(/\s+/g, '-').toLowerCase()}`}>
-      {showNewRequestModal && <NewRequest collectionUid={collection.uid} onClose={() => setShowNewRequestModal(false)} />}
+      {/* {newRequestModal.open && (
+        <NewRequest
+          collectionUid={collection.uid}
+          onClose={() => dispatch(closeNewRequestModal())}
+        />
+      )}       */}
       {showNewFolderModal && <NewFolder collectionUid={collection.uid} onClose={() => setShowNewFolderModal(false)} />}
       {showRenameCollectionModal && (
         <RenameCollection collectionUid={collection.uid} onClose={() => setShowRenameCollectionModal(false)} />
@@ -408,9 +414,6 @@ const Collection = ({ collection, searchText }) => {
       )}
       {showGenerateDocumentationModal && (
         <GenerateDocumentation collectionUid={collection.uid} onClose={() => setShowGenerateDocumentationModal(false)} />
-      )}
-      {showCloneCollectionModalOpen && (
-        <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
       <CollectionItemDragPreview />
       <div

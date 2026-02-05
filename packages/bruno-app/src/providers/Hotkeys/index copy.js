@@ -180,18 +180,11 @@ export const HotkeysProvider = (props) => {
   useEffect(() => {
     Mousetrap.bind([...getKeyBindingsForActionAllOS('newRequest')], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      console.log({ activeTab });
-      if (activeTab.type === 'collection-settings') {
+      if (activeTab) {
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
-        if (collection) {
-          dispatch(openNewRequestModal({ collectionUid: collection.uid }));
-        }
-      } else if (activeTab.type === 'folder-settings') {
-        const collection = findCollectionByUid(collections, activeTab.collectionUid);
-        const item = findItemInCollection(collection, activeTab.uid);
 
         if (collection) {
-          dispatch(openNewRequestModal({ item: item, collectionUid: collection.uid }));
+          dispatch(openNewRequestModal({ collectionUid: collection.uid }));
         }
       }
 
@@ -393,9 +386,8 @@ export const HotkeysProvider = (props) => {
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
-      {newRequestModal.open && newRequestModal.collectionUid && (
+      {newRequestModal.open && (
         <NewRequest
-          item={newRequestModal.item ? newRequestModal.item : null}
           collectionUid={newRequestModal.collectionUid}
           onClose={() => dispatch(closeNewRequestModal())}
         />

@@ -27,6 +27,7 @@ import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/s
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
 import { copyRequest } from 'providers/ReduxStore/slices/app';
+import { openNewRequestModal, openCollectionCloneItemModal, closeNewRequestModal } from 'providers/ReduxStore/slices/keyBindings';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import RenameCollectionItem from './RenameCollectionItem';
@@ -67,6 +68,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
+  const { newRequestModal } = useSelector((state) => state.keyBindings);
   const dispatch = useDispatch();
 
   // We use a single ref for drag and drop.
@@ -298,8 +300,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         {
           id: 'new-request',
           leftSection: IconFilePlus,
-          label: 'New Request',
-          onClick: () => setNewRequestModalOpen(true)
+          label: 'New Request F3',
+          onClick: () => {
+            dispatch(openNewRequestModal({ item: item, collectionUid: collection.uid }));
+          }
         },
         {
           id: 'new-folder',
@@ -321,7 +325,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         id: 'clone',
         leftSection: IconCopy,
         label: 'Clone',
-        onClick: () => setCloneItemModalOpen(true)
+        onClick: () => {
+          dispatch(openCollectionCloneItemModal({ item: item, collectionUid: collection.uid }));
+        }
       },
       {
         id: 'copy',
@@ -585,15 +591,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       {renameItemModalOpen && (
         <RenameCollectionItem item={item} collectionUid={collectionUid} onClose={() => setRenameItemModalOpen(false)} />
       )}
-      {cloneItemModalOpen && (
-        <CloneCollectionItem item={item} collectionUid={collectionUid} onClose={() => setCloneItemModalOpen(false)} />
-      )}
       {deleteItemModalOpen && (
         <DeleteCollectionItem item={item} collectionUid={collectionUid} onClose={() => setDeleteItemModalOpen(false)} />
       )}
-      {newRequestModalOpen && (
-        <NewRequest item={item} collectionUid={collectionUid} onClose={() => setNewRequestModalOpen(false)} />
-      )}
+      {/* {newRequestModal.open && (
+        <NewRequest
+          collectionUid={collectionUid}
+          onClose={() => dispatch(closeNewRequestModal())}
+        />
+      )}       */}
       {newFolderModalOpen && (
         <NewFolder item={item} collectionUid={collectionUid} onClose={() => setNewFolderModalOpen(false)} />
       )}

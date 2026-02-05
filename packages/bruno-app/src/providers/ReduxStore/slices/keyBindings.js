@@ -8,7 +8,7 @@ const initialState = {
   showImportCollectionModal: false,
   cloneRequestorFolderModal: false,
   showConfirmRequestCloseModal: { show: false },
-  newRequestModal: { open: false, collectionUid: null },
+  newRequestModal: { open: false, item: null, collectionUid: null },
   cloneCollectionModal: { open: false, collectionUid: null },
   cloneCollectionItemModal: { open: false, item: null, collectionUid: null }
 };
@@ -36,12 +36,14 @@ export const keybindingsSlice = createSlice({
     // New Request Modal
     openNewRequestModal: (state, action) => {
       const uid = action.payload?.collectionUid;
+      const item = action.payload?.item;
+
       if (uid) {
-        state.newRequestModal = { open: true, collectionUid: uid };
+        state.newRequestModal = { open: true, item: item, collectionUid: uid };
       }
     },
     closeNewRequestModal: (state) => {
-      state.newRequestModal = { open: false, collectionUid: null };
+      state.newRequestModal = { open: false, item: null, collectionUid: null };
     },
     // Clone Collection
     openCollectionCloneModal: (state, action) => {
