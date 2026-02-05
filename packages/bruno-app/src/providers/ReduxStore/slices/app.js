@@ -7,7 +7,6 @@ const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   leftSidebarWidth: 250,
-  sidebarCollapsed: false,
   screenWidth: 500,
   showHomePage: false,
   showApiSpecPage: false,
@@ -120,9 +119,6 @@ export const appSlice = createSlice({
         ...action.payload
       };
     },
-    toggleSidebarCollapse: (state) => {
-      state.sidebarCollapsed = !state.sidebarCollapsed;
-    },
     setClipboard: (state, action) => {
       // Update clipboard UI state
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
@@ -163,7 +159,6 @@ export const {
   removeAllTasksFromQueue,
   updateSystemProxyVariables,
   updateGenerateCode,
-  toggleSidebarCollapse,
   setClipboard
 } = appSlice.actions;
 

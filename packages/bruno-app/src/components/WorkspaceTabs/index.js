@@ -22,7 +22,7 @@ const WorkspaceTabs = ({ workspaceUid }) => {
   const tabs = useSelector((state) => state.workspaceTabs.tabs);
   const activeTabUid = useSelector((state) => state.workspaceTabs.activeTabUid);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
-  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
+  const { sidebarCollapsed } = useSelector((state) => state.keyBindings);
   const screenWidth = useSelector((state) => state.app.screenWidth);
 
   // Initialize permanent tabs for this workspace

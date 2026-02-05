@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import Collection from './Collection';
 import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
-import { useMemo } from 'react';
 import { normalizePath } from 'utils/common/path';
 
-const Collections = ({ showSearch }) => {
+const Collections = () => {
   const [searchText, setSearchText] = useState('');
   const { collections } = useSelector((state) => state.collections);
+  const { showSideBarSearch } = useSelector((state) => state.keyBindings);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
 
@@ -39,7 +39,7 @@ const Collections = ({ showSearch }) => {
         />
       ) : null}
 
-      {showSearch && (
+      {showSideBarSearch && (
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
       )}
 

@@ -12,7 +12,7 @@ import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
 import CreateTransientRequest from 'components/CreateTransientRequest';
 import ActionIcon from 'ui/ActionIcon/index';
-
+import { closeNewRequestModal } from 'providers/ReduxStore/slices/keyBindings';
 const RequestTabs = () => {
   const dispatch = useDispatch();
   const tabsRef = useRef();
@@ -25,8 +25,9 @@ const RequestTabs = () => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
-  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
+  const { sidebarCollapsed } = useSelector((state) => state.keyBindings);
   const screenWidth = useSelector((state) => state.app.screenWidth);
+  const { newRequestModal } = useSelector((state) => state.keyBindings);
 
   const createSetHasOverflow = useCallback((tabUid) => {
     return (hasOverflow) => {
@@ -105,9 +106,6 @@ const RequestTabs = () => {
   // Todo: Must support ephemeral requests
   return (
     <StyledWrapper>
-      {newRequestModalOpen && (
-        <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
-      )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           {activeCollection && <CollectionToolBar collection={activeCollection} />}

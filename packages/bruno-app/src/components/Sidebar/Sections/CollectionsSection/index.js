@@ -18,6 +18,7 @@ import {
 import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { normalizePath } from 'utils/common/path';
+import { toggleShowImportCollectionModal } from 'providers/ReduxStore/slices/keyBindings';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
@@ -42,7 +43,6 @@ const CollectionsSection = () => {
 
   const [importData, setImportData] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
-  const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
 
   const workspaceCollections = useMemo(() => {
@@ -51,12 +51,6 @@ const CollectionsSection = () => {
       activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
     );
   }, [activeWorkspace, collections]);
-
-  const handleImportCollection = ({ rawData, type }) => {
-    setImportCollectionModalOpen(false);
-    setImportData({ rawData, type });
-    setImportCollectionLocationModalOpen(true);
-  };
 
   const handleImportCollectionLocation = (convertedCollection, collectionLocation, options = {}) => {
     dispatch(importCollection(convertedCollection, collectionLocation, options))
@@ -157,7 +151,7 @@ const CollectionsSection = () => {
       leftSection: IconDownload,
       label: 'Import collection',
       onClick: () => {
-        setImportCollectionModalOpen(true);
+        dispatch(toggleShowImportCollectionModal({ show: true }));
       }
     }
   ];
@@ -233,12 +227,6 @@ const CollectionsSection = () => {
       {createCollectionModalOpen && (
         <CreateCollection
           onClose={() => setCreateCollectionModalOpen(false)}
-        />
-      )}
-      {importCollectionModalOpen && (
-        <ImportCollection
-          onClose={() => setImportCollectionModalOpen(false)}
-          handleSubmit={handleImportCollection}
         />
       )}
       {importCollectionLocationModalOpen && importData && (
