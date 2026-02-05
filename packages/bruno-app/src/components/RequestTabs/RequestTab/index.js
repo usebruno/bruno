@@ -505,7 +505,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   const menuItems = useMemo(() => [
     {
       id: 'new-request',
-      label: 'New Request F1',
+      label: 'New Request',
       onClick: () => {
         dispatch(openNewRequestModal({ collectionUid: collection.uid }));
       }

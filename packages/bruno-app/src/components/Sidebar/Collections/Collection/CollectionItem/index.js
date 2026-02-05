@@ -300,7 +300,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         {
           id: 'new-request',
           leftSection: IconFilePlus,
-          label: 'New Request F3',
+          label: 'New Request',
           onClick: () => {
             dispatch(openNewRequestModal({ item: item, collectionUid: collection.uid }));
           }

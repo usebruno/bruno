@@ -284,7 +284,7 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'new-request',
       leftSection: IconFilePlus,
-      label: 'New Request F2',
+      label: 'New Request',
       onClick: () => {
         ensureCollectionIsMounted();
         dispatch(openNewRequestModal({ collectionUid: collection.uid }));
