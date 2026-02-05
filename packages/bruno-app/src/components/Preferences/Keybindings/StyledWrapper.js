@@ -1,41 +1,58 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  width: 100%;
-  
-  table {
-    width: 80%;
-    border-collapse: collapse;
+  &::-webkit-scrollbar { display: none; }
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 
-    thead,
-    td {
-      border: 1px solid ${(props) => props.theme.table.border};
-    }
+  table {
+    width: 100%;
+    border-collapse: collapse;
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
       font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
 
     td {
       padding: 6px 10px;
       font-size: ${(props) => props.theme.font.size.sm};
+      border-top: 1px solid ${(props) => props.theme.table.border};
+      border-left: 1px solid ${(props) => props.theme.table.border};
+      border-right: 1px solid ${(props) => props.theme.table.border};
     }
 
     thead th {
       font-weight: 500;
       padding: 10px;
       text-align: left;
-      border: 1px solid ${(props) => props.theme.table.border};
+      border-left: 1px solid ${(props) => props.theme.table.border};
+      border-right: 1px solid ${(props) => props.theme.table.border};
+      border-bottom: 1px solid ${(props) => props.theme.table.border};
     }
   }
 
   .table-container {
+    height: 100%; 
+    max-height: inherit; 
+    
     overflow-y: auto;
+    border-radius: 8px;
+    border-top: 1px solid ${(props) => props.theme.table.border};
+    border-bottom: 1px solid ${(props) => props.theme.table.border};
+
+    &::-webkit-scrollbar {
+      width: 0px;
+      background: transparent;
+      display: none;
+    }
+
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
   .key-button {

@@ -1,7 +1,8 @@
-import StyledWrapper from './StyledWrapper';
 import React from 'react';
-import { getKeyBindingsForOS } from 'providers/Hotkeys/keyMappings';
+
+import StyledWrapper from './StyledWrapper';
 import { isMacOS } from 'utils/common/platform';
+import { getKeyBindingsForOS } from 'providers/Hotkeys/keyMappings';
 
 const Keybindings = ({ close }) => {
   const keyMapping = getKeyBindingsForOS(isMacOS() ? 'mac' : 'windows');
@@ -23,7 +24,7 @@ const Keybindings = ({ close }) => {
                 <tr key={index}>
                   <td>{name}</td>
                   <td>
-                    {keys.split('+').map((key, i) => (
+                    {keys.split('+bind+').map((key, i) => (
                       <div className="key-button" key={i}>
                         {key}
                       </div>
