@@ -2969,7 +2969,7 @@ export const deleteDotEnvFile = (collectionUid, filename = '.env') => (dispatch,
  * Close tabs and delete any transient request files from the filesystem.
  * This thunk wraps the closeTabs reducer to handle transient file cleanup automatically.
  */
-export const closeTabs = ({ tabUids }) => (dispatch, getState) => {
+export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
   const { ipcRenderer } = window;
   const state = getState();
   const collections = state.collections.collections;
@@ -2994,19 +2994,17 @@ export const closeTabs = ({ tabUids }) => (dispatch, getState) => {
   });
 
   // Close the tabs first
-  dispatch(_closeTabs({ tabUids }));
+  await dispatch(_closeTabs({ tabUids }));
 
-  // Delete transient files grouped by temp directory
-  Object.entries(transientByTempDir).forEach(([tempDir, filePaths]) => {
-    ipcRenderer
-      .invoke('renderer:delete-transient-requests', filePaths, tempDir)
-      .then((results) => {
-        if (results.errors?.length > 0) {
-          console.error('Errors deleting transient files:', results.errors);
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to delete transient request files:', err);
-      });
-  });
+  // Delete transient files after tabs are closed
+  for (const [tempDir, filePaths] of Object.entries(transientByTempDir)) {
+    try {
+      const results = await ipcRenderer.invoke('renderer:delete-transient-requests', filePaths, tempDir);
+      if (results.errors?.length > 0) {
+        console.error('Errors deleting transient files:', results.errors);
+      }
+    } catch (err) {
+      console.error('Failed to delete transient request files:', err);
+    }
+  }
 };
