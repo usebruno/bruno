@@ -4,6 +4,7 @@ const path = require('node:path');
 const { get } = require('lodash');
 const lodash = require('lodash');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
+const { wrapConsoleWithSerializers } = require('./console');
 
 class ScriptError extends Error {
   constructor(error, script) {
@@ -47,8 +48,8 @@ async function runScriptInNodeVm({
 
     // Create script context with all necessary variables
     const scriptContext = {
-      // Bruno context
-      console: context.console,
+      // Bruno context (wrap console with Set/Map support)
+      console: wrapConsoleWithSerializers(context.console),
       req: context.req,
       res: context.res,
       bru: context.bru,
