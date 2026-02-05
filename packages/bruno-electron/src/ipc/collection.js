@@ -516,7 +516,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // create environment
-  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables) => {
+  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables, color) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
       if (!fs.existsSync(envDirPath)) {
@@ -539,7 +539,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const environment = {
         name: uniqueName,
-        variables: variables || []
+        variables: variables || [],
+        color
       };
 
       if (envHasSecrets(environment)) {

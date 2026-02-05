@@ -1770,7 +1770,7 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const importEnvironment = ({ name, variables, collectionUid }) => (dispatch, getState) => {
+export const importEnvironment = ({ name, variables, color, collectionUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1782,7 +1782,7 @@ export const importEnvironment = ({ name, variables, collectionUid }) => (dispat
 
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variables)
+      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variables, color)
       .then(
         dispatch(
           updateLastAction({
