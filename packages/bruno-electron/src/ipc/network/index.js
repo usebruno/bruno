@@ -149,7 +149,8 @@ const configureRequest = async (
     proxyConfig,
     requestMaxRedirects,
     httpsAgentRequestFields,
-    interpolationOptions
+    interpolationOptions,
+    followRedirects
   });
 
   if (request.ntlmConfig) {
