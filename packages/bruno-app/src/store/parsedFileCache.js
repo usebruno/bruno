@@ -151,24 +151,25 @@ export const parsedFileCacheStore = {
   async getStats() {
     try {
       const db = await getDB();
+
+      // Use count() for O(1) total files count
+      const totalFiles = await db.count(STORE_NAME);
+
+      // Count unique collections using index with unique cursor
       const tx = db.transaction(STORE_NAME, 'readonly');
-      const store = tx.store;
+      const index = tx.store.index('collectionPath');
+      let totalCollections = 0;
 
-      const collections = new Set();
-      let totalFiles = 0;
-
-      let cursor = await store.openCursor();
+      // Use openKeyCursor with 'nextunique' to count unique collection paths
+      let cursor = await index.openKeyCursor(null, 'nextunique');
       while (cursor) {
-        totalFiles++;
-        if (cursor.value.collectionPath) {
-          collections.add(cursor.value.collectionPath);
-        }
+        totalCollections++;
         cursor = await cursor.continue();
       }
 
       return {
         version: CACHE_VERSION,
-        totalCollections: collections.size,
+        totalCollections,
         totalFiles
       };
     } catch (error) {
