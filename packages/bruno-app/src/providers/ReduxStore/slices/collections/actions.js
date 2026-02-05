@@ -2663,6 +2663,31 @@ export const importCollection = (collection, collectionLocation, options = {}) =
   });
 };
 
+export const importCollectionFromZip = (zipFilePath, collectionLocation) => (dispatch, getState) => {
+  return new Promise(async (resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    try {
+      const state = getState();
+      const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+
+      const collectionPath = await ipcRenderer.invoke('renderer:import-collection-zip', zipFilePath, collectionLocation);
+
+      if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
+        const collectionName = collectionPath.split('/').pop();
+        await ipcRenderer.invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, {
+          name: collectionName,
+          path: collectionPath
+        });
+      }
+
+      resolve(collectionPath);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 export const moveCollectionAndPersist
   = ({ draggedItem, targetItem }) =>
     (dispatch, getState) => {

@@ -4,6 +4,7 @@ const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const archiver = require('archiver');
+const extractZip = require('extract-zip');
 const { ipcMain, shell, dialog, app } = require('electron');
 const {
   parseRequest,
@@ -2046,6 +2047,76 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       });
 
       return { success: true, filePath };
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:import-collection-zip', async (event, zipFilePath, collectionLocation) => {
+    try {
+      if (!fs.existsSync(zipFilePath)) {
+        throw new Error('ZIP file does not exist');
+      }
+
+      if (!collectionLocation || !fs.existsSync(collectionLocation)) {
+        throw new Error('Collection location does not exist');
+      }
+
+      const tempDir = path.join(os.tmpdir(), `bruno_zip_import_${Date.now()}`);
+      await fsExtra.ensureDir(tempDir);
+
+      try {
+        await extractZip(zipFilePath, { dir: tempDir });
+
+        const extractedItems = fs.readdirSync(tempDir);
+        let collectionDir = tempDir;
+
+        if (extractedItems.length === 1) {
+          const singleItem = path.join(tempDir, extractedItems[0]);
+          if (fs.statSync(singleItem).isDirectory()) {
+            collectionDir = singleItem;
+          }
+        }
+
+        const brunoJsonPath = path.join(collectionDir, 'bruno.json');
+        const openCollectionYmlPath = path.join(collectionDir, 'opencollection.yml');
+
+        if (!fs.existsSync(brunoJsonPath) && !fs.existsSync(openCollectionYmlPath)) {
+          throw new Error('Invalid collection: Neither bruno.json nor opencollection.yml found in the ZIP file');
+        }
+
+        let collectionName = 'Imported Collection';
+        if (fs.existsSync(openCollectionYmlPath)) {
+          try {
+            const content = fs.readFileSync(openCollectionYmlPath, 'utf8');
+            const { brunoConfig } = parseCollection(content, { format: 'yml' });
+            collectionName = brunoConfig?.name || collectionName;
+          } catch (e) {}
+        } else if (fs.existsSync(brunoJsonPath)) {
+          try {
+            const config = JSON.parse(fs.readFileSync(brunoJsonPath, 'utf8'));
+            collectionName = config.name || collectionName;
+          } catch (e) {}
+        }
+
+        const sanitizedName = sanitizeName(collectionName);
+        let finalCollectionPath = path.join(collectionLocation, sanitizedName);
+        let counter = 1;
+        while (fs.existsSync(finalCollectionPath)) {
+          finalCollectionPath = path.join(collectionLocation, `${sanitizedName} (${counter})`);
+          counter++;
+        }
+
+        await fsExtra.move(collectionDir, finalCollectionPath);
+        if (tempDir !== collectionDir) {
+          await fsExtra.remove(tempDir).catch(() => {});
+        }
+
+        return finalCollectionPath;
+      } catch (error) {
+        await fsExtra.remove(tempDir).catch(() => {});
+        throw error;
+      }
     } catch (error) {
       throw error;
     }

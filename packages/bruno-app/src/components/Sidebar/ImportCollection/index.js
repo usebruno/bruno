@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { IconFileImport } from '@tabler/icons';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
@@ -59,6 +59,14 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   const processFile = async (file) => {
     setIsLoading(true);
     try {
+      if (file.name.endsWith('.zip') || file.type === 'application/zip' || file.type === 'application/x-zip-compressed') {
+        const { ipcRenderer } = window;
+        const zipFilePath = ipcRenderer.getFilePath(file);
+        const collectionName = file.name.replace(/\.zip$/i, '');
+        handleSubmit({ rawData: { zipFilePath, collectionName }, type: 'bruno-zip' });
+        return;
+      }
+
       const data = await convertFileToObject(file);
 
       if (!data) {
@@ -120,9 +128,12 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     '.yaml',
     '.yml',
     '.wsdl',
+    '.zip',
     'application/json',
     'application/yaml',
     'application/x-yaml',
+    'application/zip',
+    'application/x-zip-compressed',
     'text/xml',
     'application/xml'
   ];
@@ -165,7 +176,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
                 </button>
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Supports Bruno, OpenCollection, Postman, Insomnia, OpenAPI v3, and WSDL formats
+                Supports Bruno, OpenCollection, Postman, Insomnia, OpenAPI v3, WSDL, and ZIP formats
               </p>
             </div>
           </div>
