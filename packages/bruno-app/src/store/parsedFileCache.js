@@ -24,7 +24,7 @@ const getDB = () => {
 };
 
 const generateKey = (collectionPath, filePath) => {
-  return `${collectionPath}\0${filePath}`;
+  return `${collectionPath}\n${filePath}`;
 };
 
 export const parsedFileCacheStore = {
