@@ -107,6 +107,11 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         return;
       }
 
+      if (!validateName(trimmedName)) {
+        toast.error(validateNameError(trimmedName));
+        return;
+      }
+
       const sanitizedFilename = sanitizeName(trimmedName);
 
       const itemToSave = latestItem.draft ? { ...latestItem, ...latestItem.draft } : { ...latestItem };
@@ -175,11 +180,23 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   };
 
   const handleCreateNewFolder = async () => {
-    const directoryName = newFolderDirectoryName.trim() || sanitizeName(newFolderName.trim());
+    const trimmedFolderName = newFolderName.trim();
+
+    if (!trimmedFolderName) {
+      toast.error('Folder name is required');
+      return;
+    }
+
+    if (!validateName(trimmedFolderName)) {
+      toast.error(validateNameError(trimmedFolderName));
+      return;
+    }
+
+    const directoryName = newFolderDirectoryName.trim() || sanitizeName(trimmedFolderName);
     const parentFolder = getCurrentParentFolder();
 
     try {
-      await dispatch(newFolder(newFolderName.trim(), directoryName, collection?.uid, parentFolder?.uid));
+      await dispatch(newFolder(trimmedFolderName, directoryName, collection?.uid, parentFolder?.uid));
       toast.success('New folder created!');
       handleCancelNewFolder();
     } catch (err) {
