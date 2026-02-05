@@ -2835,7 +2835,7 @@ export const collectionsSlice = createSlice({
           const isFolderRoot = file.meta.folderRoot ? true : false;
           const isTransientFile = tempDirectory && file.meta.pathname.startsWith(tempDirectory);
           if (isCollectionRoot) {
-            collection.root = file.data;
+            collection.root = mergeRootWithPreservedUids(collection.root, file.data);
             continue;
           }
 
@@ -2846,7 +2846,7 @@ export const collectionsSlice = createSlice({
               if (file?.data?.meta?.name) {
                 folderItem.name = file?.data?.meta?.name;
               }
-              folderItem.root = file.data;
+              folderItem.root = mergeRootWithPreservedUids(folderItem.root, file.data);
               if (file?.data?.meta?.seq) {
                 folderItem.seq = file.data?.meta?.seq;
               }
@@ -2885,7 +2885,7 @@ export const collectionsSlice = createSlice({
               currentItem.type = file.data.type;
               currentItem.seq = file.data.seq;
               currentItem.tags = file.data.tags;
-              currentItem.request = file.data.request;
+              currentItem.request = mergeRequestWithPreservedUids(currentItem.request, file.data.request);
               currentItem.filename = file.meta.name;
               currentItem.pathname = file.meta.pathname;
               currentItem.settings = file.data.settings;
