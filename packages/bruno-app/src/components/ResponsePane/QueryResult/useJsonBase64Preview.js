@@ -129,6 +129,26 @@ const getBinaryMimeType = (payload) => {
   return typeof payload.mimeType === 'string' ? payload.mimeType : null;
 };
 
+/**
+ * Derives base64 preview state and the effective buffer for JSON responses.
+ * Automatically detects Base64-encoded binary data within JSON payloads and provides
+ * preview rendering support with optional JSONPath override for manual specification.
+ *
+ * @param {Object} params
+ * @param {*} params.data - The JSON response data to analyze
+ * @param {string} params.dataBuffer - The original binary data buffer
+ * @param {string} params.selectedFormat - Selected display format (e.g., 'base64', 'hex')
+ * @param {string} params.selectedTab - Active tab in response view (e.g., 'preview')
+ * @param {boolean} params.isEnabled - Whether the feature is enabled via preferences
+ *
+ * @returns {Object} Preview state and derived values
+ * @returns {string} binarySourcePath - JSONPath to binary source (user-settable)
+ * @returns {Function} setBinarySourcePath - Setter for binarySourcePath state
+ * @returns {boolean} binarySourceFilterEnabled - Whether path filtering is available
+ * @returns {string|null} binaryMimeType - Detected MIME type from payload
+ * @returns {string} effectiveDataBuffer - Buffer to use for preview rendering
+ * @returns {string|null} detectedContentType - Detected content type from magic numbers
+ */
 const useJsonBase64Preview = ({ data, dataBuffer, selectedFormat, selectedTab, isEnabled }) => {
   const [binarySourcePath, setBinarySourcePath] = useState('');
   const jsonPayload = useMemo(() => parseJsonPayload(data), [data]);

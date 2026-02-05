@@ -41,7 +41,7 @@ const QueryResultFilter = ({
     }
 
     return null;
-  }, [mode]);
+  }, [mode, infotipOverride]);
 
   const placeholderText = useMemo(() => {
     if (placeholderOverride) {
@@ -57,7 +57,7 @@ const QueryResultFilter = ({
     }
 
     return null;
-  }, [mode]);
+  }, [mode, placeholderOverride]);
 
   return (
     <div
