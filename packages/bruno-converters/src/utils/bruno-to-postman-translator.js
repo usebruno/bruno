@@ -61,6 +61,9 @@ const simpleTranslations = {
   'req.body': 'pm.request.body',
   'req.getHeader': 'pm.request.headers.get',
   'req.setHeader': 'pm.request.headers.set',
+  'req.getHost': 'pm.request.url.getHost',
+  'req.getPath': 'pm.request.url.getPath',
+  'req.getQueryString': 'pm.request.url.getQueryString',
 
   // URL helper methods
   'req.getHost': 'pm.request.url.getHost',
@@ -364,6 +367,27 @@ const complexTransformations = [
       );
 
       return iife;
+    }
+  },
+
+  // req.getPathParams() -> pm.request.url.variables
+  {
+    pattern: 'req.getPathParams',
+    transform: () => buildMemberExpressionFromString('pm.request.url.variables')
+  },
+
+  // bru.visualize(html) -> pm.visualizer.set(html, {})
+  {
+    pattern: 'bru.visualize',
+    transform: (path) => {
+      const callExpr = path.value;
+      const args = callExpr.arguments;
+
+      // pm.visualizer.set takes template and data, Bruno only has template
+      return j.callExpression(
+        buildMemberExpressionFromString('pm.visualizer.set'),
+        args.length > 0 ? [args[0], j.objectExpression([])] : [j.literal(''), j.objectExpression([])]
+      );
     }
   }
 ];
