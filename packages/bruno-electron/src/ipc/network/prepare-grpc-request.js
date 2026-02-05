@@ -153,7 +153,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
       ...request.body,
       grpc: request.body.grpc.map((message) => ({
         ...message,
-        content: message.content ? decomment(message.content) : message.content
+        content: typeof message.content === 'string' ? decomment(message.content) : message.content
       }))
     };
   }
