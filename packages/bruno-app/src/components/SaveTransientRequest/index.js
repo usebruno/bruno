@@ -11,11 +11,14 @@ import useCollectionFolderTree from 'hooks/useCollectionFolderTree';
 import { removeSaveTransientRequestModal, deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
-import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
+import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import { sanitizeName } from 'utils/common/regex';
 import { resolveRequestFilename } from 'utils/common/platform';
+import path from 'utils/common/path';
 import { transformRequestToSaveToFilesystem, findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import { itemSchema } from '@usebruno/schema';
+import { uuid } from 'utils/common';
 
 const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose }) => {
   const dispatch = useDispatch();
@@ -118,6 +121,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
       const format = collection.format || DEFAULT_COLLECTION_FORMAT;
       const targetFilename = resolveRequestFilename(sanitizedFilename, format);
+      const targetPathname = path.join(targetDirname, targetFilename);
 
       await ipcRenderer.invoke('renderer:save-transient-request', {
         sourcePathname: item.pathname,
@@ -126,6 +130,16 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         request: transformedItem,
         format
       });
+
+      // Add task to open the newly saved request when file watcher detects it
+      dispatch(
+        insertTaskIntoQueue({
+          uid: uuid(),
+          type: 'OPEN_REQUEST',
+          collectionUid: collection.uid,
+          itemPathname: targetPathname
+        })
+      );
 
       dispatch(
         closeTabs({
