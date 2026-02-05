@@ -82,7 +82,7 @@ function buildScriptContext(context, scriptingConfig) {
 
     // Bruno context (wrap console with Set/Map support)
     console: wrapConsoleWithSerializers(context.console),
-    
+
     // Configuration for nested module loading
     scriptingConfig: scriptingConfig,
 
