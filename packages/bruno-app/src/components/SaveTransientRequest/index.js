@@ -16,6 +16,7 @@ import { resolveRequestFilename } from 'utils/common/platform';
 import { transformRequestToSaveToFilesystem, findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import { itemSchema } from '@usebruno/schema';
+import { formatIpcError } from 'utils/common/error';
 
 const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose }) => {
   const dispatch = useDispatch();
@@ -144,7 +145,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       toast.success('Request saved successfully');
       handleClose();
     } catch (err) {
-      toast.error(err?.message || 'Failed to save request');
+      toast.error(formatIpcError(err) || 'Failed to save request');
       console.error('Error saving request:', err);
     }
   };
