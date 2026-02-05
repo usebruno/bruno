@@ -475,21 +475,26 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   }
 
   async function handleCloseMultipleTabs(tabs) {
-    // First, save any tabs with unsaved changes
+    const tabUidsToClose = [];
+
     for (const tab of tabs) {
       const item = findItemInCollection(collection, tab.uid);
       if (item && hasRequestChanges(item)) {
         try {
           await dispatch(saveRequest(item.uid, collection.uid, true));
         } catch (err) {
-          // Continue even if save fails
+          continue;
         }
+      }
+
+      if (tab?.uid) {
+        tabUidsToClose.push(tab.uid);
       }
     }
 
-    // Then close all tabs in a single call
-    const tabUids = tabs.map((tab) => tab.uid);
-    dispatch(closeTabs({ tabUids }));
+    if (tabUidsToClose.length > 0) {
+      dispatch(closeTabs({ tabUids: tabUidsToClose }));
+    }
   }
 
   async function handleCloseOtherTabs() {
