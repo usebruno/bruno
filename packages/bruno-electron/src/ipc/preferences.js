@@ -1,7 +1,7 @@
 const { ipcMain, nativeTheme } = require('electron');
 const { getPreferences, savePreferences } = require('../store/preferences');
 const { globalEnvironmentsStore } = require('../store/global-environments');
-const { parsedFileCacheStore } = require('../store/parsed-file-cache');
+const { parsedFileCacheStore } = require('../store/parsed-file-cache-idb');
 const { getCachedSystemProxy, refreshSystemProxy } = require('../store/system-proxy');
 
 const registerPreferencesIpc = (mainWindow) => {
@@ -42,7 +42,7 @@ const registerPreferencesIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:get-cache-stats', async () => {
     try {
-      return parsedFileCacheStore.getStats();
+      return await parsedFileCacheStore.getStats();
     } catch (error) {
       console.error('Error getting cache stats:', error);
       return { error: error.message };

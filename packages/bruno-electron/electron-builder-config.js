@@ -4,12 +4,6 @@ const config = {
   appId: 'com.usebruno.app',
   productName: 'Bruno',
   electronVersion: '37.6.1',
-  asar: true,
-  asarUnpack: [
-    // LMDB native binaries must be unpacked to load properly
-    'node_modules/lmdb/**',
-    'node_modules/@lmdb/**'
-  ],
   directories: {
     buildResources: 'resources',
     output: 'out'

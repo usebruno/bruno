@@ -27,7 +27,7 @@ const UiStateSnapshot = require('../store/ui-state-snapshot');
 const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
-const { parsedFileCacheStore } = require('../store/parsed-file-cache');
+const { parsedFileCacheStore } = require('../store/parsed-file-cache-idb');
 const { getAggregator } = require('./batch-aggregator');
 const dotEnvWatcher = require('./dotenv-watcher');
 
@@ -317,7 +317,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     try {
       const fileStats = await fsPromises.stat(pathname);
 
-      const cachedEntry = parsedFileCacheStore.getEntry(collectionPath, pathname);
+      const cachedEntry = await parsedFileCacheStore.getEntry(collectionPath, pathname);
       if (cachedEntry && cachedEntry.mtimeMs === fileStats.mtimeMs) {
         // Cache hit
         file.data = cachedEntry.parsedData;
@@ -341,7 +341,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         hydrateRequestWithUuid(file.data, pathname);
         batchAggregator.add('addFile', file);
 
-        parsedFileCacheStore.setEntry(collectionPath, pathname, {
+        await parsedFileCacheStore.setEntry(collectionPath, pathname, {
           mtimeMs: fileStats.mtimeMs,
           parsedData: file.data
         });
@@ -360,7 +360,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         hydrateRequestWithUuid(file.data, pathname);
         batchAggregator.add('addFile', file);
 
-        parsedFileCacheStore.setEntry(collectionPath, pathname, {
+        await parsedFileCacheStore.setEntry(collectionPath, pathname, {
           mtimeMs: fileStats.mtimeMs,
           parsedData: file.data
         });
@@ -538,7 +538,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   const format = getCollectionFormat(collectionPath);
   if (hasRequestExtension(pathname, format)) {
     // Invalidate cache for this file since it changed
-    parsedFileCacheStore.invalidate(collectionPath, pathname);
+    await parsedFileCacheStore.invalidate(collectionPath, pathname);
 
     try {
       const file = {
@@ -562,7 +562,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       hydrateRequestWithUuid(file.data, pathname);
 
       // Update cache with new parsed data
-      parsedFileCacheStore.setEntry(collectionPath, pathname, {
+      await parsedFileCacheStore.setEntry(collectionPath, pathname, {
         mtimeMs: fileStats.mtimeMs,
         parsedData: file.data
       });
@@ -575,7 +575,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   }
 };
 
-const unlink = (win, pathname, collectionUid, collectionPath) => {
+const unlink = async (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher unlink: ${pathname}`);
 
   if (isEnvironmentsFolder(pathname, collectionPath)) {
@@ -585,7 +585,7 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
   const format = getCollectionFormat(collectionPath);
   if (hasRequestExtension(pathname, format)) {
     // Invalidate cache for deleted file
-    parsedFileCacheStore.invalidate(collectionPath, pathname);
+    await parsedFileCacheStore.invalidate(collectionPath, pathname);
 
     const basename = path.basename(pathname);
     const dirname = path.dirname(pathname);
@@ -612,7 +612,7 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
-  parsedFileCacheStore.invalidateDirectory(collectionPath, pathname);
+  await parsedFileCacheStore.invalidateDirectory(collectionPath, pathname);
 
   const format = getCollectionFormat(collectionPath);
   const folderFilePath = path.join(pathname, `folder.${format}`);
