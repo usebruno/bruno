@@ -1,4 +1,4 @@
-const { ipcMain, BrowserWindow } = require('electron');
+const { ipcMain } = require('electron');
 const { v4: uuidv4 } = require('uuid');
 
 // Pending requests waiting for renderer response
@@ -7,8 +7,13 @@ const pendingRequests = new Map();
 // Timeout for IPC requests (5 seconds)
 const REQUEST_TIMEOUT = 5000;
 
+// Store reference to main window
+let mainWindow = null;
+
 // Initialize the IPC response handler
-const initializeCacheIpc = () => {
+const initializeCacheIpc = (win) => {
+  mainWindow = win;
+
   ipcMain.on('renderer:parsed-file-cache-response', (event, response) => {
     const { requestId, success, data, error } = response;
     const pending = pendingRequests.get(requestId);
@@ -28,29 +33,22 @@ const initializeCacheIpc = () => {
 
 // Send a request to the renderer and wait for response
 const sendCacheRequest = (operation, ...args) => {
-  return new Promise((resolve, reject) => {
-    const win = BrowserWindow.getAllWindows()[0];
-
-    if (!win || win.isDestroyed()) {
-      // No window available, return null/undefined gracefully
+  return new Promise((resolve) => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
       resolve(null);
       return;
     }
 
     const requestId = uuidv4();
 
-    // Set up timeout
     const timeout = setTimeout(() => {
       pendingRequests.delete(requestId);
-      // On timeout, resolve with null instead of rejecting to avoid blocking
       resolve(null);
     }, REQUEST_TIMEOUT);
 
-    // Store pending request
-    pendingRequests.set(requestId, { resolve, reject, timeout });
+    pendingRequests.set(requestId, { resolve, timeout });
 
-    // Send request to renderer
-    win.webContents.send('main:parsed-file-cache-request', operation, requestId, ...args);
+    mainWindow.webContents.send('main:parsed-file-cache-request', operation, requestId, ...args);
   });
 };
 
@@ -59,9 +57,9 @@ class ParsedFileCacheStore {
     this.initialized = false;
   }
 
-  initialize() {
+  initialize(win) {
     if (!this.initialized) {
-      initializeCacheIpc();
+      initializeCacheIpc(win);
       this.initialized = true;
     }
   }

@@ -395,7 +395,7 @@ app.on('ready', async () => {
   });
 
   // Initialize the parsed file cache IPC handlers
-  parsedFileCacheStore.initialize();
+  parsedFileCacheStore.initialize(mainWindow);
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
