@@ -121,4 +121,39 @@ describe('Request Translation', () => {
         const name = req.getName();
         `);
   });
+
+  // --- pm.request.headers.add and upsert ---------------------------
+  it('should translate pm.request.headers.add with object argument', () => {
+    const code = 'pm.request.headers.add({key: "Authorization", value: "Bearer token"});';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('req.setHeader("Authorization", "Bearer token");');
+  });
+
+  it('should translate pm.request.headers.upsert with object argument', () => {
+    const code = 'pm.request.headers.upsert({key: "Content-Type", value: "application/json"});';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('req.setHeader("Content-Type", "application/json");');
+  });
+
+  it('should translate pm.request.headers.add with quoted key property', () => {
+    const code = 'pm.request.headers.add({"key": "X-Custom-Header", "value": "custom-value"});';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('req.setHeader("X-Custom-Header", "custom-value");');
+  });
+
+  it('should translate pm.request.headers.upsert with variable values', () => {
+    const code = 'const headerName = "Authorization"; const headerValue = "Bearer " + token; pm.request.headers.upsert({key: headerName, value: headerValue});';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('req.setHeader(headerName, headerValue)');
+  });
+
+  it('should translate multiple headers.add calls', () => {
+    const code = `
+        pm.request.headers.add({key: "Authorization", value: "Bearer token"});
+        pm.request.headers.add({key: "Content-Type", value: "application/json"});
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('req.setHeader("Authorization", "Bearer token")');
+    expect(translatedCode).toContain('req.setHeader("Content-Type", "application/json")');
+  });
 });
