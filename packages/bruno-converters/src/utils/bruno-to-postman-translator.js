@@ -61,9 +61,6 @@ const simpleTranslations = {
   'req.body': 'pm.request.body',
   'req.getHeader': 'pm.request.headers.get',
   'req.setHeader': 'pm.request.headers.set',
-  'req.getHost': 'pm.request.url.getHost',
-  'req.getPath': 'pm.request.url.getPath',
-  'req.getQueryString': 'pm.request.url.getQueryString',
 
   // URL helper methods
   'req.getHost': 'pm.request.url.getHost',
@@ -368,12 +365,6 @@ const complexTransformations = [
 
       return iife;
     }
-  },
-
-  // req.getPathParams() -> pm.request.url.variables
-  {
-    pattern: 'req.getPathParams',
-    transform: () => buildMemberExpressionFromString('pm.request.url.variables')
   },
 
   // bru.visualize(html) -> pm.visualizer.set(html, {})
