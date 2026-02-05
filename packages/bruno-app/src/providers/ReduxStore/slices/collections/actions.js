@@ -64,7 +64,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
@@ -2962,5 +2962,51 @@ export const deleteDotEnvFile = (collectionUid, filename = '.env') => (dispatch,
       .invoke('renderer:delete-dotenv-file', collection.pathname, filename)
       .then(resolve)
       .catch(reject);
+  });
+};
+
+/**
+ * Close tabs and delete any transient request files from the filesystem.
+ * This thunk wraps the closeTabs reducer to handle transient file cleanup automatically.
+ */
+export const closeTabs = ({ tabUids }) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  const state = getState();
+  const collections = state.collections.collections;
+  const tempDirectories = state.collections.tempDirectories || {};
+
+  // Find transient items and group by temp directory before closing tabs
+  const transientByTempDir = {};
+  each(tabUids, (tabUid) => {
+    for (const collection of collections) {
+      const item = findItemInCollection(collection, tabUid);
+      if (item?.isTransient && item.pathname) {
+        const tempDir = tempDirectories[collection.uid];
+        if (tempDir) {
+          if (!transientByTempDir[tempDir]) {
+            transientByTempDir[tempDir] = [];
+          }
+          transientByTempDir[tempDir].push(item.pathname);
+        }
+        break;
+      }
+    }
+  });
+
+  // Close the tabs first
+  dispatch(_closeTabs({ tabUids }));
+
+  // Delete transient files grouped by temp directory
+  Object.entries(transientByTempDir).forEach(([tempDir, filePaths]) => {
+    ipcRenderer
+      .invoke('renderer:delete-transient-requests', filePaths, tempDir)
+      .then((results) => {
+        if (results.errors?.length > 0) {
+          console.error('Errors deleting transient files:', results.errors);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to delete transient request files:', err);
+      });
   });
 };
