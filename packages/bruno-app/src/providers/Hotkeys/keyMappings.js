@@ -6,7 +6,7 @@ const KeyMapping = {
   importCollection: { mac: 'command+bind+o', windows: 'ctrl+bind+o', name: 'Import Collection' },
   globalSearch: { mac: 'command+bind+k', windows: 'ctrl+bind+k', name: 'Global Search' },
   sidebarSearch: { mac: 'command+bind+f', windows: 'ctrl+bind+f', name: 'Search Sidebar' },
-  closeTab: { mac: 'command+bind+w', windows: 'ctrl+bind+w', name: 'Close Tab' }, // works but not when active in any editor
+  closeTab: { mac: 'command+bind+w', windows: 'ctrl+bind+w', name: 'Close Tab' },
   openPreferences: { mac: 'command+bind+,', windows: 'ctrl+bind+,', name: 'Open Preferences' },
   changeLayout: { mac: 'x+bind+v', windows: 'x+bind+v', name: 'Change Orientation' },
   closeBruno: {
@@ -16,12 +16,12 @@ const KeyMapping = {
   },
   switchToPreviousTab: {
     mac: 'command+bind+pageup',
-    windows: 'fn+bind+command+bind+arrowup',
+    windows: 'fn+bind+ctrl+bind+arrowup',
     name: 'Switch to Previous Tab'
   },
   switchToNextTab: {
     mac: 'command+bind+pagedown',
-    windows: 'fn+bind+command+bind+arrowdown',
+    windows: 'fn+bind+ctrl+bind+arrowdown',
     name: 'Switch to Next Tab'
   },
   moveTabLeft: {
