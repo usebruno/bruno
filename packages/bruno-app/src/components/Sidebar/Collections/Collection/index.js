@@ -396,12 +396,6 @@ const Collection = ({ collection, searchText }) => {
 
   return (
     <StyledWrapper className="flex flex-col" id={`collection-${collection.name.replace(/\s+/g, '-').toLowerCase()}`}>
-      {/* {newRequestModal.open && (
-        <NewRequest
-          collectionUid={collection.uid}
-          onClose={() => dispatch(closeNewRequestModal())}
-        />
-      )}       */}
       {showNewFolderModal && <NewFolder collectionUid={collection.uid} onClose={() => setShowNewFolderModal(false)} />}
       {showRenameCollectionModal && (
         <RenameCollection collectionUid={collection.uid} onClose={() => setShowRenameCollectionModal(false)} />

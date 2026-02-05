@@ -594,12 +594,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       {deleteItemModalOpen && (
         <DeleteCollectionItem item={item} collectionUid={collectionUid} onClose={() => setDeleteItemModalOpen(false)} />
       )}
-      {/* {newRequestModal.open && (
-        <NewRequest
-          collectionUid={collectionUid}
-          onClose={() => dispatch(closeNewRequestModal())}
-        />
-      )}       */}
       {newFolderModalOpen && (
         <NewFolder item={item} collectionUid={collectionUid} onClose={() => setNewFolderModalOpen(false)} />
       )}

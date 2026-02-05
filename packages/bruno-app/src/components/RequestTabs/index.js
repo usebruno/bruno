@@ -25,7 +25,7 @@ const RequestTabs = () => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
-  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
+  const { sidebarCollapsed } = useSelector((state) => state.keyBindings);
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const { newRequestModal } = useSelector((state) => state.keyBindings);
 
@@ -106,12 +106,6 @@ const RequestTabs = () => {
   // Todo: Must support ephemeral requests
   return (
     <StyledWrapper>
-      {/* {newRequestModal.open && (
-        <NewRequest
-          collectionUid={activeCollection?.uid}
-          onClose={() => dispatch(closeNewRequestModal())}
-        />
-      )} */}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           {activeCollection && <CollectionToolBar collection={activeCollection} />}

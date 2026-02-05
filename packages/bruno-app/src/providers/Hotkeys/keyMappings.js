@@ -41,7 +41,7 @@ const KeyMapping = {
   resetZoom: { mac: 'command+bind+0', windows: 'ctrl+bind+0', name: 'Reset Zoom' },
   cloneItem: { mac: 'command+bind+d', windows: 'ctrl+bind+d', name: 'Clone Item' },
   copyItem: { mac: 'command+bind+c', windows: 'ctrl+bind+c', name: 'Copy Item' },
-  paseItem: { mac: 'command+bind+v', windows: 'ctrl+bind+v', name: 'Paste Item' }
+  pasteItem: { mac: 'command+bind+v', windows: 'ctrl+bind+v', name: 'Paste Item' }
 };
 
 /**

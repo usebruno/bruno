@@ -41,7 +41,9 @@ export const HotkeysContext = createContext(null);
 let HOTKEYS_INITIALIZED = false;
 
 function bindHotkey(action, handler) {
-  const keys = [...getKeyBindingsForActionAllOS(action)];
+  const bindings = getKeyBindingsForActionAllOS(action);
+  if (!bindings) return;
+  const keys = [...bindings];
 
   // avoid duplicate binds (dev/hmr safe)
   Mousetrap.unbind(keys);

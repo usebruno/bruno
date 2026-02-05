@@ -572,12 +572,6 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
 
   return (
     <>
-      {/* {newRequestModal.open && (
-        <NewRequest
-          collectionUid={collection.uid}
-          onClose={() => dispatch(closeNewRequestModal())}
-        />
-      )} */}
       {menuDropdown}
     </>
   );
