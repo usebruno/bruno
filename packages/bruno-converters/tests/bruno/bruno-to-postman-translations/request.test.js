@@ -179,7 +179,7 @@ console.log("Headers:", JSON.stringify(pm.request.headers));
     expect(translatedCode).toBe('const body = {id: 1}; pm.request.body.update({\n  mode: "raw",\n  raw: JSON.stringify(body)\n});');
   });
 
-  // --- URL-related request methods ---------------------------
+  // URL helper methods tests
   it('should translate req.getHost() to pm.request.url.getHost()', () => {
     const code = 'const host = req.getHost();';
     const translatedCode = translateBruToPostman(code);

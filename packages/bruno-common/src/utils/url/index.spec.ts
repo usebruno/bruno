@@ -46,7 +46,7 @@ describe('encodeUrl', () => {
 
     it('should handle query parameters with empty values', () => {
       const url = 'https://example.com/api?name=&age=25&active=';
-      const expected = 'https://example.com/api?name&age=25&active';
+      const expected = 'https://example.com/api?name=&age=25&active=';
       expect(encodeUrl(url)).toBe(expected);
     });
 

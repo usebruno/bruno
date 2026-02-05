@@ -163,6 +163,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
           v = await bru.sleep(timer);
           fn.apply();
         }
+
         await bru.sleep(0);
         try {
           ${externalScript}

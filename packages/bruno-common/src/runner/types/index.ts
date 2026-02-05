@@ -23,6 +23,7 @@ type T_TestPassResult = {
   status: string;
   description: string;
   uid?: string;
+  isScriptError?: boolean;
 };
 
 type T_TestFailResult = {
@@ -30,6 +31,7 @@ type T_TestFailResult = {
   description: string;
   error: string;
   uid?: string;
+  isScriptError?: boolean;
 };
 
 type T_TestResult = T_TestPassResult | T_TestFailResult;
