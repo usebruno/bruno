@@ -2,8 +2,12 @@ import * as FileSaver from 'file-saver';
 import jsyaml from 'js-yaml';
 import { brunoToOpenCollection } from '@usebruno/converters';
 import { sanitizeName } from 'utils/common/regex';
+import { filterTransientItems } from 'utils/collections';
 
 export const exportCollection = (collection, version) => {
+  // Filter out transient items before export
+  collection.items = filterTransientItems(collection.items);
+
   const openCollection = brunoToOpenCollection(collection);
 
   if (!openCollection.extensions) {

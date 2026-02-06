@@ -1,6 +1,7 @@
 import * as FileSaver from 'file-saver';
 import get from 'lodash/get';
 import each from 'lodash/each';
+import { filterTransientItems } from 'utils/collections';
 
 export const deleteUidsInItems = (items) => {
   each(items, (item) => {
@@ -100,6 +101,9 @@ export const exportCollection = (collection, version) => {
   // delete process variables
   delete collection.processEnvVariables;
   delete collection.workspaceProcessEnvVariables;
+
+  // filter out transient items
+  collection.items = filterTransientItems(collection.items);
 
   deleteUidsInItems(collection.items);
   deleteUidsInEnvs(collection.environments);

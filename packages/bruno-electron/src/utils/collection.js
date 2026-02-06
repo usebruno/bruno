@@ -575,6 +575,10 @@ const getAllRequestsInFolderRecursively = (folder = {}) => {
 
   if (folder.items && folder.items.length) {
     folder.items.forEach((item) => {
+      // Skip transient requests
+      if (item.isTransient) {
+        return;
+      }
       if (item.type !== 'folder') {
         requests.push(item);
       } else {
