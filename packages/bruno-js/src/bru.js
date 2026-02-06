@@ -220,6 +220,24 @@ class Bru {
     delete this.envVariables[key];
   }
 
+  getAllEnvVars() {
+    const vars = Object.assign({}, this.envVariables);
+    delete vars.__name__;
+    return vars;
+  }
+
+  deleteAllEnvVars() {
+    const envName = this.envVariables.__name__;
+    for (let key in this.envVariables) {
+      if (this.envVariables.hasOwnProperty(key)) {
+        delete this.envVariables[key];
+      }
+    }
+    if (envName !== undefined) {
+      this.envVariables.__name__ = envName;
+    }
+  }
+
   getGlobalEnvVar(key) {
     return this.interpolate(this.globalEnvironmentVariables[key]);
   }
@@ -230,6 +248,22 @@ class Bru {
     }
 
     this.globalEnvironmentVariables[key] = value;
+  }
+
+  deleteGlobalEnvVar(key) {
+    delete this.globalEnvironmentVariables[key];
+  }
+
+  getAllGlobalEnvVars() {
+    return Object.assign({}, this.globalEnvironmentVariables);
+  }
+
+  deleteAllGlobalEnvVars() {
+    for (let key in this.globalEnvironmentVariables) {
+      if (this.globalEnvironmentVariables.hasOwnProperty(key)) {
+        delete this.globalEnvironmentVariables[key];
+      }
+    }
   }
 
   getOauth2CredentialVar(key) {
@@ -276,6 +310,10 @@ class Bru {
         delete this.runtimeVariables[key];
       }
     }
+  }
+
+  getAllVars() {
+    return Object.assign({}, this.runtimeVariables);
   }
 
   getCollectionVar(key) {
