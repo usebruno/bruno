@@ -173,6 +173,9 @@ const cleanJson = (data) => {
       // instanceof + [[Class]] cover same-realm; duck-type fallback for cross-realm/cross-context Error-like objects
       if (value instanceof Error || Object.prototype.toString.call(value) === '[object Error]' || (typeof value.message === 'string' && typeof value.stack === 'string')) {
         const error = {};
+        // name/message are often on prototype; ensure they're in the output
+        error.name = value.name;
+        error.message = value.message;
         Object.getOwnPropertyNames(value).forEach((prop) => {
           error[prop] = value[prop];
         });
