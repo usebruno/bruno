@@ -17,6 +17,12 @@ const DEFAULT_GITIGNORE = [
   'Thumbs.db'
 ].join('\n');
 
+// Secure file permissions for environment files (owner read/write only)
+// These protect sensitive credentials from being world-readable
+// Note: mode is ignored on Windows, which uses ACLs instead
+const SECURE_FILE_MODE = 0o600;
+const SECURE_DIR_MODE = 0o700;
+
 const exists = async (p) => {
   try {
     await fsPromises.access(p);
@@ -93,11 +99,15 @@ function normalizeWSLPath(pathname) {
   return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
 }
 
-const writeFile = async (pathname, content, isBinary = false) => {
+const writeFile = async (pathname, content, isBinary = false, mode = null) => {
   try {
-    await safeWriteFile(pathname, content, {
+    const options = {
       encoding: !isBinary ? 'utf-8' : null
-    });
+    };
+    if (mode !== null) {
+      options.mode = mode;
+    }
+    await safeWriteFile(pathname, content, options);
   } catch (err) {
     console.error(`Error writing file at ${pathname}:`, err);
     return Promise.reject(err);
@@ -125,7 +135,7 @@ const hasRequestExtension = (filename, format = null) => {
   return ['bru', 'yml'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
 };
 
-const createDirectory = async (dir) => {
+const createDirectory = async (dir, mode = null) => {
   if (!dir) {
     throw new Error(`directory: path is null`);
   }
@@ -134,7 +144,8 @@ const createDirectory = async (dir) => {
     throw new Error(`directory: ${dir} already exists`);
   }
 
-  return fs.mkdirSync(dir);
+  const options = mode !== null ? { mode } : undefined;
+  return fs.mkdirSync(dir, options);
 };
 
 const browseDirectory = async (win) => {
@@ -357,9 +368,9 @@ async function safeWriteFile(filePath, data, options) {
   }
 }
 
-function safeWriteFileSync(filePath, data) {
+function safeWriteFileSync(filePath, data, options = {}) {
   const safePath = getSafePathToWrite(filePath);
-  fs.writeFileSync(safePath, data);
+  fs.writeFileSync(safePath, data, options);
 }
 
 // Recursively copies a source <file/directory> to a destination <directory>.
@@ -476,6 +487,8 @@ const isCollectionRootBruFile = (pathname, collectionPath) => {
 
 module.exports = {
   DEFAULT_GITIGNORE,
+  SECURE_FILE_MODE,
+  SECURE_DIR_MODE,
   isValidPathname,
   exists,
   isSymbolicLink,
