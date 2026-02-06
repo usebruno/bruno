@@ -130,7 +130,7 @@ paths:
             schema:
               $ref: '#/components/schemas/UpdateUserRequest'
       responses:
-        '200':
+       '200':
           description: User updated successfully
           content:
             application/json:
@@ -193,7 +193,7 @@ paths:
                     type: integer
                   user:
                     $ref: '#/components/schemas/User'
-        '401':
+        401:
           description: Invalid credentials
   /posts:
     get:
