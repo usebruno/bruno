@@ -47,13 +47,16 @@ const hasRequestDefaults = (collectionRoot: any): boolean => {
 };
 
 const hasRequestAuth = (collectionRoot: any): boolean => {
-  return Boolean((collectionRoot.request?.auth?.mode !== 'none'));
+  const reqAuthMode = collectionRoot?.request?.auth?.mode;
+  return Boolean(reqAuthMode && reqAuthMode !== 'none');
 };
 
 const hasRequestScripts = (collectionRoot: any): boolean => {
-  return (collectionRoot.request?.script?.req)
-    || (collectionRoot.request?.script?.res)
-    || (collectionRoot.request?.tests);
+  if (!collectionRoot?.request) return false;
+
+  return (collectionRoot.request.script?.req)
+    || (collectionRoot.request.script?.res)
+    || (collectionRoot.request.tests);
 };
 
 const hasPresets = (brunoConfig: any): boolean => {
@@ -199,7 +202,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
     }
 
     // docs
-    if (collectionRoot.docs?.trim().length) {
+    if (collectionRoot?.docs?.trim().length) {
       oc.docs = {
         content: collectionRoot.docs,
         type: 'text/markdown'
