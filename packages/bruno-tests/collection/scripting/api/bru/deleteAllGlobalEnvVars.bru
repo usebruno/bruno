@@ -1,0 +1,26 @@
+meta {
+  name: deleteAllGlobalEnvVars
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setGlobalEnvVar("testDelAllGlobalA", "a");
+  bru.setGlobalEnvVar("testDelAllGlobalB", "b");
+  bru.deleteAllGlobalEnvVars();
+}
+
+tests {
+  test("should delete all global env vars", function() {
+    const valA = bru.getGlobalEnvVar("testDelAllGlobalA");
+    const valB = bru.getGlobalEnvVar("testDelAllGlobalB");
+    expect(valA).to.be.undefined;
+    expect(valB).to.be.undefined;
+  });
+}

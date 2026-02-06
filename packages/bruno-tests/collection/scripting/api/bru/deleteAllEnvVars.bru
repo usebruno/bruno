@@ -1,0 +1,28 @@
+meta {
+  name: deleteAllEnvVars
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setEnvVar("testDelAllEnvVar", "to-be-deleted");
+  bru.deleteAllEnvVars();
+}
+
+tests {
+  test("should delete all env vars", function() {
+    const val = bru.getEnvVar("testDelAllEnvVar");
+    expect(val).to.be.undefined;
+  });
+
+  test("should preserve env name after deleting all vars", function() {
+    const envName = bru.getEnvName();
+    expect(envName).to.equal("Prod");
+  });
+}
