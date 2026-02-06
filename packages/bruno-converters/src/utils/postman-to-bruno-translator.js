@@ -74,6 +74,11 @@ const simpleTranslations = {
   'pm.cookies.jar().unset': 'bru.cookies.jar().deleteCookie',
   'pm.cookies.jar().clear': 'bru.cookies.jar().deleteCookies',
 
+  // Direct cookie access (pm.cookies.get/has/toObject)
+  'pm.cookies.get': 'bru.cookies.get',
+  'pm.cookies.has': 'bru.cookies.has',
+  'pm.cookies.toObject': 'bru.cookies.toObject',
+
   // Execution control
   'pm.execution.skipRequest': 'bru.runner.skipRequest',
 

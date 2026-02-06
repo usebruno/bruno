@@ -270,7 +270,8 @@ class AssertRuntime {
       {},
       undefined,
       promptVariables,
-      certsAndProxyConfig
+      certsAndProxyConfig,
+      request?.url
     );
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);

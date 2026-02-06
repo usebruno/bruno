@@ -2,7 +2,7 @@ const { cloneDeep } = require('lodash');
 const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { sendRequest, createSendRequest } = require('@usebruno/requests').scripting;
-const { jar: createCookieJar } = require('@usebruno/requests').cookies;
+const { jar: createCookieJar, getCookiesForUrl } = require('@usebruno/requests').cookies;
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -26,8 +26,9 @@ class Bru {
    * @param {object} [certsAndProxyConfig.clientCertificates] - Client certificate configuration
    * @param {object} [certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
    * @param {object} [certsAndProxyConfig.systemProxyConfig] - System proxy configuration
+   * @param {string} requestUrl - The URL of the current request (used for cookie access)
    */
-  constructor(runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig) {
+  constructor(runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig, requestUrl) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.promptVariables = promptVariables || {};
@@ -42,7 +43,31 @@ class Bru {
     // Use createSendRequest with config if provided, otherwise use default sendRequest
     this.sendRequest = certsAndProxyConfig ? createSendRequest(certsAndProxyConfig) : sendRequest;
     this.runtime = runtime;
+    this.requestUrl = requestUrl;
     this.cookies = {
+      get: (name) => {
+        const url = this.interpolate(this.requestUrl);
+        if (!url) return undefined;
+        const cookies = getCookiesForUrl(url);
+        const cookie = cookies.find((c) => c.key === name);
+        return cookie ? cookie.value : undefined;
+      },
+      has: (name) => {
+        const url = this.interpolate(this.requestUrl);
+        if (!url) return false;
+        const cookies = getCookiesForUrl(url);
+        return cookies.some((c) => c.key === name);
+      },
+      toObject: () => {
+        const url = this.interpolate(this.requestUrl);
+        if (!url) return {};
+        const cookies = getCookiesForUrl(url);
+        const result = {};
+        for (const cookie of cookies) {
+          result[cookie.key] = cookie.value;
+        }
+        return result;
+      },
       jar: () => {
         const cookieJar = createCookieJar();
 

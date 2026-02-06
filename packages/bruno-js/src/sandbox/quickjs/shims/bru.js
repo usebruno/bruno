@@ -266,6 +266,24 @@ const addBruShimToContext = (vm, bru) => {
 
   let bruCookiesObject = vm.newObject();
 
+  let cookiesGet = vm.newFunction('get', function (name) {
+    return marshallToVm(bru.cookies.get(vm.dump(name)), vm);
+  });
+  vm.setProp(bruCookiesObject, 'get', cookiesGet);
+  cookiesGet.dispose();
+
+  let cookiesHas = vm.newFunction('has', function (name) {
+    return marshallToVm(bru.cookies.has(vm.dump(name)), vm);
+  });
+  vm.setProp(bruCookiesObject, 'has', cookiesHas);
+  cookiesHas.dispose();
+
+  let cookiesToObject = vm.newFunction('toObject', function () {
+    return marshallToVm(bru.cookies.toObject(), vm);
+  });
+  vm.setProp(bruCookiesObject, 'toObject', cookiesToObject);
+  cookiesToObject.dispose();
+
   const _jarFn = vm.newFunction('_jar', () => {
     const nativeJar = bru.cookies.jar();
     const jarObj = vm.newObject();
