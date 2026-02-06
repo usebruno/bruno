@@ -134,6 +134,11 @@ class BrunoRequest {
     this.req.headers[name] = value;
   }
 
+  deleteHeader(name) {
+    delete this.headers[name];
+    delete this.req.headers[name];
+  }
+
   hasJSONContentType(headers) {
     const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
     return contentType.includes('json');
