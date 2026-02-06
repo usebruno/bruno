@@ -308,6 +308,16 @@ const runSingleRequest = async function (
     // interpolate variables inside request
     interpolateVars(request, envVariables, runtimeVariables, processEnvVars);
 
+    // Parse GraphQL variables after interpolation (they were kept as string to allow variable interpolation)
+    // https://github.com/usebruno/bruno/issues/6076
+    if (request.data && typeof request.data.variables === 'string') {
+      try {
+        request.data.variables = JSON.parse(request.data.variables);
+      } catch (error) {
+        throw new Error(`Failed to parse GraphQL variables: ${error.message}`);
+      }
+    }
+
     if (request.settings?.encodeUrl) {
       request.url = encodeUrl(request.url);
     }
