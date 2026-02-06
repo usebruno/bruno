@@ -193,14 +193,28 @@ console.log("Headers:", JSON.stringify(pm.request.headers));
   });
 
   it('should translate req.getQueryString() to pm.request.url.getQueryString()', () => {
-    const code = 'const queryString = req.getQueryString();';
+    const code = 'const query = req.getQueryString();';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('const queryString = pm.request.url.getQueryString();');
+    expect(translatedCode).toBe('const query = pm.request.url.getQueryString();');
   });
 
-  it('should translate req.getPathParams() to pm.request.url.variables (function to property)', () => {
-    const code = 'const pathParams = req.getPathParams();';
+  it('should translate req.getPathParams() to pm.request.url.variables', () => {
+    const code = 'const params = req.getPathParams();';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('const pathParams = pm.request.url.variables;');
+    expect(translatedCode).toBe('const params = pm.request.url.variables;');
+  });
+
+  it('should handle URL methods in complex expressions', () => {
+    const code = 'const fullUrl = req.getHost() + req.getPath() + "?" + req.getQueryString();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toContain('pm.request.url.getHost()');
+    expect(translatedCode).toContain('pm.request.url.getPath()');
+    expect(translatedCode).toContain('pm.request.url.getQueryString()');
+  });
+
+  it('should handle req.getPathParams() in conditional', () => {
+    const code = 'if (req.getPathParams().id) { console.log("Has ID"); }';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toContain('pm.request.url.variables.id');
   });
 });

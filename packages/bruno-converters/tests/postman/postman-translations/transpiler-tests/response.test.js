@@ -583,4 +583,52 @@ describe('Response Translation', () => {
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe('const responseSize = res.getSize().body;');
   });
+
+  // --- BDD-style response assertions ---------------------------
+  // Note: BDD-style assertions that are property accesses (not function calls) like
+  // pm.response.to.be.ok are currently not transformed. Only call-based patterns
+  // like pm.response.to.have.jsonBody("path") are transformed.
+
+  it('should translate pm.response.to.have.jsonBody with path', () => {
+    const code = 'pm.response.to.have.jsonBody("user.id");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("user.id")');
+  });
+
+  it('should translate pm.response.to.have.jsonBody with path and value', () => {
+    const code = 'pm.response.to.have.jsonBody("status", "success");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("status", "success")');
+  });
+
+  it('should translate pm.response.to.have.jsonBody without arguments', () => {
+    const code = 'pm.response.to.have.jsonBody();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.exist');
+  });
+
+  it('should handle pm.response.to.have.jsonBody inside test blocks', () => {
+    const code = `
+        pm.test("Response validation", function() {
+            pm.response.to.have.jsonBody("data");
+            pm.response.to.have.jsonBody("data.id", 123);
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Response validation", function() {');
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("data")');
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("data.id", 123)');
+  });
+
+  it('should translate pm.response.to.have.jsonBody with nested path', () => {
+    const code = 'pm.response.to.have.jsonBody("response.data.items[0].name");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("response.data.items[0].name")');
+  });
+
+  it('should translate pm.response.to.have.jsonBody with variable path', () => {
+    const code = 'const path = "user.id"; pm.response.to.have.jsonBody(path);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property(path)');
+  });
 });
