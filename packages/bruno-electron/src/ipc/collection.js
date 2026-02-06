@@ -2122,15 +2122,22 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             const content = fs.readFileSync(openCollectionYmlPath, 'utf8');
             const { brunoConfig } = parseCollection(content, { format: 'yml' });
             collectionName = brunoConfig?.name || collectionName;
-          } catch (e) {}
+          } catch (e) {
+            console.error(`Error parsing opencollection.yml at ${openCollectionYmlPath}:`, e);
+          }
         } else if (fs.existsSync(brunoJsonPath)) {
           try {
             const config = JSON.parse(fs.readFileSync(brunoJsonPath, 'utf8'));
             collectionName = config.name || collectionName;
-          } catch (e) {}
+          } catch (e) {
+            console.error(`Error parsing bruno.json at ${brunoJsonPath}:`, e);
+          }
         }
 
-        const sanitizedName = sanitizeName(collectionName);
+        let sanitizedName = sanitizeName(collectionName);
+        if (!sanitizedName) {
+          sanitizedName = `untitled-${Date.now()}`;
+        }
         let finalCollectionPath = path.join(collectionLocation, sanitizedName);
         let counter = 1;
         while (fs.existsSync(finalCollectionPath)) {

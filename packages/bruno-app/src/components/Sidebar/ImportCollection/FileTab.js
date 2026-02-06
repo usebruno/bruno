@@ -165,6 +165,7 @@ const FileTab = ({
   const handleFileInputChange = async (e) => {
     if (e.target.files && e.target.files.length > 0) {
       await processFiles(e.target.files);
+      e.target.value = '';
     }
   };
 
