@@ -9,10 +9,9 @@ import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import useCollectionFolderTree from 'hooks/useCollectionFolderTree';
 import { removeSaveTransientRequestModal, deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
-import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { newFolder, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
-import { sanitizeName } from 'utils/common/regex';
+import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import { resolveRequestFilename } from 'utils/common/platform';
 import path from 'utils/common/path';
 import { transformRequestToSaveToFilesystem, findCollectionByUid, findItemInCollection } from 'utils/collections';
@@ -141,11 +140,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         })
       );
 
-      dispatch(
-        closeTabs({
-          tabUids: [item.uid]
-        })
-      );
+      dispatch(closeTabs({ tabUids: [item.uid] }));
 
       dispatch({
         type: 'collections/deleteItem',
