@@ -2073,7 +2073,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           const stat = fs.lstatSync(fullPath);
 
           if (stat.isSymbolicLink()) {
-            const resolvedTarget = fs.realpathSync(fullPath);
+            const linkTarget = fs.readlinkSync(fullPath);
+            const resolvedTarget = path.resolve(path.dirname(fullPath), linkTarget);
             if (!resolvedTarget.startsWith(baseDir + path.sep) && resolvedTarget !== baseDir) {
               throw new Error(`Security error: Symlink "${entry.name}" points outside extraction directory`);
             }

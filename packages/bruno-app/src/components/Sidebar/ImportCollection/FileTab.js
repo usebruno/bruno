@@ -77,7 +77,7 @@ const FileTab = ({
     try {
       const filePath = window.ipcRenderer.getFilePath(zipFile);
       const collectionName = zipFile.name.replace(/\.zip$/i, '');
-      handleSubmit({ rawData: { zipFilePath: filePath, collectionName }, type: 'bruno-zip' });
+      await handleSubmit({ rawData: { zipFilePath: filePath, collectionName }, type: 'bruno-zip' });
     } catch (err) {
       toastError(err, 'Import ZIP file failed');
     } finally {
@@ -112,7 +112,7 @@ const FileTab = ({
         throw new Error('Unsupported collection format');
       }
 
-      handleSubmit({ rawData: data, type });
+      await handleSubmit({ rawData: data, type });
     } catch (err) {
       toastError(err, 'Import collection failed');
     } finally {
