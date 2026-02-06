@@ -97,6 +97,11 @@ const simpleTranslations = {
   // Cookies jar
   'bru.cookies.jar': 'pm.cookies.jar',
 
+  // Direct cookie access
+  'bru.cookies.get': 'pm.cookies.get',
+  'bru.cookies.has': 'pm.cookies.has',
+  'bru.cookies.toObject': 'pm.cookies.toObject',
+
   // Testing
   'expect.fail': 'pm.expect.fail'
 };
