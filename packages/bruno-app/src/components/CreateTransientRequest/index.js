@@ -58,7 +58,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
 
   const collection = useMemo(() => {
     return collections?.find((c) => c.uid === collectionUid);
-  }, [collections]);
+  }, [collections, collectionUid]);
 
   const collectionPresets = useMemo(() => {
     return get(collection, collection?.draft?.brunoConfig ? 'draft.brunoConfig.presets' : 'brunoConfig.presets', {
