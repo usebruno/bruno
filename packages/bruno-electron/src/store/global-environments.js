@@ -97,7 +97,7 @@ class GlobalEnvironmentsStore {
     return this.store.set('activeGlobalEnvironmentUid', uid);
   }
 
-  addGlobalEnvironment({ uid, name, variables = [] }) {
+  addGlobalEnvironment({ uid, name, variables = [], color }) {
     let globalEnvironments = this.getGlobalEnvironments();
     const existingEnvironment = globalEnvironments.find((env) => env?.name == name);
     if (existingEnvironment) {
@@ -106,7 +106,8 @@ class GlobalEnvironmentsStore {
     globalEnvironments.push({
       uid,
       name,
-      variables
+      variables,
+      color
     });
     this.setGlobalEnvironments(globalEnvironments);
   }

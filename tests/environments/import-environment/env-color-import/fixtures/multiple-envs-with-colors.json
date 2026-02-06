@@ -1,0 +1,35 @@
+{
+  "info": {
+    "type": "bruno-environment",
+    "exportedAt": "2024-01-01T00:00:00.000Z",
+    "exportedUsing": "Bruno/v1.0.0"
+  },
+  "environments": [
+    {
+      "name": "dev",
+      "variables": [
+        {
+          "name": "apiUrl",
+          "value": "https://dev.api.example.com",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        }
+      ],
+      "color": "#3B82F6"
+    },
+    {
+      "name": "staging",
+      "variables": [
+        {
+          "name": "apiUrl",
+          "value": "https://staging.api.example.com",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        }
+      ],
+      "color": "#F59E0B"
+    }
+  ]
+}

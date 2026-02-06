@@ -6,7 +6,7 @@ const { globalEnvironmentsStore } = require('../store/global-environments');
 const { generateUniqueName, sanitizeName, writeFile, isValidDotEnvFilename } = require('../utils/filesystem');
 
 const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager) => {
-  ipcMain.handle('renderer:create-global-environment', async (event, { uid, name, variables, workspaceUid, workspacePath }) => {
+  ipcMain.handle('renderer:create-global-environment', async (event, { uid, name, variables, color, workspaceUid, workspacePath }) => {
     try {
       // If workspace path provided, use workspace environments manager
       if (workspacePath && workspaceEnvironmentsManager) {
@@ -16,7 +16,7 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
         const sanitizedName = sanitizeName(name);
         const uniqueName = generateUniqueName(sanitizedName, (name) => existingNames.includes(name));
 
-        return await workspaceEnvironmentsManager.addGlobalEnvironmentByPath(workspacePath, { uid, name: uniqueName, variables });
+        return await workspaceEnvironmentsManager.addGlobalEnvironmentByPath(workspacePath, { uid, name: uniqueName, variables, color });
       }
 
       const existingGlobalEnvironments = globalEnvironmentsStore.getGlobalEnvironments();
@@ -25,9 +25,9 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
       const sanitizedName = sanitizeName(name);
       const uniqueName = generateUniqueName(sanitizedName, (name) => existingNames.includes(name));
 
-      globalEnvironmentsStore.addGlobalEnvironment({ uid, name: uniqueName, variables });
+      globalEnvironmentsStore.addGlobalEnvironment({ uid, name: uniqueName, variables, color });
 
-      return { name: uniqueName };
+      return { name: uniqueName, color };
     } catch (error) {
       console.error('Error in renderer:create-global-environment:', error);
       return Promise.reject(error);
