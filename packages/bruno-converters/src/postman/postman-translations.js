@@ -74,7 +74,11 @@ const replacements = {
   'pm\\.cookies\\.jar\\(\\)\\.set\\(': 'bru.cookies.jar().setCookie(',
   'pm\\.cookies\\.jar\\(\\)\\.unset\\(': 'bru.cookies.jar().deleteCookie(',
   'pm\\.cookies\\.jar\\(\\)\\.clear\\(': 'bru.cookies.jar().deleteCookies(',
-  'pm\\.cookies\\.jar\\(\\)\\.getAll\\(': 'bru.cookies.jar().getCookies('
+  'pm\\.cookies\\.jar\\(\\)\\.getAll\\(': 'bru.cookies.jar().getCookies(',
+  // Direct cookie access
+  'pm\\.cookies\\.get\\(': 'bru.cookies.get(',
+  'pm\\.cookies\\.has\\(': 'bru.cookies.has(',
+  'pm\\.cookies\\.toObject\\(': 'bru.cookies.toObject('
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {

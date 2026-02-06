@@ -295,9 +295,9 @@ describe('postmanTranslations - cookie API conversions', () => {
     const inputScript = `
       const jar = pm.cookies.jar();
       jar.get('https://api.com', 'session');
-      
+
       pm.cookies.jar().set('https://other.com', 'temp', 'value');
-      
+
       jar.getAll('https://api.com', (err, cookies) => {
         console.log(cookies);
       });
@@ -306,12 +306,59 @@ describe('postmanTranslations - cookie API conversions', () => {
     const expectedOutput = `
       const jar = bru.cookies.jar();
       jar.getCookie('https://api.com', 'session');
-      
+
       bru.cookies.jar().setCookie('https://other.com', 'temp', 'value');
-      
+
       jar.getCookies('https://api.com', (err, cookies) => {
         console.log(cookies);
       });
+    `;
+
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  // Direct cookie access API tests (pm.cookies.get/has/toObject)
+  test('should convert pm.cookies.get to bru.cookies.get', () => {
+    const inputScript = `const token = pm.cookies.get('authToken');`;
+    const expectedOutput = `const token = bru.cookies.get('authToken');`;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  test('should convert pm.cookies.has to bru.cookies.has', () => {
+    const inputScript = `const exists = pm.cookies.has('sessionId');`;
+    const expectedOutput = `const exists = bru.cookies.has('sessionId');`;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  test('should convert pm.cookies.toObject to bru.cookies.toObject', () => {
+    const inputScript = `const allCookies = pm.cookies.toObject();`;
+    const expectedOutput = `const allCookies = bru.cookies.toObject();`;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  test('should convert pm.cookies.has in conditional', () => {
+    const inputScript = `if (pm.cookies.has('auth')) {
+  console.log(pm.cookies.get('auth'));
+}`;
+    const expectedOutput = `if (bru.cookies.has('auth')) {
+  console.log(bru.cookies.get('auth'));
+}`;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  test('should handle mixed direct cookie access and jar methods', () => {
+    const inputScript = `
+      const token = pm.cookies.get('authToken');
+      const jar = pm.cookies.jar();
+      jar.set('https://example.com', 'newCookie', 'value');
+      const allCookies = pm.cookies.toObject();
+    `;
+
+    const expectedOutput = `
+      const token = bru.cookies.get('authToken');
+      const jar = bru.cookies.jar();
+      jar.setCookie('https://example.com', 'newCookie', 'value');
+      const allCookies = bru.cookies.toObject();
     `;
 
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
