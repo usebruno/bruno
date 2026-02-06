@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { flattenItems, isItemARequest, isItemTransientRequest } from 'utils/collections';
 import filter from 'lodash/filter';
 import { get } from 'lodash';
+import { formatIpcError } from 'utils/common/error';
 
 const REQUEST_TYPE = {
   HTTP: 'http',
@@ -103,7 +104,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
         itemUid: null,
         isTransient: true
       })
-    ).catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+    ).catch((err) => toast.error(formatIpcError(err) || 'An error occurred while adding the request'));
   }, [dispatch, collection, collectionPresets.requestUrl]);
 
   const handleCreateGraphQLRequest = useCallback(() => {
@@ -130,7 +131,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
           }
         }
       })
-    ).catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+    ).catch((err) => toast.error(formatIpcError(err) || 'An error occurred while adding the request'));
   }, [dispatch, collection, collectionPresets.requestUrl]);
 
   const handleCreateWebSocketRequest = useCallback(() => {
@@ -149,7 +150,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
         itemUid: null,
         isTransient: true
       })
-    ).catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+    ).catch((err) => toast.error(formatIpcError(err) || 'An error occurred while adding the request'));
   }, [dispatch, collection, collectionPresets.requestUrl]);
 
   const handleCreateGrpcRequest = useCallback(() => {
@@ -167,7 +168,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
         itemUid: null,
         isTransient: true
       })
-    ).catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+    ).catch((err) => toast.error(formatIpcError(err) || 'An error occurred while adding the request'));
   }, [dispatch, collection, collectionPresets.requestUrl]);
 
   const handleItemClick = (type) => {
