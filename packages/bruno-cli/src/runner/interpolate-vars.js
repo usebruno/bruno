@@ -68,7 +68,21 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   const contentType = getContentType(request.headers);
 
-  if (contentType.includes('json')) {
+  // GraphQL: always interpolate with escapeJSONStrings regardless of contentType
+  const isGraphqlRequest = request.mode === 'graphql';
+  if (isGraphqlRequest && request.data != null && !Buffer.isBuffer(request.data)) {
+    if (typeof request.data === 'object') {
+      try {
+        let parsed = JSON.stringify(request.data);
+        parsed = _interpolate(parsed, { escapeJSONStrings: true });
+        request.data = JSON.parse(parsed);
+      } catch (err) {}
+    } else if (typeof request.data === 'string' && request.data.length) {
+      request.data = _interpolate(request.data, { escapeJSONStrings: true });
+    }
+  }
+
+  if (contentType.includes('json') && !isGraphqlRequest) {
     // Skip interpolation if data is a Buffer (e.g., gzip-compressed data)
     if (typeof request.data === 'object' && !Buffer.isBuffer(request.data)) {
       try {
