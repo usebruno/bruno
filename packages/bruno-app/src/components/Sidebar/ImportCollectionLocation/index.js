@@ -126,7 +126,10 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
         .max(500, 'must be 500 characters or less')
         .required('Location is required')
     }),
-    onSubmit: () => {}
+    onSubmit: async (values) => {
+      const convertedCollection = await convertCollection(format, rawData, groupingType);
+      handleSubmit(convertedCollection, values.collectionLocation, { format: collectionFormat });
+    }
   });
 
   const onDropdownCreate = (ref) => {
@@ -164,19 +167,16 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
   }, [inputRef]);
 
   const onSubmit = async () => {
-    const errors = await formik.validateForm();
-    if (Object.keys(errors).length > 0) {
-      formik.setTouched({ collectionLocation: true });
-      return;
-    }
-
-    const collectionLocation = formik.values.collectionLocation;
-
-    if (format === 'bruno-zip') {
+    if (isZipImport) {
+      const errors = await formik.validateForm();
+      if (Object.keys(errors).length > 0) {
+        formik.setTouched({ collectionLocation: true });
+        return;
+      }
+      const collectionLocation = formik.values.collectionLocation;
       handleSubmit(rawData, collectionLocation, { format: collectionFormat, isZipImport: true });
     } else {
-      const convertedCollection = await convertCollection(format, rawData, groupingType);
-      handleSubmit(convertedCollection, collectionLocation, { format: collectionFormat });
+      formik.handleSubmit();
     }
   };
 

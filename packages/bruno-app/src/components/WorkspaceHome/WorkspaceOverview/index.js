@@ -51,9 +51,9 @@ const WorkspaceOverview = ({ workspace }) => {
     setImportCollectionModalOpen(true);
   };
 
-  const handleImportCollectionSubmit = ({ rawData, type }) => {
+  const handleImportCollectionSubmit = ({ rawData, type, ...rest }) => {
     setImportCollectionModalOpen(false);
-    setImportData({ rawData, type });
+    setImportData({ rawData, type, ...rest });
     setImportCollectionLocationModalOpen(true);
   };
 

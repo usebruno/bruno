@@ -52,9 +52,9 @@ const CollectionsSection = () => {
     );
   }, [activeWorkspace, collections]);
 
-  const handleImportCollection = ({ rawData, type }) => {
+  const handleImportCollection = ({ rawData, type, ...rest }) => {
     setImportCollectionModalOpen(false);
-    setImportData({ rawData, type });
+    setImportData({ rawData, type, ...rest });
     setImportCollectionLocationModalOpen(true);
   };
 

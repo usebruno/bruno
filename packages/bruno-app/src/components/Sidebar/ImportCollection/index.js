@@ -1,186 +1,53 @@
-import React, { useState, useRef } from 'react';
-import { IconFileImport } from '@tabler/icons';
-import { toastError } from 'utils/common/error';
+import React, { useState } from 'react';
+import { IconX } from '@tabler/icons';
 import Modal from 'components/Modal';
-import jsyaml from 'js-yaml';
-import { isPostmanCollection } from 'utils/importers/postman-collection';
-import { isInsomniaCollection } from 'utils/importers/insomnia-collection';
-import { isOpenApiSpec } from 'utils/importers/openapi-collection';
-import { isWSDLCollection } from 'utils/importers/wsdl-collection';
-import { isBrunoCollection } from 'utils/importers/bruno-collection';
-import { isOpenCollection } from 'utils/importers/opencollection';
+import FileTab from './FileTab';
 import FullscreenLoader from './FullscreenLoader/index';
 import { useTheme } from 'providers/Theme';
-
-const convertFileToObject = async (file) => {
-  const text = await file.text();
-
-  // Handle WSDL files - return as plain text
-  if (file.name.endsWith('.wsdl') || file.type === 'text/xml' || file.type === 'application/xml') {
-    return text;
-  }
-
-  try {
-    if (file.type === 'application/json' || file.name.endsWith('.json')) {
-      return JSON.parse(text);
-    }
-
-    const parsed = jsyaml.load(text);
-    if (typeof parsed !== 'object' || parsed === null) {
-      throw new Error();
-    }
-    return parsed;
-  } catch {
-    throw new Error('Failed to parse the file – ensure it is valid JSON or YAML');
-  }
-};
 
 const ImportCollection = ({ onClose, handleSubmit }) => {
   const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef(null);
-
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'copy';
-    }
-
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
-
-  const processFile = async (file) => {
-    setIsLoading(true);
-    try {
-      if (file.name.endsWith('.zip') || file.type === 'application/zip' || file.type === 'application/x-zip-compressed') {
-        const { ipcRenderer } = window;
-        const zipFilePath = ipcRenderer.getFilePath(file);
-        const collectionName = file.name.replace(/\.zip$/i, '');
-        handleSubmit({ rawData: { zipFilePath, collectionName }, type: 'bruno-zip' });
-        return;
-      }
-
-      const data = await convertFileToObject(file);
-
-      if (!data) {
-        throw new Error('Failed to parse file content');
-      }
-
-      let type = null;
-
-      if (isOpenApiSpec(data)) {
-        type = 'openapi';
-      } else if (isWSDLCollection(data)) {
-        type = 'wsdl';
-      } else if (isPostmanCollection(data)) {
-        type = 'postman';
-      } else if (isInsomniaCollection(data)) {
-        type = 'insomnia';
-      } else if (isOpenCollection(data)) {
-        type = 'opencollection';
-      } else if (isBrunoCollection(data)) {
-        type = 'bruno';
-      } else {
-        throw new Error('Unsupported collection format');
-      }
-
-      handleSubmit({ rawData: data, type });
-    } catch (err) {
-      toastError(err, 'Import collection failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDrop = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      await processFile(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleBrowseFiles = () => {
-    fileInputRef.current.click();
-  };
-
-  const handleFileInputChange = async (e) => {
-    if (e.target.files && e.target.files[0]) {
-      await processFile(e.target.files[0]);
-    }
-  };
+  const [errorMessage, setErrorMessage] = useState('');
 
   if (isLoading) {
     return <FullscreenLoader isLoading={isLoading} />;
   }
 
-  const acceptedFileTypes = [
-    '.json',
-    '.yaml',
-    '.yml',
-    '.wsdl',
-    '.zip',
-    'application/json',
-    'application/yaml',
-    'application/x-yaml',
-    'application/zip',
-    'application/x-zip-compressed',
-    'text/xml',
-    'application/xml'
-  ];
-
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
       <div className="flex flex-col">
-        <div className="mb-4">
-          <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
+        {errorMessage && (
           <div
-            onDragEnter={handleDrag}
-            onDragOver={handleDrag}
-            onDragLeave={handleDrag}
-            onDrop={handleDrop}
-            className={`
-              border-2 border-dashed rounded-lg p-6 transition-colors duration-200
-              ${dragActive ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'}
-            `}
+            className="mb-4 p-2 border rounded-md"
+            style={{
+              backgroundColor: theme.status?.danger?.background || '#fef2f2',
+              borderColor: theme.status?.danger?.border || '#fecaca'
+            }}
           >
-            <div className="flex flex-col items-center justify-center">
-              <IconFileImport
-                size={28}
-                className="text-gray-400 dark:text-gray-500 mb-3"
-              />
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={handleFileInputChange}
-                accept={acceptedFileTypes.join(',')}
-              />
-              <p className="text-gray-600 dark:text-gray-300 mb-2">
-                Drop file to import or{' '}
-                <button
-                  className="underline cursor-pointer"
-                  onClick={handleBrowseFiles}
-                  style={{ color: theme.textLink }}
-                >
-                  choose a file
-                </button>
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Supports Bruno, OpenCollection, Postman, Insomnia, OpenAPI v3, WSDL, and ZIP formats
-              </p>
+            <div className="flex gap-2">
+              <div
+                className="text-xs flex-1"
+                style={{ color: theme.status?.danger?.text || '#dc2626' }}
+              >
+                {errorMessage}
+              </div>
+              <div
+                className="close-button flex items-center cursor-pointer"
+                onClick={() => setErrorMessage('')}
+                style={{ color: theme.status?.danger?.text || '#dc2626' }}
+              >
+                <IconX size={16} strokeWidth={1.5} />
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        <FileTab
+          setIsLoading={setIsLoading}
+          handleSubmit={handleSubmit}
+          setErrorMessage={setErrorMessage}
+        />
       </div>
     </Modal>
   );
