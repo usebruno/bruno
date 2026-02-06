@@ -394,12 +394,15 @@ const getCurrentWordWithContext = (cm) => {
 const extractNextSegmentSuggestions = (filteredHints, currentInput) => {
   const prefixMatches = new Set();
   const substringMatches = new Set();
+  const lowerInput = currentInput.toLowerCase();
 
   filteredHints.forEach((hint) => {
+    const lowerHint = hint.toLowerCase();
+
     // For prefix matches, use the original progressive logic
-    if (hint.toLowerCase().startsWith(currentInput.toLowerCase())) {
+    if (lowerHint.startsWith(lowerInput)) {
       // Handle exact match case
-      if (hint.toLowerCase() === currentInput.toLowerCase()) {
+      if (lowerHint === lowerInput) {
         prefixMatches.add(hint.substring(hint.lastIndexOf('.') + 1));
         return;
       }
@@ -417,13 +420,13 @@ const extractNextSegmentSuggestions = (filteredHints, currentInput) => {
         const lastDotInInput = currentInput.lastIndexOf('.');
         const currentSegmentStart = lastDotInInput + 1;
         const nextDotAfterInput = hint.indexOf('.', currentSegmentStart);
-        const segment =
-          nextDotAfterInput === -1
+        const segment
+          = nextDotAfterInput === -1
             ? hint.substring(currentSegmentStart)
             : hint.substring(currentSegmentStart, nextDotAfterInput);
         prefixMatches.add(segment);
       }
-    } else if (hint.toLowerCase().includes(currentInput.toLowerCase())) {
+    } else if (lowerHint.includes(lowerInput)) {
       // For substring matches (search within words), suggest the complete hint
       substringMatches.add(hint);
     }
@@ -486,8 +489,9 @@ const filterHintsByContext = (categorizedHints, currentWord, context, showHintsF
 
   const allowedHints = getAllowedHintsByContext(categorizedHints, context, showHintsFor);
 
+  const lowerWord = currentWord.toLowerCase();
   const filtered = allowedHints.filter((hint) => {
-    return hint.toLowerCase().includes(currentWord.toLowerCase());
+    return hint.toLowerCase().includes(lowerWord);
   });
 
   const hintParts = getHintParts(filtered, currentWord);
@@ -718,6 +722,9 @@ export const setupAutoComplete = (editor, options = {}) => {
     }
   };
 };
+
+// Exported for testing
+export { extractNextSegmentSuggestions };
 
 // Initialize autocomplete command if not already present
 if (!CodeMirror.commands.autocomplete) {
