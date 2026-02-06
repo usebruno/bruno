@@ -68,6 +68,10 @@ const replacements = {
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
   'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
+  // Direct cookie access translations (pm.cookies.has/get/toObject)
+  'pm\\.cookies\\.has\\(([^)]+)\\)': '(await bru.cookies.jar().getCookie(req.getUrl(), $1)) !== null',
+  'pm\\.cookies\\.get\\(([^)]+)\\)': '(await bru.cookies.jar().getCookie(req.getUrl(), $1))?.value',
+  'pm\\.cookies\\.toObject\\(\\)': '(await bru.cookies.jar().getCookies(req.getUrl())).reduce((obj, c) => ({...obj, [c.key]: c.value}), {})',
   // Cookie jar translations
   'pm\\.cookies\\.jar\\(\\)': 'bru.cookies.jar()',
   'pm\\.cookies\\.jar\\(\\)\\.get\\(': 'bru.cookies.jar().getCookie(',
