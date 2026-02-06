@@ -118,7 +118,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   const handleReflection = async (url, isManualRefresh = false) => {
-    const { methods, error } = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
+    const { methods, error, fromCache } = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
 
     if (error) {
       toast.error(`Failed to load gRPC methods: ${error.message || 'Unknown error'}`);
@@ -139,7 +139,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       }));
     }
 
-    if (methods && methods.length > 0) {
+    if (!fromCache && methods && methods.length > 0) {
       toast.success(`Loaded ${methods.length} gRPC methods from reflection`);
     }
 
@@ -161,7 +161,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   const handleProtoFileLoad = async (filePath, isManualRefresh = false) => {
-    const { methods, error } = await protoFileManagement.loadMethodsFromProtoFile(filePath, isManualRefresh);
+    const { methods, error, fromCache } = await protoFileManagement.loadMethodsFromProtoFile(filePath, isManualRefresh);
 
     if (error) {
       console.error('Failed to load gRPC methods:', error);
@@ -174,7 +174,9 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     setGrpcMethods(methods);
     setIsReflectionMode(false);
 
-    toast.success(`Loaded ${methods.length} gRPC methods from proto file`);
+    if (!fromCache) {
+      toast.success(`Loaded ${methods.length} gRPC methods from proto file`);
+    }
 
     if (methods && methods.length > 0) {
       const haveSelectedMethod = selectedGrpcMethod && methods.some((method) => method.path === selectedGrpcMethod.path);
