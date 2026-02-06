@@ -70,13 +70,13 @@ const buildJsonPath = (parentPath, key) => {
 };
 
 const findBase64Candidate = (payload) => {
-  const stack = [{ value: payload, path: '$' }];
+  const stack = [{ value: payload, path: '$', parentMimeType: null }];
   let fallbackCandidate = null;
   let nodes = 0;
   const maxNodes = 2000;
 
   while (stack.length && nodes < maxNodes) {
-    const { value, path } = stack.pop();
+    const { value, path, parentMimeType } = stack.pop();
     nodes += 1;
 
     if (typeof value === 'string' && isLikelyBase64(value)) {
@@ -84,23 +84,24 @@ const findBase64Candidate = (payload) => {
       if (normalized) {
         const detected = detectContentTypeFromBase64(normalized);
         if (detected) {
-          return { base64: normalized, path };
+          return { base64: normalized, path, mimeType: parentMimeType };
         }
         if (!fallbackCandidate) {
-          fallbackCandidate = { base64: normalized, path };
+          fallbackCandidate = { base64: normalized, path, mimeType: parentMimeType };
         }
       }
     }
 
     if (Array.isArray(value)) {
       for (let i = value.length - 1; i >= 0; i -= 1) {
-        stack.push({ value: value[i], path: buildJsonPath(path, i) });
+        stack.push({ value: value[i], path: buildJsonPath(path, i), parentMimeType });
       }
     } else if (value && typeof value === 'object') {
+      const nextParentMimeType = typeof value.mimeType === 'string' ? value.mimeType : parentMimeType;
       const keys = Object.keys(value);
       for (let i = keys.length - 1; i >= 0; i -= 1) {
         const key = keys[i];
-        stack.push({ value: value[key], path: buildJsonPath(path, key) });
+        stack.push({ value: value[key], path: buildJsonPath(path, key), parentMimeType: nextParentMimeType });
       }
     }
   }
@@ -121,9 +122,56 @@ const getBinaryBase64 = (payload, path) => {
   return candidate?.base64 || null;
 };
 
-const getBinaryMimeType = (payload) => {
+const getJsonPathParent = (path) => {
+  if (!path || path === '$') {
+    return null;
+  }
+
+  const withoutIndex = path.replace(/\[(\d+)\]$/, '');
+  if (withoutIndex !== path) {
+    return withoutIndex || null;
+  }
+
+  const withoutBracketKey = path.replace(/\[['"]((?:\\.|[^'\"])*)['"]\]$/, '');
+  if (withoutBracketKey !== path) {
+    return withoutBracketKey || null;
+  }
+
+  const dotIndex = path.lastIndexOf('.');
+  if (dotIndex > 0) {
+    return path.slice(0, dotIndex);
+  }
+
+  return null;
+};
+
+const getBinaryMimeType = (payload, path) => {
   if (!payload) {
     return null;
+  }
+
+  if (path) {
+    const selectedValue = getJsonPathFirstValue(payload, path);
+    if (selectedValue && typeof selectedValue === 'object' && typeof selectedValue.mimeType === 'string') {
+      return selectedValue.mimeType;
+    }
+
+    if (typeof selectedValue === 'string') {
+      const parentPath = getJsonPathParent(path);
+      if (parentPath) {
+        const parentValue = getJsonPathFirstValue(payload, parentPath);
+        if (parentValue && typeof parentValue === 'object' && typeof parentValue.mimeType === 'string') {
+          return parentValue.mimeType;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  const candidate = findBase64Candidate(payload);
+  if (candidate && typeof candidate.mimeType === 'string') {
+    return candidate.mimeType;
   }
 
   return typeof payload.mimeType === 'string' ? payload.mimeType : null;
@@ -166,8 +214,8 @@ const useJsonBase64Preview = ({ data, dataBuffer, selectedFormat, selectedTab, i
       return null;
     }
 
-    return getBinaryMimeType(jsonPayload);
-  }, [jsonPayload, isEnabled]);
+    return getBinaryMimeType(jsonPayload, binarySourcePath);
+  }, [jsonPayload, binarySourcePath, isEnabled]);
 
   const effectiveDataBuffer = useMemo(() => {
     if (
