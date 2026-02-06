@@ -1338,7 +1338,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
                 uid: uuid(),
                 type: 'OPEN_REQUEST',
                 collectionUid,
-                itemPathname: fullName
+                itemPathname: fullName,
+                preview: false
               })
             );
             resolve();
@@ -1494,7 +1495,8 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
               uid: uuid(),
               type: 'OPEN_REQUEST',
               collectionUid,
-              itemPathname: fullName
+              itemPathname: fullName,
+              preview: false
             })
           );
           resolve();
@@ -1621,7 +1623,8 @@ export const newWsRequest = (params) => (dispatch, getState) => {
               uid: uuid(),
               type: 'OPEN_REQUEST',
               collectionUid,
-              itemPathname: fullName
+              itemPathname: fullName,
+              preview: false
             })
           );
           resolve();

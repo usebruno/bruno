@@ -9,10 +9,7 @@ import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import useCollectionFolderTree from 'hooks/useCollectionFolderTree';
 import { removeSaveTransientRequestModal, deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
-import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
-import { sanitizeName } from 'utils/common/regex';
 import { newFolder, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import { resolveRequestFilename } from 'utils/common/platform';
@@ -140,7 +137,8 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
           uid: uuid(),
           type: 'OPEN_REQUEST',
           collectionUid: collection.uid,
-          itemPathname: targetPathname
+          itemPathname: targetPathname,
+          preview: false
         })
       );
 
