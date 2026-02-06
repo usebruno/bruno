@@ -1,0 +1,82 @@
+meta {
+  name: fetch-api
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  test("Fetch API globals exist", function() {
+    expect(fetch).to.be.a('function');
+    expect(Request).to.be.a('function');
+    expect(Response).to.be.a('function');
+    expect(Headers).to.be.a('function');
+  });
+
+  test("Headers", function() {
+    const headers = new Headers();
+    headers.set('Content-Type', 'application/json');
+    headers.append('X-Custom', 'value');
+    expect(headers.get('Content-Type')).to.equal('application/json');
+    expect(headers.has('X-Custom')).to.equal(true);
+    expect(headers.has('Missing')).to.equal(false);
+  });
+
+  test("Request", function() {
+    const req = new Request('https://example.com/api', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    expect(req.url).to.equal('https://example.com/api');
+    expect(req.method).to.equal('POST');
+    expect(req.headers.get('Content-Type')).to.equal('application/json');
+  });
+
+  test("Response", function() {
+    const res = new Response('body', { status: 201, statusText: 'Created' });
+    expect(res.status).to.equal(201);
+    expect(res.statusText).to.equal('Created');
+    expect(res.ok).to.equal(true);
+  });
+
+  test("Response body methods exist", function() {
+    const res = new Response('test');
+    expect(res.json).to.be.a('function');
+    expect(res.text).to.be.a('function');
+    expect(res.arrayBuffer).to.be.a('function');
+    expect(res.blob).to.be.a('function');
+  });
+
+  test("AbortController", function() {
+    const controller = new AbortController();
+    expect(controller.signal.aborted).to.equal(false);
+    controller.abort();
+    expect(controller.signal.aborted).to.equal(true);
+  });
+
+  test("FormData", function() {
+    const fd = new FormData();
+    fd.append('field', 'value');
+    expect(fd.get('field')).to.equal('value');
+    expect(fd.has('field')).to.equal(true);
+  });
+
+  test("Blob", function() {
+    const blob = new Blob(['hello'], { type: 'text/plain' });
+    expect(blob.size).to.equal(5);
+    expect(blob.type).to.equal('text/plain');
+  });
+}

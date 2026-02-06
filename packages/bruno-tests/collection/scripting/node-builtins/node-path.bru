@@ -1,0 +1,74 @@
+meta {
+  name: node-path
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  const path = require('node:path');
+
+  test("path.join", function() {
+    expect(path.join('/foo', 'bar', 'baz')).to.equal('/foo/bar/baz');
+    expect(path.join('foo', 'bar', 'baz')).to.equal('foo/bar/baz');
+  });
+
+  test("path.resolve", function() {
+    const resolved = path.resolve('foo', 'bar');
+    expect(path.isAbsolute(resolved)).to.equal(true);
+  });
+
+  test("path.dirname and path.basename", function() {
+    expect(path.dirname('/foo/bar/baz.txt')).to.equal('/foo/bar');
+    expect(path.basename('/foo/bar/baz.txt')).to.equal('baz.txt');
+    expect(path.basename('/foo/bar/baz.txt', '.txt')).to.equal('baz');
+  });
+
+  test("path.extname", function() {
+    expect(path.extname('file.txt')).to.equal('.txt');
+    expect(path.extname('file')).to.equal('');
+    expect(path.extname('.gitignore')).to.equal('');
+  });
+
+  test("path.parse and path.format", function() {
+    const parsed = path.parse('/foo/bar/baz.txt');
+    expect(parsed.root).to.equal('/');
+    expect(parsed.dir).to.equal('/foo/bar');
+    expect(parsed.base).to.equal('baz.txt');
+    expect(parsed.name).to.equal('baz');
+    expect(parsed.ext).to.equal('.txt');
+
+    expect(path.format(parsed)).to.equal('/foo/bar/baz.txt');
+  });
+
+  test("path.normalize", function() {
+    expect(path.normalize('/foo/bar//baz/../qux')).to.equal('/foo/bar/qux');
+  });
+
+  test("path.isAbsolute", function() {
+    expect(path.isAbsolute('/foo/bar')).to.equal(true);
+    expect(path.isAbsolute('foo/bar')).to.equal(false);
+  });
+
+  test("path.relative", function() {
+    expect(path.relative('/foo/bar', '/foo/baz')).to.equal('../baz');
+  });
+
+  test("path.sep and path.delimiter", function() {
+    expect(path.sep).to.be.a('string');
+    expect(path.delimiter).to.be.a('string');
+  });
+}

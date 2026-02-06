@@ -1,0 +1,80 @@
+meta {
+  name: ajv
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:pre-request {
+  const Ajv = require('ajv');
+  const ajv = new Ajv();
+
+  // Define a JSON schema
+  const schema = {
+    type: 'object',
+    properties: {
+      name: { type: 'string', minLength: 1 },
+      age: { type: 'integer', minimum: 0 },
+      email: { type: 'string' }
+    },
+    required: ['name', 'age']
+  };
+
+  // Valid data to validate
+  const validData = {
+    name: 'Bruno User',
+    age: 25,
+    email: 'bruno@example.com'
+  };
+
+  // Compile and validate
+  const validate = ajv.compile(schema);
+  const isValid = validate(validData);
+
+  // Set validation result in request body
+  const data = req.getBody();
+  data.ajvValidation = {
+    isValid: isValid,
+    validatedData: validData
+  };
+
+  req.setBody(data);
+}
+
+tests {
+  test("ajv should validate data correctly", function() {
+    const data = res.getBody();
+
+    expect(data.hello).to.equal("bruno");
+    expect(data.ajvValidation).to.be.an('object');
+    expect(data.ajvValidation.isValid).to.be.true;
+    expect(data.ajvValidation.validatedData.name).to.equal('Bruno User');
+    expect(data.ajvValidation.validatedData.age).to.equal(25);
+  });
+
+  test("ajv should be available in tests", function() {
+    const Ajv = require('ajv');
+    const ajv = new Ajv();
+
+    const schema = { type: 'number' };
+    const validate = ajv.compile(schema);
+
+    expect(validate(42)).to.be.true;
+    expect(validate('not a number')).to.be.false;
+  });
+}

@@ -1,0 +1,80 @@
+meta {
+  name: node-fs
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const os = require('node:os');
+
+  // Setup - create test directory and file
+  const testDir = path.join(os.tmpdir(), 'bruno-fs-test-' + Date.now());
+  const testFile = path.join(testDir, 'test.txt');
+  fs.mkdirSync(testDir, { recursive: true });
+  fs.writeFileSync(testFile, 'Hello Bruno!');
+
+  test("fs.existsSync", function() {
+    expect(fs.existsSync(testDir)).to.equal(true);
+    expect(fs.existsSync(testFile)).to.equal(true);
+    expect(fs.existsSync('/nonexistent')).to.equal(false);
+  });
+
+  test("fs.readFileSync", function() {
+    expect(fs.readFileSync(testFile, 'utf8')).to.equal('Hello Bruno!');
+    expect(Buffer.isBuffer(fs.readFileSync(testFile))).to.equal(true);
+  });
+
+  test("fs.appendFileSync", function() {
+    fs.appendFileSync(testFile, ' Appended.');
+    expect(fs.readFileSync(testFile, 'utf8')).to.equal('Hello Bruno! Appended.');
+  });
+
+  test("fs.statSync", function() {
+    const fileStat = fs.statSync(testFile);
+    expect(fileStat.isFile()).to.equal(true);
+    expect(fileStat.isDirectory()).to.equal(false);
+
+    const dirStat = fs.statSync(testDir);
+    expect(dirStat.isDirectory()).to.equal(true);
+  });
+
+  test("fs.readdirSync", function() {
+    const files = fs.readdirSync(testDir);
+    expect(files).to.include('test.txt');
+  });
+
+  test("fs.copyFileSync and fs.renameSync", function() {
+    const copyPath = path.join(testDir, 'copy.txt');
+    const renamePath = path.join(testDir, 'renamed.txt');
+
+    fs.copyFileSync(testFile, copyPath);
+    expect(fs.existsSync(copyPath)).to.equal(true);
+
+    fs.renameSync(copyPath, renamePath);
+    expect(fs.existsSync(copyPath)).to.equal(false);
+    expect(fs.existsSync(renamePath)).to.equal(true);
+
+    // Cleanup
+    fs.unlinkSync(renamePath);
+  });
+
+  // Cleanup
+  fs.unlinkSync(testFile);
+  fs.rmdirSync(testDir);
+}

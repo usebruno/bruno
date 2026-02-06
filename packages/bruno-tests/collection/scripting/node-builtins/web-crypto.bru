@@ -1,0 +1,63 @@
+meta {
+  name: web-crypto
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  test("crypto global exists", function() {
+    expect(typeof crypto).to.equal('object');
+    expect(typeof crypto.subtle).to.equal('object');
+  });
+
+  test("crypto.randomUUID", function() {
+    const uuid = crypto.randomUUID();
+    expect(uuid).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  test("crypto.getRandomValues", function() {
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    expect(array.some(b => b !== 0)).to.equal(true);
+  });
+
+  test("crypto.subtle methods exist", function() {
+    expect(crypto.subtle.digest).to.be.a('function');
+    expect(crypto.subtle.generateKey).to.be.a('function');
+    expect(crypto.subtle.sign).to.be.a('function');
+    expect(crypto.subtle.verify).to.be.a('function');
+    expect(crypto.subtle.encrypt).to.be.a('function');
+    expect(crypto.subtle.decrypt).to.be.a('function');
+    expect(crypto.subtle.importKey).to.be.a('function');
+    expect(crypto.subtle.exportKey).to.be.a('function');
+  });
+
+  test("crypto.subtle.digest returns promise", function() {
+    const data = new TextEncoder().encode('hello');
+    const result = crypto.subtle.digest('SHA-256', data);
+    expect(result).to.be.a('promise');
+  });
+
+  test("crypto.subtle.generateKey returns promise", function() {
+    const result = crypto.subtle.generateKey(
+      { name: 'AES-GCM', length: 256 },
+      true,
+      ['encrypt', 'decrypt']
+    );
+    expect(result).to.be.a('promise');
+  });
+}

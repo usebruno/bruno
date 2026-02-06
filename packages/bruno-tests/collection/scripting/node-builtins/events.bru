@@ -1,0 +1,86 @@
+meta {
+  name: events
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  test("Event, EventTarget, CustomEvent exist", function() {
+    expect(Event).to.be.a('function');
+    expect(EventTarget).to.be.a('function');
+    expect(CustomEvent).to.be.a('function');
+  });
+
+  test("Event properties", function() {
+    const event = new Event('click', { bubbles: true, cancelable: true });
+    expect(event.type).to.equal('click');
+    expect(event.bubbles).to.equal(true);
+    expect(event.cancelable).to.equal(true);
+  });
+
+  test("CustomEvent with detail", function() {
+    const event = new CustomEvent('custom', { detail: { foo: 'bar' } });
+    expect(event.type).to.equal('custom');
+    expect(event.detail).to.deep.equal({ foo: 'bar' });
+  });
+
+  test("EventTarget addEventListener and dispatchEvent", function() {
+    let eventFired = false;
+    let eventDetail = null;
+
+    const target = new EventTarget();
+    target.addEventListener('test', (e) => {
+      eventFired = true;
+      eventDetail = e.detail;
+    });
+    target.dispatchEvent(new CustomEvent('test', { detail: 'hello' }));
+
+    expect(eventFired).to.equal(true);
+    expect(eventDetail).to.equal('hello');
+  });
+
+  test("Multiple event listeners", function() {
+    let count = 0;
+    const target = new EventTarget();
+    target.addEventListener('inc', () => count++);
+    target.addEventListener('inc', () => count++);
+    target.dispatchEvent(new Event('inc'));
+
+    expect(count).to.equal(2);
+  });
+
+  test("removeEventListener", function() {
+    let removed = true;
+    const target = new EventTarget();
+    const handler = () => { removed = false; };
+    target.addEventListener('test', handler);
+    target.removeEventListener('test', handler);
+    target.dispatchEvent(new Event('test'));
+
+    expect(removed).to.equal(true);
+  });
+
+  test("addEventListener with once option", function() {
+    let onceCount = 0;
+    const target = new EventTarget();
+    target.addEventListener('test', () => onceCount++, { once: true });
+    target.dispatchEvent(new Event('test'));
+    target.dispatchEvent(new Event('test'));
+
+    expect(onceCount).to.equal(1);
+  });
+}

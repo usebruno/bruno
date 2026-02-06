@@ -1,0 +1,71 @@
+meta {
+  name: json
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  test("JSON.stringify", function() {
+    expect(JSON.stringify({ a: 1 })).to.equal('{"a":1}');
+    expect(JSON.stringify([1, 2, 3])).to.equal('[1,2,3]');
+    expect(JSON.stringify('hello')).to.equal('"hello"');
+    expect(JSON.stringify(null)).to.equal('null');
+  });
+
+  test("JSON.stringify with replacer", function() {
+    const obj = { a: 1, b: 2, c: 3 };
+    expect(JSON.stringify(obj, ['a', 'c'])).to.equal('{"a":1,"c":3}');
+    expect(JSON.stringify(obj, (k, v) => k === 'b' ? undefined : v)).to.equal('{"a":1,"c":3}');
+  });
+
+  test("JSON.stringify with space", function() {
+    const obj = { a: 1 };
+    expect(JSON.stringify(obj, null, 2)).to.equal('{\n  "a": 1\n}');
+  });
+
+  test("JSON.parse", function() {
+    expect(JSON.parse('{"a":1}')).to.deep.equal({ a: 1 });
+    expect(JSON.parse('[1,2,3]')).to.deep.equal([1, 2, 3]);
+    expect(JSON.parse('"hello"')).to.equal('hello');
+    expect(JSON.parse('null')).to.equal(null);
+  });
+
+  test("JSON.parse with reviver", function() {
+    const result = JSON.parse('{"a":1,"b":2}', (k, v) => typeof v === 'number' ? v * 2 : v);
+    expect(result).to.deep.equal({ a: 2, b: 4 });
+  });
+
+  test("JSON roundtrip with complex object", function() {
+    const obj = {
+      string: 'hello',
+      number: 42,
+      float: 3.14,
+      boolean: true,
+      null: null,
+      array: [1, 2, 3],
+      nested: { a: { b: { c: 'deep' } } }
+    };
+    expect(JSON.parse(JSON.stringify(obj))).to.deep.equal(obj);
+  });
+
+  test("JSON.stringify handles special values", function() {
+    expect(JSON.stringify({ a: undefined })).to.equal('{}');
+    expect(JSON.stringify([undefined])).to.equal('[null]');
+    expect(JSON.stringify({ a: NaN })).to.equal('{"a":null}');
+    expect(JSON.stringify({ a: Infinity })).to.equal('{"a":null}');
+  });
+}
