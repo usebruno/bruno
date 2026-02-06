@@ -2059,7 +2059,14 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Variable not found'));
           }
 
-          const updatedVariables = environment.variables.map((v) => (v.uid === variable.uid ? { ...v, value: newValue } : v));
+          const updatedVariables = environment.variables.map((v) => {
+            if (v.uid === variable.uid) {
+              // Clear ephemeral metadata when user manually edits the value
+              const { ephemeral, persistedValue, ...rest } = v;
+              return { ...rest, value: newValue };
+            }
+            return v;
+          });
 
           return dispatch(saveEnvironment(updatedVariables, environment.uid, collectionUid))
             .then(() => {
@@ -2168,8 +2175,14 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Variable not found'));
           }
 
-          const updatedVariables = environment.variables.map((v) =>
-            v.uid === variable.uid ? { ...v, value: newValue } : v);
+          const updatedVariables = environment.variables.map((v) => {
+            if (v.uid === variable.uid) {
+              // Clear ephemeral metadata when user manually edits the value
+              const { ephemeral, persistedValue, ...rest } = v;
+              return { ...rest, value: newValue };
+            }
+            return v;
+          });
 
           return dispatch(saveGlobalEnvironment({ variables: updatedVariables, environmentUid: activeGlobalEnvUid }))
             .then(() => {
