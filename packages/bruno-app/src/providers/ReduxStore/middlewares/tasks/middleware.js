@@ -29,14 +29,13 @@ taskMiddleware.startListening({
         const collection = findCollectionByUid(state.collections.collections, collectionUid);
         if (collection && collection.mountStatus === 'mounted' && !collection.isLoading) {
           const item = findItemInCollectionByPathname(collection, task.itemPathname);
-          const isTransient = item?.isTransient ?? false;
           if (item) {
             listenerApi.dispatch(
               addTab({
                 uid: item.uid,
                 collectionUid: collection.uid,
                 requestPaneTab: getDefaultRequestPaneTab(item),
-                preview: !isTransient
+                preview: task?.preview ?? true
               })
             );
           }
