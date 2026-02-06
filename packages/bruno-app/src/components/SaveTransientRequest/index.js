@@ -13,12 +13,15 @@ import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { sanitizeName } from 'utils/common/regex';
+import { newFolder, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import { resolveRequestFilename } from 'utils/common/platform';
 import path from 'utils/common/path';
 import { transformRequestToSaveToFilesystem, findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import { itemSchema } from '@usebruno/schema';
 import { uuid } from 'utils/common';
+import { formatIpcError } from 'utils/common/error';
 
 const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose }) => {
   const dispatch = useDispatch();
@@ -141,11 +144,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         })
       );
 
-      dispatch(
-        closeTabs({
-          tabUids: [item.uid]
-        })
-      );
+      dispatch(closeTabs({ tabUids: [item.uid] }));
 
       dispatch({
         type: 'collections/deleteItem',
@@ -158,7 +157,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       toast.success('Request saved successfully');
       handleClose();
     } catch (err) {
-      toast.error(err?.message || 'Failed to save request');
+      toast.error(formatIpcError(err) || 'Failed to save request');
       console.error('Error saving request:', err);
     }
   };

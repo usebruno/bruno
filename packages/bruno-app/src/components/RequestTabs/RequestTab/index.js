@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
-import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
@@ -474,19 +474,42 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     } catch (err) { }
   }
 
+  async function handleCloseMultipleTabs(tabs) {
+    const tabUidsToClose = [];
+
+    for (const tab of tabs) {
+      const item = findItemInCollection(collection, tab.uid);
+      if (item && hasRequestChanges(item)) {
+        try {
+          await dispatch(saveRequest(item.uid, collection.uid, true));
+        } catch (err) {
+          continue;
+        }
+      }
+
+      if (tab?.uid) {
+        tabUidsToClose.push(tab.uid);
+      }
+    }
+
+    if (tabUidsToClose.length > 0) {
+      dispatch(closeTabs({ tabUids: tabUidsToClose }));
+    }
+  }
+
   async function handleCloseOtherTabs() {
     const otherTabs = collectionRequestTabs.filter((_, index) => index !== tabIndex);
-    await Promise.all(otherTabs.map((tab) => handleCloseTab(tab.uid)));
+    await handleCloseMultipleTabs(otherTabs);
   }
 
   async function handleCloseTabsToTheLeft() {
     const leftTabs = collectionRequestTabs.filter((_, index) => index < tabIndex);
-    await Promise.all(leftTabs.map((tab) => handleCloseTab(tab.uid)));
+    await handleCloseMultipleTabs(leftTabs);
   }
 
   async function handleCloseTabsToTheRight() {
     const rightTabs = collectionRequestTabs.filter((_, index) => index > tabIndex);
-    await Promise.all(rightTabs.map((tab) => handleCloseTab(tab.uid)));
+    await handleCloseMultipleTabs(rightTabs);
   }
 
   function handleCloseSavedTabs() {
@@ -497,7 +520,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   }
 
   async function handleCloseAllTabs() {
-    await Promise.all(collectionRequestTabs.map((tab) => handleCloseTab(tab.uid)));
+    await handleCloseMultipleTabs(collectionRequestTabs);
   }
 
   const menuItems = useMemo(() => [
