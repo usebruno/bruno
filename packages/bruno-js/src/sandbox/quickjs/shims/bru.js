@@ -65,6 +65,18 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'deleteEnvVar', deleteEnvVar);
   deleteEnvVar.dispose();
 
+  let getAllEnvVars = vm.newFunction('getAllEnvVars', function () {
+    return marshallToVm(bru.getAllEnvVars(), vm);
+  });
+  vm.setProp(bruObject, 'getAllEnvVars', getAllEnvVars);
+  getAllEnvVars.dispose();
+
+  let deleteAllEnvVars = vm.newFunction('deleteAllEnvVars', function () {
+    bru.deleteAllEnvVars();
+  });
+  vm.setProp(bruObject, 'deleteAllEnvVars', deleteAllEnvVars);
+  deleteAllEnvVars.dispose();
+
   let getGlobalEnvVar = vm.newFunction('getGlobalEnvVar', function (key) {
     return marshallToVm(bru.getGlobalEnvVar(vm.dump(key)), vm);
   });
@@ -82,6 +94,24 @@ const addBruShimToContext = (vm, bru) => {
   });
   vm.setProp(bruObject, 'setGlobalEnvVar', setGlobalEnvVar);
   setGlobalEnvVar.dispose();
+
+  let deleteGlobalEnvVar = vm.newFunction('deleteGlobalEnvVar', function (key) {
+    bru.deleteGlobalEnvVar(vm.dump(key));
+  });
+  vm.setProp(bruObject, 'deleteGlobalEnvVar', deleteGlobalEnvVar);
+  deleteGlobalEnvVar.dispose();
+
+  let getAllGlobalEnvVars = vm.newFunction('getAllGlobalEnvVars', function () {
+    return marshallToVm(bru.getAllGlobalEnvVars(), vm);
+  });
+  vm.setProp(bruObject, 'getAllGlobalEnvVars', getAllGlobalEnvVars);
+  getAllGlobalEnvVars.dispose();
+
+  let deleteAllGlobalEnvVars = vm.newFunction('deleteAllGlobalEnvVars', function () {
+    bru.deleteAllGlobalEnvVars();
+  });
+  vm.setProp(bruObject, 'deleteAllGlobalEnvVars', deleteAllGlobalEnvVars);
+  deleteAllGlobalEnvVars.dispose();
 
   let hasVar = vm.newFunction('hasVar', function (key) {
     return marshallToVm(bru.hasVar(vm.dump(key)), vm);
@@ -112,6 +142,12 @@ const addBruShimToContext = (vm, bru) => {
   });
   vm.setProp(bruObject, 'deleteAllVars', deleteAllVars);
   deleteAllVars.dispose();
+
+  let getAllVars = vm.newFunction('getAllVars', function () {
+    return marshallToVm(bru.getAllVars(), vm);
+  });
+  vm.setProp(bruObject, 'getAllVars', getAllVars);
+  getAllVars.dispose();
 
   let setNextRequest = vm.newFunction('setNextRequest', function (nextRequest) {
     bru.setNextRequest(vm.dump(nextRequest));
