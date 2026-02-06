@@ -11,7 +11,6 @@ import useCollectionFolderTree from 'hooks/useCollectionFolderTree';
 import { removeSaveTransientRequestModal, deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { newFolder, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
-import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import { resolveRequestFilename } from 'utils/common/platform';
 import path from 'utils/common/path';
