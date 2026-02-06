@@ -47,13 +47,14 @@ const hasRequestDefaults = (collectionRoot: any): boolean => {
 };
 
 const hasRequestAuth = (collectionRoot: any): boolean => {
-  return Boolean((collectionRoot.request?.auth?.mode !== 'none'));
+  const mode = collectionRoot?.request?.auth?.mode;
+  return Boolean(mode && mode !== 'none');
 };
 
 const hasRequestScripts = (collectionRoot: any): boolean => {
-  return (collectionRoot.request?.script?.req)
-    || (collectionRoot.request?.script?.res)
-    || (collectionRoot.request?.tests);
+  return (collectionRoot?.request?.script?.req)
+    || (collectionRoot?.request?.script?.res)
+    || (collectionRoot?.request?.tests);
 };
 
 const hasPresets = (brunoConfig: any): boolean => {
@@ -158,7 +159,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
       oc.request = {};
 
       // headers
-      if (collectionRoot.request?.headers?.length) {
+      if (collectionRoot?.request?.headers?.length) {
         const ocHeaders: HttpRequestHeader[] | undefined = toOpenCollectionHttpHeaders(collectionRoot.request?.headers);
         if (ocHeaders) {
           oc.request.headers = ocHeaders;
@@ -167,23 +168,23 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
 
       // auth
       if (hasRequestAuth(collectionRoot)) {
-        const ocAuth: Auth | undefined = toOpenCollectionAuth(collectionRoot.request?.auth);
+        const ocAuth: Auth | undefined = toOpenCollectionAuth(collectionRoot?.request?.auth);
         if (ocAuth) {
           oc.request.auth = ocAuth;
         }
       }
 
       // variables
-      if (collectionRoot.request?.vars?.req?.length) {
-        const ocVariables: Variable[] | undefined = toOpenCollectionVariables(collectionRoot.request?.vars);
+      if (collectionRoot?.request?.vars?.req?.length) {
+        const ocVariables: Variable[] | undefined = toOpenCollectionVariables(collectionRoot?.request?.vars);
         if (ocVariables) {
           oc.request.variables = ocVariables;
         }
       }
 
       // actions (post-response variables)
-      if (collectionRoot.request?.vars?.res?.length) {
-        const ocActions: Action[] | undefined = toOpenCollectionActions(collectionRoot.request?.vars?.res);
+      if (collectionRoot?.request?.vars?.res?.length) {
+        const ocActions: Action[] | undefined = toOpenCollectionActions(collectionRoot?.request?.vars?.res);
         if (ocActions) {
           (oc.request as any).actions = ocActions;
         }
@@ -191,7 +192,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
 
       // scripts
       if (hasRequestScripts(collectionRoot)) {
-        const ocScripts: Scripts | undefined = toOpenCollectionScripts(collectionRoot.request);
+        const ocScripts: Scripts | undefined = toOpenCollectionScripts(collectionRoot?.request);
         if (ocScripts) {
           oc.request.scripts = ocScripts;
         }
@@ -199,7 +200,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
     }
 
     // docs
-    if (collectionRoot.docs?.trim().length) {
+    if (collectionRoot?.docs?.trim().length) {
       oc.docs = {
         content: collectionRoot.docs,
         type: 'text/markdown'
