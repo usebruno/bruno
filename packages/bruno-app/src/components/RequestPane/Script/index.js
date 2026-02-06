@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import get from 'lodash/get';
+import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
@@ -15,26 +17,21 @@ const Script = ({ item, collection }) => {
   const requestScript = item.draft ? get(item, 'draft.request.script.req') : get(item, 'request.script.req');
   const responseScript = item.draft ? get(item, 'draft.request.script.res') : get(item, 'request.script.res');
 
-  // Default to post-response if pre-request script is empty
-  const getInitialTab = () => {
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const scriptPaneTab = focusedTab?.scriptPaneTab;
+
+  // Default to post-response if pre-request script is empty (only when scriptPaneTab is null/undefined)
+  const getDefaultTab = () => {
     const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
     return hasPreRequestScript ? 'pre-request' : 'post-response';
   };
 
-  const [activeTab, setActiveTab] = useState(getInitialTab);
-  const prevItemUidRef = useRef(item.uid);
+  const activeTab = scriptPaneTab || getDefaultTab();
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-
-  // Update active tab only when switching to a different item
-  useEffect(() => {
-    if (prevItemUidRef.current !== item.uid) {
-      prevItemUidRef.current = item.uid;
-      const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
-      setActiveTab(hasPreRequestScript ? 'pre-request' : 'post-response');
-    }
-  }, [item.uid, requestScript]);
 
   // Refresh CodeMirror when tab becomes visible
   useEffect(() => {
@@ -76,9 +73,13 @@ const Script = ({ item, collection }) => {
   const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
   const hasPostResponseScript = responseScript && responseScript.trim().length > 0;
 
+  const onScriptTabChange = (tab) => {
+    dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: tab }));
+  };
+
   return (
     <div className="w-full h-full flex flex-col">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={onScriptTabChange}>
         <TabsList>
           <TabsTrigger value="pre-request">
             Pre Request
