@@ -490,7 +490,14 @@ const EnvironmentVariablesTable = ({
                     placeholder={isLastEmptyRow ? 'Value' : ''}
                     isSecret={variable.secret}
                     readOnly={typeof variable.value !== 'string'}
-                    onChange={(newValue) => formik.setFieldValue(`${actualIndex}.value`, newValue, true)}
+                    onChange={(newValue) => {
+                      formik.setFieldValue(`${actualIndex}.value`, newValue, true);
+                      // Clear ephemeral metadata when user manually edits the value
+                      if (variable.ephemeral) {
+                        formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
+                        formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
+                      }
+                    }}
                     onSave={handleSave}
                   />
                 </div>
