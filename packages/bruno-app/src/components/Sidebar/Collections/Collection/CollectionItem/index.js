@@ -561,7 +561,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
     const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
 
-    if (isModifierPressed && e.key.toLowerCase() === 'c') {
+    if (e.key === 'F2') {
+      e.preventDefault();
+      e.stopPropagation();
+      setRenameItemModalOpen(true);
+    } else if (isModifierPressed && e.key.toLowerCase() === 'c') {
       e.preventDefault();
       e.stopPropagation();
       handleCopyItem();
