@@ -301,7 +301,7 @@ const parseInsomniaCollection = (data) => {
 export const insomniaToBruno = (insomniaCollection) => {
   try {
     if (typeof insomniaCollection !== 'object') {
-      insomniaCollection = jsyaml.load(insomniaCollection);
+      insomniaCollection = jsyaml.load(insomniaCollection, { schema: jsyaml.JSON_SCHEMA });
     }
     let collection;
     if (isInsomniaV5Export(insomniaCollection)) {
