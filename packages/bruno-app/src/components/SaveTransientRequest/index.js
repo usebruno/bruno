@@ -9,13 +9,16 @@ import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import useCollectionFolderTree from 'hooks/useCollectionFolderTree';
 import { removeSaveTransientRequestModal, deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
-import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import { newFolder, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import { resolveRequestFilename } from 'utils/common/platform';
+import path from 'utils/common/path';
 import { transformRequestToSaveToFilesystem, findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import { itemSchema } from '@usebruno/schema';
+import { uuid } from 'utils/common';
+import { formatIpcError } from 'utils/common/error';
 
 const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose }) => {
   const dispatch = useDispatch();
@@ -42,6 +45,8 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderDirectoryName, setNewFolderDirectoryName] = useState('');
   const [showFilesystemName, setShowFilesystemName] = useState(false);
+  const [isEditingFolderFilename, setIsEditingFolderFilename] = useState(false);
+  const [pendingFolderNavigation, setPendingFolderNavigation] = useState(null);
   const newFolderInputRef = useRef(null);
 
   const {
@@ -65,6 +70,8 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     setNewFolderName('');
     setNewFolderDirectoryName('');
     setShowFilesystemName(false);
+    setIsEditingFolderFilename(false);
+    setPendingFolderNavigation(null);
   };
 
   useEffect(() => {
@@ -76,6 +83,17 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       newFolderInputRef.current.focus();
     }
   }, [showNewFolderInput]);
+
+  // Auto-navigate into newly created folder when it appears in currentFolders
+  useEffect(() => {
+    if (pendingFolderNavigation) {
+      const newFolder = currentFolders.find((f) => f.filename === pendingFolderNavigation);
+      if (newFolder) {
+        navigateIntoFolder(newFolder.uid);
+        setPendingFolderNavigation(null);
+      }
+    }
+  }, [currentFolders, pendingFolderNavigation, navigateIntoFolder]);
 
   const filteredFolders = useMemo(() => {
     if (!searchText.trim()) {
@@ -123,6 +141,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
       const format = collection.format || DEFAULT_COLLECTION_FORMAT;
       const targetFilename = resolveRequestFilename(sanitizedFilename, format);
+      const targetPathname = path.join(targetDirname, targetFilename);
 
       await ipcRenderer.invoke('renderer:save-transient-request', {
         sourcePathname: item.pathname,
@@ -132,11 +151,18 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         format
       });
 
+      // Add task to open the newly saved request when file watcher detects it
       dispatch(
-        closeTabs({
-          tabUids: [item.uid]
+        insertTaskIntoQueue({
+          uid: uuid(),
+          type: 'OPEN_REQUEST',
+          collectionUid: collection.uid,
+          itemPathname: targetPathname,
+          preview: false
         })
       );
+
+      dispatch(closeTabs({ tabUids: [item.uid] }));
 
       dispatch({
         type: 'collections/deleteItem',
@@ -149,7 +175,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       toast.success('Request saved successfully');
       handleClose();
     } catch (err) {
-      toast.error(err?.message || 'Failed to save request');
+      toast.error(formatIpcError(err) || 'Failed to save request');
       console.error('Error saving request:', err);
     }
   };
@@ -159,6 +185,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     setNewFolderName('');
     setNewFolderDirectoryName('');
     setShowFilesystemName(false);
+    setIsEditingFolderFilename(false);
   };
 
   const handleCancelNewFolder = () => {
@@ -166,17 +193,19 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     setNewFolderName('');
     setNewFolderDirectoryName('');
     setShowFilesystemName(false);
+    setIsEditingFolderFilename(false);
   };
 
   const handleNewFolderNameChange = (value) => {
     setNewFolderName(value);
-    if (!showFilesystemName) {
+    if (!isEditingFolderFilename) {
       setNewFolderDirectoryName(sanitizeName(value));
     }
   };
 
   const handleDirectoryNameChange = (value) => {
     setNewFolderDirectoryName(value);
+    setIsEditingFolderFilename(true);
   };
 
   const handleCreateNewFolder = async () => {
@@ -198,6 +227,9 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     try {
       await dispatch(newFolder(trimmedFolderName, directoryName, collection?.uid, parentFolder?.uid));
       toast.success('New folder created!');
+
+      // Set pending navigation - useEffect will navigate when folder appears in state
+      setPendingFolderNavigation(directoryName);
       handleCancelNewFolder();
     } catch (err) {
       const errorMessage = err?.message || 'An error occurred while adding the folder';
@@ -303,76 +335,80 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                   ))}
                   {showNewFolderInput && (
                     <li className="new-folder-item">
-                      <div className="new-folder-content">
+                      <div className="new-folder-header">
                         <IconFolder size={16} strokeWidth={1.5} />
-                        <div className="new-folder-inputs">
-                          <div className="new-folder-name-input-wrapper">
-                            {showFilesystemName && (
-                              <label className="new-folder-name-label">New Folder name (in bruno)</label>
-                            )}
-                            <div className="new-folder-input-row">
-                              <input
-                                ref={newFolderInputRef}
-                                type="text"
-                                className="new-folder-input"
-                                placeholder="Untitled new folder"
-                                value={newFolderName}
-                                onChange={(e) => handleNewFolderNameChange(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    handleCreateNewFolder();
-                                  } else if (e.key === 'Escape') {
-                                    handleCancelNewFolder();
-                                  }
-                                }}
-                              />
-                              <div className="new-folder-actions">
-                                <button
-                                  type="button"
-                                  className="new-folder-action-btn"
-                                  onClick={handleCancelNewFolder}
-                                  title="Cancel"
-                                >
-                                  <IconX size={16} strokeWidth={1.5} />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="new-folder-action-btn"
-                                  onClick={handleCreateNewFolder}
-                                  title="Create folder"
-                                >
-                                  <IconCheck size={16} strokeWidth={1.5} />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {showFilesystemName && (
-                            <div className="new-folder-filesystem-wrapper">
-                              <label className="new-folder-filesystem-label">Name on filesystem</label>
-                              <input
-                                type="text"
-                                className="new-folder-input"
-                                value={newFolderDirectoryName}
-                                onChange={(e) => handleDirectoryNameChange(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    handleCreateNewFolder();
-                                  }
-                                }}
-                              />
-                            </div>
-                          )}
+                        <label className="new-folder-header-label">
+                          {showFilesystemName ? 'New Folder name (in bruno)' : 'New Folder name'}
+                        </label>
+                      </div>
+                      <div className="new-folder-input-row">
+                        <input
+                          ref={newFolderInputRef}
+                          type="text"
+                          className="new-folder-input"
+                          placeholder="Untitled new folder"
+                          value={newFolderName}
+                          onChange={(e) => handleNewFolderNameChange(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleCreateNewFolder();
+                            } else if (e.key === 'Escape') {
+                              e.stopPropagation();
+                              handleCancelNewFolder();
+                            }
+                          }}
+                        />
+                        <div className="new-folder-actions">
+                          <button
+                            type="button"
+                            className="new-folder-action-btn"
+                            onClick={handleCancelNewFolder}
+                            title="Cancel"
+                          >
+                            <IconX size={16} strokeWidth={1.5} />
+                          </button>
+                          <button
+                            type="button"
+                            className="new-folder-action-btn"
+                            onClick={handleCreateNewFolder}
+                            title="Create folder"
+                          >
+                            <IconCheck size={16} strokeWidth={1.5} />
+                          </button>
                         </div>
                       </div>
+
+                      {showFilesystemName && (
+                        <div className="new-folder-filesystem-wrapper">
+                          <label className="new-folder-filesystem-label">Name on filesystem</label>
+                          <input
+                            type="text"
+                            className="new-folder-input"
+                            value={newFolderDirectoryName}
+                            onChange={(e) => handleDirectoryNameChange(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleCreateNewFolder();
+                              } else if (e.key === 'Escape') {
+                                e.stopPropagation();
+                                handleCancelNewFolder();
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+
                       <button
                         type="button"
                         className="new-folder-toggle-filesystem-btn"
                         onClick={() => {
                           setShowFilesystemName(!showFilesystemName);
                           setNewFolderDirectoryName(sanitizeName(newFolderName));
+                          setIsEditingFolderFilename(false);
                         }}
                       >
                         {showFilesystemName ? (

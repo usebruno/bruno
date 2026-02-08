@@ -82,11 +82,15 @@ const Script = ({ item, collection }) => {
         <TabsList>
           <TabsTrigger value="pre-request">
             Pre Request
-            {hasPreRequestScript && <StatusDot />}
+            {hasPreRequestScript && (
+              <StatusDot type={item.preRequestScriptErrorMessage ? 'error' : 'default'} />
+            )}
           </TabsTrigger>
           <TabsTrigger value="post-response">
             Post Response
-            {hasPostResponseScript && <StatusDot />}
+            {hasPostResponseScript && (
+              <StatusDot type={item.postResponseScriptErrorMessage ? 'error' : 'default'} />
+            )}
           </TabsTrigger>
         </TabsList>
 

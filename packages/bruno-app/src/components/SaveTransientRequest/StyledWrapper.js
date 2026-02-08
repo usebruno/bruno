@@ -163,30 +163,17 @@ const StyledWrapper = styled.div`
     padding-top: 12px;
   }
 
-  .new-folder-content {
+  .new-folder-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
+    margin-bottom: 4px;
   }
 
-  .new-folder-inputs {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    flex: 1;
-  }
-
-  .new-folder-name-input-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    flex: 1;
-  }
-
-  .new-folder-name-label {
-    font-size: 12px;
+  .new-folder-header-label {
+    font-size: 13px;
     font-weight: 500;
-    color: ${(props) => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.text};
   }
 
   .new-folder-input-row {
@@ -247,13 +234,12 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 6px;
-    margin-top: 4px;
   }
 
   .new-folder-filesystem-label {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
-    color: ${(props) => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.text};
   }
 
   .new-folder-toggle-filesystem-btn {
