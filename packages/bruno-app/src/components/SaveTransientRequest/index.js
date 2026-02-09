@@ -3,14 +3,14 @@ import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
 import SearchInput from 'components/SearchInput';
 import Button from 'ui/Button';
-import { IconFolder, IconChevronRight, IconCheck, IconX, IconEye, IconEyeOff } from '@tabler/icons';
+import { IconFolder, IconChevronRight, IconCheck, IconX, IconEye, IconEyeOff, IconDatabase, IconLoader2 } from '@tabler/icons';
 import filter from 'lodash/filter';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import useCollectionFolderTree from 'hooks/useCollectionFolderTree';
 import { removeSaveTransientRequestModal, deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
-import { newFolder, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { newFolder, closeTabs, mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import { resolveRequestFilename } from 'utils/common/platform';
 import path from 'utils/common/path';
@@ -31,6 +31,26 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   const item = itemProp;
   const collection = collectionProp;
 
+  // Get workspace collections (excluding scratch)
+  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const allCollections = useSelector((state) => state.collections.collections);
+
+  // Check if source collection is a scratch collection (by comparing with workspace's scratchCollectionUid)
+  const isScratchCollection = activeWorkspace?.scratchCollectionUid === collection?.uid;
+
+  const availableCollections = useMemo(() => {
+    if (!isScratchCollection || !activeWorkspace) return [];
+
+    return (activeWorkspace.collections || []).map((wc) => {
+      const fullCollection = allCollections.find((c) => c.pathname === wc.path);
+      return fullCollection || { ...wc, uid: null, mountStatus: 'unmounted' };
+    }).filter((c) => {
+      // Exclude scratch collections by checking if this collection UID matches any workspace's scratchCollectionUid
+      return !workspaces.some((w) => w.scratchCollectionUid === c.uid);
+    });
+  }, [isScratchCollection, activeWorkspace, allCollections, workspaces]);
+
   const handleClose = () => {
     if (onClose) {
       onClose();
@@ -49,6 +69,13 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   const [pendingFolderNavigation, setPendingFolderNavigation] = useState(null);
   const newFolderInputRef = useRef(null);
 
+  // State for collection selection (when saving from scratch collection)
+  const [selectedTargetCollection, setSelectedTargetCollection] = useState(null);
+  const [isSelectingCollection, setIsSelectingCollection] = useState(isScratchCollection);
+
+  // Use target collection for folder tree if one is selected, otherwise use source collection
+  const folderTreeCollectionUid = selectedTargetCollection?.uid || collection?.uid;
+
   const {
     currentFolders,
     breadcrumbs,
@@ -60,7 +87,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     getCurrentSelectedFolder,
     reset,
     isAtRoot
-  } = useCollectionFolderTree(collection?.uid);
+  } = useCollectionFolderTree(folderTreeCollectionUid);
 
   const resetForm = () => {
     setRequestName(item.name || '');
@@ -72,10 +99,14 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     setShowFilesystemName(false);
     setIsEditingFolderFilename(false);
     setPendingFolderNavigation(null);
+    setSelectedTargetCollection(null);
+    setIsSelectingCollection(isScratchCollection); // Reset to initial state based on collection type
   };
 
   useEffect(() => {
-    isOpen && item && resetForm();
+    if (isOpen && item) {
+      resetForm();
+    }
   }, [isOpen, item]);
 
   useEffect(() => {
@@ -108,16 +139,45 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     handleClose();
   };
 
+  const handleSelectCollection = async (selectedCollection) => {
+    // If collection is not mounted, mount it first
+    if (!selectedCollection.uid || selectedCollection.mountStatus !== 'mounted') {
+      try {
+        const result = await dispatch(
+          mountCollection({
+            collectionUid: selectedCollection.uid || uuid(),
+            collectionPathname: selectedCollection.path || selectedCollection.pathname,
+            brunoConfig: selectedCollection.brunoConfig
+          })
+        );
+        // The collection should now be mounted, fetch the updated collection
+        const mountedCollection = allCollections.find((c) => c.pathname === selectedCollection.path);
+        setSelectedTargetCollection(mountedCollection);
+        setIsSelectingCollection(false);
+      } catch (error) {
+        toast.error('Failed to mount collection');
+        console.error('Error mounting collection:', error);
+      }
+    } else {
+      // Collection is already mounted
+      setSelectedTargetCollection(selectedCollection);
+      setIsSelectingCollection(false);
+    }
+  };
+
   const handleConfirm = async () => {
     if (!item || !collection || !latestItem) {
       return;
     }
 
+    // Determine the target collection (either selected or source collection)
+    const targetCollection = selectedTargetCollection || collection;
+
     try {
       const { ipcRenderer } = window;
 
       const selectedFolder = getCurrentSelectedFolder();
-      const targetDirname = selectedFolder ? selectedFolder.pathname : collection.pathname;
+      const targetDirname = selectedFolder ? selectedFolder.pathname : targetCollection.pathname;
 
       const trimmedName = requestName.trim();
       if (!trimmedName || trimmedName.length === 0) {
@@ -134,8 +194,10 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       const transformedItem = transformRequestToSaveToFilesystem(itemToSave);
       await itemSchema.validate(transformedItem);
 
-      const format = collection.format || DEFAULT_COLLECTION_FORMAT;
-      const targetFilename = resolveRequestFilename(sanitizedFilename, format);
+      // Use target collection's format
+      const targetFormat = targetCollection.format || DEFAULT_COLLECTION_FORMAT;
+      const sourceFormat = collection.format || DEFAULT_COLLECTION_FORMAT;
+      const targetFilename = resolveRequestFilename(sanitizedFilename, targetFormat);
       const targetPathname = path.join(targetDirname, targetFilename);
 
       await ipcRenderer.invoke('renderer:save-transient-request', {
@@ -143,7 +205,8 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         targetDirname,
         targetFilename,
         request: transformedItem,
-        format
+        format: targetFormat,
+        sourceFormat // Include source format for conversion if needed
       });
 
       // Add task to open the newly saved request when file watcher detects it
@@ -151,7 +214,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         insertTaskIntoQueue({
           uid: uuid(),
           type: 'OPEN_REQUEST',
-          collectionUid: collection.uid,
+          collectionUid: targetCollection.uid,
           itemPathname: targetPathname,
           preview: false
         })
@@ -245,7 +308,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     <StyledWrapper>
       <Modal
         size="md"
-        title="Save Request"
+        title={isSelectingCollection ? 'Select Collection' : 'Save Request'}
         handleCancel={handleCancel}
         handleConfirm={handleConfirm}
         confirmText="Save"
@@ -267,172 +330,250 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
               spellCheck="false"
               value={requestName}
               onChange={(e) => setRequestName(e.target.value)}
-              autoFocus={true}
+              autoFocus={!isSelectingCollection}
               onFocus={(e) => e.target.select()}
             />
           </div>
 
           <div className="collections-section">
-            <div className="collections-label">Save to Collections</div>
-            {collection && (
-              <div
-                className={`collection-name ${!isAtRoot ? 'collection-name-clickable' : ''}`}
-                onClick={!isAtRoot ? navigateToRoot : undefined}
-              >
-                <span>{collection.name}</span>
-                {breadcrumbs.length > 0 && (
+            <div className="collections-label">
+              {isSelectingCollection ? 'Select a collection to save to' : 'Save to Collections'}
+            </div>
+
+            {/* Breadcrumbs - always visible when saving from scratch collection */}
+            {isScratchCollection && (
+              <div className="collection-name">
+                <span className={isSelectingCollection ? '' : 'collection-name-breadcrumb'}>
+                  Collections
+                </span>
+                {!isSelectingCollection && (
                   <>
-                    {breadcrumbs.map((breadcrumb, index) => (
-                      <React.Fragment key={breadcrumb.uid}>
-                        <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />
-                        <span
-                          className="collection-name-breadcrumb"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigateToBreadcrumb(index);
-                            setSearchText('');
-                          }}
-                        >
-                          {breadcrumb.name}
-                        </span>
-                      </React.Fragment>
-                    ))}
+                    <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />
+                    <span
+                      className={!isAtRoot ? 'collection-name-breadcrumb' : ''}
+                      onClick={!isAtRoot ? navigateToRoot : undefined}
+                    >
+                      {(selectedTargetCollection || collection).name}
+                    </span>
+                    {breadcrumbs.length > 0 && (
+                      <>
+                        {breadcrumbs.map((breadcrumb, index) => (
+                          <React.Fragment key={breadcrumb.uid}>
+                            <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />
+                            <span
+                              className="collection-name-breadcrumb"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigateToBreadcrumb(index);
+                                setSearchText('');
+                              }}
+                            >
+                              {breadcrumb.name}
+                            </span>
+                          </React.Fragment>
+                        ))}
+                      </>
+                    )}
+                    {isAtRoot && <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />}
                   </>
                 )}
-                {isAtRoot && <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />}
               </div>
             )}
 
-            <div className="search-container">
-              <SearchInput
-                searchText={searchText}
-                setSearchText={setSearchText}
-                placeholder="Search for folder"
-                autoFocus={false}
-              />
-            </div>
-
-            <div className="folder-list">
-              {filteredFolders.length > 0 || showNewFolderInput ? (
-                <ul className="folder-list-items">
-                  {filteredFolders.map((folder) => (
-                    <li
-                      key={folder.uid}
-                      className={`folder-item ${selectedFolderUid === folder.uid ? 'selected' : ''}`}
-                      onClick={() => handleFolderClick(folder.uid)}
-                    >
-                      <div className="folder-item-content">
-                        <IconFolder size={16} strokeWidth={1.5} />
-                        <span className="folder-item-name">{folder.name}</span>
-                      </div>
-                      <IconChevronRight size={16} strokeWidth={1.5} />
-                    </li>
-                  ))}
-                  {showNewFolderInput && (
-                    <li className="new-folder-item">
-                      <div className="new-folder-header">
-                        <IconFolder size={16} strokeWidth={1.5} />
-                        <label className="new-folder-header-label">
-                          {showFilesystemName ? 'New Folder name (in bruno)' : 'New Folder name'}
-                        </label>
-                      </div>
-                      <div className="new-folder-input-row">
-                        <input
-                          ref={newFolderInputRef}
-                          type="text"
-                          className="new-folder-input"
-                          placeholder="Untitled new folder"
-                          value={newFolderName}
-                          onChange={(e) => handleNewFolderNameChange(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleCreateNewFolder();
-                            } else if (e.key === 'Escape') {
-                              e.stopPropagation();
-                              handleCancelNewFolder();
-                            }
-                          }}
-                        />
-                        <div className="new-folder-actions">
-                          <button
-                            type="button"
-                            className="new-folder-action-btn"
-                            onClick={handleCancelNewFolder}
-                            title="Cancel"
-                          >
-                            <IconX size={16} strokeWidth={1.5} />
-                          </button>
-                          <button
-                            type="button"
-                            className="new-folder-action-btn"
-                            onClick={handleCreateNewFolder}
-                            title="Create folder"
-                          >
-                            <IconCheck size={16} strokeWidth={1.5} />
-                          </button>
-                        </div>
-                      </div>
-
-                      {showFilesystemName && (
-                        <div className="new-folder-filesystem-wrapper">
-                          <label className="new-folder-filesystem-label">Name on filesystem</label>
-                          <input
-                            type="text"
-                            className="new-folder-input"
-                            value={newFolderDirectoryName}
-                            onChange={(e) => handleDirectoryNameChange(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleCreateNewFolder();
-                              } else if (e.key === 'Escape') {
-                                e.stopPropagation();
-                                handleCancelNewFolder();
-                              }
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      <button
-                        type="button"
-                        className="new-folder-toggle-filesystem-btn"
-                        onClick={() => {
-                          setShowFilesystemName(!showFilesystemName);
-                          setNewFolderDirectoryName(sanitizeName(newFolderName));
-                          setIsEditingFolderFilename(false);
-                        }}
+            {isSelectingCollection ? (
+              <div className="collection-list">
+                {availableCollections.length > 0 ? (
+                  <ul className="collection-list-items">
+                    {availableCollections.map((coll) => (
+                      <li
+                        key={coll.path}
+                        className="collection-item"
+                        onClick={() => handleSelectCollection(coll)}
                       >
-                        {showFilesystemName ? (
-                          <>
-                            <IconEyeOff size={16} strokeWidth={1.5} />
-                            <span>Hide filesystem name</span>
-                          </>
-                        ) : (
-                          <>
-                            <IconEye size={16} strokeWidth={1.5} />
-                            <span>Show filesystem name</span>
-                          </>
+                        <div className="collection-item-content">
+                          <IconDatabase size={16} strokeWidth={1.5} />
+                          <span className="collection-item-name">{coll.name}</span>
+                        </div>
+                        {coll.uid && coll.mountStatus === 'mounting' && (
+                          <IconLoader2 size={16} strokeWidth={1.5} className="animate-spin" />
                         )}
-                      </button>
-                    </li>
-                  )}
-                </ul>
-              ) : (
-                <div className="folder-empty-state">
-                  {searchText.trim() ? 'No folders found' : 'No folders available'}
+                        {coll.uid && coll.mountStatus === 'mounted' && (
+                          <IconCheck size={16} strokeWidth={1.5} className="text-green-600" />
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="collection-empty-state">
+                    No collections available in workspace. Please add a collection to the workspace first.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {!isScratchCollection && (selectedTargetCollection || collection) && (
+                  <div className="collection-name">
+                    <span
+                      className={!isAtRoot ? 'collection-name-breadcrumb' : ''}
+                      onClick={!isAtRoot ? navigateToRoot : undefined}
+                    >
+                      {(selectedTargetCollection || collection).name}
+                    </span>
+                    {breadcrumbs.length > 0 && (
+                      <>
+                        {breadcrumbs.map((breadcrumb, index) => (
+                          <React.Fragment key={breadcrumb.uid}>
+                            <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />
+                            <span
+                              className="collection-name-breadcrumb"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigateToBreadcrumb(index);
+                                setSearchText('');
+                              }}
+                            >
+                              {breadcrumb.name}
+                            </span>
+                          </React.Fragment>
+                        ))}
+                      </>
+                    )}
+                    {isAtRoot && <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />}
+                  </div>
+                )}
+
+                <div className="search-container">
+                  <SearchInput
+                    searchText={searchText}
+                    setSearchText={setSearchText}
+                    placeholder="Search for folder"
+                    autoFocus={false}
+                  />
                 </div>
-              )}
-            </div>
+
+                <div className="folder-list">
+                  {filteredFolders.length > 0 || showNewFolderInput ? (
+                    <ul className="folder-list-items">
+                      {filteredFolders.map((folder) => (
+                        <li
+                          key={folder.uid}
+                          className={`folder-item ${selectedFolderUid === folder.uid ? 'selected' : ''}`}
+                          onClick={() => handleFolderClick(folder.uid)}
+                        >
+                          <div className="folder-item-content">
+                            <IconFolder size={16} strokeWidth={1.5} />
+                            <span className="folder-item-name">{folder.name}</span>
+                          </div>
+                          <IconChevronRight size={16} strokeWidth={1.5} />
+                        </li>
+                      ))}
+                      {showNewFolderInput && (
+                        <li className="new-folder-item">
+                          <div className="new-folder-header">
+                            <IconFolder size={16} strokeWidth={1.5} />
+                            <label className="new-folder-header-label">
+                              {showFilesystemName ? 'New Folder name (in bruno)' : 'New Folder name'}
+                            </label>
+                          </div>
+                          <div className="new-folder-input-row">
+                            <input
+                              ref={newFolderInputRef}
+                              type="text"
+                              className="new-folder-input"
+                              placeholder="Untitled new folder"
+                              value={newFolderName}
+                              onChange={(e) => handleNewFolderNameChange(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleCreateNewFolder();
+                                } else if (e.key === 'Escape') {
+                                  e.stopPropagation();
+                                  handleCancelNewFolder();
+                                }
+                              }}
+                            />
+                            <div className="new-folder-actions">
+                              <button
+                                type="button"
+                                className="new-folder-action-btn"
+                                onClick={handleCancelNewFolder}
+                                title="Cancel"
+                              >
+                                <IconX size={16} strokeWidth={1.5} />
+                              </button>
+                              <button
+                                type="button"
+                                className="new-folder-action-btn"
+                                onClick={handleCreateNewFolder}
+                                title="Create folder"
+                              >
+                                <IconCheck size={16} strokeWidth={1.5} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {showFilesystemName && (
+                            <div className="new-folder-filesystem-wrapper">
+                              <label className="new-folder-filesystem-label">Name on filesystem</label>
+                              <input
+                                type="text"
+                                className="new-folder-input"
+                                value={newFolderDirectoryName}
+                                onChange={(e) => handleDirectoryNameChange(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleCreateNewFolder();
+                                  } else if (e.key === 'Escape') {
+                                    e.stopPropagation();
+                                    handleCancelNewFolder();
+                                  }
+                                }}
+                              />
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            className="new-folder-toggle-filesystem-btn"
+                            onClick={() => {
+                              setShowFilesystemName(!showFilesystemName);
+                              setNewFolderDirectoryName(sanitizeName(newFolderName));
+                              setIsEditingFolderFilename(false);
+                            }}
+                          >
+                            {showFilesystemName ? (
+                              <>
+                                <IconEyeOff size={16} strokeWidth={1.5} />
+                                <span>Hide filesystem name</span>
+                              </>
+                            ) : (
+                              <>
+                                <IconEye size={16} strokeWidth={1.5} />
+                                <span>Show filesystem name</span>
+                              </>
+                            )}
+                          </button>
+                        </li>
+                      )}
+                    </ul>
+                  ) : (
+                    <div className="folder-empty-state">
+                      {searchText.trim() ? 'No folders found' : 'No folders available'}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         <div className="custom-modal-footer">
           <div className="footer-left">
-            {!showNewFolderInput && (
+            {!showNewFolderInput && !isSelectingCollection && (
               <Button
                 type="button"
                 color="primary"
@@ -448,9 +589,11 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
             <Button type="button" color="secondary" variant="ghost" onClick={handleCancel}>
               Cancel
             </Button>
-            <Button type="button" color="primary" onClick={handleConfirm}>
-              Save
-            </Button>
+            {!isSelectingCollection && (
+              <Button type="button" color="primary" onClick={handleConfirm}>
+                Save
+              </Button>
+            )}
           </div>
         </div>
       </Modal>

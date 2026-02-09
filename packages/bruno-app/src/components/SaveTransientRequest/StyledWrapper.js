@@ -127,6 +127,79 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
+  .collection-list {
+    border: 1px solid ${(props) => props.theme.border.border1};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    max-height: 320px;
+    overflow-y: auto;
+    background-color: ${(props) => props.theme.modal.body.bg};
+    padding: 8px 8px;
+  }
+
+  .collection-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+  }
+
+  .collection-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    color: ${(props) => props.theme.text};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    user-select: none;
+    border: 1px solid ${(props) => props.theme.border.border1};
+
+    &:hover {
+      background-color: ${(props) => props.theme.plainGrid.hoverBg};
+      border-color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  .collection-item-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .collection-item-name {
+    color: ${(props) => props.theme.text};
+    font-weight: 500;
+  }
+
+  .collection-empty-state {
+    padding: 20px 16px;
+    text-align: center;
+    font-size: 14px;
+    color: ${(props) => props.theme.colors.text.muted};
+    line-height: 1.5;
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .text-green-600 {
+    color: ${(props) => props.theme.colors.success || '#10b981'};
+  }
+
   .custom-modal-footer {
     display: flex;
     justify-content: space-between;

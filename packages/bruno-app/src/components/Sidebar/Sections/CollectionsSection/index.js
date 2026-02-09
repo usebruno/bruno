@@ -48,19 +48,15 @@ const CollectionsSection = () => {
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];
 
-    // Helper to check if a collection is a scratch collection
-    const isScratchCollection = (collection) => {
-      return collection.brunoConfig?.type === 'scratch';
-    };
-
     return collections.filter((c) => {
-      // Exclude scratch collections
-      if (isScratchCollection(c)) {
+      // Exclude scratch collections (check if collection UID matches any workspace's scratchCollectionUid)
+      const isScratchCollection = workspaces.some((w) => w.scratchCollectionUid === c.uid);
+      if (isScratchCollection) {
         return false;
       }
       return activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname));
     });
-  }, [activeWorkspace, collections]);
+  }, [activeWorkspace, collections, workspaces]);
 
   const handleImportCollection = ({ rawData, type }) => {
     setImportCollectionModalOpen(false);

@@ -923,7 +923,7 @@ export const mountScratchCollection = (workspaceUid) => {
       const brunoConfig = {
         opencollection: '1.0.0',
         name: 'Scratch',
-        type: 'scratch',
+        type: 'collection',
         ignore: ['node_modules', '.git']
       };
 

@@ -23,7 +23,7 @@ const registerScratchCollectionPath = (scratchPath) => {
 // todo: bruno.json config schema validation errors must be propagated to the UI
 const configSchema = Yup.object({
   name: Yup.string().max(256, 'name must be 256 characters or less').required('name is required'),
-  type: Yup.string().oneOf(['collection', 'scratch']).required('type is required'),
+  type: Yup.string().oneOf(['collection']).required('type is required'),
   // For BRU format collections
   version: Yup.string().oneOf(['1']).notRequired(),
   // For YAML format collections (opencollection)
@@ -119,11 +119,6 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       const uid = generateUidBasedOnHash(collectionPath);
       brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
 
-      // Set scratch type if this is a registered scratch collection path
-      if (isScratchCollectionPath(collectionPath)) {
-        brunoConfig.type = 'scratch';
-      }
-
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
@@ -148,11 +143,6 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
     brunoConfig.ignore = [...new Set([...defaultIgnores, ...userIgnores])];
 
     brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
-
-    // Set scratch type if this is a registered scratch collection path
-    if (isScratchCollectionPath(collectionPath)) {
-      brunoConfig.type = 'scratch';
-    }
 
     const { size, filesCount } = await getCollectionStats(collectionPath);
     brunoConfig.size = size;

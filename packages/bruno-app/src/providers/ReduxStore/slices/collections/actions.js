@@ -2448,8 +2448,8 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables || {};
 
     // Check if this is a scratch collection (should not be added to workspace)
-    // Type is set centrally in the backend (collections.js) based on path pattern
-    const isScratchCollection = brunoConfig?.type === 'scratch';
+    // A collection is a scratch collection if its UID matches any workspace's scratchCollectionUid
+    const isScratchCollection = state.workspaces.workspaces.some((w) => w.scratchCollectionUid === uid);
 
     // Check if collection already exists in Redux state
     const existingCollection = state.collections.collections.find(

@@ -19,20 +19,16 @@ const Collections = ({ showSearch }) => {
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];
 
-    // Helper to check if a collection is a scratch collection
-    const isScratchCollection = (collection) => {
-      return collection.brunoConfig?.type === 'scratch';
-    };
-
     return collections.filter((c) => {
-      // Exclude scratch collections from sidebar
-      if (isScratchCollection(c)) {
+      // Exclude scratch collections from sidebar (check if collection UID matches any workspace's scratchCollectionUid)
+      const isScratchCollection = workspaces.some((w) => w.scratchCollectionUid === c.uid);
+      if (isScratchCollection) {
         return false;
       }
       // Only show collections that are linked to this workspace
       return activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname));
     });
-  }, [activeWorkspace, collections]);
+  }, [activeWorkspace, collections, workspaces]);
 
   if (!workspaceCollections || !workspaceCollections.length) {
     return (

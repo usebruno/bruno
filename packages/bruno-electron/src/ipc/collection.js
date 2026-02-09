@@ -393,7 +393,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // save transient request (handles move from temp to permanent location)
-  ipcMain.handle('renderer:save-transient-request', async (event, { sourcePathname, targetDirname, targetFilename, request, format }) => {
+  ipcMain.handle('renderer:save-transient-request', async (event, { sourcePathname, targetDirname, targetFilename, request, format, sourceFormat }) => {
     try {
       // Validate source exists
       if (!fs.existsSync(sourcePathname)) {
@@ -417,16 +417,32 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`A file with the name "${filename}" already exists in the target location`);
       }
 
-      // Step 1: Save the updated content to the transient file
-      syncExampleUidsCache(sourcePathname, request.examples);
-      const content = await stringifyRequestViaWorker(request, { format });
-      await writeFile(sourcePathname, content);
+      // Determine if format conversion is needed
+      const targetFormat = format || 'bru';
+      const actualSourceFormat = sourceFormat || 'yml'; // Scratch collections use YAML
+      const needsConversion = actualSourceFormat !== targetFormat;
 
-      // Step 2: Read the file content from temp (this is the actual file content)
-      const fileContent = await fs.promises.readFile(sourcePathname, 'utf8');
+      let finalContent;
+      if (needsConversion) {
+        // Parse from source format and stringify to target format
+        const { parseRequest, stringifyRequest } = require('@usebruno/filestore');
+        const sourceContent = await fs.promises.readFile(sourcePathname, 'utf8');
+        const parsedRequest = parseRequest(sourceContent, { format: actualSourceFormat });
 
-      // Step 3: Create new file at target location with the content
-      await writeFile(targetPathname, fileContent);
+        // Merge with any updates from the request object
+        const mergedRequest = { ...parsedRequest, ...request };
+        syncExampleUidsCache(sourcePathname, mergedRequest.examples);
+
+        // Convert to target format
+        finalContent = stringifyRequest(mergedRequest, { format: targetFormat });
+      } else {
+        // No conversion needed, use normal flow
+        syncExampleUidsCache(sourcePathname, request.examples);
+        finalContent = await stringifyRequestViaWorker(request, { format: targetFormat });
+      }
+
+      // Write to target location
+      await writeFile(targetPathname, finalContent);
 
       // Return the new pathname (file watcher will handle adding to Redux)
       return { newPathname: targetPathname };
@@ -1878,11 +1894,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
       };
 
-      // Create bruno config for YAML format with scratch type
+      // Create bruno config for YAML format
       const brunoConfig = {
         opencollection: '1.0.0',
         name: 'Scratch',
-        type: 'scratch', // This flag identifies it as a scratch collection
+        type: 'collection',
         ignore: ['node_modules', '.git']
       };
 
