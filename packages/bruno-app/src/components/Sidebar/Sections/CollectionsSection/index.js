@@ -15,7 +15,7 @@ import {
   IconTerminal2
 } from '@tabler/icons';
 
-import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { normalizePath } from 'utils/common/path';
 
@@ -52,14 +52,18 @@ const CollectionsSection = () => {
     );
   }, [activeWorkspace, collections]);
 
-  const handleImportCollection = ({ rawData, type }) => {
+  const handleImportCollection = ({ rawData, type, ...rest }) => {
     setImportCollectionModalOpen(false);
-    setImportData({ rawData, type });
+    setImportData({ rawData, type, ...rest });
     setImportCollectionLocationModalOpen(true);
   };
 
   const handleImportCollectionLocation = (convertedCollection, collectionLocation, options = {}) => {
-    dispatch(importCollection(convertedCollection, collectionLocation, options))
+    const importAction = options.isZipImport
+      ? importCollectionFromZip(convertedCollection.zipFilePath, collectionLocation)
+      : importCollection(convertedCollection, collectionLocation, options);
+
+    dispatch(importAction)
       .then(() => {
         setImportCollectionLocationModalOpen(false);
         setImportData(null);
