@@ -13,9 +13,9 @@
     "watch": "rollup -c -w"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^23.0.2",
-    "@rollup/plugin-node-resolve": "^15.0.1",
-    "@rollup/plugin-typescript": "^9.0.2",
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-typescript": "^12.3.0",
     "@types/markdown-it": "^12.2.3",
     "@types/react": "^18.0.25",
     "graphql": "^16.6.0",
@@ -24,7 +24,7 @@
     "react": "19.0.0",
     "react-dom": "18.2.0",
     "rollup":"3.29.5",
-    "rollup-plugin-dts": "^5.0.0",
+    "rollup-plugin-dts": "^6.3.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-postcss": "^4.0.2",
     "rollup-plugin-terser": "^7.0.2",
