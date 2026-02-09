@@ -57,13 +57,14 @@ function buildSanitizedProcess() {
 
 /**
  * Pre-compiled VM script that wraps getter methods on req, res, and bru
- * to return VM-native objects via JSON round-trip.
+ * to return VM-native objects via recursive deep clone.
  *
  * Host-context objects have different Object/Array constructors than VM-context objects.
  * Libraries like AJV use fast-deep-equal which checks `a.constructor !== b.constructor`,
  * causing deep equality to fail for structurally identical cross-context objects.
  *
- * Running JSON.parse inside the VM creates objects with VM-native prototypes.
+ * Creating new objects/arrays inside the VM gives them VM-native prototypes.
+ * Uses recursive clone instead of JSON round-trip to preserve undefined values.
  *
  * Affected methods:
  *   res  — getBody(), getHeaders()
@@ -72,11 +73,37 @@ function buildSanitizedProcess() {
  */
 const recontextualizeScript = new vm.Script(`
   (function() {
+    /**
+     * Recursively clones a value, creating new objects and arrays inside the VM
+     * so they get VM-native constructors (Object, Array).
+     *
+     * Why not JSON.parse(JSON.stringify(...))?
+     *   - JSON.stringify converts undefined to null in arrays
+     *   - JSON.stringify throws on circular references without useful recovery
+     *
+     * Only handles JSON-safe types (objects, arrays, primitives) since the data
+     * originates from HTTP responses (parsed JSON) or user-set values via setBody/setVar.
+     */
     function toVMNative(val) {
       if (val === null || val === undefined || typeof val !== 'object') return val;
-      try { return JSON.parse(JSON.stringify(val)); } catch(e) { return val; }
+
+      if (Array.isArray(val)) {
+        var arr = new Array(val.length);
+        for (var i = 0; i < val.length; i++) {
+          arr[i] = toVMNative(val[i]);
+        }
+        return arr;
+      }
+
+      var keys = Object.keys(val);
+      var obj = {};
+      for (var k = 0; k < keys.length; k++) {
+        obj[keys[k]] = toVMNative(val[keys[k]]);
+      }
+      return obj;
     }
 
+    /** Wraps a method so its return value is cloned into VM-native objects. */
     function wrapMethod(obj, method) {
       var orig = obj[method].bind(obj);
       obj[method] = function() { return toVMNative(orig.apply(null, arguments)); };
