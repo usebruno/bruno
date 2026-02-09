@@ -11,9 +11,9 @@ import {
 } from '../workspaces';
 import { showHomePage } from '../app';
 import { createCollection, openCollection, openMultipleCollections } from '../collections/actions';
-import { removeCollection } from '../collections';
+import { removeCollection, addTransientDirectory } from '../collections';
 import { updateGlobalEnvironments } from '../global-environments';
-import { initializeWorkspaceTabs, setActiveWorkspaceTab, addWorkspaceTab } from '../workspaceTabs';
+import { initializeWorkspaceTabs, setActiveWorkspaceTab } from '../workspaceTabs';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 
@@ -907,109 +907,17 @@ export const mountScratchCollection = (workspaceUid) => {
         scratchTempDirectory: tempDirectoryPath
       }));
 
+      // Register the scratch collection's pathname as its transient directory
+      // This allows CreateTransientRequest to create items in the scratch collection
+      dispatch(addTransientDirectory({
+        collectionUid: scratchCollectionUid,
+        pathname: tempDirectoryPath
+      }));
+
       return { uid: scratchCollectionUid, pathname: tempDirectoryPath };
     } catch (error) {
       console.error('Error mounting scratch collection:', error);
       return null;
     }
-  };
-};
-
-/**
- * Generate a request name for scratch requests in the pattern "Untitled {Count}"
- */
-const generateScratchRequestName = (existingItems) => {
-  if (!existingItems || existingItems.length === 0) {
-    return 'Untitled 1';
-  }
-
-  let maxNumber = 0;
-  existingItems.forEach((item) => {
-    const match = item.name?.match(/^Untitled (\d+)$/);
-    if (match) {
-      const number = parseInt(match[1], 10);
-      if (number > maxNumber) {
-        maxNumber = number;
-      }
-    }
-  });
-
-  return `Untitled ${maxNumber + 1}`;
-};
-
-/**
- * Create a new scratch request in the scratch collection
- */
-export const newScratchRequest = ({ workspaceUid, requestType, requestMethod, requestUrl, body }) => {
-  return async (dispatch, getState) => {
-    let state = getState();
-    let workspace = state.workspaces.workspaces.find((w) => w.uid === workspaceUid);
-
-    // Make sure scratch collection is mounted
-    if (!workspace?.scratchCollectionUid) {
-      await dispatch(mountScratchCollection(workspaceUid));
-      // Re-fetch state after mounting
-      state = getState();
-      workspace = state.workspaces.workspaces.find((w) => w.uid === workspaceUid);
-    }
-
-    const scratchCollection = state.collections.collections.find(
-      (c) => c.uid === workspace?.scratchCollectionUid
-    );
-
-    if (!scratchCollection) {
-      throw new Error('Scratch collection not found');
-    }
-
-    // Generate unique name based on existing items
-    const existingItems = scratchCollection.items || [];
-    const requestName = generateScratchRequestName(existingItems);
-
-    // Create the request object
-    const request = {
-      method: requestMethod || 'GET',
-      url: requestUrl || '',
-      params: [],
-      headers: [],
-      body: body || { mode: 'none' },
-      auth: { mode: 'none' },
-      script: { req: '', res: '' },
-      assertions: [],
-      vars: { req: [], res: [] },
-      tests: '',
-      docs: ''
-    };
-
-    // For graphql-request, ensure body is set correctly
-    if (requestType === 'graphql-request' && body?.mode === 'graphql') {
-      request.body = body;
-    }
-
-    // Build the request item
-    const requestItem = {
-      name: requestName,
-      type: requestType || 'http-request',
-      request
-    };
-
-    // Generate filename (sanitized) - using .yml extension for YAML format scratch collection
-    const filename = `${requestName.replace(/[^a-zA-Z0-9_-]/g, '_')}.yml`;
-    const pathname = path.join(scratchCollection.pathname, filename);
-
-    // Call IPC to create the file (using existing new-request handler)
-    await ipcRenderer.invoke('renderer:new-request', pathname, requestItem);
-
-    // Generate UID for the new request (same logic as the electron side)
-    const { generateUidBasedOnHash } = await import('utils/common');
-    const itemUid = generateUidBasedOnHash(pathname);
-
-    // Open a workspace tab for the new scratch request
-    dispatch(addWorkspaceTab({
-      uid: itemUid,
-      workspaceUid,
-      type: 'scratch-request',
-      label: requestName,
-      itemUid
-    }));
   };
 };

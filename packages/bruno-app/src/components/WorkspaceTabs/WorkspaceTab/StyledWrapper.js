@@ -21,6 +21,13 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.requestTabs.color};
   }
 
+  .tab-method {
+    flex-shrink: 0;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
   .tab-name {
     position: relative;
     overflow: hidden;

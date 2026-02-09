@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { focusWorkspaceTab, initializeWorkspaceTabs } from 'providers/ReduxStore/slices/workspaceTabs';
+import { focusWorkspaceTab, initializeWorkspaceTabs, addWorkspaceTab, closeWorkspaceTab } from 'providers/ReduxStore/slices/workspaceTabs';
 import WorkspaceTab from './WorkspaceTab';
-import CreateScratchRequest from 'components/CreateScratchRequest';
+import CreateTransientRequest from 'components/CreateTransientRequest';
 import StyledWrapper from './StyledWrapper';
 
 const PERMANENT_TABS = [
@@ -26,6 +26,21 @@ const WorkspaceTabs = ({ workspaceUid }) => {
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
 
+  // Get workspace and scratch collection for syncing tabs
+  const workspace = useSelector((state) =>
+    state.workspaces.workspaces.find((w) => w.uid === workspaceUid)
+  );
+  const scratchCollection = useSelector((state) =>
+    workspace?.scratchCollectionUid
+      ? state.collections.collections.find((c) => c.uid === workspace.scratchCollectionUid)
+      : null
+  );
+
+  // Get scratch items
+  const scratchItems = useMemo(() => {
+    return scratchCollection?.items || [];
+  }, [scratchCollection?.items]);
+
   // Initialize permanent tabs for this workspace
   useEffect(() => {
     if (workspaceUid) {
@@ -35,6 +50,38 @@ const WorkspaceTabs = ({ workspaceUid }) => {
       }));
     }
   }, [workspaceUid, dispatch]);
+
+  // Sync scratch collection items with workspace tabs
+  useEffect(() => {
+    if (!workspaceUid || !scratchItems) return;
+
+    // Get current scratch-request tabs for this workspace
+    const scratchTabs = tabs.filter(
+      (t) => t.workspaceUid === workspaceUid && t.type === 'scratch-request'
+    );
+
+    // Find scratch items that don't have a tab
+    scratchItems.forEach((item) => {
+      const hasTab = scratchTabs.some((tab) => tab.itemUid === item.uid);
+      if (!hasTab) {
+        dispatch(addWorkspaceTab({
+          uid: item.uid,
+          workspaceUid,
+          type: 'scratch-request',
+          label: item.name,
+          itemUid: item.uid
+        }));
+      }
+    });
+
+    // Find tabs that don't have a corresponding scratch item (item was deleted)
+    scratchTabs.forEach((tab) => {
+      const hasItem = scratchItems.some((item) => item.uid === tab.itemUid);
+      if (!hasItem) {
+        dispatch(closeWorkspaceTab({ uid: tab.uid }));
+      }
+    });
+  }, [workspaceUid, scratchItems, tabs, dispatch]);
 
   const createSetHasOverflow = useCallback((tabUid) => {
     return (hasOverflow) => {
@@ -126,23 +173,33 @@ const WorkspaceTabs = ({ workspaceUid }) => {
         </ul>
         <div className="tabs-scroll-container" style={{ maxWidth: maxTablistWidth }} ref={scrollContainerRef}>
           <ul role="tablist" ref={tabsRef}>
-            {workspaceTabs.map((tab, index) => (
-              <li
-                key={tab.uid}
-                className={getTabClassname(tab, index)}
-                onClick={() => handleClick(tab)}
-              >
-                <WorkspaceTab
-                  tab={tab}
-                  isActive={tab.uid === activeTabUid}
-                  hasOverflow={tabOverflowStates[tab.uid]}
-                  setHasOverflow={createSetHasOverflow(tab.uid)}
-                />
+            {workspaceTabs.map((tab, index) => {
+              // Get scratch item for scratch-request tabs
+              const scratchItem = tab.type === 'scratch-request' && tab.itemUid
+                ? scratchItems.find((item) => item.uid === tab.itemUid)
+                : null;
+
+              return (
+                <li
+                  key={tab.uid}
+                  className={getTabClassname(tab, index)}
+                  onClick={() => handleClick(tab)}
+                >
+                  <WorkspaceTab
+                    tab={tab}
+                    item={scratchItem}
+                    isActive={tab.uid === activeTabUid}
+                    hasOverflow={tabOverflowStates[tab.uid]}
+                    setHasOverflow={createSetHasOverflow(tab.uid)}
+                  />
+                </li>
+              );
+            })}
+            {scratchCollection && (
+              <li className="create-scratch-request-btn">
+                <CreateTransientRequest collectionUid={scratchCollection.uid} />
               </li>
-            ))}
-            <li className="create-scratch-request-btn">
-              <CreateScratchRequest workspaceUid={workspaceUid} />
-            </li>
+            )}
           </ul>
         </div>
         <ul role="tablist">
