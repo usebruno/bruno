@@ -129,6 +129,7 @@ const CreateScratchRequest = ({ workspaceUid }) => {
       onCreate={onDropdownCreate}
       onClickOutside={() => setDropdownVisible(false)}
       placement="bottom-end"
+      appendTo={() => document.body}
     >
       <div className="dropdown-item" onClick={() => handleItemClick(REQUEST_TYPE.HTTP)}>
         <div className="dropdown-icon">
