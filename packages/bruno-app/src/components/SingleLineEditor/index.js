@@ -7,8 +7,6 @@ import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { connect } from 'react-redux';
-import { toggleConfirmRequestModal } from 'providers/ReduxStore/slices/keyBindings';
 
 const CodeMirror = require('codemirror');
 
@@ -76,12 +74,6 @@ class SingleLineEditor extends Component {
         'Ctrl-S': saveHandler,
         'Cmd-F': noopHandler,
         'Ctrl-F': noopHandler,
-        'Ctrl-W': () => {
-          this.props.toggleConfirmRequestModal({ show: true });
-        },
-        'Cmd-W': () => {
-          this.props.toggleConfirmRequestModal({ show: true });
-        },
         // Tabbing disabled to make tabindex work
         'Tab': false,
         'Shift-Tab': false
@@ -324,9 +316,4 @@ class SingleLineEditor extends Component {
   }
 }
 
-export default connect(
-  null,
-  { toggleConfirmRequestModal },
-  null,
-  { forwardRef: true }
-)(SingleLineEditor);
+export default SingleLineEditor;

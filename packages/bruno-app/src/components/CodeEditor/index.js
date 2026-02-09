@@ -18,7 +18,6 @@ import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
 import { connect } from 'react-redux';
-import { toggleConfirmRequestModal } from 'providers/ReduxStore/slices/keyBindings';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
@@ -105,12 +104,6 @@ class CodeEditor extends React.Component {
           this.setState({ searchBarVisible: true }, () => {
             this.searchBarRef.current?.focus();
           });
-        },
-        'Ctrl-W': (cm) => {
-          this.props.toggleConfirmRequestModal({ show: true });
-        },
-        'Cmd-W': (cm) => {
-          this.props.toggleConfirmRequestModal({ show: true });
         },
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
@@ -360,9 +353,4 @@ class CodeEditor extends React.Component {
   };
 }
 
-export default connect(
-  null,
-  { toggleConfirmRequestModal },
-  null,
-  { forwardRef: true }
-)(CodeEditor);
+export default CodeEditor;
