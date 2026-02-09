@@ -1193,7 +1193,8 @@ const registerNetworkIpc = (mainWindow) => {
           folderRequests = getAllRequestsInFolderRecursively(sortedFolder);
         } else {
           each(folder.items, (item) => {
-            if (item.request) {
+            // Skip transient requests
+            if (item.request && !item.isTransient) {
               folderRequests.push(item);
             }
           });
