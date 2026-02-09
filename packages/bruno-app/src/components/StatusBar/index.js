@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import find from 'lodash/find';
 import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
-import Mousetrap from 'mousetrap';
-import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
 import Cookies from 'components/Cookies';
 import Notifications from 'components/Notifications';
@@ -14,6 +12,7 @@ import { setActiveWorkspaceTab } from 'providers/ReduxStore/slices/workspaceTabs
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useApp } from 'providers/App';
 import StyledWrapper from './StyledWrapper';
+import { toggleGlobalSearch } from 'providers/ReduxStore/slices/keyBindings';
 
 const StatusBar = () => {
   const dispatch = useDispatch();
@@ -51,10 +50,7 @@ const StatusBar = () => {
   };
 
   const openGlobalSearch = () => {
-    const bindings = getKeyBindingsForActionAllOS('globalSearch') || [];
-    bindings.forEach((binding) => {
-      Mousetrap.trigger(binding);
-    });
+    dispatch(toggleGlobalSearch());
   };
 
   return (

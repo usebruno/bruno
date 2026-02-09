@@ -9,7 +9,7 @@ import RequestTabNotFound from '../RequestTab/RequestTabNotFound';
 import StyledWrapper from '../RequestTab/StyledWrapper';
 import GradientCloseButton from '../RequestTab/GradientCloseButton';
 import { useSelector, useDispatch } from 'react-redux';
-import { toggleConfirmRequestModal } from 'providers/ReduxStore/slices/keyBindings';
+import { toggleConfirmRequestCloseModal } from 'providers/ReduxStore/slices/keyBindings';
 
 const ExampleTab = ({ tab, collection }) => {
   const dispatch = useDispatch();
@@ -76,32 +76,6 @@ const ExampleTab = ({ tab, collection }) => {
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-2">
-      {showConfirmRequestCloseModal.show && (
-        <ConfirmRequestClose
-          item={item}
-          example={example}
-          onCancel={() => dispatch(toggleConfirmRequestModal({ show: false }))}
-          onCloseWithoutSave={() => {
-            dispatch(deleteRequestDraft({
-              itemUid: item.uid,
-              collectionUid: collection.uid
-            }));
-            dispatch(closeTabs({
-              tabUids: [tab.uid]
-            }));
-            dispatch(toggleConfirmRequestModal({ show: false }));
-          }}
-          onSaveAndClose={() => {
-            // For examples, we don't have a separate save action
-            // The changes are saved automatically when the request is saved
-            dispatch(saveRequest(item.uid, collection.uid, true));
-            dispatch(closeTabs({
-              tabUids: [tab.uid]
-            }));
-            dispatch(toggleConfirmRequestModal({ show: false }));
-          }}
-        />
-      )}
       <div
         className={`flex items-center tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
@@ -112,7 +86,7 @@ const ExampleTab = ({ tab, collection }) => {
           if (e.button === 1) {
             e.stopPropagation();
             e.preventDefault();
-            dispatch(toggleConfirmRequestModal({ show: true }));
+            dispatch(toggleConfirmRequestCloseModal({ show: true, entity: 'request', example: example, item: item, tab: tab, collection: collection }));
           }
         }}
       >
@@ -130,7 +104,7 @@ const ExampleTab = ({ tab, collection }) => {
 
           e.stopPropagation();
           e.preventDefault();
-          dispatch(toggleConfirmRequestModal({ show: true }));
+          dispatch(toggleConfirmRequestCloseModal({ show: true, entity: 'request', example: example, item: item, tab: tab, collection: collection }));
         }}
       />
     </StyledWrapper>

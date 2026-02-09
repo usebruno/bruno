@@ -18,7 +18,7 @@ import {
 import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { normalizePath } from 'utils/common/path';
-import { toggleShowImportCollectionModal } from 'providers/ReduxStore/slices/keyBindings';
+import { toggleSideSearch, toggleShowImportCollectionModal } from 'providers/ReduxStore/slices/keyBindings';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
@@ -26,12 +26,11 @@ import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollectionsModal/index';
 import CreateCollection from 'components/Sidebar/CreateCollection';
-import Collections from 'components/Sidebar/Collections';
+import Collections from 'components/Sidebar/Collections/index';
 import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const CollectionsSection = () => {
-  const [showSearch, setShowSearch] = useState(false);
   const dispatch = useDispatch();
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
@@ -66,7 +65,7 @@ const CollectionsSection = () => {
   };
 
   const handleToggleSearch = () => {
-    setShowSearch((prev) => !prev);
+    dispatch(toggleSideSearch());
   };
 
   const handleSortCollections = () => {
@@ -243,7 +242,7 @@ const CollectionsSection = () => {
         icon={IconBox}
         actions={sectionActions}
       >
-        <Collections showSearch={showSearch} />
+        <Collections />
       </SidebarSection>
     </>
   );
