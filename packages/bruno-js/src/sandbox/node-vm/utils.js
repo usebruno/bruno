@@ -1,3 +1,4 @@
+const vm = require('node:vm');
 const path = require('node:path');
 const nodeModule = require('node:module');
 
@@ -54,9 +55,55 @@ function buildSanitizedProcess() {
   };
 }
 
+/**
+ * Pre-compiled VM script that wraps getter methods on req, res, and bru
+ * to return VM-native objects via JSON round-trip.
+ *
+ * Host-context objects have different Object/Array constructors than VM-context objects.
+ * Libraries like AJV use fast-deep-equal which checks `a.constructor !== b.constructor`,
+ * causing deep equality to fail for structurally identical cross-context objects.
+ *
+ * Running JSON.parse inside the VM creates objects with VM-native prototypes.
+ *
+ * Affected methods:
+ *   res  — getBody(), getHeaders()
+ *   req  — getBody(options), getHeaders(), getPathParams(), getTags()
+ *   bru  — getVar(key)
+ */
+const recontextualizeScript = new vm.Script(`
+  (function() {
+    function toVMNative(val) {
+      if (val === null || val === undefined || typeof val !== 'object') return val;
+      try { return JSON.parse(JSON.stringify(val)); } catch(e) { return val; }
+    }
+
+    function wrapMethod(obj, method) {
+      var orig = obj[method].bind(obj);
+      obj[method] = function() { return toVMNative(orig.apply(null, arguments)); };
+    }
+
+    if (typeof res !== 'undefined' && res) {
+      if (typeof res.getBody === 'function') wrapMethod(res, 'getBody');
+      if (typeof res.getHeaders === 'function') wrapMethod(res, 'getHeaders');
+    }
+
+    if (typeof req !== 'undefined' && req) {
+      if (typeof req.getBody === 'function') wrapMethod(req, 'getBody');
+      if (typeof req.getHeaders === 'function') wrapMethod(req, 'getHeaders');
+      if (typeof req.getPathParams === 'function') wrapMethod(req, 'getPathParams');
+      if (typeof req.getTags === 'function') wrapMethod(req, 'getTags');
+    }
+
+    if (typeof bru !== 'undefined' && bru) {
+      if (typeof bru.getVar === 'function') wrapMethod(bru, 'getVar');
+    }
+  })();
+`, { filename: 'bruno__recontextualize' });
+
 module.exports = {
   isBuiltinModule,
   isPathWithinAllowedRoots,
   ScriptError,
-  buildSanitizedProcess
+  buildSanitizedProcess,
+  recontextualizeScript
 };

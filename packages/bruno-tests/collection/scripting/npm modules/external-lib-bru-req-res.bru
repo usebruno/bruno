@@ -1,0 +1,54 @@
+meta {
+  name: external-lib-bru-req-res
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Bruno User",
+    "age": 25
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  const extLib = require('external-lib-with-bru-req-res-objects');
+  
+  test("should provide bru object to npm modules", function() {
+    extLib.setVar('ext-lib-test', 'hello');
+    expect(extLib.getVar('ext-lib-test')).to.equal('hello');
+  });
+  
+  test("should provide req object to npm modules", function() {
+    const method = extLib.getReqMethod();
+    expect(method).to.equal('POST');
+  
+    const headers = extLib.getReqHeaders();
+    expect(headers).to.be.an('object');
+    expect(headers['content-type']).to.include('json');
+  });
+  
+  test("should provide res object to npm modules", function() {
+    const status = extLib.getResStatus();
+    expect(status).to.equal(200);
+  
+    const body = extLib.getResBody();
+    expect(body).to.be.an('object');
+    expect(body.name).to.equal('Bruno User');
+    expect(body.age).to.equal(25);
+  
+    const headers = extLib.getResHeaders();
+    expect(headers).to.be.an('object');
+    expect(headers['content-type']).to.include('json');
+  });
+}

@@ -12,7 +12,18 @@ post {
 
 body:json {
   {
-    "hello": "bruno"
+    "name": "Bruno User",
+    "age": 25,
+    "email": "bruno@example.com",
+    "role": "admin",
+    "status": "active",
+    "related_applications": [
+      {
+        "platform": "play",
+        "url": "https://play.google.com/store/apps/details?id=com.github.android",
+        "id": "com.github.android"
+      }
+    ]
   }
 }
 
@@ -20,61 +31,127 @@ assert {
   res.status: eq 200
 }
 
-script:pre-request {
-  const Ajv = require('ajv');
-  const ajv = new Ajv();
-
-  // Define a JSON schema
-  const schema = {
-    type: 'object',
-    properties: {
-      name: { type: 'string', minLength: 1 },
-      age: { type: 'integer', minimum: 0 },
-      email: { type: 'string' }
-    },
-    required: ['name', 'age']
-  };
-
-  // Valid data to validate
-  const validData = {
-    name: 'Bruno User',
-    age: 25,
-    email: 'bruno@example.com'
-  };
-
-  // Compile and validate
-  const validate = ajv.compile(schema);
-  const isValid = validate(validData);
-
-  // Set validation result in request body
-  const data = req.getBody();
-  data.ajvValidation = {
-    isValid: isValid,
-    validatedData: validData
-  };
-
-  req.setBody(data);
-}
-
 tests {
-  test("ajv should validate data correctly", function() {
-    const data = res.getBody();
-
-    expect(data.hello).to.equal("bruno");
-    expect(data.ajvValidation).to.be.an('object');
-    expect(data.ajvValidation.isValid).to.be.true;
-    expect(data.ajvValidation.validatedData.name).to.equal('Bruno User');
-    expect(data.ajvValidation.validatedData.age).to.equal(25);
-  });
-
-  test("ajv should be available in tests", function() {
+  // All tests below validate data from res.getBody() — objects originating in the
+  // host context — against AJV schemas compiled inside the VM context.
+  // Without the recontextualize fix, fast-deep-equal fails on
+  // `a.constructor !== b.constructor` for cross-context objects.
+  
+  test("res.getBody() with ajv string enum validation", function() {
     const Ajv = require('ajv');
     const ajv = new Ajv();
-
-    const schema = { type: 'number' };
+    const body = res.getBody();
+  
+    const schema = {
+      type: 'object',
+      properties: {
+        role: { type: 'string', enum: ['admin', 'editor', 'viewer'] },
+        status: { type: 'string', enum: ['active', 'inactive', 'pending'] }
+      },
+      required: ['role', 'status']
+    };
+  
     const validate = ajv.compile(schema);
-
-    expect(validate(42)).to.be.true;
-    expect(validate('not a number')).to.be.false;
+    expect(validate(body)).to.be.true;
+  });
+  
+  test("res.getBody() with ajv array-of-objects enum validation", function() {
+    const Ajv = require('ajv');
+    const ajv = new Ajv();
+    const body = res.getBody();
+  
+    // enum on an array of objects is the exact pattern that triggers the
+    // cross-context constructor mismatch in fast-deep-equal
+    const schema = {
+      type: 'object',
+      required: ['related_applications'],
+      properties: {
+        related_applications: {
+          type: 'array',
+          enum: [
+            [{
+              platform: 'play',
+              url: 'https://play.google.com/store/apps/details?id=com.github.android',
+              id: 'com.github.android'
+            }]
+          ]
+        }
+      }
+    };
+  
+    const validate = ajv.compile(schema);
+    const result = validate(body);
+    expect(result, validate.errors ? JSON.stringify(validate.errors) : '').to.be.true;
+  });
+  
+  test("res.getBody() with ajv full schema validation", function() {
+    const Ajv = require('ajv');
+    const ajv = new Ajv();
+    const body = res.getBody();
+  
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', minLength: 1 },
+        age: { type: 'integer', minimum: 0 },
+        email: { type: 'string' },
+        role: { type: 'string', enum: ['admin', 'editor', 'viewer'] },
+        status: { type: 'string', enum: ['active', 'inactive', 'pending'] },
+        related_applications: {
+          type: 'array',
+          enum: [
+            [{
+              platform: 'play',
+              url: 'https://play.google.com/store/apps/details?id=com.github.android',
+              id: 'com.github.android'
+            }]
+          ]
+        }
+      },
+      required: ['name', 'age', 'role', 'related_applications']
+    };
+  
+    const validate = ajv.compile(schema);
+    const result = validate(body);
+    expect(result, validate.errors ? JSON.stringify(validate.errors) : '').to.be.true;
+  });
+  
+  test("res.getHeaders() with ajv enum validation", function() {
+    const Ajv = require('ajv');
+    const ajv = new Ajv();
+    const headers = res.getHeaders();
+  
+    // Validates that headers returned by res.getHeaders() are VM-native objects
+    const schema = {
+      type: 'object',
+      properties: {
+        'content-type': {
+          type: 'string',
+          enum: ['application/json; charset=utf-8']
+        }
+      },
+      required: ['content-type']
+    };
+  
+    const validate = ajv.compile(schema);
+    expect(validate(headers)).to.be.true;
+  });
+  
+  test("ajv should reject invalid enum values", function() {
+    const Ajv = require('ajv');
+    const ajv = new Ajv();
+  
+    const schema = {
+      type: 'object',
+      properties: {
+        role: { type: 'string', enum: ['admin', 'editor', 'viewer'] }
+      },
+      required: ['role']
+    };
+    const validate = ajv.compile(schema);
+  
+    expect(validate({ role: 'admin' })).to.be.true;
+    expect(validate({ role: 'superuser' })).to.be.false;
+    expect(validate.errors[0].keyword).to.equal('enum');
   });
 }
