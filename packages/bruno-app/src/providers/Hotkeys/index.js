@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 
 import NewRequest from 'components/Sidebar/NewRequest/index';
 import NetworkError from 'components/ResponsePane/NetworkError';
+
 import GlobalSearchModal from 'components/GlobalSearchModal/index';
 import ConfirmCloseEnvironment from 'components/Environments/ConfirmCloseEnvironment';
 import ConfirmFolderClose from 'components/RequestTabs/RequestTab/ConfirmFolderClose';
@@ -16,6 +17,7 @@ import CloneCollectionItem from 'components/Sidebar/Collections/Collection/Colle
 
 import store from 'providers/ReduxStore/index';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
+
 import { closeWorkspaceTab } from 'providers/ReduxStore/slices/workspaceTabs';
 import { saveGlobalEnvironment, clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { addTab, closeTabs, reorderTabs, switchTab } from 'providers/ReduxStore/slices/tabs';

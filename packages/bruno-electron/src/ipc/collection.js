@@ -421,9 +421,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // Step 3: Create new file at target location with the content
       await writeFile(targetPathname, fileContent);
 
-      // Step 4: Delete the old temp file
-      await removePath(sourcePathname);
-
       // Return the new pathname (file watcher will handle adding to Redux)
       return { newPathname: targetPathname };
     } catch (error) {
@@ -999,6 +996,46 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     } catch (error) {
       return Promise.reject(error);
     }
+  });
+
+  // Delete transient request files by their absolute paths
+  // This is a simpler handler specifically for cleaning up transient requests
+  // tempDirectory: the collection's temp directory path to validate files belong to this collection
+  ipcMain.handle('renderer:delete-transient-requests', async (event, filePaths, tempDirectory) => {
+    const brunoTempPrefix = path.join(os.tmpdir(), 'bruno-');
+    const results = { deleted: [], skipped: [], errors: [] };
+
+    // Validate tempDirectory is within Bruno temp prefix
+    const normalizedTempDir = tempDirectory ? path.normalize(tempDirectory) : null;
+    if (!normalizedTempDir || !normalizedTempDir.startsWith(brunoTempPrefix)) {
+      return { deleted: [], skipped: filePaths.map((p) => ({ path: p, reason: 'Invalid temp directory' })), errors: [] };
+    }
+
+    for (const filePath of filePaths) {
+      try {
+        // Safety check: only delete files within the collection's temp directory
+        const normalizedPath = path.normalize(filePath);
+        if (!normalizedPath.startsWith(normalizedTempDir + path.sep) && normalizedPath !== normalizedTempDir) {
+          results.skipped.push({ path: filePath, reason: 'Not in collection temp directory' });
+          continue;
+        }
+
+        // Check if file exists before trying to delete
+        if (!fs.existsSync(filePath)) {
+          results.skipped.push({ path: filePath, reason: 'File does not exist' });
+          continue;
+        }
+
+        // Delete the file and its UID mapping
+        deleteRequestUid(filePath);
+        fs.unlinkSync(filePath);
+        results.deleted.push(filePath);
+      } catch (error) {
+        results.errors.push({ path: filePath, error: error.message });
+      }
+    }
+
+    return results;
   });
 
   ipcMain.handle('renderer:open-collection', async () => {

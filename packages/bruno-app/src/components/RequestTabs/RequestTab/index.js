@@ -1,12 +1,16 @@
 import React, { useRef, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
-import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+
 import {
   openNewRequestModal, openCollectionCloneItemModal, toggleConfirmRequestCloseModal,
   toggleConfirmCollectionCloseModal, toggleConfirmFolderCloseModal, toggleConfirmGlobalEnvironmentCloseModal,
   toggleConfirmEnvironmentCloseModal
 } from 'providers/ReduxStore/slices/keyBindings';
+
+import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { findCollectionByUid, findItemInCollection, hasExampleChanges, hasRequestChanges } from 'utils/collections/index';
@@ -338,6 +342,29 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
         }));
       }
     } catch (err) { }
+  }
+
+  async function handleCloseMultipleTabs(tabs) {
+    const tabUidsToClose = [];
+
+    for (const tab of tabs) {
+      const item = findItemInCollection(collection, tab.uid);
+      if (item && hasRequestChanges(item)) {
+        try {
+          await dispatch(saveRequest(item.uid, collection.uid, true));
+        } catch (err) {
+          continue;
+        }
+      }
+
+      if (tab?.uid) {
+        tabUidsToClose.push(tab.uid);
+      }
+    }
+
+    if (tabUidsToClose.length > 0) {
+      dispatch(closeTabs({ tabUids: tabUidsToClose }));
+    }
   }
 
   async function handleCloseOtherTabs() {

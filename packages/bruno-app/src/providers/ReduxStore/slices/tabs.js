@@ -94,7 +94,11 @@ export const tabsSlice = createSlice({
       state.activeTabUid = uid;
     },
     focusTab: (state, action) => {
-      state.activeTabUid = action.payload.uid;
+      const { uid } = action.payload;
+      const tabExists = state.tabs.some((t) => t.uid === uid);
+      if (tabExists) {
+        state.activeTabUid = uid;
+      }
     },
     switchTab: (state, action) => {
       if (!state.tabs || !state.tabs.length) {

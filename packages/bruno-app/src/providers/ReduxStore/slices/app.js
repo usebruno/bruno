@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import brunoClipboard from 'utils/bruno-clipboard';
-import { addTab, focusTab, closeTabs } from './tabs';
+import { addTab, focusTab } from './tabs';
 
 const initialState = {
   isDragging: false,
