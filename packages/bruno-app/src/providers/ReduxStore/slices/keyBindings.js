@@ -1,16 +1,20 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  enableShortCuts: true,
+  enableShortCuts: false,
   sidebarCollapsed: false,
   showGlobalSearch: false,
   showSideBarSearch: false,
   showImportCollectionModal: false,
   cloneRequestorFolderModal: false,
-  showConfirmRequestCloseModal: { show: false },
-  newRequestModal: { open: false, item: null, collectionUid: null },
   cloneCollectionModal: { open: false, collectionUid: null },
-  cloneCollectionItemModal: { open: false, item: null, collectionUid: null }
+  newRequestModal: { open: false, item: null, collectionUid: null },
+  cloneCollectionItemModal: { open: false, item: null, collectionUid: null },
+  showConfirmCollectionCloseModal: { show: false, item: null, tab: null, collection: null },
+  showConfirmEnvironmentClose: { show: false, tab: null, collection: null },
+  showConfirmFolderCloseModal: { show: false, item: null, tab: null, collection: null, folder: null },
+  showConfirmGlobalEnvironmentClose: { show: false, globalEnvDraft: null, tab: null },
+  showConfirmRequestCloseModal: { show: false, entity: null, example: null, item: null, tab: null, collection: null }
 };
 
 export const keybindingsSlice = createSlice({
@@ -67,8 +71,25 @@ export const keybindingsSlice = createSlice({
       state.cloneCollectionItemModal = { open: false, item: null, collectionUid: null };
     },
     // Unsaved Request/Example Modal
-    toggleConfirmRequestModal: (state, action) => {
-      state.showConfirmRequestCloseModal = { show: action.payload.show };
+    toggleConfirmRequestCloseModal: (state, action) => {
+      const { show, entity, example, item, tab, collection } = action.payload;
+      state.showConfirmRequestCloseModal = { show, entity, example, item, tab, collection };
+    },
+    toggleConfirmCollectionCloseModal: (state, action) => {
+      const { show, item, tab, collection } = action.payload;
+      state.showConfirmCollectionCloseModal = { show, item, tab, collection };
+    },
+    toggleConfirmFolderCloseModal: (state, action) => {
+      const { show, item, tab, collection, folder } = action.payload;
+      state.showConfirmFolderCloseModal = { show, item, tab, collection, folder };
+    },
+    toggleConfirmEnvironmentCloseModal: (state, action) => {
+      const { show, tab, collection } = action.payload;
+      state.showConfirmEnvironmentClose = { show, tab, collection };
+    },
+    toggleConfirmGlobalEnvironmentCloseModal: (state, action) => {
+      const { show, globalEnvDraft, tab } = action.payload;
+      state.showConfirmGlobalEnvironmentClose = { show, globalEnvDraft, tab };
     },
     // Import Collection Modal
     toggleShowImportCollectionModal: (state, action) => {
@@ -85,11 +106,15 @@ export const {
   closeNewRequestModal,
   toggleSidebarCollapse,
   openCollectionCloneModal,
-  toggleConfirmRequestModal,
   closeCollectionCloneModal,
   openCollectionCloneItemModal,
   closeCollectionCloneItemModal,
-  toggleShowImportCollectionModal
+  toggleConfirmFolderCloseModal,
+  toggleConfirmRequestCloseModal,
+  toggleShowImportCollectionModal,
+  toggleConfirmCollectionCloseModal,
+  toggleConfirmEnvironmentCloseModal,
+  toggleConfirmGlobalEnvironmentCloseModal
 } = keybindingsSlice.actions;
 
 export default keybindingsSlice.reducer;
