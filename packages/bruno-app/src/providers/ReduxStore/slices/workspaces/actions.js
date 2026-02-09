@@ -10,8 +10,8 @@ import {
   setWorkspaceScratchCollection
 } from '../workspaces';
 import { showHomePage } from '../app';
-import { createCollection, openCollection, openMultipleCollections } from '../collections/actions';
-import { removeCollection, addTransientDirectory } from '../collections';
+import { createCollection, openCollection, openMultipleCollections, openCollectionEvent } from '../collections/actions';
+import { removeCollection, addTransientDirectory, updateCollectionMountStatus } from '../collections';
 import { updateGlobalEnvironments } from '../global-environments';
 import { addTab, focusTab } from '../tabs';
 import { normalizePath } from 'utils/common/path';
@@ -908,12 +908,7 @@ export const mountScratchCollection = (workspaceUid) => {
         workspacePath: workspace.pathname || 'default'
       });
 
-      // Open the scratch collection using the path-based opening mechanism (no dialog)
-      // This will trigger main:collection-opened event and set up the watcher
-      await ipcRenderer.invoke('renderer:open-multiple-collections', [tempDirectoryPath]);
-
-      // The collection will be added via the main:collection-opened event
-      // The collection UID is generated from the path hash
+      // Calculate the scratch collection UID
       const { generateUidBasedOnHash } = await import('utils/common');
       const scratchCollectionUid = generateUidBasedOnHash(tempDirectoryPath);
 
@@ -924,6 +919,26 @@ export const mountScratchCollection = (workspaceUid) => {
         scratchTempDirectory: tempDirectoryPath
       }));
 
+      // Construct brunoConfig for the scratch collection
+      const brunoConfig = {
+        opencollection: '1.0.0',
+        name: 'Scratch',
+        type: 'scratch',
+        ignore: ['node_modules', '.git']
+      };
+
+      // Add watcher for the scratch collection
+      // This sets up file watching so changes are detected
+      await ipcRenderer.invoke('renderer:add-collection-watcher', {
+        collectionPath: tempDirectoryPath,
+        collectionUid: scratchCollectionUid,
+        brunoConfig
+      });
+
+      // Dispatch openCollectionEvent to add collection to Redux
+      // The watcher is already set up above
+      await dispatch(openCollectionEvent(scratchCollectionUid, tempDirectoryPath, brunoConfig));
+
       // Register the scratch collection's pathname as its transient directory
       // This allows CreateTransientRequest to create items in the scratch collection
       dispatch(addTransientDirectory({
@@ -931,9 +946,19 @@ export const mountScratchCollection = (workspaceUid) => {
         pathname: tempDirectoryPath
       }));
 
+      // Set mount status to mounted - collection is now ready for transient requests
+      // This is required for the task middleware to open tabs when transient requests are created
+      dispatch(updateCollectionMountStatus({ collectionUid: scratchCollectionUid, mountStatus: 'mounted' }));
+
       return { uid: scratchCollectionUid, pathname: tempDirectoryPath };
     } catch (error) {
       console.error('Error mounting scratch collection:', error);
+
+      // If we have a scratchCollectionUid, set mount status to unmounted on error
+      if (workspace.scratchCollectionUid) {
+        dispatch(updateCollectionMountStatus({ collectionUid: workspace.scratchCollectionUid, mountStatus: 'unmounted' }));
+      }
+
       return null;
     }
   };

@@ -185,6 +185,15 @@ const RequestTabPanel = () => {
     return <Preferences />;
   }
 
+  // Handle workspace tabs early - they don't need collection to be loaded
+  if (focusedTab.type === 'workspaceOverview') {
+    return <WorkspaceHome />;
+  }
+
+  if (focusedTab.type === 'workspaceEnvironments') {
+    return <GlobalEnvironmentSettings />;
+  }
+
   if (!focusedTab.uid || !focusedTab.collectionUid) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
@@ -206,14 +215,6 @@ const RequestTabPanel = () => {
   const item = findItemInCollection(collection, activeTabUid);
   const isGrpcRequest = item?.type === 'grpc-request';
   const isWsRequest = item?.type === 'ws-request';
-
-  if (focusedTab.type === 'workspaceOverview') {
-    return <WorkspaceHome />;
-  }
-
-  if (focusedTab.type === 'workspaceEnvironments') {
-    return <GlobalEnvironmentSettings />;
-  }
 
   if (focusedTab.type === 'collection-runner') {
     return <RunnerResults collection={collection} />;

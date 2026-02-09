@@ -1905,6 +1905,30 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  // Add watcher for an existing collection (used for scratch collections)
+  ipcMain.handle('renderer:add-collection-watcher', async (event, { collectionPath, collectionUid, brunoConfig }) => {
+    if (!watcher || !mainWindow) {
+      throw new Error('Watcher or mainWindow not available');
+    }
+
+    try {
+      const { size, filesCount, maxFileSize } = await getCollectionStats(collectionPath);
+
+      const shouldLoadCollectionAsync
+        = (size > MAX_COLLECTION_SIZE_IN_MB)
+          || (filesCount > MAX_COLLECTION_FILES_COUNT)
+          || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
+
+      // Add watcher for the collection
+      watcher.addWatcher(mainWindow, collectionPath, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error adding collection watcher:', error);
+      throw error;
+    }
+  });
+
   // Save scratch request to a collection (move from temp to permanent location)
   ipcMain.handle('renderer:save-scratch-request', async (event, { sourcePathname, targetDirname, targetFilename, request }) => {
     try {
