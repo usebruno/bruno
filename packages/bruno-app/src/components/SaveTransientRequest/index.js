@@ -65,7 +65,21 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
   const [selectedTargetCollection, setSelectedTargetCollection] = useState(null);
   const [isSelectingCollection, setIsSelectingCollection] = useState(isScratchCollection);
+  const [pendingCollectionPath, setPendingCollectionPath] = useState(null);
   const folderTreeCollectionUid = selectedTargetCollection?.uid || collection?.uid;
+
+  useEffect(() => {
+    if (pendingCollectionPath) {
+      const targetCollection = availableCollections.find(
+        (c) => (c.path || c.pathname) === pendingCollectionPath
+      );
+      if (targetCollection?.mountStatus === 'mounted') {
+        setSelectedTargetCollection(targetCollection);
+        setIsSelectingCollection(false);
+        setPendingCollectionPath(null);
+      }
+    }
+  }, [pendingCollectionPath, availableCollections]);
 
   const {
     currentFolders,
@@ -91,6 +105,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     setIsEditingFolderFilename(false);
     setPendingFolderNavigation(null);
     setSelectedTargetCollection(null);
+    setPendingCollectionPath(null);
     setIsSelectingCollection(isScratchCollection);
   };
 
@@ -131,25 +146,32 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   };
 
   const handleSelectCollection = async (selectedCollection) => {
-    if (!selectedCollection.uid || selectedCollection.mountStatus !== 'mounted') {
-      try {
-        await dispatch(
-          mountCollection({
-            collectionUid: selectedCollection.uid || uuid(),
-            collectionPathname: selectedCollection.path || selectedCollection.pathname,
-            brunoConfig: selectedCollection.brunoConfig
-          })
-        );
-        const mountedCollection = allCollections.find((c) => c.pathname === selectedCollection.path);
-        setSelectedTargetCollection(mountedCollection);
-        setIsSelectingCollection(false);
-      } catch (error) {
-        toast.error('Failed to mount collection');
-        console.error('Error mounting collection:', error);
-      }
-    } else {
+    const collectionPath = selectedCollection.path || selectedCollection.pathname;
+
+    if (selectedCollection.mountStatus === 'mounted') {
       setSelectedTargetCollection(selectedCollection);
       setIsSelectingCollection(false);
+      return;
+    }
+
+    if (selectedCollection.mountStatus === 'mounting') {
+      setPendingCollectionPath(collectionPath);
+      return;
+    }
+
+    try {
+      setPendingCollectionPath(collectionPath);
+      await dispatch(
+        mountCollection({
+          collectionUid: selectedCollection.uid || uuid(),
+          collectionPathname: collectionPath,
+          brunoConfig: selectedCollection.brunoConfig
+        })
+      );
+    } catch (error) {
+      toast.error('Failed to mount collection');
+      console.error('Error mounting collection:', error);
+      setPendingCollectionPath(null);
     }
   };
 
@@ -266,12 +288,12 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
     const directoryName = newFolderDirectoryName.trim() || sanitizeName(trimmedFolderName);
     const parentFolder = getCurrentParentFolder();
+    const targetCollectionUid = selectedTargetCollection?.uid || collection?.uid;
 
     try {
-      await dispatch(newFolder(trimmedFolderName, directoryName, collection?.uid, parentFolder?.uid));
+      await dispatch(newFolder(trimmedFolderName, directoryName, targetCollectionUid, parentFolder?.uid));
       toast.success('New folder created!');
 
-      // Set pending navigation - useEffect will navigate when folder appears in state
       setPendingFolderNavigation(directoryName);
       handleCancelNewFolder();
     } catch (err) {
@@ -327,7 +349,14 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
             {isScratchCollection && (
               <div className="collection-name">
-                <span className={isSelectingCollection ? '' : 'collection-name-breadcrumb'}>
+                <span
+                  className={isSelectingCollection ? '' : 'collection-name-breadcrumb'}
+                  onClick={!isSelectingCollection ? () => {
+                    setIsSelectingCollection(true);
+                    setSelectedTargetCollection(null);
+                    reset();
+                  } : undefined}
+                >
                   Collections
                 </span>
                 {!isSelectingCollection && (
@@ -368,24 +397,29 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
               <div className="collection-list">
                 {availableCollections.length > 0 ? (
                   <ul className="collection-list-items">
-                    {availableCollections.map((coll) => (
-                      <li
-                        key={coll.path}
-                        className="collection-item"
-                        onClick={() => handleSelectCollection(coll)}
-                      >
-                        <div className="collection-item-content">
-                          <IconDatabase size={16} strokeWidth={1.5} />
-                          <span className="collection-item-name">{coll.name}</span>
-                        </div>
-                        {coll.uid && coll.mountStatus === 'mounting' && (
-                          <IconLoader2 size={16} strokeWidth={1.5} className="animate-spin" />
-                        )}
-                        {coll.uid && coll.mountStatus === 'mounted' && (
-                          <IconCheck size={16} strokeWidth={1.5} className="text-green-600" />
-                        )}
-                      </li>
-                    ))}
+                    {availableCollections.map((coll) => {
+                      const collPath = coll.path || coll.pathname;
+                      const isMounting = pendingCollectionPath === collPath || coll.mountStatus === 'mounting';
+                      const isMounted = coll.mountStatus === 'mounted';
+                      return (
+                        <li
+                          key={collPath}
+                          className={`collection-item ${isMounting ? 'mounting' : ''}`}
+                          onClick={() => !isMounting && handleSelectCollection(coll)}
+                        >
+                          <div className="collection-item-content">
+                            <IconDatabase size={16} strokeWidth={1.5} />
+                            <span className="collection-item-name">{coll.name}</span>
+                          </div>
+                          {isMounting && (
+                            <IconLoader2 size={16} strokeWidth={1.5} className="animate-spin" />
+                          )}
+                          {!isMounting && isMounted && (
+                            <IconCheck size={16} strokeWidth={1.5} className="text-green-600" />
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <div className="collection-empty-state">
