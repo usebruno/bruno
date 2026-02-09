@@ -53,8 +53,6 @@ const RequestTabPanel = () => {
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const _collections = useSelector((state) => state.collections.collections);
   const preferences = useSelector((state) => state.app.preferences);
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
-  const activeWorkspace = workspaces.find((w) => w.scratchCollectionUid === focusedTab?.collectionUid);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
 
