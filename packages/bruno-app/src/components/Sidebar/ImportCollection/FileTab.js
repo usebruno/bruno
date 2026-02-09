@@ -76,8 +76,15 @@ const FileTab = ({
     setIsLoading(true);
     try {
       const filePath = window.ipcRenderer.getFilePath(zipFile);
-      const collectionName = zipFile.name.replace(/\.zip$/i, '');
-      await handleSubmit({ rawData: { zipFilePath: filePath, collectionName }, type: 'bruno-zip' });
+      const isBrunoZip = await window.ipcRenderer.invoke('renderer:is-bruno-collection-zip', filePath);
+
+      if (isBrunoZip) {
+        const collectionName = zipFile.name.replace(/\.zip$/i, '');
+        await handleSubmit({ rawData: { zipFilePath: filePath, collectionName }, type: 'bruno-zip' });
+        return;
+      }
+
+      toastError(new Error('The ZIP file is not a valid Bruno collection'));
     } catch (err) {
       toastError(err, 'Import ZIP file failed');
     } finally {
