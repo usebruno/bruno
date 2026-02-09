@@ -1,20 +1,21 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
 import SearchInput from 'components/SearchInput';
 import Button from 'ui/Button';
-import { IconFolder, IconChevronRight, IconCheck, IconX, IconEye, IconEyeOff, IconDatabase, IconLoader2 } from '@tabler/icons';
+import { IconFolder, IconChevronRight, IconCheck, IconX, IconEye, IconEyeOff } from '@tabler/icons';
 import filter from 'lodash/filter';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
+import CollectionListItem from './CollectionListItem';
 import useCollectionFolderTree from 'hooks/useCollectionFolderTree';
-import { removeSaveTransientRequestModal, deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+import { removeSaveTransientRequestModal } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { newFolder, closeTabs, mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import { resolveRequestFilename } from 'utils/common/platform';
 import path from 'utils/common/path';
-import { transformRequestToSaveToFilesystem, findCollectionByUid, findItemInCollection } from 'utils/collections';
+import { transformRequestToSaveToFilesystem, findCollectionByUid, findItemInCollection, areItemsLoading } from 'utils/collections';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import { itemSchema } from '@usebruno/schema';
 import { uuid } from 'utils/common';
@@ -50,7 +51,6 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       onClose();
       return;
     }
-    // Remove from Redux array
     dispatch(removeSaveTransientRequestModal({ itemUid: item.uid }));
   };
   const [requestName, setRequestName] = useState(item?.name || '');
@@ -63,23 +63,23 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   const [pendingFolderNavigation, setPendingFolderNavigation] = useState(null);
   const newFolderInputRef = useRef(null);
 
-  const [selectedTargetCollection, setSelectedTargetCollection] = useState(null);
+  const [selectedTargetCollectionPath, setSelectedTargetCollectionPath] = useState(null);
   const [isSelectingCollection, setIsSelectingCollection] = useState(isScratchCollection);
-  const [pendingCollectionPath, setPendingCollectionPath] = useState(null);
-  const folderTreeCollectionUid = selectedTargetCollection?.uid || collection?.uid;
+  const folderTreeCollectionUid = selectedTargetCollectionPath
+    ? availableCollections.find((c) => (c.path || c.pathname) === selectedTargetCollectionPath)?.uid
+    : collection?.uid;
+
+  const selectedTargetCollection = selectedTargetCollectionPath
+    ? availableCollections.find((c) => (c.path || c.pathname) === selectedTargetCollectionPath)
+    : null;
 
   useEffect(() => {
-    if (pendingCollectionPath) {
-      const targetCollection = availableCollections.find(
-        (c) => (c.path || c.pathname) === pendingCollectionPath
-      );
-      if (targetCollection?.mountStatus === 'mounted') {
-        setSelectedTargetCollection(targetCollection);
-        setIsSelectingCollection(false);
-        setPendingCollectionPath(null);
-      }
+    const isMounted = selectedTargetCollection?.mountStatus === 'mounted';
+    const isFullyLoaded = isMounted && !areItemsLoading(selectedTargetCollection);
+    if (selectedTargetCollectionPath && isFullyLoaded) {
+      setIsSelectingCollection(false);
     }
-  }, [pendingCollectionPath, availableCollections]);
+  }, [selectedTargetCollectionPath, selectedTargetCollection]);
 
   const {
     currentFolders,
@@ -104,8 +104,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     setShowFilesystemName(false);
     setIsEditingFolderFilename(false);
     setPendingFolderNavigation(null);
-    setSelectedTargetCollection(null);
-    setPendingCollectionPath(null);
+    setSelectedTargetCollectionPath(null);
     setIsSelectingCollection(isScratchCollection);
   };
 
@@ -121,7 +120,6 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     }
   }, [showNewFolderInput]);
 
-  // Auto-navigate into newly created folder when it appears in currentFolders
   useEffect(() => {
     if (pendingFolderNavigation) {
       const newFolder = currentFolders.find((f) => f.filename === pendingFolderNavigation);
@@ -145,35 +143,28 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     handleClose();
   };
 
-  const handleSelectCollection = async (selectedCollection) => {
+  const handleSelectCollection = useCallback((selectedCollection) => {
     const collectionPath = selectedCollection.path || selectedCollection.pathname;
+    const isMounted = selectedCollection.mountStatus === 'mounted';
+    const isFullyLoaded = isMounted && !areItemsLoading(selectedCollection);
 
-    if (selectedCollection.mountStatus === 'mounted') {
-      setSelectedTargetCollection(selectedCollection);
+    setSelectedTargetCollectionPath(collectionPath);
+
+    if (isFullyLoaded) {
       setIsSelectingCollection(false);
       return;
     }
 
-    if (selectedCollection.mountStatus === 'mounting') {
-      setPendingCollectionPath(collectionPath);
-      return;
-    }
-
-    try {
-      setPendingCollectionPath(collectionPath);
-      await dispatch(
+    if (!isMounted && selectedCollection.mountStatus !== 'mounting') {
+      dispatch(
         mountCollection({
           collectionUid: selectedCollection.uid || uuid(),
           collectionPathname: collectionPath,
           brunoConfig: selectedCollection.brunoConfig
         })
       );
-    } catch (error) {
-      toast.error('Failed to mount collection');
-      console.error('Error mounting collection:', error);
-      setPendingCollectionPath(null);
     }
-  };
+  }, [dispatch]);
 
   const handleConfirm = async () => {
     if (!item || !collection || !latestItem) {
@@ -353,7 +344,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                   className={isSelectingCollection ? '' : 'collection-name-breadcrumb'}
                   onClick={!isSelectingCollection ? () => {
                     setIsSelectingCollection(true);
-                    setSelectedTargetCollection(null);
+                    setSelectedTargetCollectionPath(null);
                     reset();
                   } : undefined}
                 >
@@ -399,25 +390,15 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                   <ul className="collection-list-items">
                     {availableCollections.map((coll) => {
                       const collPath = coll.path || coll.pathname;
-                      const isMounting = pendingCollectionPath === collPath || coll.mountStatus === 'mounting';
-                      const isMounted = coll.mountStatus === 'mounted';
                       return (
-                        <li
+                        <CollectionListItem
                           key={collPath}
-                          className={`collection-item ${isMounting ? 'mounting' : ''}`}
-                          onClick={() => !isMounting && handleSelectCollection(coll)}
-                        >
-                          <div className="collection-item-content">
-                            <IconDatabase size={16} strokeWidth={1.5} />
-                            <span className="collection-item-name">{coll.name}</span>
-                          </div>
-                          {isMounting && (
-                            <IconLoader2 size={16} strokeWidth={1.5} className="animate-spin" />
-                          )}
-                          {!isMounting && isMounted && (
-                            <IconCheck size={16} strokeWidth={1.5} className="text-green-600" />
-                          )}
-                        </li>
+                          collectionUid={coll.uid}
+                          collectionPath={collPath}
+                          collectionName={coll.name}
+                          isSelected={selectedTargetCollectionPath === collPath}
+                          onSelect={() => handleSelectCollection(coll)}
+                        />
                       );
                     })}
                   </ul>
