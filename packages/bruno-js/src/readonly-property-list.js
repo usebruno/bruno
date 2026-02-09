@@ -18,6 +18,9 @@ class ReadOnlyPropertyList {
    * @param {Function} [options.dataSource] - Dynamic data source function (returns array of items)
    * @param {Array} [options.items] - Initial items for static mode
    */
+  // Items are stored in an array (not a Map) to support positional access (idx, indexOf),
+  // ordered insertion (insert, insertAfter, prepend in PropertyList), and duplicate keys.
+  // At typical list sizes (cookies, headers) the O(n) key lookup is negligible.
   constructor({ keyProperty = 'key', dataSource, items } = {}) {
     this._keyProperty = keyProperty;
     this._dynamic = typeof dataSource === 'function';
