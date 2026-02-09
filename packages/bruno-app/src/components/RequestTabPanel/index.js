@@ -32,7 +32,7 @@ import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
 import ResponseExample from 'components/ResponseExample';
-import WorkspaceHome from 'components/WorkspaceHome';
+import WorkspaceOverview from 'components/WorkspaceHome/WorkspaceOverview';
 import Preferences from 'components/Preferences';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
@@ -53,6 +53,8 @@ const RequestTabPanel = () => {
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const _collections = useSelector((state) => state.collections.collections);
   const preferences = useSelector((state) => state.app.preferences);
+  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
 
@@ -184,7 +186,7 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'workspaceOverview') {
-    return <WorkspaceHome />;
+    return activeWorkspace ? <WorkspaceOverview workspace={activeWorkspace} /> : null;
   }
 
   if (focusedTab.type === 'workspaceEnvironments') {
