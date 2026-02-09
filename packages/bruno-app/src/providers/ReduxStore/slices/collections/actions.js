@@ -2447,21 +2447,16 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
     const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables || {};
 
-    // Check if this is a scratch collection (should not be added to workspace)
-    // A collection is a scratch collection if its UID matches any workspace's scratchCollectionUid
     const isScratchCollection = state.workspaces.workspaces.some((w) => w.scratchCollectionUid === uid);
 
-    // Check if collection already exists in Redux state
     const existingCollection = state.collections.collections.find(
       (c) => normalizePath(c.pathname) === normalizePath(pathname)
     );
 
-    // Check if collection is already in the current workspace
     const isAlreadyInWorkspace = activeWorkspace?.collections?.some(
       (c) => normalizePath(c.path) === normalizePath(pathname)
     );
 
-    // If collection already exists in Redux AND in current workspace (or is scratch), show toast and return
     if (existingCollection && (isAlreadyInWorkspace || isScratchCollection)) {
       if (!isScratchCollection) {
         toast.success('Collection is already opened');
@@ -2470,7 +2465,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
       return;
     }
 
-    // If collection exists in Redux but not in workspace, add to workspace (skip for scratch collections)
     if (existingCollection) {
       if (state.app.sidebarCollapsed && !isScratchCollection) {
         dispatch(toggleSidebarCollapse());
@@ -2499,7 +2493,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
       return;
     }
 
-    // Collection doesn't exist - create it
     const collection = {
       version: '1',
       uid: uid,
@@ -2526,7 +2519,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
           );
 
           if (currentWorkspace && !isScratchCollection) {
-            // Set collection-workspace mapping for workspace env vars
             ipcRenderer.invoke('renderer:set-collection-workspace', uid, currentWorkspace.pathname);
 
             const alreadyInWorkspace = currentWorkspace.collections?.some(

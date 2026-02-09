@@ -48,7 +48,6 @@ const RequestTabs = () => {
   const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
 
-  // Check if active collection is a scratch collection and find corresponding workspace
   const isScratchCollection = activeCollection && workspaces.some((w) => w.scratchCollectionUid === activeCollection.uid);
   const activeWorkspace = isScratchCollection ? workspaces.find((w) => w.scratchCollectionUid === activeCollection.uid) : null;
 

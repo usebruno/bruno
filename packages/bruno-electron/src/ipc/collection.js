@@ -392,59 +392,43 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  // save transient request (handles move from temp to permanent location)
   ipcMain.handle('renderer:save-transient-request', async (event, { sourcePathname, targetDirname, targetFilename, request, format, sourceFormat }) => {
     try {
-      // Validate source exists
       if (!fs.existsSync(sourcePathname)) {
         throw new Error(`Source path: ${sourcePathname} does not exist`);
       }
 
-      // Validate target directory exists
       if (!fs.existsSync(targetDirname)) {
         throw new Error(`Target directory: ${targetDirname} does not exist`);
       }
 
-      // Check if the target directory is inside a collection
       validatePathIsInsideCollection(targetDirname);
 
-      // Use provided target filename or fall back to source filename
       const filename = targetFilename || path.basename(sourcePathname);
       const targetPathname = path.join(targetDirname, filename);
 
-      // Check for filename conflicts and throw error if exists
       if (fs.existsSync(targetPathname)) {
         throw new Error(`A file with the name "${filename}" already exists in the target location`);
       }
 
-      // Determine if format conversion is needed
       const targetFormat = format || 'bru';
-      const actualSourceFormat = sourceFormat || 'yml'; // Scratch collections use YAML
+      const actualSourceFormat = sourceFormat || 'yml';
       const needsConversion = actualSourceFormat !== targetFormat;
 
       let finalContent;
       if (needsConversion) {
-        // Parse from source format and stringify to target format
         const { parseRequest, stringifyRequest } = require('@usebruno/filestore');
         const sourceContent = await fs.promises.readFile(sourcePathname, 'utf8');
         const parsedRequest = parseRequest(sourceContent, { format: actualSourceFormat });
-
-        // Merge with any updates from the request object
         const mergedRequest = { ...parsedRequest, ...request };
         syncExampleUidsCache(sourcePathname, mergedRequest.examples);
-
-        // Convert to target format
         finalContent = stringifyRequest(mergedRequest, { format: targetFormat });
       } else {
-        // No conversion needed, use normal flow
         syncExampleUidsCache(sourcePathname, request.examples);
         finalContent = await stringifyRequestViaWorker(request, { format: targetFormat });
       }
 
-      // Write to target location
       await writeFile(targetPathname, finalContent);
-
-      // Return the new pathname (file watcher will handle adding to Redux)
       return { newPathname: targetPathname };
     } catch (error) {
       return Promise.reject(error);
@@ -1879,22 +1863,17 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     return tempDirectoryPath;
   });
 
-  // Mount workspace scratch collection - creates a proper collection in temp directory (YAML format)
   ipcMain.handle('renderer:mount-workspace-scratch', async (event, { workspaceUid, workspacePath }) => {
     try {
       const tempDirectoryPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-scratch-'));
-
-      // Register this path as a scratch collection path for validation
       registerScratchCollectionPath(tempDirectoryPath);
 
-      // Create collection root for YAML format
       const collectionRoot = {
         meta: {
           name: 'Scratch'
         }
       };
 
-      // Create bruno config for YAML format
       const brunoConfig = {
         opencollection: '1.0.0',
         name: 'Scratch',
@@ -1902,11 +1881,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         ignore: ['node_modules', '.git']
       };
 
-      // Create opencollection.yml file
       const content = stringifyCollection(collectionRoot, brunoConfig, { format: 'yml' });
       await writeFile(path.join(tempDirectoryPath, 'opencollection.yml'), content);
 
-      // Store metadata linking back to workspace (for path validation)
       const metadata = {
         workspaceUid,
         workspacePath,
@@ -1921,7 +1898,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  // Add watcher for an existing collection (used for scratch collections)
   ipcMain.handle('renderer:add-collection-watcher', async (event, { collectionPath, collectionUid, brunoConfig }) => {
     if (!watcher || !mainWindow) {
       throw new Error('Watcher or mainWindow not available');
@@ -1935,7 +1911,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           || (filesCount > MAX_COLLECTION_FILES_COUNT)
           || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
 
-      // Add watcher for the collection
       watcher.addWatcher(mainWindow, collectionPath, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
 
       return { success: true };

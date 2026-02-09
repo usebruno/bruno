@@ -31,12 +31,9 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   const item = itemProp;
   const collection = collectionProp;
 
-  // Get workspace collections (excluding scratch)
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const allCollections = useSelector((state) => state.collections.collections);
-
-  // Check if source collection is a scratch collection (by comparing with workspace's scratchCollectionUid)
   const isScratchCollection = activeWorkspace?.scratchCollectionUid === collection?.uid;
 
   const availableCollections = useMemo(() => {
@@ -45,10 +42,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     return (activeWorkspace.collections || []).map((wc) => {
       const fullCollection = allCollections.find((c) => c.pathname === wc.path);
       return fullCollection || { ...wc, uid: null, mountStatus: 'unmounted' };
-    }).filter((c) => {
-      // Exclude scratch collections by checking if this collection UID matches any workspace's scratchCollectionUid
-      return !workspaces.some((w) => w.scratchCollectionUid === c.uid);
-    });
+    }).filter((c) => !workspaces.some((w) => w.scratchCollectionUid === c.uid));
   }, [isScratchCollection, activeWorkspace, allCollections, workspaces]);
 
   const handleClose = () => {
@@ -69,11 +63,8 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   const [pendingFolderNavigation, setPendingFolderNavigation] = useState(null);
   const newFolderInputRef = useRef(null);
 
-  // State for collection selection (when saving from scratch collection)
   const [selectedTargetCollection, setSelectedTargetCollection] = useState(null);
   const [isSelectingCollection, setIsSelectingCollection] = useState(isScratchCollection);
-
-  // Use target collection for folder tree if one is selected, otherwise use source collection
   const folderTreeCollectionUid = selectedTargetCollection?.uid || collection?.uid;
 
   const {
@@ -100,7 +91,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     setIsEditingFolderFilename(false);
     setPendingFolderNavigation(null);
     setSelectedTargetCollection(null);
-    setIsSelectingCollection(isScratchCollection); // Reset to initial state based on collection type
+    setIsSelectingCollection(isScratchCollection);
   };
 
   useEffect(() => {
@@ -140,17 +131,15 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   };
 
   const handleSelectCollection = async (selectedCollection) => {
-    // If collection is not mounted, mount it first
     if (!selectedCollection.uid || selectedCollection.mountStatus !== 'mounted') {
       try {
-        const result = await dispatch(
+        await dispatch(
           mountCollection({
             collectionUid: selectedCollection.uid || uuid(),
             collectionPathname: selectedCollection.path || selectedCollection.pathname,
             brunoConfig: selectedCollection.brunoConfig
           })
         );
-        // The collection should now be mounted, fetch the updated collection
         const mountedCollection = allCollections.find((c) => c.pathname === selectedCollection.path);
         setSelectedTargetCollection(mountedCollection);
         setIsSelectingCollection(false);
@@ -159,7 +148,6 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         console.error('Error mounting collection:', error);
       }
     } else {
-      // Collection is already mounted
       setSelectedTargetCollection(selectedCollection);
       setIsSelectingCollection(false);
     }
@@ -170,7 +158,6 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       return;
     }
 
-    // Determine the target collection (either selected or source collection)
     const targetCollection = selectedTargetCollection || collection;
 
     try {
@@ -194,7 +181,6 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       const transformedItem = transformRequestToSaveToFilesystem(itemToSave);
       await itemSchema.validate(transformedItem);
 
-      // Use target collection's format
       const targetFormat = targetCollection.format || DEFAULT_COLLECTION_FORMAT;
       const sourceFormat = collection.format || DEFAULT_COLLECTION_FORMAT;
       const targetFilename = resolveRequestFilename(sanitizedFilename, targetFormat);
@@ -206,10 +192,9 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         targetFilename,
         request: transformedItem,
         format: targetFormat,
-        sourceFormat // Include source format for conversion if needed
+        sourceFormat
       });
 
-      // Add task to open the newly saved request when file watcher detects it
       dispatch(
         insertTaskIntoQueue({
           uid: uuid(),
@@ -340,7 +325,6 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
               {isSelectingCollection ? 'Select a collection to save to' : 'Save to Collections'}
             </div>
 
-            {/* Breadcrumbs - always visible when saving from scratch collection */}
             {isScratchCollection && (
               <div className="collection-name">
                 <span className={isSelectingCollection ? '' : 'collection-name-breadcrumb'}>

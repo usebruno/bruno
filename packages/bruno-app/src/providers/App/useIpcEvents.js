@@ -279,9 +279,7 @@ const useIpcEvents = () => {
       const activeTabUid = state.tabs?.activeTabUid;
       const activeTab = tabs?.find((t) => t.uid === activeTabUid);
 
-      // Get active workspace to access scratch collection UID
       const activeWorkspace = workspaces?.find((w) => w.uid === activeWorkspaceUid);
-      // Use active tab's collection if available, otherwise use workspace's scratch collection
       const collectionUid = activeTab?.collectionUid || activeWorkspace?.scratchCollectionUid;
 
       dispatch(

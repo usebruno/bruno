@@ -185,7 +185,6 @@ const RequestTabPanel = () => {
     return <Preferences />;
   }
 
-  // Handle workspace tabs early - they don't need collection to be loaded
   if (focusedTab.type === 'workspaceOverview') {
     return <WorkspaceHome />;
   }

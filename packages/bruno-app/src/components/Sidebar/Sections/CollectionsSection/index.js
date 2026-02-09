@@ -49,7 +49,6 @@ const CollectionsSection = () => {
     if (!activeWorkspace) return [];
 
     return collections.filter((c) => {
-      // Exclude scratch collections (check if collection UID matches any workspace's scratchCollectionUid)
       const isScratchCollection = workspaces.some((w) => w.scratchCollectionUid === c.uid);
       if (isScratchCollection) {
         return false;

@@ -20,12 +20,10 @@ const Collections = ({ showSearch }) => {
     if (!activeWorkspace) return [];
 
     return collections.filter((c) => {
-      // Exclude scratch collections from sidebar (check if collection UID matches any workspace's scratchCollectionUid)
       const isScratchCollection = workspaces.some((w) => w.scratchCollectionUid === c.uid);
       if (isScratchCollection) {
         return false;
       }
-      // Only show collections that are linked to this workspace
       return activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname));
     });
   }, [activeWorkspace, collections, workspaces]);

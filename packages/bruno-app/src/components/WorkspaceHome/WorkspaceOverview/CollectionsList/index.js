@@ -28,8 +28,6 @@ const CollectionsList = ({ workspace }) => {
       return [];
     }
 
-    // Filter out scratch collections (safety net - they shouldn't be in workspace.collections)
-    // Compare against workspace's registered scratch temp directory path
     const filteredCollections = workspace.collections.filter((wc) => {
       if (workspace.scratchTempDirectory) {
         return normalizePath(wc.path) !== normalizePath(workspace.scratchTempDirectory);

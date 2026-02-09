@@ -175,14 +175,12 @@ export const tabsSlice = createSlice({
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
 
-      // Filter out non-closable tab types (workspace tabs)
       const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
       const closableTabUids = tabUids.filter((uid) => {
         const tab = find(state.tabs, (t) => t.uid === uid);
         return tab && !nonClosableTypes.includes(tab.type);
       });
 
-      // remove the tabs from the state (only closable ones)
       state.tabs = filter(state.tabs, (t) => !closableTabUids.includes(t.uid));
 
       if (activeTab && state.tabs.length) {
@@ -213,12 +211,10 @@ export const tabsSlice = createSlice({
       const collectionUid = action.payload.collectionUid;
       const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
 
-      // Keep workspace tabs even when closing all collection tabs
       state.tabs = filter(state.tabs, (t) =>
         t.collectionUid !== collectionUid || nonClosableTypes.includes(t.type)
       );
 
-      // If there are remaining tabs, set active to the last one
       if (state.tabs.length > 0) {
         state.activeTabUid = last(state.tabs).uid;
       } else {

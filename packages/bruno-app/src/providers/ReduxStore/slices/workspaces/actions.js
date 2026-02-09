@@ -263,31 +263,25 @@ export const switchWorkspace = (workspaceUid) => {
       dispatch(updateGlobalEnvironments({ globalEnvironments: [], activeGlobalEnvironmentUid: null }));
     }
 
-    // Mount scratch collection if not already mounted for this workspace
     const scratchCollection = await dispatch(mountScratchCollection(workspaceUid));
-
     await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
 
-    // Create workspace tabs in scratch collection
     if (scratchCollection?.uid) {
       const overviewTabUid = `${scratchCollection.uid}-overview`;
       const environmentsTabUid = `${scratchCollection.uid}-environments`;
 
-      // Create overview tab first (leftmost position)
       dispatch(addTab({
         uid: overviewTabUid,
         collectionUid: scratchCollection.uid,
         type: 'workspaceOverview'
       }));
 
-      // Create environments tab second
       dispatch(addTab({
         uid: environmentsTabUid,
         collectionUid: scratchCollection.uid,
         type: 'workspaceEnvironments'
       }));
 
-      // Focus the overview tab to make it active
       dispatch(focusTab({
         uid: overviewTabUid
       }));
@@ -880,7 +874,6 @@ export const getScratchCollection = (workspaceUid) => {
 
 /**
  * Mount scratch collection for a workspace
- * Creates a temp directory with a proper bruno.json and opens it as a collection
  */
 export const mountScratchCollection = (workspaceUid) => {
   return async (dispatch, getState) => {
@@ -891,7 +884,6 @@ export const mountScratchCollection = (workspaceUid) => {
       return null;
     }
 
-    // Check if scratch collection already exists for this workspace
     if (workspace.scratchCollectionUid) {
       const existingCollection = state.collections.collections.find(
         (c) => c.uid === workspace.scratchCollectionUid
@@ -902,24 +894,20 @@ export const mountScratchCollection = (workspaceUid) => {
     }
 
     try {
-      // Create temp directory with opencollection.yml via IPC
       const tempDirectoryPath = await ipcRenderer.invoke('renderer:mount-workspace-scratch', {
         workspaceUid,
         workspacePath: workspace.pathname || 'default'
       });
 
-      // Calculate the scratch collection UID
       const { generateUidBasedOnHash } = await import('utils/common');
       const scratchCollectionUid = generateUidBasedOnHash(tempDirectoryPath);
 
-      // Store the scratch collection info on the workspace
       dispatch(setWorkspaceScratchCollection({
         workspaceUid,
         scratchCollectionUid,
         scratchTempDirectory: tempDirectoryPath
       }));
 
-      // Construct brunoConfig for the scratch collection
       const brunoConfig = {
         opencollection: '1.0.0',
         name: 'Scratch',
@@ -927,38 +915,28 @@ export const mountScratchCollection = (workspaceUid) => {
         ignore: ['node_modules', '.git']
       };
 
-      // Add watcher for the scratch collection
-      // This sets up file watching so changes are detected
       await ipcRenderer.invoke('renderer:add-collection-watcher', {
         collectionPath: tempDirectoryPath,
         collectionUid: scratchCollectionUid,
         brunoConfig
       });
 
-      // Dispatch openCollectionEvent to add collection to Redux
-      // The watcher is already set up above
       await dispatch(openCollectionEvent(scratchCollectionUid, tempDirectoryPath, brunoConfig));
 
-      // Register the scratch collection's pathname as its transient directory
-      // This allows CreateTransientRequest to create items in the scratch collection
+      // Register as transient directory so CreateTransientRequest can create items
       dispatch(addTransientDirectory({
         collectionUid: scratchCollectionUid,
         pathname: tempDirectoryPath
       }));
 
-      // Set mount status to mounted - collection is now ready for transient requests
-      // This is required for the task middleware to open tabs when transient requests are created
       dispatch(updateCollectionMountStatus({ collectionUid: scratchCollectionUid, mountStatus: 'mounted' }));
 
       return { uid: scratchCollectionUid, pathname: tempDirectoryPath };
     } catch (error) {
       console.error('Error mounting scratch collection:', error);
-
-      // If we have a scratchCollectionUid, set mount status to unmounted on error
       if (workspace.scratchCollectionUid) {
         dispatch(updateCollectionMountStatus({ collectionUid: workspace.scratchCollectionUid, mountStatus: 'unmounted' }));
       }
-
       return null;
     }
   };

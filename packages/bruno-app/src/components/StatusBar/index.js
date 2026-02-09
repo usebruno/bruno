@@ -37,7 +37,6 @@ const StatusBar = () => {
   };
 
   const handlePreferencesClick = () => {
-    // Use active tab's collection if available, otherwise use workspace's scratch collection
     const collectionUid = activeTab?.collectionUid || activeWorkspace?.scratchCollectionUid;
 
     dispatch(
