@@ -43,15 +43,15 @@ class ScriptError extends Error {
  */
 function buildSanitizedProcess() {
   return {
-    argv: process.argv,
+    argv: [...process.argv],
     title: process.title,
     version: process.version,
-    versions: process.versions,
+    versions: { ...process.versions },
     arch: process.arch,
     platform: process.platform,
     env: {}, // Empty by default
     pid: process.pid,
-    features: process.features
+    features: { ...process.features }
   };
 }
 
