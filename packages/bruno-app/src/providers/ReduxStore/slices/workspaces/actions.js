@@ -6,13 +6,18 @@ import {
   updateWorkspace,
   addCollectionToWorkspace,
   removeCollectionFromWorkspace,
-  updateWorkspaceLoadingState
+  updateWorkspaceLoadingState,
+  addScratchTempDirectory,
+  initScratchCollection,
+  addScratchRequest,
+  updateScratchRequest,
+  removeScratchRequest
 } from '../workspaces';
 import { showHomePage } from '../app';
 import { createCollection, openCollection, openMultipleCollections } from '../collections/actions';
-import { removeCollection } from '../collections';
+import { removeCollection, createCollection as createCollectionReducer, collectionAddFileEvent } from '../collections';
 import { updateGlobalEnvironments } from '../global-environments';
-import { initializeWorkspaceTabs, setActiveWorkspaceTab } from '../workspaceTabs';
+import { initializeWorkspaceTabs, setActiveWorkspaceTab, addWorkspaceTab, closeWorkspaceTab } from '../workspaceTabs';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 
@@ -261,6 +266,9 @@ export const switchWorkspace = (workspaceUid) => {
     } catch (error) {
       dispatch(updateGlobalEnvironments({ globalEnvironments: [], activeGlobalEnvironmentUid: null }));
     }
+
+    // Mount scratch directory if not already mounted for this workspace
+    await dispatch(mountScratchDirectory(workspaceUid));
 
     await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
     dispatch(showHomePage());
@@ -839,4 +847,333 @@ export const deleteWorkspaceDotEnvFile = (workspaceUid, filename = '.env') => (d
       .then(resolve)
       .catch(reject);
   });
+};
+
+// Scratch Request Actions
+
+export const mountScratchDirectory = (workspaceUid) => {
+  return async (dispatch, getState) => {
+    const state = getState();
+
+    // Check if scratch directory already exists for this workspace
+    if (state.workspaces.scratchTempDirectories[workspaceUid]) {
+      return state.workspaces.scratchTempDirectories[workspaceUid];
+    }
+
+    const workspace = state.workspaces.workspaces.find((w) => w.uid === workspaceUid);
+    if (!workspace) {
+      return null;
+    }
+
+    try {
+      const tempDirectoryPath = await ipcRenderer.invoke('renderer:mount-workspace-scratch', {
+        workspaceUid,
+        workspacePath: workspace.pathname || 'default'
+      });
+
+      dispatch(addScratchTempDirectory({ workspaceUid, tempDirectoryPath }));
+      dispatch(initScratchCollection({ workspaceUid, tempDirectoryPath }));
+
+      // Also create the collection in the main collections state so existing components work
+      const scratchCollectionUid = `scratch-${workspaceUid}`;
+      dispatch(createCollectionReducer({
+        uid: scratchCollectionUid,
+        name: 'Scratch Requests',
+        pathname: tempDirectoryPath,
+        items: [],
+        environments: [],
+        activeEnvironmentUid: null,
+        brunoConfig: {
+          version: '1',
+          type: 'scratch',
+          name: 'Scratch Requests'
+        }
+      }));
+
+      return tempDirectoryPath;
+    } catch (error) {
+      console.error('Error mounting scratch directory:', error);
+      return null;
+    }
+  };
+};
+
+export const scratchRequestAddedEvent = (workspaceUid, file) => {
+  return (dispatch, getState) => {
+    const item = {
+      uid: file.data?.uid,
+      name: file.data?.name,
+      type: file.data?.type || 'http-request',
+      pathname: file.meta?.pathname,
+      filename: file.meta?.name,
+      request: file.data?.request || {},
+      response: null,
+      draft: null,
+      ...file.data
+    };
+
+    dispatch(addScratchRequest({ workspaceUid, item }));
+
+    // Also add to the main collections state
+    const scratchCollectionUid = `scratch-${workspaceUid}`;
+    dispatch(collectionAddFileEvent({
+      file: {
+        data: item,
+        meta: {
+          collectionUid: scratchCollectionUid,
+          pathname: file.meta?.pathname,
+          name: file.meta?.name
+        }
+      }
+    }));
+
+    // Open a tab for the new scratch request
+    const state = getState();
+    const activeWorkspaceUid = state.workspaces.activeWorkspaceUid;
+    if (activeWorkspaceUid === workspaceUid) {
+      dispatch(addWorkspaceTab({
+        uid: item.uid,
+        workspaceUid,
+        type: 'scratch-request',
+        label: item.name,
+        itemUid: item.uid
+      }));
+    }
+  };
+};
+
+export const scratchRequestChangedEvent = (workspaceUid, file) => {
+  return (dispatch) => {
+    const item = {
+      uid: file.data?.uid,
+      name: file.data?.name,
+      type: file.data?.type || 'http-request',
+      pathname: file.meta?.pathname,
+      filename: file.meta?.name,
+      request: file.data?.request || {},
+      ...file.data
+    };
+
+    dispatch(updateScratchRequest({ workspaceUid, item }));
+  };
+};
+
+export const scratchRequestRemovedEvent = (workspaceUid, file) => {
+  return (dispatch) => {
+    const itemUid = file.data?.uid;
+
+    // Close the tab for this scratch request
+    if (itemUid) {
+      dispatch(closeWorkspaceTab({ uid: itemUid }));
+    }
+
+    dispatch(removeScratchRequest({
+      workspaceUid,
+      pathname: file.meta?.pathname,
+      itemUid
+    }));
+  };
+};
+
+/**
+ * Generate a request name for scratch requests in the pattern "Untitled {Count}"
+ * @param {Array} existingItems - The existing scratch request items
+ * @returns {string} A request name like "Untitled 1", "Untitled 2", etc.
+ */
+const generateScratchRequestName = (existingItems) => {
+  if (!existingItems || existingItems.length === 0) {
+    return 'Untitled 1';
+  }
+
+  // Find the highest "Untitled X" number among scratch requests
+  let maxNumber = 0;
+  existingItems.forEach((item) => {
+    const match = item.name?.match(/^Untitled (\d+)$/);
+    if (match) {
+      const number = parseInt(match[1], 10);
+      if (number > maxNumber) {
+        maxNumber = number;
+      }
+    }
+  });
+
+  // Increment from the highest number found, or start at 1 if none found
+  const count = maxNumber + 1;
+  return `Untitled ${count}`;
+};
+
+export const newScratchRequest = ({ workspaceUid, requestType, requestMethod, requestUrl, body }) => {
+  return async (dispatch, getState) => {
+    const state = getState();
+
+    // Make sure scratch directory is mounted
+    let tempDir = state.workspaces.scratchTempDirectories[workspaceUid];
+    if (!tempDir) {
+      tempDir = await dispatch(mountScratchDirectory(workspaceUid));
+      if (!tempDir) {
+        throw new Error('Failed to mount scratch directory');
+      }
+    }
+
+    // Get existing scratch requests to generate unique name
+    const scratchCollection = state.workspaces.scratchCollections[workspaceUid];
+    const existingItems = scratchCollection?.items || [];
+    const requestName = generateScratchRequestName(existingItems);
+
+    // Create the request object
+    const request = {
+      method: requestMethod || 'GET',
+      url: requestUrl || '',
+      params: [],
+      headers: [],
+      body: body || {
+        mode: 'none'
+      },
+      auth: {
+        mode: 'none'
+      },
+      script: {
+        req: '',
+        res: ''
+      },
+      assertions: [],
+      vars: {
+        req: [],
+        res: []
+      },
+      tests: '',
+      docs: ''
+    };
+
+    // For graphql-request, ensure body is set correctly
+    if (requestType === 'graphql-request' && body?.mode === 'graphql') {
+      request.body = body;
+    }
+
+    // Build the full request item
+    const requestItem = {
+      name: requestName,
+      type: requestType || 'http-request',
+      request
+    };
+
+    // Generate filename (sanitized)
+    const filename = `${requestName.replace(/[^a-zA-Z0-9_-]/g, '_')}.bru`;
+    const pathname = path.join(tempDir, filename);
+
+    // Call IPC to create the file
+    await ipcRenderer.invoke('renderer:new-scratch-request', {
+      pathname,
+      request: requestItem
+    });
+
+    // The file watcher will handle adding the request to Redux state
+    // and we'll open the tab when the add event is received
+  };
+};
+
+export const sendScratchRequest = ({ workspaceUid, itemUid }) => {
+  return async (dispatch, getState) => {
+    const state = getState();
+    const scratchCollection = state.workspaces.scratchCollections[workspaceUid];
+    if (!scratchCollection) {
+      throw new Error('Scratch collection not found');
+    }
+
+    const item = scratchCollection.items.find((i) => i.uid === itemUid);
+    if (!item) {
+      throw new Error('Scratch request not found');
+    }
+
+    const { setScratchRequestResponse } = await import('../workspaces');
+    const { uuid } = await import('utils/common');
+    const { sendNetworkRequest } = await import('utils/network');
+    const { cloneDeep } = await import('lodash');
+    const { getGlobalEnvironmentVariables } = await import('utils/collections');
+
+    const cancelTokenUid = uuid();
+
+    // Set request state to sending
+    dispatch(setScratchRequestResponse({
+      workspaceUid,
+      itemUid,
+      requestState: 'sending',
+      cancelTokenUid
+    }));
+
+    try {
+      // Clone the item and collection for the request
+      const itemCopy = cloneDeep(item);
+      const collectionCopy = cloneDeep(scratchCollection);
+
+      // Add global environment variables
+      const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
+      const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+        globalEnvironments,
+        activeGlobalEnvironmentUid
+      });
+      collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+
+      // Add request UID
+      const requestUid = uuid();
+      itemCopy.requestUid = requestUid;
+
+      // Send the request using the network utilities
+      const response = await sendNetworkRequest(
+        itemCopy,
+        collectionCopy,
+        null, // No environment for scratch requests
+        {} // No runtime variables
+      );
+
+      // Serialize the response for Redux
+      const serializedResponse = {
+        ...response,
+        timeline: response.timeline?.map((entry) => ({
+          ...entry,
+          timestamp: entry.timestamp instanceof Date ? entry.timestamp.getTime() : entry.timestamp
+        }))
+      };
+
+      // Update state with response
+      dispatch(setScratchRequestResponse({
+        workspaceUid,
+        itemUid,
+        response: serializedResponse,
+        requestState: 'received'
+      }));
+
+      return serializedResponse;
+    } catch (error) {
+      dispatch(setScratchRequestResponse({
+        workspaceUid,
+        itemUid,
+        response: {
+          error: error.message || 'Request failed'
+        },
+        requestState: 'error'
+      }));
+      throw error;
+    }
+  };
+};
+
+export const cancelScratchRequest = ({ workspaceUid, itemUid, cancelTokenUid }) => {
+  return async (dispatch) => {
+    try {
+      // Call IPC to cancel the request
+      await ipcRenderer.invoke('renderer:cancel-http-request', cancelTokenUid);
+
+      const { setScratchRequestResponse } = await import('../workspaces');
+
+      // Update state
+      dispatch(setScratchRequestResponse({
+        workspaceUid,
+        itemUid,
+        requestState: 'idle'
+      }));
+    } catch (error) {
+      console.error('Error cancelling scratch request:', error);
+    }
+  };
 };

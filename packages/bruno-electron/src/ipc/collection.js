@@ -1856,6 +1856,93 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     return tempDirectoryPath;
   });
 
+  // Mount workspace scratch directory - creates temp directory for workspace-level scratch requests
+  ipcMain.handle('renderer:mount-workspace-scratch', async (event, { workspaceUid, workspacePath }) => {
+    try {
+      const tempDirectoryPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-scratch-'));
+
+      // Store metadata linking back to workspace
+      const metadata = {
+        workspaceUid,
+        workspacePath,
+        type: 'scratch'
+      };
+      fs.writeFileSync(path.join(tempDirectoryPath, 'metadata.json'), JSON.stringify(metadata));
+
+      // Add scratch directory watcher
+      watcher.addScratchDirectoryWatcher(mainWindow, tempDirectoryPath, workspaceUid);
+
+      return tempDirectoryPath;
+    } catch (error) {
+      console.error('Error mounting workspace scratch directory:', error);
+      throw error;
+    }
+  });
+
+  // Create new scratch request in temp directory
+  ipcMain.handle('renderer:new-scratch-request', async (event, { pathname, request }) => {
+    try {
+      if (fs.existsSync(pathname)) {
+        throw new Error(`path: ${pathname} already exists`);
+      }
+
+      const content = await stringifyRequestViaWorker(request, { format: 'bru' });
+      await writeFile(pathname, content);
+    } catch (error) {
+      console.error('Error creating scratch request:', error);
+      return Promise.reject(error);
+    }
+  });
+
+  // Save scratch request to a collection (move from temp to permanent location)
+  ipcMain.handle('renderer:save-scratch-request', async (event, { sourcePathname, targetDirname, targetFilename, request }) => {
+    try {
+      // Validate source exists
+      if (!fs.existsSync(sourcePathname)) {
+        throw new Error(`Source path: ${sourcePathname} does not exist`);
+      }
+
+      // Validate target directory exists
+      if (!fs.existsSync(targetDirname)) {
+        throw new Error(`Target directory: ${targetDirname} does not exist`);
+      }
+
+      // Check if the target directory is inside a collection
+      validatePathIsInsideCollection(targetDirname);
+
+      // Determine the collection format from target directory
+      const collectionPath = findCollectionPathByItemPath(targetDirname);
+      if (!collectionPath) {
+        throw new Error('Could not determine collection for target directory');
+      }
+      const format = getCollectionFormat(collectionPath);
+
+      // Use provided target filename or fall back to source filename
+      const filename = targetFilename || path.basename(sourcePathname);
+      // Ensure filename has correct extension for target collection format
+      const filenameWithoutExt = filename.replace(/\.(bru|yml)$/, '');
+      const finalFilename = `${filenameWithoutExt}.${format}`;
+      const targetPathname = path.join(targetDirname, finalFilename);
+
+      // Check for filename conflicts and throw error if exists
+      if (fs.existsSync(targetPathname)) {
+        throw new Error(`A file with the name "${finalFilename}" already exists in the target location`);
+      }
+
+      // Stringify the request in the target collection's format
+      const content = await stringifyRequestViaWorker(request, { format });
+
+      // Create new file at target location with the content
+      await writeFile(targetPathname, content);
+
+      // Return the new pathname (file watcher will handle adding to Redux)
+      return { newPathname: targetPathname };
+    } catch (error) {
+      console.error('Error saving scratch request:', error);
+      return Promise.reject(error);
+    }
+  });
+
   ipcMain.handle('renderer:show-in-folder', async (event, filePath) => {
     try {
       if (!filePath) {

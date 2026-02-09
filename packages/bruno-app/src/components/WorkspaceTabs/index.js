@@ -5,6 +5,7 @@ import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { focusWorkspaceTab, initializeWorkspaceTabs } from 'providers/ReduxStore/slices/workspaceTabs';
 import WorkspaceTab from './WorkspaceTab';
+import CreateScratchRequest from 'components/CreateScratchRequest';
 import StyledWrapper from './StyledWrapper';
 
 const PERMANENT_TABS = [
@@ -150,6 +151,9 @@ const WorkspaceTabs = ({ workspaceUid }) => {
             </li>
           ) : null}
         </ul>
+        <div className="create-scratch-request-btn ml-2">
+          <CreateScratchRequest workspaceUid={workspaceUid} />
+        </div>
       </div>
     </StyledWrapper>
   );

@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconCategory, IconDots, IconEdit, IconX, IconCheck, IconFolder, IconUpload } from '@tabler/icons';
-import { renameWorkspaceAction, exportWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
+import { renameWorkspaceAction, exportWorkspaceAction, sendScratchRequest, cancelScratchRequest } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import CloseWorkspace from 'components/Sidebar/CloseWorkspace';
 import WorkspaceOverview from './WorkspaceOverview';
 import WorkspaceEnvironments from './WorkspaceEnvironments';
+import ScratchRequestPane from './ScratchRequestPane';
 import Preferences from 'components/Preferences';
 import WorkspaceTabs from 'components/WorkspaceTabs';
 import StyledWrapper from './StyledWrapper';
@@ -17,10 +18,11 @@ import classNames from 'classnames';
 
 const WorkspaceHome = () => {
   const dispatch = useDispatch();
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const { workspaces, activeWorkspaceUid, scratchCollections } = useSelector((state) => state.workspaces);
   const workspaceTabs = useSelector((state) => state.workspaceTabs);
   const activeTabUid = workspaceTabs.activeTabUid;
   const activeTab = workspaceTabs.tabs.find((t) => t.uid === activeTabUid);
+  const scratchCollection = scratchCollections[activeWorkspaceUid];
 
   const [isRenamingWorkspace, setIsRenamingWorkspace] = useState(false);
   const [workspaceNameInput, setWorkspaceNameInput] = useState('');
@@ -150,6 +152,21 @@ const WorkspaceHome = () => {
     }
   };
 
+  const handleSendScratchRequest = async (item, collection) => {
+    await dispatch(sendScratchRequest({
+      workspaceUid: activeWorkspaceUid,
+      itemUid: item.uid
+    }));
+  };
+
+  const handleCancelScratchRequest = (item) => {
+    dispatch(cancelScratchRequest({
+      workspaceUid: activeWorkspaceUid,
+      itemUid: item.uid,
+      cancelTokenUid: item.cancelTokenUid
+    }));
+  };
+
   const renderTabContent = () => {
     if (!activeTab) return null;
 
@@ -160,6 +177,21 @@ const WorkspaceHome = () => {
         return <WorkspaceEnvironments workspace={activeWorkspace} />;
       case 'preferences':
         return <Preferences />;
+      case 'scratch-request': {
+        // Find the scratch request item by itemUid
+        const item = scratchCollection?.items?.find((i) => i.uid === activeTab.itemUid);
+        if (!item) {
+          return <div className="p-4">Scratch request not found</div>;
+        }
+        return (
+          <ScratchRequestPane
+            item={item}
+            scratchCollection={scratchCollection}
+            onSendRequest={handleSendScratchRequest}
+            onCancelRequest={handleCancelScratchRequest}
+          />
+        );
+      }
       default:
         return null;
     }

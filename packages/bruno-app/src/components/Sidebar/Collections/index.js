@@ -19,7 +19,9 @@ const Collections = ({ showSearch }) => {
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];
     return collections.filter((c) =>
-      activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
+      // Exclude scratch collections from sidebar
+      c.brunoConfig?.type !== 'scratch'
+      && activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
     );
   }, [activeWorkspace, collections]);
 

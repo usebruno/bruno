@@ -13,7 +13,7 @@ export const workspaceTabsSlice = createSlice({
   initialState,
   reducers: {
     addWorkspaceTab: (state, action) => {
-      const { uid, workspaceUid, type, label, permanent = false } = action.payload;
+      const { uid, workspaceUid, type, label, permanent = false, itemUid } = action.payload;
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
       if (existingTab) {
@@ -21,14 +21,26 @@ export const workspaceTabsSlice = createSlice({
         return;
       }
 
-      // Check if a tab of the same type already exists for this workspace
-      const existingTypeTab = find(
-        state.tabs,
-        (tab) => tab.workspaceUid === workspaceUid && tab.type === type
-      );
-      if (existingTypeTab) {
-        state.activeTabUid = existingTypeTab.uid;
-        return;
+      // For scratch-request tabs, check by itemUid instead of type
+      if (type === 'scratch-request' && itemUid) {
+        const existingScratchTab = find(
+          state.tabs,
+          (tab) => tab.workspaceUid === workspaceUid && tab.type === 'scratch-request' && tab.itemUid === itemUid
+        );
+        if (existingScratchTab) {
+          state.activeTabUid = existingScratchTab.uid;
+          return;
+        }
+      } else {
+        // Check if a tab of the same type already exists for this workspace (for non-scratch tabs)
+        const existingTypeTab = find(
+          state.tabs,
+          (tab) => tab.workspaceUid === workspaceUid && tab.type === type
+        );
+        if (existingTypeTab) {
+          state.activeTabUid = existingTypeTab.uid;
+          return;
+        }
       }
 
       state.tabs.push({
@@ -36,7 +48,8 @@ export const workspaceTabsSlice = createSlice({
         workspaceUid,
         type,
         label,
-        permanent
+        permanent,
+        itemUid // Store itemUid for scratch-request tabs
       });
       state.activeTabUid = uid;
     },
