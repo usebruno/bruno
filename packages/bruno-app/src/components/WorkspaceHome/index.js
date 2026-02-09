@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconCategory, IconDots, IconEdit, IconX, IconCheck, IconFolder, IconUpload } from '@tabler/icons';
-import { renameWorkspaceAction, exportWorkspaceAction, sendScratchRequest, cancelScratchRequest } from 'providers/ReduxStore/slices/workspaces/actions';
-import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { renameWorkspaceAction, exportWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
+import { showInFolder, sendRequest, cancelRequest } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import CloseWorkspace from 'components/Sidebar/CloseWorkspace';
 import WorkspaceOverview from './WorkspaceOverview';
@@ -18,11 +18,17 @@ import classNames from 'classnames';
 
 const WorkspaceHome = () => {
   const dispatch = useDispatch();
-  const { workspaces, activeWorkspaceUid, scratchCollections } = useSelector((state) => state.workspaces);
+  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const collections = useSelector((state) => state.collections.collections);
   const workspaceTabs = useSelector((state) => state.workspaceTabs);
   const activeTabUid = workspaceTabs.activeTabUid;
   const activeTab = workspaceTabs.tabs.find((t) => t.uid === activeTabUid);
-  const scratchCollection = scratchCollections[activeWorkspaceUid];
+
+  // Find the scratch collection for this workspace
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const scratchCollection = activeWorkspace?.scratchCollectionUid
+    ? collections.find((c) => c.uid === activeWorkspace.scratchCollectionUid)
+    : null;
 
   const [isRenamingWorkspace, setIsRenamingWorkspace] = useState(false);
   const [workspaceNameInput, setWorkspaceNameInput] = useState('');
@@ -32,8 +38,6 @@ const WorkspaceHome = () => {
   const workspaceRenameContainerRef = useRef(null);
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
 
   useEffect(() => {
     if (!isRenamingWorkspace) return;
@@ -153,18 +157,13 @@ const WorkspaceHome = () => {
   };
 
   const handleSendScratchRequest = async (item, collection) => {
-    await dispatch(sendScratchRequest({
-      workspaceUid: activeWorkspaceUid,
-      itemUid: item.uid
-    }));
+    if (!collection) return;
+    await dispatch(sendRequest(item, collection.uid));
   };
 
   const handleCancelScratchRequest = (item) => {
-    dispatch(cancelScratchRequest({
-      workspaceUid: activeWorkspaceUid,
-      itemUid: item.uid,
-      cancelTokenUid: item.cancelTokenUid
-    }));
+    if (!scratchCollection) return;
+    dispatch(cancelRequest(item.cancelTokenUid, item, scratchCollection.uid));
   };
 
   const renderTabContent = () => {

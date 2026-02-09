@@ -53,7 +53,7 @@ const {
   isBruEnvironmentConfig,
   isCollectionRootBruFile
 } = require('../utils/filesystem');
-const { openCollectionDialog, openCollectionsByPathname } = require('../app/collections');
+const { openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid, syncExampleUidsCache } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
@@ -97,6 +97,13 @@ const findCollectionPathByItemPath = (filePath) => {
     try {
       const metadataContent = fs.readFileSync(metadataPath, 'utf8');
       const metadata = JSON.parse(metadataContent);
+
+      // For scratch collections, the temp directory itself is the collection
+      if (metadata.type === 'scratch') {
+        return transientDirPath;
+      }
+
+      // For transient requests, return the original collection path
       if (metadata.collectionPath) {
         return metadata.collectionPath;
       }
@@ -1856,12 +1863,34 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     return tempDirectoryPath;
   });
 
-  // Mount workspace scratch directory - creates temp directory for workspace-level scratch requests
+  // Mount workspace scratch collection - creates a proper collection in temp directory (YAML format)
   ipcMain.handle('renderer:mount-workspace-scratch', async (event, { workspaceUid, workspacePath }) => {
     try {
       const tempDirectoryPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-scratch-'));
 
-      // Store metadata linking back to workspace
+      // Register this path as a scratch collection path for validation
+      registerScratchCollectionPath(tempDirectoryPath);
+
+      // Create collection root for YAML format
+      const collectionRoot = {
+        meta: {
+          name: 'Scratch'
+        }
+      };
+
+      // Create bruno config for YAML format with scratch type
+      const brunoConfig = {
+        opencollection: '1.0.0',
+        name: 'Scratch',
+        type: 'scratch', // This flag identifies it as a scratch collection
+        ignore: ['node_modules', '.git']
+      };
+
+      // Create opencollection.yml file
+      const content = stringifyCollection(collectionRoot, brunoConfig, { format: 'yml' });
+      await writeFile(path.join(tempDirectoryPath, 'opencollection.yml'), content);
+
+      // Store metadata linking back to workspace (for path validation)
       const metadata = {
         workspaceUid,
         workspacePath,
@@ -1869,28 +1898,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       };
       fs.writeFileSync(path.join(tempDirectoryPath, 'metadata.json'), JSON.stringify(metadata));
 
-      // Add scratch directory watcher
-      watcher.addScratchDirectoryWatcher(mainWindow, tempDirectoryPath, workspaceUid);
-
       return tempDirectoryPath;
     } catch (error) {
-      console.error('Error mounting workspace scratch directory:', error);
+      console.error('Error mounting workspace scratch collection:', error);
       throw error;
-    }
-  });
-
-  // Create new scratch request in temp directory
-  ipcMain.handle('renderer:new-scratch-request', async (event, { pathname, request }) => {
-    try {
-      if (fs.existsSync(pathname)) {
-        throw new Error(`path: ${pathname} already exists`);
-      }
-
-      const content = await stringifyRequestViaWorker(request, { format: 'bru' });
-      await writeFile(pathname, content);
-    } catch (error) {
-      console.error('Error creating scratch request:', error);
-      return Promise.reject(error);
     }
   });
 

@@ -47,9 +47,19 @@ const CollectionsSection = () => {
 
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];
-    return collections.filter((c) =>
-      activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
-    );
+
+    // Helper to check if a collection is a scratch collection
+    const isScratchCollection = (collection) => {
+      return collection.brunoConfig?.type === 'scratch';
+    };
+
+    return collections.filter((c) => {
+      // Exclude scratch collections
+      if (isScratchCollection(c)) {
+        return false;
+      }
+      return activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname));
+    });
   }, [activeWorkspace, collections]);
 
   const handleImportCollection = ({ rawData, type }) => {

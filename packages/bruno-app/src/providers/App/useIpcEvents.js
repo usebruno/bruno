@@ -30,10 +30,7 @@ import {
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import {
   workspaceOpenedEvent,
-  workspaceConfigUpdatedEvent,
-  scratchRequestAddedEvent,
-  scratchRequestChangedEvent,
-  scratchRequestRemovedEvent
+  workspaceConfigUpdatedEvent
 } from 'providers/ReduxStore/slices/workspaces/actions';
 import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
@@ -338,28 +335,6 @@ const useIpcEvents = () => {
       dispatch(updateCollectionLoadingState(val));
     });
 
-    // Scratch request event listeners
-    const removeScratchRequestAddedListener = ipcRenderer.on('main:scratch-request-added', (file) => {
-      const workspaceUid = file.meta?.workspaceUid;
-      if (workspaceUid) {
-        dispatch(scratchRequestAddedEvent(workspaceUid, file));
-      }
-    });
-
-    const removeScratchRequestChangedListener = ipcRenderer.on('main:scratch-request-changed', (file) => {
-      const workspaceUid = file.meta?.workspaceUid;
-      if (workspaceUid) {
-        dispatch(scratchRequestChangedEvent(workspaceUid, file));
-      }
-    });
-
-    const removeScratchRequestRemovedListener = ipcRenderer.on('main:scratch-request-removed', (file) => {
-      const workspaceUid = file.meta?.workspaceUid;
-      if (workspaceUid) {
-        dispatch(scratchRequestRemovedEvent(workspaceUid, file));
-      }
-    });
-
     return () => {
       removeCollectionTreeUpdateListener();
       removeApiSpecTreeUpdateListener();
@@ -391,9 +366,6 @@ const useIpcEvents = () => {
       removeCollectionLoadingStateListener();
       removePersistentEnvVariablesUpdateListener();
       removeSystemResourcesListener();
-      removeScratchRequestAddedListener();
-      removeScratchRequestChangedListener();
-      removeScratchRequestRemovedListener();
     };
   }, [isElectron]);
 };

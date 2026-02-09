@@ -5,10 +5,7 @@ const DEFAULT_WORKSPACE_UID = 'default';
 
 const initialState = {
   workspaces: [],
-  activeWorkspaceUid: DEFAULT_WORKSPACE_UID,
-  // Scratch request state - workspace-level temporary requests
-  scratchTempDirectories: {}, // workspaceUid -> temp directory path
-  scratchCollections: {} // workspaceUid -> virtual scratch collection object
+  activeWorkspaceUid: DEFAULT_WORKSPACE_UID
 };
 
 export const workspacesSlice = createSlice({
@@ -121,101 +118,14 @@ export const workspacesSlice = createSlice({
       }
     },
 
-    // Scratch request reducers
-    addScratchTempDirectory: (state, action) => {
-      const { workspaceUid, tempDirectoryPath } = action.payload;
-      state.scratchTempDirectories[workspaceUid] = tempDirectoryPath;
-    },
-
-    initScratchCollection: (state, action) => {
-      const { workspaceUid, tempDirectoryPath } = action.payload;
-      // Create virtual scratch collection for this workspace
-      state.scratchCollections[workspaceUid] = {
-        uid: `scratch-${workspaceUid}`,
-        name: 'Scratch Requests',
-        pathname: tempDirectoryPath,
-        items: [],
-        environments: [],
-        activeEnvironmentUid: null,
-        brunoConfig: { version: '1', type: 'scratch' },
-        format: 'bru'
-      };
-    },
-
-    addScratchRequest: (state, action) => {
-      const { workspaceUid, item } = action.payload;
-      const scratchCollection = state.scratchCollections[workspaceUid];
-      if (scratchCollection) {
-        // Check if item already exists (by pathname)
-        const existingIndex = scratchCollection.items.findIndex(
-          (i) => i.pathname === item.pathname
-        );
-        if (existingIndex >= 0) {
-          // Update existing item
-          scratchCollection.items[existingIndex] = item;
-        } else {
-          // Add new item
-          scratchCollection.items.push(item);
-        }
+    // Set scratch collection info on workspace
+    setWorkspaceScratchCollection: (state, action) => {
+      const { workspaceUid, scratchCollectionUid, scratchTempDirectory } = action.payload;
+      const workspace = state.workspaces.find((w) => w.uid === workspaceUid);
+      if (workspace) {
+        workspace.scratchCollectionUid = scratchCollectionUid;
+        workspace.scratchTempDirectory = scratchTempDirectory;
       }
-    },
-
-    updateScratchRequest: (state, action) => {
-      const { workspaceUid, item } = action.payload;
-      const scratchCollection = state.scratchCollections[workspaceUid];
-      if (scratchCollection) {
-        const index = scratchCollection.items.findIndex(
-          (i) => i.pathname === item.pathname || i.uid === item.uid
-        );
-        if (index >= 0) {
-          scratchCollection.items[index] = {
-            ...scratchCollection.items[index],
-            ...item
-          };
-        }
-      }
-    },
-
-    removeScratchRequest: (state, action) => {
-      const { workspaceUid, pathname, itemUid } = action.payload;
-      const scratchCollection = state.scratchCollections[workspaceUid];
-      if (scratchCollection) {
-        scratchCollection.items = scratchCollection.items.filter(
-          (i) => i.pathname !== pathname && i.uid !== itemUid
-        );
-      }
-    },
-
-    updateScratchRequestDraft: (state, action) => {
-      const { workspaceUid, itemUid, draft } = action.payload;
-      const scratchCollection = state.scratchCollections[workspaceUid];
-      if (scratchCollection) {
-        const item = scratchCollection.items.find((i) => i.uid === itemUid);
-        if (item) {
-          item.draft = draft;
-        }
-      }
-    },
-
-    setScratchRequestResponse: (state, action) => {
-      const { workspaceUid, itemUid, response, requestState, cancelTokenUid } = action.payload;
-      const scratchCollection = state.scratchCollections[workspaceUid];
-      if (scratchCollection) {
-        const item = scratchCollection.items.find((i) => i.uid === itemUid);
-        if (item) {
-          if (response !== undefined) item.response = response;
-          if (requestState !== undefined) item.requestState = requestState;
-          if (cancelTokenUid !== undefined) item.cancelTokenUid = cancelTokenUid;
-        }
-      }
-    },
-
-    clearScratchCollection: (state, action) => {
-      const { workspaceUid } = action.payload;
-      if (state.scratchCollections[workspaceUid]) {
-        state.scratchCollections[workspaceUid].items = [];
-      }
-      delete state.scratchTempDirectories[workspaceUid];
     }
   }
 });
@@ -230,15 +140,7 @@ export const {
   updateWorkspaceLoadingState,
   workspaceDotEnvUpdateEvent,
   setWorkspaceDotEnvVariables,
-  // Scratch request actions
-  addScratchTempDirectory,
-  initScratchCollection,
-  addScratchRequest,
-  updateScratchRequest,
-  removeScratchRequest,
-  updateScratchRequestDraft,
-  setScratchRequestResponse,
-  clearScratchCollection
+  setWorkspaceScratchCollection
 } = workspacesSlice.actions;
 
 export default workspacesSlice.reducer;

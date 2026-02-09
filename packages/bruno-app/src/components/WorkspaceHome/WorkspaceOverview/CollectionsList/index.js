@@ -28,7 +28,16 @@ const CollectionsList = ({ workspace }) => {
       return [];
     }
 
-    return workspace.collections.map((wc) => {
+    // Filter out scratch collections (safety net - they shouldn't be in workspace.collections)
+    // Compare against workspace's registered scratch temp directory path
+    const filteredCollections = workspace.collections.filter((wc) => {
+      if (workspace.scratchTempDirectory) {
+        return normalizePath(wc.path) !== normalizePath(workspace.scratchTempDirectory);
+      }
+      return true;
+    });
+
+    return filteredCollections.map((wc) => {
       const loadedCollection = collections.find(
         (c) => normalizePath(c.pathname) === normalizePath(wc.path)
       );
@@ -64,7 +73,7 @@ const CollectionsList = ({ workspace }) => {
         }
       };
     });
-  }, [workspace.collections, collections]);
+  }, [workspace.collections, workspace.scratchTempDirectory, collections]);
 
   const handleOpenCollectionClick = (collection, event) => {
     if (event.target.closest('.collection-menu')) {

@@ -7,10 +7,23 @@ const { generateUidBasedOnHash } = require('../utils/common');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { parseCollection } = require('@usebruno/filestore');
 
+// Track scratch collection paths (temp directories for workspace scratch requests)
+const scratchCollectionPaths = new Set();
+
+// Helper to check if a path is a registered scratch collection
+const isScratchCollectionPath = (collectionPath) => {
+  return scratchCollectionPaths.has(path.normalize(collectionPath));
+};
+
+// Register a scratch collection path
+const registerScratchCollectionPath = (scratchPath) => {
+  scratchCollectionPaths.add(path.normalize(scratchPath));
+};
+
 // todo: bruno.json config schema validation errors must be propagated to the UI
 const configSchema = Yup.object({
   name: Yup.string().max(256, 'name must be 256 characters or less').required('name is required'),
-  type: Yup.string().oneOf(['collection']).required('type is required'),
+  type: Yup.string().oneOf(['collection', 'scratch']).required('type is required'),
   // For BRU format collections
   version: Yup.string().oneOf(['1']).notRequired(),
   // For YAML format collections (opencollection)
@@ -105,6 +118,12 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       let brunoConfig = await getCollectionConfigFile(collectionPath);
       const uid = generateUidBasedOnHash(collectionPath);
       brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
+
+      // Set scratch type if this is a registered scratch collection path
+      if (isScratchCollectionPath(collectionPath)) {
+        brunoConfig.type = 'scratch';
+      }
+
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
@@ -129,6 +148,11 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
     brunoConfig.ignore = [...new Set([...defaultIgnores, ...userIgnores])];
 
     brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
+
+    // Set scratch type if this is a registered scratch collection path
+    if (isScratchCollectionPath(collectionPath)) {
+      brunoConfig.type = 'scratch';
+    }
 
     const { size, filesCount } = await getCollectionStats(collectionPath);
     brunoConfig.size = size;
@@ -170,5 +194,6 @@ const openCollectionsByPathname = async (win, watcher, collectionPaths, options 
 module.exports = {
   openCollection,
   openCollectionDialog,
-  openCollectionsByPathname
+  openCollectionsByPathname,
+  registerScratchCollectionPath
 };

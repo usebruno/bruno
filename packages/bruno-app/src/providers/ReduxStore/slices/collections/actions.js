@@ -2447,6 +2447,10 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
     const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables || {};
 
+    // Check if this is a scratch collection (should not be added to workspace)
+    // Type is set centrally in the backend (collections.js) based on path pattern
+    const isScratchCollection = brunoConfig?.type === 'scratch';
+
     // Check if collection already exists in Redux state
     const existingCollection = state.collections.collections.find(
       (c) => normalizePath(c.pathname) === normalizePath(pathname)
@@ -2457,20 +2461,22 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
       (c) => normalizePath(c.path) === normalizePath(pathname)
     );
 
-    // If collection already exists in Redux AND in current workspace, show toast and return
-    if (existingCollection && isAlreadyInWorkspace) {
-      toast.success('Collection is already opened');
+    // If collection already exists in Redux AND in current workspace (or is scratch), show toast and return
+    if (existingCollection && (isAlreadyInWorkspace || isScratchCollection)) {
+      if (!isScratchCollection) {
+        toast.success('Collection is already opened');
+      }
       resolve();
       return;
     }
 
-    // If collection exists in Redux but not in workspace, add to workspace
+    // If collection exists in Redux but not in workspace, add to workspace (skip for scratch collections)
     if (existingCollection) {
-      if (state.app.sidebarCollapsed) {
+      if (state.app.sidebarCollapsed && !isScratchCollection) {
         dispatch(toggleSidebarCollapse());
       }
 
-      if (activeWorkspace) {
+      if (activeWorkspace && !isScratchCollection) {
         const workspaceCollection = {
           name: brunoConfig.name,
           path: pathname
@@ -2511,7 +2517,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
         .then(() => {
           const currentState = getState();
-          if (currentState.app.sidebarCollapsed) {
+          if (currentState.app.sidebarCollapsed && !isScratchCollection) {
             dispatch(toggleSidebarCollapse());
           }
 
@@ -2519,7 +2525,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
             (w) => w.uid === currentState.workspaces.activeWorkspaceUid
           );
 
-          if (currentWorkspace) {
+          if (currentWorkspace && !isScratchCollection) {
             // Set collection-workspace mapping for workspace env vars
             ipcRenderer.invoke('renderer:set-collection-workspace', uid, currentWorkspace.pathname);
 

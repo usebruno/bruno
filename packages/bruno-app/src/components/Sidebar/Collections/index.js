@@ -18,11 +18,20 @@ const Collections = ({ showSearch }) => {
 
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];
-    return collections.filter((c) =>
+
+    // Helper to check if a collection is a scratch collection
+    const isScratchCollection = (collection) => {
+      return collection.brunoConfig?.type === 'scratch';
+    };
+
+    return collections.filter((c) => {
       // Exclude scratch collections from sidebar
-      c.brunoConfig?.type !== 'scratch'
-      && activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
-    );
+      if (isScratchCollection(c)) {
+        return false;
+      }
+      // Only show collections that are linked to this workspace
+      return activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname));
+    });
   }, [activeWorkspace, collections]);
 
   if (!workspaceCollections || !workspaceCollections.length) {
