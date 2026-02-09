@@ -26,7 +26,9 @@ export const tabsSlice = createSlice({
         'collection-runner',
         'environment-settings',
         'global-environment-settings',
-        'preferences'
+        'preferences',
+        'workspaceOverview',
+        'workspaceEnvironments'
       ];
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
@@ -173,8 +175,15 @@ export const tabsSlice = createSlice({
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
 
-      // remove the tabs from the state
-      state.tabs = filter(state.tabs, (t) => !tabUids.includes(t.uid));
+      // Filter out non-closable tab types (workspace tabs)
+      const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
+      const closableTabUids = tabUids.filter((uid) => {
+        const tab = find(state.tabs, (t) => t.uid === uid);
+        return tab && !nonClosableTypes.includes(tab.type);
+      });
+
+      // remove the tabs from the state (only closable ones)
+      state.tabs = filter(state.tabs, (t) => !closableTabUids.includes(t.uid));
 
       if (activeTab && state.tabs.length) {
         const { collectionUid } = activeTab;
@@ -202,8 +211,19 @@ export const tabsSlice = createSlice({
     },
     closeAllCollectionTabs: (state, action) => {
       const collectionUid = action.payload.collectionUid;
-      state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
-      state.activeTabUid = null;
+      const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
+
+      // Keep workspace tabs even when closing all collection tabs
+      state.tabs = filter(state.tabs, (t) =>
+        t.collectionUid !== collectionUid || nonClosableTypes.includes(t.type)
+      );
+
+      // If there are remaining tabs, set active to the last one
+      if (state.tabs.length > 0) {
+        state.activeTabUid = last(state.tabs).uid;
+      } else {
+        state.activeTabUid = null;
+      }
     },
     makeTabPermanent: (state, action) => {
       const { uid } = action.payload;

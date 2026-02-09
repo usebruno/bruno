@@ -13,7 +13,7 @@ import { showHomePage } from '../app';
 import { createCollection, openCollection, openMultipleCollections } from '../collections/actions';
 import { removeCollection, addTransientDirectory } from '../collections';
 import { updateGlobalEnvironments } from '../global-environments';
-import { initializeWorkspaceTabs, setActiveWorkspaceTab } from '../workspaceTabs';
+import { addTab, focusTab } from '../tabs';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 
@@ -264,17 +264,34 @@ export const switchWorkspace = (workspaceUid) => {
     }
 
     // Mount scratch collection if not already mounted for this workspace
-    await dispatch(mountScratchCollection(workspaceUid));
+    const scratchCollection = await dispatch(mountScratchCollection(workspaceUid));
 
     await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
-    dispatch(showHomePage());
 
-    const permanentTabs = [
-      { type: 'overview', label: 'Overview' },
-      { type: 'environments', label: 'Global Environments' }
-    ];
-    dispatch(initializeWorkspaceTabs({ workspaceUid, permanentTabs }));
-    dispatch(setActiveWorkspaceTab({ workspaceUid, type: 'overview' }));
+    // Create workspace tabs in scratch collection
+    if (scratchCollection?.uid) {
+      const overviewTabUid = `${scratchCollection.uid}-overview`;
+      const environmentsTabUid = `${scratchCollection.uid}-environments`;
+
+      // Create overview tab first (leftmost position)
+      dispatch(addTab({
+        uid: overviewTabUid,
+        collectionUid: scratchCollection.uid,
+        type: 'workspaceOverview'
+      }));
+
+      // Create environments tab second
+      dispatch(addTab({
+        uid: environmentsTabUid,
+        collectionUid: scratchCollection.uid,
+        type: 'workspaceEnvironments'
+      }));
+
+      // Focus the overview tab to make it active
+      dispatch(focusTab({
+        uid: overviewTabUid
+      }));
+    }
   };
 };
 

@@ -7,9 +7,6 @@ import {
   addTab
 } from 'providers/ReduxStore/slices/tabs';
 import {
-  setActiveWorkspaceTab
-} from 'providers/ReduxStore/slices/workspaceTabs';
-import {
   brunoConfigUpdateEvent,
   collectionAddDirectoryEvent,
   collectionAddFileEvent,
@@ -277,24 +274,23 @@ const useIpcEvents = () => {
     const removeShowPreferencesListener = ipcRenderer.on('main:open-preferences', () => {
       const state = store.getState();
       const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
-      const { showHomePage, showManageWorkspacePage, showApiSpecPage } = state.app;
+      const workspaces = state.workspaces?.workspaces;
       const tabs = state.tabs?.tabs;
       const activeTabUid = state.tabs?.activeTabUid;
       const activeTab = tabs?.find((t) => t.uid === activeTabUid);
 
-      if (showHomePage || showManageWorkspacePage || showApiSpecPage || !activeTabUid) {
-        if (activeWorkspaceUid) {
-          dispatch(setActiveWorkspaceTab({ workspaceUid: activeWorkspaceUid, type: 'preferences' }));
-        }
-      } else {
-        dispatch(
-          addTab({
-            type: 'preferences',
-            uid: activeTab?.collectionUid ? `${activeTab.collectionUid}-preferences` : 'preferences',
-            collectionUid: activeTab?.collectionUid
-          })
-        );
-      }
+      // Get active workspace to access scratch collection UID
+      const activeWorkspace = workspaces?.find((w) => w.uid === activeWorkspaceUid);
+      // Use active tab's collection if available, otherwise use workspace's scratch collection
+      const collectionUid = activeTab?.collectionUid || activeWorkspace?.scratchCollectionUid;
+
+      dispatch(
+        addTab({
+          type: 'preferences',
+          uid: collectionUid ? `${collectionUid}-preferences` : 'preferences',
+          collectionUid: collectionUid
+        })
+      );
     });
 
     const removePreferencesUpdatesListener = ipcRenderer.on('main:load-preferences', (val) => {

@@ -53,6 +53,8 @@ const RequestTabPanel = () => {
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const _collections = useSelector((state) => state.collections.collections);
   const preferences = useSelector((state) => state.app.preferences);
+  const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const activeWorkspace = workspaces.find((w) => w.scratchCollectionUid === focusedTab?.collectionUid);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
 
@@ -204,6 +206,14 @@ const RequestTabPanel = () => {
   const item = findItemInCollection(collection, activeTabUid);
   const isGrpcRequest = item?.type === 'grpc-request';
   const isWsRequest = item?.type === 'ws-request';
+
+  if (focusedTab.type === 'workspaceOverview') {
+    return <WorkspaceHome />;
+  }
+
+  if (focusedTab.type === 'workspaceEnvironments') {
+    return <GlobalEnvironmentSettings />;
+  }
 
   if (focusedTab.type === 'collection-runner') {
     return <RunnerResults collection={collection} />;

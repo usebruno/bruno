@@ -8,6 +8,7 @@ import { savePreferences, showHomePage, showManageWorkspacePage, toggleSidebarCo
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
 import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
 
 import Bruno from 'components/Bruno';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -129,7 +130,14 @@ const AppTitleBar = () => {
   });
 
   const handleHomeClick = () => {
-    dispatch(showHomePage());
+    const scratchCollectionUid = activeWorkspace?.scratchCollectionUid;
+    if (scratchCollectionUid) {
+      dispatch(addTab({
+        uid: `${scratchCollectionUid}-overview`,
+        collectionUid: scratchCollectionUid,
+        type: 'workspaceOverview'
+      }));
+    }
   };
 
   const handleWorkspaceSwitch = (workspaceUid) => {
