@@ -1,29 +1,24 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
-import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
-import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
-import { openNewRequestModal, openCollectionCloneItemModal, toggleConfirmRequestModal, closeNewRequestModal } from 'providers/ReduxStore/slices/keyBindings';
+import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+import {
+  openNewRequestModal, openCollectionCloneItemModal, toggleConfirmRequestCloseModal,
+  toggleConfirmCollectionCloseModal, toggleConfirmFolderCloseModal, toggleConfirmGlobalEnvironmentCloseModal,
+  toggleConfirmEnvironmentCloseModal
+} from 'providers/ReduxStore/slices/keyBindings';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
-import { findItemInCollection, hasRequestChanges } from 'utils/collections';
-import ConfirmRequestClose from './ConfirmRequestClose';
-import ConfirmCollectionClose from './ConfirmCollectionClose';
-import ConfirmFolderClose from './ConfirmFolderClose';
-import ConfirmCloseEnvironment from 'components/Environments/ConfirmCloseEnvironment';
+import { findCollectionByUid, findItemInCollection, hasExampleChanges, hasRequestChanges } from 'utils/collections/index';
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
 import MenuDropdown from 'ui/MenuDropdown';
-import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
-import NewRequest from 'components/Sidebar/NewRequest/index';
 import GradientCloseButton from './GradientCloseButton';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
 import ExampleTab from '../ExampleTab';
-import toast from 'react-hot-toast';
+import store from 'providers/ReduxStore/index';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow, dropdownContainerRef }) => {
   const dispatch = useDispatch();
@@ -31,11 +26,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const tabNameRef = useRef(null);
   const tabLabelRef = useRef(null);
   const lastOverflowStateRef = useRef(null);
-  const [showConfirmCollectionClose, setShowConfirmCollectionClose] = useState(false);
-  const [showConfirmFolderClose, setShowConfirmFolderClose] = useState(false);
-  const [showConfirmEnvironmentClose, setShowConfirmEnvironmentClose] = useState(false);
-  const [showConfirmGlobalEnvironmentClose, setShowConfirmGlobalEnvironmentClose] = useState(false);
-  const { showConfirmRequestCloseModal } = useSelector((state) => state.keyBindings);
 
   const menuDropdownRef = useRef();
 
@@ -132,7 +122,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
     event.stopPropagation();
     event.preventDefault();
-    setShowConfirmCollectionClose(true);
+    dispatch(toggleConfirmCollectionCloseModal({ show: true, item, tab, collection }));
   };
 
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
@@ -144,7 +134,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
     event.stopPropagation();
     event.preventDefault();
-    setShowConfirmFolderClose(true);
+    dispatch(toggleConfirmFolderCloseModal({ show: true, item: item, tab: tab, collection: collection, folder: folder }));
   };
 
   const hasDraft = tab.type === 'collection-settings' && collection?.draft;
@@ -160,7 +150,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
     event.stopPropagation();
     event.preventDefault();
-    setShowConfirmEnvironmentClose(true);
+    dispatch(toggleConfirmEnvironmentCloseModal({ show: true, globalEnvDraft: globalEnvironmentDraft, tab, collection: collection }));
   };
 
   const handleCloseGlobalEnvironmentSettings = (event) => {
@@ -170,7 +160,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
     event.stopPropagation();
     event.preventDefault();
-    setShowConfirmGlobalEnvironmentClose(true);
+    dispatch(toggleConfirmGlobalEnvironmentCloseModal({ show: true, globalEnvDraft: globalEnvironmentDraft, tab }));
   };
 
   if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'environment-settings', 'global-environment-settings', 'preferences'].includes(tab.type)) {
@@ -179,115 +169,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
         onMouseUp={handleMouseUp}
       >
-        {showConfirmCollectionClose && tab.type === 'collection-settings' && (
-          <ConfirmCollectionClose
-            collection={collection}
-            onCancel={() => setShowConfirmCollectionClose(false)}
-            onCloseWithoutSave={() => {
-              dispatch(deleteCollectionDraft({
-                collectionUid: collection.uid
-              }));
-              dispatch(closeTabs({
-                tabUids: [tab.uid]
-              }));
-              setShowConfirmCollectionClose(false);
-            }}
-            onSaveAndClose={() => {
-              dispatch(saveCollectionRoot(collection.uid))
-                .then(() => {
-                  dispatch(closeTabs({
-                    tabUids: [tab.uid]
-                  }));
-                  setShowConfirmCollectionClose(false);
-                })
-                .catch((err) => {
-                  console.log('err', err);
-                });
-            }}
-          />
-        )}
-        {showConfirmFolderClose && tab.type === 'folder-settings' && (
-          <ConfirmFolderClose
-            folder={folder}
-            onCancel={() => setShowConfirmFolderClose(false)}
-            onCloseWithoutSave={() => {
-              dispatch(deleteFolderDraft({
-                collectionUid: collection.uid,
-                folderUid: folder.uid
-              }));
-              dispatch(closeTabs({
-                tabUids: [tab.uid]
-              }));
-              setShowConfirmFolderClose(false);
-            }}
-            onSaveAndClose={() => {
-              dispatch(saveFolderRoot(collection.uid, folder.uid))
-                .then(() => {
-                  dispatch(closeTabs({
-                    tabUids: [tab.uid]
-                  }));
-                  setShowConfirmFolderClose(false);
-                })
-                .catch((err) => {
-                  console.log('err', err);
-                });
-            }}
-          />
-        )}
-        {showConfirmEnvironmentClose && tab.type === 'environment-settings' && (
-          <ConfirmCloseEnvironment
-            isGlobal={false}
-            onCancel={() => setShowConfirmEnvironmentClose(false)}
-            onCloseWithoutSave={() => {
-              dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
-              dispatch(closeTabs({ tabUids: [tab.uid] }));
-              setShowConfirmEnvironmentClose(false);
-            }}
-            onSaveAndClose={() => {
-              const draft = collection.environmentsDraft;
-              if (draft?.environmentUid && draft?.variables) {
-                dispatch(saveEnvironment(draft.variables, draft.environmentUid, collection.uid))
-                  .then(() => {
-                    dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
-                    dispatch(closeTabs({ tabUids: [tab.uid] }));
-                    setShowConfirmEnvironmentClose(false);
-                    toast.success('Environment saved');
-                  })
-                  .catch((err) => {
-                    console.log('err', err);
-                    toast.error('Failed to save environment');
-                  });
-              }
-            }}
-          />
-        )}
-        {showConfirmGlobalEnvironmentClose && tab.type === 'global-environment-settings' && (
-          <ConfirmCloseEnvironment
-            isGlobal={true}
-            onCancel={() => setShowConfirmGlobalEnvironmentClose(false)}
-            onCloseWithoutSave={() => {
-              dispatch(clearGlobalEnvironmentDraft());
-              dispatch(closeTabs({ tabUids: [tab.uid] }));
-              setShowConfirmGlobalEnvironmentClose(false);
-            }}
-            onSaveAndClose={() => {
-              const draft = globalEnvironmentDraft;
-              if (draft?.environmentUid && draft?.variables) {
-                dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }))
-                  .then(() => {
-                    dispatch(clearGlobalEnvironmentDraft());
-                    dispatch(closeTabs({ tabUids: [tab.uid] }));
-                    setShowConfirmGlobalEnvironmentClose(false);
-                    toast.success('Global environment saved');
-                  })
-                  .catch((err) => {
-                    console.log('err', err);
-                    toast.error('Failed to save global environment');
-                  });
-              }
-            }}
-          />
-        )}
         {tab.type === 'folder-settings' && !folder ? (
           <RequestTabNotFound handleCloseClick={handleCloseClick} />
         ) : tab.type === 'folder-settings' ? (
@@ -326,7 +207,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           if (e.button === 1) {
             e.preventDefault();
             e.stopPropagation();
-
             dispatch(closeTabs({ tabUids: [tab.uid] }));
           }
         }}
@@ -338,41 +218,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-2">
-      {showConfirmRequestCloseModal.show && (
-        <ConfirmRequestClose
-          item={item}
-          onCancel={() => dispatch(toggleConfirmRequestModal({ show: false }))}
-          onCloseWithoutSave={() => {
-            isWS && closeWsConnection(item.uid);
-            dispatch(
-              deleteRequestDraft({
-                itemUid: item.uid,
-                collectionUid: collection.uid
-              })
-            );
-            dispatch(
-              closeTabs({
-                tabUids: [tab.uid]
-              })
-            );
-            dispatch(toggleConfirmRequestModal({ show: false }));
-          }}
-          onSaveAndClose={() => {
-            dispatch(saveRequest(item.uid, collection.uid))
-              .then(() => {
-                dispatch(
-                  closeTabs({
-                    tabUids: [tab.uid]
-                  })
-                );
-                dispatch(toggleConfirmRequestModal({ show: false }));
-              })
-              .catch((err) => {
-                console.log('err', err);
-              });
-          }}
-        />
-      )}
       <div
         ref={tabLabelRef}
         className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
@@ -384,7 +229,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           if (e.button === 1) {
             e.stopPropagation();
             e.preventDefault();
-            dispatch(toggleConfirmRequestModal({ show: true }));
+            dispatch(toggleConfirmRequestCloseModal({ show: true, entity: 'request', example: null, item, tab, collection }));
           }
         }}
       >
@@ -400,7 +245,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           tabIndex={tabIndex}
           collectionRequestTabs={collectionRequestTabs}
           collection={collection}
-          dispatch={dispatch}
           dropdownContainerRef={dropdownContainerRef}
         />
       </div>
@@ -414,16 +258,15 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
           e.stopPropagation();
           e.preventDefault();
-          dispatch(toggleConfirmRequestModal({ show: true }));
+          dispatch(toggleConfirmRequestCloseModal({ show: true, entity: 'request', example: null, item, tab, collection }));
         }}
       />
     </StyledWrapper>
   );
 };
 
-function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, tabIndex, collection, dispatch, dropdownContainerRef }) {
-  const [showCloneRequestModal, setShowCloneRequestModal] = useState(false);
-  const [showAddNewRequestModal, setShowAddNewRequestModal] = useState(false);
+function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, tabIndex, collection, dropdownContainerRef }) {
+  const { dispatch, getState } = store;
 
   // Returns the tab-label's position for dropdown positioning.
   // Returns zero-sized rect if element isn't mounted yet (prevents Tippy errors).
@@ -437,26 +280,48 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   const totalTabs = collectionRequestTabs.length || 0;
   const currentTabUid = collectionRequestTabs[tabIndex]?.uid;
   const currentTabItem = findItemInCollection(collection, currentTabUid);
-  const currentTabHasChanges = useMemo(() => hasRequestChanges(currentTabItem), [currentTabItem]);
 
   const hasLeftTabs = tabIndex !== 0;
   const hasRightTabs = totalTabs > tabIndex + 1;
   const hasOtherTabs = totalTabs > 1;
+  const state = getState();
 
   async function handleCloseTab(tabUid) {
     if (!tabUid) {
       return;
     }
-
     try {
-      const item = findItemInCollection(collection, tabUid);
-      // silently save unsaved changes before closing the tab
-      if (hasRequestChanges(item)) {
-        await dispatch(saveRequest(item.uid, collection.uid, true));
-      }
+      const state = getState();
 
-      dispatch(closeTabs({ tabUids: [tabUid] }));
-    } catch (err) { }
+      const tabs = state.tabs.tabs;
+      const activeTabUid = state.tabs.activeTabUid;
+      const activeTab = tabs.find((t) => t.uid === tabUid);
+      /**
+       *  Handling Closing Tab only for request and response-example from the menu items as their is missing UX for Colleciton/Folder/Env (settings)
+       */
+      if (activeTab && ['request', 'response-example'].includes(activeTab.type)) {
+        if (activeTab?.type === 'request') {
+          const collections = state.collections.collections;
+          const collection = findCollectionByUid(collections, activeTab.collectionUid);
+          const item = collection ? findItemInCollection(collection, activeTab.uid) : null;
+
+          if (item && hasRequestChanges(item)) {
+            dispatch(toggleConfirmRequestCloseModal({ show: true, entity: 'request', example: null, item: item, tab: activeTab, collection: collection }));
+          }
+          if (activeTabUid) dispatch(closeTabs({ tabUids: [activeTabUid] }));
+        } else if (activeTab?.type === 'response-example') {
+          const collections = state.collections.collections;
+          const collection = findCollectionByUid(collections, activeTab.collectionUid);
+          const item = collection ? findItemInCollection(collection, activeTab.itemUid) : null;
+          const example = item?.examples?.find((ex) => ex.uid === activeTab.exampleUid);
+          if (item && hasExampleChanges(item, activeTab.uid)) {
+            dispatch(toggleConfirmRequestCloseModal({ show: true, entity: 'example', example: example, item: item, tab: activeTab, collection: collection }));
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to close tab : ', err);
+    }
   }
 
   function handleRevertChanges() {
@@ -476,17 +341,20 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   }
 
   async function handleCloseOtherTabs() {
-    const otherTabs = collectionRequestTabs.filter((_, index) => index !== tabIndex);
+    const tabs = state.tabs.tabs;
+    const otherTabs = tabs.filter((_, index) => index !== tabIndex);
     await Promise.all(otherTabs.map((tab) => handleCloseTab(tab.uid)));
   }
 
   async function handleCloseTabsToTheLeft() {
-    const leftTabs = collectionRequestTabs.filter((_, index) => index < tabIndex);
+    const tabs = state.tabs.tabs;
+    const leftTabs = tabs.filter((_, index) => index < tabIndex);
     await Promise.all(leftTabs.map((tab) => handleCloseTab(tab.uid)));
   }
 
   async function handleCloseTabsToTheRight() {
-    const rightTabs = collectionRequestTabs.filter((_, index) => index > tabIndex);
+    const tabs = state.tabs.tabs;
+    const rightTabs = tabs.filter((_, index) => index > tabIndex);
     await Promise.all(rightTabs.map((tab) => handleCloseTab(tab.uid)));
   }
 
@@ -498,7 +366,8 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   }
 
   async function handleCloseAllTabs() {
-    await Promise.all(collectionRequestTabs.map((tab) => handleCloseTab(tab.uid)));
+    const tabs = state.tabs.tabs;
+    await Promise.all(tabs.map((tab) => handleCloseTab(tab.uid)));
   }
 
   const menuItems = useMemo(() => [
@@ -511,7 +380,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     },
     {
       id: 'clone-request',
-      label: 'Clone Request',
+      label: 'Clone Request 33',
       onClick: () => {
         dispatch(openCollectionCloneItemModal({ item: currentTabItem, collectionUid: collection.uid }));
       }
@@ -525,7 +394,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     {
       id: 'close',
       label: 'Close',
-      onClick: () => handleCloseTab(currentTabUid)
+      onClick: () => { handleCloseTab(currentTabUid); }
     },
     {
       id: 'close-others',
