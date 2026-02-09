@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { IconPlus, IconApi, IconBrandGraphql, IconPlugConnected, IconCode } from '@tabler/icons';
-import ActionIcon from 'ui/ActionIcon/index';
+import Button from 'ui/Button';
 import Dropdown from 'components/Dropdown';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
@@ -111,15 +111,15 @@ const CreateScratchRequest = ({ workspaceUid }) => {
   };
 
   const IconButton = (
-    <ActionIcon
+    <Button
+      variant="ghost"
+      color="primary"
+      size="sm"
+      icon={<IconPlus size={24} strokeWidth={2} />}
       onClick={handleLeftClick}
       onContextMenu={handleRightClick}
       aria-label="New Scratch Request"
-      size="lg"
-      style={{ marginBottom: '3px' }}
-    >
-      <IconPlus size={18} strokeWidth={1.5} />
-    </ActionIcon>
+    />
   );
 
   return (

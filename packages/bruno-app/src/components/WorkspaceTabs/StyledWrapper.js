@@ -192,6 +192,20 @@ const Wrapper = styled.div`
   &.has-chevrons ul {
     padding-left: 0;
   }
+
+  ul li.create-scratch-request-btn {
+    align-self: center;
+    min-width: auto;
+    max-width: none;
+    padding: 0;
+    margin: 0 0 0 4px;
+    border: none;
+    background: transparent;
+
+    button {
+      padding: 6px;
+    }
+  }
 `;
 
 export default Wrapper;

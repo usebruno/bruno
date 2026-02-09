@@ -140,6 +140,9 @@ const WorkspaceTabs = ({ workspaceUid }) => {
                 />
               </li>
             ))}
+            <li className="create-scratch-request-btn">
+              <CreateScratchRequest workspaceUid={workspaceUid} />
+            </li>
           </ul>
         </div>
         <ul role="tablist">
@@ -151,9 +154,6 @@ const WorkspaceTabs = ({ workspaceUid }) => {
             </li>
           ) : null}
         </ul>
-        <div className="create-scratch-request-btn ml-2">
-          <CreateScratchRequest workspaceUid={workspaceUid} />
-        </div>
       </div>
     </StyledWrapper>
   );
