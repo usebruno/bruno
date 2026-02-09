@@ -78,6 +78,27 @@ const simpleTranslations = {
   'pm.cookies.get': 'bru.cookies.get',
   'pm.cookies.has': 'bru.cookies.has',
   'pm.cookies.toObject': 'bru.cookies.toObject',
+  'pm.cookies.toString': 'bru.cookies.toString',
+  'pm.cookies.clear': 'bru.cookies.clear',
+  'pm.cookies.remove': 'bru.cookies.delete',
+
+  // PropertyList cookie methods (1:1 mappings)
+  'pm.cookies.one': 'bru.cookies.one',
+  'pm.cookies.all': 'bru.cookies.all',
+  'pm.cookies.idx': 'bru.cookies.idx',
+  'pm.cookies.count': 'bru.cookies.count',
+  'pm.cookies.indexOf': 'bru.cookies.indexOf',
+  'pm.cookies.find': 'bru.cookies.find',
+  'pm.cookies.filter': 'bru.cookies.filter',
+  'pm.cookies.each': 'bru.cookies.each',
+  'pm.cookies.map': 'bru.cookies.map',
+  'pm.cookies.reduce': 'bru.cookies.reduce',
+  'pm.cookies.add': 'bru.cookies.add',
+  'pm.cookies.upsert': 'bru.cookies.upsert',
+  // Lossy: position-aware inserts map to add (position irrelevant for cookies)
+  'pm.cookies.prepend': 'bru.cookies.add',
+  'pm.cookies.insert': 'bru.cookies.add',
+  'pm.cookies.insertAfter': 'bru.cookies.add',
 
   // Execution control
   'pm.execution.skipRequest': 'bru.runner.skipRequest',

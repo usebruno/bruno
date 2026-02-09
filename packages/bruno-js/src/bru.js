@@ -3,6 +3,7 @@ const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { sendRequest, createSendRequest } = require('@usebruno/requests').scripting;
 const { jar: createCookieJar, getCookiesForUrl } = require('@usebruno/requests').cookies;
+const CookieList = require('./cookie-list');
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -44,72 +45,12 @@ class Bru {
     this.sendRequest = certsAndProxyConfig ? createSendRequest(certsAndProxyConfig) : sendRequest;
     this.runtime = runtime;
     this.requestUrl = requestUrl;
-    this.cookies = {
-      get: (name) => {
-        const url = this.interpolate(this.requestUrl);
-        if (!url) return undefined;
-        const cookies = getCookiesForUrl(url);
-        const cookie = cookies.find((c) => c.key === name);
-        return cookie ? cookie.value : undefined;
-      },
-      has: (name) => {
-        const url = this.interpolate(this.requestUrl);
-        if (!url) return false;
-        const cookies = getCookiesForUrl(url);
-        return cookies.some((c) => c.key === name);
-      },
-      toObject: () => {
-        const url = this.interpolate(this.requestUrl);
-        if (!url) return {};
-        const cookies = getCookiesForUrl(url);
-        const result = {};
-        for (const cookie of cookies) {
-          result[cookie.key] = cookie.value;
-        }
-        return result;
-      },
-      jar: () => {
-        const cookieJar = createCookieJar();
-
-        return {
-          getCookie: (url, cookieName, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.getCookie(interpolatedUrl, cookieName, callback);
-          },
-
-          getCookies: (url, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.getCookies(interpolatedUrl, callback);
-          },
-
-          setCookie: (url, nameOrCookieObj, valueOrCallback, maybeCallback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.setCookie(interpolatedUrl, nameOrCookieObj, valueOrCallback, maybeCallback);
-          },
-
-          setCookies: (url, cookiesArray, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.setCookies(interpolatedUrl, cookiesArray, callback);
-          },
-
-          // Clear entire cookie jar
-          clear: (callback) => {
-            return cookieJar.clear(callback);
-          },
-
-          // Delete cookies for a specific URL/domain
-          deleteCookies: (url, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.deleteCookies(interpolatedUrl, callback);
-          },
-
-          deleteCookie: (url, cookieName, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.deleteCookie(interpolatedUrl, cookieName, callback);
-          }
-        };
-      }
-    };
+    this.cookies = new CookieList({
+      getUrl: () => this.interpolate(this.requestUrl),
+      interpolate: (str) => this.interpolate(str),
+      createCookieJar,
+      getCookiesForUrl
+    });
     // Holds variables that are marked as persistent by scripts
     this.persistentEnvVariables = {};
     this.runner = {
