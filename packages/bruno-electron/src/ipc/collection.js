@@ -5,6 +5,7 @@ const os = require('os');
 const path = require('path');
 const archiver = require('archiver');
 const extractZip = require('extract-zip');
+const AdmZip = require('adm-zip');
 const { ipcMain, shell, dialog, app } = require('electron');
 const {
   parseRequest,
@@ -2049,6 +2050,23 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       return { success: true, filePath };
     } catch (error) {
       throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:is-bruno-collection-zip', async (event, zipFilePath) => {
+    try {
+      const zip = new AdmZip(zipFilePath);
+      const entries = zip.getEntries().map((e) => e.entryName);
+
+      return entries.some(
+        (name) =>
+          name === 'bruno.json'
+          || name === 'opencollection.yml'
+          || /^[^/]+\/bruno\.json$/.test(name)
+          || /^[^/]+\/opencollection\.yml$/.test(name)
+      );
+    } catch {
+      return false;
     }
   });
 
