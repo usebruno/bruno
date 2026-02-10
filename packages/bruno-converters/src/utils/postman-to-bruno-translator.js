@@ -276,23 +276,12 @@ const complexTransformations = [
 
       const awaitExpr = j.awaitExpression(getCookieCall);
 
-      // Use optionalMemberExpression for ?.value
-      try {
-        return j.optionalMemberExpression(
-          awaitExpr,
-          j.identifier('value'),
-          false,
-          true
-        );
-      } catch (e) {
-        // Fallback: wrap in a ternary (_c = await ...) ? _c.value : undefined
-        const tempVar = j.identifier('_c');
-        return j.conditionalExpression(
-          j.assignmentExpression('=', tempVar, awaitExpr),
-          j.memberExpression(tempVar, j.identifier('value')),
-          j.identifier('undefined')
-        );
-      }
+      return j.optionalMemberExpression(
+        awaitExpr,
+        j.identifier('value'),
+        false,
+        true
+      );
     }
   },
 

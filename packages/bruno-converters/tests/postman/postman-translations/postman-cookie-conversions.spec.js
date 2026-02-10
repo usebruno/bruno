@@ -333,11 +333,11 @@ describe('postmanTranslations - cookie API conversions', () => {
 
   test('should convert pm.cookies.toObject() to getCookies reduce', () => {
     const inputScript = `pm.cookies.toObject()`;
-    const result = postmanTranslation(inputScript);
-    expect(result).toContain('await bru.cookies.jar().getCookies(req.getUrl())');
-    expect(result).toContain('.reduce(');
-    expect(result).toContain('c.key');
-    expect(result).toContain('c.value');
+    const expectedOutput = `(await bru.cookies.jar().getCookies(req.getUrl())).reduce((obj, c) => ({
+  ...obj,
+  [c.key]: c.value
+}), {})`;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
   test('should convert pm.cookies.has inside an if conditional', () => {
