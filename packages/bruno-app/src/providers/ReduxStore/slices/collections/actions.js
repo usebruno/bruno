@@ -2726,11 +2726,43 @@ export const importCollectionFromZip = (zipFilePath, collectionLocation) => asyn
   return collectionPath;
 };
 
+/**
+ * Updates Redux collection order and persists it to the active workspace's workspace.yml.
+ */
 export const moveCollectionAndPersist
   = ({ draggedItem, targetItem }) =>
     (dispatch, getState) => {
-      dispatch(moveCollection({ draggedItem, targetItem }));
-      return Promise.resolve();
+      const state = getState();
+      const activeWorkspace = state.workspaces.workspaces.find(
+        (w) => w.uid === state.workspaces.activeWorkspaceUid
+      );
+      if (!activeWorkspace?.pathname || !activeWorkspace.collections?.length) {
+        return Promise.resolve();
+      }
+
+      const workspacePathSet = new Set(
+        activeWorkspace.collections.map((wc) => normalizePath(wc.path))
+      );
+      const collectionsInWorkspace = state.collections.collections
+        .filter((c) => workspacePathSet.has(normalizePath(c.pathname)));
+      if (collectionsInWorkspace.length === 0) {
+        return Promise.resolve();
+      }
+
+      const reordered = collectionsInWorkspace.filter((i) => i.uid !== draggedItem.uid);
+      const targetIndex = reordered.findIndex((i) => i.uid === targetItem.uid);
+      reordered.splice(targetIndex, 0, draggedItem);
+      const collectionPaths = reordered.map((c) => c.pathname);
+
+      return window.ipcRenderer
+        .invoke('renderer:reorder-workspace-collections', activeWorkspace.pathname, collectionPaths)
+        .then(() => {
+          dispatch(moveCollection({ draggedItem, targetItem }));
+        })
+        .catch((err) => {
+          console.error('Failed to reorder workspace collections', err);
+          return Promise.reject(err);
+        });
     };
 
 export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (dispatch, getState) => {
