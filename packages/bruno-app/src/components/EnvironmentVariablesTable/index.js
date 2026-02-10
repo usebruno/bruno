@@ -443,8 +443,8 @@ const EnvironmentVariablesTable = ({
           </tr>
         )}
         fixedItemHeight={35}
-        computeItemKey={(index, item) => `${environment.uid}-${item.index}`}
-        itemContent={(index, { variable, index: actualIndex }) => {
+        computeItemKey={(virtualIndex, item) => `${environment.uid}-${item.index}`}
+        itemContent={(virtualIndex, { variable, index: actualIndex }) => {
           const isLastRow = actualIndex === formik.values.length - 1;
           const isEmptyRow = !variable.name || variable.name.trim() === '';
           const isLastEmptyRow = isLastRow && isEmptyRow;
