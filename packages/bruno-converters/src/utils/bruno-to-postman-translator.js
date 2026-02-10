@@ -365,21 +365,6 @@ const complexTransformations = [
 
       return iife;
     }
-  },
-
-  // bru.visualize(html) -> pm.visualizer.set(html, {})
-  {
-    pattern: 'bru.visualize',
-    transform: (path) => {
-      const callExpr = path.value;
-      const args = callExpr.arguments;
-
-      // pm.visualizer.set takes template and data, Bruno only has template
-      return j.callExpression(
-        buildMemberExpressionFromString('pm.visualizer.set'),
-        args.length > 0 ? [args[0], j.objectExpression([])] : [j.literal(''), j.objectExpression([])]
-      );
-    }
   }
 ];
 
