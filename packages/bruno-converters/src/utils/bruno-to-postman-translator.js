@@ -39,8 +39,12 @@ const simpleTranslations = {
   // 'bru.deleteAllVars':  Postman does not have a way to delete all variables
 
   // Collection variables
-  'bru.getCollectionVar': 'pm.variables.get',
-  /* Bruno does not have a way to set, has or delete collection variables */
+  'bru.getCollectionVar': 'pm.collectionVariables.get',
+  'bru.setCollectionVar': 'pm.collectionVariables.set',
+  'bru.hasCollectionVar': 'pm.collectionVariables.has',
+  'bru.deleteCollectionVar': 'pm.collectionVariables.unset',
+  'bru.getAllCollectionVars': 'pm.collectionVariables.toObject',
+  'bru.deleteAllCollectionVars': 'pm.collectionVariables.clear',
 
   // Folder variables
   'bru.getFolderVar': 'pm.variables.get',
