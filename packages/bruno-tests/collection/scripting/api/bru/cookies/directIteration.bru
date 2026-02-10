@@ -1,0 +1,79 @@
+meta {
+  name: directIteration
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar()
+
+  await jar.setCookies('https://testbench-sanity.usebruno.com', [
+    {
+      key: 'x',
+      value: '10',
+      path: '/',
+      secure: true
+    },
+    {
+      key: 'y',
+      value: '20',
+      path: '/',
+      secure: true
+    }
+  ]);
+}
+
+tests {
+  test("each() should iterate over all cookies", function() {
+    const keys = [];
+    bru.cookies.each(function(cookie) {
+      keys.push(cookie.key);
+    });
+    expect(keys).to.include('x');
+    expect(keys).to.include('y');
+  });
+
+  test("find() should return matching cookie", function() {
+    const cookie = bru.cookies.find(function(c) { return c.key === 'x'; });
+    expect(cookie).to.have.property('value', '10');
+  });
+
+  test("find() should return undefined when no match", function() {
+    const cookie = bru.cookies.find(function(c) { return c.key === 'zzz'; });
+    expect(cookie).to.be.undefined;
+  });
+
+  test("filter() should return array of matching cookies", function() {
+    const result = bru.cookies.filter(function(c) { return c.key === 'y'; });
+    expect(result).to.be.an('array');
+    expect(result.length).to.equal(1);
+    expect(result[0]).to.have.property('value', '20');
+  });
+
+  test("map() should transform cookies", function() {
+    const keys = bru.cookies.map(function(c) { return c.key; });
+    expect(keys).to.be.an('array');
+    expect(keys).to.include('x');
+    expect(keys).to.include('y');
+  });
+
+  test("reduce() should accumulate over cookies", function() {
+    const result = bru.cookies.reduce(function(acc, c) { return acc + c.key + ','; }, '');
+    expect(result).to.be.a('string');
+    expect(result).to.contain('x,');
+    expect(result).to.contain('y,');
+  });
+
+  const jar = bru.cookies.jar()
+  jar.clear()
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,56 @@
+meta {
+  name: directWrite
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar()
+  await jar.clear();
+}
+
+tests {
+  const jar = bru.cookies.jar()
+
+  await bru.cookies.add({ key: 'a', value: '1' });
+  test("add() should add a new cookie", function() {
+    expect(bru.cookies.get('a')).to.equal('1');
+  });
+
+  await bru.cookies.upsert({ key: 'a', value: '2' });
+  test("upsert() should update an existing cookie", function() {
+    expect(bru.cookies.get('a')).to.equal('2');
+  });
+
+  await bru.cookies.remove('a');
+  test("remove() should remove a cookie", function() {
+    expect(bru.cookies.has('a')).to.be.false;
+  });
+
+  await bru.cookies.add({ key: 'b', value: '3' });
+  await bru.cookies.delete('b');
+  test("delete() should delete a cookie", function() {
+    expect(bru.cookies.has('b')).to.be.false;
+  });
+
+  await bru.cookies.add({ key: 'c', value: '4' });
+  test("clear() should remove all cookies after add", function() {
+    expect(bru.cookies.count()).to.be.at.least(1);
+  });
+  await bru.cookies.clear();
+  test("clear() should leave zero cookies", function() {
+    expect(bru.cookies.count()).to.equal(0);
+  });
+
+  jar.clear()
+}
+
+settings {
+  encodeUrl: true
+}

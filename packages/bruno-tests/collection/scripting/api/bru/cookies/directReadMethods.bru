@@ -1,0 +1,78 @@
+meta {
+  name: directReadMethods
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar()
+
+  await jar.setCookies('https://testbench-sanity.usebruno.com', [
+    {
+      key: 'alpha',
+      value: 'one',
+      path: '/',
+      secure: true
+    },
+    {
+      key: 'beta',
+      value: 'two',
+      path: '/',
+      secure: true
+    }
+  ]);
+}
+
+tests {
+  test("one() should return full cookie object by name", function() {
+    const cookie = bru.cookies.one('alpha');
+    expect(cookie).to.have.property('key', 'alpha');
+    expect(cookie).to.have.property('value', 'one');
+  });
+
+  test("one() should return undefined for nonexistent cookie", function() {
+    expect(bru.cookies.one('nonexistent')).to.be.undefined;
+  });
+
+  test("all() should return an array with at least 2 items", function() {
+    const cookies = bru.cookies.all();
+    expect(cookies).to.be.an('array');
+    expect(cookies.length).to.be.at.least(2);
+  });
+
+  test("count() should be at least 2", function() {
+    expect(bru.cookies.count()).to.be.at.least(2);
+  });
+
+  test("idx() should return a cookie object at index 0", function() {
+    const cookie = bru.cookies.idx(0);
+    expect(cookie).to.have.property('key');
+    expect(cookie).to.have.property('value');
+  });
+
+  test("toObject() should return object with cookie key-value pairs", function() {
+    const obj = bru.cookies.toObject();
+    expect(obj).to.be.an('object');
+    expect(obj).to.have.property('alpha', 'one');
+    expect(obj).to.have.property('beta', 'two');
+  });
+
+  test("toString() should return a string containing cookie pairs", function() {
+    const str = bru.cookies.toString();
+    expect(str).to.be.a('string');
+    expect(str).to.contain('alpha=one');
+  });
+
+  const jar = bru.cookies.jar()
+  jar.clear()
+}
+
+settings {
+  encodeUrl: true
+}
