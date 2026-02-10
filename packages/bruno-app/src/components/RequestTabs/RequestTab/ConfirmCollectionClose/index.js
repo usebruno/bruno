@@ -30,15 +30,15 @@ const ConfirmCollectionClose = ({ collection, onCancel, onCloseWithoutSave, onSa
 
       <div className="flex justify-between mt-6">
         <div>
-          <Button color="danger" onClick={onCloseWithoutSave}>
+          <Button color="danger" onClick={onCloseWithoutSave} data-testid="confirm-collection-settings-dont-save">
             Don't Save
           </Button>
         </div>
         <div className="flex gap-2">
-          <Button color="secondary" variant="ghost" onClick={onCancel}>
+          <Button color="secondary" variant="ghost" onClick={onCancel} data-testid="confirm-collection-settings-cancel">
             Cancel
           </Button>
-          <Button onClick={onSaveAndClose}>
+          <Button onClick={onSaveAndClose} data-testid="confirm-collection-settings-save">
             Save
           </Button>
         </div>
