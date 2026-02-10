@@ -22,6 +22,7 @@ import {
   createDotEnvFile,
   deleteDotEnvFile
 } from 'providers/ReduxStore/slices/collections/actions';
+import { setEnvironmentsDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import classnames from 'classnames';
@@ -72,11 +73,24 @@ const EnvironmentList = ({
   const envUids = environments ? environments.map((env) => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
 
+  const handleDotEnvModifiedChange = useCallback((modified) => {
+    setIsDotEnvModified(modified);
+    if (modified) {
+      dispatch(setEnvironmentsDraft({
+        collectionUid: collection.uid,
+        environmentUid: `dotenv:${selectedDotEnvFile}`,
+        variables: []
+      }));
+    } else {
+      dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
+    }
+  }, [dispatch, collection.uid, selectedDotEnvFile]);
+
   useEffect(() => {
     if (dotEnvFiles.length === 0) {
       setSelectedDotEnvFile(null);
       setActiveView('environment');
-      setIsDotEnvModified(false);
+      handleDotEnvModifiedChange(false);
       return;
     }
 
@@ -424,7 +438,7 @@ const EnvironmentList = ({
     dispatch(deleteDotEnvFile(collection.uid, filename))
       .then(() => {
         toast.success(`${filename} file deleted!`);
-        setIsDotEnvModified(false);
+        handleDotEnvModifiedChange(false);
         if (selectedDotEnvFile === filename) {
           const remainingFiles = dotEnvFiles.filter((f) => f.filename !== filename);
           if (remainingFiles.length > 0) {
@@ -467,7 +481,7 @@ const EnvironmentList = ({
             onSave={handleSaveDotEnv}
             onSaveRaw={handleSaveDotEnvRaw}
             isModified={isDotEnvModified}
-            setIsModified={setIsDotEnvModified}
+            setIsModified={handleDotEnvModifiedChange}
             dotEnvExists={selectedDotEnvData?.exists}
             viewMode={dotEnvViewMode}
             collection={collection}
