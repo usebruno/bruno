@@ -62,9 +62,33 @@ const template = [
     submenu: [
       { role: 'toggledevtools' },
       { type: 'separator' },
-      { role: 'resetzoom' },
-      { role: 'zoomin' },
-      { role: 'zoomout' },
+      {
+        label: 'Reset Zoom',
+        click() {
+          const focusedWindow = BrowserWindow.getFocusedWindow();
+          if (focusedWindow) {
+            focusedWindow.webContents.send('main:menu-zoom-reset');
+          }
+        }
+      },
+      {
+        label: 'Zoom In',
+        click() {
+          const focusedWindow = BrowserWindow.getFocusedWindow();
+          if (focusedWindow) {
+            focusedWindow.webContents.send('main:menu-zoom-in');
+          }
+        }
+      },
+      {
+        label: 'Zoom Out',
+        click() {
+          const focusedWindow = BrowserWindow.getFocusedWindow();
+          if (focusedWindow) {
+            focusedWindow.webContents.send('main:menu-zoom-out');
+          }
+        }
+      },
       { type: 'separator' },
       { role: 'togglefullscreen' }
     ]

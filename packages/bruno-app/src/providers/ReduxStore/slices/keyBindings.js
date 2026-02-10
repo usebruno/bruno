@@ -1,11 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  enableShortCuts: false,
+  enableShortCuts: true,
   sidebarCollapsed: false,
   showGlobalSearch: false,
   showSideBarSearch: false,
-  showImportCollectionModal: false,
+  showImportCollectionModal: { show: false, importData: null },
   cloneRequestorFolderModal: false,
   cloneCollectionModal: { open: false, collectionUid: null },
   newRequestModal: { open: false, item: null, collectionUid: null },
@@ -93,7 +93,8 @@ export const keybindingsSlice = createSlice({
     },
     // Import Collection Modal
     toggleShowImportCollectionModal: (state, action) => {
-      state.showImportCollectionModal = { show: action.payload.show };
+      const { show, importData } = action.payload;
+      state.showImportCollectionModal = { show, importData: importData || null };
     }
   }
 });

@@ -6,8 +6,9 @@ import { useSelector } from 'react-redux';
 
 import NewRequest from 'components/Sidebar/NewRequest/index';
 import NetworkError from 'components/ResponsePane/NetworkError';
-
 import GlobalSearchModal from 'components/GlobalSearchModal/index';
+import ImportCollection from 'components/Sidebar/ImportCollection/index';
+import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation/index';
 import ConfirmCloseEnvironment from 'components/Environments/ConfirmCloseEnvironment';
 import ConfirmFolderClose from 'components/RequestTabs/RequestTab/ConfirmFolderClose';
 import CloneCollection from 'components/Sidebar/Collections/Collection/CloneCollection/index';
@@ -16,7 +17,8 @@ import ConfirmCollectionClose from 'components/RequestTabs/RequestTab/ConfirmCol
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 
 import store from 'providers/ReduxStore/index';
-import { savePreferences } from 'providers/ReduxStore/slices/app';
+import { savePreferences, copyRequest } from 'providers/ReduxStore/slices/app';
+import { importCollection, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
 
 import { closeWorkspaceTab } from 'providers/ReduxStore/slices/workspaceTabs';
 import { saveGlobalEnvironment, clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
@@ -53,19 +55,23 @@ import {
   toggleConfirmGlobalEnvironmentCloseModal
 } from 'providers/ReduxStore/slices/keyBindings';
 
+import { DEFAULT_KEY_BINDINGS } from './keyMappings';
+
 export const HotkeysContext = createContext(null);
 
 // -----------------------
 // ✅ Allow Mousetrap to work inside CodeMirror for closeTab (Ctrl/Cmd+W)
 // -----------------------
 // 1) Ensure Mousetrap binds on document (not just focused element)
-Mousetrap.prototype.bindGlobal = function (keys, callback) {
-  const mousetrap = this;
-  const keyArr = Array.isArray(keys) ? keys : [keys];
-  keyArr.forEach((key) => {
-    mousetrap.bind(key, callback, null, document);
-  });
-};
+// Add bindGlobal method to the Mousetrap instance (not prototype)
+if (!Mousetrap.bindGlobal) {
+  Mousetrap.bindGlobal = function (keys, callback) {
+    const keyArr = Array.isArray(keys) ? keys : [keys];
+    keyArr.forEach((key) => {
+      Mousetrap.bind(key, callback);
+    });
+  };
+}
 
 // 2) Override stopCallback to allow hotkeys when focus is in CodeMirror
 const originalStopCallback = Mousetrap.prototype.stopCallback;
@@ -95,11 +101,45 @@ const SEP = '+bind+';
 const toMousetrapCombo = (keysStr) => {
   if (!keysStr) return null;
   // "command+bind+s" -> "command+s"
-  return keysStr.split(SEP).filter(Boolean).join('+').toLowerCase();
+  const parts = keysStr.split(SEP).filter(Boolean);
+
+  // Convert arrow key names from browser format to Mousetrap format
+  const converted = parts.map((part) => {
+    const lower = part.toLowerCase();
+    if (lower === 'arrowup') return 'up';
+    if (lower === 'arrowdown') return 'down';
+    if (lower === 'arrowleft') return 'left';
+    if (lower === 'arrowright') return 'right';
+    return lower;
+  });
+
+  return converted.join('+');
+};
+
+// Helper to check if focus is in an editable element (input, textarea, CodeMirror)
+const isInEditableContext = () => {
+  const activeElement = document.activeElement;
+  if (!activeElement) return false;
+
+  const tagName = activeElement.tagName.toLowerCase();
+  const isEditable
+    = tagName === 'input'
+      || tagName === 'textarea'
+      || activeElement.isContentEditable
+      || activeElement.closest('.CodeMirror') !== null;
+
+  return isEditable;
 };
 
 const getBindingsForActionFromState = (state, action) => {
-  const kb = state?.app?.preferences?.keyBindings?.[action];
+  // Try to get from user preferences first
+  let kb = state?.app?.preferences?.keyBindings?.[action];
+
+  // Fall back to defaults if not customized
+  if (!kb) {
+    kb = DEFAULT_KEY_BINDINGS[action];
+  }
+
   if (!kb) return null;
 
   // Bind both; only the right one will match on the current OS
@@ -116,14 +156,70 @@ function bindHotkey(action, handler, getState) {
 
   // Track what we bound per action so we can unbind old combos on updates
   if (!bindHotkey._boundByAction) bindHotkey._boundByAction = {};
+  if (!bindHotkey._handlersByCombo) bindHotkey._handlersByCombo = {};
+  if (!bindHotkey._pendingTimeout) bindHotkey._pendingTimeout = null;
+
   const prev = bindHotkey._boundByAction[action] || [];
 
-  if (prev.length) Mousetrap.unbind(prev);
+  // Unbind previous bindings for this action
+  if (prev.length) {
+    prev.forEach((key) => {
+      delete bindHotkey._handlersByCombo[key];
+      Mousetrap.unbind(key);
+    });
+  }
 
-  Mousetrap.bind(bindings, (e) => {
-    e?.preventDefault?.();
-    handler(e);
-    return false;
+  // Use bindGlobal to work inside CodeMirror and other input elements
+  bindings.forEach((key) => {
+    // Store handler info for conflict detection
+    const keyParts = key.split('+');
+    bindHotkey._handlersByCombo[key] = {
+      action,
+      keyCount: keyParts.length,
+      keys: keyParts,
+      handler
+    };
+
+    Mousetrap.bindGlobal(key, (e) => {
+      e?.preventDefault?.();
+
+      // Clear any pending timeout
+      if (bindHotkey._pendingTimeout) {
+        clearTimeout(bindHotkey._pendingTimeout);
+        bindHotkey._pendingTimeout = null;
+      }
+
+      // Check if there's a more specific (longer) shortcut that contains all current keys
+      const currentKeys = key.split('+');
+      const moreSpecificShortcuts = [];
+
+      for (const [otherKey, info] of Object.entries(bindHotkey._handlersByCombo)) {
+        if (otherKey === key) continue;
+
+        const otherKeys = otherKey.split('+');
+        // Check if otherKey is more specific (longer) and contains all current keys
+        if (otherKeys.length > currentKeys.length) {
+          const allMatch = currentKeys.every((k) => otherKeys.includes(k));
+          if (allMatch) {
+            moreSpecificShortcuts.push(otherKey);
+          }
+        }
+      }
+
+      // If there are more specific shortcuts, wait a bit to see if user is still pressing keys
+      if (moreSpecificShortcuts.length > 0) {
+        bindHotkey._pendingTimeout = setTimeout(() => {
+          // User stopped pressing keys, execute this handler
+          handler(e);
+          bindHotkey._pendingTimeout = null;
+        }, 100); // 100ms delay to detect if more keys are coming
+      } else {
+        // No more specific shortcuts, execute immediately
+        handler(e);
+      }
+
+      return false;
+    });
   });
 
   bindHotkey._boundByAction[action] = bindings;
@@ -134,7 +230,7 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('save', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       const tabs = state.tabs.tabs;
       const collections = state.collections.collections;
       const activeTabUid = state.tabs.activeTabUid;
@@ -168,7 +264,7 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('sendRequest', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       const tabs = state.tabs.tabs;
       const collections = state.collections.collections;
       const activeTabUid = state.tabs.activeTabUid;
@@ -204,7 +300,7 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('editEnvironment', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       const tabs = state.tabs.tabs;
       const collections = state.collections.collections;
       const activeTabUid = state.tabs.activeTabUid;
@@ -227,9 +323,12 @@ function bindAllHotkeys(getState, dispatch) {
 
   // CLONE ITEM (Ctrl/Cmd + D)
   bindHotkey('cloneItem', () => {
+    // Allow default behavior in editable contexts
+    if (isInEditableContext()) return;
+
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       const tabs = state.tabs.tabs;
       const collections = state.collections.collections;
       const activeTabUid = state.tabs.activeTabUid;
@@ -254,11 +353,96 @@ function bindAllHotkeys(getState, dispatch) {
     }
   }, getState);
 
+  // COPY ITEM (Ctrl/Cmd + C) - context-aware
+  bindHotkey('copyItem', () => {
+    // Allow default copy in editable contexts (inputs, textareas, CodeMirror)
+    if (isInEditableContext()) return;
+
+    const state = getState();
+    const enableShortCuts = state.keyBindings.enableShortCuts;
+    if (enableShortCuts) {
+      const tabs = state.tabs.tabs;
+      const collections = state.collections.collections;
+      const activeTabUid = state.tabs.activeTabUid;
+
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if (!activeTab) return;
+
+      const collection = findCollectionByUid(collections, activeTab.collectionUid);
+      const item = collection ? findItemInCollection(collection, activeTab.uid) : null;
+
+      // Copy request or folder to clipboard
+      if (item && (activeTab.type === 'request' || activeTab.type === 'folder-settings')) {
+        dispatch(copyRequest(item));
+        toast.success('Item copied to clipboard');
+      }
+    }
+  }, getState);
+
+  // PASTE ITEM (Ctrl/Cmd + V) - context-aware
+  bindHotkey('pasteItem', () => {
+    // Allow default paste in editable contexts (inputs, textareas, CodeMirror)
+    if (isInEditableContext()) return;
+
+    const state = getState();
+    const enableShortCuts = state.keyBindings.enableShortCuts;
+    if (enableShortCuts) {
+      const tabs = state.tabs.tabs;
+      const collections = state.collections.collections;
+      const activeTabUid = state.tabs.activeTabUid;
+
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if (!activeTab) return;
+
+      const collection = findCollectionByUid(collections, activeTab.collectionUid);
+      if (!collection) return;
+
+      // Determine target for paste - always paste as sibling (same level)
+      let targetItemUid = null;
+      const item = findItemInCollection(collection, activeTab.uid);
+
+      if (item) {
+        // Find the parent folder by traversing up the pathname
+        const findParentFolder = (collection, itemPathname) => {
+          const pathParts = itemPathname.split('/');
+          if (pathParts.length <= 1) return null; // Item is at root level
+
+          const parentPath = pathParts.slice(0, -1).join('/');
+
+          // Recursively search for parent folder
+          const searchInItems = (items) => {
+            for (const i of items) {
+              if (i.pathname === parentPath) return i;
+              if (i.items && i.items.length > 0) {
+                const found = searchInItems(i.items);
+                if (found) return found;
+              }
+            }
+            return null;
+          };
+
+          return searchInItems(collection.items);
+        };
+
+        const parentFolder = findParentFolder(collection, item.pathname);
+        targetItemUid = parentFolder?.uid || null;
+      }
+
+      dispatch(pasteItem(collection.uid, targetItemUid))
+        .then(() => {
+          toast.success('Item pasted successfully');
+        })
+        .catch((err) => {
+          toast.error(err.message || 'Failed to paste item');
+        });
+    }
+  }, getState);
+
   // NEW REQUEST (Ctrl/Cmd + N)
   bindHotkey('newRequest', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       const tabs = state.tabs.tabs;
       const collections = state.collections.collections;
       const activeTabUid = state.tabs.activeTabUid;
@@ -285,7 +469,7 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('globalSearch', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       dispatch(toggleGlobalSearch());
     }
   }, getState);
@@ -294,7 +478,8 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('importCollection', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
+      console.log('Open Import Collection');
       dispatch(toggleShowImportCollectionModal({ show: true }));
     }
   }, getState);
@@ -303,7 +488,7 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('sidebarSearch', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       dispatch(toggleSideSearch());
     }
   }, getState);
@@ -312,7 +497,7 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('closeTab', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       const tabs = state.tabs.tabs;
 
       const showHomePage = state.app.showHomePage;
@@ -444,7 +629,7 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('switchToPreviousTab', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       dispatch(switchTab({ direction: 'pageup' }));
     }
   }, getState);
@@ -453,7 +638,7 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('switchToNextTab', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       dispatch(switchTab({ direction: 'pagedown' }));
     }
   }, getState);
@@ -462,7 +647,7 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('closeAllTabs', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       const tabs = state.tabs.tabs;
 
       const collections = state.collections.collections;
@@ -483,8 +668,35 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('collapseSidebar', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       dispatch(toggleSidebarCollapse());
+    }
+  }, getState);
+
+  // ZOOM IN
+  bindHotkey('zoomIn', () => {
+    const state = getState();
+    const enableShortCuts = state.keyBindings.enableShortCuts;
+    if (enableShortCuts) {
+      window.ipcRenderer.send('main:zoom-in');
+    }
+  }, getState);
+
+  // ZOOM OUT
+  bindHotkey('zoomOut', () => {
+    const state = getState();
+    const enableShortCuts = state.keyBindings.enableShortCuts;
+    if (enableShortCuts) {
+      window.ipcRenderer.send('main:zoom-out');
+    }
+  }, getState);
+
+  // RESET ZOOM
+  bindHotkey('resetZoom', () => {
+    const state = getState();
+    const enableShortCuts = state.keyBindings.enableShortCuts;
+    if (enableShortCuts) {
+      window.ipcRenderer.send('main:zoom-reset');
     }
   }, getState);
 
@@ -492,7 +704,7 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('moveTabLeft', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       dispatch(reorderTabs({ direction: -1 }));
     }
   }, getState);
@@ -501,7 +713,7 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('moveTabRight', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       dispatch(reorderTabs({ direction: 1 }));
     }
   }, getState);
@@ -510,7 +722,7 @@ function bindAllHotkeys(getState, dispatch) {
   bindHotkey('changeLayout', () => {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
-    if (!enableShortCuts) {
+    if (enableShortCuts) {
       const preferences = state.app.preferences;
       const orientation = preferences?.layout?.responsePaneOrientation || 'horizontal';
       const newOrientation = orientation === 'horizontal' ? 'vertical' : 'horizontal';
@@ -547,6 +759,21 @@ function initHotkeysOnce() {
       bindAllHotkeys(getState, dispatch);
     }
   });
+
+  // Listen for zoom events from menu (these bypass keybindings)
+  if (window.ipcRenderer) {
+    window.ipcRenderer.on('main:menu-zoom-in', () => {
+      window.ipcRenderer.send('main:zoom-in');
+    });
+
+    window.ipcRenderer.on('main:menu-zoom-out', () => {
+      window.ipcRenderer.send('main:zoom-out');
+    });
+
+    window.ipcRenderer.on('main:menu-zoom-reset', () => {
+      window.ipcRenderer.send('main:zoom-reset');
+    });
+  }
 }
 
 // init immediately at module load (no hooks, no render-time side effects)
@@ -562,6 +789,7 @@ export const HotkeysProvider = (props) => {
     showGlobalSearch,
     cloneCollectionModal,
     cloneCollectionItemModal,
+    showImportCollectionModal,
     showConfirmEnvironmentClose,
     showConfirmFolderCloseModal,
     showConfirmRequestCloseModal,
@@ -576,6 +804,34 @@ export const HotkeysProvider = (props) => {
           item={newRequestModal.item ? newRequestModal.item : null}
           collectionUid={newRequestModal?.collectionUid}
           onClose={() => store.dispatch(closeNewRequestModal())}
+        />
+      )}
+
+      {showImportCollectionModal.show && !showImportCollectionModal.importData && (
+        <ImportCollection
+          onClose={() => store.dispatch(toggleShowImportCollectionModal({ show: false }))}
+          handleSubmit={({ rawData, type }) => {
+            store.dispatch(toggleShowImportCollectionModal({ show: true, importData: { rawData, type } }));
+          }}
+        />
+      )}
+
+      {showImportCollectionModal.show && showImportCollectionModal.importData && (
+        <ImportCollectionLocation
+          rawData={showImportCollectionModal.importData.rawData}
+          format={showImportCollectionModal.importData.type}
+          onClose={() => store.dispatch(toggleShowImportCollectionModal({ show: false }))}
+          handleSubmit={(convertedCollection, collectionLocation, options = {}) => {
+            store.dispatch(importCollection(convertedCollection, collectionLocation, options))
+              .then(() => {
+                store.dispatch(toggleShowImportCollectionModal({ show: false }));
+                toast.success('Collection imported successfully');
+              })
+              .catch((err) => {
+                console.error(err);
+                toast.error('An error occurred while importing the collection');
+              });
+          }}
         />
       )}
 

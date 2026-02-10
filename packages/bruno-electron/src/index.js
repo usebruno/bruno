@@ -192,7 +192,8 @@ app.on('ready', async () => {
       nodeIntegration: true,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
-      webviewTag: true
+      webviewTag: true,
+      zoomFactor: 1.0 // Disable default zoom shortcuts, we handle them in the app
     },
     title: 'Bruno',
     icon: path.join(__dirname, 'about/256x256.png'),
@@ -219,6 +220,27 @@ app.on('ready', async () => {
       mainWindow.unmaximize();
     } else {
       mainWindow.maximize();
+    }
+  });
+
+  // Handle zoom shortcuts
+  ipcMain.on('main:zoom-in', () => {
+    if (mainWindow && mainWindow.webContents) {
+      const currentZoom = mainWindow.webContents.getZoomLevel();
+      mainWindow.webContents.setZoomLevel(currentZoom + 0.5);
+    }
+  });
+
+  ipcMain.on('main:zoom-out', () => {
+    if (mainWindow && mainWindow.webContents) {
+      const currentZoom = mainWindow.webContents.getZoomLevel();
+      mainWindow.webContents.setZoomLevel(currentZoom - 0.5);
+    }
+  });
+
+  ipcMain.on('main:zoom-reset', () => {
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.setZoomLevel(0);
     }
   });
 

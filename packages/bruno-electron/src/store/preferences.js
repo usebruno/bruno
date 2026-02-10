@@ -69,18 +69,18 @@ const defaultPreferences = {
     openPreferences: { mac: 'command+bind+,', windows: 'ctrl+bind+,', name: 'Open Preferences' },
     changeLayout: { mac: 'command+bind+j', windows: 'ctrl+bind+j', name: 'Change Orientation' },
     closeBruno: {
-      mac: 'command+bind+Q',
+      mac: 'command+bind+q',
       windows: 'ctrl+bind+shift+bind+q',
       name: 'Close Bruno'
     },
     switchToPreviousTab: {
-      mac: 'command+bind+pageup',
-      windows: 'ctrl+bind+pageup',
+      mac: 'command+bind+2',
+      windows: 'ctrl+bind+2',
       name: 'Switch to Previous Tab'
     },
     switchToNextTab: {
-      mac: 'command+bind+pagedown',
-      windows: 'ctrl+bind+pagedown',
+      mac: 'command+bind+1',
+      windows: 'ctrl+bind+1',
       name: 'Switch to Next Tab'
     },
     moveTabLeft: {
