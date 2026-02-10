@@ -908,42 +908,224 @@ paths:
     // Should produce an empty array
     expect(request.request.body.json).toBe('[]');
   });
+});
 
-  it('should use content-level examples for text/plain requestBody', () => {
-    const openApiSpec = `
+describe('content-level example vs examples priority', () => {
+  it('should prefer singular example over examples (plural) and fall back to examples when example is absent', () => {
+    const spec = `
 openapi: "3.1.0"
 info:
   version: "1.0.0"
-  title: "Text Body Examples Test"
+  title: "Test"
 servers:
   - url: "https://api.example.com"
 paths:
+  /both:
+    post:
+      summary: "Both example and examples"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+            example:
+              name: "from singular"
+            examples:
+              first:
+                value:
+                  name: "from plural"
+      responses:
+        "200":
+          description: "OK"
+  /only-examples:
+    post:
+      summary: "Only examples plural"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+            examples:
+              first:
+                value:
+                  name: "from plural"
+      responses:
+        "200":
+          description: "OK"
+  /schema-wins:
+    post:
+      summary: "Schema example wins over all"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: "from schema"
+            example:
+              name: "from content"
+            examples:
+              first:
+                value:
+                  name: "from plural"
+      responses:
+        "200":
+          description: "OK"
+`;
+    const result = openApiToBruno(spec);
+
+    // When both example and examples exist, singular example wins
+    const bothBody = JSON.parse(result.items.find((i) => i.name === 'Both example and examples').request.body.json);
+    expect(bothBody.name).toBe('from singular');
+
+    // When only examples exists, it is used as fallback
+    const pluralBody = JSON.parse(result.items.find((i) => i.name === 'Only examples plural').request.body.json);
+    expect(pluralBody.name).toBe('from plural');
+
+    // schema.example priority over both content-level example and examples
+    const schemaBody = JSON.parse(result.items.find((i) => i.name === 'Schema example wins over all').request.body.json);
+    expect(schemaBody.name).toBe('from schema');
+  });
+});
+
+describe('content-level example values for each body type', () => {
+  const spec = `
+openapi: "3.1.0"
+info:
+  version: "1.0.0"
+  title: "Test"
+servers:
+  - url: "https://api.example.com"
+paths:
+  /json:
+    post:
+      summary: "JSON body"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+            example:
+              name: "json example"
+      responses:
+        "200":
+          description: "OK"
+  /xml:
+    post:
+      summary: "XML body"
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+            example:
+              name: "xml example"
+      responses:
+        "200":
+          description: "OK"
   /text:
     post:
-      summary: "Post text"
-      operationId: "postText"
+      summary: "Text body"
       requestBody:
-        required: true
         content:
           text/plain:
             schema:
               type: string
-            examples:
-              plainText:
-                summary: Plain text body example
-                value: |
-                  This is a plain text payload.
-                  It can be any arbitrary text.
+            example: "plain text example"
+      responses:
+        "200":
+          description: "OK"
+  /form:
+    post:
+      summary: "Form body"
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+            example:
+              username: "form_user"
+      responses:
+        "200":
+          description: "OK"
+  /multipart:
+    post:
+      summary: "Multipart body"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                desc:
+                  type: string
+            example:
+              desc: "multipart desc"
+      responses:
+        "200":
+          description: "OK"
+  /sparql:
+    post:
+      summary: "SPARQL body"
+      requestBody:
+        content:
+          application/sparql-query:
+            schema:
+              type: string
+            example: "SELECT * WHERE { ?s ?p ?o }"
       responses:
         "200":
           description: "OK"
 `;
 
-    const result = openApiToBruno(openApiSpec);
-    const request = result.items[0];
+  it('should import content-level example for JSON body', () => {
+    const result = openApiToBruno(spec);
+    const body = JSON.parse(result.items.find((i) => i.name === 'JSON body').request.body.json);
+    expect(body.name).toBe('json example');
+  });
 
-    expect(request.request.body.mode).toBe('text');
-    expect(request.request.body.text).toContain('This is a plain text payload.');
-    expect(request.request.body.text).toContain('It can be any arbitrary text.');
+  it('should import content-level example for XML body', () => {
+    const result = openApiToBruno(spec);
+    const xml = result.items.find((i) => i.name === 'XML body').request.body.xml;
+    expect(xml).toContain('<name>xml example</name>');
+  });
+
+  it('should import content-level example for text/plain body', () => {
+    const result = openApiToBruno(spec);
+    const text = result.items.find((i) => i.name === 'Text body').request.body.text;
+    expect(text).toBe('plain text example');
+  });
+
+  it('should import content-level example for form-urlencoded body', () => {
+    const result = openApiToBruno(spec);
+    const field = result.items.find((i) => i.name === 'Form body').request.body.formUrlEncoded.find((f) => f.name === 'username');
+    expect(field.value).toBe('form_user');
+  });
+
+  it('should import content-level example for multipart body', () => {
+    const result = openApiToBruno(spec);
+    const field = result.items.find((i) => i.name === 'Multipart body').request.body.multipartForm.find((f) => f.name === 'desc');
+    expect(field.value).toBe('multipart desc');
+  });
+
+  it('should import content-level example for SPARQL body', () => {
+    const result = openApiToBruno(spec);
+    const sparql = result.items.find((i) => i.name === 'SPARQL body').request.body.sparql;
+    expect(sparql).toBe('SELECT * WHERE { ?s ?p ?o }');
   });
 });
