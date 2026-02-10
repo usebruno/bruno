@@ -407,7 +407,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     },
     {
       id: 'clone-request',
-      label: 'Clone Request 33',
+      label: 'Clone Request',
       onClick: () => {
         dispatch(openCollectionCloneItemModal({ item: currentTabItem, collectionUid: collection.uid }));
       }
