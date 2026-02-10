@@ -98,12 +98,10 @@ const findCollectionPathByItemPath = (filePath) => {
       const metadataContent = fs.readFileSync(metadataPath, 'utf8');
       const metadata = JSON.parse(metadataContent);
 
-      // For scratch collections, the temp directory itself is the collection
       if (metadata.type === 'scratch') {
         return transientDirPath;
       }
 
-      // For transient requests, return the original collection path
       if (metadata.collectionPath) {
         return metadata.collectionPath;
       }
@@ -1920,48 +1918,37 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  // Save scratch request to a collection (move from temp to permanent location)
   ipcMain.handle('renderer:save-scratch-request', async (event, { sourcePathname, targetDirname, targetFilename, request }) => {
     try {
-      // Validate source exists
       if (!fs.existsSync(sourcePathname)) {
         throw new Error(`Source path: ${sourcePathname} does not exist`);
       }
 
-      // Validate target directory exists
       if (!fs.existsSync(targetDirname)) {
         throw new Error(`Target directory: ${targetDirname} does not exist`);
       }
 
-      // Check if the target directory is inside a collection
       validatePathIsInsideCollection(targetDirname);
 
-      // Determine the collection format from target directory
       const collectionPath = findCollectionPathByItemPath(targetDirname);
       if (!collectionPath) {
         throw new Error('Could not determine collection for target directory');
       }
       const format = getCollectionFormat(collectionPath);
 
-      // Use provided target filename or fall back to source filename
       const filename = targetFilename || path.basename(sourcePathname);
-      // Ensure filename has correct extension for target collection format
       const filenameWithoutExt = filename.replace(/\.(bru|yml)$/, '');
       const finalFilename = `${filenameWithoutExt}.${format}`;
       const targetPathname = path.join(targetDirname, finalFilename);
 
-      // Check for filename conflicts and throw error if exists
       if (fs.existsSync(targetPathname)) {
         throw new Error(`A file with the name "${finalFilename}" already exists in the target location`);
       }
 
-      // Stringify the request in the target collection's format
       const content = await stringifyRequestViaWorker(request, { format });
 
-      // Create new file at target location with the content
       await writeFile(targetPathname, content);
 
-      // Return the new pathname (file watcher will handle adding to Redux)
       return { newPathname: targetPathname };
     } catch (error) {
       console.error('Error saving scratch request:', error);

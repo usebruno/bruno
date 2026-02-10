@@ -2439,6 +2439,40 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
   });
 };
 
+export const openScratchCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const existingCollection = state.collections.collections.find(
+      (c) => normalizePath(c.pathname) === normalizePath(pathname)
+    );
+
+    if (existingCollection) {
+      resolve();
+      return;
+    }
+
+    const collection = {
+      version: '1',
+      uid: uid,
+      name: brunoConfig.name,
+      pathname: pathname,
+      items: [],
+      runtimeVariables: {},
+      brunoConfig: brunoConfig
+    };
+
+    ipcRenderer.invoke('renderer:get-collection-security-config', pathname).then((securityConfig) => {
+      collectionSchema
+        .validate(collection)
+        .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
+        .then(resolve)
+        .catch(reject);
+    });
+  });
+};
+
 export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
   const { ipcRenderer } = window;
 
@@ -2446,8 +2480,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     const state = getState();
     const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
     const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables || {};
-
-    const isScratchCollection = state.workspaces.workspaces.some((w) => w.scratchCollectionUid === uid);
 
     const existingCollection = state.collections.collections.find(
       (c) => normalizePath(c.pathname) === normalizePath(pathname)
@@ -2457,20 +2489,18 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
       (c) => normalizePath(c.path) === normalizePath(pathname)
     );
 
-    if (existingCollection && (isAlreadyInWorkspace || isScratchCollection)) {
-      if (!isScratchCollection) {
-        toast.success('Collection is already opened');
-      }
+    if (existingCollection && isAlreadyInWorkspace) {
+      toast.success('Collection is already opened');
       resolve();
       return;
     }
 
     if (existingCollection) {
-      if (state.app.sidebarCollapsed && !isScratchCollection) {
+      if (state.app.sidebarCollapsed) {
         dispatch(toggleSidebarCollapse());
       }
 
-      if (activeWorkspace && !isScratchCollection) {
+      if (activeWorkspace) {
         const workspaceCollection = {
           name: brunoConfig.name,
           path: pathname
@@ -2510,7 +2540,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
         .then(() => {
           const currentState = getState();
-          if (currentState.app.sidebarCollapsed && !isScratchCollection) {
+          if (currentState.app.sidebarCollapsed) {
             dispatch(toggleSidebarCollapse());
           }
 
@@ -2518,7 +2548,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
             (w) => w.uid === currentState.workspaces.activeWorkspaceUid
           );
 
-          if (currentWorkspace && !isScratchCollection) {
+          if (currentWorkspace) {
             ipcRenderer.invoke('renderer:set-collection-workspace', uid, currentWorkspace.pathname);
 
             const alreadyInWorkspace = currentWorkspace.collections?.some(

@@ -10,7 +10,7 @@ import {
   setWorkspaceScratchCollection
 } from '../workspaces';
 import { showHomePage } from '../app';
-import { createCollection, openCollection, openMultipleCollections, openCollectionEvent } from '../collections/actions';
+import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus } from '../collections';
 import { updateGlobalEnvironments } from '../global-environments';
 import { addTab, focusTab } from '../tabs';
@@ -921,7 +921,7 @@ export const mountScratchCollection = (workspaceUid) => {
         brunoConfig
       });
 
-      await dispatch(openCollectionEvent(scratchCollectionUid, tempDirectoryPath, brunoConfig));
+      await dispatch(openScratchCollectionEvent(scratchCollectionUid, tempDirectoryPath, brunoConfig));
 
       // Register as transient directory so CreateTransientRequest can create items
       dispatch(addTransientDirectory({

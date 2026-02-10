@@ -10,11 +10,6 @@ const { parseCollection } = require('@usebruno/filestore');
 // Track scratch collection paths (temp directories for workspace scratch requests)
 const scratchCollectionPaths = new Set();
 
-// Helper to check if a path is a registered scratch collection
-const isScratchCollectionPath = (collectionPath) => {
-  return scratchCollectionPaths.has(path.normalize(collectionPath));
-};
-
 // Register a scratch collection path
 const registerScratchCollectionPath = (scratchPath) => {
   scratchCollectionPaths.add(path.normalize(scratchPath));
@@ -118,7 +113,6 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       let brunoConfig = await getCollectionConfigFile(collectionPath);
       const uid = generateUidBasedOnHash(collectionPath);
       brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
-
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
