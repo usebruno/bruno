@@ -4,8 +4,7 @@ const StyledWrapper = styled.div`
   /* IMPORTANT: allow a flex child to actually scroll */
   min-height: 0;
 
-  /* If parent gives a height, this will take it.
-     If not, you can set a max-height here (optional). */
+  /* Take parent height (preferences pane), scroll happens inside table-container */
   height: 100%;
 
   display: flex;
@@ -23,21 +22,35 @@ const StyledWrapper = styled.div`
     gap: 10px;
   }
 
+  /* Pencil appears subtly on row hover */
+  .keybinding-row:hover .edit-btn {
+    opacity: 0.9;
+  }
+
   .shortcut-wrap {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    width: 260px;
-    flex: 0 0 260px;
+    min-width: 260px;
+    flex: 1;
   }
 
   .shortcut-input {
-    width: 100%;
-    max-width: 100%;
+    /* keep width stable */
+    width: 200px;
+    max-width: 200px;
+    flex-shrink: 0;
+
+    /* show normal caret when editable */
+    caret-color: ${(props) => props.theme.table.input.color};
+
     white-space: nowrap;
     overflow: hidden;
-    outline:none;
     text-overflow: ellipsis;
+
+    /* remove borders */
+    border: none;
+    outline: none;
     background: transparent;
 
     font-family: monospace;
@@ -57,28 +70,36 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .recording-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 100%;
-    background: currentColor;
-    opacity: 0.45;
+  .edit-btn {
+    background: transparent;
+    border: none;
+    color: ${(props) => props.theme.table.thead.color};
+    padding: 0;
+    cursor: pointer;
+    opacity: 0.6;
+
+    &:hover {
+      opacity: 1;
+    }
   }
 
   .reset-btn {
     background: transparent;
+    border: none;
     color: ${(props) => props.theme.table.thead.color};
     border-radius: 8px;
-    padding: 6px 10px;
+    padding: 0px;
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
   }
 
   .shortcut-error {
-    margin-top: 4px;
+    color: ${(props) => props.theme.colors?.text?.red || '#ef4444'};
     font-size: 11px;
-    opacity: 0.75;
+    margin-left: 8px;
+    white-space: nowrap;
+    font-weight: 500;
   }
 
   .shortcut-input--error {
@@ -90,7 +111,7 @@ const StyledWrapper = styled.div`
   /* ✅ This is THE scroll container */
   .table-container {
     flex: 1 1 auto;
-    min-height: 0;         /* crucial for scrolling in flex layouts */
+    min-height: 0; /* crucial for scrolling in flex layouts */
     max-height: 650px;
     overflow-y: auto;
 
@@ -98,7 +119,7 @@ const StyledWrapper = styled.div`
     border-top: 1px solid ${(props) => props.theme.table.border};
     border-bottom: 1px solid ${(props) => props.theme.table.border};
 
-    /* hide scrollbar (works in Chromium/Electron) */
+    /* hide scrollbar (Chromium/Electron) */
     &::-webkit-scrollbar {
       width: 0;
       height: 0;
@@ -130,7 +151,11 @@ const StyledWrapper = styled.div`
     top: 0;
     z-index: 5;
 
+    /* solid bg + blur so rows never bleed through */
     background: ${(props) => props.theme.background};
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+
     color: ${(props) => props.theme.table.thead.color};
     font-size: ${(props) => props.theme.font.size.base};
     user-select: none;
