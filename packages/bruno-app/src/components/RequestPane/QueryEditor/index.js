@@ -85,16 +85,16 @@ export default class QueryEditor extends React.Component {
         'Alt-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
         'Shift-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
         'Shift-Alt-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
-        'Cmd-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
+        // 'Cmd-Enter': () => {
+        //   if (this.props.onRun) {
+        //     this.props.onRun();
+        //   }
+        // },
+        // 'Ctrl-Enter': () => {
+        //   if (this.props.onRun) {
+        //     this.props.onRun();
+        //   }
+        // },
         'Shift-Ctrl-C': () => {
           if (this.props.onCopyQuery) {
             this.props.onCopyQuery();

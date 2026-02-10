@@ -73,13 +73,6 @@ const WorkspaceOverview = ({ workspace }) => {
         <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} />
       )}
 
-      {showImportCollectionModal.show && (
-        <ImportCollection
-          onClose={() => dispatch(toggleShowImportCollectionModal({ show: false }))}
-          handleSubmit={handleImportCollectionSubmit}
-        />
-      )}
-
       {importCollectionLocationModalOpen && importData && (
         <ImportCollectionLocation
           rawData={importData.rawData}
