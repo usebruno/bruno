@@ -222,6 +222,7 @@ const DotEnvFileEditor = ({
       .catch((error) => {
         console.error(error);
         toast.error('An error occurred while saving the changes');
+        window.dispatchEvent(new Event('dotenv-save-failed'));
       })
       .finally(() => {
         setIsSaving(false);
@@ -246,6 +247,7 @@ const DotEnvFileEditor = ({
       .catch((error) => {
         console.error(error);
         toast.error('An error occurred while saving the changes');
+        window.dispatchEvent(new Event('dotenv-save-failed'));
       })
       .finally(() => {
         setIsSaving(false);
