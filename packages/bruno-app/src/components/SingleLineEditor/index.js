@@ -169,7 +169,7 @@ class SingleLineEditor extends Component {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      //TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
+      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
       const nextValue = String(this.props.value ?? '');
       const currentValue = this.editor.getValue();
       if (this.editor.hasFocus?.() && currentValue !== nextValue) {
