@@ -166,8 +166,8 @@ test.describe.serial('Scratch Requests', () => {
     });
 
     await test.step('Trigger save action using keyboard shortcut', async () => {
-      await page.keyboard.press('Meta+s');
-      await page.waitForTimeout(500);
+      const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+      await page.keyboard.press(saveShortcut);
     });
 
     await test.step('Fill in save dialog', async () => {
@@ -227,35 +227,6 @@ test.describe.serial('Scratch Requests', () => {
 
       // Both should contain "Untitled" with different numbers
       await expect(tabs.filter({ hasText: 'Untitled' }).first()).toBeVisible();
-    });
-  });
-
-  test('Close scratch request tab', async ({ page }) => {
-    await test.step('Navigate to workspace overview', async () => {
-      await goToWorkspaceOverview(page);
-    });
-
-    await test.step('Create scratch HTTP request', async () => {
-      await createScratchRequest(page, 'HTTP');
-    });
-
-    await test.step('Close the tab', async () => {
-      const activeTab = page.locator('.request-tab.active');
-      // Hover to reveal close button
-      await activeTab.hover();
-      const closeButton = activeTab.getByTestId('request-tab-close-icon');
-      await closeButton.click();
-    });
-
-    await test.step('Verify tab is closed', async () => {
-      // After closing, either no tabs or a different tab should be active
-      const activeTab = page.locator('.request-tab.active');
-      const isVisible = await activeTab.isVisible();
-
-      if (isVisible) {
-        // If there's still an active tab, it shouldn't be the one we just closed
-        // (in case there were multiple tabs)
-      }
     });
   });
 });

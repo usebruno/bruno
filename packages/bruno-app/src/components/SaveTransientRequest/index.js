@@ -8,6 +8,7 @@ import filter from 'lodash/filter';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import CollectionListItem from './CollectionListItem';
+import FolderBreadcrumbs from './FolderBreadcrumbs';
 import useCollectionFolderTree from 'hooks/useCollectionFolderTree';
 import { removeSaveTransientRequestModal } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
@@ -42,7 +43,9 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
     return (activeWorkspace.collections || []).map((wc) => {
       const fullCollection = allCollections.find((c) => c.pathname === wc.path);
-      return fullCollection || { ...wc, uid: null, mountStatus: 'unmounted' };
+      // Use stable deterministic UID based on path to avoid duplicate Redux entries
+      const stableUid = wc.path ? `pending-${wc.path.replace(/[^a-zA-Z0-9]/g, '-')}` : uuid();
+      return fullCollection || { ...wc, uid: stableUid, mountStatus: 'unmounted' };
     }).filter((c) => !workspaces.some((w) => w.scratchCollectionUid === c.uid));
   }, [isScratchCollection, activeWorkspace, allCollections, workspaces]);
 
@@ -94,8 +97,8 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     isAtRoot
   } = useCollectionFolderTree(folderTreeCollectionUid);
 
-  const resetForm = () => {
-    setRequestName(item.name || '');
+  const resetForm = useCallback(() => {
+    setRequestName(item?.name || '');
     setSearchText('');
     reset();
     setShowNewFolderInput(false);
@@ -106,13 +109,13 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     setPendingFolderNavigation(null);
     setSelectedTargetCollectionPath(null);
     setIsSelectingCollection(isScratchCollection);
-  };
+  }, [item?.name, isScratchCollection, reset]);
 
   useEffect(() => {
     if (isOpen && item) {
       resetForm();
     }
-  }, [isOpen, item]);
+  }, [isOpen, item, resetForm]);
 
   useEffect(() => {
     if (showNewFolderInput && newFolderInputRef.current) {
@@ -298,6 +301,11 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     setSearchText('');
   };
 
+  const handleBreadcrumbNavigate = useCallback((index) => {
+    navigateToBreadcrumb(index);
+    setSearchText('');
+  }, [navigateToBreadcrumb]);
+
   if (!isOpen) {
     return null;
   }
@@ -353,32 +361,13 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                 {!isSelectingCollection && (
                   <>
                     <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />
-                    <span
-                      className={!isAtRoot ? 'collection-name-breadcrumb' : ''}
-                      onClick={!isAtRoot ? navigateToRoot : undefined}
-                    >
-                      {(selectedTargetCollection || collection).name}
-                    </span>
-                    {breadcrumbs.length > 0 && (
-                      <>
-                        {breadcrumbs.map((breadcrumb, index) => (
-                          <React.Fragment key={breadcrumb.uid}>
-                            <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />
-                            <span
-                              className="collection-name-breadcrumb"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigateToBreadcrumb(index);
-                                setSearchText('');
-                              }}
-                            >
-                              {breadcrumb.name}
-                            </span>
-                          </React.Fragment>
-                        ))}
-                      </>
-                    )}
-                    {isAtRoot && <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />}
+                    <FolderBreadcrumbs
+                      collectionName={(selectedTargetCollection || collection).name}
+                      breadcrumbs={breadcrumbs}
+                      isAtRoot={isAtRoot}
+                      onNavigateToRoot={navigateToRoot}
+                      onNavigateToBreadcrumb={handleBreadcrumbNavigate}
+                    />
                   </>
                 )}
               </div>
@@ -412,32 +401,13 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
               <>
                 {!isScratchCollection && (selectedTargetCollection || collection) && (
                   <div className="collection-name">
-                    <span
-                      className={!isAtRoot ? 'collection-name-breadcrumb' : ''}
-                      onClick={!isAtRoot ? navigateToRoot : undefined}
-                    >
-                      {(selectedTargetCollection || collection).name}
-                    </span>
-                    {breadcrumbs.length > 0 && (
-                      <>
-                        {breadcrumbs.map((breadcrumb, index) => (
-                          <React.Fragment key={breadcrumb.uid}>
-                            <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />
-                            <span
-                              className="collection-name-breadcrumb"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigateToBreadcrumb(index);
-                                setSearchText('');
-                              }}
-                            >
-                              {breadcrumb.name}
-                            </span>
-                          </React.Fragment>
-                        ))}
-                      </>
-                    )}
-                    {isAtRoot && <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />}
+                    <FolderBreadcrumbs
+                      collectionName={(selectedTargetCollection || collection).name}
+                      breadcrumbs={breadcrumbs}
+                      isAtRoot={isAtRoot}
+                      onNavigateToRoot={navigateToRoot}
+                      onNavigateToBreadcrumb={handleBreadcrumbNavigate}
+                    />
                   </div>
                 )}
 

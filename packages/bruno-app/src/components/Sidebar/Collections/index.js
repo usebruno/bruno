@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import Collection from './Collection';
 import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
-import { useMemo } from 'react';
 import { normalizePath } from 'utils/common/path';
+import { isScratchCollection } from 'utils/collections';
 
 const Collections = ({ showSearch }) => {
   const [searchText, setSearchText] = useState('');
@@ -20,8 +20,7 @@ const Collections = ({ showSearch }) => {
     if (!activeWorkspace) return [];
 
     return collections.filter((c) => {
-      const isScratchCollection = workspaces.some((w) => w.scratchCollectionUid === c.uid);
-      if (isScratchCollection) {
+      if (isScratchCollection(c, workspaces)) {
         return false;
       }
       return activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname));

@@ -43,9 +43,6 @@ const MIN_TOP_PANE_HEIGHT = 150;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 
 const RequestTabPanel = () => {
-  if (typeof window == 'undefined') {
-    return <div></div>;
-  }
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -172,6 +169,10 @@ const RequestTabPanel = () => {
       }
     }
   }, [isConsoleOpen, isVerticalLayout]);
+
+  if (typeof window == 'undefined') {
+    return <div></div>;
+  }
 
   if (!activeTabUid || !focusedTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;

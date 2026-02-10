@@ -64,11 +64,6 @@ const useCollectionFolderTree = (collectionUid) => {
   const [currentFolderPath, setCurrentFolderPath] = useState([]);
   const [selectedFolderUid, setSelectedFolderUid] = useState(null);
 
-  useEffect(() => {
-    setCurrentFolderPath([]);
-    setSelectedFolderUid(null);
-  }, [collectionUid]);
-
   const tree = useMemo(() => {
     if (!collection || !collection.items) {
       return {};
@@ -148,6 +143,10 @@ const useCollectionFolderTree = (collectionUid) => {
     setCurrentFolderPath([]);
     setSelectedFolderUid(null);
   }, []);
+
+  useEffect(() => {
+    reset();
+  }, [collectionUid, reset]);
 
   return {
     currentFolders,

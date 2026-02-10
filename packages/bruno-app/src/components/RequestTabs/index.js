@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
@@ -48,8 +48,10 @@ const RequestTabs = () => {
   const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
 
-  const isScratchCollection = activeCollection && workspaces.some((w) => w.scratchCollectionUid === activeCollection.uid);
-  const activeWorkspace = isScratchCollection ? workspaces.find((w) => w.scratchCollectionUid === activeCollection.uid) : null;
+  const { isScratchCollection, activeWorkspace } = useMemo(() => {
+    const ws = activeCollection ? workspaces.find((w) => w.scratchCollectionUid === activeCollection.uid) : null;
+    return { isScratchCollection: !!ws, activeWorkspace: ws };
+  }, [workspaces, activeCollection]);
 
   useEffect(() => {
     if (!activeTabUid || !activeTab) return;

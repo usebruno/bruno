@@ -196,8 +196,8 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .text-green-600 {
-    color: ${(props) => props.theme.colors.success || '#10b981'};
+  .icon-success {
+    color: ${(props) => props.theme.colors.success};
   }
 
   .custom-modal-footer {

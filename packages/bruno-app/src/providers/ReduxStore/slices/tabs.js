@@ -206,8 +206,13 @@ export const tabsSlice = createSlice({
     },
     closeAllCollectionTabs: (state, action) => {
       const { collectionUid } = action.payload;
+      const prevActiveTabUid = state.activeTabUid;
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
-      state.activeTabUid = state.tabs.length > 0 ? last(state.tabs).uid : null;
+
+      const activeTabStillExists = state.tabs.some((t) => t.uid === prevActiveTabUid);
+      if (!activeTabStillExists) {
+        state.activeTabUid = state.tabs.length > 0 ? last(state.tabs).uid : null;
+      }
     },
     makeTabPermanent: (state, action) => {
       const { uid } = action.payload;

@@ -402,14 +402,21 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       validatePathIsInsideCollection(targetDirname);
 
+      const collectionPath = findCollectionPathByItemPath(targetDirname);
+      if (!collectionPath) {
+        throw new Error('Could not determine collection for target directory');
+      }
+      const targetFormat = getCollectionFormat(collectionPath);
+
       const filename = targetFilename || path.basename(sourcePathname);
-      const targetPathname = path.join(targetDirname, filename);
+      const filenameWithoutExt = filename.replace(/\.(bru|yml)$/, '');
+      const finalFilename = `${filenameWithoutExt}.${targetFormat}`;
+      const targetPathname = path.join(targetDirname, finalFilename);
 
       if (fs.existsSync(targetPathname)) {
-        throw new Error(`A file with the name "${filename}" already exists in the target location`);
+        throw new Error(`A file with the name "${finalFilename}" already exists in the target location`);
       }
 
-      const targetFormat = format || 'bru';
       const actualSourceFormat = sourceFormat || 'yml';
       const needsConversion = actualSourceFormat !== targetFormat;
 
@@ -1948,6 +1955,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const content = await stringifyRequestViaWorker(request, { format });
 
       await writeFile(targetPathname, content);
+
+      if (request.examples) {
+        syncExampleUidsCache(collectionPath, request.examples);
+      }
 
       return { newPathname: targetPathname };
     } catch (error) {

@@ -34,7 +34,7 @@ const CollectionListItem = memo(({ collectionUid, collectionPath, collectionName
         <IconLoader2 size={16} strokeWidth={1.5} className="animate-spin" />
       )}
       {isFullyLoaded && (
-        <IconCheck size={16} strokeWidth={1.5} className="text-green-600" />
+        <IconCheck size={16} strokeWidth={1.5} className="icon-success" />
       )}
     </li>
   );

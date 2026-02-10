@@ -18,6 +18,7 @@ import {
 import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { normalizePath } from 'utils/common/path';
+import { isScratchCollection } from 'utils/collections';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
@@ -49,8 +50,7 @@ const CollectionsSection = () => {
     if (!activeWorkspace) return [];
 
     return collections.filter((c) => {
-      const isScratchCollection = workspaces.some((w) => w.scratchCollectionUid === c.uid);
-      if (isScratchCollection) {
+      if (isScratchCollection(c, workspaces)) {
         return false;
       }
       return activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname));

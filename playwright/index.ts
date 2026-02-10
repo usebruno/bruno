@@ -123,7 +123,8 @@ export const test = baseTest.extend<
           const handleModal = async () => {
             await page.waitForTimeout(500);
             const dontSaveButton = page.getByRole('button', { name: 'Don\'t Save' });
-            if (await dontSaveButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+            const isVisible = await dontSaveButton.waitFor({ state: 'visible', timeout: 1000 }).then(() => true).catch(() => false);
+            if (isVisible) {
               await dontSaveButton.click();
             }
           };

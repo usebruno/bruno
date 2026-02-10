@@ -2439,6 +2439,16 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
   });
 };
 
+/**
+ * Opens a scratch collection and creates it in Redux state.
+ * This is a simplified version of openCollectionEvent for scratch collections,
+ * without workspace management, toasts, or sidebar toggles.
+ *
+ * @param {string} uid - The unique identifier for the scratch collection
+ * @param {string} pathname - The filesystem path to the scratch collection
+ * @param {Object} brunoConfig - The Bruno configuration object for the collection
+ * @returns {Promise} Resolves when the collection is created, rejects on error
+ */
 export const openScratchCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
   const { ipcRenderer } = window;
 
@@ -2455,21 +2465,24 @@ export const openScratchCollectionEvent = (uid, pathname, brunoConfig) => (dispa
 
     const collection = {
       version: '1',
-      uid: uid,
+      uid,
       name: brunoConfig.name,
-      pathname: pathname,
+      pathname,
       items: [],
       runtimeVariables: {},
-      brunoConfig: brunoConfig
+      brunoConfig
     };
 
-    ipcRenderer.invoke('renderer:get-collection-security-config', pathname).then((securityConfig) => {
-      collectionSchema
-        .validate(collection)
-        .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
-        .then(resolve)
-        .catch(reject);
-    });
+    ipcRenderer
+      .invoke('renderer:get-collection-security-config', pathname)
+      .then((securityConfig) => {
+        collectionSchema
+          .validate(collection)
+          .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
+          .then(resolve)
+          .catch(reject);
+      })
+      .catch(reject);
   });
 };
 

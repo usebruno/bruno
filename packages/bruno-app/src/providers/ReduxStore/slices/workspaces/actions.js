@@ -902,12 +902,6 @@ export const mountScratchCollection = (workspaceUid) => {
       const { generateUidBasedOnHash } = await import('utils/common');
       const scratchCollectionUid = generateUidBasedOnHash(tempDirectoryPath);
 
-      dispatch(setWorkspaceScratchCollection({
-        workspaceUid,
-        scratchCollectionUid,
-        scratchTempDirectory: tempDirectoryPath
-      }));
-
       const brunoConfig = {
         opencollection: '1.0.0',
         name: 'Scratch',
@@ -923,7 +917,12 @@ export const mountScratchCollection = (workspaceUid) => {
 
       await dispatch(openScratchCollectionEvent(scratchCollectionUid, tempDirectoryPath, brunoConfig));
 
-      // Register as transient directory so CreateTransientRequest can create items
+      dispatch(setWorkspaceScratchCollection({
+        workspaceUid,
+        scratchCollectionUid,
+        scratchTempDirectory: tempDirectoryPath
+      }));
+
       dispatch(addTransientDirectory({
         collectionUid: scratchCollectionUid,
         pathname: tempDirectoryPath

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { IconCategory, IconDots, IconEdit, IconX, IconCheck, IconFolder, IconUpload } from '@tabler/icons';
 import { renameWorkspaceAction, exportWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
@@ -22,6 +22,12 @@ const WorkspaceHeader = ({ workspace }) => {
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
+  const handleCancelWorkspaceRename = useCallback(() => {
+    setIsRenamingWorkspace(false);
+    setWorkspaceNameInput('');
+    setWorkspaceNameError('');
+  }, []);
+
   useEffect(() => {
     if (!isRenamingWorkspace) return;
 
@@ -35,7 +41,7 @@ const WorkspaceHeader = ({ workspace }) => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isRenamingWorkspace]);
+  }, [isRenamingWorkspace, handleCancelWorkspaceRename]);
 
   if (!workspace) {
     return null;
@@ -84,10 +90,11 @@ const WorkspaceHeader = ({ workspace }) => {
   };
 
   const validateWorkspaceName = (name) => {
-    if (!name || name.trim() === '') {
+    const trimmed = name?.trim();
+    if (!trimmed) {
       return 'Name is required';
     }
-    if (name.length > 255) {
+    if (trimmed.length > 255) {
       return 'Must be 255 characters or less';
     }
     return null;
@@ -111,12 +118,6 @@ const WorkspaceHeader = ({ workspace }) => {
         toast.error(err?.message || 'An error occurred while renaming the workspace');
         setWorkspaceNameError(err?.message || 'Failed to rename workspace');
       });
-  };
-
-  const handleCancelWorkspaceRename = () => {
-    setIsRenamingWorkspace(false);
-    setWorkspaceNameInput('');
-    setWorkspaceNameError('');
   };
 
   const handleWorkspaceNameChange = (e) => {

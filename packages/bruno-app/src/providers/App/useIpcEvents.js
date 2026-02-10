@@ -286,7 +286,7 @@ const useIpcEvents = () => {
         addTab({
           type: 'preferences',
           uid: collectionUid ? `${collectionUid}-preferences` : 'preferences',
-          collectionUid: collectionUid
+          collectionUid
         })
       );
     });
