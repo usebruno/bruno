@@ -233,10 +233,16 @@ export default class CodeEditor extends React.Component {
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      const cursor = this.editor.getCursor();
-      this.cachedValue = this.props.value;
-      this.editor.setValue(this.props.value ?? '');
-      this.editor.setCursor(cursor);
+      const nextValue = this.props.value ?? '';
+      const currentValue = this.editor.getValue();
+      if (this.editor.hasFocus?.() && currentValue !== nextValue) {
+        this.cachedValue = currentValue;
+      } else {
+        const cursor = this.editor.getCursor();
+        this.cachedValue = nextValue;
+        this.editor.setValue(nextValue);
+        this.editor.setCursor(cursor);
+      }
     }
 
     if (this.editor) {

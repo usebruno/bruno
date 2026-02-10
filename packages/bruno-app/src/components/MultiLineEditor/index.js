@@ -154,10 +154,16 @@ class MultiLineEditor extends Component {
       this.editor.setOption('readOnly', this.props.readOnly);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      const cursor = this.editor.getCursor();
-      this.cachedValue = String(this.props.value);
-      this.editor.setValue(String(this.props.value) || '');
-      this.editor.setCursor(cursor);
+      const nextValue = String(this.props.value ?? '');
+      const currentValue = this.editor.getValue();
+      if (this.editor.hasFocus?.() && currentValue !== nextValue) {
+        this.cachedValue = currentValue;
+      } else {
+        const cursor = this.editor.getCursor();
+        this.cachedValue = nextValue;
+        this.editor.setValue(nextValue);
+        this.editor.setCursor(cursor);
+      }
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
       // If the secret flag has changed, update the editor to reflect the change

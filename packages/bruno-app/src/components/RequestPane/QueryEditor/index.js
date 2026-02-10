@@ -156,8 +156,14 @@ export default class QueryEditor extends React.Component {
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      this.cachedValue = this.props.value;
-      this.editor.setValue(this.props.value);
+      const nextValue = this.props.value ?? '';
+      const currentValue = this.editor.getValue();
+      if (this.editor.hasFocus?.() && currentValue !== nextValue) {
+        this.cachedValue = currentValue;
+      } else {
+        this.cachedValue = nextValue;
+        this.editor.setValue(nextValue);
+      }
     }
 
     if (this.props.theme !== prevProps.theme && this.editor) {
