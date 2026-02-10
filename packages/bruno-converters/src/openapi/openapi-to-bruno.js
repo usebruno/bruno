@@ -347,6 +347,12 @@ const BODY_TYPE_HANDLERS = [
   }
 ];
 
+const getContentLevelExample = (bodyContent) => {
+  if (bodyContent.example !== undefined) return bodyContent.example;
+  const firstExample = Object.values(bodyContent.examples ?? {})[0];
+  return firstExample?.value;
+};
+
 /**
  * Extracts or generates an example value from an OpenAPI schema
  * Handles objects, arrays, primitives, and explicit examples
@@ -742,7 +748,14 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     const content = get(_operationObject, 'requestBody.content', {});
     const mimeType = Object.keys(content)[0];
     const bodyContent = content[mimeType] || {};
-    const bodySchema = bodyContent.schema;
+    let bodySchema = bodyContent.schema;
+
+    if (bodySchema?.example === undefined) {
+      const contentExample = getContentLevelExample(bodyContent);
+      if (contentExample !== undefined) {
+        bodySchema = { ...bodySchema, example: contentExample };
+      }
+    }
 
     // Normalize: lowercase (object keys may vary in case)
     const normalizedMimeType = typeof mimeType === 'string' ? mimeType.toLowerCase() : '';
