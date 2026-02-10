@@ -125,6 +125,11 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         return;
       }
 
+      if (!validateName(trimmedName)) {
+        toast.error(validateNameError(trimmedName));
+        return;
+      }
+
       const sanitizedFilename = sanitizeName(trimmedName);
 
       const itemToSave = latestItem.draft ? { ...latestItem, ...latestItem.draft } : { ...latestItem };
