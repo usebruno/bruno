@@ -217,6 +217,7 @@ const DotEnvFileEditor = ({
         ];
         formik.resetForm({ values: newValues });
         setIsModified(false);
+        window.dispatchEvent(new Event('dotenv-save-complete'));
       })
       .catch((error) => {
         console.error(error);
@@ -240,6 +241,7 @@ const DotEnvFileEditor = ({
       .then(() => {
         toast.success('Changes saved successfully');
         setIsModified(false);
+        window.dispatchEvent(new Event('dotenv-save-complete'));
       })
       .catch((error) => {
         console.error(error);

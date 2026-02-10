@@ -236,6 +236,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         {showConfirmEnvironmentClose && tab.type === 'environment-settings' && (
           <ConfirmCloseEnvironment
             isGlobal={false}
+            isDotEnv={collection.environmentsDraft?.environmentUid?.startsWith('dotenv:')}
             onCancel={() => setShowConfirmEnvironmentClose(false)}
             onCloseWithoutSave={() => {
               dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
@@ -244,7 +245,14 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
             onSaveAndClose={() => {
               const draft = collection.environmentsDraft;
-              if (draft?.environmentUid && draft?.variables) {
+              if (draft?.environmentUid?.startsWith('dotenv:')) {
+                window.addEventListener('dotenv-save-complete', () => {
+                  dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
+                  dispatch(closeTabs({ tabUids: [tab.uid] }));
+                  setShowConfirmEnvironmentClose(false);
+                }, { once: true });
+                window.dispatchEvent(new Event('dotenv-save'));
+              } else if (draft?.environmentUid && draft?.variables) {
                 dispatch(saveEnvironment(draft.variables, draft.environmentUid, collection.uid))
                   .then(() => {
                     dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
@@ -263,6 +271,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         {showConfirmGlobalEnvironmentClose && tab.type === 'global-environment-settings' && (
           <ConfirmCloseEnvironment
             isGlobal={true}
+            isDotEnv={globalEnvironmentDraft?.environmentUid?.startsWith('dotenv:')}
             onCancel={() => setShowConfirmGlobalEnvironmentClose(false)}
             onCloseWithoutSave={() => {
               dispatch(clearGlobalEnvironmentDraft());
@@ -271,7 +280,14 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
             onSaveAndClose={() => {
               const draft = globalEnvironmentDraft;
-              if (draft?.environmentUid && draft?.variables) {
+              if (draft?.environmentUid?.startsWith('dotenv:')) {
+                window.addEventListener('dotenv-save-complete', () => {
+                  dispatch(clearGlobalEnvironmentDraft());
+                  dispatch(closeTabs({ tabUids: [tab.uid] }));
+                  setShowConfirmGlobalEnvironmentClose(false);
+                }, { once: true });
+                window.dispatchEvent(new Event('dotenv-save'));
+              } else if (draft?.environmentUid && draft?.variables) {
                 dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }))
                   .then(() => {
                     dispatch(clearGlobalEnvironmentDraft());
