@@ -585,9 +585,54 @@ describe('Response Translation', () => {
   });
 
   // --- BDD-style response assertions ---------------------------
-  // Note: BDD-style assertions that are property accesses (not function calls) like
-  // pm.response.to.be.ok are currently not transformed. Only call-based patterns
-  // like pm.response.to.have.jsonBody("path") are transformed.
+
+  it('should translate pm.response.to.be.ok', () => {
+    const code = 'pm.response.to.be.ok;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(200, 299)');
+  });
+
+  it('should translate pm.response.to.be.success', () => {
+    const code = 'pm.response.to.be.success;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(200, 299)');
+  });
+
+  it('should translate pm.response.to.be.redirection', () => {
+    const code = 'pm.response.to.be.redirection;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(300, 399)');
+  });
+
+  it('should translate pm.response.to.be.clientError', () => {
+    const code = 'pm.response.to.be.clientError;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(400, 499)');
+  });
+
+  it('should translate pm.response.to.be.serverError', () => {
+    const code = 'pm.response.to.be.serverError;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(500, 599)');
+  });
+
+  it('should translate pm.response.to.be.error', () => {
+    const code = 'pm.response.to.be.error;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.at.least(400)');
+  });
+
+  it('should handle BDD-style assertions inside test blocks', () => {
+    const code = `
+        pm.test("Status check", function() {
+            pm.response.to.be.ok;
+            pm.response.to.be.success;
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Status check", function() {');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(200, 299)');
+  });
 
   it('should translate pm.response.to.have.jsonBody with path', () => {
     const code = 'pm.response.to.have.jsonBody("user.id");';

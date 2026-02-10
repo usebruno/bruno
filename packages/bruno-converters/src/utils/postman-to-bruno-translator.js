@@ -435,15 +435,12 @@ const complexTransformations = [
   {
     pattern: 'pm.response.to.be.ok',
     transform: (path, j) => {
-      return j.memberExpression(
-        j.callExpression(
-          j.memberExpression(
-            j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-            j.identifier('to.be')
-          ),
-          [j.literal(200), j.literal(299)]
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
         ),
-        j.identifier('within')
+        [j.literal(200), j.literal(299)]
       );
     }
   },
@@ -593,24 +590,34 @@ function processTransformations(ast, transformedNodes) {
     }
 
     // Then check for complex transformations (O(1))
-    if (complexTransformationsMap.hasOwnProperty(memberExprStr)
-      && path.parent.value.type === 'CallExpression') {
-      const transform = complexTransformationsMap[memberExprStr];
-      const replacement = transform.transform(path, j);
-      if (Array.isArray(replacement)) {
-        replacement.forEach((nodePath, index) => {
-          if (index === 0) {
-            j(path.parent).replaceWith(nodePath);
-          } else {
-            j(path.parent.parent).insertAfter(nodePath);
-          }
-          transformedNodes.add(nodePath.node);
+    if (complexTransformationsMap.hasOwnProperty(memberExprStr)) {
+      const parentType = path.parent.value.type;
+
+      // Call-based patterns (e.g., pm.response.to.have.jsonBody("path"))
+      if (parentType === 'CallExpression') {
+        const transform = complexTransformationsMap[memberExprStr];
+        const replacement = transform.transform(path, j);
+        if (Array.isArray(replacement)) {
+          replacement.forEach((nodePath, index) => {
+            if (index === 0) {
+              j(path.parent).replaceWith(nodePath);
+            } else {
+              j(path.parent.parent).insertAfter(nodePath);
+            }
+            transformedNodes.add(nodePath.node);
+            transformedNodes.add(path.parent.node);
+          });
+        } else {
+          j(path.parent).replaceWith(replacement);
+          transformedNodes.add(path.node);
           transformedNodes.add(path.parent.node);
-        });
-      } else {
-        j(path.parent).replaceWith(replacement);
+        }
+      } else if (parentType === 'ExpressionStatement') {
+        // Property-access patterns used as statements (e.g., pm.response.to.be.ok;)
+        const transform = complexTransformationsMap[memberExprStr];
+        const replacement = transform.transform(path, j);
+        j(path).replaceWith(replacement);
         transformedNodes.add(path.node);
-        transformedNodes.add(path.parent.node);
       }
     }
   });
