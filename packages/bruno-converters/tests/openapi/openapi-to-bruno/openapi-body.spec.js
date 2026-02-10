@@ -908,4 +908,42 @@ paths:
     // Should produce an empty array
     expect(request.request.body.json).toBe('[]');
   });
+
+  it('should use content-level examples for text/plain requestBody', () => {
+    const openApiSpec = `
+openapi: "3.1.0"
+info:
+  version: "1.0.0"
+  title: "Text Body Examples Test"
+servers:
+  - url: "https://api.example.com"
+paths:
+  /text:
+    post:
+      summary: "Post text"
+      operationId: "postText"
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+            examples:
+              plainText:
+                summary: Plain text body example
+                value: |
+                  This is a plain text payload.
+                  It can be any arbitrary text.
+      responses:
+        "200":
+          description: "OK"
+`;
+
+    const result = openApiToBruno(openApiSpec);
+    const request = result.items[0];
+
+    expect(request.request.body.mode).toBe('text');
+    expect(request.request.body.text).toContain('This is a plain text payload.');
+    expect(request.request.body.text).toContain('It can be any arbitrary text.');
+  });
 });
