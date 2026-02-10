@@ -325,6 +325,41 @@ class Bru {
     return this.interpolate(this.collectionVariables[key]);
   }
 
+  setCollectionVar(key, value) {
+    if (!key) {
+      throw new Error('Creating a variable without specifying a name is not allowed.');
+    }
+
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters!`
+        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
+      );
+    }
+
+    this.collectionVariables[key] = value;
+  }
+
+  hasCollectionVar(key) {
+    return Object.hasOwn(this.collectionVariables, key);
+  }
+
+  deleteCollectionVar(key) {
+    delete this.collectionVariables[key];
+  }
+
+  deleteAllCollectionVars() {
+    for (let key in this.collectionVariables) {
+      if (this.collectionVariables.hasOwnProperty(key)) {
+        delete this.collectionVariables[key];
+      }
+    }
+  }
+
+  getAllCollectionVars() {
+    return Object.assign({}, this.collectionVariables);
+  }
+
   getFolderVar(key) {
     return this.interpolate(this.folderVariables[key]);
   }

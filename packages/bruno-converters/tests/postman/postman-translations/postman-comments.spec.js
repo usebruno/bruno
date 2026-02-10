@@ -10,7 +10,7 @@ describe('postmanTranslations - comment handling', () => {
     const expectedOutput = `
       console.log('This script does not contain pm commands.');
       const data = bru.getEnvVar('key');
-      bru.setVar('key', data);
+      bru.setCollectionVar('key', data);
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });

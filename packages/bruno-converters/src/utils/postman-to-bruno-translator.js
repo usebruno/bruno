@@ -29,13 +29,13 @@ const simpleTranslations = {
   'pm.variables.toObject': 'bru.getAllVars',
   'pm.variables.replaceIn': 'bru.interpolate',
   // Collection variables
-  'pm.collectionVariables.get': 'bru.getVar',
-  'pm.collectionVariables.set': 'bru.setVar',
-  'pm.collectionVariables.has': 'bru.hasVar',
-  'pm.collectionVariables.unset': 'bru.deleteVar',
+  'pm.collectionVariables.get': 'bru.getCollectionVar',
+  'pm.collectionVariables.set': 'bru.setCollectionVar',
+  'pm.collectionVariables.has': 'bru.hasCollectionVar',
+  'pm.collectionVariables.unset': 'bru.deleteCollectionVar',
   'pm.collectionVariables.replaceIn': 'bru.interpolate',
-  'pm.collectionVariables.clear': 'bru.deleteAllVars',
-  'pm.collectionVariables.toObject': 'bru.getAllVars',
+  'pm.collectionVariables.clear': 'bru.deleteAllCollectionVars',
+  'pm.collectionVariables.toObject': 'bru.getAllCollectionVars',
 
   // Request flow control
   'pm.setNextRequest': 'bru.setNextRequest',

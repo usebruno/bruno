@@ -281,7 +281,7 @@ describe('Response Translation', () => {
     const translatedCode = translateCode(code);
 
     expect(translatedCode).toContain('const items = res.getBody().items;');
-    expect(translatedCode).toContain('bru.setVar("item_" + i, items[i].id);');
+    expect(translatedCode).toContain('bru.setCollectionVar("item_" + i, items[i].id);');
   });
 
   it('should handle response JSON with optional chaining and nullish coalescing', () => {

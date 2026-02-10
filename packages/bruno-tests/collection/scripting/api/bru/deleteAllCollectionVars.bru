@@ -1,0 +1,26 @@
+meta {
+  name: deleteAllCollectionVars
+  type: http
+  seq: 28
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setCollectionVar("testDelAllCollectionA", "a");
+  bru.setCollectionVar("testDelAllCollectionB", "b");
+  bru.deleteAllCollectionVars();
+}
+
+tests {
+  test("should delete all collection vars", function() {
+    const valA = bru.getCollectionVar("testDelAllCollectionA");
+    const valB = bru.getCollectionVar("testDelAllCollectionB");
+    expect(valA).to.be.undefined;
+    expect(valB).to.be.undefined;
+  });
+}

@@ -203,6 +203,36 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getCollectionVar', getCollectionVar);
   getCollectionVar.dispose();
 
+  let setCollectionVar = vm.newFunction('setCollectionVar', function (key, value) {
+    bru.setCollectionVar(vm.dump(key), vm.dump(value));
+  });
+  vm.setProp(bruObject, 'setCollectionVar', setCollectionVar);
+  setCollectionVar.dispose();
+
+  let hasCollectionVar = vm.newFunction('hasCollectionVar', function (key) {
+    return marshallToVm(bru.hasCollectionVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'hasCollectionVar', hasCollectionVar);
+  hasCollectionVar.dispose();
+
+  let deleteCollectionVar = vm.newFunction('deleteCollectionVar', function (key) {
+    bru.deleteCollectionVar(vm.dump(key));
+  });
+  vm.setProp(bruObject, 'deleteCollectionVar', deleteCollectionVar);
+  deleteCollectionVar.dispose();
+
+  let deleteAllCollectionVars = vm.newFunction('deleteAllCollectionVars', function () {
+    bru.deleteAllCollectionVars();
+  });
+  vm.setProp(bruObject, 'deleteAllCollectionVars', deleteAllCollectionVars);
+  deleteAllCollectionVars.dispose();
+
+  let getAllCollectionVars = vm.newFunction('getAllCollectionVars', function () {
+    return marshallToVm(bru.getAllCollectionVars(), vm);
+  });
+  vm.setProp(bruObject, 'getAllCollectionVars', getAllCollectionVars);
+  getAllCollectionVars.dispose();
+
   let getTestResults = vm.newFunction('getTestResults', () => {
     const promise = vm.newPromise();
     bru
