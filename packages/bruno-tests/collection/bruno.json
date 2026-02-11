@@ -15,7 +15,8 @@
     "bypassProxy": ""
   },
   "scripts": {
-    "moduleWhitelist": ["crypto", "buffer", "form-data"]
+    "moduleWhitelist": ["crypto", "buffer", "form-data"],
+    "additionalContextRoots": ["../additional-context-root-lib"]
   },
   "clientCertificates": {
     "enabled": true,
