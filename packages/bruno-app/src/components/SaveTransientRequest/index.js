@@ -382,23 +382,28 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
                       {showFilesystemName && (
                         <div className="new-folder-filesystem-wrapper">
-                          <label className="new-folder-filesystem-label">Name on filesystem</label>
-                          <input
-                            type="text"
-                            className="new-folder-input"
-                            value={newFolderDirectoryName}
-                            onChange={(e) => handleDirectoryNameChange(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleCreateNewFolder();
-                              } else if (e.key === 'Escape') {
-                                e.stopPropagation();
-                                handleCancelNewFolder();
-                              }
-                            }}
-                          />
+                          <label className="new-folder-filesystem-label flex items-center font-medium">
+                            Folder Name <small className="font-normal text-muted ml-1">(on filesystem)</small>
+                          </label>
+                          <div className="filesystem-input-container">
+                            <IconFolder size={16} className="filesystem-input-icon" />
+                            <input
+                              type="text"
+                              className="filesystem-input font-mono"
+                              value={newFolderDirectoryName}
+                              onChange={(e) => handleDirectoryNameChange(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleCreateNewFolder();
+                                } else if (e.key === 'Escape') {
+                                  e.stopPropagation();
+                                  handleCancelNewFolder();
+                                }
+                              }}
+                            />
+                          </div>
                         </div>
                       )}
 
