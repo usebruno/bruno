@@ -83,6 +83,29 @@ const simpleTranslations = {
   // Cookies jar
   'bru.cookies.jar': 'pm.cookies.jar',
 
+  // Direct cookie access
+  'bru.cookies.get': 'pm.cookies.get',
+  'bru.cookies.has': 'pm.cookies.has',
+  'bru.cookies.toObject': 'pm.cookies.toObject',
+  'bru.cookies.toString': 'pm.cookies.toString',
+  'bru.cookies.clear': 'pm.cookies.clear',
+  'bru.cookies.delete': 'pm.cookies.remove',
+
+  // PropertyList cookie methods (1:1 mappings)
+  'bru.cookies.one': 'pm.cookies.one',
+  'bru.cookies.all': 'pm.cookies.all',
+  'bru.cookies.idx': 'pm.cookies.idx',
+  'bru.cookies.count': 'pm.cookies.count',
+  'bru.cookies.indexOf': 'pm.cookies.indexOf',
+  'bru.cookies.find': 'pm.cookies.find',
+  'bru.cookies.filter': 'pm.cookies.filter',
+  'bru.cookies.each': 'pm.cookies.each',
+  'bru.cookies.map': 'pm.cookies.map',
+  'bru.cookies.reduce': 'pm.cookies.reduce',
+  'bru.cookies.add': 'pm.cookies.add',
+  'bru.cookies.upsert': 'pm.cookies.upsert',
+  'bru.cookies.remove': 'pm.cookies.remove',
+
   // Testing
   'expect.fail': 'pm.expect.fail'
 };

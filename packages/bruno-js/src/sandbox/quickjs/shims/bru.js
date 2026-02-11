@@ -266,6 +266,133 @@ const addBruShimToContext = (vm, bru) => {
 
   let bruCookiesObject = vm.newObject();
 
+  let cookiesGet = vm.newFunction('get', function (name) {
+    return marshallToVm(bru.cookies.get(vm.dump(name)), vm);
+  });
+  vm.setProp(bruCookiesObject, 'get', cookiesGet);
+  cookiesGet.dispose();
+
+  let cookiesHas = vm.newFunction('has', function (name, value) {
+    const dumpedValue = value ? vm.dump(value) : undefined;
+    return marshallToVm(bru.cookies.has(vm.dump(name), dumpedValue), vm);
+  });
+  vm.setProp(bruCookiesObject, 'has', cookiesHas);
+  cookiesHas.dispose();
+
+  let cookiesToObject = vm.newFunction('toObject', function () {
+    return marshallToVm(bru.cookies.toObject(), vm);
+  });
+  vm.setProp(bruCookiesObject, 'toObject', cookiesToObject);
+  cookiesToObject.dispose();
+
+  const _cookiesClearFn = vm.newFunction('_clear', () => {
+    const promise = vm.newPromise();
+    bru.cookies.clear((err) => {
+      if (err) {
+        promise.reject(marshallToVm(cleanJson(err), vm));
+      } else {
+        promise.resolve(vm.undefined);
+      }
+    });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  _cookiesClearFn.consume((handle) => vm.setProp(bruCookiesObject, '_clear', handle));
+
+  const _cookiesDeleteFn = vm.newFunction('_delete', (name) => {
+    const promise = vm.newPromise();
+    bru.cookies.delete(vm.dump(name), (err) => {
+      if (err) {
+        promise.reject(marshallToVm(cleanJson(err), vm));
+      } else {
+        promise.resolve(vm.undefined);
+      }
+    });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  _cookiesDeleteFn.consume((handle) => vm.setProp(bruCookiesObject, '_delete', handle));
+
+  let cookiesToString = vm.newFunction('toString', function () {
+    return marshallToVm(bru.cookies.toString(), vm);
+  });
+  vm.setProp(bruCookiesObject, 'toString', cookiesToString);
+  cookiesToString.dispose();
+
+  // New PropertyList read methods
+  let cookiesOne = vm.newFunction('one', function (name) {
+    return marshallToVm(cleanCircularJson(bru.cookies.one(vm.dump(name))), vm);
+  });
+  vm.setProp(bruCookiesObject, 'one', cookiesOne);
+  cookiesOne.dispose();
+
+  let cookiesAll = vm.newFunction('all', function () {
+    return marshallToVm(cleanCircularJson(bru.cookies.all()), vm);
+  });
+  vm.setProp(bruCookiesObject, 'all', cookiesAll);
+  cookiesAll.dispose();
+
+  let cookiesIdx = vm.newFunction('idx', function (index) {
+    return marshallToVm(cleanCircularJson(bru.cookies.idx(vm.dump(index))), vm);
+  });
+  vm.setProp(bruCookiesObject, 'idx', cookiesIdx);
+  cookiesIdx.dispose();
+
+  let cookiesCount = vm.newFunction('count', function () {
+    return marshallToVm(bru.cookies.count(), vm);
+  });
+  vm.setProp(bruCookiesObject, 'count', cookiesCount);
+  cookiesCount.dispose();
+
+  let cookiesIndexOf = vm.newFunction('indexOf', function (item) {
+    return marshallToVm(bru.cookies.indexOf(vm.dump(item)), vm);
+  });
+  vm.setProp(bruCookiesObject, 'indexOf', cookiesIndexOf);
+  cookiesIndexOf.dispose();
+
+  // Async write methods (_add, _upsert, _remove)
+  const _cookiesAddFn = vm.newFunction('_add', (cookieObj) => {
+    const promise = vm.newPromise();
+    bru.cookies.add(vm.dump(cookieObj), (err) => {
+      if (err) {
+        promise.reject(marshallToVm(cleanJson(err), vm));
+      } else {
+        promise.resolve(vm.undefined);
+      }
+    });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  _cookiesAddFn.consume((handle) => vm.setProp(bruCookiesObject, '_add', handle));
+
+  const _cookiesUpsertFn = vm.newFunction('_upsert', (cookieObj) => {
+    const promise = vm.newPromise();
+    bru.cookies.upsert(vm.dump(cookieObj), (err) => {
+      if (err) {
+        promise.reject(marshallToVm(cleanJson(err), vm));
+      } else {
+        promise.resolve(vm.undefined);
+      }
+    });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  _cookiesUpsertFn.consume((handle) => vm.setProp(bruCookiesObject, '_upsert', handle));
+
+  const _cookiesRemoveFn = vm.newFunction('_remove', (name) => {
+    const promise = vm.newPromise();
+    bru.cookies.remove(vm.dump(name), (err) => {
+      if (err) {
+        promise.reject(marshallToVm(cleanJson(err), vm));
+      } else {
+        promise.resolve(vm.undefined);
+      }
+    });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  _cookiesRemoveFn.consume((handle) => vm.setProp(bruCookiesObject, '_remove', handle));
+
   const _jarFn = vm.newFunction('_jar', () => {
     const nativeJar = bru.cookies.jar();
     const jarObj = vm.newObject();
@@ -419,6 +546,38 @@ const addBruShimToContext = (vm, bru) => {
         }
       }
     };
+
+    {
+      const _clearDirect = globalThis.bru.cookies._clear;
+      const _deleteDirect = globalThis.bru.cookies._delete;
+      const callWithCallback = async (promiseFn, callback) => {
+        if (!callback) return await promiseFn();
+        try {
+          const result = await promiseFn();
+          try { await callback(null, result); } catch(cbErr) { return Promise.reject(cbErr); }
+        } catch(err) {
+          try { await callback(err, null); } catch(cbErr) { return Promise.reject(cbErr); }
+        }
+      };
+      globalThis.bru.cookies.clear = (cb) => callWithCallback(() => _clearDirect(), cb);
+      globalThis.bru.cookies.delete = (name, cb) => callWithCallback(() => _deleteDirect(name), cb);
+
+      // Async write wrappers for new PropertyList methods
+      const _addDirect = globalThis.bru.cookies._add;
+      const _upsertDirect = globalThis.bru.cookies._upsert;
+      const _removeDirect = globalThis.bru.cookies._remove;
+      globalThis.bru.cookies.add = (cookieObj, cb) => callWithCallback(() => _addDirect(cookieObj), cb);
+      globalThis.bru.cookies.upsert = (cookieObj, cb) => callWithCallback(() => _upsertDirect(cookieObj), cb);
+      globalThis.bru.cookies.remove = (name, cb) => callWithCallback(() => _removeDirect(name), cb);
+
+      // Iterator methods built on top of native all()
+      const _allNative = globalThis.bru.cookies.all;
+      globalThis.bru.cookies.each = (fn) => { _allNative().forEach(fn); };
+      globalThis.bru.cookies.filter = (fn) => _allNative().filter(fn);
+      globalThis.bru.cookies.find = (fn) => _allNative().find(fn);
+      globalThis.bru.cookies.map = (fn) => _allNative().map(fn);
+      globalThis.bru.cookies.reduce = (fn, acc) => _allNative().reduce(fn, acc);
+    }
 
     globalThis.bru.cookies.jar = () => {
       const _jar = globalThis.bru.cookies._jar();

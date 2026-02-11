@@ -2,7 +2,8 @@ const { cloneDeep } = require('lodash');
 const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { sendRequest, createSendRequest } = require('@usebruno/requests').scripting;
-const { jar: createCookieJar } = require('@usebruno/requests').cookies;
+const { jar: createCookieJar, getCookiesForUrl } = require('@usebruno/requests').cookies;
+const CookieList = require('./cookie-list');
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -26,8 +27,9 @@ class Bru {
    * @param {object} [certsAndProxyConfig.clientCertificates] - Client certificate configuration
    * @param {object} [certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
    * @param {object} [certsAndProxyConfig.systemProxyConfig] - System proxy configuration
+   * @param {string} requestUrl - The URL of the current request (used for cookie access)
    */
-  constructor(runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig) {
+  constructor(runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig, requestUrl) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.promptVariables = promptVariables || {};
@@ -42,49 +44,13 @@ class Bru {
     // Use createSendRequest with config if provided, otherwise use default sendRequest
     this.sendRequest = certsAndProxyConfig ? createSendRequest(certsAndProxyConfig) : sendRequest;
     this.runtime = runtime;
-    this.cookies = {
-      jar: () => {
-        const cookieJar = createCookieJar();
-
-        return {
-          getCookie: (url, cookieName, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.getCookie(interpolatedUrl, cookieName, callback);
-          },
-
-          getCookies: (url, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.getCookies(interpolatedUrl, callback);
-          },
-
-          setCookie: (url, nameOrCookieObj, valueOrCallback, maybeCallback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.setCookie(interpolatedUrl, nameOrCookieObj, valueOrCallback, maybeCallback);
-          },
-
-          setCookies: (url, cookiesArray, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.setCookies(interpolatedUrl, cookiesArray, callback);
-          },
-
-          // Clear entire cookie jar
-          clear: (callback) => {
-            return cookieJar.clear(callback);
-          },
-
-          // Delete cookies for a specific URL/domain
-          deleteCookies: (url, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.deleteCookies(interpolatedUrl, callback);
-          },
-
-          deleteCookie: (url, cookieName, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.deleteCookie(interpolatedUrl, cookieName, callback);
-          }
-        };
-      }
-    };
+    this.requestUrl = requestUrl;
+    this.cookies = new CookieList({
+      getUrl: () => this.interpolate(this.requestUrl),
+      interpolate: (str) => this.interpolate(str),
+      createCookieJar,
+      getCookiesForUrl
+    });
     // Holds variables that are marked as persistent by scripts
     this.persistentEnvVariables = {};
     this.runner = {
