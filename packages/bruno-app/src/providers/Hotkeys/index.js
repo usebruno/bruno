@@ -374,7 +374,7 @@ function bindAllHotkeys(getState, dispatch) {
       // Copy request or folder to clipboard
       if (item && (activeTab.type === 'request' || activeTab.type === 'folder-settings')) {
         dispatch(copyRequest(item));
-        toast.success('Item copied to clipboard');
+        toast.success(`${item.type === 'folder' ? 'Folder' : 'Request'} copied`);
       }
     }
   }, getState);
@@ -479,7 +479,6 @@ function bindAllHotkeys(getState, dispatch) {
     const state = getState();
     const enableShortCuts = state.keyBindings.enableShortCuts;
     if (enableShortCuts) {
-      console.log('Open Import Collection');
       dispatch(toggleShowImportCollectionModal({ show: true }));
     }
   }, getState);
