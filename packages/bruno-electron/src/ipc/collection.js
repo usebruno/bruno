@@ -515,7 +515,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // create environment
-  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables) => {
+  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables, color) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
       if (!fs.existsSync(envDirPath)) {
@@ -538,7 +538,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const environment = {
         name: uniqueName,
-        variables: variables || []
+        variables: variables || [],
+        color
       };
 
       if (envHasSecrets(environment)) {
@@ -747,6 +748,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const environmentWithInfo = (environment) => ({
         name: environment.name,
         variables: environment.variables,
+        color: environment.color,
         info: {
           type: 'bruno-environment',
           exportedAt: new Date().toISOString(),
