@@ -42,7 +42,8 @@ export const fromOpenCollectionEnvironments = (environments: Environment[] | und
         enabled: variable.disabled !== true,
         secret: isSecret
       };
-    })
+    }),
+    color: env.color || null
   }));
 };
 
