@@ -7,6 +7,7 @@ import { isMacOS } from 'utils/common/platform';
 
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { DEFAULT_KEY_BINDINGS } from 'providers/Hotkeys/keyMappings.js';
+import { Tooltip } from 'react-tooltip';
 
 const SEP = '+bind+';
 const getOS = () => (isMacOS() ? 'mac' : 'windows');
@@ -133,7 +134,7 @@ const Keybindings = () => {
 
   const os = getOS();
 
-  // ✅ Source of truth: merge defaults with user preferences
+  //  Source of truth: merge defaults with user preferences
   const keyBindings = useMemo(() => {
     const merged = {};
 
@@ -169,7 +170,7 @@ const Keybindings = () => {
   // ✏️ which row is allowed to edit (pencil clicked)
   const [editingAction, setEditingAction] = useState(null);
 
-  // ✅ hover tracking (for showing pencil/refresh only on hover row)
+  //  hover tracking (for showing pencil/refresh only on hover row)
   const [hoveredAction, setHoveredAction] = useState(null);
 
   // Recording state
@@ -435,26 +436,20 @@ const Keybindings = () => {
 
   const renderValue = (action) => {
     const arr
-      = recordingAction === action
-        ? draftByAction[action]
-        : fromKeysString(getCurrentRowKeysString(action));
+      = recordingAction === action ? draftByAction[action] : fromKeysString(getCurrentRowKeysString(action));
 
     return (arr || []).join(' + ');
   };
 
-  const getRowTooltip = (action) => {
-    const err = errorByAction[action]?.message;
-    if (err) return err;
-
-    // helpful tooltip while editing
-    if (editingAction === action) return 'Hold a combo, release to save. Backspace clears.';
-
-    // show current shortcut as tooltip when truncated
-    return renderValue(action);
-  };
-
   return (
     <StyledWrapper className="w-full">
+      <Tooltip
+        id="kb-editing-error-tooltip"
+        place="bottom-start"
+        opacity={1}
+        className="kb-tooltip kb-tooltip--error"
+      />
+
       <div className="section-header">Keybindings</div>
 
       <div className="table-container">
@@ -473,11 +468,11 @@ const Keybindings = () => {
                 const isHovered = hoveredAction === action;
                 const isDirty = isRowDirty(action);
 
-                // ✅ Requirement:
-                // - show pencil ONLY on hover and ONLY when not dirty
-                // - show refresh ALWAYS when dirty (not just on hover)
                 const showPencil = isHovered && !isEditing && !isDirty;
                 const showRefresh = isDirty && !isEditing;
+                const hasError = Boolean(errorByAction[action]?.message);
+                const errorMessage = errorByAction[action]?.message;
+                const inputId = `kb-input-${action}`;
 
                 return (
                   <tr
@@ -492,13 +487,12 @@ const Keybindings = () => {
                       <div className="keybinding-row">
                         <div className="shortcut-wrap">
                           <input
+                            id={inputId}
                             ref={(el) => {
                               if (el) inputRefs.current[action] = el;
                             }}
                             data-testid={`keybinding-input-${action}`}
-                            className={`shortcut-input ${
-                              errorByAction[action]?.message ? 'shortcut-input--error' : ''
-                            }`}
+                            className={`shortcut-input ${hasError ? 'shortcut-input--error' : ''}`}
                             value={renderValue(action)}
                             readOnly={!isEditing}
                             onKeyDown={(e) => handleKeyDown(action, e)}
@@ -507,21 +501,20 @@ const Keybindings = () => {
                               if (isEditing) stopEditing(action);
                             }}
                             spellCheck={false}
-                            title={getRowTooltip(action)}
                           />
-
-                          {/* Show error message next to input */}
-                          {errorByAction[action]?.message && (
-                            <div
-                              className="shortcut-error"
-                              data-testid={`keybinding-error-${action}`}
-                            >
-                              {errorByAction[action].message}
-                            </div>
+                          {isEditing && hasError && (
+                            <Tooltip
+                              id={`kb-editing-error-tooltip-${action}`}
+                              anchorSelect={`#${inputId}`}
+                              place="bottom-start"
+                              opacity={1}
+                              isOpen={true}
+                              content={errorMessage}
+                              className="kb-tooltip kb-tooltip--error"
+                            />
                           )}
                         </div>
 
-                        {/* Show pencil on hover (when not dirty), show refresh always when dirty */}
                         {showRefresh && (
                           <button
                             type="button"

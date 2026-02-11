@@ -1,10 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  /* IMPORTANT: allow a flex child to actually scroll */
   min-height: 0;
-
-  /* Take parent height (preferences pane), scroll happens inside table-container */
   height: 100%;
 
   display: flex;
@@ -22,7 +19,6 @@ const StyledWrapper = styled.div`
     gap: 10px;
   }
 
-  /* Pencil appears subtly on row hover */
   .keybinding-row:hover .edit-btn {
     opacity: 0.9;
   }
@@ -36,19 +32,16 @@ const StyledWrapper = styled.div`
   }
 
   .shortcut-input {
-    /* keep width stable */
     width: 200px;
     max-width: 200px;
     flex-shrink: 0;
 
-    /* show normal caret when editable */
     caret-color: ${(props) => props.theme.table.input.color};
 
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 
-    /* remove borders */
     border: none;
     outline: none;
     background: transparent;
@@ -94,24 +87,26 @@ const StyledWrapper = styled.div`
     white-space: nowrap;
   }
 
-  .shortcut-error {
-    color: ${(props) => props.theme.colors?.text?.red || '#ef4444'};
-    font-size: 11px;
-    margin-left: 8px;
-    white-space: nowrap;
-    font-weight: 500;
-  }
-
   .shortcut-input--error {
     opacity: 1;
-    text-decoration: underline;
-    text-underline-offset: 3px;
   }
 
-  /* ✅ This is THE scroll container */
+  .kb-tooltip {
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 12px;
+    line-height: 1.2;
+    max-width: 320px;
+    white-space: normal;
+  }
+
+  .kb-tooltip--error {
+    color: ${(props) => props.theme.colors?.text?.red || '#ef4444'};
+  }
+
   .table-container {
     flex: 1 1 auto;
-    min-height: 0; /* crucial for scrolling in flex layouts */
+    min-height: 0;
     max-height: 650px;
     overflow-y: auto;
 
@@ -119,7 +114,6 @@ const StyledWrapper = styled.div`
     border-top: 1px solid ${(props) => props.theme.table.border};
     border-bottom: 1px solid ${(props) => props.theme.table.border};
 
-    /* hide scrollbar (Chromium/Electron) */
     &::-webkit-scrollbar {
       width: 0;
       height: 0;
@@ -145,13 +139,11 @@ const StyledWrapper = styled.div`
     width: 45%;
   }
 
-  /* ✅ Sticky header: only on TH, not THEAD */
   thead th {
     position: sticky;
     top: 0;
     z-index: 5;
 
-    /* solid bg + blur so rows never bleed through */
     background: ${(props) => props.theme.background};
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
