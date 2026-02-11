@@ -79,7 +79,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (!isGraphqlRequest) {
     if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
       if (typeof request.data === 'string') {
-        request.data = _interpolate(request.data, { escapeJSONStrings: true });
+        if (request?.data?.length) {
+          request.data = _interpolate(request.data, { escapeJSONStrings: true });
+        }
       } else if (typeof request.data === 'object') {
         try {
           let parsed = JSON.stringify(request.data);
