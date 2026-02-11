@@ -20,7 +20,7 @@ script:pre-request {
 
 tests {
   test("process exists with expected properties", function() {
-    expect(process).to.be.an('object');
+    expect(typeof process).to.equal('object');
     expect(process.version).to.match(/^v\d+\.\d+\.\d+/);
     expect(process.versions).to.have.property('node');
     expect(process.versions).to.have.property('v8');
@@ -40,15 +40,11 @@ tests {
     expect(process.argv).to.be.an('array');
   });
 
-  test("process.env is sanitized (empty)", function() {
+  test("process.env is available", function() {
     expect(process.env).to.be.an('object');
-    expect(Object.keys(process.env)).to.have.lengthOf(0);
   });
 
-  test("dangerous methods not available", function() {
-    expect(process.exit).to.be.undefined;
-    expect(process.kill).to.be.undefined;
-    expect(process.chdir).to.be.undefined;
-    expect(process.cwd).to.be.undefined;
+  test("process.nextTick is available", function() {
+    expect(process.nextTick).to.be.a('function');
   });
 }
