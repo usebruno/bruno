@@ -62,7 +62,6 @@ const SaveRequestsModal = ({ onClose }) => {
         const requests = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item));
         each(requests, (draft) => {
           requestDrafts.push({
-            type: 'request',
             ...draft,
             collectionUid: collectionUid
           });
@@ -116,7 +115,7 @@ const SaveRequestsModal = ({ onClose }) => {
       // Separate drafts by type
       const collectionDrafts = allDrafts.filter((d) => d.type === 'collection');
       const folderDrafts = allDrafts.filter((d) => d.type === 'folder');
-      const requestDrafts = allDrafts.filter((d) => d.type === 'request');
+      const requestDrafts = allDrafts.filter((d) => isItemARequest(d));
       const collectionEnvironmentDrafts = allDrafts.filter((d) => d.type === 'collection-environment');
       const globalEnvironmentDrafts = allDrafts.filter((d) => d.type === 'global-environment');
 
