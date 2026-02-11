@@ -55,6 +55,7 @@ export const toOpenCollectionEnvironments = (environments: BrunoEnvironment[] | 
   return environments.map((env): Environment => {
     const ocEnv: Environment = {
       name: env.name || 'Untitled Environment',
+      color: env.color ?? undefined,
       variables: (env.variables || []).map((v): OCVariable => {
         const ocVar: OCVariable = {
           name: v.name || '',
