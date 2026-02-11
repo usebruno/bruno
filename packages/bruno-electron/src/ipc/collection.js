@@ -2138,18 +2138,20 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         let collectionName = 'Imported Collection';
+        let brunoConfig = { name: collectionName, version: '1', type: 'collection' };
         if (fs.existsSync(openCollectionYmlPath)) {
           try {
             const content = fs.readFileSync(openCollectionYmlPath, 'utf8');
-            const { brunoConfig } = parseCollection(content, { format: 'yml' });
-            collectionName = brunoConfig?.name || collectionName;
+            const parsed = parseCollection(content, { format: 'yml' });
+            brunoConfig = parsed.brunoConfig || brunoConfig;
+            collectionName = brunoConfig.name || collectionName;
           } catch (e) {
             console.error(`Error parsing opencollection.yml at ${openCollectionYmlPath}:`, e);
           }
         } else if (fs.existsSync(brunoJsonPath)) {
           try {
-            const config = JSON.parse(fs.readFileSync(brunoJsonPath, 'utf8'));
-            collectionName = config.name || collectionName;
+            brunoConfig = JSON.parse(fs.readFileSync(brunoJsonPath, 'utf8'));
+            collectionName = brunoConfig.name || collectionName;
           } catch (e) {
             console.error(`Error parsing bruno.json at ${brunoJsonPath}:`, e);
           }
@@ -2170,6 +2172,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         if (tempDir !== collectionDir) {
           await fsExtra.remove(tempDir).catch(() => {});
         }
+
+        const uid = generateUidBasedOnHash(finalCollectionPath);
+        const { size, filesCount } = await getCollectionStats(finalCollectionPath);
+        brunoConfig.size = size;
+        brunoConfig.filesCount = filesCount;
+
+        mainWindow.webContents.send('main:collection-opened', finalCollectionPath, uid, brunoConfig);
+        ipcMain.emit('main:collection-opened', mainWindow, finalCollectionPath, uid, brunoConfig);
 
         return finalCollectionPath;
       } catch (error) {
