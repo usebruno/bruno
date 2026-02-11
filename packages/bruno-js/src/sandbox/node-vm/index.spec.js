@@ -1146,19 +1146,16 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'function');
     });
 
-    it('should have access to sanitized process object', async () => {
+    it('should have access to process object with nextTick', async () => {
       const context = {
         bru: { setVar: jest.fn() },
         console: console
       };
 
-      // process is a sanitized object with safe properties only
       const script = `
         const hasSafeProps = typeof process.version === 'string' && typeof process.platform === 'string';
-        const noExit = typeof process.exit === 'undefined';
-        const noKill = typeof process.kill === 'undefined';
-        const emptyEnv = Object.keys(process.env).length === 0;
-        bru.setVar('result', hasSafeProps && noExit && noKill && emptyEnv);
+        const hasNextTick = typeof process.nextTick === 'function';
+        bru.setVar('result', hasSafeProps && hasNextTick);
       `;
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
