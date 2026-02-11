@@ -2138,7 +2138,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         let collectionName = 'Imported Collection';
-        let brunoConfig = { name: collectionName, version: '1', type: 'collection' };
+        let brunoConfig = { name: collectionName, version: '1', type: 'collection', ignore: ['node_modules', '.git'] };
         if (fs.existsSync(openCollectionYmlPath)) {
           try {
             const content = fs.readFileSync(openCollectionYmlPath, 'utf8');
