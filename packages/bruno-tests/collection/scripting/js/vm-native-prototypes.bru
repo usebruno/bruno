@@ -1,0 +1,120 @@
+meta {
+  name: vm-native-prototypes
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno",
+    "nested": { "key": "value" },
+    "list": [1, 2, 3],
+    "orders": [
+      { "id": 1, "amount": 10, "item": { "name": "pen" } },
+      { "id": 2, "amount": 25, "item": { "name": "book" } },
+      { "id": 3, "amount": 5, "item": { "name": "eraser" } }
+    ]
+  }
+}
+
+script:pre-request {
+  bru.setVar("vmTestObj", { foo: "bar", nums: [1, 2] });
+}
+
+tests {
+  test("res.getBody() returns VM-native object", function() {
+    const body = res.getBody();
+    expect(body.constructor).to.equal(Object);
+    expect(body.nested.constructor).to.equal(Object);
+    expect(body.list.constructor).to.equal(Array);
+  });
+
+  test("res.getHeaders() returns VM-native object", function() {
+    const headers = res.getHeaders();
+    expect(headers.constructor).to.equal(Object);
+  });
+
+  test("req.getBody() returns VM-native object", function() {
+    const body = req.getBody();
+    expect(body.constructor).to.equal(Object);
+    expect(body.nested.constructor).to.equal(Object);
+    expect(body.list.constructor).to.equal(Array);
+  });
+
+  test("req.getHeaders() returns VM-native object", function() {
+    const headers = req.getHeaders();
+    expect(headers.constructor).to.equal(Object);
+  });
+
+  test("bru.getVar() returns VM-native object", function() {
+    const obj = bru.getVar("vmTestObj");
+    expect(obj.constructor).to.equal(Object);
+    expect(obj.nums.constructor).to.equal(Array);
+  });
+
+  test("res() callable - nested object", function() {
+    const nested = res("nested");
+    expect(nested.constructor).to.equal(Object);
+    expect(nested.key).to.equal("value");
+  });
+
+  test("res() callable - array", function() {
+    const list = res("list");
+    expect(list.constructor).to.equal(Array);
+    expect(list).to.eql([1, 2, 3]);
+  });
+
+  test("res() callable - dot navigation", function() {
+    const items = res("orders.item");
+    expect(items.constructor).to.equal(Array);
+    items.forEach(function(item) {
+      expect(item.constructor).to.equal(Object);
+    });
+    expect(items).to.eql([{ name: "pen" }, { name: "book" }, { name: "eraser" }]);
+  });
+
+  test("res() callable - array indexing", function() {
+    const order = res("orders[0]");
+    expect(order.constructor).to.equal(Object);
+    expect(order.item.constructor).to.equal(Object);
+    expect(order.id).to.equal(1);
+  });
+
+  test("res() callable - deep navigation", function() {
+    const names = res("..name");
+    expect(names.constructor).to.equal(Array);
+    expect(names).to.eql(["pen", "book", "eraser"]);
+  });
+
+  test("res() callable - filter", function() {
+    const expensive = res("orders[?]", function(o) { return o.amount >= 10; });
+    expect(expensive.constructor).to.equal(Array);
+    expensive.forEach(function(o) {
+      expect(o.constructor).to.equal(Object);
+      expect(o.item.constructor).to.equal(Object);
+    });
+    expect(expensive).to.eql([
+      { id: 1, amount: 10, item: { name: "pen" } },
+      { id: 2, amount: 25, item: { name: "book" } }
+    ]);
+  });
+
+  test("res() callable - primitive value", function() {
+    expect(res("hello")).to.equal("bruno");
+    expect(res("orders[0].amount")).to.equal(10);
+  });
+
+  test("res.body has VM-native prototypes", function() {
+    expect(res.body.constructor).to.equal(Object);
+    expect(res.body.nested.constructor).to.equal(Object);
+    expect(res.body.list.constructor).to.equal(Array);
+    expect(res.body.orders.constructor).to.equal(Array);
+    expect(res.body.orders[0].constructor).to.equal(Object);
+  });
+}

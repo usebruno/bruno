@@ -56,7 +56,7 @@ function buildSanitizedProcess() {
 }
 
 /**
- * Pre-compiled VM script that wraps getter methods on req, res, and bru
+ * Pre-compiled VM script that wraps methods on req, res, and bru
  * to return VM-native objects via recursive deep clone.
  *
  * Host-context objects have different Object/Array constructors than VM-context objects.
@@ -66,24 +66,13 @@ function buildSanitizedProcess() {
  * Creating new objects/arrays inside the VM gives them VM-native prototypes.
  * Uses recursive clone instead of JSON round-trip to preserve undefined values.
  *
- * Affected methods:
- *   res  — getBody(), getHeaders()
- *   req  — getBody(options), getHeaders(), getPathParams(), getTags()
- *   bru  — getVar(key)
+ * Wraps all methods on res, req, bru that return Objects/Arrays so their
+ * return values get VM-native prototypes. Async methods (sendRequest, runRequest)
+ * have their resolved values wrapped. Methods returning primitives, Buffers,
+ * or undefined (setters) are skipped.
  */
 const recontextualizeScript = new vm.Script(`
   (function() {
-    /**
-     * Recursively clones a value, creating new objects and arrays inside the VM
-     * so they get VM-native constructors (Object, Array).
-     *
-     * Why not JSON.parse(JSON.stringify(...))?
-     *   - JSON.stringify converts undefined to null in arrays
-     *   - JSON.stringify throws on circular references without useful recovery
-     *
-     * Only handles JSON-safe types (objects, arrays, primitives) since the data
-     * originates from HTTP responses (parsed JSON) or user-set values via setBody/setVar.
-     */
     function toVMNative(val) {
       if (val === null || val === undefined || typeof val !== 'object') return val;
 
@@ -103,26 +92,89 @@ const recontextualizeScript = new vm.Script(`
       return obj;
     }
 
-    /** Wraps a method so its return value is cloned into VM-native objects. */
     function wrapMethod(obj, method) {
       var orig = obj[method].bind(obj);
       obj[method] = function() { return toVMNative(orig.apply(null, arguments)); };
     }
 
+    function wrapAsyncMethod(obj, method) {
+      var orig = obj[method].bind(obj);
+
+      function cloneResponseData(res) {
+        if (res && typeof res === 'object') {
+          if (res.data !== undefined) res.data = toVMNative(res.data);
+          if (res.headers !== undefined) res.headers = toVMNative(res.headers);
+        }
+        return res;
+      }
+
+      obj[method] = function() {
+        var args = Array.prototype.slice.call(arguments);
+        var lastIdx = args.length - 1;
+        if (lastIdx >= 0 && typeof args[lastIdx] === 'function') {
+          var userCb = args[lastIdx];
+          args[lastIdx] = function(err, res) { return userCb(err, cloneResponseData(res)); };
+        }
+        return orig.apply(null, args).then(cloneResponseData);
+      };
+    }
+
+    /** Replaces a callable with a new function that clones its return value. */
+    function wrapCallable(fn) {
+      var _apply = Function.prototype.apply;
+      var wrapped = function() { return toVMNative(_apply.call(fn, null, arguments)); };
+      Object.setPrototypeOf(wrapped, Object.getPrototypeOf(fn));
+      var names = Object.getOwnPropertyNames(fn);
+      for (var i = 0; i < names.length; i++) {
+        try { wrapped[names[i]] = fn[names[i]]; } catch(e) {}
+      }
+      return wrapped;
+    }
+
+    function wrapAllMethods(obj, skip, async) {
+      var proto = obj;
+      while (proto && proto !== Object.prototype && proto !== Function.prototype) {
+        var names = Object.getOwnPropertyNames(proto);
+        for (var i = 0; i < names.length; i++) {
+          var key = names[i];
+          if (key === 'constructor') continue;
+          if (typeof obj[key] !== 'function') continue;
+          if (skip.includes(key)) continue;
+          if (async && async.includes(key)) {
+            wrapAsyncMethod(obj, key);
+          } else {
+            wrapMethod(obj, key);
+          }
+        }
+        proto = Object.getPrototypeOf(proto);
+      }
+    }
+
+    var skipBru = ['sleep', 'setVar', 'setEnvVar', 'deleteEnvVar', 'setGlobalEnvVar',
+      'deleteVar', 'deleteAllVars', 'setNextRequest'];
+    var asyncBru = ['sendRequest', 'runRequest'];
+    var skipReq = ['setUrl', 'setMethod', 'setHeaders', 'setHeader', 'setBody',
+      'setMaxRedirects', 'setTimeout', 'onFail', 'disableParsingResponseJson',
+      'hasJSONContentType', '__safeParseJSON', '__safeStringifyJSON', '__isObject'];
+    var skipRes = ['setBody', 'getDataBuffer'];
+
+    if (typeof bru !== 'undefined' && bru) wrapAllMethods(bru, skipBru, asyncBru);
+    if (typeof req !== 'undefined' && req) wrapAllMethods(req, skipReq);
+
+    // res is a callable — its arrow function captures this.body from the hidden
+    // BrunoResponse instance via closure, so wrapping methods alone is not enough.
+    // We replace res with a new callable that clones the return value,
+    // copy over its own properties and prototype, then clone data properties
+    // (res.body, res.headers) for direct access.
     if (typeof res !== 'undefined' && res) {
-      if (typeof res.getBody === 'function') wrapMethod(res, 'getBody');
-      if (typeof res.getHeaders === 'function') wrapMethod(res, 'getHeaders');
-    }
+      if (typeof res === 'function') {
+        res = wrapCallable(res);
+      }
 
-    if (typeof req !== 'undefined' && req) {
-      if (typeof req.getBody === 'function') wrapMethod(req, 'getBody');
-      if (typeof req.getHeaders === 'function') wrapMethod(req, 'getHeaders');
-      if (typeof req.getPathParams === 'function') wrapMethod(req, 'getPathParams');
-      if (typeof req.getTags === 'function') wrapMethod(req, 'getTags');
-    }
+      if (res.body !== undefined) res.body = toVMNative(res.body);
+      if (res.headers !== undefined) res.headers = toVMNative(res.headers);
 
-    if (typeof bru !== 'undefined' && bru) {
-      if (typeof bru.getVar === 'function') wrapMethod(bru, 'getVar');
+      wrapAllMethods(res, skipRes);
     }
   })();
 `, { filename: 'bruno__recontextualize' });

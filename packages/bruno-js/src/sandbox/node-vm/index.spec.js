@@ -472,18 +472,20 @@ describe('node-vm sandbox', () => {
         bruModule.setVar('result', envValue);
       `;
 
+      const getEnvVarMock = jest.fn().mockReturnValue('test-value');
+      const setVarMock = jest.fn();
       const context = {
         bru: {
-          getEnvVar: jest.fn().mockReturnValue('test-value'),
-          setVar: jest.fn()
+          getEnvVar: getEnvVarMock,
+          setVar: setVarMock
         },
         console: console
       };
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
-      expect(context.bru.getEnvVar).toHaveBeenCalledWith('TEST_VAR');
-      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'test-value');
+      expect(getEnvVarMock).toHaveBeenCalledWith('TEST_VAR');
+      expect(setVarMock).toHaveBeenCalledWith('result', 'test-value');
     });
 
     it('should provide req object to npm modules', async () => {
@@ -506,22 +508,26 @@ describe('node-vm sandbox', () => {
         bru.setVar('result', method + ':' + url);
       `;
 
+      const setVarMock = jest.fn();
+      const getUrlMock = jest.fn().mockReturnValue('https://api.example.com');
+      const getMethodMock = jest.fn().mockReturnValue('POST');
+      const setHeaderMock = jest.fn();
       const context = {
-        bru: { setVar: jest.fn() },
+        bru: { setVar: setVarMock },
         req: {
-          getUrl: jest.fn().mockReturnValue('https://api.example.com'),
-          getMethod: jest.fn().mockReturnValue('POST'),
-          setHeader: jest.fn()
+          getUrl: getUrlMock,
+          getMethod: getMethodMock,
+          setHeader: setHeaderMock
         },
         console: console
       };
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
-      expect(context.req.getUrl).toHaveBeenCalled();
-      expect(context.req.getMethod).toHaveBeenCalled();
-      expect(context.req.setHeader).toHaveBeenCalledWith('X-Custom', 'value');
-      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'POST:https://api.example.com');
+      expect(getUrlMock).toHaveBeenCalled();
+      expect(getMethodMock).toHaveBeenCalled();
+      expect(setHeaderMock).toHaveBeenCalledWith('X-Custom', 'value');
+      expect(setVarMock).toHaveBeenCalledWith('result', 'POST:https://api.example.com');
     });
 
     it('should provide res object to npm modules', async () => {
@@ -596,26 +602,30 @@ describe('node-vm sandbox', () => {
         bru.setVar('result', data.envVar + '|' + data.reqUrl + '|' + data.resStatus);
       `;
 
+      const getEnvVarMock = jest.fn().mockReturnValue('nested-value');
+      const setVarMock = jest.fn();
+      const getUrlMock = jest.fn().mockReturnValue('https://nested.example.com');
+      const getStatusMock = jest.fn().mockReturnValue(201);
       const context = {
         bru: {
-          getEnvVar: jest.fn().mockReturnValue('nested-value'),
-          setVar: jest.fn()
+          getEnvVar: getEnvVarMock,
+          setVar: setVarMock
         },
         req: {
-          getUrl: jest.fn().mockReturnValue('https://nested.example.com')
+          getUrl: getUrlMock
         },
         res: {
-          getStatus: jest.fn().mockReturnValue(201)
+          getStatus: getStatusMock
         },
         console: console
       };
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
-      expect(context.bru.getEnvVar).toHaveBeenCalledWith('NESTED_VAR');
-      expect(context.req.getUrl).toHaveBeenCalled();
-      expect(context.res.getStatus).toHaveBeenCalled();
-      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'nested-value|https://nested.example.com|201');
+      expect(getEnvVarMock).toHaveBeenCalledWith('NESTED_VAR');
+      expect(getUrlMock).toHaveBeenCalled();
+      expect(getStatusMock).toHaveBeenCalled();
+      expect(setVarMock).toHaveBeenCalledWith('result', 'nested-value|https://nested.example.com|201');
     });
 
     describe('CommonJS module patterns', () => {
