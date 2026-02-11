@@ -103,6 +103,7 @@ type GetCertsAndProxyConfigParams = {
     certs?: ClientCertificate[];
   };
   collectionLevelProxy?: ProxyConfig;
+  appLevelProxyConfig?: Record<string, any>;
   systemProxyConfig?: SystemProxyConfig;
 };
 
@@ -129,6 +130,7 @@ type GetHttpHttpsAgentsParams = {
     certs?: ClientCertificate[];
   };
   collectionLevelProxy?: ProxyConfig;
+  appLevelProxyConfig?: Record<string, any>;
   systemProxyConfig?: SystemProxyConfig;
 };
 
@@ -210,6 +212,7 @@ const getCertsAndProxyConfig = ({
   options,
   clientCertificates,
   collectionLevelProxy,
+  appLevelProxyConfig,
   systemProxyConfig
 }: GetCertsAndProxyConfigParams): GetCertsAndProxyConfigResult => {
   const certsConfig: CertsConfig = {};
@@ -302,12 +305,31 @@ const getCertsAndProxyConfig = ({
     proxyConfig = collectionProxyConfigData;
     proxyMode = 'on';
   } else if (!collectionProxyDisabled && collectionProxyInherit) {
-    // Inherit from system proxy
-    const { http_proxy, https_proxy } = systemProxyConfig || {};
-    if (http_proxy?.length || https_proxy?.length) {
-      proxyMode = 'system';
+    // Inherit from app-level proxy settings
+    if (appLevelProxyConfig) {
+      const globalDisabled = get(appLevelProxyConfig, 'disabled', false);
+      const globalInherit = get(appLevelProxyConfig, 'inherit', false);
+      const globalProxyConfigData = get(appLevelProxyConfig, 'config', appLevelProxyConfig);
+
+      if (!globalDisabled && !globalInherit) {
+        // Use app-level custom proxy
+        proxyConfig = globalProxyConfigData;
+        proxyMode = 'on';
+      } else if (!globalDisabled && globalInherit) {
+        // App-level also inherits, fall through to system proxy
+        const { http_proxy, https_proxy } = systemProxyConfig || {};
+        if (http_proxy?.length || https_proxy?.length) {
+          proxyMode = 'system';
+        }
+      }
+      // else: app-level proxy is disabled, proxyMode stays 'off'
+    } else {
+      // No app-level proxy config (e.g. CLI), fall through to system proxy
+      const { http_proxy, https_proxy } = systemProxyConfig || {};
+      if (http_proxy?.length || https_proxy?.length) {
+        proxyMode = 'system';
+      }
     }
-    // else: no system proxy available, proxyMode stays 'off'
   }
   // else: collection proxy is disabled, proxyMode stays 'off'
 
@@ -409,6 +431,7 @@ const getHttpHttpsAgents = async ({
   collectionPath,
   clientCertificates,
   collectionLevelProxy,
+  appLevelProxyConfig,
   systemProxyConfig,
   options
 }: GetHttpHttpsAgentsParams): Promise<AgentResult> => {
@@ -417,6 +440,7 @@ const getHttpHttpsAgents = async ({
     collectionPath,
     clientCertificates,
     collectionLevelProxy,
+    appLevelProxyConfig,
     systemProxyConfig,
     options
   });
