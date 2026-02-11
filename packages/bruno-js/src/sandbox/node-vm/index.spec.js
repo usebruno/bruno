@@ -550,26 +550,21 @@ describe('node-vm sandbox', () => {
         bru.setVar('result', status + ':' + contentType + ':' + body.message);
       `;
 
-      const getStatusMock = jest.fn().mockReturnValue(200);
-      const getBodyMock = jest.fn().mockReturnValue({ message: 'success' });
-      const getHeaderMock = jest.fn().mockReturnValue('application/json');
       const context = {
         bru: { setVar: jest.fn() },
         res: {
-          getStatus: getStatusMock,
-          getBody: getBodyMock,
-          getHeader: getHeaderMock
+          getStatus: jest.fn().mockReturnValue(200),
+          getBody: jest.fn().mockReturnValue({ message: 'success' }),
+          getHeader: jest.fn().mockReturnValue('application/json')
         },
         console: console
       };
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
-      // recontextualizeScript wraps res.getBody with a JSON round-trip,
-      // so we assert on the saved mock reference, not context.res.getBody
-      expect(getStatusMock).toHaveBeenCalled();
-      expect(getBodyMock).toHaveBeenCalled();
-      expect(getHeaderMock).toHaveBeenCalledWith('content-type');
+      expect(context.res.getStatus).toHaveBeenCalled();
+      expect(context.res.getBody).toHaveBeenCalled();
+      expect(context.res.getHeader).toHaveBeenCalledWith('content-type');
       expect(context.bru.setVar).toHaveBeenCalledWith('result', '200:application/json:success');
     });
 

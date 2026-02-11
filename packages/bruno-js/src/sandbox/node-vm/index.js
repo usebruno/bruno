@@ -3,7 +3,7 @@ const path = require('node:path');
 const { get } = require('lodash');
 const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
-const { ScriptError, buildSanitizedProcess, recontextualizeScript } = require('./utils');
+const { ScriptError, buildSanitizedProcess } = require('./utils');
 const { createCustomRequire } = require('./cjs-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
@@ -57,9 +57,6 @@ async function runScriptInNodeVm({ script, context, collectionPath, scriptingCon
       localModuleCache,
       additionalContextRootsAbsolute
     });
-
-    // Wrap getter methods on req/res/bru to return VM-native objects.
-    recontextualizeScript.runInContext(isolatedContext);
 
     // Execute the script in the isolated context
     const wrappedScript = `(async function(){ ${script} \n})();`;

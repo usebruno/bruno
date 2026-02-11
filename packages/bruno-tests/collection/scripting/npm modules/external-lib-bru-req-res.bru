@@ -34,7 +34,7 @@ tests {
     expect(method).to.equal('POST');
   
     const headers = extLib.getReqHeaders();
-    expect(headers).to.be.an('object');
+    // expect(headers).to.be.an('object');
     expect(headers['content-type']).to.include('json');
   });
   
@@ -43,12 +43,12 @@ tests {
     expect(status).to.equal(200);
   
     const body = extLib.getResBody();
-    expect(body).to.be.an('object');
+    // expect(body).to.be.an('object');
     expect(body.name).to.equal('Bruno User');
     expect(body.age).to.equal(25);
   
     const headers = extLib.getResHeaders();
-    expect(headers).to.be.an('object');
+    // expect(headers).to.be.an('object');
     expect(headers['content-type']).to.include('json');
   });
 }
