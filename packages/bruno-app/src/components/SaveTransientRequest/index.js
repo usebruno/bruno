@@ -382,7 +382,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                           <div className="flex items-center justify-between">
                             <label className="new-folder-filesystem-label flex items-center font-medium">
                               Folder Name <small className="font-normal text-muted ml-1">(on filesystem)</small>
-                              <Help width="300" placement="top">
+                              <Help width={300} placement="top">
                                 <p>
                                   You can choose to save the folder as a different name on your file system versus what is displayed in the app.
                                 </p>
