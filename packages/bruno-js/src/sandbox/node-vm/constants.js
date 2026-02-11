@@ -23,6 +23,8 @@
  * Only Node.js-specific and Web APIs that the VM doesn't provide are listed.
  */
 const safeGlobals = [
+  'process',
+
   // Node.js timers (not part of ECMAScript)
   'setTimeout',
   'setInterval',

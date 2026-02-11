@@ -35,28 +35,8 @@ class ScriptError extends Error {
   }
 }
 
-/**
- * Build a filtered process object
- * Exposes only safe information properties
- * @returns {Object} Filtered process object
- */
-function buildSanitizedProcess() {
-  return {
-    argv: [...process.argv],
-    title: process.title,
-    version: process.version,
-    versions: { ...process.versions },
-    arch: process.arch,
-    platform: process.platform,
-    env: {}, // Empty by default
-    pid: process.pid,
-    features: { ...process.features }
-  };
-}
-
 module.exports = {
   isBuiltinModule,
   isPathWithinAllowedRoots,
-  ScriptError,
-  buildSanitizedProcess
+  ScriptError
 };
