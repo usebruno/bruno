@@ -67,7 +67,7 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
         body.graphql = parseGraphQL(parsedBody);
       } else if (normalizedContentType.includes('application/x-ndjson') || normalizedContentType.includes('application/ndjson')) {
         body.mode = 'text';
-        body.text = typeof parsedBody === 'string' ? parsedBody : (typeof parsedBody === 'object' ? JSON.stringify(parsedBody) : String(parsedBody));
+        body.text = parsedBody;
       } else if (requestType === 'http-request' && request.isDataBinary) {
         body.mode = 'file';
         body.file = parsedBody;
@@ -85,7 +85,7 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
         body.multipartForm = parsedBody;
       } else if (isPlainTextContentType(contentType)) {
         body.mode = 'text';
-        body.text = typeof parsedBody === 'string' ? parsedBody : (typeof parsedBody === 'object' ? JSON.stringify(parsedBody) : String(parsedBody));
+        body.text = parsedBody;
       }
     } else if (parsedBody) {
       body.mode = 'formUrlEncoded';
