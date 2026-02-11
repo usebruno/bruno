@@ -1,25 +1,71 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  .workspace-title {
+  .collection-switcher {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .switcher-trigger {
     display: flex;
     align-items: center;
     gap: 8px;
-    height: 24px;
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: ${(props) => props.theme.text};
+    cursor: pointer;
     font-size: 15px;
     font-weight: 600;
-    color: ${(props) => props.theme.text};
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    }
+
+    .switcher-name {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tab-count {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      min-width: 18px;
+      text-align: center;
+    }
+
+    .chevron {
+      opacity: 0.6;
+      flex-shrink: 0;
+    }
   }
 
-  .workspace-name {
-    font-size: 15px;
-    font-weight: 600;
+  .workspace-actions-trigger {
+    cursor: pointer;
+    opacity: 0.6;
+    padding: 4px;
+    border-radius: 4px;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+
+    &:hover {
+      opacity: 1;
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    }
   }
 
   .workspace-rename-container {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
+    padding: 4px 8px;
   }
 
   .workspace-name-input {

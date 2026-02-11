@@ -6,8 +6,7 @@ import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
-import CollectionToolBar from './CollectionToolBar';
-import WorkspaceHeader from './WorkspaceHeader';
+import CollectionHeader from './CollectionHeader';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
@@ -48,9 +47,8 @@ const RequestTabs = () => {
   const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
 
-  const { isScratchCollection, activeWorkspace } = useMemo(() => {
-    const ws = activeCollection ? workspaces.find((w) => w.scratchCollectionUid === activeCollection.uid) : null;
-    return { isScratchCollection: !!ws, activeWorkspace: ws };
+  const isScratchCollection = useMemo(() => {
+    return activeCollection ? workspaces.some((w) => w.scratchCollectionUid === activeCollection.uid) : false;
   }, [workspaces, activeCollection]);
 
   useEffect(() => {
@@ -118,11 +116,10 @@ const RequestTabs = () => {
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           {activeCollection && (
-            isScratchCollection ? (
-              <WorkspaceHeader workspace={activeWorkspace} />
-            ) : (
-              <CollectionToolBar collection={activeCollection} />
-            )
+            <CollectionHeader
+              collection={activeCollection}
+              isScratchCollection={isScratchCollection}
+            />
           )}
           <div className="flex items-center gap-2 pl-2" ref={collectionTabsRef}>
             <div className={classnames('scroll-chevrons', { hidden: !showChevrons })}>
