@@ -126,12 +126,7 @@ class BrunoRequest {
   }
 
   deleteHeaders(headers) {
-    console.log('---------********---------');
-    console.log('Before deleting req headers : ', this.req.headers);
-    console.log('Reached Remove header method : ', headers);
-
     headers.forEach((name) => {
-      console.log({ name });
       delete this.req.headers[name];
     });
   }
@@ -141,10 +136,6 @@ class BrunoRequest {
   }
 
   deleteHeader(header) {
-    console.log('---------********---------');
-    console.log('Header : ', this.req.headers);
-    console.log('Reached Remove header method : ', header);
-
     delete this.req.headers[header];
   }
 
