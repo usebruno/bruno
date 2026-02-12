@@ -598,15 +598,21 @@ function processTransformations(ast, transformedNodes) {
         const transform = complexTransformationsMap[memberExprStr];
         const replacement = transform.transform(path, j);
         if (Array.isArray(replacement)) {
-          replacement.forEach((node, index) => {
-            if (index === 0) {
-              j(path.parent).replaceWith(node);
-            } else {
-              j(path.parent.parent).insertAfter(node);
-            }
-            transformedNodes.add(node);
-            transformedNodes.add(path.parent.node);
-          });
+          // Capture stable references before mutating the AST
+          const parentPath = path.parent;
+          const grandParentPath = parentPath.parent;
+
+          // Replace the original CallExpression with the first node
+          j(parentPath).replaceWith(replacement[0]);
+          transformedNodes.add(replacement[0]);
+          transformedNodes.add(parentPath.node);
+
+          // Insert remaining nodes after the grandparent in reverse order
+          // so that repeated insertAfter on the same anchor yields correct sequence
+          for (let i = replacement.length - 1; i >= 1; i--) {
+            j(grandParentPath).insertAfter(replacement[i]);
+            transformedNodes.add(replacement[i]);
+          }
         } else {
           j(path.parent).replaceWith(replacement);
           transformedNodes.add(path.node);
@@ -615,6 +621,11 @@ function processTransformations(ast, transformedNodes) {
       } else if (parentType === 'ExpressionStatement') {
         // Property-access patterns used as statements (e.g., pm.response.to.be.ok;)
         const transform = complexTransformationsMap[memberExprStr];
+        // Defensive guard: ExpressionStatements lack an arguments property.
+        // Provide a safe fallback so transforms that read path.parent.value.arguments don't throw.
+        if (path.parent && path.parent.value && path.parent.value.arguments === undefined) {
+          path.parent.value.arguments = [];
+        }
         const replacement = transform.transform(path, j);
         j(path).replaceWith(replacement);
         transformedNodes.add(path.node);
