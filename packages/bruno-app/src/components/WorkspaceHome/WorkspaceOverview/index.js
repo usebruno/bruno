@@ -1,15 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
+import { IconPlus, IconFolder, IconDownload, IconBook } from '@tabler/icons';
 import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import Button from 'ui/Button';
+import MenuDropdown from 'ui/MenuDropdown';
 import CollectionsList from './CollectionsList';
 import WorkspaceDocs from '../WorkspaceDocs';
 import StyledWrapper from './StyledWrapper';
+
+const DOC_LINKS = {
+  createCollection: 'https://docs.usebruno.com/bruno-basics/create-a-collection',
+  openCollection: 'https://docs.usebruno.com/import-export-data/import-collections',
+  importCollection: 'https://docs.usebruno.com/import-export-data/import-collections'
+};
 
 const WorkspaceOverview = ({ workspace }) => {
   const dispatch = useDispatch();
@@ -19,10 +26,52 @@ const WorkspaceOverview = ({ workspace }) => {
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [importData, setImportData] = useState(null);
+  const [docsMenuItems, setDocsMenuItems] = useState([]);
+  const [isDocsMenuOpen, setIsDocsMenuOpen] = useState(false);
+  const docsMenuPositionRef = useRef({ x: 0, y: 0 });
 
   const workspaceCollectionsCount = workspace?.collections?.length || 0;
 
   const workspaceEnvironmentsCount = globalEnvironments?.length || 0;
+
+  const openExternal = useCallback((url) => {
+    if (!url) return;
+    if (window?.ipcRenderer?.openExternal) {
+      window.ipcRenderer.openExternal(url);
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, []);
+
+  const getDocsMenuRect = useCallback(() => {
+    const { x, y } = docsMenuPositionRef.current || { x: 0, y: 0 };
+    return {
+      width: 0,
+      height: 0,
+      top: y,
+      bottom: y,
+      left: x,
+      right: x
+    };
+  }, []);
+
+  const handleDocsContextMenu = useCallback((event, docsUrl) => {
+    if (!docsUrl) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    docsMenuPositionRef.current = { x: event.clientX, y: event.clientY };
+    setDocsMenuItems([
+      {
+        id: 'open-documentation',
+        label: 'Open Documentation',
+        leftSection: IconBook,
+        onClick: () => openExternal(docsUrl)
+      }
+    ]);
+    setIsDocsMenuOpen(true);
+  }, [openExternal]);
 
   const handleCreateCollection = async () => {
     if (!workspace?.pathname) {
@@ -117,6 +166,7 @@ const WorkspaceOverview = ({ workspace }) => {
                 size="sm"
                 icon={<IconPlus size={14} strokeWidth={1.5} />}
                 onClick={handleCreateCollection}
+                onContextMenu={(event) => handleDocsContextMenu(event, DOC_LINKS.createCollection)}
               >
                 Create Collection
               </Button>
@@ -125,6 +175,7 @@ const WorkspaceOverview = ({ workspace }) => {
                 size="sm"
                 icon={<IconFolder size={14} strokeWidth={1.5} />}
                 onClick={handleOpenCollection}
+                onContextMenu={(event) => handleDocsContextMenu(event, DOC_LINKS.openCollection)}
               >
                 Open Collection
               </Button>
@@ -133,6 +184,7 @@ const WorkspaceOverview = ({ workspace }) => {
                 size="sm"
                 icon={<IconDownload size={14} strokeWidth={1.5} />}
                 onClick={handleImportCollection}
+                onContextMenu={(event) => handleDocsContextMenu(event, DOC_LINKS.importCollection)}
               >
                 Import Collection
               </Button>
@@ -149,6 +201,18 @@ const WorkspaceOverview = ({ workspace }) => {
           <WorkspaceDocs workspace={workspace} />
         </div>
       </div>
+
+      <MenuDropdown
+        opened={isDocsMenuOpen}
+        onChange={setIsDocsMenuOpen}
+        items={docsMenuItems}
+        placement="bottom-start"
+        showTickMark={false}
+        getReferenceClientRect={getDocsMenuRect}
+        appendTo={document.body}
+      >
+        <span />
+      </MenuDropdown>
     </StyledWrapper>
   );
 };
