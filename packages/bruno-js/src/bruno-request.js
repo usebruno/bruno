@@ -125,13 +125,27 @@ class BrunoRequest {
     this.req.headers = headers;
   }
 
+  deleteHeaders(headers) {
+    console.log('---------********---------');
+    console.log('Before deleting req headers : ', this.req.headers);
+    console.log('Reached Remove header method : ', headers);
+
+    headers.forEach((name) => {
+      console.log({ name });
+      delete this.req.headers[name];
+    });
+  }
+
   getHeader(name) {
     return this.req.headers[name];
   }
 
-  setHeader(name, value) {
-    this.headers[name] = value;
-    this.req.headers[name] = value;
+  deleteHeader(header) {
+    console.log('---------********---------');
+    console.log('Header : ', this.req.headers);
+    console.log('Reached Remove header method : ', header);
+
+    delete this.req.headers[header];
   }
 
   hasJSONContentType(headers) {

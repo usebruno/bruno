@@ -61,6 +61,7 @@ const simpleTranslations = {
   'req.body': 'pm.request.body',
   'req.getHeader': 'pm.request.headers.get',
   'req.setHeader': 'pm.request.headers.set',
+  'req.deleteHeader': 'pm.request.headers.remove',
 
   // URL helper methods
   'req.getHost': 'pm.request.url.getHost',
