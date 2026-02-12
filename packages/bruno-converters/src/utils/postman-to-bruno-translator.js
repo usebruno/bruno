@@ -8,12 +8,14 @@ const simpleTranslations = {
   // Global Variables
   'pm.globals.get': 'bru.getGlobalEnvVar',
   'pm.globals.set': 'bru.setGlobalEnvVar',
+  'pm.globals.replaceIn': 'bru.interpolate',
 
   // Environment variables
   'pm.environment.get': 'bru.getEnvVar',
   'pm.environment.set': 'bru.setEnvVar',
   'pm.environment.name': 'bru.getEnvName()',
   'pm.environment.unset': 'bru.deleteEnvVar',
+  'pm.environment.replaceIn': 'bru.interpolate',
 
   // Variables
   'pm.variables.get': 'bru.getVar',
@@ -25,6 +27,7 @@ const simpleTranslations = {
   'pm.collectionVariables.set': 'bru.setVar',
   'pm.collectionVariables.has': 'bru.hasVar',
   'pm.collectionVariables.unset': 'bru.deleteVar',
+  'pm.collectionVariables.replaceIn': 'bru.interpolate',
 
   // Request flow control
   'pm.setNextRequest': 'bru.setNextRequest',
@@ -80,7 +83,11 @@ const simpleTranslations = {
   // Legacy Postman API (deprecated) (we can use pm instead of postman, as we are converting all postman references to pm in the code as the part of pre-processing)
   'pm.setEnvironmentVariable': 'bru.setEnvVar',
   'pm.getEnvironmentVariable': 'bru.getEnvVar',
-  'pm.clearEnvironmentVariable': 'bru.deleteEnvVar'
+  'pm.clearEnvironmentVariable': 'bru.deleteEnvVar',
+
+  // Legacy response properties
+  'responseCode.code': 'res.getStatus()',
+  'responseCode.name': 'res.statusText'
 };
 
 /* Complex transformations that need custom handling
@@ -328,6 +335,229 @@ const complexTransformations = [
         [reduceFn, j.objectExpression([])]
       );
     }
+  },
+
+  // pm.globals.has requires special handling
+  {
+    pattern: 'pm.globals.has',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      // Create: bru.getGlobalEnvVar(arg) !== undefined && bru.getGlobalEnvVar(arg) !== null
+      return j.logicalExpression(
+        '&&',
+        j.binaryExpression(
+          '!==',
+          j.callExpression(j.identifier('bru.getGlobalEnvVar'), args),
+          j.identifier('undefined')
+        ),
+        j.binaryExpression(
+          '!==',
+          j.callExpression(j.identifier('bru.getGlobalEnvVar'), args),
+          j.identifier('null')
+        )
+      );
+    }
+  },
+
+  // pm.request.headers.add({key, value}) -> req.setHeader(key, value)
+  {
+    pattern: 'pm.request.headers.add',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      // Check if the argument is an object with key and value properties
+      if (args.length > 0 && args[0].type === 'ObjectExpression') {
+        const obj = args[0];
+        let keyProp = null;
+        let valueProp = null;
+
+        obj.properties.forEach((prop) => {
+          if (prop.key.name === 'key' || prop.key.value === 'key') {
+            keyProp = prop.value;
+          }
+          if (prop.key.name === 'value' || prop.key.value === 'value') {
+            valueProp = prop.value;
+          }
+        });
+
+        if (keyProp && valueProp) {
+          return j.callExpression(
+            j.identifier('req.setHeader'),
+            [keyProp, valueProp]
+          );
+        }
+      }
+
+      // Fallback: keep original args
+      return j.callExpression(j.identifier('req.setHeader'), args);
+    }
+  },
+
+  // pm.request.headers.upsert({key, value}) -> req.setHeader(key, value)
+  {
+    pattern: 'pm.request.headers.upsert',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      // Check if the argument is an object with key and value properties
+      if (args.length > 0 && args[0].type === 'ObjectExpression') {
+        const obj = args[0];
+        let keyProp = null;
+        let valueProp = null;
+
+        obj.properties.forEach((prop) => {
+          if (prop.key.name === 'key' || prop.key.value === 'key') {
+            keyProp = prop.value;
+          }
+          if (prop.key.name === 'value' || prop.key.value === 'value') {
+            valueProp = prop.value;
+          }
+        });
+
+        if (keyProp && valueProp) {
+          return j.callExpression(
+            j.identifier('req.setHeader'),
+            [keyProp, valueProp]
+          );
+        }
+      }
+
+      // Fallback: keep original args
+      return j.callExpression(j.identifier('req.setHeader'), args);
+    }
+  },
+
+  // pm.response.to.be.ok -> expect(res.getStatus()).to.be.within(200, 299)
+  {
+    pattern: 'pm.response.to.be.ok',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(200), j.literal(299)]
+      );
+    }
+  },
+
+  // pm.response.to.be.success -> expect(res.getStatus()).to.be.within(200, 299)
+  {
+    pattern: 'pm.response.to.be.success',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(200), j.literal(299)]
+      );
+    }
+  },
+
+  // pm.response.to.be.redirection -> expect(res.getStatus()).to.be.within(300, 399)
+  {
+    pattern: 'pm.response.to.be.redirection',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(300), j.literal(399)]
+      );
+    }
+  },
+
+  // pm.response.to.be.clientError -> expect(res.getStatus()).to.be.within(400, 499)
+  {
+    pattern: 'pm.response.to.be.clientError',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(400), j.literal(499)]
+      );
+    }
+  },
+
+  // pm.response.to.be.serverError -> expect(res.getStatus()).to.be.within(500, 599)
+  {
+    pattern: 'pm.response.to.be.serverError',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(500), j.literal(599)]
+      );
+    }
+  },
+
+  // pm.response.to.be.error -> expect(res.getStatus()).to.be.at.least(400)
+  {
+    pattern: 'pm.response.to.be.error',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.at.least')
+        ),
+        [j.literal(400)]
+      );
+    }
+  },
+
+  // pm.response.to.have.jsonBody(path) -> expect(res.getBody()).to.have.nested.property(path)
+  {
+    pattern: 'pm.response.to.have.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      if (args.length === 0) {
+        // No path provided, just check that body exists
+        return j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier('to.exist')
+        );
+      } else if (args.length === 1) {
+        // Path provided, check property exists
+        return j.callExpression(
+          j.memberExpression(
+            j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+            j.identifier('to.have.nested.property')
+          ),
+          args
+        );
+      } else {
+        // Path and value provided, check property equals value
+        return j.callExpression(
+          j.memberExpression(
+            j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+            j.identifier('to.have.nested.property')
+          ),
+          args
+        );
+      }
+    }
+  },
+
+  // Legacy postman.getResponseHeader(name) -> res.getHeader(name)
+  {
+    pattern: 'pm.getResponseHeader',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      return j.callExpression(j.identifier('res.getHeader'), args);
+    }
   }
 ];
 
@@ -360,24 +590,40 @@ function processTransformations(ast, transformedNodes) {
     }
 
     // Then check for complex transformations (O(1))
-    if (complexTransformationsMap.hasOwnProperty(memberExprStr)
-      && path.parent.value.type === 'CallExpression') {
-      const transform = complexTransformationsMap[memberExprStr];
-      const replacement = transform.transform(path, j);
-      if (Array.isArray(replacement)) {
-        replacement.forEach((nodePath, index) => {
-          if (index === 0) {
-            j(path.parent).replaceWith(nodePath);
-          } else {
-            j(path.parent.parent).insertAfter(nodePath);
+    if (complexTransformationsMap.hasOwnProperty(memberExprStr)) {
+      const parentType = path.parent.value.type;
+
+      // Call-based patterns (e.g., pm.response.to.have.jsonBody("path"))
+      if (parentType === 'CallExpression') {
+        const transform = complexTransformationsMap[memberExprStr];
+        const replacement = transform.transform(path, j);
+        if (Array.isArray(replacement)) {
+          // Capture stable references before mutating the AST
+          const parentPath = path.parent;
+          const grandParentPath = parentPath.parent;
+
+          // Replace the original CallExpression with the first node
+          j(parentPath).replaceWith(replacement[0]);
+          transformedNodes.add(replacement[0]);
+          transformedNodes.add(parentPath.node);
+
+          // Insert remaining nodes after the grandparent in reverse order
+          // so that repeated insertAfter on the same anchor yields correct sequence
+          for (let i = replacement.length - 1; i >= 1; i--) {
+            j(grandParentPath).insertAfter(replacement[i]);
+            transformedNodes.add(replacement[i]);
           }
-          transformedNodes.add(nodePath.node);
+        } else {
+          j(path.parent).replaceWith(replacement);
+          transformedNodes.add(path.node);
           transformedNodes.add(path.parent.node);
-        });
-      } else {
-        j(path.parent).replaceWith(replacement);
+        }
+      } else if (parentType === 'ExpressionStatement') {
+        // Property-access patterns used as statements (e.g., pm.response.to.be.ok;)
+        const transform = complexTransformationsMap[memberExprStr];
+        const replacement = transform.transform(path, j);
+        j(path).replaceWith(replacement);
         transformedNodes.add(path.node);
-        transformedNodes.add(path.parent.node);
       }
     }
   });
