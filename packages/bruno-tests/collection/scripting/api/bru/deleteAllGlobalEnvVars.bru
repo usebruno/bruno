@@ -13,14 +13,21 @@ get {
 script:pre-request {
   bru.setGlobalEnvVar("testDelAllGlobalA", "a");
   bru.setGlobalEnvVar("testDelAllGlobalB", "b");
-  bru.deleteAllGlobalEnvVars();
 }
 
 tests {
+  const savedGlobalEnvVars = bru.getAllGlobalEnvVars();
+  bru.deleteAllGlobalEnvVars();
+
   test("should delete all global env vars", function() {
     const valA = bru.getGlobalEnvVar("testDelAllGlobalA");
     const valB = bru.getGlobalEnvVar("testDelAllGlobalB");
     expect(valA).to.be.undefined;
     expect(valB).to.be.undefined;
   });
+
+  // Restore global env vars for subsequent requests
+  for (const [key, value] of Object.entries(savedGlobalEnvVars)) {
+    bru.setGlobalEnvVar(key, value);
+  }
 }

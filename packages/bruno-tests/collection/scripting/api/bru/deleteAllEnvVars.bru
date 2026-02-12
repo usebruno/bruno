@@ -12,10 +12,12 @@ get {
 
 script:pre-request {
   bru.setEnvVar("testDelAllEnvVar", "to-be-deleted");
-  bru.deleteAllEnvVars();
 }
 
 tests {
+  const savedEnvVars = bru.getAllEnvVars();
+  bru.deleteAllEnvVars();
+
   test("should delete all env vars", function() {
     const val = bru.getEnvVar("testDelAllEnvVar");
     expect(val).to.be.undefined;
@@ -25,4 +27,9 @@ tests {
     const envName = bru.getEnvName();
     expect(envName).to.equal("Prod");
   });
+
+  // Restore env vars for subsequent requests
+  for (const [key, value] of Object.entries(savedEnvVars)) {
+    bru.setEnvVar(key, value);
+  }
 }
