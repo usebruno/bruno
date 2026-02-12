@@ -621,11 +621,6 @@ function processTransformations(ast, transformedNodes) {
       } else if (parentType === 'ExpressionStatement') {
         // Property-access patterns used as statements (e.g., pm.response.to.be.ok;)
         const transform = complexTransformationsMap[memberExprStr];
-        // Defensive guard: ExpressionStatements lack an arguments property.
-        // Provide a safe fallback so transforms that read path.parent.value.arguments don't throw.
-        if (path.parent && path.parent.value && path.parent.value.arguments === undefined) {
-          path.parent.value.arguments = [];
-        }
         const replacement = transform.transform(path, j);
         j(path).replaceWith(replacement);
         transformedNodes.add(path.node);
