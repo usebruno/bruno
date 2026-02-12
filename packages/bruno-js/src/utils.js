@@ -161,13 +161,34 @@ const cleanJson = (data) => {
   ].filter(Boolean);
   const binaryNames = typedArrays.map((d) => d.name);
 
+  const seen = new WeakSet();
+
   const replacer = (key, value) => {
-    const isBinary = typedArrays.find((d) => value instanceof d);
-    if (isBinary) {
-      return {
-        __cleanJSONType: isBinary.name,
-        __cleanJSONValue: Buffer.from(value.buffer).toJSON()
-      };
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return '[Circular Reference]';
+      }
+      seen.add(value);
+
+      // instanceof + [[Class]] cover same-realm; duck-type fallback for cross-realm/cross-context Error-like objects
+      if (value instanceof Error || Object.prototype.toString.call(value) === '[object Error]' || (typeof value.message === 'string' && typeof value.stack === 'string')) {
+        const error = {};
+        // name/message are often on prototype; ensure they're in the output
+        error.name = value.name;
+        error.message = value.message;
+        Object.getOwnPropertyNames(value).forEach((prop) => {
+          error[prop] = value[prop];
+        });
+        return error;
+      }
+
+      const isBinary = typedArrays.find((d) => value instanceof d);
+      if (isBinary) {
+        return {
+          __cleanJSONType: isBinary.name,
+          __cleanJSONValue: Buffer.from(value.buffer).toJSON()
+        };
+      }
     }
     return value;
   };
