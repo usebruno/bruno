@@ -275,9 +275,12 @@ const complexTransformations = [
       );
 
       const awaitExpr = j.awaitExpression(getCookieCall);
+      const parenAwait = j.parenthesizedExpression
+        ? j.parenthesizedExpression(awaitExpr)
+        : awaitExpr;
 
       return j.optionalMemberExpression(
-        awaitExpr,
+        parenAwait,
         j.identifier('value'),
         false,
         true
