@@ -5,6 +5,7 @@ import { useTheme } from 'providers/Theme';
 import { setFolderHeaders } from 'providers/ReduxStore/slices/collections';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
@@ -53,6 +54,24 @@ const Headers = ({ collection, folder }) => {
     return null;
   }, []);
 
+  const descriptionColumn = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ value, onChange }) => (
+      <MultiLineEditor
+        value={value || ''}
+        theme={storedTheme}
+        onSave={handleSave}
+        onChange={onChange}
+        allowNewlines={true}
+        collection={collection}
+        item={folder}
+      />
+    )
+  };
+
   const columns = [
     {
       key: 'name',
@@ -88,7 +107,8 @@ const Headers = ({ collection, folder }) => {
           placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
@@ -125,7 +145,7 @@ const Headers = ({ collection, folder }) => {
         defaultRow={defaultRow}
         getRowError={getRowError}
       />
-      <div className="flex justify-end mt-2">
+      <div className="flex justify-end mt-2 gap-2">
         <button className="text-link select-none" onClick={toggleBulkEditMode}>
           Bulk Edit
         </button>

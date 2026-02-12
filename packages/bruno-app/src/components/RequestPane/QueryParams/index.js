@@ -35,16 +35,21 @@ const QueryParams = ({ item, collection }) => {
     }));
   }, [dispatch, collection.uid, item.uid]);
 
-  const handlePathParamChange = useCallback((rowUid, key, value) => {
-    const pathParam = pathParams.find((p) => p.uid === rowUid);
-    if (pathParam) {
-      dispatch(updatePathParam({
-        pathParam: { ...pathParam, [key]: value },
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      }));
-    }
-  }, [dispatch, pathParams, item.uid, collection.uid]);
+  const handlePathParamChange = useCallback(
+    (rowUid, key, value) => {
+      const pathParam = pathParams.find((p) => p.uid === rowUid);
+      if (pathParam) {
+        dispatch(
+          updatePathParam({
+            pathParam: { ...pathParam, [key]: value },
+            itemUid: item.uid,
+            collectionUid: collection.uid
+          })
+        );
+      }
+    },
+    [dispatch, pathParams, item.uid, collection.uid]
+  );
 
   const handleQueryParamDrag = useCallback(({ updateReorderedItem }) => {
     dispatch(moveQueryParam({
@@ -56,6 +61,44 @@ const QueryParams = ({ item, collection }) => {
 
   const toggleBulkEditMode = () => {
     setIsBulkEditMode(!isBulkEditMode);
+  };
+
+  const descriptionColumnQuery = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ value, onChange }) => (
+      <MultiLineEditor
+        value={value || ''}
+        theme={storedTheme}
+        onSave={onSave}
+        onChange={onChange}
+        allowNewlines={true}
+        onRun={handleRun}
+        collection={collection}
+        item={item}
+      />
+    )
+  };
+
+  const descriptionColumnPath = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ row, value, onChange }) => (
+      <MultiLineEditor
+        value={value || ''}
+        theme={storedTheme}
+        onSave={onSave}
+        onChange={(newValue) => handlePathParamChange(row.uid, 'description', newValue)}
+        allowNewlines={true}
+        onRun={handleRun}
+        collection={collection}
+        item={item}
+      />
+    )
   };
 
   const queryColumns = [
@@ -83,7 +126,8 @@ const QueryParams = ({ item, collection }) => {
           placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    descriptionColumnQuery
   ];
 
   const pathColumns = [
@@ -109,7 +153,8 @@ const QueryParams = ({ item, collection }) => {
           item={item}
         />
       )
-    }
+    },
+    descriptionColumnPath
   ];
 
   const defaultQueryRow = {
@@ -136,7 +181,9 @@ const QueryParams = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1">
-        <div className="mb-3 title text-xs">Query</div>
+        <div className="mb-3 title text-xs">
+          <span>Query</span>
+        </div>
         <EditableTable
           columns={queryColumns}
           rows={queryParams || []}

@@ -41,6 +41,10 @@ export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
     secret: !!obj.secret
   };
 
+  if (obj.description) {
+    envVariable.description = obj.description;
+  }
+
   if (!withUuid) {
     return envVariable;
   }
@@ -56,6 +60,8 @@ export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
  * This is useful when comparing variables where UIDs may differ but the actual data is the same.
  */
 export const stripEnvVarUid = (variable) => {
-  const { name, value, type, enabled, secret } = variable;
-  return { name, value, type, enabled, secret };
+  const { name, value, type, enabled, secret, description } = variable;
+  const result = { name, value, type, enabled, secret };
+  if (description !== undefined) result.description = description;
+  return result;
 };

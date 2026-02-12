@@ -35,13 +35,13 @@ const grammar = ohm.grammar(`Bru {
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
-  
+
   // Oauth2 additional parameters
   authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
-  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams 
+  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams
   oauth2AccessTokenReqConfig = oauth2AccessTokenReqHeaders | oauth2AccessTokenReqQueryParams | oauth2AccessTokenReqBody
   oauth2RefreshTokenReqConfig = oauth2RefreshTokenReqHeaders | oauth2RefreshTokenReqQueryParams | oauth2RefreshTokenReqBody
- 
+
   nl = "\\r"? "\\n"
   st = " " | "\\t"
   stnl = st | nl
@@ -58,7 +58,8 @@ const grammar = ohm.grammar(`Bru {
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = st* (quoted_key | key) st* ":" st* value st*
+  pair = descriptionprefix? st* (quoted_key | key) st* ":" st* value st*  -- kv
+       | descriptionprefix  -- orphandesc
   disable_char = "~"
   quote_char = "\\""
   esc_char = "\\\\"
@@ -68,11 +69,23 @@ const grammar = ohm.grammar(`Bru {
   key = keychar*
   value = list | multilinetextblock | singlelinevalue
   singlelinevalue = valuechar*
+  descriptionTripleContent = (~"'''" any)*
+
+  // Prefix description annotation: @description('''...''') on its own line before a key:value pair.
+  // Supports multiline values (unlike the suffix form).
+  // Double-quoted form is used when the description itself contains ''' (cannot embed inside triple-quoted).
+  descriptionprefix = descriptionprefix_triple | descriptionprefix_double
+  descriptionprefix_triple = st* "@" "description" "(" "'''" descriptionTripleContent "'''" ")" st* nl
+  descriptionprefix_double = st* "@" "description" "(" "\\"" descriptionDoubleChar* "\\"" ")" st* nl
+  descriptionDoubleChar = descriptionDoubleEsc | descriptionDoubleNorm
+  descriptionDoubleEsc = "\\\\" any
+  descriptionDoubleNorm = ~"\\"" ~nl any
 
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
   assertpairlist = optionalnl* assertpair (~tagend stnl* assertpair)* (~tagend space)*
-  assertpair = st* assertkey st* ":" st* value st*
+  assertpair = descriptionprefix? st* assertkey st* ":" st* value st*  -- kv
+            | descriptionprefix                                          -- orphandesc
   assertkey = ~tagend assertkeychar*
   assertkeychar = ~(tagend | nl | ":") any
 
@@ -152,7 +165,7 @@ const grammar = ohm.grammar(`Bru {
   // Examples - multiple example blocks
   example = "example" st* "{" nl* examplecontent tagend
   examplecontent = (~tagend any)*
-  
+
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
   scriptres = "script:post-response" st* "{" nl* textblock tagend
@@ -165,7 +178,8 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
     return [];
   }
   return _.map(pairList[0], (pair) => {
-    let name = _.keys(pair)[0];
+    // Skip the internal __desc marker when resolving the real key name
+    let name = _.keys(pair).find((k) => k !== '__desc');
     let value = pair[name];
 
     if (!parseEnabled) {
@@ -181,11 +195,17 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       enabled = false;
     }
 
-    return {
+    const result = {
       name,
       value,
       enabled
     };
+
+    if (pair.__desc !== undefined) {
+      result.description = pair.__desc;
+    }
+
+    return result;
   });
 };
 
@@ -194,7 +214,8 @@ const mapRequestParams = (pairList = [], type) => {
     return [];
   }
   return _.map(pairList[0], (pair) => {
-    let name = _.keys(pair)[0];
+    // Skip the internal __desc marker when resolving the real key name
+    let name = _.keys(pair).find((k) => k !== '__desc');
     let value = pair[name];
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
@@ -202,12 +223,18 @@ const mapRequestParams = (pairList = [], type) => {
       enabled = false;
     }
 
-    return {
+    const result = {
       name,
       value,
       enabled,
       type
     };
+
+    if (pair.__desc !== undefined) {
+      result.description = pair.__desc;
+    }
+
+    return result;
   });
 };
 
@@ -240,9 +267,10 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
 
   return pairs.map((pair) => {
     pair.type = 'text';
+    // Description is already handled inside mapPairListToKeyValPairs
     multipartExtractContentType(pair);
 
-    if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
+    if (_.isString(pair.value) && pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
       let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.type = 'file';
       pair.value = filestr.split('|');
@@ -351,14 +379,50 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   pairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  pair(_1, key, _2, _3, _4, value, _5) {
+  descriptionprefix(alt) {
+    return alt.ast;
+  },
+  descriptionprefix_triple(_st, _at, _desc, _lp, _open, descContent, _close, _rp, _st2, _nl) {
+    const raw = descContent.sourceString;
+    if (raw.includes('\n')) {
+      return raw.split('\n').map((line) => (line.startsWith('    ') ? line.slice(4) : line)).join('\n').trim();
+    }
+    return raw.trim();
+  },
+  descriptionprefix_double(_st, _at, _desc, _lp, _dqOpen, descChars, _dqClose, _rp, _st2, _nl) {
+    return descChars.sourceString.replace(/\\(\\|"|n|r|t)/g, (_, c) => {
+      if (c === '\\') return '\\';
+      if (c === '"') return '"';
+      if (c === 'n') return '\n';
+      if (c === 'r') return '\r';
+      if (c === 't') return '\t';
+      return c;
+    });
+  },
+  pair_kv(descPrefix, _1, key, _2, _3, _4, value, _5) {
     let res = {};
-    if (Array.isArray(value.ast)) {
-      res[key.ast] = value.ast;
+    const valueAst = value.ast;
+    const prefixDesc = descPrefix.children.length > 0 ? descPrefix.children[0].ast : undefined;
+
+    if (Array.isArray(valueAst)) {
+      res[key.ast] = valueAst;
+      if (prefixDesc !== undefined) res.__desc = prefixDesc;
       return res;
     }
-    res[key.ast] = value.ast ? value.ast.trim() : '';
+
+    if (valueAst && typeof valueAst === 'object' && '__value' in valueAst) {
+      res[key.ast] = valueAst.__value;
+      // Prefix description takes precedence over suffix description
+      res.__desc = prefixDesc !== undefined ? prefixDesc : valueAst.__desc;
+      return res;
+    }
+
+    res[key.ast] = valueAst ? valueAst.trim() : '';
+    if (prefixDesc !== undefined) res.__desc = prefixDesc;
     return res;
+  },
+  pair_orphandesc(descPrefix) {
+    return { '': '', '__desc': descPrefix.ast };
   },
   esc_quote_char(_1, quote) {
     // unescape
@@ -377,10 +441,16 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   assertpairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  assertpair(_1, key, _2, _3, _4, value, _5) {
+  assertpair_kv(descPrefix, _1, key, _2, _3, _4, value, _5) {
     let res = {};
-    res[key.ast] = value.ast ? value.ast.trim() : '';
+    const valueAst = value.ast;
+    const prefixDesc = descPrefix.children.length > 0 ? descPrefix.children[0].ast : undefined;
+    res[key.ast] = valueAst ? valueAst.trim() : '';
+    if (prefixDesc !== undefined) res.__desc = prefixDesc;
     return res;
+  },
+  assertpair_orphandesc(descPrefix) {
+    return { '': '', '__desc': descPrefix.ast };
   },
   assertkey(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';

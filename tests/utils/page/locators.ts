@@ -64,6 +64,10 @@ export const buildCommonLocators = (page: Page) => ({
     variableNameInput: (index: number) => page.locator(`input[name="${index}.name"]`),
     variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
     variableRow: (index: number) => page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) }),
+    /** Returns the description CodeMirror for the variable row at the given index.
+     *  Each var row has two CodeMirrors: value (nth 0) and description (nth 1). */
+    variableDescriptionEditor: (index: number) =>
+      page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) }).locator('.CodeMirror').nth(1),
     createEnvButton: () => page.locator('button[id="create-env"]'),
     envNameInput: () => page.locator('input[name="name"]')
   },

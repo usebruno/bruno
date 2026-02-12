@@ -13,7 +13,6 @@ import { setCollectionVars } from 'providers/ReduxStore/slices/collections/index
 const VarsTable = ({ collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-
   const onSave = () => dispatch(saveCollectionSettings(collection.uid));
 
   const handleVarsChange = useCallback((updatedVars) => {
@@ -28,6 +27,23 @@ const VarsTable = ({ collection, vars, varType }) => {
     }
     return null;
   }, []);
+
+  const descriptionColumn = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ value, onChange }) => (
+      <MultiLineEditor
+        value={value || ''}
+        theme={storedTheme}
+        onSave={onSave}
+        onChange={onChange}
+        allowNewlines={true}
+        collection={collection}
+      />
+    )
+  };
 
   const columns = [
     {
@@ -56,12 +72,14 @@ const VarsTable = ({ collection, vars, varType }) => {
           placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
     name: '',
     value: '',
+    description: '',
     ...(varType === 'response' ? { local: false } : {})
   };
 

@@ -5,6 +5,7 @@ import { useTheme } from 'providers/Theme';
 import { moveRequestHeader, setRequestHeaders } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
@@ -59,6 +60,25 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     setIsBulkEditMode(!isBulkEditMode);
   };
 
+  const descriptionColumn = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ value, onChange }) => (
+      <MultiLineEditor
+        value={value || ''}
+        theme={storedTheme}
+        onSave={onSave}
+        onChange={onChange}
+        allowNewlines={true}
+        onRun={handleRun}
+        collection={collection}
+        item={item}
+      />
+    )
+  };
+
   const columns = [
     {
       key: 'name',
@@ -97,7 +117,8 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
           placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
@@ -131,7 +152,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         reorderable={true}
         onReorder={handleHeaderDrag}
       />
-      <div className="flex justify-end mt-2">
+      <div className="flex justify-end mt-2 gap-2">
         <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
           Bulk Edit
         </button>
