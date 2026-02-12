@@ -180,7 +180,7 @@ paths:
                   type: string
                   minLength: 8
       responses:
-        '200':
+       '200':
           description: Login successful
           content:
             application/json:
@@ -193,7 +193,7 @@ paths:
                     type: integer
                   user:
                     $ref: '#/components/schemas/User'
-        401:
+        '401':
           description: Invalid credentials
   /posts:
     get:
