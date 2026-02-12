@@ -58,6 +58,23 @@ describe('jsonToEnv', () => {
     expect(output).toEqual(expected);
   });
 
+  it('should stringify description in vars', () => {
+    const input = {
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true,
+          description: 'Base API URL.'
+        }
+      ]
+    };
+
+    const output = parser(input);
+    expect(output).toContain('url: http://localhost:3000');
+    expect(output).toContain('@description(\'\'\'Base API URL.\'\'\')');
+  });
+
   it('should stringify secret vars', () => {
     const input = {
       variables: [

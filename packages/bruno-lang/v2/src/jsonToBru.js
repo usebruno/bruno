@@ -6,6 +6,15 @@ const jsonToExampleBru = require('./example/jsonToBru');
 const enabled = (items = [], key = 'enabled') => items.filter((item) => item[key]);
 const disabled = (items = [], key = 'enabled') => items.filter((item) => !item[key]);
 
+const getDescriptionSuffix = (item) => {
+  const desc = item && item.description && String(item.description).trim();
+  if (!desc) return '';
+  if (desc.includes('\'\'\'')) {
+    return ' @description("' + desc.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '")';
+  }
+  return ' @description(\'\'\'' + desc.replace(/\\/g, '\\\\') + '\'\'\')';
+};
+
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
   if (!text || !text.length) return text;
@@ -128,7 +137,7 @@ const jsonToBru = (json) => {
       if (enabled(queryParams).length) {
         bru += `\n${indentString(
           enabled(queryParams)
-            .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
             .join('\n')
         )}`;
       }
@@ -136,7 +145,7 @@ const jsonToBru = (json) => {
       if (disabled(queryParams).length) {
         bru += `\n${indentString(
           disabled(queryParams)
-            .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
             .join('\n')
         )}`;
       }
@@ -147,7 +156,7 @@ const jsonToBru = (json) => {
     if (pathParams.length) {
       bru += 'params:path {';
 
-      bru += `\n${indentString(pathParams.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(pathParams.map((item) => `${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
 
       bru += '\n}\n\n';
     }
@@ -158,7 +167,7 @@ const jsonToBru = (json) => {
     if (enabled(headers).length) {
       bru += `\n${indentString(
         enabled(headers)
-          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
@@ -166,7 +175,7 @@ const jsonToBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
-          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
@@ -502,14 +511,14 @@ ${indentString(body.sparql)}
 
     if (enabled(body.formUrlEncoded).length) {
       const enabledValues = enabled(body.formUrlEncoded)
-        .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+        .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
         .join('\n');
       bru += `${indentString(enabledValues)}\n`;
     }
 
     if (disabled(body.formUrlEncoded).length) {
       const disabledValues = disabled(body.formUrlEncoded)
-        .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+        .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
         .join('\n');
       bru += `${indentString(disabledValues)}\n`;
     }
@@ -528,9 +537,10 @@ ${indentString(body.sparql)}
             const enabled = item.enabled ? '' : '~';
             const contentType
               = item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
+            const descSuffix = getDescriptionSuffix(item);
 
             if (item.type === 'text') {
-              return `${enabled}${getKeyString(item.name)}: ${getValueString(item.value)}${contentType}`;
+              return `${enabled}${getKeyString(item.name)}: ${getValueString(item.value)}${contentType}${descSuffix}`;
             }
 
             if (item.type === 'file') {
@@ -538,7 +548,7 @@ ${indentString(body.sparql)}
               const filestr = filepaths.join('|');
 
               const value = `@file(${filestr})`;
-              return `${enabled}${getKeyString(item.name)}: ${value}${contentType}`;
+              return `${enabled}${getKeyString(item.name)}: ${value}${contentType}${descSuffix}`;
             }
           })
           .join('\n')
@@ -637,19 +647,19 @@ ${indentString(body.sparql)}
     bru += `vars:pre-request {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -663,19 +673,19 @@ ${indentString(body.sparql)}
     bru += `vars:post-response {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';

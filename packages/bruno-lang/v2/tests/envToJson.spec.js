@@ -35,6 +35,29 @@ vars {
     expect(output).toEqual(expected);
   });
 
+  it('should parse @description in vars', () => {
+    const input = `
+vars {
+  url: http://localhost:3000 @description('''Base API URL.''')
+  port: 3000 @description("Server port")
+}`;
+
+    const output = parser(input);
+    expect(output.variables).toHaveLength(2);
+    expect(output.variables[0]).toMatchObject({
+      name: 'url',
+      value: 'http://localhost:3000',
+      enabled: true,
+      description: 'Base API URL.'
+    });
+    expect(output.variables[1]).toMatchObject({
+      name: 'port',
+      value: '3000',
+      enabled: true,
+      description: 'Server port'
+    });
+  });
+
   it('should parse multiple var lines', () => {
     const input = `
 vars {

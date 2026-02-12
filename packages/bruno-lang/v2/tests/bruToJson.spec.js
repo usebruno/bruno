@@ -204,4 +204,55 @@ body:multipart-form {
       expect(output).toEqual(expected);
     });
   });
+
+  describe('description annotation', () => {
+    it('parses @description in headers', () => {
+      const input = `
+headers {
+  Authorization: Bearer xxx @description('''API key for auth.''')
+  X-Custom: val @description("Single-line desc")
+}`;
+
+      const output = parser(input);
+      expect(output.headers).toHaveLength(2);
+      expect(output.headers[0]).toMatchObject({
+        name: 'Authorization',
+        value: 'Bearer xxx',
+        enabled: true,
+        description: 'API key for auth.'
+      });
+      expect(output.headers[1]).toMatchObject({
+        name: 'X-Custom',
+        value: 'val',
+        enabled: true,
+        description: 'Single-line desc'
+      });
+    });
+
+    it('parses @description in params and body form-urlencoded', () => {
+      const input = `
+params:query {
+  q: search @description('''Search term.''')
+}
+body:form-urlencoded {
+  field: value @description("Field description")
+}`;
+
+      const output = parser(input);
+      expect(output.params).toHaveLength(1);
+      expect(output.params[0]).toMatchObject({
+        name: 'q',
+        value: 'search',
+        type: 'query',
+        description: 'Search term.'
+      });
+      expect(output.body.formUrlEncoded).toHaveLength(1);
+      expect(output.body.formUrlEncoded[0]).toMatchObject({
+        name: 'field',
+        value: 'value',
+        enabled: true,
+        description: 'Field description'
+      });
+    });
+  });
 });
