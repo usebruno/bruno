@@ -81,6 +81,11 @@ class Bru {
           deleteCookie: (url, cookieName, callback) => {
             const interpolatedUrl = this.interpolate(url);
             return cookieJar.deleteCookie(interpolatedUrl, cookieName, callback);
+          },
+
+          hasCookie: (url, cookieName, callback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.hasCookie(interpolatedUrl, cookieName, callback);
           }
         };
       }

@@ -240,6 +240,94 @@ const complexTransformations = [
         args
       );
     }
+  },
+
+  // pm.cookies.has(name) → await bru.cookies.jar().hasCookie(req.getUrl(), name)
+  {
+    pattern: 'pm.cookies.has',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      const hasCookieCall = j.callExpression(
+        j.identifier('bru.cookies.jar().hasCookie'),
+        [j.identifier('req.getUrl()'), ...args]
+      );
+
+      return j.awaitExpression(hasCookieCall);
+    }
+  },
+
+  // pm.cookies.get(name) → (await bru.cookies.jar().getCookie(req.getUrl(), name))?.value
+  {
+    pattern: 'pm.cookies.get',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      const getCookieCall = j.callExpression(
+        j.identifier('bru.cookies.jar().getCookie'),
+        [j.identifier('req.getUrl()'), ...args]
+      );
+
+      const awaitExpr = j.awaitExpression(getCookieCall);
+      const parenAwait = j.parenthesizedExpression
+        ? j.parenthesizedExpression(awaitExpr)
+        : awaitExpr;
+
+      return j.optionalMemberExpression(
+        parenAwait,
+        j.identifier('value'),
+        false,
+        true
+      );
+    }
+  },
+
+  // pm.cookies.toObject() → (await bru.cookies.jar().getCookies(req.getUrl())).reduce((obj, c) => ({...obj, [c.key]: c.value}), {})
+  {
+    pattern: 'pm.cookies.toObject',
+    transform: (path, j) => {
+      const getCookiesCall = j.callExpression(
+        j.identifier('bru.cookies.jar().getCookies'),
+        [j.identifier('req.getUrl()')]
+      );
+
+      const awaitExpr = j.awaitExpression(getCookiesCall);
+
+      // Build the reduce callback: (obj, c) => ({...obj, [c.key]: c.value})
+      const objParam = j.identifier('obj');
+      const cParam = j.identifier('c');
+
+      const spreadElement = j.spreadElement(objParam);
+      const computedProp = j.property(
+        'init',
+        j.memberExpression(cParam, j.identifier('key')),
+        j.memberExpression(cParam, j.identifier('value'))
+      );
+      computedProp.computed = true;
+
+      const objectExpr = j.objectExpression([spreadElement, computedProp]);
+
+      const arrowBody = j.parenthesizedExpression
+        ? j.parenthesizedExpression(objectExpr)
+        : objectExpr;
+
+      const reduceFn = j.arrowFunctionExpression(
+        [objParam, cParam],
+        arrowBody
+      );
+      reduceFn.expression = true;
+
+      // Build: (await ...).reduce(fn, {})
+      return j.callExpression(
+        j.memberExpression(
+          awaitExpr,
+          j.identifier('reduce')
+        ),
+        [reduceFn, j.objectExpression([])]
+      );
+    }
   }
 ];
 
@@ -249,7 +337,7 @@ complexTransformations.forEach((transform) => {
   complexTransformationsMap[transform.pattern] = transform;
 });
 
-const varInitsToReplace = new Set(['pm', 'postman', 'pm.request', 'pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution', 'pm.globals']);
+const varInitsToReplace = new Set(['pm', 'postman', 'pm.request', 'pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution', 'pm.globals', 'pm.cookies']);
 
 /**
  * Process all transformations (both simple and complex) in the AST in a single pass
