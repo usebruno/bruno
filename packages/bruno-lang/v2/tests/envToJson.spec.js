@@ -35,6 +35,58 @@ vars {
     expect(output).toEqual(expected);
   });
 
+  it('should parse @description in vars', () => {
+    const input = `
+vars {
+  url: http://localhost:3000 @description('''Base API URL.''')
+  port: 3000 @description("Server port")
+}`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true,
+          secret: false,
+          description: 'Base API URL.'
+        },
+        {
+          name: 'port',
+          value: '3000',
+          enabled: true,
+          secret: false,
+          description: 'Server port'
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse disabled variable with @description', () => {
+    const input = `
+vars {
+  ~url: http://localhost:3000 @description("Disabled base URL")
+}`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: false,
+          secret: false,
+          description: 'Disabled base URL'
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
   it('should parse multiple var lines', () => {
     const input = `
 vars {

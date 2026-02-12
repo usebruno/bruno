@@ -58,6 +58,25 @@ describe('jsonToEnv', () => {
     expect(output).toEqual(expected);
   });
 
+  it('should stringify description in vars', () => {
+    const input = {
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true,
+          description: 'Base API URL.'
+        }
+      ]
+    };
+
+    const output = parser(input);
+    expect(output).toEqual(`vars {
+  url: http://localhost:3000 @description('''Base API URL.''')
+}
+`);
+  });
+
   it('should stringify secret vars', () => {
     const input = {
       variables: [
@@ -139,6 +158,29 @@ vars:secret [
 ]
 `;
     expect(output).toEqual(expected);
+  });
+
+  it('should not emit @description for multiline variables (grammar cannot parse it)', () => {
+    const input = {
+      variables: [
+        {
+          name: 'json_data',
+          value: '{\n  "name": "test"\n}',
+          enabled: true,
+          description: 'A multiline JSON blob'
+        }
+      ]
+    };
+
+    const output = parser(input);
+    expect(output).toEqual(`vars {
+  json_data: '''
+    {
+      "name": "test"
+    }
+  '''
+}
+`);
   });
 
   it('should stringify multiline variables', () => {

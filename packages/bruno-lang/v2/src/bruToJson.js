@@ -1,6 +1,7 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
+const { extractDescription } = require('./common/semantic-utils');
 const parseExample = require('./example/bruToJson');
 
 /**
@@ -181,11 +182,13 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       enabled = false;
     }
 
-    return {
+    const result = {
       name,
       value,
       enabled
     };
+    extractDescription(result);
+    return result;
   });
 };
 
@@ -202,12 +205,14 @@ const mapRequestParams = (pairList = [], type) => {
       enabled = false;
     }
 
-    return {
+    const result = {
       name,
       value,
       enabled,
       type
     };
+    extractDescription(result);
+    return result;
   });
 };
 
@@ -240,9 +245,10 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
 
   return pairs.map((pair) => {
     pair.type = 'text';
+    extractDescription(pair);
     multipartExtractContentType(pair);
 
-    if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
+    if (_.isString(pair.value) && pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
       let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.type = 'file';
       pair.value = filestr.split('|');

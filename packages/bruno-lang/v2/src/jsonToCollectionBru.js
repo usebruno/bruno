@@ -5,6 +5,25 @@ const { indentString, getValueString, getKeyString } = require('./utils');
 const enabled = (items = []) => items.filter((item) => item.enabled);
 const disabled = (items = []) => items.filter((item) => !item.enabled);
 
+/**
+ * Returns a BRU @description suffix for the given item, or empty string.
+ * @param {{ name?: string, description?: string, value?: string }} item - Item with name, description, value.
+ * @returns {string} BRU `@description("...")` suffix with escaped content, or '' if description is missing or cannot be inlined.
+ * Multiline values (value containing '\n' or '\r') are excluded (logs console.warn). Always emits double-quoted form
+ * with backslashes and double quotes escaped so the annotation is a single-line safe string.
+ */
+const getDescriptionSuffix = (item) => {
+  const desc = item && item.description && String(item.description).trim();
+  if (!desc) return '';
+  const valueIsMultiline = item.value && (String(item.value).includes('\n') || String(item.value).includes('\r'));
+  if (valueIsMultiline) {
+    console.warn(`[bruno] Description for "${item.name}" was not saved because multiline values cannot carry an inline @description annotation in BRU format.`);
+    return '';
+  }
+  const escaped = desc.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+  return ' @description("' + escaped + '")';
+};
+
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
   if (!text || !text.length) return text;
@@ -30,7 +49,7 @@ const jsonToCollectionBru = (json) => {
     if (enabled(query).length) {
       bru += `\n${indentString(
         enabled(query)
-          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
@@ -38,7 +57,7 @@ const jsonToCollectionBru = (json) => {
     if (disabled(query).length) {
       bru += `\n${indentString(
         disabled(query)
-          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
@@ -51,7 +70,7 @@ const jsonToCollectionBru = (json) => {
     if (enabled(headers).length) {
       bru += `\n${indentString(
         enabled(headers)
-          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
@@ -59,7 +78,7 @@ const jsonToCollectionBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
-          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
@@ -354,19 +373,19 @@ ${indentString(
     bru += `vars:pre-request {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -380,19 +399,19 @@ ${indentString(
     bru += `vars:post-response {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
