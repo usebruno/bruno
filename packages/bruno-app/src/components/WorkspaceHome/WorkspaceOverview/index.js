@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
+import { toggleShowImportCollectionModal } from 'providers/ReduxStore/slices/keyBindings';
 import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import CreateCollection from 'components/Sidebar/CreateCollection';
-import ImportCollection from 'components/Sidebar/ImportCollection';
+import ImportCollection from 'components/Sidebar/ImportCollection/index';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import Button from 'ui/Button';
 import CollectionsList from './CollectionsList';
@@ -14,9 +15,9 @@ import StyledWrapper from './StyledWrapper';
 const WorkspaceOverview = ({ workspace }) => {
   const dispatch = useDispatch();
   const { globalEnvironments } = useSelector((state) => state.globalEnvironments);
+  const { showImportCollectionModal } = useSelector((state) => state.keyBindings);
 
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
-  const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [importData, setImportData] = useState(null);
 
@@ -47,13 +48,9 @@ const WorkspaceOverview = ({ workspace }) => {
     });
   };
 
-  const handleImportCollection = () => {
-    setImportCollectionModalOpen(true);
-  };
-
-  const handleImportCollectionSubmit = ({ rawData, type, ...rest }) => {
-    setImportCollectionModalOpen(false);
-    setImportData({ rawData, type, ...rest });
+  const handleImportCollectionSubmit = ({ rawData, type }) => {
+    dispatch(toggleShowImportCollectionModal({ show: false }));
+    setImportData({ rawData, type });
     setImportCollectionLocationModalOpen(true);
   };
 
@@ -78,13 +75,6 @@ const WorkspaceOverview = ({ workspace }) => {
     <StyledWrapper>
       {createCollectionModalOpen && (
         <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} />
-      )}
-
-      {importCollectionModalOpen && (
-        <ImportCollection
-          onClose={() => setImportCollectionModalOpen(false)}
-          handleSubmit={handleImportCollectionSubmit}
-        />
       )}
 
       {importCollectionLocationModalOpen && importData && (
@@ -132,7 +122,7 @@ const WorkspaceOverview = ({ workspace }) => {
                 color="light"
                 size="sm"
                 icon={<IconDownload size={14} strokeWidth={1.5} />}
-                onClick={handleImportCollection}
+                onClick={() => dispatch(toggleShowImportCollectionModal({ show: true }))}
               >
                 Import Collection
               </Button>

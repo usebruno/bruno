@@ -45,16 +45,16 @@ class MultiLineEditor extends Component {
       readOnly: this.props.readOnly,
       tabindex: 0,
       extraKeys: {
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
+        // 'Ctrl-Enter': () => {
+        //   if (this.props.onRun) {
+        //     this.props.onRun();
+        //   }
+        // },
+        // 'Cmd-Enter': () => {
+        //   if (this.props.onRun) {
+        //     this.props.onRun();
+        //   }
+        // },
         'Cmd-S': () => {
           if (this.props.onSave) {
             this.props.onSave();

@@ -24,7 +24,7 @@ const SIDEBAR_SECTIONS = [
 
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
-  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
+  const { sidebarCollapsed } = useSelector((state) => state.keyBindings);
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
   const lastWidthRef = useRef(leftSidebarWidth);
 

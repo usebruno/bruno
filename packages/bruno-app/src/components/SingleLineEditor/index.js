@@ -59,8 +59,8 @@ class SingleLineEditor extends Component {
       readOnly: this.props.readOnly,
       extraKeys: {
         'Enter': runHandler,
-        'Ctrl-Enter': runHandler,
-        'Cmd-Enter': runHandler,
+        // 'Ctrl-Enter': runHandler,
+        // 'Cmd-Enter': runHandler,
         'Alt-Enter': () => {
           if (this.props.allowNewlines) {
             this.editor.setValue(this.editor.getValue() + '\n');
@@ -322,4 +322,5 @@ class SingleLineEditor extends Component {
     );
   }
 }
+
 export default SingleLineEditor;

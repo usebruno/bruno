@@ -1,18 +1,19 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { useDispatch } from 'react-redux';
-import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
-import { saveRequest, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { hasExampleChanges, findItemInCollection } from 'utils/collections';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import ConfirmRequestClose from '../RequestTab/ConfirmRequestClose';
 import RequestTabNotFound from '../RequestTab/RequestTabNotFound';
 import StyledWrapper from '../RequestTab/StyledWrapper';
 import GradientCloseButton from '../RequestTab/GradientCloseButton';
+import { useSelector, useDispatch } from 'react-redux';
+import { toggleConfirmRequestCloseModal } from 'providers/ReduxStore/slices/keyBindings';
 
 const ExampleTab = ({ tab, collection }) => {
   const dispatch = useDispatch();
-  const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const { showConfirmRequestCloseModal } = useSelector((state) => state.keyBindings);
 
   const dropdownTippyRef = useRef();
 
@@ -75,32 +76,6 @@ const ExampleTab = ({ tab, collection }) => {
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-2">
-      {showConfirmClose && (
-        <ConfirmRequestClose
-          item={item}
-          example={example}
-          onCancel={() => setShowConfirmClose(false)}
-          onCloseWithoutSave={() => {
-            dispatch(deleteRequestDraft({
-              itemUid: item.uid,
-              collectionUid: collection.uid
-            }));
-            dispatch(closeTabs({
-              tabUids: [tab.uid]
-            }));
-            setShowConfirmClose(false);
-          }}
-          onSaveAndClose={() => {
-            // For examples, we don't have a separate save action
-            // The changes are saved automatically when the request is saved
-            dispatch(saveRequest(item.uid, collection.uid, true));
-            dispatch(closeTabs({
-              tabUids: [tab.uid]
-            }));
-            setShowConfirmClose(false);
-          }}
-        />
-      )}
       <div
         className={`flex items-center tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
@@ -111,7 +86,7 @@ const ExampleTab = ({ tab, collection }) => {
           if (e.button === 1) {
             e.stopPropagation();
             e.preventDefault();
-            setShowConfirmClose(true);
+            dispatch(toggleConfirmRequestCloseModal({ show: true, entity: 'request', example: example, item: item, tab: tab, collection: collection }));
           }
         }}
       >
@@ -129,7 +104,7 @@ const ExampleTab = ({ tab, collection }) => {
 
           e.stopPropagation();
           e.preventDefault();
-          setShowConfirmClose(true);
+          dispatch(toggleConfirmRequestCloseModal({ show: true, entity: 'request', example: example, item: item, tab: tab, collection: collection }));
         }}
       />
     </StyledWrapper>

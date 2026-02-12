@@ -8,7 +8,8 @@ import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
 import path, { normalizePath } from 'utils/common/path';
-import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/keyBindings';
 import toast from 'react-hot-toast';
 import {
   findCollectionByUid,
@@ -2466,7 +2467,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
 
     // If collection exists in Redux but not in workspace, add to workspace
     if (existingCollection) {
-      if (state.app.sidebarCollapsed) {
+      if (state.keyBindings.sidebarCollapsed) {
         dispatch(toggleSidebarCollapse());
       }
 
@@ -2511,7 +2512,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
         .then(() => {
           const currentState = getState();
-          if (currentState.app.sidebarCollapsed) {
+          if (currentState.keyBindings.sidebarCollapsed) {
             dispatch(toggleSidebarCollapse());
           }
 

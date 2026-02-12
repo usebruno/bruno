@@ -4,7 +4,8 @@ import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { savePreferences, showHomePage, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { savePreferences, showHomePage, showManageWorkspacePage } from 'providers/ReduxStore/slices/app';
+import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/keyBindings';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
 import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
@@ -107,7 +108,7 @@ const AppTitleBar = () => {
   // Get workspace info
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const preferences = useSelector((state) => state.app.preferences);
-  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
+  const { sidebarCollapsed } = useSelector((state) => state.keyBindings);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
 

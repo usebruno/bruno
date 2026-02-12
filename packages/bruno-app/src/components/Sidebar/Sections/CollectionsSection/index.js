@@ -18,6 +18,7 @@ import {
 import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { normalizePath } from 'utils/common/path';
+import { toggleSideSearch, toggleShowImportCollectionModal } from 'providers/ReduxStore/slices/keyBindings';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
@@ -25,12 +26,11 @@ import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollectionsModal/index';
 import CreateCollection from 'components/Sidebar/CreateCollection';
-import Collections from 'components/Sidebar/Collections';
+import Collections from 'components/Sidebar/Collections/index';
 import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const CollectionsSection = () => {
-  const [showSearch, setShowSearch] = useState(false);
   const dispatch = useDispatch();
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
@@ -42,7 +42,6 @@ const CollectionsSection = () => {
 
   const [importData, setImportData] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
-  const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
 
   const workspaceCollections = useMemo(() => {
@@ -51,12 +50,6 @@ const CollectionsSection = () => {
       activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
     );
   }, [activeWorkspace, collections]);
-
-  const handleImportCollection = ({ rawData, type, ...rest }) => {
-    setImportCollectionModalOpen(false);
-    setImportData({ rawData, type, ...rest });
-    setImportCollectionLocationModalOpen(true);
-  };
 
   const handleImportCollectionLocation = (convertedCollection, collectionLocation, options = {}) => {
     const importAction = options.isZipImport
@@ -76,7 +69,7 @@ const CollectionsSection = () => {
   };
 
   const handleToggleSearch = () => {
-    setShowSearch((prev) => !prev);
+    dispatch(toggleSideSearch());
   };
 
   const handleSortCollections = () => {
@@ -161,7 +154,7 @@ const CollectionsSection = () => {
       leftSection: IconDownload,
       label: 'Import collection',
       onClick: () => {
-        setImportCollectionModalOpen(true);
+        dispatch(toggleShowImportCollectionModal({ show: true }));
       }
     }
   ];
@@ -239,12 +232,6 @@ const CollectionsSection = () => {
           onClose={() => setCreateCollectionModalOpen(false)}
         />
       )}
-      {importCollectionModalOpen && (
-        <ImportCollection
-          onClose={() => setImportCollectionModalOpen(false)}
-          handleSubmit={handleImportCollection}
-        />
-      )}
       {importCollectionLocationModalOpen && importData && (
         <ImportCollectionLocation
           rawData={importData.rawData}
@@ -259,7 +246,7 @@ const CollectionsSection = () => {
         icon={IconBox}
         actions={sectionActions}
       >
-        <Collections showSearch={showSearch} />
+        <Collections />
       </SidebarSection>
     </>
   );

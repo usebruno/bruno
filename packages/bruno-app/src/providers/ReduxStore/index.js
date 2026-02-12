@@ -11,6 +11,7 @@ import logsReducer from './slices/logs';
 import performanceReducer from './slices/performance';
 import workspacesReducer from './slices/workspaces';
 import apiSpecReducer from './slices/apiSpec';
+import keyBindings from './slices/keyBindings';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
 import { autosaveMiddleware } from './middlewares/autosave/middleware';
 
@@ -34,7 +35,8 @@ export const store = configureStore({
     logs: logsReducer,
     performance: performanceReducer,
     workspaces: workspacesReducer,
-    apiSpec: apiSpecReducer
+    apiSpec: apiSpecReducer,
+    keyBindings: keyBindings
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
 });

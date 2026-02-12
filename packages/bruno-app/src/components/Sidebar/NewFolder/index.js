@@ -104,6 +104,7 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
                 formik.setFieldValue('folderName', e.target.value);
                 !isEditing && formik.setFieldValue('directoryName', sanitizeName(e.target.value));
               }}
+              data-testid="new-folder-input"
               value={formik.values.folderName || ''}
             />
             {formik.touched.folderName && formik.errors.folderName ? (

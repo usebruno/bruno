@@ -199,10 +199,10 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
                 </Dropdown>
               </div>
               <div className="flex justify-end">
-                <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
+                <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2" data-testid="collection-item-cancel">
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" data-testid="collection-item-clone">
                   Clone
                 </Button>
               </div>
