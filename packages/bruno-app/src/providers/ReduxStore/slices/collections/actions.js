@@ -10,6 +10,7 @@ import trim from 'lodash/trim';
 import path, { normalizePath } from 'utils/common/path';
 import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
+import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
 import {
   findCollectionByUid,
   findEnvironmentInCollection,
@@ -2685,19 +2686,22 @@ export const importCollection = (collection, collectionLocation, options = {}) =
     try {
       const state = getState();
       const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+      const isMultiple = Array.isArray(collection);
 
-      const collectionPath = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, options.format || DEFAULT_COLLECTION_FORMAT);
+      const result = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, options.format || DEFAULT_COLLECTION_FORMAT);
+      const importedPaths = result.success.items;
 
-      if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
-        const workspaceCollection = {
-          name: collection.name,
-          path: collectionPath
-        };
-
-        await ipcRenderer.invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection);
+      if (importedPaths.length > 0 && activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
+        for (const importedItem of importedPaths) {
+          const workspaceCollection = {
+            name: importedItem.name,
+            path: importedItem.path
+          };
+          await ipcRenderer.invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection);
+        }
       }
 
-      resolve(collectionPath);
+      resolve(isMultiple ? importedPaths : importedPaths[0]);
     } catch (error) {
       reject(error);
     }
@@ -3024,6 +3028,32 @@ export const deleteDotEnvFile = (collectionUid, filename = '.env') => (dispatch,
       .invoke('renderer:delete-dotenv-file', collection.pathname, filename)
       .then(resolve)
       .catch(reject);
+  });
+};
+
+export const cloneGitRepository = (data) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:clone-git-repository', data)
+      .then((res) => {
+        console.log('clone done', res);
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.custom(<IpcErrorModal error={err?.message} />);
+        reject();
+      });
+  });
+};
+
+export const scanForBrunoFiles = (dir) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:scan-for-bruno-files', dir)
+      .then(resolve)
+      .catch((err) => {
+        reject();
+      });
   });
 };
 

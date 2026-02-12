@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import {
   updateCookies,
-  updatePreferences
+  updatePreferences,
+  setGitVersion
 } from 'providers/ReduxStore/slices/app';
 import {
   addTab
@@ -329,6 +330,10 @@ const useIpcEvents = () => {
       dispatch(updateCollectionLoadingState(val));
     });
 
+    const gitVersionListener = ipcRenderer.on('main:git-version', (val) => {
+      dispatch(setGitVersion(val));
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
       removeApiSpecTreeUpdateListener();
@@ -360,6 +365,7 @@ const useIpcEvents = () => {
       removeCollectionLoadingStateListener();
       removePersistentEnvVariablesUpdateListener();
       removeSystemResourcesListener();
+      gitVersionListener();
     };
   }, [isElectron]);
 };

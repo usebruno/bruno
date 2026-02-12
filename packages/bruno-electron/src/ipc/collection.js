@@ -53,7 +53,8 @@ const {
   isValidDotEnvFilename,
   isBrunoConfigFile,
   isBruEnvironmentConfig,
-  isCollectionRootBruFile
+  isCollectionRootBruFile,
+  scanForBrunoFiles
 } = require('../utils/filesystem');
 const { openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
@@ -72,6 +73,7 @@ const collectionWatcher = require('../app/collection-watcher');
 const { transformBrunoConfigBeforeSave } = require('../utils/transformBrunoConfig');
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
+const { findUniqueFolderName } = require('../utils/collection-import');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -1106,122 +1108,171 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, format = DEFAULT_COLLECTION_FORMAT) => {
-    try {
-      let collectionName = sanitizeName(collection.name);
-      let collectionPath = path.join(collectionLocation, collectionName);
+    let collections = Array.isArray(collection) ? collection : [collection];
+    let completedImports = 0;
+    let failedImports = 0;
+    let successfulImports = [];
 
-      if (fs.existsSync(collectionPath)) {
-        throw new Error(`collection: ${collectionPath} already exists`);
-      }
+    for (let coll of collections) {
+      try {
+        // Sending a "started" and "ended" event to renderer to start and stop the spinner.
+        mainWindow.webContents.send('main:collection-import-started', coll.uid);
 
-      const getFilenameWithFormat = (item, format) => {
-        if (item?.filename) {
-          const ext = path.extname(item.filename);
-          if (ext === '.bru' || ext === '.yml') {
-            return item.filename.replace(ext, `.${format}`);
-          }
-          return item.filename;
+        let collectionName = sanitizeName(coll.name);
+        let collectionPath = path.join(collectionLocation, collectionName);
+
+        // Auto-rename if collection already exists
+        if (fs.existsSync(collectionPath)) {
+          const uniqueName = await findUniqueFolderName(coll.name, collectionLocation);
+          collectionName = sanitizeName(uniqueName);
+          collectionPath = path.join(collectionLocation, collectionName);
+          coll.name = uniqueName;
         }
-        return `${item.name}.${format}`;
-      };
 
-      // Recursive function to parse the collection items and create files/folders
-      const parseCollectionItems = async (items = [], currentPath) => {
-        await Promise.all(items.map(async (item) => {
-          if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-            let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
-            const content = await stringifyRequestViaWorker(item, { format });
-            const filePath = path.join(currentPath, sanitizedFilename);
+        const getFilenameWithFormat = (item, format) => {
+          if (item?.filename) {
+            const ext = path.extname(item.filename);
+            if (ext === '.bru' || ext === '.yml') {
+              return item.filename.replace(ext, `.${format}`);
+            }
+            return item.filename;
+          }
+          return `${item.name}.${format}`;
+        };
+
+        // Recursive function to parse the collection items and create files/folders
+        const parseCollectionItems = async (items = [], currentPath) => {
+          await Promise.all(items.map(async (item) => {
+            if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
+              let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
+              const content = await stringifyRequestViaWorker(item, { format });
+              const filePath = path.join(currentPath, sanitizedFilename);
+              safeWriteFileSync(filePath, content);
+            }
+            if (item.type === 'folder') {
+              let sanitizedFolderName = sanitizeName(item?.filename || item?.name);
+              const folderPath = path.join(currentPath, sanitizedFolderName);
+              fs.mkdirSync(folderPath);
+
+              if (item?.root?.meta?.name) {
+                const folderFilePath = path.join(folderPath, `folder.${format}`);
+                item.root.meta.seq = item.seq;
+                const folderContent = await stringifyFolder(item.root, { format });
+                safeWriteFileSync(folderFilePath, folderContent);
+              }
+
+              if (item.items && item.items.length) {
+                await parseCollectionItems(item.items, folderPath);
+              }
+            }
+            // Handle items of type 'js'
+            if (item.type === 'js') {
+              let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.js`);
+              const filePath = path.join(currentPath, sanitizedFilename);
+              safeWriteFileSync(filePath, item.fileContent);
+            }
+          }));
+        };
+
+        const parseEnvironments = async (environments = [], collectionPath) => {
+          const envDirPath = path.join(collectionPath, 'environments');
+          if (!fs.existsSync(envDirPath)) {
+            fs.mkdirSync(envDirPath);
+          }
+
+          await Promise.all(environments.map(async (env) => {
+            const content = await stringifyEnvironment(env, { format });
+            let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
+            const filePath = path.join(envDirPath, sanitizedEnvFilename);
             safeWriteFileSync(filePath, content);
-          }
-          if (item.type === 'folder') {
-            let sanitizedFolderName = sanitizeName(item?.filename || item?.name);
-            const folderPath = path.join(currentPath, sanitizedFolderName);
-            fs.mkdirSync(folderPath);
+          }));
+        };
 
-            if (item?.root?.meta?.name) {
-              const folderFilePath = path.join(folderPath, `folder.${format}`);
-              item.root.meta.seq = item.seq;
-              const folderContent = await stringifyFolder(item.root, { format });
-              safeWriteFileSync(folderFilePath, folderContent);
-            }
+        const getBrunoJsonConfig = (collection) => {
+          let brunoConfig = collection.brunoConfig;
 
-            if (item.items && item.items.length) {
-              await parseCollectionItems(item.items, folderPath);
-            }
+          if (!brunoConfig) {
+            brunoConfig = {
+              version: '1',
+              name: collection.name,
+              type: 'collection',
+              ignore: ['node_modules', '.git']
+            };
           }
-          // Handle items of type 'js'
-          if (item.type === 'js') {
-            let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.js`);
-            const filePath = path.join(currentPath, sanitizedFilename);
-            safeWriteFileSync(filePath, item.fileContent);
-          }
-        }));
-      };
 
-      const parseEnvironments = async (environments = [], collectionPath) => {
-        const envDirPath = path.join(collectionPath, 'environments');
-        if (!fs.existsSync(envDirPath)) {
-          fs.mkdirSync(envDirPath);
+          return brunoConfig;
+        };
+
+        await createDirectory(collectionPath);
+
+        const uid = generateUidBasedOnHash(collectionPath);
+        const brunoConfig = getBrunoJsonConfig(coll);
+
+        if (format === 'yml') {
+          brunoConfig.opencollection = '1.0.0';
+          const collectionContent = await stringifyCollection(coll.root, brunoConfig, { format });
+          await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
+        } else if (format === 'bru') {
+          const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
+          await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
+
+          const collectionContent = await stringifyCollection(coll.root, brunoConfig, { format });
+          await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
+        } else {
+          throw new Error(`Invalid format: ${format}`);
         }
 
-        await Promise.all(environments.map(async (env) => {
-          const content = await stringifyEnvironment(env, { format });
-          let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
-          const filePath = path.join(envDirPath, sanitizedEnvFilename);
-          safeWriteFileSync(filePath, content);
-        }));
-      };
+        // create folder and files based on collection
+        await parseCollectionItems(coll.items, collectionPath);
+        await parseEnvironments(coll.environments, collectionPath);
 
-      const getBrunoJsonConfig = (collection) => {
-        let brunoConfig = collection.brunoConfig;
+        const { size, filesCount } = await getCollectionStats(collectionPath);
+        brunoConfig.size = size;
+        brunoConfig.filesCount = filesCount;
 
-        if (!brunoConfig) {
-          brunoConfig = {
-            version: '1',
-            name: collection.name,
-            type: 'collection',
-            ignore: ['node_modules', '.git']
-          };
-        }
+        mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+        ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
 
-        return brunoConfig;
-      };
+        mainWindow.webContents.send('main:collection-import-ended', coll.uid);
 
-      await createDirectory(collectionPath);
+        successfulImports.push({
+          path: collectionPath,
+          name: coll.name
+        });
+        // Increment completed imports
+        completedImports++;
+      } catch (error) {
+        mainWindow.webContents.send('main:collection-import-failed', coll.uid, {
+          message: `Error ${error.message}`
+        });
+        console.error(`Failed to import collection: ${coll.name}, Error: ${error.message}`);
 
-      const uid = generateUidBasedOnHash(collectionPath);
-      let brunoConfig = getBrunoJsonConfig(collection);
+        // Increment failed imports
+        failedImports++;
 
-      if (format === 'yml') {
-        brunoConfig.opencollection = '1.0.0';
-        const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
-        await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
-      } else if (format === 'bru') {
-        const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
-        await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
-
-        const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
-        await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
-      } else {
-        throw new Error(`Invalid format: ${format}`);
+        // Continue with next collection instead of breaking
+        continue;
       }
-
-      const { size, filesCount } = await getCollectionStats(collectionPath);
-      brunoConfig.size = size;
-      brunoConfig.filesCount = filesCount;
-
-      mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
-      ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
-
-      // create folder and files based on collection
-      await parseCollectionItems(collection.items, collectionPath);
-      await parseEnvironments(collection.environments, collectionPath);
-
-      return collectionPath;
-    } catch (error) {
-      return Promise.reject(error);
     }
+
+    // Send final status when all collections have been processed (either succeeded or failed)
+    if ((completedImports + failedImports) === collections.length) {
+      mainWindow.webContents.send('main:all-collections-import-ended', {
+        message: `Import completed. ${completedImports} collections imported successfully, ${failedImports} failed.`,
+        status: {
+          total: collections.length,
+          succeeded: completedImports,
+          failed: failedImports
+        }
+      });
+    }
+
+    return {
+      success: {
+        count: completedImports,
+        items: successfulImports
+      }
+    };
   });
 
   ipcMain.handle('renderer:clone-folder', async (event, itemFolder, collectionPath, collectionPathname) => {
@@ -2318,6 +2369,14 @@ const registerMainEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.on('main:collection-opened', async (win, pathname, uid, brunoConfig) => {
     app.addRecentDocument(pathname);
+  });
+
+  ipcMain.handle('renderer:scan-for-bruno-files', (event, dir) => {
+    try {
+      return scanForBrunoFiles(dir);
+    } catch (error) {
+      throw new Error(error.message);
+    }
   });
 
   // The app listen for this event and allows the user to save unsaved requests before closing the app
