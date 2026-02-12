@@ -1452,7 +1452,7 @@ const supportsVisualDiff = (filePath) => {
   if (!filePath) return false;
 
   const fileName = filePath.split('/').pop();
-  const excludedFiles = ['folder.yml', 'folder.bru', 'collection.yml', 'collection.bru'];
+  const excludedFiles = ['folder.yml', 'folder.bru', 'opencollection.yml', 'collection.bru'];
   if (excludedFiles.includes(fileName)) {
     return false;
   }
