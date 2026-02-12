@@ -204,4 +204,190 @@ body:multipart-form {
       expect(output).toEqual(expected);
     });
   });
+
+  describe('description annotation', () => {
+    it('parses @description in headers', () => {
+      const input = `
+headers {
+  Authorization: Bearer xxx @description('''API key for auth.''')
+  X-Custom: val @description("Single-line desc")
+}`;
+
+      const output = parser(input);
+      expect(output.headers).toHaveLength(2);
+      expect(output.headers[0]).toMatchObject({
+        name: 'Authorization',
+        value: 'Bearer xxx',
+        enabled: true,
+        description: 'API key for auth.'
+      });
+      expect(output.headers[1]).toMatchObject({
+        name: 'X-Custom',
+        value: 'val',
+        enabled: true,
+        description: 'Single-line desc'
+      });
+    });
+
+    it('parses @description in params and body form-urlencoded', () => {
+      const input = `
+params:query {
+  q: search @description('''Search term.''')
+}
+body:form-urlencoded {
+  field: value @description("Field description")
+}`;
+
+      const output = parser(input);
+      expect(output.params).toHaveLength(1);
+      expect(output.params[0]).toMatchObject({
+        name: 'q',
+        value: 'search',
+        type: 'query',
+        description: 'Search term.'
+      });
+      expect(output.body.formUrlEncoded).toHaveLength(1);
+      expect(output.body.formUrlEncoded[0]).toMatchObject({
+        name: 'field',
+        value: 'value',
+        enabled: true,
+        description: 'Field description'
+      });
+    });
+
+    it('parses @description in vars:pre-request and vars:post-response', () => {
+      const input = `
+vars:pre-request {
+  token: secret @description("Pre-request auth token")
+}
+vars:post-response {
+  saved: res.body.id @description("Saved ID from response")
+}`;
+
+      const output = parser(input);
+      expect(output.vars).toBeDefined();
+      expect(output.vars.req).toHaveLength(1);
+      expect(output.vars.req[0]).toMatchObject({
+        name: 'token',
+        value: 'secret',
+        enabled: true,
+        local: false,
+        description: 'Pre-request auth token'
+      });
+      expect(output.vars.res).toHaveLength(1);
+      expect(output.vars.res[0]).toMatchObject({
+        name: 'saved',
+        value: 'res.body.id',
+        enabled: true,
+        local: false,
+        description: 'Saved ID from response'
+      });
+    });
+
+    it('parses @description in assert', () => {
+      const input = `
+assert {
+  res.body.status: eq 200 @description("Expect success status")
+  res.body.data: isDefined @description("Response must have data")
+}`;
+
+      const output = parser(input);
+      expect(output.assertions).toHaveLength(2);
+      expect(output.assertions[0]).toMatchObject({
+        name: 'res.body.status',
+        value: 'eq 200',
+        enabled: true,
+        description: 'Expect success status'
+      });
+      expect(output.assertions[1]).toMatchObject({
+        name: 'res.body.data',
+        value: 'isDefined',
+        enabled: true,
+        description: 'Response must have data'
+      });
+    });
+
+    it('parses double-quoted @description with escaped newline', () => {
+      const input = `
+headers {
+  X-Note: v @description("Line one\\nLine two")
+}`;
+
+      const output = parser(input);
+      expect(output.headers).toHaveLength(1);
+      expect(output.headers[0]).toMatchObject({
+        name: 'X-Note',
+        value: 'v',
+        enabled: true,
+        description: 'Line one\nLine two'
+      });
+    });
+
+    it('parses triple-quoted @description with literal newlines', () => {
+      const input = `
+headers {
+  X-Note: v @description('''
+    Line one
+    Line two
+  ''')
+}`;
+
+      const output = parser(input);
+      expect(output.headers).toHaveLength(1);
+      expect(output.headers[0]).toMatchObject({
+        name: 'X-Note',
+        value: 'v',
+        enabled: true,
+        description: 'Line one\nLine two'
+      });
+    });
+
+    it('parses escaped characters in descriptions', () => {
+      const input = `
+headers {
+  X-Quote: val @description("Say \\"hello\\"")
+  X-Backslash: val @description("Path: \\\\usr\\\\bin")
+  X-Newline: val @description("Line1\\nLine2")
+}
+params:query {
+  q: x @description("Escaped \\" quote")
+}
+body:form-urlencoded {
+  f: v @description("\\\\ and \\" and \\\\n")
+}`;
+
+      const output = parser(input);
+      expect(output.headers).toHaveLength(3);
+      expect(output.headers[0]).toMatchObject({
+        name: 'X-Quote',
+        value: 'val',
+        enabled: true,
+        description: 'Say "hello"'
+      });
+      expect(output.headers[1]).toMatchObject({
+        name: 'X-Backslash',
+        value: 'val',
+        enabled: true,
+        description: 'Path: \\usr\\bin'
+      });
+      expect(output.headers[2]).toMatchObject({
+        name: 'X-Newline',
+        value: 'val',
+        enabled: true,
+        description: 'Line1\nLine2'
+      });
+      expect(output.params[0]).toMatchObject({
+        name: 'q',
+        value: 'x',
+        type: 'query',
+        description: 'Escaped " quote'
+      });
+      expect(output.body.formUrlEncoded[0]).toMatchObject({
+        name: 'f',
+        value: 'v',
+        enabled: true,
+        description: '\\ and " and \\n'
+      });
+    });
+  });
 });

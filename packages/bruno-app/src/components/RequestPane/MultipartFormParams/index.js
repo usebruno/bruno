@@ -20,7 +20,6 @@ const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.body.multipartForm') : get(item, 'request.body.multipartForm');
-
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -189,6 +188,24 @@ const MultipartFormParams = ({ item, collection }) => {
           collection={collection}
         />
       )
+    },
+    {
+      key: 'description',
+      name: 'Description',
+      placeholder: 'Description',
+      width: '25%',
+      render: ({ value, onChange }) => (
+        <MultiLineEditor
+          value={value || ''}
+          theme={storedTheme}
+          onSave={onSave}
+          onChange={onChange}
+          allowNewlines={true}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+        />
+      )
     }
   ];
 
@@ -196,7 +213,8 @@ const MultipartFormParams = ({ item, collection }) => {
     name: '',
     value: '',
     contentType: '',
-    type: 'text'
+    type: 'text',
+    description: ''
   };
 
   return (

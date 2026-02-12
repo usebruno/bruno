@@ -1,6 +1,7 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
+const { extractDescription } = require('./common/semantic-utils');
 const parseExample = require('./example/bruToJson');
 
 /**
@@ -66,7 +67,10 @@ const grammar = ohm.grammar(`Bru {
   quoted_key_char = ~(quote_char | esc_quote_char | nl) any
   quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
   key = keychar*
-  value = list | multilinetextblock | singlelinevalue
+  value = list | multilinetextblock | singlelinevalue_optdesc
+  singlelinevalue_optdesc = valuechar_before_desc* (st* "@" "description" "(" "'''" descriptionTripleContent "'''" ")" st*)?
+  valuechar_before_desc = ~(st* "@" "description" "(" "'''") valuechar
+  descriptionTripleContent = (~"'''" any)*
   singlelinevalue = valuechar*
 
   // Dictionary for Assert Block
@@ -181,11 +185,13 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       enabled = false;
     }
 
-    return {
+    const result = {
       name,
       value,
       enabled
     };
+    extractDescription(result);
+    return result;
   });
 };
 
@@ -202,12 +208,14 @@ const mapRequestParams = (pairList = [], type) => {
       enabled = false;
     }
 
-    return {
+    const result = {
       name,
       value,
       enabled,
       type
     };
+    extractDescription(result);
+    return result;
   });
 };
 
@@ -240,9 +248,10 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
 
   return pairs.map((pair) => {
     pair.type = 'text';
+    extractDescription(pair);
     multipartExtractContentType(pair);
 
-    if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
+    if (_.isString(pair.value) && pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
       let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.type = 'file';
       pair.value = filestr.split('|');
@@ -431,6 +440,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   singlelinevalue(chars) {
     return chars.sourceString?.trim() || '';
+  },
+  singlelinevalue_optdesc(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10) {
+    return this.sourceString?.trim() ?? '';
   },
   _iter(...elements) {
     return elements.map((e) => e.ast);

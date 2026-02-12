@@ -33,7 +33,10 @@ const grammar = ohm.grammar(`Bru {
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
   pair = st* key st* ":" st* value st*
   key = keychar*
-  value = multilinetextblock | valuechar*
+  value = multilinetextblock | singlelinevalue_optdesc
+  singlelinevalue_optdesc = valuechar_before_desc* (st* "@" "description" "(" "'''" descriptionTripleContent "'''" ")" st*)?
+  valuechar_before_desc = ~(st* "@" "description" "(" "'''") valuechar
+  descriptionTripleContent = (~"'''" any)*
 
   // Array Blocks
   array = st* "[" stnl* valuelist stnl* "]"
@@ -45,6 +48,52 @@ const grammar = ohm.grammar(`Bru {
   vars = "vars" dictionary
   color = "color:" any*
 }`);
+
+const extractDescription = (pair) => {
+  if (!_.isString(pair.value)) {
+    return;
+  }
+  // Handle triple-quoted description: @description('''...''')
+  const tripleMatch = pair.value.match(/\s*@description\('''([\s\S]*?)'''\)\s*$/);
+  if (tripleMatch) {
+    const raw = tripleMatch[1]; // everything between the ''' delimiters
+
+    if (raw.includes('\n')) {
+      // Multiline: stringify added 4 spaces of indentation to each content line,
+      // so strip them back to recover the original description text.
+      pair.description = raw
+        .split('\n')
+        .map((line) => (line.startsWith('    ') ? line.slice(4) : line))
+        .join('\n')
+        .trim();
+    } else {
+      // Single-line inline: @description('''some text''') — no indentation to strip.
+      pair.description = raw.trim();
+    }
+
+    // Remove the @description(...) suffix from the value, leaving just the actual value.
+    pair.value = pair.value.slice(0, -tripleMatch[0].length).trim();
+    return;
+  }
+
+  // Handle double-quoted description: @description("...") — supports backslash escapes (e.g. \", \n)
+  const doubleMatch = pair.value.match(/\s*@description\("((?:\\.|[^"\\])*)"\)\s*$/);
+  if (doubleMatch) {
+    let decoded;
+    try {
+      // Use JSON.parse to correctly unescape sequences like \n, \t, \"
+      decoded = JSON.parse('"' + doubleMatch[1] + '"');
+    } catch {
+      // Fallback if JSON.parse fails: only unescape literal \"
+      decoded = doubleMatch[1].replace(/\\"/g, '"');
+    }
+    pair.description = decoded.trim();
+
+    // Remove the @description(...) suffix from the value.
+    pair.value = pair.value.slice(0, -doubleMatch[0].length).trim();
+    return;
+  }
+};
 
 const mapPairListToKeyValPairs = (pairList = []) => {
   if (!pairList.length) {
@@ -60,11 +109,13 @@ const mapPairListToKeyValPairs = (pairList = []) => {
       enabled = false;
     }
 
-    return {
+    const result = {
       name,
       value,
       enabled
     };
+    extractDescription(result);
+    return result;
   });
 };
 

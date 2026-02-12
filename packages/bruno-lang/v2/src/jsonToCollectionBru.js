@@ -1,9 +1,32 @@
 const _ = require('lodash');
 
-const { indentString, getValueString, getKeyString } = require('./utils');
+const { indentString, indentWithDescription, getValueString, getKeyString } = require('./utils');
 
 const enabled = (items = []) => items.filter((item) => item.enabled);
 const disabled = (items = []) => items.filter((item) => !item.enabled);
+
+/**
+ * Returns a BRU @description suffix: always triple-quoted with literal newlines when description has newlines; double-quoted only when description contains '''.
+ * @param {{ name?: string, description?: string, value?: string }} item - Item with name, description, value.
+ */
+const getDescriptionSuffix = (item) => {
+  const desc = item && item.description && String(item.description).trim();
+  if (!desc) return '';
+  const valueIsMultiline = item.value && (String(item.value).includes('\n') || String(item.value).includes('\r'));
+  if (valueIsMultiline) {
+    console.warn(`[bruno] Description for "${item.name}" was not saved because multiline values cannot carry an inline @description annotation in BRU format.`);
+    return '';
+  }
+  if (desc.includes('\'\'\'')) {
+    const escaped = desc.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+    return ' @description("' + escaped + '")';
+  }
+  const descHasNewline = desc.includes('\n') || desc.includes('\r');
+  if (descHasNewline) {
+    return ' @description(\'\'\'\n' + desc.replace(/\\/g, '\\\\') + '\n\'\'\')';
+  }
+  return ' @description(\'\'\'' + desc.replace(/\\/g, '\\\\') + '\'\'\')';
+};
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
@@ -28,17 +51,17 @@ const jsonToCollectionBru = (json) => {
   if (query && query.length) {
     bru += 'query {';
     if (enabled(query).length) {
-      bru += `\n${indentString(
+      bru += `\n${indentWithDescription(
         enabled(query)
-          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
 
     if (disabled(query).length) {
-      bru += `\n${indentString(
+      bru += `\n${indentWithDescription(
         disabled(query)
-          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
@@ -49,17 +72,17 @@ const jsonToCollectionBru = (json) => {
   if (headers && headers.length) {
     bru += 'headers {';
     if (enabled(headers).length) {
-      bru += `\n${indentString(
+      bru += `\n${indentWithDescription(
         enabled(headers)
-          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
 
     if (disabled(headers).length) {
-      bru += `\n${indentString(
+      bru += `\n${indentWithDescription(
         disabled(headers)
-          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
@@ -354,19 +377,19 @@ ${indentString(
     bru += `vars:pre-request {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentWithDescription(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentWithDescription(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentWithDescription(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentWithDescription(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -380,19 +403,19 @@ ${indentString(
     bru += `vars:post-response {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentWithDescription(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentWithDescription(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentWithDescription(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentWithDescription(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
