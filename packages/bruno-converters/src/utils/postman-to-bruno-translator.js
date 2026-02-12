@@ -598,13 +598,13 @@ function processTransformations(ast, transformedNodes) {
         const transform = complexTransformationsMap[memberExprStr];
         const replacement = transform.transform(path, j);
         if (Array.isArray(replacement)) {
-          replacement.forEach((nodePath, index) => {
+          replacement.forEach((node, index) => {
             if (index === 0) {
-              j(path.parent).replaceWith(nodePath);
+              j(path.parent).replaceWith(node);
             } else {
-              j(path.parent.parent).insertAfter(nodePath);
+              j(path.parent.parent).insertAfter(node);
             }
-            transformedNodes.add(nodePath.node);
+            transformedNodes.add(node);
             transformedNodes.add(path.parent.node);
           });
         } else {
