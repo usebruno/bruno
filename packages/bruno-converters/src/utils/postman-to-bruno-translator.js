@@ -9,6 +9,9 @@ const simpleTranslations = {
   'pm.globals.get': 'bru.getGlobalEnvVar',
   'pm.globals.set': 'bru.setGlobalEnvVar',
   'pm.globals.replaceIn': 'bru.interpolate',
+  'pm.globals.unset': 'bru.deleteGlobalEnvVar',
+  'pm.globals.toObject': 'bru.getAllGlobalEnvVars',
+  'pm.globals.clear': 'bru.deleteAllGlobalEnvVars',
 
   // Environment variables
   'pm.environment.get': 'bru.getEnvVar',
@@ -16,18 +19,23 @@ const simpleTranslations = {
   'pm.environment.name': 'bru.getEnvName()',
   'pm.environment.unset': 'bru.deleteEnvVar',
   'pm.environment.replaceIn': 'bru.interpolate',
+  'pm.environment.toObject': 'bru.getAllEnvVars',
+  'pm.environment.clear': 'bru.deleteAllEnvVars',
 
   // Variables
   'pm.variables.get': 'bru.getVar',
   'pm.variables.set': 'bru.setVar',
   'pm.variables.has': 'bru.hasVar',
+  'pm.variables.toObject': 'bru.getAllVars',
   'pm.variables.replaceIn': 'bru.interpolate',
   // Collection variables
-  'pm.collectionVariables.get': 'bru.getVar',
-  'pm.collectionVariables.set': 'bru.setVar',
-  'pm.collectionVariables.has': 'bru.hasVar',
-  'pm.collectionVariables.unset': 'bru.deleteVar',
+  'pm.collectionVariables.get': 'bru.getCollectionVar',
+  'pm.collectionVariables.set': 'bru.setCollectionVar',
+  'pm.collectionVariables.has': 'bru.hasCollectionVar',
+  'pm.collectionVariables.unset': 'bru.deleteCollectionVar',
   'pm.collectionVariables.replaceIn': 'bru.interpolate',
+  'pm.collectionVariables.clear': 'bru.deleteAllCollectionVars',
+  'pm.collectionVariables.toObject': 'bru.getAllCollectionVars',
 
   // Request flow control
   'pm.setNextRequest': 'bru.setNextRequest',
@@ -39,6 +47,9 @@ const simpleTranslations = {
 
   // Info
   'pm.info.requestName': 'req.getName()',
+
+  // Request headers
+  'pm.request.headers.remove': 'req.deleteHeader',
 
   // Request properties (pm.request.*)
   'pm.request.url.getHost': 'req.getHost',

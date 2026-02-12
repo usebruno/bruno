@@ -68,28 +68,28 @@ describe('Variables Translation', () => {
     const code = 'pm.collectionVariables.get("apiUrl");';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('bru.getVar("apiUrl");');
+    expect(translatedCode).toBe('bru.getCollectionVar("apiUrl");');
   });
 
   it('should translate pm.collectionVariables.set', () => {
     const code = 'pm.collectionVariables.set("token", jsonData.token);';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('bru.setVar("token", jsonData.token);');
+    expect(translatedCode).toBe('bru.setCollectionVar("token", jsonData.token);');
   });
 
   it('should translate pm.collectionVariables.has', () => {
     const code = 'pm.collectionVariables.has("authToken");';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('bru.hasVar("authToken");');
+    expect(translatedCode).toBe('bru.hasCollectionVar("authToken");');
   });
 
   it('should translate pm.collectionVariables.unset', () => {
     const code = 'pm.collectionVariables.unset("tempVar");';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('bru.deleteVar("tempVar");');
+    expect(translatedCode).toBe('bru.deleteCollectionVar("tempVar");');
   });
 
   it('should handle pm.globals.get', () => {
@@ -135,10 +135,10 @@ describe('Variables Translation', () => {
     const translatedCode = translateCode(code);
 
     expect(translatedCode).toBe(`
-        const has = bru.hasVar("test");
-        const set = bru.setVar("test", "value");
-        const get = bru.getVar("test");
-        const unset = bru.deleteVar("test");
+        const has = bru.hasCollectionVar("test");
+        const set = bru.setCollectionVar("test", "value");
+        const get = bru.getCollectionVar("test");
+        const unset = bru.deleteCollectionVar("test");
         `);
   });
 
@@ -192,17 +192,17 @@ describe('Variables Translation', () => {
         `;
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toContain('const hasApiUrl = bru.hasVar("apiUrl");');
-    expect(translatedCode).toContain('const apiUrl = bru.getVar("apiUrl");');
-    expect(translatedCode).toContain('bru.setVar("requestTime", new Date().toISOString());');
-    expect(translatedCode).toContain('bru.deleteVar("tempVar");');
+    expect(translatedCode).toContain('const hasApiUrl = bru.hasCollectionVar("apiUrl");');
+    expect(translatedCode).toContain('const apiUrl = bru.getCollectionVar("apiUrl");');
+    expect(translatedCode).toContain('bru.setCollectionVar("requestTime", new Date().toISOString());');
+    expect(translatedCode).toContain('bru.deleteCollectionVar("tempVar");');
   });
 
   it('should handle more complex nested expressions with variables', () => {
     const code = 'pm.collectionVariables.set("fullPath", pm.environment.get("baseUrl") + pm.variables.get("endpoint"));';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('bru.setVar("fullPath", bru.getEnvVar("baseUrl") + bru.getVar("endpoint"));');
+    expect(translatedCode).toBe('bru.setCollectionVar("fullPath", bru.getEnvVar("baseUrl") + bru.getVar("endpoint"));');
   });
 
   // replaceIn tests for different variable scopes

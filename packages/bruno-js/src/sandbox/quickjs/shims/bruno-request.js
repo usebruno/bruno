@@ -114,6 +114,12 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'setHeader', setHeader);
   setHeader.dispose();
 
+  let deleteHeader = vm.newFunction('deleteHeader', function (name) {
+    req.deleteHeader(vm.dump(name));
+  });
+  vm.setProp(reqObject, 'deleteHeader', deleteHeader);
+  deleteHeader.dispose();
+
   let getBody = vm.newFunction('getBody', function (options = {}) {
     return marshallToVm(req.getBody(vm.dump(options)), vm);
   });
