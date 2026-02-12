@@ -398,8 +398,6 @@ const addBruShimToContext = (vm, bru) => {
 
   // Add hooks shim if bru.hooks exists
   if (bru.hooks) {
-    const hooksObject = vm.newObject();
-
     // Execute handler using the original function handle from the VM
     // Returns a Promise that resolves when the handler completes (supports async handlers)
     const executeHandler = async (handlerHandle, vmInstance, data) => {

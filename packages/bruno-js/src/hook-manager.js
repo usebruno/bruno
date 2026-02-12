@@ -1,7 +1,7 @@
 /**
  * HookManager provides a simple event system for registering and calling hooks (event listeners).
  *
- * Hooks can be registered for specific string patterns or arrays of patterns. The special pattern '*' acts as a wildcard.
+ * Hooks can be registered for specific string patterns or arrays of patterns.
  *
  * Usage examples:
  *
@@ -34,6 +34,17 @@ class HookManager {
   static State = Object.freeze({
     ACTIVE: 'active',
     DISPOSED: 'disposed'
+  });
+
+  /**
+   * Standard hook event names used throughout the application.
+   * @readonly
+   */
+  static EVENTS = Object.freeze({
+    HTTP_BEFORE_REQUEST: 'http:beforeRequest',
+    HTTP_AFTER_RESPONSE: 'http:afterResponse',
+    RUNNER_BEFORE_COLLECTION_RUN: 'runner:beforeCollectionRun',
+    RUNNER_AFTER_COLLECTION_RUN: 'runner:afterCollectionRun'
   });
 
   constructor() {
@@ -87,8 +98,6 @@ class HookManager {
   /**
    * Call all registered handlers for the given pattern(s)
    * Supports both sync and async handlers - all handlers are awaited
-   * Wildcard handlers ('*') are called for every pattern, in addition to specific pattern handlers
-   *
    * Error Isolation: Errors in one handler don't stop other handlers from running.
    * Errors are logged to console but don't affect execution flow.
    *
@@ -108,31 +117,11 @@ class HookManager {
     }
 
     const patternList = [].concat(pattern).map((d) => String(d).trim());
-    const hasWildcard = patternList.includes('*');
 
-    /**
-     * Execute a single handler with error handling
-     * @param {Function} handler - Handler to execute
-     * @param {string} event - Event name
-     */
-    const executeHandler = async (handler, event) => {
-      await callHandler(handler, data, event);
-    };
-
-    if (hasWildcard) {
-      for (const ptn of Object.keys(this.listeners)) {
-        const handlers = this.listeners[ptn];
-        for (const handler of handlers) {
-          await executeHandler(handler, ptn);
-        }
-      }
-    } else {
-      // Call handlers for each specific pattern
-      for (const ptn of patternList) {
-        if (!this.listeners[ptn]) continue;
-        for (const handler of this.listeners[ptn]) {
-          await executeHandler(handler, ptn);
-        }
+    for (const ptn of patternList) {
+      if (!this.listeners[ptn]) continue;
+      for (const handler of this.listeners[ptn]) {
+        await callHandler(handler, data, ptn);
       }
     }
   }
@@ -156,12 +145,6 @@ class HookManager {
     }
 
     const patternList = [].concat(pattern).map((d) => String(d).trim());
-    const hasWildcard = patternList.includes('*');
-
-    if (hasWildcard) {
-      (this.listeners['*'] ||= []).push(handler);
-      return this._createUnhook(patternList, handler);
-    }
 
     for (const ptn of patternList) {
       this.listeners[ptn] ||= [];
@@ -192,12 +175,6 @@ class HookManager {
         patterns = patternList;
       }
 
-      const hasStar = patterns.includes('*');
-
-      if (hasStar && self.listeners['*']) {
-        self.listeners['*'] = self.listeners['*'].filter((d) => !Object.is(d, handler));
-      }
-
       for (const ptn of patterns) {
         if (!self.listeners[ptn]) continue;
         self.listeners[ptn] = self.listeners[ptn].filter((d) => !Object.is(d, handler));
@@ -217,9 +194,7 @@ class HookManager {
     const patternList = [].concat(pattern).map((d) => String(d).trim());
 
     for (const ptn of patternList) {
-      if (ptn === '*') {
-        delete this.listeners['*'];
-      } else if (this.listeners[ptn]) {
+      if (this.listeners[ptn]) {
         delete this.listeners[ptn];
       }
     }

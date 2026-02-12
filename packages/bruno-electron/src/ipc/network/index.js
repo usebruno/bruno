@@ -8,7 +8,8 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, HooksRuntime } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, HooksRuntime, HookManager, BrunoResponse } = require('@usebruno/js');
+const HOOK_EVENTS = HookManager.EVENTS;
 const { encodeUrl } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
@@ -24,7 +25,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence, HOOK_EVENTS } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -490,19 +491,21 @@ const registerNetworkIpc = (mainWindow) => {
   };
 
   /**
-   * Execute merged hooks for a specific event
-   * @param {string} hookEvent - Hook event to trigger
-   * @param {object} eventData - Data to pass to hook handlers
+   * Initialize hooks by evaluating the hooks file once.
+   * Returns context for subsequent event triggering via triggerHookEvent().
+   * Caller must dispose hooksCtx.hookManager when done with all events.
    * @param {object} options - Configuration options
-   * @returns {Promise<object|null>} Execution result or null if error
+   * @returns {Promise<object|null>} Hooks context or null if no hooks/error
    */
-  const executeHooks = async (hookEvent, eventData, options) => {
+  const initHooks = async (options) => {
+    const hooksFile = options.request?.script?.hooks;
+    if (!hooksFile || !hooksFile.trim()) return null;
+
     try {
       const hooksRuntime = new HooksRuntime({ runtime: options.scriptingConfig?.runtime });
       const result = await hooksRuntime.runHooks({
-        hooksFile: options.request?.script?.hooks,
+        hooksFile,
         request: options.request || {},
-        response: eventData.response,
         envVariables: options.envVars,
         runtimeVariables: options.runtimeVariables,
         collectionPath: options.collectionPath,
@@ -513,29 +516,6 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName: options.collectionName
       });
 
-      if (result?.hookManager) {
-        // Enrich eventData with runtime-created req/res wrappers
-        const enrichedEventData = {
-          ...eventData,
-          req: result.req || eventData.req,
-          res: result.res || eventData.res
-        };
-        await result.hookManager.call(hookEvent, enrichedEventData);
-
-        // Re-read runner control signals from bru instance AFTER handlers have executed
-        // Handlers may have called bru.runner.setNextRequest(), skipRequest(), or stopExecution()
-        // which update the bru instance but were not captured in the initial result
-        const bru = result.__bru;
-        if (bru) {
-          result.nextRequestName = bru.nextRequest;
-          result.skipRequest = bru.skipRequest;
-          result.stopExecution = bru.stopExecution;
-        }
-
-        result.hookManager.dispose();
-      }
-
-      // Send UI updates if we have a result
       if (result) {
         await sendScriptEnvironmentUpdates({
           scriptResult: result,
@@ -545,23 +525,55 @@ const registerNetworkIpc = (mainWindow) => {
           updateCookies: true
         });
       }
-
       return result;
+    } catch (error) {
+      console.error('Error initializing hooks:', error);
+      options.onConsoleLog?.('error', [`Error initializing hooks: ${error.message}`]);
+      return null;
+    }
+  };
+
+  /**
+   * Trigger a specific hook event using an already-initialized hooks context.
+   * Re-reads runner control signals from bru instance after handlers execute.
+   * @param {object} hooksCtx - Context from initHooks()
+   * @param {string} hookEvent - Hook event to trigger
+   * @param {object} eventData - Data to pass to hook handlers
+   * @param {object} options - Configuration options
+   * @returns {Promise<object|null>} Updated hooks context or null if error
+   */
+  const triggerHookEvent = async (hooksCtx, hookEvent, eventData, options) => {
+    if (!hooksCtx?.hookManager) return null;
+
+    try {
+      const enrichedEventData = {
+        ...eventData,
+        req: hooksCtx.req || eventData.req,
+        res: eventData.response ? new BrunoResponse(eventData.response) : (hooksCtx.res || eventData.res)
+      };
+      await hooksCtx.hookManager.call(hookEvent, enrichedEventData);
+
+      // Re-read runner control signals from bru instance AFTER handlers have executed
+      // Handlers may have called bru.runner.setNextRequest(), skipRequest(), or stopExecution()
+      const bru = hooksCtx.__bru;
+      if (bru) {
+        hooksCtx.nextRequestName = bru.nextRequest;
+        hooksCtx.skipRequest = bru.skipRequest;
+        hooksCtx.stopExecution = bru.stopExecution;
+      }
+
+      await sendScriptEnvironmentUpdates({
+        scriptResult: hooksCtx,
+        collection: options.collection,
+        collectionUid: options.collectionUid,
+        requestUid: options.requestUid,
+        updateCookies: true
+      });
+
+      return hooksCtx;
     } catch (error) {
       console.error(`Error executing hooks for ${hookEvent}:`, error);
       options.onConsoleLog?.('error', [`Error executing hooks for ${hookEvent}: ${error.message}`]);
-      if (!options.runInBackground && options.notifyScriptExecution && typeof options.notifyScriptExecution === 'function') {
-        options.notifyScriptExecution({
-          channel: 'main:run-request-event',
-          basePayload: {
-            requestUid: options.requestUid,
-            collectionUid: options.collectionUid,
-            itemUid: options.itemUid
-          },
-          scriptType: 'hooks',
-          error
-        });
-      }
       return null;
     }
   };
@@ -766,10 +778,9 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
-      // Call beforeRequest hooks before running pre-request scripts
+      // Initialize hooks once for this request lifecycle
       // Hooks are merged in prepareRequest via mergeScripts
       // Hooks are called in registration order: collection -> folder(s) -> request
-      const beforeRequestEventData = { request, collection, collectionUid };
       const hookOptions = {
         request,
         envVars,
@@ -788,12 +799,11 @@ const registerNetworkIpc = (mainWindow) => {
         notifyScriptExecution
       };
 
-      // Call beforeRequest hooks using merged hooks
-      await executeHooks(
-        HOOK_EVENTS.HTTP_BEFORE_REQUEST,
-        beforeRequestEventData,
-        hookOptions
-      );
+      const hooksCtx = await initHooks(hookOptions);
+
+      // Call beforeRequest hooks using initialized hooks context
+      const beforeRequestEventData = { request, collection, collectionUid };
+      await triggerHookEvent(hooksCtx, HOOK_EVENTS.HTTP_BEFORE_REQUEST, beforeRequestEventData, hookOptions);
 
       let preRequestScriptResult = null;
       let preRequestError = null;
@@ -963,12 +973,13 @@ const registerNetworkIpc = (mainWindow) => {
       // Hooks are called in registration order: collection -> folder(s) -> request
       const afterResponseEventData = { request, response, collection, collectionUid };
 
-      // Call afterResponse hooks using merged hooks
-      await executeHooks(
-        HOOK_EVENTS.HTTP_AFTER_RESPONSE,
-        afterResponseEventData,
-        hookOptions
-      );
+      // Call afterResponse hooks using already-initialized hooks context
+      await triggerHookEvent(hooksCtx, HOOK_EVENTS.HTTP_AFTER_RESPONSE, afterResponseEventData, hookOptions);
+
+      // Dispose hooks context — done with all events for this request
+      if (hooksCtx?.hookManager) {
+        hooksCtx.hookManager.dispose();
+      }
 
       const runPostScripts = async () => {
         let postResponseScriptResult = null;
@@ -1286,61 +1297,61 @@ const registerNetworkIpc = (mainWindow) => {
 
       const isCollectionRun = folder?.uid === collection?.uid;
 
-      // Helper function to execute collection-level hooks at runtime
-      const executeCollectionHooks = async (hookEvent, eventData) => {
+      // Initialize collection-level hooks once (evaluated once, reused for before/after events)
+      let collectionHooksCtx = null;
+      if (isCollectionRun) {
         const collectionRoot = collection?.draft?.root || collection?.root || {};
         const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
 
-        if (!collectionHooks || !collectionHooks.trim()) {
-          return;
-        }
-
-        try {
-          const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
-          const result = await hooksRuntime.runHooks({
-            hooksFile: decomment(collectionHooks),
-            request: {}, // Placeholder request for collection-level hooks
-            envVariables: envVars,
-            runtimeVariables,
-            collectionPath,
-            onConsoleLog: (type, args) => {
-              console[type](...args);
-              mainWindow.webContents.send('main:console-log', {
-                type,
-                args
-              });
-            },
-            processEnvVars,
-            scriptingConfig,
-            runRequestByItemPathname,
-            collectionName: collection?.name
-          });
-
-          if (result?.hookManager) {
-            await result.hookManager.call(hookEvent, eventData);
-            // Dispose HookManager to free VM resources
-            if (result.hookManager && typeof result.hookManager.dispose === 'function') {
-              result.hookManager.dispose();
-            }
-          }
-
-          // Send UI updates after collection-level hooks execution
-          if (result) {
-            await sendScriptEnvironmentUpdates({
-              scriptResult: result,
-              collection,
-              collectionUid,
-              updateCookies: true
+        if (collectionHooks && collectionHooks.trim()) {
+          try {
+            const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
+            collectionHooksCtx = await hooksRuntime.runHooks({
+              hooksFile: decomment(collectionHooks),
+              request: {}, // Placeholder request for collection-level hooks
+              envVariables: envVars,
+              runtimeVariables,
+              collectionPath,
+              onConsoleLog: (type, args) => {
+                console[type](...args);
+                mainWindow.webContents.send('main:console-log', {
+                  type,
+                  args
+                });
+              },
+              processEnvVars,
+              scriptingConfig,
+              runRequestByItemPathname,
+              collectionName: collection?.name
             });
+
+            if (collectionHooksCtx) {
+              await sendScriptEnvironmentUpdates({
+                scriptResult: collectionHooksCtx,
+                collection,
+                collectionUid,
+                updateCookies: true
+              });
+            }
+          } catch (error) {
+            console.error('Error initializing collection-level hooks:', error);
           }
-        } catch (error) {
-          console.error(`Error executing collection-level hooks for ${hookEvent}:`, error);
         }
-      };
+      }
 
       // Call onBeforeCollectionRun hook before starting to run requests
-      if (isCollectionRun) {
-        await executeCollectionHooks(HOOK_EVENTS.RUNNER_BEFORE_COLLECTION_RUN, { collection, collectionUid });
+      if (collectionHooksCtx?.hookManager) {
+        try {
+          await collectionHooksCtx.hookManager.call(HOOK_EVENTS.RUNNER_BEFORE_COLLECTION_RUN, { collection, collectionUid });
+          await sendScriptEnvironmentUpdates({
+            scriptResult: collectionHooksCtx,
+            collection,
+            collectionUid,
+            updateCookies: true
+          });
+        } catch (error) {
+          console.error('Error executing beforeCollectionRun hook:', error);
+        }
       }
 
       try {
@@ -1493,11 +1504,15 @@ const registerNetworkIpc = (mainWindow) => {
             }
           };
 
+          // Initialize hooks once per request iteration (reused for beforeRequest + afterResponse)
+          const hooksCtx = await initHooks(hookOptions);
+
           try {
-            // Call beforeRequest hooks using merged hooks
+            // Call beforeRequest hooks using initialized hooks context
             const beforeRequestEventData = { request, collection, collectionUid };
 
-            const beforeRequestHooksResult = await executeHooks(
+            const beforeRequestHooksResult = await triggerHookEvent(
+              hooksCtx,
               HOOK_EVENTS.HTTP_BEFORE_REQUEST,
               beforeRequestEventData,
               hookOptions
@@ -1748,14 +1763,20 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
-            // Call afterResponse hooks using merged hooks
+            // Call afterResponse hooks using already-initialized hooks context
             const afterResponseEventData = { request, response, collection, collectionUid };
 
-            const afterResponseHooksResult = await executeHooks(
+            const afterResponseHooksResult = await triggerHookEvent(
+              hooksCtx,
               HOOK_EVENTS.HTTP_AFTER_RESPONSE,
               afterResponseEventData,
               hookOptions
             );
+
+            // Dispose hooks context — done with all events for this request
+            if (hooksCtx?.hookManager) {
+              hooksCtx.hookManager.dispose();
+            }
 
             // Check runner control from hooks
             if (afterResponseHooksResult?.nextRequestName !== undefined) {
@@ -1939,8 +1960,20 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         // Call onAfterCollectionRun hook after all requests are done
-        if (isCollectionRun) {
-          await executeCollectionHooks(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection, collectionUid });
+        if (collectionHooksCtx?.hookManager) {
+          try {
+            await collectionHooksCtx.hookManager.call(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection, collectionUid });
+            await sendScriptEnvironmentUpdates({
+              scriptResult: collectionHooksCtx,
+              collection,
+              collectionUid,
+              updateCookies: true
+            });
+          } catch (hookError) {
+            console.error('Error executing afterCollectionRun hook:', hookError);
+          }
+          collectionHooksCtx.hookManager.dispose();
+          collectionHooksCtx = null;
         }
 
         deleteCancelToken(cancelTokenUid);
@@ -1954,8 +1987,20 @@ const registerNetworkIpc = (mainWindow) => {
         console.log('error', error);
 
         // Call onAfterCollectionRun hook even on error
-        if (isCollectionRun) {
-          await executeCollectionHooks(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection, collectionUid });
+        if (collectionHooksCtx?.hookManager) {
+          try {
+            await collectionHooksCtx.hookManager.call(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection, collectionUid });
+            await sendScriptEnvironmentUpdates({
+              scriptResult: collectionHooksCtx,
+              collection,
+              collectionUid,
+              updateCookies: true
+            });
+          } catch (hookError) {
+            console.error('Error executing afterCollectionRun hook:', hookError);
+          }
+          collectionHooksCtx.hookManager.dispose();
+          collectionHooksCtx = null;
         }
 
         deleteCancelToken(cancelTokenUid);

@@ -110,56 +110,8 @@ class HooksRuntime {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
-    // Lazy VM creation: If no hooks file, return early without creating a VM
-    if (this._isEmptyContent(hooksFile)) {
-      return {
-        hookManager: activeHookManager,
-        envVariables: cleanJson(envVariables),
-        runtimeVariables: cleanJson(runtimeVariables),
-        persistentEnvVariables: bru.persistentEnvVariables,
-        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-        nextRequestName: bru.nextRequest,
-        skipRequest: bru.skipRequest,
-        stopExecution: bru.stopExecution,
-        __bru: bru,
-        req,
-        res
-      };
-    }
-
-    // Execute hooks script
-    // Note: Hooks need the VM to persist so registered handlers can be called later
-    if (this.runtime === 'nodevm') {
-      await runScriptInNodeVm({
-        script: hooksFile,
-        context,
-        collectionPath,
-        scriptingConfig
-      });
-
-      return {
-        hookManager: activeHookManager,
-        envVariables: cleanJson(envVariables),
-        runtimeVariables: cleanJson(runtimeVariables),
-        persistentEnvVariables: bru.persistentEnvVariables,
-        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-        nextRequestName: bru.nextRequest,
-        skipRequest: bru.skipRequest,
-        stopExecution: bru.stopExecution,
-        __bru: bru,
-        req,
-        res
-      };
-    }
-
-    // For QuickJS, persist the VM so hook handlers can be called later during the collection run
-    await executeQuickJsVmAsync({
-      script: hooksFile,
-      context: context,
-      collectionPath
-    });
-
-    return {
+    // Build result from current state — shared across all return paths
+    const buildResult = () => ({
       hookManager: activeHookManager,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
@@ -171,7 +123,32 @@ class HooksRuntime {
       __bru: bru,
       req,
       res
-    };
+    });
+
+    // Lazy VM creation: If no hooks file, return early without creating a VM
+    if (this._isEmptyContent(hooksFile)) {
+      return buildResult();
+    }
+
+    // Execute hooks script
+    // Note: Hooks need the VM to persist so registered handlers can be called later
+    if (this.runtime === 'nodevm') {
+      await runScriptInNodeVm({
+        script: hooksFile,
+        context,
+        collectionPath,
+        scriptingConfig
+      });
+    } else {
+      // QuickJS: persist the VM so hook handlers can be called later during the collection run
+      await executeQuickJsVmAsync({
+        script: hooksFile,
+        context: context,
+        collectionPath
+      });
+    }
+
+    return buildResult();
   }
 }
 

@@ -6,10 +6,11 @@ const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lod
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString, interpolateObject } = require('./interpolate-string');
-const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, HooksRuntime } = require('@usebruno/js');
+const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, HooksRuntime, HookManager, BrunoResponse } = require('@usebruno/js');
+const HOOK_EVENTS = HookManager.EVENTS;
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
-const { getTreePathFromCollectionToItem, HOOK_EVENTS } = require('../utils/collection');
+const { getTreePathFromCollectionToItem } = require('../utils/collection');
 const https = require('https');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
@@ -215,53 +216,64 @@ const runSingleRequest = async function (
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
     const collectionName = collection?.brunoConfig?.name;
 
-    // Helper function to execute merged hooks (hooks are merged in prepareRequest via mergeScripts)
-    const executeHooks = async (hookEvent, eventData) => {
-      const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
-      const result = await hooksRuntime.runHooks({
-        hooksFile: request.script?.hooks,
-        request,
-        response: eventData.response,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        onConsoleLog,
-        processEnvVars,
-        scriptingConfig,
-        runRequestByItemPathname: runSingleRequestByPathname,
-        collectionName
-      });
+    // Initialize hooks once for this request lifecycle (reused for beforeRequest + afterResponse)
+    let hooksCtx = null;
+    const hooksFile = request.script?.hooks;
+    if (hooksFile && hooksFile.trim()) {
+      try {
+        const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
+        hooksCtx = await hooksRuntime.runHooks({
+          hooksFile,
+          request,
+          envVariables,
+          runtimeVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname: runSingleRequestByPathname,
+          collectionName
+        });
+      } catch (error) {
+        console.error('Error initializing hooks:', error);
+      }
+    }
 
-      if (result?.hookManager) {
-        // Enrich eventData with runtime-created req/res wrappers
+    /**
+     * Trigger a specific hook event using the initialized hooks context.
+     * Re-reads runner control signals from bru instance after handlers execute.
+     */
+    const triggerHookEvent = async (hookEvent, eventData) => {
+      if (!hooksCtx?.hookManager) return null;
+
+      try {
         const enrichedEventData = {
           ...eventData,
-          req: result.req || eventData.req,
-          res: result.res || eventData.res
+          req: hooksCtx.req || eventData.req,
+          res: eventData.response ? new BrunoResponse(eventData.response) : (hooksCtx.res || eventData.res)
         };
-        await result.hookManager.call(hookEvent, enrichedEventData);
+        await hooksCtx.hookManager.call(hookEvent, enrichedEventData);
 
         // Re-read runner control signals from bru instance AFTER handlers have executed
-        // Handlers may have called bru.runner.setNextRequest(), skipRequest(), or stopExecution()
-        // which update the bru instance but were not captured in the initial result
-        const bru = result.__bru;
+        const bru = hooksCtx.__bru;
         if (bru) {
-          result.nextRequestName = bru.nextRequest;
-          result.skipRequest = bru.skipRequest;
-          result.stopExecution = bru.stopExecution;
+          hooksCtx.nextRequestName = bru.nextRequest;
+          hooksCtx.skipRequest = bru.skipRequest;
+          hooksCtx.stopExecution = bru.stopExecution;
         }
 
-        result.hookManager.dispose();
+        return hooksCtx;
+      } catch (error) {
+        console.error(`Error executing hooks for ${hookEvent}:`, error);
+        return null;
       }
-
-      return result;
     };
 
     // Call beforeRequest hooks before running pre-request scripts
     // Hooks are called in registration order: collection -> folder(s) -> request
     const beforeRequestEventData = { request, collection };
 
-    const beforeRequestHooksResult = await executeHooks(
+    const beforeRequestHooksResult = await triggerHookEvent(
       HOOK_EVENTS.HTTP_BEFORE_REQUEST,
       beforeRequestEventData
     );
@@ -738,10 +750,15 @@ const runSingleRequest = async function (
     // Hooks are called in registration order: collection -> folder(s) -> request
     const afterResponseEventData = { request, response, collection };
 
-    const afterResponseHooksResult = await executeHooks(
+    const afterResponseHooksResult = await triggerHookEvent(
       HOOK_EVENTS.HTTP_AFTER_RESPONSE,
       afterResponseEventData
     );
+
+    // Dispose hooks context — done with all events for this request
+    if (hooksCtx?.hookManager) {
+      hooksCtx.hookManager.dispose();
+    }
 
     // Check runner control from hooks
     applyRunnerControlFromResult(afterResponseHooksResult, runnerState);

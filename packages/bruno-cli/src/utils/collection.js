@@ -391,17 +391,6 @@ const mergeAuth = (collection, request, requestTreePath) => {
   }
 };
 
-/**
- * Hook event names used throughout the application.
- * This object is frozen to prevent accidental modifications and improve maintainability.
- */
-const HOOK_EVENTS = Object.freeze({
-  HTTP_BEFORE_REQUEST: 'http:beforeRequest',
-  HTTP_AFTER_RESPONSE: 'http:afterResponse',
-  RUNNER_BEFORE_COLLECTION_RUN: 'runner:beforeCollectionRun',
-  RUNNER_AFTER_COLLECTION_RUN: 'runner:afterCollectionRun'
-});
-
 const getAllRequestsInFolder = (folderItems = [], recursive = true) => {
   let requests = [];
 
@@ -631,6 +620,5 @@ module.exports = {
   mergeAuth,
   getAllRequestsInFolder,
   getAllRequestsAtFolderRoot,
-  getCallStack,
-  HOOK_EVENTS
+  getCallStack
 };

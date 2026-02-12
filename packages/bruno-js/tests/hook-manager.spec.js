@@ -61,12 +61,6 @@ describe('HookManager', () => {
       expect(() => hookManager.on('test', handler)).toThrow();
     });
 
-    it('should register wildcard handlers', () => {
-      const handler = jest.fn();
-      hookManager.on('*', handler);
-      expect(hookManager.listeners['*']).toContain(handler);
-    });
-
     it('should throw if HookManager is disposed', () => {
       hookManager.dispose();
       expect(() => hookManager.on('test', jest.fn())).toThrow(/disposed/);
@@ -117,16 +111,6 @@ describe('HookManager', () => {
       hookManager.on('test', handler2);
       await hookManager.call('test', {});
       expect(results).toEqual([1, 2]);
-    });
-
-    it('should call all handlers when called with wildcard pattern', async () => {
-      const handler1 = jest.fn();
-      const handler2 = jest.fn();
-      hookManager.on('event1', handler1);
-      hookManager.on('event2', handler2);
-      await hookManager.call('*', {});
-      expect(handler1).toHaveBeenCalled();
-      expect(handler2).toHaveBeenCalled();
     });
 
     it('should handle errors without stopping execution', async () => {

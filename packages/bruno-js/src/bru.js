@@ -312,29 +312,17 @@ class Bru {
     this.hooks = {
       runner: {
         onBeforeCollectionRun: (handler) => {
-          if (!this.#hookManager) {
-            throw new Error('HookManager is not available');
-          }
           return this.#hookManager.on('runner:beforeCollectionRun', handler);
         },
         onAfterCollectionRun: (handler) => {
-          if (!this.#hookManager) {
-            throw new Error('HookManager is not available');
-          }
           return this.#hookManager.on('runner:afterCollectionRun', handler);
         }
       },
       http: {
         onBeforeRequest: (handler) => {
-          if (!this.#hookManager) {
-            throw new Error('HookManager is not available');
-          }
           return this.#hookManager.on('http:beforeRequest', handler);
         },
         onAfterResponse: (handler) => {
-          if (!this.#hookManager) {
-            throw new Error('HookManager is not available');
-          }
           return this.#hookManager.on('http:afterResponse', handler);
         }
       }

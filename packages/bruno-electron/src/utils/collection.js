@@ -249,17 +249,6 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   request.script.hooks = compact(hooksScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
 };
 
-/**
- * Hook event names used throughout the application.
- * This object is frozen to prevent accidental modifications and improve maintainability.
- */
-const HOOK_EVENTS = Object.freeze({
-  HTTP_BEFORE_REQUEST: 'http:beforeRequest',
-  HTTP_AFTER_RESPONSE: 'http:afterResponse',
-  RUNNER_BEFORE_COLLECTION_RUN: 'runner:beforeCollectionRun',
-  RUNNER_AFTER_COLLECTION_RUN: 'runner:afterCollectionRun'
-});
-
 const flattenItems = (items = []) => {
   const flattenedItems = [];
 
@@ -785,6 +774,5 @@ module.exports = {
   getEnvVars,
   getFormattedCollectionOauth2Credentials,
   sortByNameThenSequence,
-  resolveInheritedSettings,
-  HOOK_EVENTS
+  resolveInheritedSettings
 };

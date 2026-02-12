@@ -15,10 +15,11 @@ const { rpad } = require('../utils/common');
 const { getOptions } = require('../utils/bru');
 const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
-const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG, HOOK_EVENTS } = require('../utils/collection');
+const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
-const { HooksRuntime } = require('@usebruno/js');
+const { HooksRuntime, HookManager } = require('@usebruno/js');
+const HOOK_EVENTS = HookManager.EVENTS;
 const decomment = require('decomment');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
@@ -622,7 +623,7 @@ const handler = async function (argv) {
       console[type](...args);
     };
 
-    // Define runSingleRequestByPathname before executeCollectionHooks so it's available at all hook levels
+    // Define runSingleRequestByPathname before hooks initialization so it's available at all hook levels
     const runSingleRequestByPathname = async (relativeItemPathname) => {
       const ext = FORMAT_CONFIG[collection.format].ext;
       return new Promise(async (resolve, reject) => {
@@ -650,44 +651,41 @@ const handler = async function (argv) {
       });
     };
 
-    // Helper function to execute collection-level hooks at runtime
-    const executeCollectionHooks = async (hookEvent, eventData) => {
+    // Initialize collection-level hooks once (evaluated once, reused for before/after events)
+    let collectionHooksCtx = null;
+    {
       collectionRoot = collection?.draft?.root || collection?.root || {};
       const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
 
-      if (!collectionHooks || !collectionHooks.trim()) {
-        return;
-      }
-
-      try {
-        const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
-        const result = await hooksRuntime.runHooks({
-          hooksFile: decomment(collectionHooks),
-          request: {}, // Placeholder request for collection-level hooks
-          envVariables: envVars,
-          runtimeVariables,
-          collectionPath,
-          onConsoleLog,
-          processEnvVars,
-          scriptingConfig,
-          runRequestByItemPathname: runSingleRequestByPathname,
-          collectionName
-        });
-
-        if (result?.hookManager) {
-          await result.hookManager.call(hookEvent, eventData);
-          // Dispose HookManager to free VM resources
-          if (result.hookManager && typeof result.hookManager.dispose === 'function') {
-            result.hookManager.dispose();
-          }
+      if (collectionHooks && collectionHooks.trim()) {
+        try {
+          const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
+          collectionHooksCtx = await hooksRuntime.runHooks({
+            hooksFile: decomment(collectionHooks),
+            request: {}, // Placeholder request for collection-level hooks
+            envVariables: envVars,
+            runtimeVariables,
+            collectionPath,
+            onConsoleLog,
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname: runSingleRequestByPathname,
+            collectionName
+          });
+        } catch (error) {
+          console.error('Error initializing collection-level hooks:', error);
         }
-      } catch (error) {
-        console.error(`Error executing collection-level hooks for ${hookEvent}:`, error);
       }
-    };
+    }
 
     // Call onBeforeCollectionRun hook before starting to run requests
-    await executeCollectionHooks(HOOK_EVENTS.RUNNER_BEFORE_COLLECTION_RUN, { collection });
+    if (collectionHooksCtx?.hookManager) {
+      try {
+        await collectionHooksCtx.hookManager.call(HOOK_EVENTS.RUNNER_BEFORE_COLLECTION_RUN, { collection });
+      } catch (error) {
+        console.error('Error executing beforeCollectionRun hook:', error);
+      }
+    }
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
@@ -802,7 +800,15 @@ const handler = async function (argv) {
     results.push(...skippedFileResults);
 
     // Call onAfterCollectionRun hook after all requests are done
-    await executeCollectionHooks(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection });
+    if (collectionHooksCtx?.hookManager) {
+      try {
+        await collectionHooksCtx.hookManager.call(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection });
+      } catch (error) {
+        console.error('Error executing afterCollectionRun hook:', error);
+      }
+      collectionHooksCtx.hookManager.dispose();
+      collectionHooksCtx = null;
+    }
 
     const summary = printRunSummary(results);
     const runCompletionTime = new Date().toISOString();
