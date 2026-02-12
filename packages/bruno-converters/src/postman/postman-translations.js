@@ -69,7 +69,7 @@ const replacements = {
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
   'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
   // Direct cookie access translations (pm.cookies.has/get/toObject)
-  'pm\\.cookies\\.has\\(([^)]+)\\)': '(await bru.cookies.jar().getCookie(req.getUrl(), $1)) !== null',
+  'pm\\.cookies\\.has\\(([^)]+)\\)': 'await bru.cookies.jar().hasCookie(req.getUrl(), $1)',
   'pm\\.cookies\\.get\\(([^)]+)\\)': '(await bru.cookies.jar().getCookie(req.getUrl(), $1))?.value',
   'pm\\.cookies\\.toObject\\(\\)': '(await bru.cookies.jar().getCookies(req.getUrl())).reduce((obj, c) => ({...obj, [c.key]: c.value}), {})',
   // Cookie jar translations

@@ -319,9 +319,9 @@ describe('postmanTranslations - cookie API conversions', () => {
 
   // Tests for pm.cookies direct access methods (has, get, toObject)
 
-  test('should convert pm.cookies.has(name) to await getCookie !== null', () => {
+  test('should convert pm.cookies.has(name) to await hasCookie', () => {
     const inputScript = `pm.cookies.has('token')`;
-    const expectedOutput = `(await bru.cookies.jar().getCookie(req.getUrl(), 'token')) !== null`;
+    const expectedOutput = `await bru.cookies.jar().hasCookie(req.getUrl(), 'token')`;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -342,7 +342,7 @@ describe('postmanTranslations - cookie API conversions', () => {
 
   test('should convert pm.cookies.has inside an if conditional', () => {
     const inputScript = `if (pm.cookies.has('auth')) { console.log('found'); }`;
-    const expectedOutput = `if ((await bru.cookies.jar().getCookie(req.getUrl(), 'auth')) !== null) { console.log('found'); }`;
+    const expectedOutput = `if (await bru.cookies.jar().hasCookie(req.getUrl(), 'auth')) { console.log('found'); }`;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -360,7 +360,7 @@ describe('postmanTranslations - cookie API conversions', () => {
 
   test('should handle combined has + get in same script', () => {
     const inputScript = `if (pm.cookies.has('auth')) { const token = pm.cookies.get('auth'); }`;
-    const expectedOutput = `if ((await bru.cookies.jar().getCookie(req.getUrl(), 'auth')) !== null) { const token = (await bru.cookies.jar().getCookie(req.getUrl(), 'auth'))?.value; }`;
+    const expectedOutput = `if (await bru.cookies.jar().hasCookie(req.getUrl(), 'auth')) { const token = (await bru.cookies.jar().getCookie(req.getUrl(), 'auth'))?.value; }`;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 

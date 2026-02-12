@@ -242,23 +242,19 @@ const complexTransformations = [
     }
   },
 
-  // pm.cookies.has(name) → (await bru.cookies.jar().getCookie(req.getUrl(), name)) !== null
+  // pm.cookies.has(name) → await bru.cookies.jar().hasCookie(req.getUrl(), name)
   {
     pattern: 'pm.cookies.has',
     transform: (path, j) => {
       const callExpr = path.parent.value;
       const args = callExpr.arguments;
 
-      const getCookieCall = j.callExpression(
-        j.identifier('bru.cookies.jar().getCookie'),
+      const hasCookieCall = j.callExpression(
+        j.identifier('bru.cookies.jar().hasCookie'),
         [j.identifier('req.getUrl()'), ...args]
       );
 
-      return j.binaryExpression(
-        '!==',
-        j.awaitExpression(getCookieCall),
-        j.literal(null)
-      );
+      return j.awaitExpression(hasCookieCall);
     }
   },
 
