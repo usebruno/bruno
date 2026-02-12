@@ -30,6 +30,8 @@ const { hasSubDirectories } = require('../utils/filesystem');
 
 const {
   DEFAULT_GITIGNORE,
+  SECURE_FILE_MODE,
+  SECURE_DIR_MODE,
   writeFile,
   hasBruExtension,
   isDirectory,
@@ -519,7 +521,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
       if (!fs.existsSync(envDirPath)) {
-        await createDirectory(envDirPath);
+        await createDirectory(envDirPath, SECURE_DIR_MODE);
       }
 
       const format = getCollectionFormat(collectionPathname);
@@ -548,7 +550,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const content = await stringifyEnvironment(environment, { format });
 
-      await writeFile(envFilePath, content);
+      await writeFile(envFilePath, content, false, SECURE_FILE_MODE);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -559,7 +561,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
       if (!fs.existsSync(envDirPath)) {
-        await createDirectory(envDirPath);
+        await createDirectory(envDirPath, SECURE_DIR_MODE);
       }
 
       const format = getCollectionFormat(collectionPathname);
@@ -575,7 +577,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       const content = await stringifyEnvironment(environment, { format });
-      await writeFile(envFilePath, content);
+      await writeFile(envFilePath, content, false, SECURE_FILE_MODE);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -762,7 +764,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const uniqueFolderName = generateUniqueName(baseFolderName, (name) => fs.existsSync(path.join(filePath, name)));
         const exportPath = path.join(filePath, uniqueFolderName);
 
-        fs.mkdirSync(exportPath, { recursive: true });
+        fs.mkdirSync(exportPath, { recursive: true, mode: SECURE_DIR_MODE });
 
         for (const environment of environments) {
           const baseFileName = environment.name ? `${environment.name.replace(/[^a-zA-Z0-9-_]/g, '_')}` : 'environment';
@@ -771,7 +773,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
           const cleanEnv = environmentWithInfo(environment);
           const jsonContent = JSON.stringify(cleanEnv, null, 2);
-          await fs.promises.writeFile(fullPath, jsonContent, 'utf8');
+          await fs.promises.writeFile(fullPath, jsonContent, { encoding: 'utf8', mode: SECURE_FILE_MODE });
         }
       } else if (exportFormat === 'single-file') {
         // all environments in a single file with top-level info and environments array
@@ -789,7 +791,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         };
 
         const jsonContent = JSON.stringify(exportData, null, 2);
-        await fs.promises.writeFile(fullPath, jsonContent, 'utf8');
+        await fs.promises.writeFile(fullPath, jsonContent, { encoding: 'utf8', mode: SECURE_FILE_MODE });
       } else if (exportFormat === 'single-object') {
         // single environment json file
         if (environments.length !== 1) {
@@ -801,7 +803,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const uniqueFileName = generateUniqueName(baseFileName, (name) => fs.existsSync(path.join(filePath, `${name}.json`)));
         const fullPath = path.join(filePath, `${uniqueFileName}.json`);
         const jsonContent = JSON.stringify(environmentWithInfo(environment), null, 2);
-        await fs.promises.writeFile(fullPath, jsonContent, 'utf8');
+        await fs.promises.writeFile(fullPath, jsonContent, { encoding: 'utf8', mode: SECURE_FILE_MODE });
       } else {
         throw new Error(`Unsupported export format: ${exportFormat}`);
       }
@@ -1149,14 +1151,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const parseEnvironments = async (environments = [], collectionPath) => {
         const envDirPath = path.join(collectionPath, 'environments');
         if (!fs.existsSync(envDirPath)) {
-          fs.mkdirSync(envDirPath);
+          fs.mkdirSync(envDirPath, { mode: SECURE_DIR_MODE });
         }
 
         await Promise.all(environments.map(async (env) => {
           const content = await stringifyEnvironment(env, { format });
           let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
           const filePath = path.join(envDirPath, sanitizedEnvFilename);
-          safeWriteFileSync(filePath, content);
+          safeWriteFileSync(filePath, content, { mode: SECURE_FILE_MODE });
         }));
       };
 

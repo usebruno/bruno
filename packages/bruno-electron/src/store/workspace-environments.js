@@ -3,7 +3,7 @@ const path = require('path');
 const _ = require('lodash');
 const yaml = require('js-yaml');
 const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
-const { writeFile, createDirectory } = require('../utils/filesystem');
+const { writeFile, createDirectory, SECURE_FILE_MODE, SECURE_DIR_MODE } = require('../utils/filesystem');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
 const EnvironmentSecretsStore = require('./env-secrets');
@@ -180,7 +180,7 @@ class GlobalEnvironmentsManager {
       const environmentsDir = this.getEnvironmentsDir(workspacePath);
 
       if (!fs.existsSync(environmentsDir)) {
-        await createDirectory(environmentsDir);
+        await createDirectory(environmentsDir, SECURE_DIR_MODE);
       }
 
       const environmentFilePath = this.getEnvironmentFilePath(workspacePath, name);
@@ -200,7 +200,7 @@ class GlobalEnvironmentsManager {
       }
 
       const content = await stringifyEnvironment(environment, { format: 'yml' });
-      await writeFile(environmentFilePath, content);
+      await writeFile(environmentFilePath, content, false, SECURE_FILE_MODE);
 
       return {
         uid: generateUidBasedOnHash(environmentFilePath),
@@ -235,7 +235,7 @@ class GlobalEnvironmentsManager {
       }
 
       const content = await stringifyEnvironment(environment, { format: 'yml' });
-      await writeFile(envFile.filePath, content);
+      await writeFile(envFile.filePath, content, false, SECURE_FILE_MODE);
 
       return true;
     } catch (error) {
@@ -266,7 +266,7 @@ class GlobalEnvironmentsManager {
       environment.name = newName;
 
       const content = await stringifyEnvironment(environment, { format: 'yml' });
-      await writeFile(newFilePath, content);
+      await writeFile(newFilePath, content, false, SECURE_FILE_MODE);
 
       if (this.envHasSecrets(environment)) {
         const oldEnv = { name: oldName };
