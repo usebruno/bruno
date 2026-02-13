@@ -356,7 +356,7 @@ export const BulkImportCollectionLocation = ({
               collectionRenamedEnvNames[env.uid] = finalName;
             }
 
-            usedNamesInBatch.add(normalizedOriginalName);
+            usedNamesInBatch.add(normalizeName(finalName));
             existingNamesSet.add(normalizeName(finalName));
             return { ...env, name: finalName };
           });

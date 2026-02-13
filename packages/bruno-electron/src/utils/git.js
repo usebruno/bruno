@@ -1,7 +1,6 @@
 const simpleGit = require('simple-git');
 const fs = require('fs');
 const path = require('path');
-const _ = require('lodash');
 const { exec } = require('child_process');
 const { parseRequest } = require('@usebruno/filestore');
 
@@ -724,7 +723,7 @@ const cloneGitRepository = async (win, data) => {
 
 const fetchRemotes = (gitRootPath) => {
   return new Promise((resolve, reject) => {
-    if (!gitRootPath) resolve([]);
+    if (!gitRootPath) return resolve([]);
     const git = getSimpleGitInstanceForPath(gitRootPath);
     git.getRemotes(true)
       .then((remoteList) => {
