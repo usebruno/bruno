@@ -1737,3 +1737,14 @@ export const filterTransientItems = (items) => {
       return item;
     });
 };
+
+/**
+ * Checks if a collection is a scratch collection for any workspace
+ * @param {Object} collection - The collection to check
+ * @param {Array} workspaces - Array of workspace objects
+ * @returns {boolean} True if the collection is a scratch collection
+ */
+export const isScratchCollection = (collection, workspaces) => {
+  if (!collection || !workspaces) return false;
+  return workspaces.some((w) => w.scratchCollectionUid === collection.uid);
+};

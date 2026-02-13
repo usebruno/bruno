@@ -18,6 +18,7 @@ import {
 import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { normalizePath } from 'utils/common/path';
+import { isScratchCollection } from 'utils/collections';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
@@ -47,10 +48,14 @@ const CollectionsSection = () => {
 
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];
-    return collections.filter((c) =>
-      activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
-    );
-  }, [activeWorkspace, collections]);
+
+    return collections.filter((c) => {
+      if (isScratchCollection(c, workspaces)) {
+        return false;
+      }
+      return activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname));
+    });
+  }, [activeWorkspace, collections, workspaces]);
 
   const handleImportCollection = ({ rawData, type, ...rest }) => {
     setImportCollectionModalOpen(false);
