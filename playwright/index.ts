@@ -1,4 +1,4 @@
-import { test as baseTest, BrowserContext, ElectronApplication, Page } from '@playwright/test';
+import { test as baseTest, BrowserContext, ElectronApplication, Page, TestInfo } from '@playwright/test';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
@@ -19,9 +19,77 @@ async function recursiveCopy(src: string, dest: string) {
 
   for (const file of files) {
     if (!file.isFile()) continue;
-    const fullPath = path.join(src, file.name);
-    const fullDestPath = path.join(dest, file.name);
+    const parentDir = file.parentPath || (file as any).path;
+    const fullPath = path.join(parentDir, file.name);
+    const relativePath = path.relative(src, fullPath);
+    const fullDestPath = path.join(dest, relativePath);
+    await fs.promises.mkdir(path.dirname(fullDestPath), { recursive: true });
     await fs.promises.copyFile(fullPath, fullDestPath);
+  }
+}
+
+async function isolateCollections(
+  userDataPath: string,
+  createTmpDir: (tag?: string) => Promise<string>
+) {
+  const prefsPath = path.join(userDataPath, 'preferences.json');
+  if (!await existsAsync(prefsPath)) return;
+
+  const content = await fs.promises.readFile(prefsPath, 'utf-8');
+  const prefs = JSON.parse(content);
+
+  if (Array.isArray(prefs.lastOpenedCollections) && prefs.lastOpenedCollections.length > 0) {
+    const newPaths: string[] = [];
+    for (const collPath of prefs.lastOpenedCollections) {
+      if (!await existsAsync(collPath)) {
+        newPaths.push(collPath);
+        continue;
+      }
+
+      // Use a wrapper directory so that relative paths (e.g. ../protos/)
+      // from inside the collection still resolve via sibling symlinks.
+      const wrapperDir = await createTmpDir('collection');
+      const collBaseName = path.basename(collPath);
+      const tmpCollDir = path.join(wrapperDir, collBaseName);
+      await fs.promises.mkdir(tmpCollDir);
+      await recursiveCopy(collPath, tmpCollDir);
+
+      // Symlink sibling entries of the original collection into the wrapper
+      // so that relative paths still resolve correctly.
+      const parentDir = path.dirname(collPath);
+      const siblings = await fs.promises.readdir(parentDir);
+      for (const sibling of siblings) {
+        if (sibling === collBaseName) continue;
+        const originalSiblingPath = path.join(parentDir, sibling);
+        const symlinkPath = path.join(wrapperDir, sibling);
+        await fs.promises.symlink(originalSiblingPath, symlinkPath);
+      }
+
+      newPaths.push(tmpCollDir);
+    }
+    prefs.lastOpenedCollections = newPaths;
+    await fs.promises.writeFile(prefsPath, JSON.stringify(prefs, null, 2), 'utf-8');
+  }
+}
+
+async function withTracing(
+  context: BrowserContext,
+  page: Page,
+  testInfo: TestInfo,
+  use: (page: Page) => Promise<void>
+) {
+  const tracingOptions = (testInfo as any)._tracing.traceOptions();
+  if (tracingOptions) {
+    const tracePath = testInfo.outputPath(`trace-${testInfo.testId}.zip`);
+    try {
+      await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
+    } catch (e) { }
+    await context.tracing.startChunk();
+    await use(page);
+    await context.tracing.stopChunk({ path: tracePath });
+    await testInfo.attach('trace', { path: tracePath });
+  } else {
+    await use(page);
   }
 }
 
@@ -82,6 +150,10 @@ export const test = baseTest.extend<
             });
             await fs.promises.writeFile(path.join(userDataPath, file), content, 'utf-8');
           }
+
+          // Copy referenced collections to temp dirs so parallel workers
+          // never share the same filesystem paths
+          await isolateCollections(userDataPath, createTmpDir);
         }
 
         const app = await playwright._electron.launch({
@@ -128,45 +200,21 @@ export const test = baseTest.extend<
     { scope: 'worker' }
   ],
 
-  context: async ({ electronApp }, use, testInfo) => {
+  context: async ({ electronApp }, use) => {
     const context = await electronApp.context();
-    const tracingOptions = (testInfo as any)._tracing.traceOptions();
-    if (tracingOptions) {
-      try {
-        await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
-      } catch (e) { }
-    }
     await use(context);
   },
 
   page: async ({ electronApp, context }, use, testInfo) => {
     const page = await electronApp.firstWindow();
-    const tracingOptions = (testInfo as any)._tracing.traceOptions();
-    if (tracingOptions) {
-      const tracePath = testInfo.outputPath(`trace-${testInfo.testId}.zip`);
-      await context.tracing.startChunk();
-      await use(page);
-      await context.tracing.stopChunk({ path: tracePath });
-      await testInfo.attach('trace', { path: tracePath });
-    } else {
-      await use(page);
-    }
+    await withTracing(context, page, testInfo, use);
   },
 
   newPage: async ({ launchElectronApp }, use, testInfo) => {
     const app = await launchElectronApp();
     const context = await app.context();
     const page = await app.firstWindow();
-    const tracingOptions = (testInfo as any)._tracing.traceOptions();
-    if (tracingOptions) {
-      const tracePath = testInfo.outputPath(`trace-${testInfo.testId}.zip`);
-      await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
-      await use(page);
-      await context.tracing.stop({ path: tracePath });
-      await testInfo.attach('trace', { path: tracePath });
-    } else {
-      await use(page);
-    }
+    await withTracing(context, page, testInfo, use);
   },
 
   reuseOrLaunchElectronApp: [
@@ -231,19 +279,7 @@ export const test = baseTest.extend<
 
     const context = await app.context();
     const page = await app.firstWindow();
-    const tracingOptions = (testInfo as any)._tracing.traceOptions();
-    if (tracingOptions) {
-      const tracePath = testInfo.outputPath(`trace-${testInfo.testId}.zip`);
-      try {
-        await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
-      } catch (e) { }
-      await context.tracing.startChunk();
-      await use(page);
-      await context.tracing.stopChunk({ path: tracePath });
-      await testInfo.attach('trace', { path: tracePath });
-    } else {
-      await use(page);
-    }
+    await withTracing(context, page, testInfo, use);
   }
 });
 
