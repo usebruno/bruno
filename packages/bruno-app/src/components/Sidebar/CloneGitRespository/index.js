@@ -15,13 +15,12 @@ import Portal from 'components/Portal';
 import { IconRefresh, IconCheck, IconAlertCircle, IconBrandGit } from '@tabler/icons';
 import { uuid } from 'utils/common/index';
 import StyledWrapper from './StyledWrapper';
-import toast from 'react-hot-toast';
 import { getRepoNameFromUrl } from 'utils/git';
 import GitNotFoundModal from 'components/Git/GitNotFoundModal/index';
 import get from 'lodash/get';
 
 const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null }) => {
-  const [collectionpaths, setCollectionPaths] = useState([]);
+  const [collectionPaths, setCollectionPaths] = useState([]);
   const [selectedCollectionPaths, setSelectedCollectionPaths] = useState([]);
   const [processUid, setProcessUid] = useState(uuid());
   const [steps, setSteps] = useState([]);
@@ -138,7 +137,6 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
         setCollectionPaths(foundCollectionPaths);
       } catch (err) {
         cloneError();
-        toast.error(err.message);
         dispatch(removeGitOperationProgress(processUid));
         console.error(err);
       }
@@ -174,7 +172,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
 
   const isScanCompleted = () => steps.some((step) => step.step === 'scan' && step.completed);
 
-  const isConfirmDisabled = () => isScanCompleted() && collectionpaths?.length > 0 && selectedCollectionPaths?.length === 0;
+  const isConfirmDisabled = () => isScanCompleted() && collectionPaths?.length > 0 && selectedCollectionPaths?.length === 0;
 
   const isFooterHidden = () => steps.some((step) => !step.completed);
 
@@ -190,7 +188,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
         onClose();
         break;
       case 'Open':
-        if (collectionpaths.length > 0 && selectedCollectionPaths.length > 0) {
+        if (collectionPaths.length > 0 && selectedCollectionPaths.length > 0) {
           dispatch(openMultipleCollections(selectedCollectionPaths));
           onClose();
           onFinish();
@@ -204,7 +202,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
   const getConfirmText = () =>
     !steps.length
       ? 'Clone'
-      : steps.some((step) => !step.completed || step.error || (isScanCompleted() && !collectionpaths?.length))
+      : steps.some((step) => !step.completed || step.error || (isScanCompleted() && !collectionPaths?.length))
         ? 'Close'
         : 'Open';
 
@@ -228,7 +226,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
         handleCancel={onClose}
         confirmDisabled={isConfirmDisabled()}
         hideFooter={isFooterHidden()}
-        hideCancel={isError() || (isScanCompleted() && !collectionpaths?.length)}
+        hideCancel={isError() || (isScanCompleted() && !collectionPaths?.length)}
         showBackButton={isError()}
         handleBack={handleBackButtonClick}
       >
@@ -333,19 +331,19 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
               )}
               {isScanCompleted() && (
                 <div className="mt-4 mb-4">
-                  {collectionpaths.length === 0 && (
+                  {collectionPaths.length === 0 && (
                     <div className="flex">
                       <IconAlertCircle className="text-yellow-500" size={18} strokeWidth={1.5} />
                       <h3 className="text-sm ml-2">No bruno collections found in this repository.</h3>
                     </div>
                   )}
-                  {collectionpaths.length > 0 && (
+                  {collectionPaths.length > 0 && (
                     <>
                       <h3 className="text-sm mb-2">
-                        {collectionpaths.length} bruno collections found. Please select the collections to open:
+                        {collectionPaths.length} bruno collections found. Please select the collections to open:
                       </h3>
                       <ul>
-                        {collectionpaths.map((collection) => (
+                        {collectionPaths.map((collection) => (
                           <li key={collection} className="mb-2">
                             <label className="flex items-center space-x-2">
                               <input
