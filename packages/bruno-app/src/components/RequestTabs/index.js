@@ -10,8 +10,7 @@ import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
-import CreateUntitledRequest from 'components/CreateUntitledRequest';
-import { IconPlus } from '@tabler/icons';
+import CreateTransientRequest from 'components/CreateTransientRequest';
 import ActionIcon from 'ui/ActionIcon/index';
 
 const RequestTabs = () => {
@@ -44,7 +43,7 @@ const RequestTabs = () => {
   }, []);
 
   const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-  const activeCollection = find(collections, (c) => c.uid === activeTab?.collectionUid);
+  const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
 
   useEffect(() => {
@@ -52,7 +51,7 @@ const RequestTabs = () => {
 
     const checkOverflow = () => {
       if (tabsRef.current && scrollContainerRef.current) {
-        const hasOverflow = tabsRef.current.scrollWidth > scrollContainerRef.current.clientWidth;
+        const hasOverflow = tabsRef.current.scrollWidth > scrollContainerRef.current.clientWidth + 1;
         setShowChevrons(hasOverflow);
       }
     };
@@ -111,7 +110,7 @@ const RequestTabs = () => {
       )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
-          <CollectionToolBar collection={activeCollection} />
+          {activeCollection && <CollectionToolBar collection={activeCollection} />}
           <div className="flex items-center gap-2 pl-2" ref={collectionTabsRef}>
             <div className={classnames('scroll-chevrons', { hidden: !showChevrons })}>
               <ActionIcon size="lg" onClick={leftSlide} aria-label="Left Chevron" style={{ marginBottom: '3px' }}>
@@ -161,12 +160,7 @@ const RequestTabs = () => {
             </div>
 
             {activeCollection && (
-              <ActionIcon onClick={() => setNewRequestModalOpen(true)} aria-label="New Request" size="lg" style={{ marginBottom: '3px' }}>
-                <IconPlus
-                  size={18}
-                  strokeWidth={1.5}
-                />
-              </ActionIcon>
+              <CreateTransientRequest collectionUid={activeCollection.uid} />
             )}
 
             <div className={classnames('scroll-chevrons', { hidden: !showChevrons })}>

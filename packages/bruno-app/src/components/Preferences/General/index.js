@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 import path from 'utils/common/path';
 import { IconTrash } from '@tabler/icons';
 
-const General = ({ close }) => {
+const General = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
   const inputFileCaCertificateRef = useRef();
@@ -47,8 +47,8 @@ const General = ({ close }) => {
         .test('isNumber', 'Save Delay must be a number', (value) => {
           return value === undefined || !isNaN(value);
         })
-        .test('isValidInterval', 'Save Delay must be at least 100ms', (value) => {
-          return value === undefined || Number(value) >= 100;
+        .test('isValidInterval', 'Save Delay must be at least 500ms', (value) => {
+          return value === undefined || Number(value) >= 500;
         })
     }).test('intervalRequired', 'Save Delay is required when Auto Save is enabled', (value) => {
       // If autosave is enabled, interval must be provided
@@ -174,8 +174,9 @@ const General = ({ close }) => {
 
   return (
     <StyledWrapper className="w-full">
+      <div className="section-header">General Settings</div>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="flex items-center my-2">
+        <div className="flex items-center mb-2">
           <input
             id="sslVerification"
             type="checkbox"

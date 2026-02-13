@@ -465,27 +465,19 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           brunoRequestItem.request.body.mode = 'multipartForm';
 
           each(i.request.body.formdata, (param) => {
-            const isFile = param.type === 'file';
-            let value;
-            let type;
-
-            if (isFile) {
-              // If param.src is an array, keep it as it is.
-              // If param.src is a string, convert it into an array with a single element.
-              value = Array.isArray(param.src) ? param.src : typeof param.src === 'string' ? [param.src] : null;
-              type = 'file';
-            } else {
-              value = param.value;
-              type = 'text';
-            }
+            const isFile = param.type === 'file' || (param.type === 'default' && param.src);
+            const value = isFile
+              ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
+              : (Array.isArray(param.value) ? param.value.join('') : param.value);
 
             brunoRequestItem.request.body.multipartForm.push({
               uid: uuid(),
-              type: type,
+              type: isFile ? 'file' : 'text',
               name: param.key,
-              value: value,
+              value,
               description: transformDescription(param.description),
-              enabled: !param.disabled
+              enabled: !param.disabled,
+              ...(param.contentType && { contentType: param.contentType })
             });
           });
         }
@@ -572,7 +564,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         brunoRequestItem.examples = [];
 
         i.response.forEach((response, responseIndex) => {
-          const exampleName = response.name || `Example ${responseIndex + 1}`;
+          const sanitized = String(response.name ?? '').replace(/\r?\n/g, ' ').trim();
+          const exampleName = sanitized || `Example ${responseIndex + 1}`;
 
           // Convert originalRequest to Bruno request format
           const originalRequest = response.originalRequest || {};
@@ -657,25 +650,19 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               example.request.body.mode = 'multipartForm';
               if (originalRequest.body.formdata && Array.isArray(originalRequest.body.formdata)) {
                 originalRequest.body.formdata.forEach((param) => {
-                  const isFile = param.type === 'file';
-                  let value;
-                  let type;
-
-                  if (isFile) {
-                    value = Array.isArray(param.src) ? param.src : typeof param.src === 'string' ? [param.src] : null;
-                    type = 'file';
-                  } else {
-                    value = param.value;
-                    type = 'text';
-                  }
+                  const isFile = param.type === 'file' || (param.type === 'default' && param.src);
+                  const value = isFile
+                    ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
+                    : (Array.isArray(param.value) ? param.value.join('') : param.value);
 
                   example.request.body.multipartForm.push({
                     uid: uuid(),
-                    type: type,
+                    type: isFile ? 'file' : 'text',
                     name: param.key,
-                    value: value,
+                    value,
                     description: transformDescription(param.description),
-                    enabled: !param.disabled
+                    enabled: !param.disabled,
+                    ...(param.contentType && { contentType: param.contentType })
                   });
                 });
               }

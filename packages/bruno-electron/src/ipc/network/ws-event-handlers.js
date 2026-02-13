@@ -71,6 +71,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
 
   const envVars = getEnvVars(environment);
   const processEnvVars = getProcessEnvVars(collection.uid);
+  const { promptVariables = {} } = collection;
 
   let wsRequest = {
     uid: item.uid,
@@ -94,7 +95,61 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
 
   if (wsRequest.oauth2) {
     let requestCopy = cloneDeep(wsRequest);
-    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy || {};
+    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
+
+    // Get cert/proxy configs for token and refresh URLs
+    let certsAndProxyConfigForTokenUrl = certsAndProxyConfig;
+    let certsAndProxyConfigForRefreshUrl = certsAndProxyConfig;
+
+    if (accessTokenUrl && grantType !== 'implicit') {
+      const interpolatedTokenUrl = interpolateString(accessTokenUrl, {
+        globalEnvironmentVariables: request.globalEnvironmentVariables,
+        collectionVariables,
+        envVars,
+        folderVariables,
+        requestVariables,
+        runtimeVariables,
+        processEnvVars,
+        promptVariables
+      });
+      const tokenRequestForConfig = { ...requestCopy, url: interpolatedTokenUrl };
+      certsAndProxyConfigForTokenUrl = await getCertsAndProxyConfig({
+        collectionUid: collection.uid,
+        collection,
+        request: tokenRequestForConfig,
+        envVars,
+        runtimeVariables,
+        processEnvVars,
+        collectionPath: collection.pathname,
+        globalEnvironmentVariables: request.globalEnvironmentVariables
+      });
+    }
+
+    const tokenUrlForRefresh = refreshTokenUrl || accessTokenUrl;
+    if (tokenUrlForRefresh && grantType !== 'implicit') {
+      const interpolatedRefreshUrl = interpolateString(tokenUrlForRefresh, {
+        globalEnvironmentVariables: request.globalEnvironmentVariables,
+        collectionVariables,
+        envVars,
+        folderVariables,
+        requestVariables,
+        runtimeVariables,
+        processEnvVars,
+        promptVariables
+      });
+      const refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
+      certsAndProxyConfigForRefreshUrl = await getCertsAndProxyConfig({
+        collectionUid: collection.uid,
+        collection,
+        request: refreshRequestForConfig,
+        envVars,
+        runtimeVariables,
+        processEnvVars,
+        collectionPath: collection.pathname,
+        globalEnvironmentVariables: request.globalEnvironmentVariables
+      });
+    }
+
     let credentials, credentialsId, oauth2Url, debugInfo;
 
     switch (grantType) {
@@ -108,7 +163,8 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
         } = await getOAuth2TokenUsingAuthorizationCode({
           request: requestCopy,
           collectionUid: collection.uid,
-          certsAndProxyConfig
+          certsAndProxyConfigForTokenUrl,
+          certsAndProxyConfigForRefreshUrl
         }));
         wsRequest.oauth2Credentials = {
           credentials,
@@ -138,7 +194,8 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
         } = await getOAuth2TokenUsingClientCredentials({
           request: requestCopy,
           collectionUid: collection.uid,
-          certsAndProxyConfig
+          certsAndProxyConfigForTokenUrl,
+          certsAndProxyConfigForRefreshUrl
         }));
         wsRequest.oauth2Credentials = {
           credentials,
@@ -168,7 +225,8 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
         } = await getOAuth2TokenUsingPasswordCredentials({
           request: requestCopy,
           collectionUid: collection.uid,
-          certsAndProxyConfig
+          certsAndProxyConfigForTokenUrl,
+          certsAndProxyConfigForRefreshUrl
         }));
         wsRequest.oauth2Credentials = {
           credentials,
@@ -191,6 +249,34 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
     }
   }
 
+  // Add API key to the URL if placement is queryparams
+  if (wsRequest.apiKeyAuthValueForQueryParams && wsRequest.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
+    try {
+      const urlObj = new URL(wsRequest.url);
+
+      const globalEnvironmentVariables = request.globalEnvironmentVariables;
+      const promptVariables = collection?.promptVariables || {};
+
+      const interpolationOptions = {
+        globalEnvironmentVariables,
+        envVars,
+        runtimeVariables,
+        promptVariables,
+        processEnvVars
+      };
+
+      const key = interpolateString(wsRequest.apiKeyAuthValueForQueryParams.key, interpolationOptions);
+      const value = interpolateString(wsRequest.apiKeyAuthValueForQueryParams.value, interpolationOptions);
+
+      urlObj.searchParams.set(key, value);
+      wsRequest.url = urlObj.toString();
+    } catch (error) {
+      console.error('Error adding API key to WebSocket URL:', error);
+    }
+  }
+
+  delete wsRequest.apiKeyAuthValueForQueryParams;
+
   interpolateVars(wsRequest, envVars, runtimeVariables, processEnvVars);
 
   return wsRequest;
@@ -204,7 +290,7 @@ let wsClient;
  */
 const registerWsEventHandlers = (window) => {
   const sendEvent = (eventName, ...args) => {
-    if (window && window.webContents) {
+    if (window && !window.isDestroyed() && window.webContents && !window.webContents.isDestroyed()) {
       window.webContents.send(eventName, ...args);
     } else {
       console.warn(`Unable to send message "${eventName}": Window not available`);
@@ -404,5 +490,6 @@ const registerWsEventHandlers = (window) => {
 
 module.exports = {
   registerWsEventHandlers,
-  wsClient
+  wsClient,
+  prepareWsRequest
 };

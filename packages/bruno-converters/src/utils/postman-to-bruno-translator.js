@@ -8,23 +8,34 @@ const simpleTranslations = {
   // Global Variables
   'pm.globals.get': 'bru.getGlobalEnvVar',
   'pm.globals.set': 'bru.setGlobalEnvVar',
+  'pm.globals.replaceIn': 'bru.interpolate',
+  'pm.globals.unset': 'bru.deleteGlobalEnvVar',
+  'pm.globals.toObject': 'bru.getAllGlobalEnvVars',
+  'pm.globals.clear': 'bru.deleteAllGlobalEnvVars',
 
   // Environment variables
   'pm.environment.get': 'bru.getEnvVar',
   'pm.environment.set': 'bru.setEnvVar',
   'pm.environment.name': 'bru.getEnvName()',
   'pm.environment.unset': 'bru.deleteEnvVar',
+  'pm.environment.replaceIn': 'bru.interpolate',
+  'pm.environment.toObject': 'bru.getAllEnvVars',
+  'pm.environment.clear': 'bru.deleteAllEnvVars',
 
   // Variables
   'pm.variables.get': 'bru.getVar',
   'pm.variables.set': 'bru.setVar',
   'pm.variables.has': 'bru.hasVar',
+  'pm.variables.toObject': 'bru.getAllVars',
   'pm.variables.replaceIn': 'bru.interpolate',
   // Collection variables
-  'pm.collectionVariables.get': 'bru.getVar',
-  'pm.collectionVariables.set': 'bru.setVar',
-  'pm.collectionVariables.has': 'bru.hasVar',
-  'pm.collectionVariables.unset': 'bru.deleteVar',
+  'pm.collectionVariables.get': 'bru.getCollectionVar',
+  'pm.collectionVariables.set': 'bru.setCollectionVar',
+  'pm.collectionVariables.has': 'bru.hasCollectionVar',
+  'pm.collectionVariables.unset': 'bru.deleteCollectionVar',
+  'pm.collectionVariables.replaceIn': 'bru.interpolate',
+  'pm.collectionVariables.clear': 'bru.deleteAllCollectionVars',
+  'pm.collectionVariables.toObject': 'bru.getAllCollectionVars',
 
   // Request flow control
   'pm.setNextRequest': 'bru.setNextRequest',
@@ -37,7 +48,14 @@ const simpleTranslations = {
   // Info
   'pm.info.requestName': 'req.getName()',
 
+  // Request headers
+  'pm.request.headers.remove': 'req.deleteHeader',
+
   // Request properties (pm.request.*)
+  'pm.request.url.getHost': 'req.getHost',
+  'pm.request.url.getPath': 'req.getPath',
+  'pm.request.url.getQueryString': 'req.getQueryString',
+  'pm.request.url.variables': 'req.getPathParams()',
   'pm.request.url': 'req.getUrl()',
   'pm.request.method': 'req.getMethod()',
   'pm.request.headers': 'req.getHeaders()',
@@ -76,7 +94,11 @@ const simpleTranslations = {
   // Legacy Postman API (deprecated) (we can use pm instead of postman, as we are converting all postman references to pm in the code as the part of pre-processing)
   'pm.setEnvironmentVariable': 'bru.setEnvVar',
   'pm.getEnvironmentVariable': 'bru.getEnvVar',
-  'pm.clearEnvironmentVariable': 'bru.deleteEnvVar'
+  'pm.clearEnvironmentVariable': 'bru.deleteEnvVar',
+
+  // Legacy response properties
+  'responseCode.code': 'res.getStatus()',
+  'responseCode.name': 'res.statusText'
 };
 
 /* Complex transformations that need custom handling
@@ -236,6 +258,317 @@ const complexTransformations = [
         args
       );
     }
+  },
+
+  // pm.cookies.has(name) → await bru.cookies.jar().hasCookie(req.getUrl(), name)
+  {
+    pattern: 'pm.cookies.has',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      const hasCookieCall = j.callExpression(
+        j.identifier('bru.cookies.jar().hasCookie'),
+        [j.identifier('req.getUrl()'), ...args]
+      );
+
+      return j.awaitExpression(hasCookieCall);
+    }
+  },
+
+  // pm.cookies.get(name) → (await bru.cookies.jar().getCookie(req.getUrl(), name))?.value
+  {
+    pattern: 'pm.cookies.get',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      const getCookieCall = j.callExpression(
+        j.identifier('bru.cookies.jar().getCookie'),
+        [j.identifier('req.getUrl()'), ...args]
+      );
+
+      const awaitExpr = j.awaitExpression(getCookieCall);
+      const parenAwait = j.parenthesizedExpression
+        ? j.parenthesizedExpression(awaitExpr)
+        : awaitExpr;
+
+      return j.optionalMemberExpression(
+        parenAwait,
+        j.identifier('value'),
+        false,
+        true
+      );
+    }
+  },
+
+  // pm.cookies.toObject() → (await bru.cookies.jar().getCookies(req.getUrl())).reduce((obj, c) => ({...obj, [c.key]: c.value}), {})
+  {
+    pattern: 'pm.cookies.toObject',
+    transform: (path, j) => {
+      const getCookiesCall = j.callExpression(
+        j.identifier('bru.cookies.jar().getCookies'),
+        [j.identifier('req.getUrl()')]
+      );
+
+      const awaitExpr = j.awaitExpression(getCookiesCall);
+
+      // Build the reduce callback: (obj, c) => ({...obj, [c.key]: c.value})
+      const objParam = j.identifier('obj');
+      const cParam = j.identifier('c');
+
+      const spreadElement = j.spreadElement(objParam);
+      const computedProp = j.property(
+        'init',
+        j.memberExpression(cParam, j.identifier('key')),
+        j.memberExpression(cParam, j.identifier('value'))
+      );
+      computedProp.computed = true;
+
+      const objectExpr = j.objectExpression([spreadElement, computedProp]);
+
+      const arrowBody = j.parenthesizedExpression
+        ? j.parenthesizedExpression(objectExpr)
+        : objectExpr;
+
+      const reduceFn = j.arrowFunctionExpression(
+        [objParam, cParam],
+        arrowBody
+      );
+      reduceFn.expression = true;
+
+      // Build: (await ...).reduce(fn, {})
+      return j.callExpression(
+        j.memberExpression(
+          awaitExpr,
+          j.identifier('reduce')
+        ),
+        [reduceFn, j.objectExpression([])]
+      );
+    }
+  },
+
+  // pm.globals.has requires special handling
+  {
+    pattern: 'pm.globals.has',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      // Create: bru.getGlobalEnvVar(arg) !== undefined && bru.getGlobalEnvVar(arg) !== null
+      return j.logicalExpression(
+        '&&',
+        j.binaryExpression(
+          '!==',
+          j.callExpression(j.identifier('bru.getGlobalEnvVar'), args),
+          j.identifier('undefined')
+        ),
+        j.binaryExpression(
+          '!==',
+          j.callExpression(j.identifier('bru.getGlobalEnvVar'), args),
+          j.identifier('null')
+        )
+      );
+    }
+  },
+
+  // pm.request.headers.add({key, value}) -> req.setHeader(key, value)
+  {
+    pattern: 'pm.request.headers.add',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      // Check if the argument is an object with key and value properties
+      if (args.length > 0 && args[0].type === 'ObjectExpression') {
+        const obj = args[0];
+        let keyProp = null;
+        let valueProp = null;
+
+        obj.properties.forEach((prop) => {
+          if (prop.key.name === 'key' || prop.key.value === 'key') {
+            keyProp = prop.value;
+          }
+          if (prop.key.name === 'value' || prop.key.value === 'value') {
+            valueProp = prop.value;
+          }
+        });
+
+        if (keyProp && valueProp) {
+          return j.callExpression(
+            j.identifier('req.setHeader'),
+            [keyProp, valueProp]
+          );
+        }
+      }
+
+      // Fallback: keep original args
+      return j.callExpression(j.identifier('req.setHeader'), args);
+    }
+  },
+
+  // pm.request.headers.upsert({key, value}) -> req.setHeader(key, value)
+  {
+    pattern: 'pm.request.headers.upsert',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      // Check if the argument is an object with key and value properties
+      if (args.length > 0 && args[0].type === 'ObjectExpression') {
+        const obj = args[0];
+        let keyProp = null;
+        let valueProp = null;
+
+        obj.properties.forEach((prop) => {
+          if (prop.key.name === 'key' || prop.key.value === 'key') {
+            keyProp = prop.value;
+          }
+          if (prop.key.name === 'value' || prop.key.value === 'value') {
+            valueProp = prop.value;
+          }
+        });
+
+        if (keyProp && valueProp) {
+          return j.callExpression(
+            j.identifier('req.setHeader'),
+            [keyProp, valueProp]
+          );
+        }
+      }
+
+      // Fallback: keep original args
+      return j.callExpression(j.identifier('req.setHeader'), args);
+    }
+  },
+
+  // pm.response.to.be.ok -> expect(res.getStatus()).to.be.within(200, 299)
+  {
+    pattern: 'pm.response.to.be.ok',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(200), j.literal(299)]
+      );
+    }
+  },
+
+  // pm.response.to.be.success -> expect(res.getStatus()).to.be.within(200, 299)
+  {
+    pattern: 'pm.response.to.be.success',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(200), j.literal(299)]
+      );
+    }
+  },
+
+  // pm.response.to.be.redirection -> expect(res.getStatus()).to.be.within(300, 399)
+  {
+    pattern: 'pm.response.to.be.redirection',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(300), j.literal(399)]
+      );
+    }
+  },
+
+  // pm.response.to.be.clientError -> expect(res.getStatus()).to.be.within(400, 499)
+  {
+    pattern: 'pm.response.to.be.clientError',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(400), j.literal(499)]
+      );
+    }
+  },
+
+  // pm.response.to.be.serverError -> expect(res.getStatus()).to.be.within(500, 599)
+  {
+    pattern: 'pm.response.to.be.serverError',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(500), j.literal(599)]
+      );
+    }
+  },
+
+  // pm.response.to.be.error -> expect(res.getStatus()).to.be.at.least(400)
+  {
+    pattern: 'pm.response.to.be.error',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.at.least')
+        ),
+        [j.literal(400)]
+      );
+    }
+  },
+
+  // pm.response.to.have.jsonBody(path) -> expect(res.getBody()).to.have.nested.property(path)
+  {
+    pattern: 'pm.response.to.have.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      if (args.length === 0) {
+        // No path provided, just check that body exists
+        return j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier('to.exist')
+        );
+      } else if (args.length === 1) {
+        // Path provided, check property exists
+        return j.callExpression(
+          j.memberExpression(
+            j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+            j.identifier('to.have.nested.property')
+          ),
+          args
+        );
+      } else {
+        // Path and value provided, check property equals value
+        return j.callExpression(
+          j.memberExpression(
+            j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+            j.identifier('to.have.nested.property')
+          ),
+          args
+        );
+      }
+    }
+  },
+
+  // Legacy postman.getResponseHeader(name) -> res.getHeader(name)
+  {
+    pattern: 'pm.getResponseHeader',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      return j.callExpression(j.identifier('res.getHeader'), args);
+    }
   }
 ];
 
@@ -245,7 +578,7 @@ complexTransformations.forEach((transform) => {
   complexTransformationsMap[transform.pattern] = transform;
 });
 
-const varInitsToReplace = new Set(['pm', 'postman', 'pm.request', 'pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution', 'pm.globals']);
+const varInitsToReplace = new Set(['pm', 'postman', 'pm.request', 'pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution', 'pm.globals', 'pm.cookies']);
 
 /**
  * Process all transformations (both simple and complex) in the AST in a single pass
@@ -268,24 +601,40 @@ function processTransformations(ast, transformedNodes) {
     }
 
     // Then check for complex transformations (O(1))
-    if (complexTransformationsMap.hasOwnProperty(memberExprStr)
-      && path.parent.value.type === 'CallExpression') {
-      const transform = complexTransformationsMap[memberExprStr];
-      const replacement = transform.transform(path, j);
-      if (Array.isArray(replacement)) {
-        replacement.forEach((nodePath, index) => {
-          if (index === 0) {
-            j(path.parent).replaceWith(nodePath);
-          } else {
-            j(path.parent.parent).insertAfter(nodePath);
+    if (complexTransformationsMap.hasOwnProperty(memberExprStr)) {
+      const parentType = path.parent.value.type;
+
+      // Call-based patterns (e.g., pm.response.to.have.jsonBody("path"))
+      if (parentType === 'CallExpression') {
+        const transform = complexTransformationsMap[memberExprStr];
+        const replacement = transform.transform(path, j);
+        if (Array.isArray(replacement)) {
+          // Capture stable references before mutating the AST
+          const parentPath = path.parent;
+          const grandParentPath = parentPath.parent;
+
+          // Replace the original CallExpression with the first node
+          j(parentPath).replaceWith(replacement[0]);
+          transformedNodes.add(replacement[0]);
+          transformedNodes.add(parentPath.node);
+
+          // Insert remaining nodes after the grandparent in reverse order
+          // so that repeated insertAfter on the same anchor yields correct sequence
+          for (let i = replacement.length - 1; i >= 1; i--) {
+            j(grandParentPath).insertAfter(replacement[i]);
+            transformedNodes.add(replacement[i]);
           }
-          transformedNodes.add(nodePath.node);
+        } else {
+          j(path.parent).replaceWith(replacement);
+          transformedNodes.add(path.node);
           transformedNodes.add(path.parent.node);
-        });
-      } else {
-        j(path.parent).replaceWith(replacement);
+        }
+      } else if (parentType === 'ExpressionStatement') {
+        // Property-access patterns used as statements (e.g., pm.response.to.be.ok;)
+        const transform = complexTransformationsMap[memberExprStr];
+        const replacement = transform.transform(path, j);
+        j(path).replaceWith(replacement);
         transformedNodes.add(path.node);
-        transformedNodes.add(path.parent.node);
       }
     }
   });

@@ -6,19 +6,38 @@ import { updateFolderRequestScript, updateFolderResponseScript } from 'providers
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
+import StatusDot from 'components/StatusDot';
+import { flattenItems, isItemARequest } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 
 const Script = ({ collection, folder }) => {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState('pre-request');
   const preRequestEditorRef = useRef(null);
   const postResponseEditorRef = useRef(null);
   const requestScript = folder.draft ? get(folder, 'draft.request.script.req', '') : get(folder, 'root.request.script.req', '');
   const responseScript = folder.draft ? get(folder, 'draft.request.script.res', '') : get(folder, 'root.request.script.res', '');
 
+  // Default to post-response if pre-request script is empty
+  const getInitialTab = () => {
+    const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
+    return hasPreRequestScript ? 'pre-request' : 'post-response';
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+  const prevFolderUidRef = useRef(folder.uid);
+
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+
+  // Update active tab only when switching to a different folder
+  useEffect(() => {
+    if (prevFolderUidRef.current !== folder.uid) {
+      prevFolderUidRef.current = folder.uid;
+      const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
+      setActiveTab(hasPreRequestScript ? 'pre-request' : 'post-response');
+    }
+  }, [folder.uid, requestScript]);
 
   // Refresh CodeMirror when tab becomes visible
   useEffect(() => {
@@ -57,6 +76,10 @@ const Script = ({ collection, folder }) => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
   };
 
+  const items = flattenItems(folder.items || []);
+  const hasPreRequestScriptError = items.some((i) => isItemARequest(i) && i.preRequestScriptErrorMessage);
+  const hasPostResponseScriptError = items.some((i) => isItemARequest(i) && i.postResponseScriptErrorMessage);
+
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">
@@ -65,8 +88,18 @@ const Script = ({ collection, folder }) => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="pre-request">Pre Request</TabsTrigger>
-          <TabsTrigger value="post-response">Post Response</TabsTrigger>
+          <TabsTrigger value="pre-request">
+            Pre Request
+            {requestScript && requestScript.trim().length > 0 && (
+              <StatusDot type={hasPreRequestScriptError ? 'error' : 'default'} />
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="post-response">
+            Post Response
+            {responseScript && responseScript.trim().length > 0 && (
+              <StatusDot type={hasPostResponseScriptError ? 'error' : 'default'} />
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pre-request" className="mt-2">

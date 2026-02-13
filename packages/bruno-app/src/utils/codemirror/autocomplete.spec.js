@@ -18,7 +18,8 @@ jest.mock('codemirror', () => {
 // Import the functions to test
 import {
   getAutoCompleteHints,
-  setupAutoComplete
+  setupAutoComplete,
+  extractNextSegmentSuggestions
 } from './autocomplete';
 
 describe('Bruno Autocomplete', () => {
@@ -403,6 +404,133 @@ describe('Bruno Autocomplete', () => {
     });
   });
 
+  describe('extractNextSegmentSuggestions', () => {
+    describe('prefix matching', () => {
+      it('should extract the current segment for a partial prefix match', () => {
+        const hints = ['req.getUrl()', 'req.getMethod()', 'req.setUrl(url)'];
+        const result = extractNextSegmentSuggestions(hints, 'req.get');
+
+        expect(result).toEqual(['getMethod()', 'getUrl()']);
+      });
+
+      it('should return the next segment after a trailing dot', () => {
+        const hints = ['bru.cookies.jar()', 'bru.runner.skipRequest()'];
+        const result = extractNextSegmentSuggestions(hints, 'bru.');
+
+        expect(result).toEqual(['cookies', 'runner']);
+      });
+
+      it('should return the last segment on exact match', () => {
+        const hints = ['req.url'];
+        const result = extractNextSegmentSuggestions(hints, 'req.url');
+
+        expect(result).toEqual(['url']);
+      });
+
+      it('should deduplicate segments from multiple hints', () => {
+        const hints = ['bru.cookies.jar().getCookie(url, name, callback)', 'bru.cookies.jar().getCookies(url, callback)'];
+        const result = extractNextSegmentSuggestions(hints, 'bru.');
+
+        expect(result).toEqual(['cookies']);
+      });
+
+      it('should extract top-level segment when input has no dots', () => {
+        const hints = ['req.url', 'req.getUrl()', 'res.url'];
+        const result = extractNextSegmentSuggestions(hints, 'r');
+
+        expect(result).toEqual(['req', 'res']);
+      });
+    });
+
+    describe('substring matching', () => {
+      it('should return full hints for substring-only matches', () => {
+        const hints = ['base_url', 'api_url', 'url_prefix'];
+        const result = extractNextSegmentSuggestions(hints, 'url');
+
+        // url_prefix is a prefix match (segment), base_url and api_url are substring matches (full hints)
+        expect(result).toEqual(['url_prefix', 'api_url', 'base_url']);
+      });
+
+      it('should return full hints for dotted substring matches', () => {
+        const hints = ['req.getUrl()', 'req.setUrl(url)', 'req.url'];
+        const result = extractNextSegmentSuggestions(hints, 'Url');
+
+        expect(result).toEqual(['req.getUrl()', 'req.setUrl(url)', 'req.url']);
+      });
+
+      it('should not include hints that do not contain the input', () => {
+        const hints = ['base_url', 'api_key', 'url_prefix'];
+        const result = extractNextSegmentSuggestions(hints, 'url');
+
+        expect(result).not.toContain('api_key');
+      });
+    });
+
+    describe('ordering', () => {
+      it('should return prefix matches before substring matches', () => {
+        const hints = ['base_url', 'url_prefix'];
+        const result = extractNextSegmentSuggestions(hints, 'url');
+
+        // url_prefix is prefix → segment "url_prefix"; base_url is substring → full hint
+        expect(result).toEqual(['url_prefix', 'base_url']);
+      });
+
+      it('should sort prefix matches alphabetically among themselves', () => {
+        const hints = ['req.setUrl(url)', 'req.getUrl()', 'req.getMethod()'];
+        const result = extractNextSegmentSuggestions(hints, 'req.');
+
+        expect(result).toEqual(['getMethod()', 'getUrl()', 'setUrl(url)']);
+      });
+
+      it('should sort substring matches alphabetically among themselves', () => {
+        const hints = ['z_url', 'a_url'];
+        const result = extractNextSegmentSuggestions(hints, 'url');
+
+        // Both are substring-only matches
+        expect(result).toEqual(['a_url', 'z_url']);
+      });
+    });
+
+    describe('case insensitivity', () => {
+      it('should match prefix regardless of case', () => {
+        const hints = ['Content-Type', 'Content-Length'];
+        const result = extractNextSegmentSuggestions(hints, 'content');
+
+        expect(result).toEqual(['Content-Length', 'Content-Type']);
+      });
+
+      it('should match substring regardless of case', () => {
+        const hints = ['X-Custom-Type', 'Accept'];
+        const result = extractNextSegmentSuggestions(hints, 'type');
+
+        expect(result).toEqual(['X-Custom-Type']);
+      });
+    });
+
+    describe('edge cases', () => {
+      it('should return an empty array when no hints match', () => {
+        const hints = ['foo', 'bar', 'baz'];
+        const result = extractNextSegmentSuggestions(hints, 'xyz');
+
+        expect(result).toEqual([]);
+      });
+
+      it('should return an empty array for empty hints list', () => {
+        const result = extractNextSegmentSuggestions([], 'url');
+
+        expect(result).toEqual([]);
+      });
+
+      it('should handle single-character input', () => {
+        const hints = ['apple', 'banana', 'avocado'];
+        const result = extractNextSegmentSuggestions(hints, 'a');
+
+        // apple and avocado are prefix matches, banana contains 'a' as substring
+        expect(result).toEqual(['apple', 'avocado', 'banana']);
+      });
+    });
+  });
+
   describe('setupAutoComplete', () => {
     let mockGetAllVariables;
     let cleanupFn;
@@ -482,7 +610,7 @@ describe('Bruno Autocomplete', () => {
         mockedCodemirror.state.completionActive = mockCompletion;
 
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 0 });
-        mockedCodemirror.getLine.mockReturnValue('   ');
+        mockedCodemirror.getLine.mockReturnValue('req.bodyy');
         mockedCodemirror.getRange.mockReturnValue('');
 
         const mockEvent = { key: 'a' };

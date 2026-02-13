@@ -5,10 +5,10 @@
  *  LICENSE file in the root directory of this source tree.
  */
 
-import React from 'react';
+import React, { createRef } from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
-import { setupAutoComplete } from 'utils/codemirror/autocomplete';
+import { setupAutoComplete, showRootHints } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
@@ -16,7 +16,7 @@ import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
-import CodeMirrorSearch from 'components/CodeMirrorSearch';
+import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
@@ -34,6 +34,7 @@ export default class CodeEditor extends React.Component {
     this.cachedValue = props.value || '';
     this.variables = {};
     this.searchResultsCountElementId = 'search-results-count';
+    this.searchBarRef = createRef();
 
     this.lintOptions = {
       esversion: 11,
@@ -94,14 +95,14 @@ export default class CodeEditor extends React.Component {
           }
         },
         'Cmd-F': (cm) => {
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+          });
         },
         'Ctrl-F': (cm) => {
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+          });
         },
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
@@ -111,8 +112,12 @@ export default class CodeEditor extends React.Component {
             : cm.replaceSelection('  ', 'end');
         },
         'Shift-Tab': 'indentLess',
-        'Ctrl-Space': 'autocomplete',
-        'Cmd-Space': 'autocomplete',
+        'Ctrl-Space': (cm) => {
+          showRootHints(cm, this.props.showHintsFor);
+        },
+        'Cmd-Space': (cm) => {
+          showRootHints(cm, this.props.showHintsFor);
+        },
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
@@ -228,10 +233,17 @@ export default class CodeEditor extends React.Component {
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      const cursor = this.editor.getCursor();
-      this.cachedValue = this.props.value;
-      this.editor.setValue(this.props.value);
-      this.editor.setCursor(cursor);
+      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
+      const nextValue = this.props.value ?? '';
+      const currentValue = this.editor.getValue();
+      if (this.editor.hasFocus?.() && currentValue !== nextValue) {
+        this.cachedValue = currentValue;
+      } else {
+        const cursor = this.editor.getCursor();
+        this.cachedValue = nextValue;
+        this.editor.setValue(nextValue);
+        this.editor.setCursor(cursor);
+      }
     }
 
     if (this.editor) {
@@ -305,6 +317,10 @@ export default class CodeEditor extends React.Component {
         fontSize={this.props.fontSize}
       >
         <CodeMirrorSearch
+          ref={(node) => {
+            if (!node) return;
+            this.searchBarRef.current = node;
+          }}
           visible={this.state.searchBarVisible}
           editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}

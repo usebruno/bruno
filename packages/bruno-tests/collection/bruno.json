@@ -16,9 +16,7 @@
   },
   "scripts": {
     "moduleWhitelist": ["crypto", "buffer", "form-data"],
-    "filesystemAccess": {
-      "allow": true
-    }
+    "additionalContextRoots": ["../additional-context-root-lib"]
   },
   "clientCertificates": {
     "enabled": true,

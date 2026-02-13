@@ -760,3 +760,83 @@ export const importWorkspaceAction = (zipFilePath, extractLocation) => {
     }
   };
 };
+
+export const saveWorkspaceDotEnvVariables = (workspaceUid, variables, filename = '.env') => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const workspace = state.workspaces.workspaces.find((w) => w.uid === workspaceUid);
+
+    if (!workspace) {
+      return reject(new Error('Workspace not found'));
+    }
+
+    if (!workspace.pathname) {
+      return reject(new Error('Workspace path not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:save-workspace-dotenv-variables', { workspacePath: workspace.pathname, variables, filename })
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const saveWorkspaceDotEnvRaw = (workspaceUid, content, filename = '.env') => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const workspace = state.workspaces.workspaces.find((w) => w.uid === workspaceUid);
+
+    if (!workspace) {
+      return reject(new Error('Workspace not found'));
+    }
+
+    if (!workspace.pathname) {
+      return reject(new Error('Workspace path not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:save-workspace-dotenv-raw', { workspacePath: workspace.pathname, content, filename })
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const createWorkspaceDotEnvFile = (workspaceUid, filename = '.env') => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const workspace = state.workspaces.workspaces.find((w) => w.uid === workspaceUid);
+
+    if (!workspace) {
+      return reject(new Error('Workspace not found'));
+    }
+
+    if (!workspace.pathname) {
+      return reject(new Error('Workspace path not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:create-workspace-dotenv-file', { workspacePath: workspace.pathname, filename })
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const deleteWorkspaceDotEnvFile = (workspaceUid, filename = '.env') => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const workspace = state.workspaces.workspaces.find((w) => w.uid === workspaceUid);
+
+    if (!workspace) {
+      return reject(new Error('Workspace not found'));
+    }
+
+    if (!workspace.pathname) {
+      return reject(new Error('Workspace path not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:delete-workspace-dotenv-file', { workspacePath: workspace.pathname, filename })
+      .then(resolve)
+      .catch(reject);
+  });
+};

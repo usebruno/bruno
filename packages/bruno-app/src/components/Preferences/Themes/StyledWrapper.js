@@ -3,7 +3,7 @@ import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   .appearance-container {
-    padding: 8px 0 16px 0;
+    padding-bottom: 16px;
   }
         
   .theme-mode-option {

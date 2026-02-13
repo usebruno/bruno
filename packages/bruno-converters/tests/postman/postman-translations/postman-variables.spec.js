@@ -16,8 +16,8 @@ describe('postmanTranslations - variables commands', () => {
       bru.setEnvVar('key', 'value');
       bru.getVar('key');
       bru.setVar('key', 'value');
-      bru.getVar('key');
-      bru.setVar('key', 'value');
+      bru.getCollectionVar('key');
+      bru.setCollectionVar('key', 'value');
       expect(bru.getEnvVar('key') !== undefined && bru.getEnvVar('key') !== null).to.be.true;
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);

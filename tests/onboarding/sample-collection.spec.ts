@@ -92,9 +92,20 @@ test.describe('Onboarding', () => {
     await expect(removeOption).toBeVisible();
     await removeOption.click();
 
-    // Confirm removal in the modal
-    await page.locator('[data-testid="close-collection-modal-title"]', { hasText: 'Remove Collection' }).waitFor({ state: 'visible' });
-    await page.locator('.bruno-modal-footer .submit').click();
+    // Wait for modal to appear - could be either regular remove or drafts confirmation
+    const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
+    await removeModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
+    const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+
+    if (hasDiscardButton) {
+      // Drafts modal - click "Discard All and Remove"
+      await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+    } else {
+      // Regular modal - click the submit button
+      await page.locator('.bruno-modal-footer .submit').click();
+    }
 
     // Verify collection is closed (no longer visible in sidebar)
     await expect(sampleCollection).not.toBeVisible();

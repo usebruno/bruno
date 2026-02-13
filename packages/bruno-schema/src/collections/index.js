@@ -16,7 +16,8 @@ const environmentVariablesSchema = Yup.object({
 const environmentSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().min(1).required('name is required'),
-  variables: Yup.array().of(environmentVariablesSchema).required('variables are required')
+  variables: Yup.array().of(environmentVariablesSchema).required('variables are required'),
+  color: Yup.string().nullable().optional()
 })
   .noUnknown(true)
   .strict();
@@ -544,7 +545,7 @@ const itemSchema = Yup.object({
   type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request', 'ws-request']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
-  tags: Yup.array().of(Yup.string().matches(/^[\w-]+$/, 'tag must be alphanumeric')),
+  tags: Yup.array().of(Yup.string().matches(/^[\w-][\w\s-]*[\w-]$|^[\w-]+$/, 'tag must contain only alphanumeric characters, spaces, hyphens, or underscores')),
   request: Yup.mixed().when('type', {
     is: (type) => type === 'grpc-request',
     then: grpcRequestSchema.required('request is required when item-type is grpc-request'),

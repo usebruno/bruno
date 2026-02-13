@@ -105,7 +105,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
       placeholder: 'Name',
       width: '40%',
       readOnly: !editMode,
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -115,7 +115,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
           collection={collection}
           variablesAutocomplete={true}
           readOnly={!editMode}
-          placeholder={isLastEmptyRow ? 'Name' : ''}
+          placeholder={!value ? 'Name' : ''}
         />
       )
     },
@@ -125,7 +125,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
       placeholder: 'Value',
       width: '60%',
       readOnly: !editMode,
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -135,7 +135,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
           collection={collection}
           variablesAutocomplete={true}
           readOnly={!editMode}
-          placeholder={isLastEmptyRow ? 'Value' : ''}
+          placeholder={!value ? 'Value' : ''}
         />
       )
     }
@@ -154,7 +154,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
       placeholder: 'Value',
       width: '60%',
       readOnly: !editMode,
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -164,7 +164,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
           collection={collection}
           variablesAutocomplete={true}
           readOnly={!editMode}
-          placeholder={isLastEmptyRow ? 'Value' : ''}
+          placeholder={!value ? 'Value' : ''}
         />
       )
     }

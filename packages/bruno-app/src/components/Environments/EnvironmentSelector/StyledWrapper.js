@@ -33,8 +33,7 @@ const Wrapper = styled.div`
     }
 
     .env-separator {
-      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.separator};
-      margin: 0 0.35rem;
+      background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.separator};
     }
 
     .env-text-inactive {

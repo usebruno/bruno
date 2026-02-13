@@ -115,6 +115,9 @@ export const findParentItemInCollectionByPathname = (collection, pathname) => {
 };
 
 export const findItemInCollection = (collection, itemUid) => {
+  if (!collection || !collection.items) {
+    return null;
+  }
   let flattenedItems = flattenItems(collection.items);
 
   return findItem(flattenedItems, itemUid);
@@ -288,6 +291,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
+        return;
+      }
+
+      // Skip transient requests
+      if (si.isTransient) {
         return;
       }
 
@@ -1156,7 +1164,7 @@ const getPathParams = (item) => {
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
   each(collection.items, (item) => {
-    if (isItemARequest(item)) {
+    if (isItemARequest(item) && !item.isTransient) {
       count++;
     } else if (isItemAFolder(item)) {
       count += getTotalRequestCountInCollection(item);
@@ -1465,7 +1473,7 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
   }
 
   const requestTypes = ['http-request', 'graphql-request'];
-  requestItems = requestItems.filter((request) => requestTypes.includes(request.type));
+  requestItems = requestItems.filter((request) => requestTypes.includes(request.type) && !request.isTransient);
 
   if (tags && tags.include && tags.exclude) {
     const includeTags = tags.include ? tags.include : [];
@@ -1700,4 +1708,32 @@ export const generateUniqueRequestName = async (collection, baseName = 'Untitled
   const nextNumber = lastElement.number + 1;
 
   return `${baseName}${nextNumber}`;
+};
+
+export const isItemTransientRequest = (item) => {
+  return isItemARequest(item) && item?.isTransient;
+};
+
+/**
+ * Recursively filter out transient items from a collection's items array.
+ * Used for collection runner, exports, and other operations that shouldn't include transient requests.
+ * @param {Array} items - The items array to filter
+ * @returns {Array} A new array with transient items removed
+ */
+export const filterTransientItems = (items) => {
+  if (!items || !Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .filter((item) => !item?.isTransient)
+    .map((item) => {
+      if (item.items && item.items.length > 0) {
+        return {
+          ...item,
+          items: filterTransientItems(item.items)
+        };
+      }
+      return item;
+    });
 };

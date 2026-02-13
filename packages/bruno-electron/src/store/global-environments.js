@@ -97,7 +97,7 @@ class GlobalEnvironmentsStore {
     return this.store.set('activeGlobalEnvironmentUid', uid);
   }
 
-  addGlobalEnvironment({ uid, name, variables = [] }) {
+  addGlobalEnvironment({ uid, name, variables = [], color }) {
     let globalEnvironments = this.getGlobalEnvironments();
     const existingEnvironment = globalEnvironments.find((env) => env?.name == name);
     if (existingEnvironment) {
@@ -106,7 +106,8 @@ class GlobalEnvironmentsStore {
     globalEnvironments.push({
       uid,
       name,
-      variables
+      variables,
+      color
     });
     this.setGlobalEnvironments(globalEnvironments);
   }
@@ -159,6 +160,15 @@ class GlobalEnvironmentsStore {
     globalEnvironments = globalEnvironments.filter((env) => env?.uid !== environmentUid);
     if (environmentUid == activeGlobalEnvironmentUid) {
       this.setActiveGlobalEnvironmentUid(null);
+    }
+    this.setGlobalEnvironments(globalEnvironments);
+  }
+
+  updateGlobalEnvironmentColor({ environmentUid, color }) {
+    let globalEnvironments = this.getGlobalEnvironments();
+    const environment = globalEnvironments.find((env) => env?.uid == environmentUid);
+    if (environment) {
+      environment.color = color;
     }
     this.setGlobalEnvironments(globalEnvironments);
   }
