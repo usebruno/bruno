@@ -597,6 +597,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`environment: ${newEnvFilePath} already exists`);
       }
 
+      moveRequestUid(envFilePath, newEnvFilePath);
       fs.renameSync(envFilePath, newEnvFilePath);
 
       environmentSecretsStore.renameEnvironment(collectionPathname, environmentName, newName);
