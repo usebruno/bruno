@@ -1,5 +1,5 @@
 import { test, expect, Page } from '../../playwright';
-import { fillRequestUrl, sendRequest, clickResponseAction, createCollection, closeAllCollections } from '../utils/page';
+import { fillRequestUrl, sendRequest, clickResponseAction, createCollection, closeAllCollections, closeAllTabs } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
 test.describe.serial('Scratch Requests', () => {
@@ -13,9 +13,11 @@ test.describe.serial('Scratch Requests', () => {
   });
 
   test.afterAll(async ({ page }) => {
+    // Close all tabs (including scratch requests) to avoid "unsaved changes" modal
+    await closeAllTabs(page);
+
     // Clean up any regular collections
     await closeAllCollections(page);
-    // Note: The playwright fixture handles "Don't Save" modal when app closes
   });
 
   /**
@@ -71,10 +73,14 @@ test.describe.serial('Scratch Requests', () => {
       await expect(activeTab).toContainText('Untitled');
     });
 
-    await test.step('Verify workspace header shows for scratch collection', async () => {
-      // Scratch requests should show the workspace header, not collection toolbar
-      const workspaceTitle = page.locator('.workspace-title');
-      await expect(workspaceTitle).toBeVisible();
+    await test.step('Verify collection header shows for scratch collection', async () => {
+      // Scratch requests should show the collection header with workspace name in the switcher
+      const collectionSwitcher = page.locator('.collection-switcher');
+      await expect(collectionSwitcher).toBeVisible();
+
+      // The switcher should display the workspace name (e.g., "My Workspace")
+      const switcherName = page.locator('.switcher-name');
+      await expect(switcherName).toBeVisible();
     });
   });
 

@@ -113,27 +113,8 @@ export const test = baseTest.extend<
         return app;
       });
       for (const app of apps) {
-        try {
-          const page = await app.firstWindow();
-
-          // Start closing the app - this may trigger an unsaved changes modal
-          const closePromise = app.close();
-
-          // Wait a bit for any modal to appear, then dismiss it
-          const handleModal = async () => {
-            await page.waitForTimeout(500);
-            const dontSaveButton = page.getByRole('button', { name: 'Don\'t Save' });
-            const isVisible = await dontSaveButton.waitFor({ state: 'visible', timeout: 1000 }).then(() => true).catch(() => false);
-            if (isVisible) {
-              await dontSaveButton.click();
-            }
-          };
-
-          await Promise.all([closePromise, handleModal()]);
-        } catch (e) {
-          // Ignore errors during cleanup
-        }
-        await app.context().close().catch(() => {});
+        await app.context().close();
+        await app.close();
       }
     },
     { scope: 'worker' }
