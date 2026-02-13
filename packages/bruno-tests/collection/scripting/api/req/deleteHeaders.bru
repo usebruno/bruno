@@ -1,0 +1,36 @@
+meta {
+  name: deleteHeaders
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+  postman: is-not-great
+  yawk: lacks-features
+}
+
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+script:pre-request {
+  req.deleteHeaders(['postman', 'yawk']);
+}
+
+tests {
+  test("req.deleteHeaders(names)", function() {
+    const h = req.getHeaders();
+    expect(h.bruno).to.equal("is-awesome");
+    expect(h.postman).to.be.undefined;
+    expect(h.yawk).to.be.undefined;
+  });
+}
