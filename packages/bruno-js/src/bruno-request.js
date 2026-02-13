@@ -127,6 +127,7 @@ class BrunoRequest {
 
   deleteHeaders(headers) {
     headers.forEach((name) => {
+      delete this.headers[name];
       delete this.req.headers[name];
     });
   }
@@ -135,8 +136,9 @@ class BrunoRequest {
     return this.req.headers[name];
   }
 
-  deleteHeader(header) {
-    delete this.req.headers[header];
+  setHeader(name, value) {
+    this.headers[name] = value;
+    this.req.headers[name] = value;
   }
 
   deleteHeader(name) {
