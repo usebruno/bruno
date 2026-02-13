@@ -4,6 +4,8 @@ const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const archiver = require('archiver');
+const extractZip = require('extract-zip');
+const AdmZip = require('adm-zip');
 const { ipcMain, shell, dialog, app } = require('electron');
 const {
   parseRequest,
@@ -525,7 +527,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // create environment
-  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables) => {
+  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables, color) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
       if (!fs.existsSync(envDirPath)) {
@@ -548,7 +550,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const environment = {
         name: uniqueName,
-        variables: variables || []
+        variables: variables || [],
+        color
       };
 
       if (envHasSecrets(environment)) {
@@ -757,6 +760,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const environmentWithInfo = (environment) => ({
         name: environment.name,
         variables: environment.variables,
+        color: environment.color,
         info: {
           type: 'bruno-environment',
           exportedAt: new Date().toISOString(),
@@ -2157,6 +2161,142 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       });
 
       return { success: true, filePath };
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:is-bruno-collection-zip', async (event, zipFilePath) => {
+    try {
+      const zip = new AdmZip(zipFilePath);
+      const entries = zip.getEntries().map((e) => e.entryName);
+
+      return entries.some(
+        (name) =>
+          name === 'bruno.json'
+          || name === 'opencollection.yml'
+          || /^[^/]+\/bruno\.json$/.test(name)
+          || /^[^/]+\/opencollection\.yml$/.test(name)
+      );
+    } catch {
+      return false;
+    }
+  });
+
+  ipcMain.handle('renderer:import-collection-zip', async (event, zipFilePath, collectionLocation) => {
+    try {
+      if (!fs.existsSync(zipFilePath)) {
+        throw new Error('ZIP file does not exist');
+      }
+
+      if (!collectionLocation || !fs.existsSync(collectionLocation)) {
+        throw new Error('Collection location does not exist');
+      }
+
+      const tempDir = path.join(os.tmpdir(), `bruno_zip_import_${Date.now()}`);
+      await fsExtra.ensureDir(tempDir);
+
+      // Validates that no symlinks point outside the base directory
+      const validateNoExternalSymlinks = (dir, baseDir) => {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          const stat = fs.lstatSync(fullPath);
+
+          if (stat.isSymbolicLink()) {
+            const linkTarget = fs.readlinkSync(fullPath);
+            const resolvedTarget = path.resolve(path.dirname(fullPath), linkTarget);
+            if (!resolvedTarget.startsWith(baseDir + path.sep) && resolvedTarget !== baseDir) {
+              throw new Error(`Security error: Symlink "${entry.name}" points outside extraction directory`);
+            }
+          }
+
+          if (stat.isDirectory() && !stat.isSymbolicLink()) {
+            validateNoExternalSymlinks(fullPath, baseDir);
+          }
+        }
+      };
+
+      try {
+        await extractZip(zipFilePath, { dir: tempDir });
+
+        validateNoExternalSymlinks(tempDir, tempDir);
+
+        const extractedItems = fs.readdirSync(tempDir);
+        let collectionDir = tempDir;
+
+        if (extractedItems.length === 1) {
+          const singleItem = path.join(tempDir, extractedItems[0]);
+          const singleItemStat = fs.lstatSync(singleItem);
+          if (singleItemStat.isDirectory() && !singleItemStat.isSymbolicLink()) {
+            collectionDir = singleItem;
+          }
+        }
+
+        const brunoJsonPath = path.join(collectionDir, 'bruno.json');
+        const openCollectionYmlPath = path.join(collectionDir, 'opencollection.yml');
+
+        if (!fs.existsSync(brunoJsonPath) && !fs.existsSync(openCollectionYmlPath)) {
+          throw new Error('Invalid collection: Neither bruno.json nor opencollection.yml found in the ZIP file');
+        }
+
+        // Ensure config files are not symlinks
+        if (fs.existsSync(brunoJsonPath) && fs.lstatSync(brunoJsonPath).isSymbolicLink()) {
+          throw new Error('Security error: bruno.json cannot be a symbolic link');
+        }
+        if (fs.existsSync(openCollectionYmlPath) && fs.lstatSync(openCollectionYmlPath).isSymbolicLink()) {
+          throw new Error('Security error: opencollection.yml cannot be a symbolic link');
+        }
+
+        let collectionName = 'Imported Collection';
+        let brunoConfig = { name: collectionName, version: '1', type: 'collection', ignore: ['node_modules', '.git'] };
+        if (fs.existsSync(openCollectionYmlPath)) {
+          try {
+            const content = fs.readFileSync(openCollectionYmlPath, 'utf8');
+            const parsed = parseCollection(content, { format: 'yml' });
+            brunoConfig = parsed.brunoConfig || brunoConfig;
+            collectionName = brunoConfig.name || collectionName;
+          } catch (e) {
+            console.error(`Error parsing opencollection.yml at ${openCollectionYmlPath}:`, e);
+          }
+        } else if (fs.existsSync(brunoJsonPath)) {
+          try {
+            brunoConfig = JSON.parse(fs.readFileSync(brunoJsonPath, 'utf8'));
+            collectionName = brunoConfig.name || collectionName;
+          } catch (e) {
+            console.error(`Error parsing bruno.json at ${brunoJsonPath}:`, e);
+          }
+        }
+
+        let sanitizedName = sanitizeName(collectionName);
+        if (!sanitizedName) {
+          sanitizedName = `untitled-${Date.now()}`;
+        }
+        let finalCollectionPath = path.join(collectionLocation, sanitizedName);
+        let counter = 1;
+        while (fs.existsSync(finalCollectionPath)) {
+          finalCollectionPath = path.join(collectionLocation, `${sanitizedName} (${counter})`);
+          counter++;
+        }
+
+        await fsExtra.move(collectionDir, finalCollectionPath);
+        if (tempDir !== collectionDir) {
+          await fsExtra.remove(tempDir).catch(() => {});
+        }
+
+        const uid = generateUidBasedOnHash(finalCollectionPath);
+        const { size, filesCount } = await getCollectionStats(finalCollectionPath);
+        brunoConfig.size = size;
+        brunoConfig.filesCount = filesCount;
+
+        mainWindow.webContents.send('main:collection-opened', finalCollectionPath, uid, brunoConfig);
+        ipcMain.emit('main:collection-opened', mainWindow, finalCollectionPath, uid, brunoConfig);
+
+        return finalCollectionPath;
+      } catch (error) {
+        await fsExtra.remove(tempDir).catch(() => {});
+        throw error;
+      }
     } catch (error) {
       throw error;
     }

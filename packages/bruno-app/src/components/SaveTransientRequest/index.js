@@ -3,7 +3,9 @@ import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
 import SearchInput from 'components/SearchInput';
 import Button from 'ui/Button';
-import { IconFolder, IconChevronRight, IconCheck, IconX, IconEye, IconEyeOff } from '@tabler/icons';
+import { IconFolder, IconChevronRight, IconCheck, IconX, IconEye, IconEyeOff, IconEdit, IconArrowBackUp } from '@tabler/icons';
+import PathDisplay from 'components/PathDisplay/index';
+import Help from 'components/Help';
 import filter from 'lodash/filter';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
@@ -188,6 +190,11 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         return;
       }
 
+      if (!validateName(trimmedName)) {
+        toast.error(validateNameError(trimmedName));
+        return;
+      }
+
       const sanitizedFilename = sanitizeName(trimmedName);
 
       const itemToSave = latestItem.draft ? { ...latestItem, ...latestItem.draft } : { ...latestItem };
@@ -260,11 +267,6 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     if (!isEditingFolderFilename) {
       setNewFolderDirectoryName(sanitizeName(value));
     }
-  };
-
-  const handleDirectoryNameChange = (value) => {
-    setNewFolderDirectoryName(value);
-    setIsEditingFolderFilename(true);
   };
 
   const handleCreateNewFolder = async () => {
@@ -485,23 +487,63 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
                           {showFilesystemName && (
                             <div className="new-folder-filesystem-wrapper">
-                              <label className="new-folder-filesystem-label">Name on filesystem</label>
-                              <input
-                                type="text"
-                                className="new-folder-input"
-                                value={newFolderDirectoryName}
-                                onChange={(e) => handleDirectoryNameChange(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    handleCreateNewFolder();
-                                  } else if (e.key === 'Escape') {
-                                    e.stopPropagation();
-                                    handleCancelNewFolder();
-                                  }
-                                }}
-                              />
+                              <div className="flex items-center justify-between">
+                                <label className="new-folder-filesystem-label flex items-center font-medium">
+                                  Folder Name <small className="font-normal text-muted ml-1">(on filesystem)</small>
+                                  <Help width={300} placement="top">
+                                    <p>
+                                      You can choose to save the folder as a different name on your file system versus what is displayed in the app.
+                                    </p>
+                                  </Help>
+                                </label>
+                                {isEditingFolderFilename ? (
+                                  <IconArrowBackUp
+                                    className="cursor-pointer opacity-50 hover:opacity-80"
+                                    size={16}
+                                    strokeWidth={1.5}
+                                    onClick={() => setIsEditingFolderFilename(false)}
+                                  />
+                                ) : (
+                                  <IconEdit
+                                    className="cursor-pointer opacity-50 hover:opacity-80"
+                                    size={16}
+                                    strokeWidth={1.5}
+                                    onClick={() => setIsEditingFolderFilename(true)}
+                                  />
+                                )}
+                              </div>
+                              {isEditingFolderFilename ? (
+                                <div className="relative flex flex-row gap-1 items-center justify-between">
+                                  <input
+                                    type="text"
+                                    className="block textbox mt-2 w-full"
+                                    placeholder="Folder Name"
+                                    value={newFolderDirectoryName}
+                                    autoComplete="off"
+                                    autoCorrect="off"
+                                    autoCapitalize="off"
+                                    spellCheck="false"
+                                    onChange={(e) => setNewFolderDirectoryName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleCreateNewFolder();
+                                      } else if (e.key === 'Escape') {
+                                        e.stopPropagation();
+                                        handleCancelNewFolder();
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="relative flex flex-row gap-1 items-center justify-between">
+                                  <PathDisplay
+                                    iconType="folder"
+                                    baseName={newFolderDirectoryName}
+                                  />
+                                </div>
+                              )}
                             </div>
                           )}
 

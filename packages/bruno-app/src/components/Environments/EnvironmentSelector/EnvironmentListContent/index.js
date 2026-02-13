@@ -39,7 +39,7 @@ const EnvironmentListContent = ({
                     data-tooltip-content={env.name}
                     data-tooltip-hidden={env.name?.length < 90}
                   >
-                    <ColorBadge color={env.color} size={8} showEmptyBorder={false} />
+                    <ColorBadge color={env.color} size={8} />
                     <span className="max-w-100% truncate no-wrap">{env.name}</span>
                   </div>
                 ))}

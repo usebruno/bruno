@@ -211,15 +211,17 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       const specs = workspaceConfig.specs || [];
 
-      const resolvedSpecs = specs.map((spec) => {
-        if (spec.path && !path.isAbsolute(spec.path)) {
-          return {
-            ...spec,
-            path: path.join(workspacePath, spec.path)
-          };
-        }
-        return spec;
-      });
+      const resolvedSpecs = specs
+        .map((spec) => {
+          if (spec.path && !path.isAbsolute(spec.path)) {
+            return {
+              ...spec,
+              path: path.join(workspacePath, spec.path)
+            };
+          }
+          return spec;
+        })
+        .filter((spec) => spec.path && fs.existsSync(spec.path));
 
       return resolvedSpecs;
     } catch (error) {

@@ -267,11 +267,15 @@ export const brunoToPostman = (collection) => {
         return {
           mode: 'formdata',
           formdata: map(body.multipartForm || [], (bodyItem) => {
+            const isFile = bodyItem.type === 'file';
             return {
               key: bodyItem.name || '',
-              value: bodyItem.value || '',
               disabled: !bodyItem.enabled,
-              type: 'default'
+              type: isFile ? 'file' : 'text',
+              ...(isFile
+                ? { src: Array.isArray(bodyItem.value) ? bodyItem.value : bodyItem.value ? [bodyItem.value] : [] }
+                : { value: bodyItem.value || '' }),
+              ...(bodyItem.contentType && { contentType: bodyItem.contentType })
             };
           })
         };

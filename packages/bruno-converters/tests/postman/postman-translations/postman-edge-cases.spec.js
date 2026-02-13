@@ -29,13 +29,13 @@ describe('postmanTranslations - edge cases', () => {
           value: bru.getVar('value')
         },
         {
-          key: bru.getVar('key'),
-          value: bru.getVar('value')
+          key: bru.getCollectionVar('key'),
+          value: bru.getCollectionVar('value')
         }
       ];
       const dataTesting = Object.entries(sampleObjects || {}).reduce((acc, [key, value]) => {
         // this is a comment
-        acc[key] = bru.getVar(bru.getEnvVar(value));
+        acc[key] = bru.getCollectionVar(bru.getEnvVar(value));
         return acc; // Return the accumulator
       }, {});
       Object.values(dataTesting).forEach((data) => {

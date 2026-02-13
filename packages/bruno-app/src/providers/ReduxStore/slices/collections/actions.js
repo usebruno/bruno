@@ -1773,7 +1773,7 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const importEnvironment = ({ name, variables, collectionUid }) => (dispatch, getState) => {
+export const importEnvironment = ({ name, variables, color, collectionUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1785,7 +1785,7 @@ export const importEnvironment = ({ name, variables, collectionUid }) => (dispat
 
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variables)
+      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variables, color)
       .then(
         dispatch(
           updateLastAction({
@@ -2702,6 +2702,24 @@ export const importCollection = (collection, collectionLocation, options = {}) =
       reject(error);
     }
   });
+};
+
+export const importCollectionFromZip = (zipFilePath, collectionLocation) => async (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  const state = getState();
+  const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+
+  const collectionPath = await ipcRenderer.invoke('renderer:import-collection-zip', zipFilePath, collectionLocation);
+
+  if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
+    const collectionName = path.basename(collectionPath);
+    await ipcRenderer.invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, {
+      name: collectionName,
+      path: collectionPath
+    });
+  }
+
+  return collectionPath;
 };
 
 export const moveCollectionAndPersist

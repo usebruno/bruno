@@ -1,0 +1,83 @@
+meta {
+  name: additional context root
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "test": "additionalContextRoot"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:pre-request {
+  // Load module from additionalContextRoot using relative path
+  // This tests that modules outside the collection can be loaded when configured in bruno.json
+  // The path "../additional-context-root-lib" is allowed because it's listed in additionalContextRoots
+  const additionalLib = require('../additional-context-root-lib');
+
+  // Verify all dependencies loaded correctly
+  const deps = additionalLib.verifyDependencies();
+  bru.setVar('fakerLoaded', deps.fakerLoaded);
+  bru.setVar('localModuleLoaded', deps.localModuleLoaded);
+
+  // Test the utility functions
+  const user = additionalLib.generateUser();
+  bru.setVar('hasFirstName', typeof user.firstName === 'string' && user.firstName.length > 0);
+  bru.setVar('hasLastName', typeof user.lastName === 'string' && user.lastName.length > 0);
+  bru.setVar('hasFullName', typeof user.fullName === 'string' && user.fullName.includes(' '));
+  bru.setVar('hasGreeting', typeof user.greeting === 'string' && user.greeting.startsWith('Hello, '));
+  bru.setVar('hasEmail', typeof user.email === 'string' && user.email.includes('@'));
+
+  // Test direct functions from local module
+  const formatted = additionalLib.formatName('John', 'Doe');
+  bru.setVar('formatNameResult', formatted);
+
+  const greeting = additionalLib.generateGreeting('Bruno');
+  bru.setVar('greetingResult', greeting);
+
+  // Test direct require of a specific file from additionalContextRoot
+  const libDirect = require('../additional-context-root-lib/lib.js');
+  bru.setVar('directRequireWorks', typeof libDirect.formatName === 'function');
+  bru.setVar('directFormatName', libDirect.formatName('Direct', 'Test'));
+  bru.setVar('directGreeting', libDirect.generateGreeting('World'));
+}
+
+tests {
+  test("should load module from additionalContextRoot", function() {
+    expect(bru.getVar('fakerLoaded')).to.equal(true);
+    expect(bru.getVar('localModuleLoaded')).to.equal(true);
+  });
+
+  test("should resolve npm module (@faker-js/faker) from collection node_modules", function() {
+    expect(bru.getVar('hasFirstName')).to.equal(true);
+    expect(bru.getVar('hasLastName')).to.equal(true);
+    expect(bru.getVar('hasEmail')).to.equal(true);
+  });
+
+  test("should resolve local module (./lib.js) relative to additionalContextRoot", function() {
+    expect(bru.getVar('hasFullName')).to.equal(true);
+    expect(bru.getVar('hasGreeting')).to.equal(true);
+  });
+
+  test("should correctly execute local module functions", function() {
+    expect(bru.getVar('formatNameResult')).to.equal('John Doe');
+    expect(bru.getVar('greetingResult')).to.equal('Hello, Bruno!');
+  });
+
+  test("should directly require specific file from additionalContextRoot", function() {
+    expect(bru.getVar('directRequireWorks')).to.equal(true);
+    expect(bru.getVar('directFormatName')).to.equal('Direct Test');
+    expect(bru.getVar('directGreeting')).to.equal('Hello, World!');
+  });
+}

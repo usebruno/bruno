@@ -236,6 +236,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         {showConfirmEnvironmentClose && tab.type === 'environment-settings' && (
           <ConfirmCloseEnvironment
             isGlobal={false}
+            isDotEnv={collection.environmentsDraft?.environmentUid?.startsWith('dotenv:')}
             onCancel={() => setShowConfirmEnvironmentClose(false)}
             onCloseWithoutSave={() => {
               dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
@@ -244,7 +245,25 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
             onSaveAndClose={() => {
               const draft = collection.environmentsDraft;
-              if (draft?.environmentUid && draft?.variables) {
+              if (draft?.environmentUid?.startsWith('dotenv:')) {
+                const onSuccess = () => {
+                  cleanup();
+                  dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
+                  dispatch(closeTabs({ tabUids: [tab.uid] }));
+                  setShowConfirmEnvironmentClose(false);
+                };
+                const onFailed = () => {
+                  cleanup();
+                  setShowConfirmEnvironmentClose(false);
+                };
+                const cleanup = () => {
+                  window.removeEventListener('dotenv-save-complete', onSuccess);
+                  window.removeEventListener('dotenv-save-failed', onFailed);
+                };
+                window.addEventListener('dotenv-save-complete', onSuccess, { once: true });
+                window.addEventListener('dotenv-save-failed', onFailed, { once: true });
+                window.dispatchEvent(new Event('dotenv-save'));
+              } else if (draft?.environmentUid && draft?.variables) {
                 dispatch(saveEnvironment(draft.variables, draft.environmentUid, collection.uid))
                   .then(() => {
                     dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
@@ -263,6 +282,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         {showConfirmGlobalEnvironmentClose && tab.type === 'global-environment-settings' && (
           <ConfirmCloseEnvironment
             isGlobal={true}
+            isDotEnv={globalEnvironmentDraft?.environmentUid?.startsWith('dotenv:')}
             onCancel={() => setShowConfirmGlobalEnvironmentClose(false)}
             onCloseWithoutSave={() => {
               dispatch(clearGlobalEnvironmentDraft());
@@ -271,7 +291,25 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
             onSaveAndClose={() => {
               const draft = globalEnvironmentDraft;
-              if (draft?.environmentUid && draft?.variables) {
+              if (draft?.environmentUid?.startsWith('dotenv:')) {
+                const onSuccess = () => {
+                  cleanup();
+                  dispatch(clearGlobalEnvironmentDraft());
+                  dispatch(closeTabs({ tabUids: [tab.uid] }));
+                  setShowConfirmGlobalEnvironmentClose(false);
+                };
+                const onFailed = () => {
+                  cleanup();
+                  setShowConfirmGlobalEnvironmentClose(false);
+                };
+                const cleanup = () => {
+                  window.removeEventListener('dotenv-save-complete', onSuccess);
+                  window.removeEventListener('dotenv-save-failed', onFailed);
+                };
+                window.addEventListener('dotenv-save-complete', onSuccess, { once: true });
+                window.addEventListener('dotenv-save-failed', onFailed, { once: true });
+                window.dispatchEvent(new Event('dotenv-save'));
+              } else if (draft?.environmentUid && draft?.variables) {
                 dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }))
                   .then(() => {
                     dispatch(clearGlobalEnvironmentDraft());

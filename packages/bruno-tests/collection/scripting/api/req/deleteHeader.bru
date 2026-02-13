@@ -1,0 +1,31 @@
+meta {
+  name: deleteHeader
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+script:pre-request {
+  req.deleteHeader('bruno');
+}
+
+tests {
+  test("req.deleteHeader(name)", function() {
+    const h = req.getHeader('bruno');
+    expect(h).to.be.undefined;
+  });
+}

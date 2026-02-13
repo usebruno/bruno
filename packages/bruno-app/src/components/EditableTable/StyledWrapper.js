@@ -129,6 +129,7 @@ const StyledWrapper = styled.div`
     text-align: center;
     vertical-align: middle;
     line-height: 1;
+    text-overflow: clip;
 
     input[type='checkbox'] {
       vertical-align: baseline;
@@ -138,6 +139,9 @@ const StyledWrapper = styled.div`
 
   .tooltip-mod {
     max-width: 200px !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
   }
 
   input[type='text'] {
