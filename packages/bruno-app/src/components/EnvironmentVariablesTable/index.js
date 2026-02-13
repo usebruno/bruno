@@ -474,7 +474,7 @@ const EnvironmentVariablesTable = ({
                     id={`${actualIndex}.name`}
                     name={`${actualIndex}.name`}
                     value={variable.name}
-                    placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
+                    placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Name' : ''}
                     onChange={(e) => handleNameChange(actualIndex, e)}
                     onBlur={() => handleNameBlur(actualIndex)}
                     onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
