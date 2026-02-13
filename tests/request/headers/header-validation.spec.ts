@@ -51,9 +51,8 @@ test.describe.serial('Header Validation', () => {
       const headerRow = page.locator('table tbody tr').first();
       const nameCell = getTableCell(headerRow, 0);
 
-      // Clear and enter a valid header name
-      await nameCell.locator('.CodeMirror').click();
-      await page.keyboard.press('Meta+a');
+      // Clear and enter a valid header name - use triple-click to select all (works cross-platform)
+      await nameCell.locator('.CodeMirror').click({ clickCount: 3 });
       await nameCell.locator('textarea').fill('Valid-Header');
 
       // Verify the error icon is not visible
