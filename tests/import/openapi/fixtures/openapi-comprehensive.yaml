@@ -130,7 +130,7 @@ paths:
             schema:
               $ref: '#/components/schemas/UpdateUserRequest'
       responses:
-       '200':
+        '200':
           description: User updated successfully
           content:
             application/json:
@@ -180,7 +180,7 @@ paths:
                   type: string
                   minLength: 8
       responses:
-       '200':
+        '200':
           description: Login successful
           content:
             application/json:

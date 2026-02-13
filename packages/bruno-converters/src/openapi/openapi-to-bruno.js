@@ -236,6 +236,8 @@ const populateRequestBody = ({ body, requestBodyValue, contentType }) => {
  * @returns {Object} Bruno example object
  */
 const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType, requestBodyValue = null, requestBodyContentType = null }) => {
+  const numericStatus = Number(statusCode);
+  const safeStatus = Number.isFinite(numericStatus) ? numericStatus : null;
   const brunoExample = {
     uid: uuid(),
     itemUid: brunoRequestItem.uid,
@@ -250,8 +252,8 @@ const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, examp
       body: { ...brunoRequestItem.request.body }
     },
     response: {
-      status: Number(statusCode),
-      statusText: getStatusText(statusCode),
+      status: safeStatus,
+      statusText: safeStatus ? getStatusText(safeStatus) : null,
       headers: contentType ? [
         {
           uid: uuid(),
@@ -1171,14 +1173,23 @@ export const parseOpenApiCollection = (data, options = {}) => {
 
 export const openApiToBruno = (openApiSpecification, options = {}) => {
   try {
+    console.log('Validating Schema... 1');
     if (typeof openApiSpecification !== 'object') {
       openApiSpecification = jsyaml.load(openApiSpecification);
     }
+    console.log('Validating Schema... 2');
 
     const collection = parseOpenApiCollection(openApiSpecification, options);
+    console.log('Validating Schema... 3');
+
     const transformedCollection = transformItemsInCollection(collection);
+    console.log('Validating Schema... 4');
+
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
+    console.log('Validating Schema... 5');
     const validatedCollection = validateSchema(hydratedCollection);
+    console.log('Validating Schema... 6');
+
     return validatedCollection;
   } catch (err) {
     console.error('Error converting OpenAPI to Bruno:', err);
