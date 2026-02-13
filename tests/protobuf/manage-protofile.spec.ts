@@ -127,8 +127,8 @@ test.describe('manage protofile', () => {
     // Use more specific selector for proto file selection
     await page.locator('div').filter({ hasText: /^product\.proto\.\.\/protos\/services\/product\.proto$/ }).first().click();
 
-    const loadedMethodsMessage = await page.getByText('Failed to load gRPC methods: Unknown error').first().isVisible();
-    expect(loadedMethodsMessage).toBe(true);
+    // Verify the error message is visible (auto-retrying)
+    await expect(page.getByText('Failed to load gRPC methods: Unknown error').first()).toBeVisible();
 
     // Check that methods dropdown is not visible when loading fails
     const methodsDropdown = page.getByTestId('grpc-methods-dropdown');

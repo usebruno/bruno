@@ -99,7 +99,8 @@ test.describe('Tag persistence', () => {
     await locators.tags.input().fill('smoke');
     await locators.tags.input().press('Enter');
     await expect(locators.tags.item('smoke')).toBeVisible();
-    await page.keyboard.press('Meta+s');
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
 
     // Create another folder
     await locators.sidebar.collectionRow('test-collection').hover();

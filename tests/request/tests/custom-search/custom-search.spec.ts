@@ -1,5 +1,7 @@
 import { test, expect } from '../../../../playwright';
 
+const findShortcut = process.platform === 'darwin' ? 'Meta+f' : 'Control+f';
+
 test.describe('Custom Search Functionality in Scripts Tab', () => {
   test('should open search box when Cmd+F or Ctrl+F is pressed in scripts tab', async ({ pageWithUserData: page }) => {
     await page.getByTestId('collections').locator('#sidebar-collection-name').filter({ hasText: 'custom-search' }).click();
@@ -22,7 +24,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
     const preContent = await preRequestEditor.textContent();
     console.log('Pre Request content loaded:', preContent?.substring(0, 100));
 
-    await page.keyboard.press('Meta+f');
+    await page.keyboard.press(findShortcut);
 
     // Verify search box appears
     const preEditorSearchBar = page.getByTestId('pre-request-script-editor');
@@ -74,7 +76,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
     const preRequestEditor = page.getByTestId('pre-request-script-editor').locator('.CodeMirror').first();
     const preTextarea = preRequestEditor.locator('textarea[tabindex="0"]');
     await preTextarea.focus();
-    await page.keyboard.press('Meta+f');
+    await page.keyboard.press(findShortcut);
 
     const preSearchInput = page.getByTestId('pre-request-script-editor').locator('.bruno-search-bar input[placeholder="Search..."]');
     await preSearchInput.fill('uniquePreVar');
@@ -87,7 +89,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
     const postResponseEditor = page.getByTestId('post-response-script-editor').locator('.CodeMirror').first();
     const postTextarea = postResponseEditor.locator('textarea[tabindex="0"]');
     await postTextarea.focus();
-    await page.keyboard.press('Meta+f');
+    await page.keyboard.press(findShortcut);
 
     const postSearchInput = page.getByTestId('post-response-script-editor').locator('.bruno-search-bar input[placeholder="Search..."]');
     await postSearchInput.fill('uniquePostVar');
@@ -108,7 +110,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
     const preRequestEditor = page.getByTestId('pre-request-script-editor').locator('.CodeMirror').first();
     const preTextarea = preRequestEditor.locator('textarea[tabindex="0"]');
     await preTextarea.focus();
-    await page.keyboard.press('Meta+f');
+    await page.keyboard.press(findShortcut);
 
     const preSearchInput = page.getByTestId('pre-request-script-editor').locator('.bruno-search-bar input[placeholder="Search..."]');
     await preSearchInput.fill('commonVar');
@@ -121,7 +123,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
     const postResponseEditor = page.getByTestId('post-response-script-editor').locator('.CodeMirror').first();
     const postTextarea = postResponseEditor.locator('textarea[tabindex="0"]');
     await postTextarea.focus();
-    await page.keyboard.press('Meta+f');
+    await page.keyboard.press(findShortcut);
 
     const postSearchInput = page.getByTestId('post-response-script-editor').locator('.bruno-search-bar input[placeholder="Search..."]');
     await postSearchInput.fill('postVar');

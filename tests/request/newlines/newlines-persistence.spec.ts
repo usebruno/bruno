@@ -47,7 +47,8 @@ test('should persist request with newlines across app restarts', async ({ create
   await getTableCell(postResRow, 1).locator('.CodeMirror').click();
   await getTableCell(postResRow, 1).locator('textarea').fill('post\nResponse\nValue');
 
-  await page.keyboard.press('Meta+s');
+  const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+  await page.keyboard.press(saveShortcut);
   await app1.close();
 
   // Verify persistence after restart

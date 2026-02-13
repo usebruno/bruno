@@ -39,6 +39,7 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
 
       await page.locator('#collection-location').fill(await createTmpDir('insomnia-v4-env-test'));
       await locationModal.getByRole('button', { name: 'Import' }).click();
+      await locationModal.waitFor({ state: 'hidden' });
 
       await expect(page.locator('#sidebar-collection-name').getByText('Test API Collection v4 with Environments')).toBeVisible();
 

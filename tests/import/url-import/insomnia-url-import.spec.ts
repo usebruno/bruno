@@ -32,6 +32,7 @@ test.describe('Insomnia URL Import', () => {
     // Select a location and import
     await page.locator('#collection-location').fill(await createTmpDir('test-api-collection-v5'));
     await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.waitFor({ state: 'hidden' });
 
     // Verify the collection was imported successfully and configure it
     await expect(page.locator('#sidebar-collection-name').getByText('Test API Collection v5')).toBeVisible();
