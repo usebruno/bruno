@@ -37,6 +37,12 @@ export interface HttpRequestBody {
   file?: FileList | null;
 }
 
+export interface BodyVariant {
+  uid: string;
+  name: string;
+  body: HttpRequestBody;
+}
+
 export interface HttpRequest {
   url: string;
   method: string;
@@ -44,6 +50,8 @@ export interface HttpRequest {
   params: HttpRequestParam[];
   auth?: Auth | null;
   body?: HttpRequestBody | null;
+  bodyVariants?: BodyVariant[] | null;
+  activeBodyVariantUid?: string | null;
   script?: Script | null;
   vars?: {
     req: Variables;

@@ -107,6 +107,17 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
         transformedJson.request.auth.oauth2.additionalParameters = additionalParameters;
       }
     }
+
+    // Handle body variants
+    const bodyVariants = _.get(json, 'bodyVariants', []);
+    if (bodyVariants.length > 0) {
+      transformedJson.request.bodyVariants = bodyVariants;
+      const activeBodyVariantUid = _.get(json, 'meta.activeBodyVariant');
+      if (activeBodyVariantUid) {
+        transformedJson.request.activeBodyVariantUid = activeBodyVariantUid;
+      }
+    }
+
     return transformedJson;
   } catch (error) {
     console.log('parseBruRequest error', error);
@@ -219,6 +230,16 @@ export const stringifyBruRequest = (json: any): string => {
     bruJson.settings = _.get(json, 'settings', {});
     bruJson.docs = _.get(json, 'request.docs', '');
     bruJson.examples = _.get(json, 'examples', []).map((e: any) => jsonExampleToBru(e));
+
+    // Handle body variants
+    const bodyVariants = _.get(json, 'request.bodyVariants', []);
+    if (bodyVariants.length > 0) {
+      bruJson.bodyVariants = bodyVariants;
+      const activeBodyVariantUid = _.get(json, 'request.activeBodyVariantUid');
+      if (activeBodyVariantUid) {
+        bruJson.activeBodyVariantUid = activeBodyVariantUid;
+      }
+    }
 
     const bru = jsonToBruV2(bruJson);
     return bru;
