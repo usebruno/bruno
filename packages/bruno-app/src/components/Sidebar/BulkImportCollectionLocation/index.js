@@ -280,6 +280,9 @@ export const BulkImportCollectionLocation = ({
           try {
             const collection = await convertCollection(item._fileData.type, item._fileData.data, groupingType);
             if (collection) {
+              // Preserve the synthetic UID so status tracking, rename tracking,
+              // and UI rendering all use the same key
+              collection.uid = item.uid;
               filteredCollections.push(collection);
             }
           } catch (err) {

@@ -3,7 +3,7 @@ import Modal from 'components/Modal/index';
 import Portal from 'components/Portal/index';
 
 const getOSName = () => {
-  const platform = window.navigator.userAgentData?.platform;
+  const platform = window.navigator.userAgentData?.platform || '';
   if (platform.startsWith('Win')) {
     return 'Windows';
   } else if (platform.startsWith('Mac')) {

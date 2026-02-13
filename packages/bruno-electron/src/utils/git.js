@@ -312,10 +312,11 @@ const getUnstagedFileDiff = async (gitRootPath, filePath) => {
             return;
           }
 
-          const lines = content
+          const prefixedLines = content
             .split('\n')
-            .map((line) => `+${line}`)
-            .join('\n');
+            .map((line) => `+${line}`);
+          const lineCount = prefixedLines.length;
+          const lines = prefixedLines.join('\n');
 
           let diff
             = [
@@ -323,7 +324,7 @@ const getUnstagedFileDiff = async (gitRootPath, filePath) => {
               `new file mode 100644`,
               `--- a/${filePath}`,
               `+++ b/${filePath}`,
-              `@@ -0,0 +1,${lines.length} @@`,
+              `@@ -0,0 +1,${lineCount} @@`,
               `${lines}`
             ].join('\n') + '\n';
 

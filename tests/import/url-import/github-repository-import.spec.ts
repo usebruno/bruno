@@ -1,7 +1,11 @@
 import { test, expect } from '../../../playwright';
-import 'dotenv/config';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('GitHub Repository URL Import', () => {
+  test.afterEach(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
   test('GitHub repository URL import', async ({ page }) => {
     const githubUrl = 'https://github.com/usebruno/github-rest-api-collection';
 

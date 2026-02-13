@@ -486,6 +486,9 @@ const scanForBrunoFiles = async (dir) => {
         const stat = fs.statSync(fullPath);
 
         if (stat.isDirectory()) {
+          if (['node_modules', '.git'].includes(file)) {
+            return;
+          }
           scanDir(fullPath);
         } else if (file === 'bruno.json') {
           brunoFolders.push(currentDir);

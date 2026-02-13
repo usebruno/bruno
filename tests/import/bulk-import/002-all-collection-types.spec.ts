@@ -45,8 +45,8 @@ test.describe('All Collection Types Bulk Import', () => {
     await expect(bulkImportModal.getByTestId('grouping-dropdown')).toBeVisible();
 
     // Optionally change grouping to path-based
-    await page.getByTestId('grouping-dropdown').click();
-    await page.getByTestId('grouping-option-path').click();
+    await bulkImportModal.getByTestId('grouping-dropdown').click();
+    await bulkImportModal.getByTestId('grouping-option-path').click();
 
     // Select a location and import
     await page.locator('#collection-location').fill(await createTmpDir('all-collection-types-test'));

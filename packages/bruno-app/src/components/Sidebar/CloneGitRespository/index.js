@@ -174,7 +174,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
 
   const isScanCompleted = () => steps.some((step) => step.step === 'scan' && step.completed);
 
-  const isConfirmDisabled = () => isScanCompleted() && collectionpaths?.length && !selectedCollectionPaths?.length;
+  const isConfirmDisabled = () => isScanCompleted() && collectionpaths?.length > 0 && selectedCollectionPaths?.length === 0;
 
   const isFooterHidden = () => steps.some((step) => !step.completed);
 

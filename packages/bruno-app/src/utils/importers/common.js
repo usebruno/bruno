@@ -78,7 +78,7 @@ export const updateUidsInCollection = (_collection) => {
 export const filterItemsInCollection = (collection) => {
   // this filters out the bruno.json item in older collection exports
   collection.items = filter(collection.items, (item) => {
-    if (item?.name == 'bruno' && item?.type == 'json') {
+    if (item?.name === 'bruno' && item?.type === 'json') {
       return false;
     }
     return true;
@@ -178,7 +178,7 @@ export const transformItemsInCollection = (collection) => {
   };
 
   if (Array.isArray(collection)) {
-    collection.forEach((collection) => transformItems(collection.items));
+    collection.forEach((col) => transformItems(col.items));
   } else {
     transformItems(collection.items);
   }
@@ -201,7 +201,7 @@ export const hydrateSeqInCollection = (collection) => {
   };
 
   if (Array.isArray(collection)) {
-    collection.forEach((collection) => hydrateSeq(collection.items));
+    collection.forEach((col) => hydrateSeq(col.items));
   } else {
     hydrateSeq(collection.items);
   }
