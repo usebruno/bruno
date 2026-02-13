@@ -1,7 +1,5 @@
-import { execSync } from 'child_process';
 import { test, expect } from '../../../playwright';
 import { Page, ElectronApplication } from '@playwright/test';
-import path from 'path';
 import { openCollection } from '../../utils/page/actions';
 import { buildCommonLocators } from '../../utils/page/locators';
 
@@ -20,11 +18,6 @@ const restartAppAndGetLocators = async (restartApp: (options?: { initUserDataPat
 // The CollectionsHeader component (with collections-header-actions-menu-close-all) is not rendered in workspace mode
 // The "Remove from workspace" flow is different from the old "Close collection" flow
 test.describe.skip('Close All Collections', () => {
-  test.afterAll(async () => {
-    // Reset the request file to the original state after saving changes
-    execSync(`git checkout -- "${path.join(__dirname, 'fixtures', 'collections', 'collection 1', 'test-request.bru')}"`);
-  });
-
   test('should show/hide close all icon based on hover state', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
 
