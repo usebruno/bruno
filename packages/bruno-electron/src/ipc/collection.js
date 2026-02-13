@@ -749,7 +749,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const environmentWithInfo = (environment) => ({
         name: environment.name,
         variables: environment.variables,
-        color: environment.color,
+        color: environment.color ?? undefined,
         info: {
           type: 'bruno-environment',
           exportedAt: new Date().toISOString(),
