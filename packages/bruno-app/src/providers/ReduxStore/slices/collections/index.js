@@ -100,13 +100,24 @@ const REQUEST_UID_PATHS = [
   'assertions',
   'body.formUrlEncoded',
   'body.multipartForm',
-  'body.file'
+  'body.file',
+  'bodyVariants'
 ];
 
 const ROOT_UID_PATHS = ['request.headers', 'request.vars.req', 'request.vars.res'];
 
-const mergeRequestWithPreservedUids = (existingRequest, newRequest) =>
-  preserveUidsAtPaths(existingRequest, newRequest, REQUEST_UID_PATHS);
+const mergeRequestWithPreservedUids = (existingRequest, newRequest) => {
+  const merged = preserveUidsAtPaths(existingRequest, newRequest, REQUEST_UID_PATHS);
+
+  // Preserve body variants if the file data doesn't include them
+  // (e.g., yml format doesn't support body variants yet)
+  if (existingRequest?.bodyVariants?.length > 0 && !merged?.bodyVariants?.length) {
+    merged.bodyVariants = existingRequest.bodyVariants;
+    merged.activeBodyVariantUid = existingRequest.activeBodyVariantUid;
+  }
+
+  return merged;
+};
 
 const mergeRootWithPreservedUids = (existingRoot, newRoot) =>
   preserveUidsAtPaths(existingRoot, newRoot, ROOT_UID_PATHS);

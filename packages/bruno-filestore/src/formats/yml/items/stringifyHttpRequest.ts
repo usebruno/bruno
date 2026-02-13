@@ -207,6 +207,20 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
       }
     }
 
+    // body variants
+    const bodyVariants = (brunoRequest as any).bodyVariants;
+    if (bodyVariants?.length) {
+      (ocRequest as any).bodyVariants = bodyVariants.map((variant: any) => ({
+        uid: variant.uid,
+        name: variant.name,
+        body: variant.body
+      }));
+      const activeBodyVariantUid = (brunoRequest as any).activeBodyVariantUid;
+      if (activeBodyVariantUid) {
+        (ocRequest as any).activeBodyVariantUid = activeBodyVariantUid;
+      }
+    }
+
     // docs
     if (isNonEmptyString(brunoRequest.docs)) {
       ocRequest.docs = brunoRequest.docs;
