@@ -211,6 +211,11 @@ const builder = async (yargs) => {
       description: 'Omit response body from the reporter output',
       default: false
     })
+    .option('reporter-skip-body', {
+      type: 'boolean',
+      description: 'Omit both request and response bodies from the reporter output (shorthand for --reporter-skip-request-body --reporter-skip-response-body)',
+      default: false
+    })
     .option('client-cert-config', {
       type: 'string',
       description: 'Path to the Client certificate config file used for securing the connection in the request'
@@ -245,6 +250,7 @@ const builder = async (yargs) => {
     .example('$0 run --reporter-skip-all-headers', 'Run all requests in a folder recursively with omitted headers from the reporter output')
     .example('$0 run --reporter-skip-request-body', 'Run all requests with request bodies omitted from the reporter output')
     .example('$0 run --reporter-skip-response-body', 'Run all requests with response bodies omitted from the reporter output')
+    .example('$0 run --reporter-skip-body', 'Run all requests with both request and response bodies omitted from the reporter output')
     .example('$0 run --reporter-skip-request-body --reporter-skip-response-body', 'Run all requests with both request and response bodies omitted from the reporter output')
     .example(
       '$0 run --reporter-skip-headers "Authorization"',
@@ -322,6 +328,7 @@ const handler = async function (argv) {
       reporterSkipHeaders,
       reporterSkipRequestBody,
       reporterSkipResponseBody,
+      reporterSkipBody,
       clientCertConfig,
       noproxy,
       delay,
@@ -705,8 +712,8 @@ const handler = async function (argv) {
       sanitizeResultsForReporter(results, {
         skipAllHeaders: reporterSkipAllHeaders,
         skipHeaders: reporterSkipHeaders,
-        skipRequestBody: reporterSkipRequestBody,
-        skipResponseBody: reporterSkipResponseBody
+        skipRequestBody: reporterSkipRequestBody || reporterSkipBody,
+        skipResponseBody: reporterSkipResponseBody || reporterSkipBody
       });
 
       // bail if option is set and there is a failure
