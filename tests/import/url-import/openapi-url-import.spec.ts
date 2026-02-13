@@ -36,6 +36,7 @@ test.describe('OpenAPI URL Import', () => {
     // Select a location and import with default grouping (tags)
     await page.locator('#collection-location').fill(await createTmpDir('swagger-petstore'));
     await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.waitFor({ state: 'hidden' });
 
     // Verify the collection was imported successfully and configure it
     await expect(page.locator('#sidebar-collection-name').getByText('Swagger Petstore')).toBeVisible();
@@ -82,6 +83,7 @@ test.describe('OpenAPI URL Import', () => {
     // Select a location and import with path-based grouping
     await page.locator('#collection-location').fill(await createTmpDir('swagger-petstore-path'));
     await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.waitFor({ state: 'hidden' });
 
     // Verify the collection was imported successfully and configure it
     await expect(page.locator('#sidebar-collection-name').getByText('Swagger Petstore')).toBeVisible();
