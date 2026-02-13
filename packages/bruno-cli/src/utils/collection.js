@@ -457,7 +457,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
 
   // Create collection.bru if root exists
   if (collection.root) {
-    const collectionContent = await stringifyCollection(collection.root);
+    const collectionContent = await stringifyCollection(collection.root, {}, { format: 'bru' });
     fs.writeFileSync(path.join(dirPath, 'collection.bru'), collectionContent);
   }
 
@@ -467,7 +467,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
     fs.mkdirSync(envDirPath, { recursive: true });
 
     for (const env of collection.environments) {
-      const content = await stringifyEnvironment(env);
+      const content = await stringifyEnvironment(env, { format: 'bru' });
       const filename = sanitizeName(`${env.name}.bru`);
       fs.writeFileSync(path.join(envDirPath, filename), content);
     }

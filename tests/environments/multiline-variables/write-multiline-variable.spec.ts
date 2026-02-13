@@ -2,8 +2,6 @@ import { test, expect } from '../../../playwright';
 
 test.describe('Multiline Variables - Write Test', () => {
   test('should create and use multiline environment variable dynamically', async ({ pageWithUserData: page }) => {
-    test.setTimeout(60 * 1000);
-
     // open the collection
     const collection = page.getByTestId('collections').locator('#sidebar-collection-name').filter({ hasText: 'multiline-variables' });
     await expect(collection).toBeVisible();
