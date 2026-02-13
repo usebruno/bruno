@@ -58,7 +58,10 @@ test.describe.serial('Header Validation', () => {
 
       // Verify the error icon is not visible
       const errorIcon = headerRow.locator('.text-red-600');
-      await expect(errorIcon).not.toBeVisible();
+
+      // wait for formik to revalidate
+      await headerRow.click();
+      await expect(errorIcon).not.toBeVisible({});
     });
   });
 
