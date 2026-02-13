@@ -174,8 +174,9 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
         if (example.response) {
           ocExample.response = {};
 
-          if (example.response.status !== undefined && example.response.status !== null && isNumber(example.response.status)) {
-            ocExample.response.status = Number(example.response.status);
+          const statusNum = Number(example.response.status);
+          if (Number.isInteger(statusNum) && statusNum > 0) {
+            ocExample.response.status = statusNum;
           }
 
           if (isNonEmptyString(example.response.statusText)) {

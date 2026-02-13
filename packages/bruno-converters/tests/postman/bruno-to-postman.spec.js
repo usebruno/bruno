@@ -493,6 +493,246 @@ describe('brunoToPostman null checks and fallbacks', () => {
   });
 });
 
+describe('brunoToPostman multipartForm handling', () => {
+  it('should export file type with type: file and src field', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'POST',
+            url: 'https://example.com',
+            body: {
+              mode: 'multipartForm',
+              multipartForm: [
+                {
+                  name: 'myFile',
+                  value: ['/path/to/file1.txt', '/path/to/file2.txt'],
+                  type: 'file',
+                  enabled: true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.body).toEqual({
+      mode: 'formdata',
+      formdata: [
+        {
+          key: 'myFile',
+          src: ['/path/to/file1.txt', '/path/to/file2.txt'],
+          disabled: false,
+          type: 'file'
+        }
+      ]
+    });
+  });
+
+  it('should export text type with type: text and value field', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'POST',
+            url: 'https://example.com',
+            body: {
+              mode: 'multipartForm',
+              multipartForm: [
+                {
+                  name: 'myField',
+                  value: 'some text value',
+                  type: 'text',
+                  enabled: true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.body).toEqual({
+      mode: 'formdata',
+      formdata: [
+        {
+          key: 'myField',
+          value: 'some text value',
+          disabled: false,
+          type: 'text'
+        }
+      ]
+    });
+  });
+
+  it('should export contentType when specified', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'POST',
+            url: 'https://example.com',
+            body: {
+              mode: 'multipartForm',
+              multipartForm: [
+                {
+                  name: 'myFile',
+                  value: ['/path/to/file.json'],
+                  type: 'file',
+                  contentType: 'application/json',
+                  enabled: true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.body).toEqual({
+      mode: 'formdata',
+      formdata: [
+        {
+          key: 'myFile',
+          src: ['/path/to/file.json'],
+          disabled: false,
+          type: 'file',
+          contentType: 'application/json'
+        }
+      ]
+    });
+  });
+
+  it('should handle mixed file and text fields', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'POST',
+            url: 'https://example.com',
+            body: {
+              mode: 'multipartForm',
+              multipartForm: [
+                {
+                  name: 'textField',
+                  value: 'hello',
+                  type: 'text',
+                  enabled: true
+                },
+                {
+                  name: 'fileField',
+                  value: ['/path/to/file.txt'],
+                  type: 'file',
+                  enabled: false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.body).toEqual({
+      mode: 'formdata',
+      formdata: [
+        {
+          key: 'textField',
+          value: 'hello',
+          disabled: false,
+          type: 'text'
+        },
+        {
+          key: 'fileField',
+          src: ['/path/to/file.txt'],
+          disabled: true,
+          type: 'file'
+        }
+      ]
+    });
+  });
+
+  it('should handle file type with string value (not array)', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'POST',
+            url: 'https://example.com',
+            body: {
+              mode: 'multipartForm',
+              multipartForm: [
+                {
+                  name: 'myFile',
+                  value: '/single/file/path.txt',
+                  type: 'file',
+                  enabled: true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.body.formdata[0]).toEqual({
+      key: 'myFile',
+      src: ['/single/file/path.txt'],
+      disabled: false,
+      type: 'file'
+    });
+  });
+
+  it('should handle file type with empty value', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'POST',
+            url: 'https://example.com',
+            body: {
+              mode: 'multipartForm',
+              multipartForm: [
+                {
+                  name: 'myFile',
+                  value: '',
+                  type: 'file',
+                  enabled: true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.body.formdata[0]).toEqual({
+      key: 'myFile',
+      src: [],
+      disabled: false,
+      type: 'file'
+    });
+  });
+});
+
 describe('brunoToPostman event handling', () => {
   it('should generate events for request scripts (req/res)', () => {
     const simpleCollection = {

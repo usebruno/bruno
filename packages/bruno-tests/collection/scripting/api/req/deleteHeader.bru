@@ -1,7 +1,7 @@
 meta {
   name: deleteHeader
   type: http
-  seq: 5
+  seq: 12
 }
 
 get {
@@ -12,9 +12,7 @@ get {
 
 headers {
   bruno: is-awesome
-  postman: is-not-great
 }
-
 
 assert {
   res.status: eq 200
@@ -22,13 +20,12 @@ assert {
 }
 
 script:pre-request {
-  req.deleteHeader('postman');
+  req.deleteHeader('bruno');
 }
 
 tests {
   test("req.deleteHeader(name)", function() {
-    const h = req.getHeaders();
-    expect(h.bruno).to.equal("is-awesome");
-    expect(h.postman).to.be.undefined;
+    const h = req.getHeader('bruno');
+    expect(h).to.be.undefined;
   });
 }

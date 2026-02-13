@@ -1773,7 +1773,7 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const importEnvironment = ({ name, variables, collectionUid }) => (dispatch, getState) => {
+export const importEnvironment = ({ name, variables, color, collectionUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1785,7 +1785,7 @@ export const importEnvironment = ({ name, variables, collectionUid }) => (dispat
 
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variables)
+      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variables, color)
       .then(
         dispatch(
           updateLastAction({
@@ -2439,6 +2439,53 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
   });
 };
 
+/**
+ * Opens a scratch collection and creates it in Redux state.
+ * This is a simplified version of openCollectionEvent for scratch collections,
+ * without workspace management, toasts, or sidebar toggles.
+ *
+ * @param {string} uid - The unique identifier for the scratch collection
+ * @param {string} pathname - The filesystem path to the scratch collection
+ * @param {Object} brunoConfig - The Bruno configuration object for the collection
+ * @returns {Promise} Resolves when the collection is created, rejects on error
+ */
+export const openScratchCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const existingCollection = state.collections.collections.find(
+      (c) => normalizePath(c.pathname) === normalizePath(pathname)
+    );
+
+    if (existingCollection) {
+      resolve();
+      return;
+    }
+
+    const collection = {
+      version: '1',
+      uid,
+      name: brunoConfig.name,
+      pathname,
+      items: [],
+      runtimeVariables: {},
+      brunoConfig
+    };
+
+    ipcRenderer
+      .invoke('renderer:get-collection-security-config', pathname)
+      .then((securityConfig) => {
+        collectionSchema
+          .validate(collection)
+          .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
+          .then(resolve)
+          .catch(reject);
+      })
+      .catch(reject);
+  });
+};
+
 export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
   const { ipcRenderer } = window;
 
@@ -2447,24 +2494,20 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
     const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables || {};
 
-    // Check if collection already exists in Redux state
     const existingCollection = state.collections.collections.find(
       (c) => normalizePath(c.pathname) === normalizePath(pathname)
     );
 
-    // Check if collection is already in the current workspace
     const isAlreadyInWorkspace = activeWorkspace?.collections?.some(
       (c) => normalizePath(c.path) === normalizePath(pathname)
     );
 
-    // If collection already exists in Redux AND in current workspace, show toast and return
     if (existingCollection && isAlreadyInWorkspace) {
       toast.success('Collection is already opened');
       resolve();
       return;
     }
 
-    // If collection exists in Redux but not in workspace, add to workspace
     if (existingCollection) {
       if (state.app.sidebarCollapsed) {
         dispatch(toggleSidebarCollapse());
@@ -2493,7 +2536,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
       return;
     }
 
-    // Collection doesn't exist - create it
     const collection = {
       version: '1',
       uid: uid,
@@ -2520,7 +2562,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
           );
 
           if (currentWorkspace) {
-            // Set collection-workspace mapping for workspace env vars
             ipcRenderer.invoke('renderer:set-collection-workspace', uid, currentWorkspace.pathname);
 
             const alreadyInWorkspace = currentWorkspace.collections?.some(

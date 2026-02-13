@@ -215,4 +215,18 @@ console.log("Headers:", JSON.stringify(pm.request.headers));
     const translatedCode = translateBruToPostman(code);
     expect(translatedCode).toBe('const pathParams = pm.request.url.variables;');
   });
+
+  it('should handle URL methods in complex expressions', () => {
+    const code = 'const fullUrl = req.getHost() + req.getPath() + "?" + req.getQueryString();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toContain('pm.request.url.getHost()');
+    expect(translatedCode).toContain('pm.request.url.getPath()');
+    expect(translatedCode).toContain('pm.request.url.getQueryString()');
+  });
+
+  it('should handle req.getPathParams() in conditional', () => {
+    const code = 'if (req.getPathParams().id) { console.log("Has ID"); }';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toContain('pm.request.url.variables.id');
+  });
 });

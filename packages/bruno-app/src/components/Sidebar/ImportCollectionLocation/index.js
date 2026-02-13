@@ -51,13 +51,13 @@ const getCollectionName = (format, rawData) => {
 };
 
 // Convert raw data to Bruno collection format
-const convertCollection = async (format, rawData, groupingType) => {
+const convertCollection = async (format, rawData, groupingType, collectionFormat) => {
   try {
     let collection;
 
     switch (format) {
       case 'openapi':
-        collection = convertOpenapiToBruno(rawData, { groupBy: groupingType });
+        collection = convertOpenapiToBruno(rawData, { groupBy: groupingType, collectionFormat });
         break;
       case 'wsdl':
         collection = await wsdlToBruno(rawData);
@@ -127,7 +127,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
         .required('Location is required')
     }),
     onSubmit: async (values) => {
-      const convertedCollection = await convertCollection(format, rawData, groupingType);
+      const convertedCollection = await convertCollection(format, rawData, groupingType, collectionFormat);
       handleSubmit(convertedCollection, values.collectionLocation, { format: collectionFormat });
     }
   });
