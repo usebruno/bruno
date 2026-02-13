@@ -1410,22 +1410,16 @@ export const parseOpenApiCollection = (data, options = {}) => {
 
 export const openApiToBruno = (openApiSpecification, options = {}) => {
   try {
-    console.log('Validating Schema... 1');
     if (typeof openApiSpecification !== 'object') {
       openApiSpecification = jsyaml.load(openApiSpecification);
     }
-    console.log('Validating Schema... 2');
 
     const collection = parseOpenApiCollection(openApiSpecification, options);
-    console.log('Validating Schema... 3');
 
     const transformedCollection = transformItemsInCollection(collection);
-    console.log('Validating Schema... 4');
 
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
-    console.log('Validating Schema... 5');
     const validatedCollection = validateSchema(hydratedCollection);
-    console.log('Validating Schema... 6');
 
     return validatedCollection;
   } catch (err) {
