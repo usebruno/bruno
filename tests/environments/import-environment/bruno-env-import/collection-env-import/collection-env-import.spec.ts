@@ -47,7 +47,7 @@ test.describe.serial('Collection Environment Import Tests', () => {
       await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
 
       await envTab.hover();
-      await envTab.getByTestId('request-tab-close-icon').click();
+      await envTab.getByTestId('request-tab-close-icon').click({ force: true });
     });
 
     await test.step('Clean up after test', async () => {
@@ -128,7 +128,7 @@ test.describe.serial('Collection Environment Import Tests', () => {
       await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
 
       await envTab.hover();
-      await envTab.getByTestId('request-tab-close-icon').click();
+      await envTab.getByTestId('request-tab-close-icon').click({ force: true });
     });
 
     await test.step('Clean up after test', async () => {

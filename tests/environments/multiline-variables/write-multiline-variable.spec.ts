@@ -33,6 +33,12 @@ test.describe('Multiline Variables - Write Test', () => {
     await expect(emptyRowNameInput).toBeVisible();
     await emptyRowNameInput.fill('multiline_data_json');
 
+    // After filling the name, the table appends a new empty row causing persistent layout shifts.
+    // Use force:true to bypass Playwright's stability check on the CodeMirror click.
+    const variableRow = page.locator('tbody tr').filter({ has: page.locator('input[value="multiline_data_json"]') });
+    await expect(variableRow).toBeVisible();
+    const codeMirror = variableRow.locator('.CodeMirror');
+
     const jsonValue = `{
   "user": {
     "name": "John Doe",
@@ -48,15 +54,13 @@ test.describe('Multiline Variables - Write Test', () => {
   }
 }`;
 
-    const variableRow = page.locator('tbody tr').filter({ has: page.locator('input[value="multiline_data_json"]') });
-    const codeMirror = variableRow.locator('.CodeMirror');
-    await codeMirror.click();
+    await codeMirror.click({ force: true });
     await page.keyboard.insertText(jsonValue);
 
     await page.getByTestId('save-env').click();
 
     await envTab.hover();
-    await envTab.getByTestId('request-tab-close-icon').click();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
 
     await page.getByTestId('send-arrow-icon').click();
 

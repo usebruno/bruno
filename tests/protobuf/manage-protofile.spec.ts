@@ -108,7 +108,7 @@ test.describe('manage protofile', () => {
     await method.click();
     const requestTab = page.getByRole('tab', { name: 'gRPC sayHello' });
     await requestTab.hover();
-    await requestTab.getByTestId('request-tab-close-icon').click();
+    await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
     await page.getByRole('button', { name: 'Don\'t Save' }).click();
   });
 
@@ -136,7 +136,7 @@ test.describe('manage protofile', () => {
 
     const requestTab = page.getByRole('tab', { name: 'gRPC sayHello' });
     await requestTab.hover();
-    await requestTab.getByTestId('request-tab-close-icon').click();
+    await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
     await page.getByRole('button', { name: 'Don\'t Save' }).click();
   });
 
@@ -180,7 +180,7 @@ test.describe('manage protofile', () => {
     // Clean up
     const requestTab = page.getByRole('tab', { name: 'gRPC sayHello' });
     await requestTab.hover();
-    await requestTab.getByTestId('request-tab-close-icon').click();
+    await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
     await page.getByRole('button', { name: 'Don\'t Save' }).click();
   });
 });
