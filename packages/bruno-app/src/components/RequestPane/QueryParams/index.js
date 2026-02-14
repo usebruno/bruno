@@ -13,6 +13,8 @@ import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collection
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import BulkEditor from '../../BulkEditor';
+import DecoratedInput from './DecoratedInput';
+import { detectAndParseDecorator } from 'utils/decorators';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -34,6 +36,51 @@ const QueryParams = ({ item, collection }) => {
       params: paramsWithType
     }));
   }, [dispatch, collection.uid, item.uid]);
+
+  // Handle decorator change for a specific param
+  const handleDecoratorChange = useCallback((rowUid, newDecorators, newValue) => {
+    const updatedParams = queryParams.map((p) => {
+      if (p.uid === rowUid) {
+        const updates = { ...p, decorators: newDecorators };
+        // Also update value if provided (e.g., when setting default value)
+        if (newValue !== undefined) {
+          updates.value = newValue;
+        }
+        return updates;
+      }
+      return p;
+    });
+    handleQueryParamsChange(updatedParams);
+  }, [queryParams, handleQueryParamsChange]);
+
+  // Handle regular value change (no decorator detection - that happens on blur)
+  const handleValueChange = useCallback((rowUid, newValue) => {
+    const updatedParams = queryParams.map((p) => {
+      if (p.uid === rowUid) {
+        return { ...p, value: newValue };
+      }
+      return p;
+    });
+    handleQueryParamsChange(updatedParams);
+  }, [queryParams, handleQueryParamsChange]);
+
+  // Handle blur with decorator detection (only when no decorators exist yet)
+  const handleValueBlur = useCallback((rowUid, value, currentDecorators) => {
+    // Only auto-detect decorators if there are no existing decorators
+    if (!currentDecorators?.length && value?.trim()?.startsWith('@')) {
+      const result = detectAndParseDecorator(value);
+      if (result.isDecorator && result.decorator) {
+        // Update both decorators and value
+        const updatedParams = queryParams.map((p) => {
+          if (p.uid === rowUid) {
+            return { ...p, decorators: [result.decorator], value: result.defaultValue };
+          }
+          return p;
+        });
+        handleQueryParamsChange(updatedParams);
+      }
+    }
+  }, [queryParams, handleQueryParamsChange]);
 
   const handlePathParamChange = useCallback((rowUid, key, value) => {
     const pathParam = pathParams.find((p) => p.uid === rowUid);
@@ -70,16 +117,17 @@ const QueryParams = ({ item, collection }) => {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ value, onChange }) => (
-        <MultiLineEditor
+      render: ({ row, value, onChange }) => (
+        <DecoratedInput
           value={value || ''}
-          theme={storedTheme}
+          decorators={row.decorators}
+          onChange={(newValue) => handleValueChange(row.uid, newValue)}
+          onBlur={(blurValue) => handleValueBlur(row.uid, blurValue, row.decorators)}
+          onDecoratorChange={(newDecorators, newValue) => handleDecoratorChange(row.uid, newDecorators, newValue)}
           onSave={onSave}
-          onChange={onChange}
           onRun={handleRun}
           collection={collection}
           item={item}
-          variablesAutocomplete={true}
           placeholder={!value ? 'Value' : ''}
         />
       )
