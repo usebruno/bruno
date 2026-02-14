@@ -5,13 +5,15 @@ import type {
   Auth,
   MultipartForm,
   FileList,
-  GraphqlBody
+  GraphqlBody,
+  Decorator
 } from '../common';
 
 export type HttpRequestParamType = 'query' | 'path';
 
 export interface HttpRequestParam extends KeyValue {
   type: HttpRequestParamType;
+  decorators?: Decorator[];
 }
 
 export type HttpRequestBodyMode
