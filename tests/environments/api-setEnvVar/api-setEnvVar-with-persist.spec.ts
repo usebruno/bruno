@@ -38,7 +38,7 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
     await expect(page.getByRole('row', { name: 'token' }).getByRole('cell').nth(1)).toBeVisible();
     await expect(page.getByRole('row', { name: 'secret' }).getByRole('cell').nth(2)).toBeVisible();
     await envTab.hover();
-    await envTab.getByTestId('request-tab-close-icon').click();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
 
     // we restart the app to confirm that the environment variable is persisted
     const newApp = await restartApp();
@@ -59,7 +59,7 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
     await expect(newPage.getByRole('row', { name: 'secret' }).getByRole('cell').nth(2)).toBeVisible();
 
     await newEnvTab.hover();
-    await newEnvTab.getByTestId('request-tab-close-icon').click();
+    await newEnvTab.getByTestId('request-tab-close-icon').click({ force: true });
 
     // Restore the original Stage.bru file
     fs.writeFileSync(originalStageBruPath, originalStageBruContent);

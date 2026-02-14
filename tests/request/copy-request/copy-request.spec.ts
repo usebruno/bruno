@@ -24,7 +24,7 @@ test.describe('Copy and Paste Requests', () => {
     // Copy the request
     const requestItem = page.locator('.collection-item-name').filter({ hasText: 'original-request' });
     await requestItem.hover();
-    await requestItem.locator('.menu-icon').click();
+    await requestItem.locator('.menu-icon').click({ force: true });
     await page.locator('.dropdown-item').filter({ hasText: 'Copy' }).click();
 
     // Paste into the collection root
@@ -48,7 +48,7 @@ test.describe('Copy and Paste Requests', () => {
     const folder = page.locator('.collection-item-name').filter({ hasText: 'test-folder' });
     await folder.click();
     await folder.hover();
-    await folder.locator('.menu-icon').click();
+    await folder.locator('.menu-icon').click({ force: true });
     await page.locator('.dropdown-item').filter({ hasText: 'Paste' }).click();
 
     await expect(page.locator('.collection-item-name').filter({ hasText: 'original-request' })).toHaveCount(3);
