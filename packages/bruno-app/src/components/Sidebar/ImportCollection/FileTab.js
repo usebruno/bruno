@@ -92,6 +92,53 @@ const FileTab = ({
     }
   };
 
+  const handleMultipleFiles = async (fileArray) => {
+    setIsLoading(true);
+    try {
+      const filesData = [];
+
+      // Parse all files
+      for (const file of fileArray) {
+        try {
+          const data = await convertFileToObject(file);
+
+          // Determine type for each file
+          let type = null;
+          if (isOpenApiSpec(data)) {
+            type = 'openapi';
+          } else if (isWSDLCollection(data)) {
+            type = 'wsdl';
+          } else if (isPostmanCollection(data)) {
+            type = 'postman';
+          } else if (isInsomniaCollection(data)) {
+            type = 'insomnia';
+          } else if (isOpenCollection(data)) {
+            type = 'opencollection';
+          } else if (isBrunoCollection(data)) {
+            type = 'bruno';
+          }
+
+          if (type) {
+            filesData.push({ file, data, type });
+          }
+        } catch (err) {
+          console.warn(`Failed to process file ${file.name}:`, err);
+        }
+      }
+
+      if (filesData.length > 0) {
+        // Pass raw filesData to be processed in BulkImportCollectionLocation
+        handleSubmit({ filesData, type: 'multiple' });
+      } else {
+        throw new Error('No valid collections found in the selected files');
+      }
+    } catch (err) {
+      toastError(err, 'Import multiple files failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const processFile = async (file) => {
     setIsLoading(true);
     try {
@@ -149,7 +196,10 @@ const FileTab = ({
       return;
     }
 
-    if (fileArray.length > 0) {
+    if (fileArray.length > 1) {
+      // Process multiple non-ZIP files normally
+      await handleMultipleFiles(fileArray);
+    } else if (fileArray.length === 1) {
       await processFile(fileArray[0]);
     }
   };
@@ -200,17 +250,18 @@ const FileTab = ({
             ref={fileInputRef}
             type="file"
             className="hidden"
+            multiple
             onChange={handleFileInputChange}
             accept={acceptedFileTypes.join(',')}
           />
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-            Drop file to import or{' '}
+            Drop file(s) to import or{' '}
             <button
               className="underline cursor-pointer"
               onClick={handleBrowseFiles}
               style={{ color: theme.textLink }}
             >
-              choose a file
+              choose file(s)
             </button>
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center">

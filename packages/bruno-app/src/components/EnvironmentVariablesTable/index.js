@@ -93,6 +93,7 @@ const EnvironmentVariablesTable = ({
   }, []);
 
   const prevEnvUidRef = useRef(null);
+  const prevEnvVariablesRef = useRef(environment.variables);
   const mountedRef = useRef(false);
 
   let _collection = collection ? cloneDeep(collection) : {};
@@ -168,11 +169,13 @@ const EnvironmentVariablesTable = ({
   useEffect(() => {
     const isMount = !mountedRef.current;
     const envChanged = prevEnvUidRef.current !== null && prevEnvUidRef.current !== environment.uid;
+    const variablesReloaded = !isMount && !envChanged && prevEnvVariablesRef.current !== environment.variables;
 
     prevEnvUidRef.current = environment.uid;
+    prevEnvVariablesRef.current = environment.variables;
     mountedRef.current = true;
 
-    if ((isMount || envChanged) && hasDraftForThisEnv && draft?.variables) {
+    if ((isMount || envChanged || variablesReloaded) && hasDraftForThisEnv && draft?.variables) {
       formik.setValues([
         ...draft.variables,
         {
@@ -185,7 +188,7 @@ const EnvironmentVariablesTable = ({
         }
       ]);
     }
-  }, [environment.uid, hasDraftForThisEnv, draft?.variables]);
+  }, [environment.uid, environment.variables, hasDraftForThisEnv, draft?.variables]);
 
   const savedValuesJson = useMemo(() => {
     return JSON.stringify((environment.variables || []).map(stripEnvVarUid));
@@ -474,7 +477,7 @@ const EnvironmentVariablesTable = ({
                     id={`${actualIndex}.name`}
                     name={`${actualIndex}.name`}
                     value={variable.name}
-                    placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
+                    placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Name' : ''}
                     onChange={(e) => handleNameChange(actualIndex, e)}
                     onBlur={() => handleNameBlur(actualIndex)}
                     onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}

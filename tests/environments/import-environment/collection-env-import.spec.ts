@@ -27,6 +27,7 @@ test.describe('Collection Environment Import Tests', () => {
     // Select a location and import
     await page.locator('#collection-location').fill(await createTmpDir('collection-env-import-test'));
     await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.waitFor({ state: 'hidden' });
 
     await expect(
       page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' })).toBeVisible({ timeout: 10000 });
