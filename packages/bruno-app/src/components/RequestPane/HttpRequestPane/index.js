@@ -139,7 +139,7 @@ const HttpRequestPane = ({ item, collection }) => {
         delayedTabs={['body']}
       />
 
-      <section className={classnames('flex w-full flex-1 mt-4')}>
+      <section className={classnames('flex w-full flex-1 mt-4  ')}>
         <HeightBoundContainer>{tabPanel}</HeightBoundContainer>
       </section>
     </div>

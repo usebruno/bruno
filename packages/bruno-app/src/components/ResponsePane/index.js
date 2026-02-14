@@ -293,7 +293,7 @@ const ResponsePane = ({ item, collection }) => {
         />
       </div>
       <section
-        className="flex flex-col min-h-0 relative px-4 auto overflow-auto mt-4"
+        className="flex flex-col min-h-0 relative px-4 auto overflow-auto mt-4 "
         style={{
           flex: '1 1 0',
           height: hasScriptError && showScriptErrorCard ? 'auto' : '100%'

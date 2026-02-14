@@ -155,7 +155,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
         rightContentRef={rightContent ? schemaActionsRef : null}
       />
 
-      <section className={classnames('flex w-full flex-1 mt-4')}>
+      <section className={classnames('flex w-full flex-1 mt-4 ')}>
         <HeightBoundContainer>{tabPanel}</HeightBoundContainer>
       </section>
     </div>
