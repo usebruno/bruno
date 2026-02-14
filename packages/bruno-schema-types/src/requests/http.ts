@@ -9,6 +9,8 @@ import type {
   Decorator
 } from '../common';
 
+export type { Decorator };
+
 export type HttpRequestParamType = 'query' | 'path';
 
 export interface HttpRequestParam extends KeyValue {
