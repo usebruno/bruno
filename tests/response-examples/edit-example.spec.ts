@@ -1,14 +1,7 @@
 import { test, expect } from '../../playwright';
-import { execSync } from 'child_process';
-import path from 'path';
 import { clickResponseAction } from '../utils/page/actions';
 
 test.describe.serial('Edit Response Examples', () => {
-  test.afterAll(async () => {
-    // Reset the collection request file to the original state
-    execSync(`git checkout -- ${path.join(__dirname, 'fixtures', 'collection', 'edit-example.bru')}`);
-  });
-
   test('should enter edit mode and show editable fields when edit button is clicked', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();

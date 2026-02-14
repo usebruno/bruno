@@ -1,27 +1,6 @@
-import path from 'path';
 import { test, expect } from '../../playwright';
-import { closeAllCollections } from '../utils/page';
-import fs from 'fs';
-
-const COLLECTION_PATH = path.join(__dirname, 'collection', 'bruno.json');
-const BACKUP_PATH = path.join(__dirname, 'collection', 'bruno.json.backup');
-import { execSync } from 'child_process';
 
 test.describe('manage protofile', () => {
-  test.beforeAll(async () => {
-    // Backup original file
-    if (fs.existsSync(COLLECTION_PATH)) {
-      fs.copyFileSync(COLLECTION_PATH, BACKUP_PATH);
-    }
-  });
-
-  test.afterAll(async ({ pageWithUserData: page }) => {
-    // Close all collections
-    await closeAllCollections(page);
-    // Reset the collection request file to the original state
-    execSync(`git checkout -- ${path.join(__dirname, 'collection', 'bruno.json')}`);
-  });
-
   test('protofiles, import paths from bruno.json are visible in the protobuf settings', async ({ pageWithUserData: page }) => {
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Grpcbin' }).click();
 

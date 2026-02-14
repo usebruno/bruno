@@ -1,19 +1,13 @@
 import { test, expect } from '../../../../../playwright';
 import path from 'path';
-import fs from 'fs';
 
 test.describe.serial('Collection Environment Import Tests', () => {
-  test('should import single collection environment', async ({ pageWithUserData: page }) => {
+  test('should import single collection environment', async ({ restartApp }) => {
+    const app = await restartApp();
+    const page = await app.firstWindow();
     const singleEnvFile = path.join(__dirname, '../../../fixtures/environment-exports/local.json');
-    const collectionPath = path.join(__dirname, 'fixtures/collection');
-    const environmentsPath = path.join(collectionPath, 'environments');
 
-    await test.step('Clean up existing environments and open collection', async () => {
-      // Clean up any existing environments folder before test
-      if (fs.existsSync(environmentsPath)) {
-        fs.rmSync(environmentsPath, { recursive: true, force: true });
-      }
-
+    await test.step('Open collection', async () => {
       // Open the collection from sidebar
       await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Import Test Collection' }).click();
     });
@@ -49,26 +43,14 @@ test.describe.serial('Collection Environment Import Tests', () => {
       await envTab.hover();
       await envTab.getByTestId('request-tab-close-icon').click();
     });
-
-    await test.step('Clean up after test', async () => {
-      // Clean up any existing environments folder before test
-      if (fs.existsSync(environmentsPath)) {
-        fs.rmSync(environmentsPath, { recursive: true, force: true });
-      }
-    });
   });
 
-  test('should import multiple collection environments', async ({ pageWithUserData: page }) => {
+  test('should import multiple collection environments', async ({ restartApp }) => {
+    const app = await restartApp();
+    const page = await app.firstWindow();
     const multiEnvFile = path.join(__dirname, '../../../fixtures/environment-exports/bruno-collection-environments.json');
-    const collectionPath = path.join(__dirname, 'fixtures/collection');
-    const environmentsPath = path.join(collectionPath, 'environments');
 
-    await test.step('Clean up existing environments and open collection', async () => {
-      // Clean up any existing environments folder before test
-      if (fs.existsSync(environmentsPath)) {
-        fs.rmSync(environmentsPath, { recursive: true, force: true });
-      }
-
+    await test.step('Open collection', async () => {
       // Open the collection from sidebar
       await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Import Test Collection' }).click();
     });
@@ -129,13 +111,6 @@ test.describe.serial('Collection Environment Import Tests', () => {
 
       await envTab.hover();
       await envTab.getByTestId('request-tab-close-icon').click();
-    });
-
-    await test.step('Clean up after test', async () => {
-      // Clean up any existing environments folder before test
-      if (fs.existsSync(environmentsPath)) {
-        fs.rmSync(environmentsPath, { recursive: true, force: true });
-      }
     });
   });
 });

@@ -1,14 +1,7 @@
-import { execSync } from 'child_process';
 import { test, expect } from '../../playwright';
-import path from 'path';
 import { clickResponseAction } from '../utils/page/actions';
 
 test.describe.serial('Create and Delete Response Examples', () => {
-  test.afterAll(async () => {
-    // Reset the collection request file to the original state
-    execSync(`git checkout -- ${path.join(__dirname, 'fixtures', 'collection', 'create-example.bru')}`);
-  });
-
   test('should create a response example from response bookmark', async ({ pageWithUserData: page }) => {
     await test.step('Open collection and request', async () => {
       await page.locator('#sidebar-collection-name').filter({ hasText: 'collection' }).click();
