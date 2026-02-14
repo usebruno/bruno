@@ -14,7 +14,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples } = json;
+  const { meta, http, grpc, ws, params, paramsMeta, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples } = json;
 
   let bru = '';
 
@@ -144,11 +144,25 @@ const jsonToBru = (json) => {
       bru += '\n}\n\n';
     }
 
+    // Serialize params:query:meta if there are decorators
+    if (paramsMeta && paramsMeta.query && Object.keys(paramsMeta.query).length) {
+      bru += 'params:query:meta {\n';
+      bru += indentString(JSON.stringify(paramsMeta.query, null, 2));
+      bru += '\n}\n\n';
+    }
+
     if (pathParams.length) {
       bru += 'params:path {';
 
       bru += `\n${indentString(pathParams.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
 
+      bru += '\n}\n\n';
+    }
+
+    // Serialize params:path:meta if there are decorators
+    if (paramsMeta && paramsMeta.path && Object.keys(paramsMeta.path).length) {
+      bru += 'params:path:meta {\n';
+      bru += indentString(JSON.stringify(paramsMeta.path, null, 2));
       bru += '\n}\n\n';
     }
   }

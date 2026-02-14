@@ -34,7 +34,7 @@ const grammar = ohm.grammar(`Bru {
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
-  params = paramspath | paramsquery
+  params = paramspath | paramsquery | paramsquerymeta | paramspathmeta
   
   // Oauth2 additional parameters
   authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
@@ -110,6 +110,8 @@ const grammar = ohm.grammar(`Bru {
   query = "query" dictionary
   paramspath = "params:path" dictionary
   paramsquery = "params:query" dictionary
+  paramsquerymeta = "params:query:meta" st* "{" nl* textblock tagend
+  paramspathmeta = "params:path:meta" st* "{" nl* textblock tagend
 
   varsandassert = varsreq | varsres | assert
   varsreq = "vars:pre-request" dictionary
@@ -610,6 +612,40 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       params: mapRequestParams(dictionary.ast, 'query')
     };
+  },
+  paramsquerymeta(_1, _2, _3, _4, textblock, _5) {
+    const content = outdentString(textblock.sourceString);
+    try {
+      const meta = safeParseJson(content);
+      return {
+        paramsMeta: {
+          query: meta || {}
+        }
+      };
+    } catch (e) {
+      return {
+        paramsMeta: {
+          query: {}
+        }
+      };
+    }
+  },
+  paramspathmeta(_1, _2, _3, _4, textblock, _5) {
+    const content = outdentString(textblock.sourceString);
+    try {
+      const meta = safeParseJson(content);
+      return {
+        paramsMeta: {
+          path: meta || {}
+        }
+      };
+    } catch (e) {
+      return {
+        paramsMeta: {
+          path: {}
+        }
+      };
+    }
   },
   headers(_1, dictionary) {
     return {
