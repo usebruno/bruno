@@ -134,13 +134,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection }) => {
   };
 
   const handleColorChange = (color) => {
-    dispatch(updateGlobalEnvironmentColor(environment.uid, color))
-      .then(() => {
-        toast.success('Environment color updated!');
-      })
-      .catch(() => {
-        toast.error('An error occurred while updating the environment color');
-      });
+    dispatch(updateGlobalEnvironmentColor(environment.uid, color));
   };
 
   return (

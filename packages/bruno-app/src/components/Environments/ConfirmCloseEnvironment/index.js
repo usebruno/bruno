@@ -4,7 +4,14 @@ import Modal from 'components/Modal';
 import Portal from 'components/Portal';
 import Button from 'ui/Button';
 
-const ConfirmCloseEnvironment = ({ onCancel, onCloseWithoutSave, onSaveAndClose, isGlobal }) => {
+const ConfirmCloseEnvironment = ({ onCancel, onCloseWithoutSave, onSaveAndClose, isGlobal, isDotEnv }) => {
+  let settingsLabel = 'collection environment settings';
+  if (isDotEnv) {
+    settingsLabel = '.env file';
+  } else if (isGlobal) {
+    settingsLabel = 'global environment settings';
+  }
+
   return (
     <Portal>
       <Modal
@@ -21,7 +28,7 @@ const ConfirmCloseEnvironment = ({ onCancel, onCloseWithoutSave, onSaveAndClose,
           <h1 className="ml-2 text-lg font-medium">Hold on...</h1>
         </div>
         <div className="font-normal mt-4">
-          You have unsaved changes in {isGlobal ? 'global' : 'collection'} environment settings.
+          You have unsaved changes in {settingsLabel}.
         </div>
 
         <div className="flex justify-between mt-6">

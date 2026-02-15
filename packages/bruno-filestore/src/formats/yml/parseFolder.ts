@@ -4,6 +4,7 @@ import { parseYml } from './utils';
 import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
+import { toBrunoPostResponseVariables } from './common/actions';
 import { toBrunoScripts } from './common/scripts';
 import { ensureString } from '../../utils';
 
@@ -52,7 +53,11 @@ const parseFolder = (ymlString: string): FolderRoot => {
 
       // variables
       const variables = toBrunoVariables(ocFolder.request.variables);
-      folderRoot.request.vars = variables;
+      const postResponseVars = toBrunoPostResponseVariables((ocFolder.request as any).actions);
+      folderRoot.request.vars = {
+        req: variables.req,
+        res: postResponseVars
+      };
 
       // scripts
       const scripts = toBrunoScripts(ocFolder.request.scripts);

@@ -569,7 +569,7 @@ const closeEnvironmentPanel = async (page: Page, type: EnvironmentType = 'collec
     const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
     const envTab = page.locator('.request-tab').filter({ hasText: tabLabel });
     await envTab.hover();
-    await envTab.getByTestId('request-tab-close-icon').click();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
   });
 };
 
@@ -702,7 +702,10 @@ const switchResponseFormat = async (page: Page, format: string) => {
   await test.step(`Switch response format to ${format}`, async () => {
     const responseFormatTab = page.getByTestId('format-response-tab');
     await responseFormatTab.click();
-    await page.getByTestId('format-response-tab-dropdown').getByText(format).click();
+    // Wait for dropdown to be visible before clicking the format option
+    const dropdown = page.getByTestId('format-response-tab-dropdown');
+    await dropdown.waitFor({ state: 'visible' });
+    await dropdown.getByText(format).click();
   });
 };
 
@@ -955,6 +958,37 @@ const saveRequest = async (page: Page) => {
   });
 };
 
+/**
+ * Close all open request tabs using the right-click context menu
+ * @param page - The page object
+ * @returns void
+ */
+const closeAllTabs = async (page: Page) => {
+  await test.step('Close all tabs', async () => {
+    // Find actual request tabs (those with .tab-method, not Overview/Environments)
+    const requestTabLabel = page.locator('.request-tab').filter({ has: page.locator('.tab-method') }).locator('.tab-label').first();
+    if (!(await requestTabLabel.isVisible().catch(() => false))) {
+      return; // No request tabs to close
+    }
+
+    // Right-click on the tab label to open context menu
+    await requestTabLabel.click({ button: 'right' });
+
+    // Wait for the dropdown menu to appear
+    const dropdown = page.locator('.tippy-box.dropdown');
+    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Click "Close All" menu item
+    await dropdown.locator('[role="menuitem"][data-item-id="close-all"]').click();
+
+    // Handle "Unsaved Transient Requests" modal if it appears
+    const discardAllButton = page.getByRole('button', { name: 'Discard All' });
+    if (await discardAllButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await discardAllButton.click();
+    }
+  });
+};
+
 export {
   closeAllCollections,
   openCollection,
@@ -988,7 +1022,8 @@ export {
   addAssertion,
   editAssertion,
   deleteAssertion,
-  saveRequest
+  saveRequest,
+  closeAllTabs
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

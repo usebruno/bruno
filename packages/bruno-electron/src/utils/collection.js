@@ -5,6 +5,7 @@ const { uuid } = require('./common');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
+const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
@@ -393,7 +394,7 @@ const parseYmlFileMeta = (data) => {
 };
 
 // Format-aware meta parsing function
-const parseFileMeta = (data, format = 'bru') => {
+const parseFileMeta = (data, format = DEFAULT_COLLECTION_FORMAT) => {
   if (format === 'yml') {
     return parseYmlFileMeta(data);
   } else {
@@ -574,6 +575,10 @@ const getAllRequestsInFolderRecursively = (folder = {}) => {
 
   if (folder.items && folder.items.length) {
     folder.items.forEach((item) => {
+      // Skip transient requests
+      if (item.isTransient) {
+        return;
+      }
       if (item.type !== 'folder') {
         requests.push(item);
       } else {

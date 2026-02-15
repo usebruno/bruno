@@ -1,0 +1,65 @@
+meta {
+  name: node-util
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  const util = require('node:util');
+
+  test("util.format", function() {
+    expect(util.format('Hello %s', 'Bruno')).to.equal('Hello Bruno');
+    expect(util.format('Count: %d', 42)).to.equal('Count: 42');
+    expect(util.format('Data: %j', { a: 1 })).to.equal('Data: {"a":1}');
+  });
+
+  test("util.inspect", function() {
+    const obj = { name: 'bruno', nested: { value: 42 } };
+    const str = util.inspect(obj);
+    expect(str).to.be.a('string').that.includes('bruno');
+
+    const deep = { a: { b: { c: { d: 'deep' } } } };
+    expect(util.inspect(deep, { depth: 1 })).to.include('[Object]');
+    expect(util.inspect(deep, { depth: null })).to.include('deep');
+  });
+
+  test("util.promisify", function() {
+    const promisified = util.promisify(setTimeout);
+    expect(promisified).to.be.a('function');
+    // Returns a promise when called
+    const result = promisified(1);
+    expect(result).to.be.a('promise');
+  });
+
+  test("util.types", function() {
+    expect(util.types.isDate(new Date())).to.equal(true);
+    expect(util.types.isMap(new Map())).to.equal(true);
+    expect(util.types.isSet(new Set())).to.equal(true);
+    expect(util.types.isRegExp(/test/)).to.equal(true);
+    expect(util.types.isPromise(Promise.resolve())).to.equal(true);
+  });
+
+  test("util.isDeepStrictEqual", function() {
+    expect(util.isDeepStrictEqual({ a: 1 }, { a: 1 })).to.equal(true);
+    expect(util.isDeepStrictEqual({ a: 1 }, { a: 2 })).to.equal(false);
+  });
+
+  test("util.deprecate and util.callbackify", function() {
+    expect(util.deprecate(() => {}, 'deprecated')).to.be.a('function');
+    expect(util.callbackify(async () => {})).to.be.a('function');
+  });
+}

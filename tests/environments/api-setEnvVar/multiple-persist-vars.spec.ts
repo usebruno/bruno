@@ -27,7 +27,7 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
         }
 
         await envTab.hover();
-        await envTab.getByTestId('request-tab-close-icon').click();
+        await envTab.getByTestId('request-tab-close-icon').click({ force: true });
       }
     } catch (error) {
       // Ignore cleanup errors to avoid masking test failures
@@ -85,7 +85,7 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
       await expect(page.getByRole('row', { name: 'multiple-persist-vars-key2' }).getByRole('cell').nth(1)).toBeVisible();
       await expect(page.getByRole('row', { name: 'value2' }).getByRole('cell').nth(2)).toBeVisible();
       await envTab.hover();
-      await envTab.getByTestId('request-tab-close-icon').click();
+      await envTab.getByTestId('request-tab-close-icon').click({ force: true });
     });
 
     await test.step('Verify variables are persisted to file', async () => {

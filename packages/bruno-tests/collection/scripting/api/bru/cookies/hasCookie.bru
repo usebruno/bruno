@@ -1,0 +1,44 @@
+meta {
+  name: hasCookie
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar()
+
+  jar.setCookie("https://testbench-sanity.usebruno.com", "existing_cookie", "some_value")
+}
+
+tests {
+  const jar = bru.cookies.jar()
+
+  test("should return true for a cookie that exists", async function() {
+    const exists = await jar.hasCookie('https://testbench-sanity.usebruno.com', 'existing_cookie');
+    expect(exists).to.be.true;
+  });
+
+  test("should return false for a cookie that does not exist", async function() {
+    const exists = await jar.hasCookie('https://testbench-sanity.usebruno.com', 'nonexistent_cookie');
+    expect(exists).to.be.false;
+  });
+
+  jar.hasCookie("https://testbench-sanity.usebruno.com", "existing_cookie", function(error, exists) {
+    test("should work with callback pattern", function() {
+      expect(error).to.be.null;
+      expect(exists).to.be.true;
+    });
+  });
+
+  jar.clear()
+}
+
+settings {
+  encodeUrl: true
+}
