@@ -396,5 +396,34 @@ describe('interpolate-vars: interpolateVars', () => {
       expect(result.data[1].value).toBeUndefined();
       expect(result.data[2].value).toBeUndefined();
     });
+
+    it('preserves raw string body when Content-Type is multipart/mixed (manually constructed multipart)', () => {
+      // Equivalent to: curl -X POST https://httpbin.dev/post \
+      //   -H 'content-type: multipart/mixed; boundary=TestBoundary123' \
+      //   --data '--TestBoundary123\r\nContent-Type: application/json\r\n\r\n{"test": true}\r\n--TestBoundary123--\r\n'
+      const rawMultipartBody = [
+        '--TestBoundary123',
+        'Content-Type: application/json',
+        '',
+        '{"test": true}',
+        '--TestBoundary123--',
+        ''
+      ].join('\r\n');
+
+      const request = {
+        method: 'POST',
+        url: 'https://httpbin.dev/post',
+        headers: { 'content-type': 'multipart/mixed; boundary=TestBoundary123' },
+        data: rawMultipartBody
+      };
+
+      const result = interpolateVars(request, {}, null, null);
+
+      expect(result.data).toBe(rawMultipartBody);
+      expect(result.data).toContain('--TestBoundary123');
+      expect(result.data).toContain('Content-Type: application/json');
+      expect(result.data).toContain('{"test": true}');
+      expect(result.data).toContain('--TestBoundary123--');
+    });
   });
 });
