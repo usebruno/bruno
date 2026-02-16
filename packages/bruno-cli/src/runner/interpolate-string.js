@@ -1,29 +1,21 @@
-const Handlebars = require('handlebars');
 const { forOwn, cloneDeep } = require('lodash');
+const { interpolate, interpolateObject: interpolateObjectCommon } = require('@usebruno/common');
 
-const interpolateEnvVars = (str, processEnvVars) => {
-  if (!str || !str.length || typeof str !== 'string') {
-    return str;
-  }
-
-  const template = Handlebars.compile(str, { noEscape: true });
-
-  return template({
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  });
-};
-
-const interpolateString = (str, { envVars, collectionVariables, processEnvVars }) => {
-  if (!str || !str.length || typeof str !== 'string') {
-    return str;
-  }
-
+const buildCombinedVars = ({
+  collectionVariables,
+  envVars,
+  folderVariables,
+  requestVariables,
+  runtimeVariables,
+  processEnvVars,
+  globalEnvVars
+}) => {
   processEnvVars = processEnvVars || {};
+  runtimeVariables = runtimeVariables || {};
   collectionVariables = collectionVariables || {};
+  folderVariables = folderVariables || {};
+  requestVariables = requestVariables || {};
+  globalEnvVars = globalEnvVars || {};
 
   // we clone envVars because we don't want to modify the original object
   envVars = envVars ? cloneDeep(envVars) : {};
@@ -31,25 +23,49 @@ const interpolateString = (str, { envVars, collectionVariables, processEnvVars }
   // envVars can inturn have values as {{process.env.VAR_NAME}}
   // so we need to interpolate envVars first with processEnvVars
   forOwn(envVars, (value, key) => {
-    envVars[key] = interpolateEnvVars(value, processEnvVars);
+    envVars[key] = interpolate(value, {
+      process: {
+        env: {
+          ...processEnvVars
+        }
+      }
+    });
   });
 
-  const template = Handlebars.compile(str, { noEscape: true });
-
-  // collectionVariables take precedence over envVars
-  const combinedVars = {
-    ...envVars,
+  // runtimeVariables take precedence over envVars
+  return {
+    ...globalEnvVars,
     ...collectionVariables,
+    ...envVars,
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables,
     process: {
       env: {
         ...processEnvVars
       }
     }
   };
+};
 
-  return template(combinedVars);
+const interpolateString = (str, interpolationOptions) => {
+  if (!str || !str.length || typeof str !== 'string') {
+    return str;
+  }
+
+  const combinedVars = buildCombinedVars(interpolationOptions);
+  return interpolate(str, combinedVars);
+};
+
+/**
+ * recursively interpolating all string values in a object
+ */
+const interpolateObject = (obj, interpolationOptions) => {
+  const combinedVars = buildCombinedVars(interpolationOptions);
+  return interpolateObjectCommon(obj, combinedVars);
 };
 
 module.exports = {
-  interpolateString
+  interpolateString,
+  interpolateObject
 };

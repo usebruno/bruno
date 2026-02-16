@@ -8,12 +8,13 @@ import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import FileBody from '../FileBody/index';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
   const onEdit = (value) => {
@@ -48,16 +49,24 @@ const RequestBody = ({ item, collection }) => {
       <StyledWrapper className="w-full">
         <CodeEditor
           collection={collection}
-          theme={storedTheme}
+          item={item}
+          theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
           value={bodyContent[bodyMode] || ''}
           onEdit={onEdit}
           onRun={onRun}
           onSave={onSave}
           mode={codeMirrorMode[bodyMode]}
+          enableVariableHighlighting={true}
+          showHintsFor={['variables']}
         />
       </StyledWrapper>
     );
+  }
+
+  if (bodyMode === 'file') {
+    return <FileBody item={item} collection={collection} />;
   }
 
   if (bodyMode === 'formUrlEncoded') {

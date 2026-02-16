@@ -1,7 +1,7 @@
-import find from 'lodash/find';
-import filter from 'lodash/filter';
-import last from 'lodash/last';
 import { createSlice } from '@reduxjs/toolkit';
+import filter from 'lodash/filter';
+import find from 'lodash/find';
+import last from 'lodash/last';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -19,37 +19,121 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const alreadyExists = find(state.tabs, (tab) => tab.uid === action.payload.uid);
-      if (alreadyExists) {
+      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid } = action.payload;
+
+      const nonReplaceableTabTypes = [
+        'variables',
+        'collection-runner',
+        'environment-settings',
+        'global-environment-settings',
+        'preferences',
+        'workspaceOverview',
+        'workspaceEnvironments'
+      ];
+
+      const existingTab = find(state.tabs, (tab) => tab.uid === uid);
+      if (existingTab) {
+        state.activeTabUid = existingTab.uid;
         return;
       }
 
-      if (['variables', 'collection-settings', 'collection-runner'].includes(action.payload.type)) {
-        const tab = tabTypeAlreadyExists(state.tabs, action.payload.collectionUid, action.payload.type);
-        if (tab) {
-          state.activeTabUid = tab.uid;
+      if (nonReplaceableTabTypes.includes(type)) {
+        const existingTab = tabTypeAlreadyExists(state.tabs, collectionUid, type);
+        if (existingTab) {
+          state.activeTabUid = existingTab.uid;
           return;
         }
       }
 
+      // Determine the default requestPaneTab based on request type
+      let defaultRequestPaneTab = 'params';
+      if (type === 'grpc-request' || type === 'ws-request') {
+        defaultRequestPaneTab = 'body';
+      } else if (type === 'graphql-request') {
+        defaultRequestPaneTab = 'query';
+      }
+
+      const lastTab = state.tabs[state.tabs.length - 1];
+      if (state.tabs.length > 0 && lastTab.preview) {
+        state.tabs[state.tabs.length - 1] = {
+          uid,
+          collectionUid,
+          requestPaneWidth: null,
+          requestPaneTab: requestPaneTab || defaultRequestPaneTab,
+          responsePaneTab: 'response',
+          responseFormat: null,
+          responseViewTab: null,
+          type: type || 'request',
+          preview: preview !== undefined
+            ? preview
+            : !nonReplaceableTabTypes.includes(type),
+          ...(uid ? { folderUid: uid } : {}),
+          ...(exampleUid ? { exampleUid } : {}),
+          ...(itemUid ? { itemUid } : {})
+        };
+
+        state.activeTabUid = uid;
+        return;
+      }
+
       state.tabs.push({
-        uid: action.payload.uid,
-        collectionUid: action.payload.collectionUid,
+        uid,
+        collectionUid,
         requestPaneWidth: null,
-        requestPaneTab: action.payload.requestPaneTab || 'params',
+        requestPaneTab: requestPaneTab || defaultRequestPaneTab,
         responsePaneTab: 'response',
-        type: action.payload.type || 'request'
+        responsePaneScrollPosition: null,
+        responseFormat: null,
+        responseViewTab: null,
+        type: type || 'request',
+        ...(uid ? { folderUid: uid } : {}),
+        preview: preview !== undefined
+          ? preview
+          : !nonReplaceableTabTypes.includes(type),
+        ...(exampleUid ? { exampleUid } : {}),
+        ...(itemUid ? { itemUid } : {})
       });
-      state.activeTabUid = action.payload.uid;
+      state.activeTabUid = uid;
     },
     focusTab: (state, action) => {
-      state.activeTabUid = action.payload.uid;
+      const { uid } = action.payload;
+      const tabExists = state.tabs.some((t) => t.uid === uid);
+      if (tabExists) {
+        state.activeTabUid = uid;
+      }
+    },
+    switchTab: (state, action) => {
+      if (!state.tabs || !state.tabs.length) {
+        state.activeTabUid = null;
+        return;
+      }
+
+      const direction = action.payload.direction;
+
+      const activeTabIndex = state.tabs.findIndex((t) => t.uid === state.activeTabUid);
+
+      let toBeActivatedTabIndex = 0;
+
+      if (direction == 'pageup') {
+        toBeActivatedTabIndex = (activeTabIndex - 1 + state.tabs.length) % state.tabs.length;
+      } else if (direction == 'pagedown') {
+        toBeActivatedTabIndex = (activeTabIndex + 1) % state.tabs.length;
+      }
+
+      state.activeTabUid = state.tabs[toBeActivatedTabIndex].uid;
     },
     updateRequestPaneTabWidth: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
       if (tab) {
         tab.requestPaneWidth = action.payload.requestPaneWidth;
+      }
+    },
+    updateRequestPaneTabHeight: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.requestPaneHeight = action.payload.requestPaneHeight;
       }
     },
     updateRequestPaneTab: (state, action) => {
@@ -66,12 +150,35 @@ export const tabsSlice = createSlice({
         tab.responsePaneTab = action.payload.responsePaneTab;
       }
     },
+    updateResponsePaneScrollPosition: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responsePaneScrollPosition = action.payload.scrollY;
+      }
+    },
+    updateResponseFormat: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseFormat = action.payload.responseFormat;
+      }
+    },
+    updateResponseViewTab: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseViewTab = action.payload.responseViewTab;
+      }
+    },
     closeTabs: (state, action) => {
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
 
-      // remove the tabs from the state
-      state.tabs = filter(state.tabs, (t) => !tabUids.includes(t.uid));
+      const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
+      state.tabs = filter(state.tabs, (t) =>
+        !tabUids.includes(t.uid) || nonClosableTypes.includes(t.type)
+      );
 
       if (activeTab && state.tabs.length) {
         const { collectionUid } = activeTab;
@@ -98,9 +205,50 @@ export const tabsSlice = createSlice({
       }
     },
     closeAllCollectionTabs: (state, action) => {
-      const collectionUid = action.payload.collectionUid;
+      const { collectionUid } = action.payload;
+      const prevActiveTabUid = state.activeTabUid;
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
-      state.activeTabUid = null;
+
+      const activeTabStillExists = state.tabs.some((t) => t.uid === prevActiveTabUid);
+      if (!activeTabStillExists) {
+        state.activeTabUid = state.tabs.length > 0 ? last(state.tabs).uid : null;
+      }
+    },
+    makeTabPermanent: (state, action) => {
+      const { uid } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.preview = false;
+      } else {
+        console.error('Tab not found!');
+      }
+    },
+    reorderTabs: (state, action) => {
+      const { direction, sourceUid, targetUid } = action.payload;
+      const tabs = state.tabs;
+
+      let sourceIdx, targetIdx;
+      if (direction) {
+        sourceIdx = tabs.findIndex((t) => t.uid === state.activeTabUid);
+        if (sourceIdx < 0) {
+          return;
+        }
+        targetIdx = sourceIdx + (direction === -1 ? -1 : 1);
+      } else {
+        sourceIdx = tabs.findIndex((t) => t.uid === sourceUid);
+        targetIdx = tabs.findIndex((t) => t.uid === targetUid);
+      }
+
+      const sourceBoundary = sourceIdx < 0;
+      const targetBoundary = targetIdx < 0 || targetIdx >= tabs.length;
+      if (sourceBoundary || sourceIdx === targetIdx || targetBoundary) {
+        return;
+      }
+
+      const [moved] = tabs.splice(sourceIdx, 1);
+      tabs.splice(targetIdx, 0, moved);
+
+      state.tabs = tabs;
     }
   }
 });
@@ -108,11 +256,18 @@ export const tabsSlice = createSlice({
 export const {
   addTab,
   focusTab,
+  switchTab,
   updateRequestPaneTabWidth,
+  updateRequestPaneTabHeight,
   updateRequestPaneTab,
   updateResponsePaneTab,
+  updateResponsePaneScrollPosition,
+  updateResponseFormat,
+  updateResponseViewTab,
   closeTabs,
-  closeAllCollectionTabs
+  closeAllCollectionTabs,
+  makeTabPermanent,
+  reorderTabs
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

@@ -1,0 +1,15 @@
+meta {
+  name: resource
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/auth/oauth2/client_credentials/resource?token={{client_credentials_access_token}}
+  body: none
+  auth: none
+}
+
+query {
+  token: {{client_credentials_access_token}}
+}

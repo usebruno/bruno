@@ -1,0 +1,69 @@
+meta {
+  name: setCookie
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar()
+  
+  // Set cookie before the request
+  try {
+    await jar.setCookie("https://testbench-sanity.usebruno.com", {
+      key: "auth",
+      value: "1234",
+      path: "/path"
+    });
+    
+    console.log("Cookie set successfully in pre-request script");
+    
+  } catch (error) {
+    console.error("Cookie setting error in pre-request:", error);
+    throw new Error(`Pre-request setCookie failed: ${error.message || error}`);
+  }
+}
+
+tests {
+  const jar = bru.cookies.jar()
+  
+  test("should have set cookie successfully", function() {
+    console.log("Verifying cookie set in pre-request script");
+  });
+  
+  // Test: Verify the cookie was set by retrieving it
+  const cookieData = await jar.getCookie("https://testbench-sanity.usebruno.com/path", "auth");
+  
+  test("should retrieve the set cookie with correct properties", function() {
+      expect(cookieData.key).to.equal("auth");
+      expect(cookieData.value).to.equal("1234");
+      expect(cookieData.path).to.equal("/path");
+      expect(cookieData.domain).to.include('usebruno.com');
+      console.log("Retrieved and verified cookie:", cookieData);
+  });
+  
+  // Test: Additional verification - check all cookies for the domain
+  const allCookies = await jar.getCookies("https://testbench-sanity.usebruno.com/path");
+  
+  test("should find the cookie in domain cookie list", function() {
+    expect(allCookies).to.be.an('array');
+    expect(allCookies.length).to.be.at.least(1);
+    
+    const authCookie = allCookies.find(c => c.key === 'auth');
+    expect(authCookie).to.not.be.undefined;
+    expect(authCookie.value).to.equal("1234");
+    
+    console.log("All cookies for domain:", allCookies.map(c => ({ key: c.key, value: c.value, path: c.path })));
+  });
+  
+  jar.clear()
+}
+
+settings {
+  encodeUrl: true
+}

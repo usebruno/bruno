@@ -1,12 +1,14 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  max-width: 800px;
+
   div.CodeMirror {
     height: inherit;
   }
 
   div.title {
-    color: var(--color-tab-inactive);
+    color: ${(props) => props.theme.colors.text.subtext0};
   }
 `;
 

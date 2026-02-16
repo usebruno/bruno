@@ -1,0 +1,1196 @@
+import sendRequestTransformer from './send-request-transformer';
+import { getMemberExpressionString } from './ast-utils';
+const j = require('jscodeshift');
+const cloneDeep = require('lodash/cloneDeep');
+
+// Simple 1:1 translations for straightforward replacements
+const simpleTranslations = {
+  // Global Variables
+  'pm.globals.get': 'bru.getGlobalEnvVar',
+  'pm.globals.set': 'bru.setGlobalEnvVar',
+  'pm.globals.replaceIn': 'bru.interpolate',
+  'pm.globals.unset': 'bru.deleteGlobalEnvVar',
+  'pm.globals.toObject': 'bru.getAllGlobalEnvVars',
+  'pm.globals.clear': 'bru.deleteAllGlobalEnvVars',
+
+  // Environment variables
+  'pm.environment.get': 'bru.getEnvVar',
+  'pm.environment.set': 'bru.setEnvVar',
+  'pm.environment.name': 'bru.getEnvName()',
+  'pm.environment.unset': 'bru.deleteEnvVar',
+  'pm.environment.replaceIn': 'bru.interpolate',
+  'pm.environment.toObject': 'bru.getAllEnvVars',
+  'pm.environment.clear': 'bru.deleteAllEnvVars',
+
+  // Variables
+  'pm.variables.get': 'bru.getVar',
+  'pm.variables.set': 'bru.setVar',
+  'pm.variables.has': 'bru.hasVar',
+  'pm.variables.toObject': 'bru.getAllVars',
+  'pm.variables.replaceIn': 'bru.interpolate',
+  // Collection variables
+  'pm.collectionVariables.get': 'bru.getCollectionVar',
+  'pm.collectionVariables.set': 'bru.setCollectionVar',
+  'pm.collectionVariables.has': 'bru.hasCollectionVar',
+  'pm.collectionVariables.unset': 'bru.deleteCollectionVar',
+  'pm.collectionVariables.replaceIn': 'bru.interpolate',
+  'pm.collectionVariables.clear': 'bru.deleteAllCollectionVars',
+  'pm.collectionVariables.toObject': 'bru.getAllCollectionVars',
+
+  // Request flow control
+  'pm.setNextRequest': 'bru.setNextRequest',
+
+  // Testing
+  'pm.test': 'test',
+  'pm.expect': 'expect',
+  'pm.expect.fail': 'expect.fail',
+
+  // Info
+  'pm.info.requestName': 'req.getName()',
+
+  // Request headers
+  'pm.request.headers.remove': 'req.deleteHeader',
+
+  // Request properties (pm.request.*)
+  'pm.request.url.getHost': 'req.getHost',
+  'pm.request.url.getPath': 'req.getPath',
+  'pm.request.url.getQueryString': 'req.getQueryString',
+  'pm.request.url.variables': 'req.getPathParams()',
+  'pm.request.url': 'req.getUrl()',
+  'pm.request.method': 'req.getMethod()',
+  'pm.request.headers': 'req.getHeaders()',
+  'pm.request.body': 'req.getBody()',
+
+  // Legacy/global request object (request.*)
+  'request.url': 'req.getUrl()',
+  'request.method': 'req.getMethod()',
+  'request.headers': 'req.getHeaders()',
+  'request.body': 'req.getBody()',
+  'request.name': 'req.getName()',
+
+  // Response properties
+  'pm.response.json': 'res.getBody',
+  'pm.response.code': 'res.getStatus()',
+  'pm.response.status': 'res.statusText',
+  'pm.response.responseTime': 'res.getResponseTime()',
+  'pm.response.statusText': 'res.statusText',
+  'pm.response.headers': 'res.getHeaders()',
+  'pm.response.size': 'res.getSize',
+  'pm.response.responseSize': 'res.getSize().body',
+  'pm.response.size().body': 'res.getSize().body',
+  'pm.response.size().header': 'res.getSize().header',
+  'pm.response.size().total': 'res.getSize().total',
+  'pm.cookies.jar': 'bru.cookies.jar',
+
+  'pm.cookies.jar().get': 'bru.cookies.jar().getCookie',
+  'pm.cookies.jar().getAll': 'bru.cookies.jar().getCookies',
+  'pm.cookies.jar().set': 'bru.cookies.jar().setCookie',
+  'pm.cookies.jar().unset': 'bru.cookies.jar().deleteCookie',
+  'pm.cookies.jar().clear': 'bru.cookies.jar().deleteCookies',
+
+  // Execution control
+  'pm.execution.skipRequest': 'bru.runner.skipRequest',
+
+  // Legacy Postman API (deprecated) (we can use pm instead of postman, as we are converting all postman references to pm in the code as the part of pre-processing)
+  'pm.setEnvironmentVariable': 'bru.setEnvVar',
+  'pm.getEnvironmentVariable': 'bru.getEnvVar',
+  'pm.clearEnvironmentVariable': 'bru.deleteEnvVar',
+
+  // Legacy response properties
+  'responseCode.code': 'res.getStatus()',
+  'responseCode.name': 'res.statusText'
+};
+
+/* Complex transformations that need custom handling
+* Note: Transform functions can return either a single node or an array of nodes.
+* When returning an array of nodes, each node in the array will be inserted
+* as a separate statement, which allows a single Postman expression to be
+* transformed into multiple Bruno statements (e.g. for complex assertions).
+*/
+
+const complexTransformations = [
+  // pm.sendRequest transformation
+  {
+    pattern: 'pm.sendRequest',
+    transform: sendRequestTransformer
+  },
+
+  // pm.environment.has requires special handling
+  {
+    pattern: 'pm.environment.has',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+
+      const args = callExpr.arguments;
+
+      // Create: bru.getEnvVar(arg) !== undefined && bru.getEnvVar(arg) !== null
+      return j.logicalExpression(
+        '&&',
+        j.binaryExpression(
+          '!==',
+          j.callExpression(j.identifier('bru.getEnvVar'), args),
+          j.identifier('undefined')
+        ),
+        j.binaryExpression(
+          '!==',
+          j.callExpression(j.identifier('bru.getEnvVar'), args),
+          j.identifier('null')
+        )
+      );
+    }
+  },
+
+  {
+    pattern: 'pm.response.text',
+    transform: (_, j) => {
+      return j.callExpression(j.identifier('JSON.stringify'), [j.identifier('res.getBody()')]);
+    }
+  },
+  {
+    pattern: 'pm.response.headers.get',
+    transform: (path, j) => {
+      return j.callExpression(j.identifier('res.getHeader'), path.parent.value.arguments);
+    }
+  },
+  // Handle pm.response.to.have.status
+  {
+    pattern: 'pm.response.to.have.status',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+
+      const args = callExpr.arguments;
+
+      // Create: expect(res.getStatus()).to.equal(arg)
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(
+            j.identifier('expect'),
+            [
+              j.callExpression(
+                j.identifier('res.getStatus'),
+                []
+              )
+            ]
+          ),
+          j.identifier('to.equal')
+        ),
+        args
+      );
+    }
+  },
+
+  // handle 'pm.response.to.have.header' to expect(res.getHeaders()).to.have.property(args)
+  {
+    pattern: 'pm.response.to.have.header',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+
+      const args = callExpr.arguments;
+
+      if (args.length > 0) {
+        // Apply toLowerCase() to the first argument
+        args[0] = j.callExpression(
+          j.memberExpression(
+            args[0],
+            j.identifier('toLowerCase')
+          ),
+          []
+        );
+      }
+
+      // Create: expect(res.getHeaders()).to.have.property(args)
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(
+            j.identifier('expect'),
+            [
+              j.callExpression(
+                j.identifier('res.getHeaders'),
+                []
+              )
+            ]
+          ),
+          j.identifier('to.have.property')
+        ),
+        args
+      );
+    }
+  },
+  // handle pm.response.to.have.body to expect(res.getBody()).to.equal(arg)
+  {
+    pattern: 'pm.response.to.have.body',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+
+      const args = callExpr.arguments;
+
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.identifier('res.getBody()')]),
+          j.identifier('to.equal')
+        ),
+        args
+      );
+    }
+  },
+
+  // Handle pm.execution.setNextRequest(null)
+  {
+    pattern: 'pm.execution.setNextRequest',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+
+      const args = callExpr.arguments;
+
+      // If argument is null or 'null', transform to bru.runner.stopExecution()
+      if (
+        args[0].type === 'Literal' && (args[0].value === null || args[0].value === 'null')
+      ) {
+        return j.callExpression(
+          j.identifier('bru.runner.stopExecution'),
+          []
+        );
+      }
+
+      // Otherwise, keep as bru.runner.setNextRequest with the same argument
+      return j.callExpression(
+        j.identifier('bru.runner.setNextRequest'),
+        args
+      );
+    }
+  },
+
+  // pm.cookies.has(name) → await bru.cookies.jar().hasCookie(req.getUrl(), name)
+  {
+    pattern: 'pm.cookies.has',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      const hasCookieCall = j.callExpression(
+        j.identifier('bru.cookies.jar().hasCookie'),
+        [j.identifier('req.getUrl()'), ...args]
+      );
+
+      return j.awaitExpression(hasCookieCall);
+    }
+  },
+
+  // pm.cookies.get(name) → (await bru.cookies.jar().getCookie(req.getUrl(), name))?.value
+  {
+    pattern: 'pm.cookies.get',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      const getCookieCall = j.callExpression(
+        j.identifier('bru.cookies.jar().getCookie'),
+        [j.identifier('req.getUrl()'), ...args]
+      );
+
+      const awaitExpr = j.awaitExpression(getCookieCall);
+      const parenAwait = j.parenthesizedExpression
+        ? j.parenthesizedExpression(awaitExpr)
+        : awaitExpr;
+
+      return j.optionalMemberExpression(
+        parenAwait,
+        j.identifier('value'),
+        false,
+        true
+      );
+    }
+  },
+
+  // pm.cookies.toObject() → (await bru.cookies.jar().getCookies(req.getUrl())).reduce((obj, c) => ({...obj, [c.key]: c.value}), {})
+  {
+    pattern: 'pm.cookies.toObject',
+    transform: (path, j) => {
+      const getCookiesCall = j.callExpression(
+        j.identifier('bru.cookies.jar().getCookies'),
+        [j.identifier('req.getUrl()')]
+      );
+
+      const awaitExpr = j.awaitExpression(getCookiesCall);
+
+      // Build the reduce callback: (obj, c) => ({...obj, [c.key]: c.value})
+      const objParam = j.identifier('obj');
+      const cParam = j.identifier('c');
+
+      const spreadElement = j.spreadElement(objParam);
+      const computedProp = j.property(
+        'init',
+        j.memberExpression(cParam, j.identifier('key')),
+        j.memberExpression(cParam, j.identifier('value'))
+      );
+      computedProp.computed = true;
+
+      const objectExpr = j.objectExpression([spreadElement, computedProp]);
+
+      const arrowBody = j.parenthesizedExpression
+        ? j.parenthesizedExpression(objectExpr)
+        : objectExpr;
+
+      const reduceFn = j.arrowFunctionExpression(
+        [objParam, cParam],
+        arrowBody
+      );
+      reduceFn.expression = true;
+
+      // Build: (await ...).reduce(fn, {})
+      return j.callExpression(
+        j.memberExpression(
+          awaitExpr,
+          j.identifier('reduce')
+        ),
+        [reduceFn, j.objectExpression([])]
+      );
+    }
+  },
+
+  // pm.globals.has requires special handling
+  {
+    pattern: 'pm.globals.has',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      // Create: bru.getGlobalEnvVar(arg) !== undefined && bru.getGlobalEnvVar(arg) !== null
+      return j.logicalExpression(
+        '&&',
+        j.binaryExpression(
+          '!==',
+          j.callExpression(j.identifier('bru.getGlobalEnvVar'), args),
+          j.identifier('undefined')
+        ),
+        j.binaryExpression(
+          '!==',
+          j.callExpression(j.identifier('bru.getGlobalEnvVar'), args),
+          j.identifier('null')
+        )
+      );
+    }
+  },
+
+  // pm.request.headers.add({key, value}) -> req.setHeader(key, value)
+  {
+    pattern: 'pm.request.headers.add',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      // Check if the argument is an object with key and value properties
+      if (args.length > 0 && args[0].type === 'ObjectExpression') {
+        const obj = args[0];
+        let keyProp = null;
+        let valueProp = null;
+
+        obj.properties.forEach((prop) => {
+          if (prop.key.name === 'key' || prop.key.value === 'key') {
+            keyProp = prop.value;
+          }
+          if (prop.key.name === 'value' || prop.key.value === 'value') {
+            valueProp = prop.value;
+          }
+        });
+
+        if (keyProp && valueProp) {
+          return j.callExpression(
+            j.identifier('req.setHeader'),
+            [keyProp, valueProp]
+          );
+        }
+      }
+
+      // Fallback: keep original args
+      return j.callExpression(j.identifier('req.setHeader'), args);
+    }
+  },
+
+  // pm.request.headers.upsert({key, value}) -> req.setHeader(key, value)
+  {
+    pattern: 'pm.request.headers.upsert',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      // Check if the argument is an object with key and value properties
+      if (args.length > 0 && args[0].type === 'ObjectExpression') {
+        const obj = args[0];
+        let keyProp = null;
+        let valueProp = null;
+
+        obj.properties.forEach((prop) => {
+          if (prop.key.name === 'key' || prop.key.value === 'key') {
+            keyProp = prop.value;
+          }
+          if (prop.key.name === 'value' || prop.key.value === 'value') {
+            valueProp = prop.value;
+          }
+        });
+
+        if (keyProp && valueProp) {
+          return j.callExpression(
+            j.identifier('req.setHeader'),
+            [keyProp, valueProp]
+          );
+        }
+      }
+
+      // Fallback: keep original args
+      return j.callExpression(j.identifier('req.setHeader'), args);
+    }
+  },
+
+  // pm.response.to.be.ok -> expect(res.getStatus()).to.be.within(200, 299)
+  {
+    pattern: 'pm.response.to.be.ok',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(200), j.literal(299)]
+      );
+    }
+  },
+
+  // pm.response.to.be.success -> expect(res.getStatus()).to.be.within(200, 299)
+  {
+    pattern: 'pm.response.to.be.success',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(200), j.literal(299)]
+      );
+    }
+  },
+
+  // pm.response.to.be.redirection -> expect(res.getStatus()).to.be.within(300, 399)
+  {
+    pattern: 'pm.response.to.be.redirection',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(300), j.literal(399)]
+      );
+    }
+  },
+
+  // pm.response.to.be.clientError -> expect(res.getStatus()).to.be.within(400, 499)
+  {
+    pattern: 'pm.response.to.be.clientError',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(400), j.literal(499)]
+      );
+    }
+  },
+
+  // pm.response.to.be.serverError -> expect(res.getStatus()).to.be.within(500, 599)
+  {
+    pattern: 'pm.response.to.be.serverError',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.within')
+        ),
+        [j.literal(500), j.literal(599)]
+      );
+    }
+  },
+
+  // pm.response.to.be.error -> expect(res.getStatus()).to.be.at.least(400)
+  {
+    pattern: 'pm.response.to.be.error',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.be.at.least')
+        ),
+        [j.literal(400)]
+      );
+    }
+  },
+
+  // pm.response.to.have.jsonBody(path) -> expect(res.getBody()).to.have.nested.property(path)
+  {
+    pattern: 'pm.response.to.have.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      if (args.length === 0) {
+        // No path provided, just check that body exists
+        return j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier('to.exist')
+        );
+      } else if (args.length === 1) {
+        // Path provided, check property exists
+        return j.callExpression(
+          j.memberExpression(
+            j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+            j.identifier('to.have.nested.property')
+          ),
+          args
+        );
+      } else {
+        // Path and value provided, check property equals value
+        return j.callExpression(
+          j.memberExpression(
+            j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+            j.identifier('to.have.nested.property')
+          ),
+          args
+        );
+      }
+    }
+  },
+
+  // Legacy postman.getResponseHeader(name) -> res.getHeader(name)
+  {
+    pattern: 'pm.getResponseHeader',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      return j.callExpression(j.identifier('res.getHeader'), args);
+    }
+  }
+];
+
+// Create a map for complex transformations to enable O(1) lookups
+const complexTransformationsMap = {};
+complexTransformations.forEach((transform) => {
+  complexTransformationsMap[transform.pattern] = transform;
+});
+
+const varInitsToReplace = new Set(['pm', 'postman', 'pm.request', 'pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution', 'pm.globals', 'pm.cookies']);
+
+/**
+ * Process all transformations (both simple and complex) in the AST in a single pass
+ * @param {Object} ast - jscodeshift AST
+ * @param {Set} transformedNodes - Set of already transformed nodes
+ */
+function processTransformations(ast, transformedNodes) {
+  ast.find(j.MemberExpression).forEach((path) => {
+    if (transformedNodes.has(path.node)) return;
+
+    // Get string representation using our utility function
+    const memberExprStr = getMemberExpressionString(path.value);
+
+    // First check for simple transformations (O(1))
+    if (simpleTranslations.hasOwnProperty(memberExprStr)) {
+      const replacement = simpleTranslations[memberExprStr];
+      j(path).replaceWith(j.identifier(replacement));
+      transformedNodes.add(path.node);
+      return; // Skip complex transformation check if simple transformation applied
+    }
+
+    // Then check for complex transformations (O(1))
+    if (complexTransformationsMap.hasOwnProperty(memberExprStr)) {
+      const parentType = path.parent.value.type;
+
+      // Call-based patterns (e.g., pm.response.to.have.jsonBody("path"))
+      if (parentType === 'CallExpression') {
+        const transform = complexTransformationsMap[memberExprStr];
+        const replacement = transform.transform(path, j);
+        if (Array.isArray(replacement)) {
+          // Capture stable references before mutating the AST
+          const parentPath = path.parent;
+          const grandParentPath = parentPath.parent;
+
+          // Replace the original CallExpression with the first node
+          j(parentPath).replaceWith(replacement[0]);
+          transformedNodes.add(replacement[0]);
+          transformedNodes.add(parentPath.node);
+
+          // Insert remaining nodes after the grandparent in reverse order
+          // so that repeated insertAfter on the same anchor yields correct sequence
+          for (let i = replacement.length - 1; i >= 1; i--) {
+            j(grandParentPath).insertAfter(replacement[i]);
+            transformedNodes.add(replacement[i]);
+          }
+        } else {
+          j(path.parent).replaceWith(replacement);
+          transformedNodes.add(path.node);
+          transformedNodes.add(path.parent.node);
+        }
+      } else if (parentType === 'ExpressionStatement') {
+        // Property-access patterns used as statements (e.g., pm.response.to.be.ok;)
+        const transform = complexTransformationsMap[memberExprStr];
+        const replacement = transform.transform(path, j);
+        j(path).replaceWith(replacement);
+        transformedNodes.add(path.node);
+      }
+    }
+  });
+}
+
+/**
+ * Translates Postman script code to Bruno script code
+ * @param {string} code - The Postman script code to translate
+ * @returns {string} The translated Bruno script code
+ */
+function translateCode(code) {
+  // Replace 'postman' with 'pm' using regex before creating the AST
+  // This is more efficient than an AST traversal
+  code = code.replace(/\bpostman\b/g, 'pm');
+
+  const ast = j(code);
+
+  // Keep track of transformed nodes to avoid double-processing
+  const transformedNodes = new Set();
+
+  // Preprocess the code to resolve all aliases
+  preprocessAliases(ast);
+
+  // Handle cookie jar variable assignments and method renaming
+  processCookieJarVariables(ast);
+
+  // Process all transformations in a single pass
+  processTransformations(ast, transformedNodes);
+
+  // Handle legacy Postman global APIs
+  handleLegacyGlobalAPIs(ast, transformedNodes, code);
+
+  // Handle special Postman syntax patterns
+  handleTestsBracketNotation(ast);
+
+  return ast.toSource();
+}
+
+/**
+ * Preprocess all variable aliases in the AST to simplify later transformations
+ * @param {Object} ast - jscodeshift AST
+ */
+function preprocessAliases(ast) {
+  // Create a symbol table to track what each variable references
+  const symbolTable = new Map();
+  const MAX_ITERATIONS = 5;
+  let iterations = 0;
+
+  // Keep preprocessing until no more changes can be made
+  let changesMade;
+  do {
+    changesMade = false;
+
+    // First pass: Identify all variables
+    findVariableDefinitions(ast, symbolTable);
+
+    // Second pass: Replace all variable references with their resolved values
+    changesMade = resolveVariableReferences(ast, symbolTable) || false;
+
+    // Third pass: Clean up variable declarations that are no longer needed
+    changesMade = removeResolvedDeclarations(ast, symbolTable) || false;
+
+    iterations++;
+  } while (changesMade && iterations < MAX_ITERATIONS);
+}
+
+/**
+ * Find all variable definitions and track what they reference
+ * @param {Object} ast - jscodeshift AST
+ * @param {Map} symbolTable - Map to track variable references
+ */
+function findVariableDefinitions(ast, symbolTable) {
+  // Use a single traversal to handle both direct assignments and object destructuring
+  ast.find(j.VariableDeclarator).forEach((path) => {
+    // Only process nodes that have an initializer
+    if (!path.value.init) return;
+
+    // Handle direct assignments: const response = pm.response
+    if (path.value.id.type === 'Identifier') {
+      const varName = path.value.id.name;
+
+      // If it's a direct identifier, just map it
+      if (path.value.init.type === 'Identifier') {
+        symbolTable.set(varName, {
+          type: 'identifier',
+          value: path.value.init.name
+        });
+      } else if (path.value.init.type === 'MemberExpression') {
+        // If it's a member expression, store both parts
+        const sourceCode = getMemberExpressionString(path.value.init);
+        symbolTable.set(varName, {
+          type: 'memberExpression',
+          value: sourceCode,
+          node: path.value.init
+        });
+      }
+    } else if (path.value.id.type === 'ObjectPattern' && path.value.init.type === 'Identifier') {
+      // Handle object destructuring: const { response } = pm
+      const source = path.value.init.name;
+
+      path.value.id.properties.forEach((prop) => {
+        if (prop.key.name && prop.value.type === 'Identifier') {
+          const destVarName = prop.value.name;
+          symbolTable.set(destVarName, {
+            type: 'memberExpression',
+            value: `${source}.${prop.key.name}`,
+            node: j.memberExpression(
+              j.identifier(source),
+              j.identifier(prop.key.name)
+            )
+          });
+        }
+      });
+    }
+  });
+}
+
+/**
+ * Resolve variable references by replacing them with their original values
+ * @param {Object} ast - jscodeshift AST
+ * @param {Map} symbolTable - Map of variable references
+ * @returns {boolean} Whether any changes were made
+ */
+function resolveVariableReferences(ast, symbolTable) {
+  let changesMade = false;
+
+  /**
+   * Example of what this function does:
+   *
+   * Input Postman code:
+   *   const response = pm.response;
+   *   const jsonData = response.json();  // response is a reference to pm.response
+   *
+   * After resolution:
+   *   const response = pm.response;
+   *   const jsonData = pm.response.json();  // response reference is replaced with pm.response
+   *
+   * Then in the next preprocessing phase, unnecessary variables like 'response' will be removed.
+   */
+
+  // Replace all identifier references with their resolved values
+  ast.find(j.Identifier).forEach((path) => {
+    const varName = path.value.name;
+
+    /**
+     * Skip specific types of identifiers that shouldn't be replaced:
+     *
+     * Case 1: Variable definitions (left side of declarations)
+     * -----------------------------------------------------
+     * In code like:
+     *   const response = pm.response;
+     *           ^
+     * We shouldn't replace 'response' on the left side with pm.response,
+     * which would result in: const pm.response = pm.response; (invalid syntax)
+     *
+     * Case 2: Property names in member expressions
+     * -----------------------------------------------------
+     * In code like:
+     *   console.log(response.status);
+     *                       ^
+     * We shouldn't replace the 'status' property name with anything,
+     * only the 'response' object reference should be replaced.
+     *
+     * We only want to replace identifiers that are being used as references,
+     * not the ones being defined or used as property names.
+     */
+
+    // Skip if this is a variable definition or property name
+    if (path.parent.value.type === 'VariableDeclarator' && path.parent.value.id === path.value) {
+      return;
+    }
+    if (path.parent.value.type === 'MemberExpression' && path.parent.value.property === path.value && !path.parent.value.computed) {
+      return;
+    }
+
+    // Only replace if this is a known variable
+    if (!symbolTable.has(varName)) return;
+
+    const symbolInfo = symbolTable.get(varName);
+    if (!varInitsToReplace.has(symbolInfo.value)) {
+      return;
+    }
+    const newNode = cloneDeep(symbolInfo.node);
+    j(path).replaceWith(newNode);
+    symbolTable.set(varName, {
+      type: 'memberExpression',
+      value: symbolInfo.value,
+      node: newNode
+    });
+    changesMade = true;
+  });
+
+  return changesMade;
+}
+
+/**
+ * Remove variable declarations that have been resolved
+ * @param {Object} ast - jscodeshift AST
+ * @param {Map} symbolTable - Map of variable references
+ * @returns {boolean} Whether any changes were made
+ */
+function removeResolvedDeclarations(ast, symbolTable) {
+  let changesMade = false;
+
+  /**
+   * Example of what this function does:
+   *
+   * Original Postman code:
+   *   const response = pm.response;
+   *   const jsonData = response.json();
+   *   console.log(jsonData.name);
+   *
+   * After variable resolution:
+   *   const response = pm.response;        // This declaration is now redundant
+   *   const jsonData = pm.response.json(); // This value has been resolved
+   *   console.log(jsonData.name);          // This still references jsonData
+   *
+   * Final code after this cleanup step:
+   *   const jsonData = pm.response.json(); // response variable declaration is removed
+   *   console.log(jsonData.name);          // jsonData is kept since it's still referenced
+   *
+   * We only remove declarations that:
+   * 1. Have been fully resolved (references to pm.* objects)
+   * 2. No longer provide any value (since all references were replaced with resolved values)
+   */
+
+  // Use a single traversal to handle both regular variable declarations and destructuring
+  ast.find(j.VariableDeclarator).forEach((path) => {
+    // Case 1: Handle regular variable declarations
+    if (path.value.id.type === 'Identifier') {
+      const varName = path.value.id.name;
+      const replacement = symbolTable.get(varName);
+      if (!replacement || !varInitsToReplace.has(replacement.value)) return;
+
+      /**
+       * This code differentiates between two types of variable declarations:
+       *
+       * Example 1: Single variable declaration
+       * -----------------------------------
+       * Input:   const response = pm.response;
+       * Action:  The entire statement can be removed
+       * Output:  [statement removed]
+       *
+       * Example 2: Multiple variables in one declaration
+       * -----------------------------------
+       * Input:   const response = pm.response, unrelated = 5;
+       * Action:  Only remove the 'response' declarator, keep the others
+       * Output:  const unrelated = 5;
+       *
+       * We need this distinction to ensure we don't accidentally remove
+       * unrelated variables that happen to be declared in the same statement.
+       */
+      const declarationPath = j(path).closest(j.VariableDeclaration);
+      if (declarationPath.get().value.declarations.length === 1) {
+        declarationPath.remove();
+      } else {
+        // Otherwise just remove this declarator
+        j(path).remove();
+      }
+
+      changesMade = true;
+    } else if (path.value.id.type === 'ObjectPattern'
+      // Case 2: Handle destructuring of pm
+      && path.value.init
+      && path.value.init.type === 'Identifier'
+      && path.value.init.name === 'pm') {
+      /**
+       * Example of destructuring removal:
+       *
+       * Original Postman code:
+       *   const { response, environment } = pm;
+       *   console.log(response.json().name);
+       *   console.log(environment.get("variable"));
+       *
+       * After variable resolution steps:
+       *   const { response, environment } = pm;  // This destructuring is now redundant
+       *   console.log(pm.response.json().name); // 'response' references already replaced with pm.response
+       *   console.log(pm.environment.get("variable")); // 'environment' references replaced
+       *
+       * Final code after this cleanup step:
+       *   console.log(pm.response.json().name); // Destructuring declaration is completely removed
+       *   console.log(pm.environment.get("variable"));
+       *
+       * This step specifically targets the Postman pattern of destructuring the pm object,
+       * which is common in Postman scripts but needs to be removed in the Bruno conversion.
+       */
+
+      const declarationPath = j(path).closest(j.VariableDeclaration);
+      if (declarationPath.get().value.declarations.length === 1) {
+        declarationPath.remove();
+      } else {
+        j(path).remove();
+      }
+
+      changesMade = true;
+    }
+  });
+
+  return changesMade;
+}
+
+/**
+ * Process cookie jar variable assignments and rename methods on those variables
+ * @param {Object} ast - jscodeshift AST
+ */
+function processCookieJarVariables(ast) {
+  // Map of Postman cookie jar method names to Bruno equivalents
+  const cookieMethodMapping = {
+    get: 'getCookie',
+    getAll: 'getCookies',
+    set: 'setCookie',
+    unset: 'deleteCookie',
+    clear: 'deleteCookies'
+  };
+
+  // Track variables that are assigned to cookie jar instances
+  const cookieJarVariables = new Set();
+
+  // First pass: Find all variables assigned to cookie jar instances
+  ast.find(j.VariableDeclarator).forEach((path) => {
+    if (path.value.init && path.value.init.type === 'CallExpression') {
+      const initCall = path.value.init;
+
+      // Check if this is a cookie jar assignment
+      if (initCall.callee.type === 'MemberExpression') {
+        const calleeStr = getMemberExpressionString(initCall.callee);
+
+        if (calleeStr === 'pm.cookies.jar' || calleeStr === 'bru.cookies.jar') {
+          if (path.value.id.type === 'Identifier') {
+            cookieJarVariables.add(path.value.id.name);
+          }
+        }
+      }
+    }
+  });
+
+  // Second pass: Rename method calls on cookie jar variables
+  ast.find(j.CallExpression).forEach((path) => {
+    if (path.value.callee.type === 'MemberExpression'
+      && path.value.callee.object.type === 'Identifier'
+      && path.value.callee.property.type === 'Identifier') {
+      const varName = path.value.callee.object.name;
+      const methodName = path.value.callee.property.name;
+
+      // If this is a method call on a cookie jar variable
+      if (cookieJarVariables.has(varName) && cookieMethodMapping[methodName]) {
+        const newMethodName = cookieMethodMapping[methodName];
+        path.value.callee.property.name = newMethodName;
+      }
+    }
+  });
+}
+
+/**
+ * Handle Postman's tests["..."] = ... syntax
+ * @param {Object} ast - jscodeshift AST
+ */
+function handleTestsBracketNotation(ast) {
+  // Find the ExpressionStatement that contains the assignment
+  ast.find(j.ExpressionStatement, {
+    expression: {
+      type: 'AssignmentExpression',
+      left: {
+        type: 'MemberExpression',
+        object: { name: 'tests' },
+        computed: true,
+        property: {} // Accept any property type
+      }
+    }
+  }).forEach((path) => {
+    // Get the assignment expression
+    const assignment = path.value.expression;
+    const left = assignment.left;
+
+    // Verify it's a valid tests[] expression
+    if (left.object.type === 'Identifier'
+      && left.object.name === 'tests'
+      && left.computed === true) {
+      const property = left.property;
+      const rightSide = assignment.right;
+
+      // Handle string literals
+      if (property.type === 'Literal' && typeof property.value === 'string') {
+        const testName = property.value;
+
+        // Replace with test() function call
+        j(path).replaceWith(
+          j.expressionStatement(
+            j.callExpression(
+              j.identifier('test'),
+              [
+                j.literal(testName),
+                j.functionExpression(
+                  null,
+                  [],
+                  j.blockStatement([
+                    j.expressionStatement(
+                      j.memberExpression(
+                        j.callExpression(
+                          j.identifier('expect'),
+                          [
+                            j.callExpression(
+                              j.identifier('Boolean'),
+                              [rightSide]
+                            )
+                          ]
+                        ),
+                        j.identifier('to.be.true')
+                      )
+                    )
+                  ])
+                )
+              ]
+            )
+          )
+        );
+      } else if (property.type === 'TemplateLiteral') {
+        // Handle template literals
+        // Create a template literal with the same quasi and expressions
+        const templateLiteral = j.templateLiteral(
+          property.quasis,
+          property.expressions
+        );
+
+        // Replace with test() function call using template literal
+        j(path).replaceWith(
+          j.expressionStatement(
+            j.callExpression(
+              j.identifier('test'),
+              [
+                templateLiteral,
+                j.functionExpression(
+                  null,
+                  [],
+                  j.blockStatement([
+                    j.expressionStatement(
+                      j.memberExpression(
+                        j.callExpression(
+                          j.identifier('expect'),
+                          [
+                            j.callExpression(
+                              j.identifier('Boolean'),
+                              [rightSide]
+                            )
+                          ]
+                        ),
+                        j.identifier('to.be.true')
+                      )
+                    )
+                  ])
+                )
+              ]
+            )
+          )
+        );
+      }
+    }
+  });
+}
+
+/**
+ * Handle legacy Postman global API transformations
+ * This function processes legacy Postman globals like responseBody, responseHeaders, responseTime
+ * while preserving user-defined variables with the same names
+ *
+ * @param {Object} ast - jscodeshift AST
+ * @param {Set} transformedNodes - Set of already transformed nodes
+ * @param {string} code - The original Postman script code
+ */
+function handleLegacyGlobalAPIs(ast, transformedNodes, code) {
+  // regex check before the ast traversal
+  const legacyGlobalRegex = /responseBody|responseHeaders|responseTime/;
+
+  if (!legacyGlobalRegex.test(code)) {
+    return;
+  }
+
+  // Check for variable declarations with legacy global names - track which ones have conflicts
+  const conflictingNames = new Set();
+
+  // Check variable declarations
+  ast.find(j.VariableDeclarator).forEach((path) => {
+    if (path.value.id.type === 'Identifier') {
+      const varName = path.value.id.name;
+      if (legacyGlobalRegex.test(varName)) {
+        conflictingNames.add(varName);
+      }
+    }
+  });
+
+  // Handle JSON.parse(responseBody) → res.getBody()
+  // Only transform if responseBody doesn't have a user variable conflict
+  if (!conflictingNames.has('responseBody')) {
+    ast.find(j.CallExpression).forEach((path) => {
+      if (transformedNodes.has(path.node)) return;
+
+      const callExpr = path.value;
+      if (callExpr.callee.type === 'MemberExpression' && callExpr.callee.object.name === 'JSON' && callExpr.callee.property.name === 'parse') {
+        const args = callExpr.arguments;
+
+        // Check if the argument is 'responseBody'
+        if (args.length > 0 && args[0].type === 'Identifier' && args[0].name === 'responseBody') {
+          // Replace JSON.parse(responseBody) with res.getBody()
+          j(path).replaceWith(j.identifier('res.getBody()'));
+          transformedNodes.add(path.node);
+        }
+      }
+    });
+  }
+
+  // Handle standalone legacy Postman global variables
+  const legacyGlobals = [
+    { name: 'responseBody', replacement: 'res.getBody()' },
+    { name: 'responseHeaders', replacement: 'res.getHeaders()' },
+    { name: 'responseTime', replacement: 'res.getResponseTime()' }
+  ];
+
+  legacyGlobals.forEach(({ name, replacement }) => {
+    // Skip transformation if this name has a user variable conflict
+    if (conflictingNames.has(name)) {
+      return;
+    }
+
+    ast.find(j.Identifier, { name }).forEach((path) => {
+      if (transformedNodes.has(path.node)) return;
+
+      // Only transform identifiers that are being used as values, not as variable names
+      const parent = path.parent.value;
+
+      // Skip if this is part of a variable declaration (const responseBody = ...)
+      if (parent.type === 'VariableDeclarator' && parent.id === path.node) {
+        return; // Keep unchanged
+      }
+
+      // Skip if this is part of an assignment (responseBody = ...)
+      if (parent.type === 'AssignmentExpression' && parent.left === path.node) {
+        return; // Keep unchanged
+      }
+
+      // Skip if this is part of a function parameter
+      if (parent.type === 'FunctionDeclaration' || parent.type === 'FunctionExpression') {
+        return; // Keep unchanged
+      }
+
+      // Skip if this is part of an object property
+      if (parent.type === 'Property' && (parent.key === path.node || parent.value === path.node)) {
+        return; // Keep unchanged
+      }
+
+      // Transform all other references (including function call arguments)
+      // This will transform console.log(responseBody) → console.log(res.getBody())
+      j(path).replaceWith(j.identifier(replacement));
+      transformedNodes.add(path.node);
+    });
+  });
+}
+
+export { getMemberExpressionString };
+export default translateCode;

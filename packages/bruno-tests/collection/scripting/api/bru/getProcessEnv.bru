@@ -1,0 +1,19 @@
+meta {
+  name: getProcessEnv
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+
+tests {
+  test("bru.getProcessEnv()", function() {
+    const v = bru.getProcessEnv("PROC_ENV_VAR");
+    expect(v).to.equal("woof");
+  });
+}

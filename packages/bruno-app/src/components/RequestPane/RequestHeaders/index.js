@@ -1,147 +1,143 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import get from 'lodash/get';
-import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addRequestHeader, updateRequestHeader, deleteRequestHeader } from 'providers/ReduxStore/slices/collections';
+import { moveRequestHeader, setRequestHeaders } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
+import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
+import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
+import BulkEditor from '../../BulkEditor';
+import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
+
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
-const RequestHeaders = ({ item, collection }) => {
+const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
-
-  const addHeader = () => {
-    dispatch(
-      addRequestHeader({
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
-  };
+  const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleHeaderValueChange = (e, _header, type) => {
-    const header = cloneDeep(_header);
-    switch (type) {
-      case 'name': {
-        header.name = e.target.value;
-        break;
-      }
-      case 'value': {
-        header.value = e.target.value;
-        break;
-      }
-      case 'enabled': {
-        header.enabled = e.target.checked;
-        break;
+
+  const handleHeadersChange = useCallback((updatedHeaders) => {
+    dispatch(setRequestHeaders({
+      collectionUid: collection.uid,
+      itemUid: item.uid,
+      headers: updatedHeaders
+    }));
+  }, [dispatch, collection.uid, item.uid]);
+
+  const handleHeaderDrag = useCallback(({ updateReorderedItem }) => {
+    dispatch(moveRequestHeader({
+      collectionUid: collection.uid,
+      itemUid: item.uid,
+      updateReorderedItem
+    }));
+  }, [dispatch, collection.uid, item.uid]);
+
+  const getRowError = useCallback((row, index, key) => {
+    if (key === 'name') {
+      if (!row.name || row.name.trim() === '') return null;
+      if (!headerNameRegex.test(row.name)) {
+        return 'Header name cannot contain spaces or newlines';
       }
     }
-    dispatch(
-      updateRequestHeader({
-        header: header,
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
+    if (key === 'value') {
+      if (!row.value) return null;
+      if (!headerValueRegex.test(row.value)) {
+        return 'Header value cannot contain newlines';
+      }
+    }
+    return null;
+  }, []);
+
+  const toggleBulkEditMode = () => {
+    setIsBulkEditMode(!isBulkEditMode);
   };
 
-  const handleRemoveHeader = (header) => {
-    dispatch(
-      deleteRequestHeader({
-        headerUid: header.uid,
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
+  const columns = [
+    {
+      key: 'name',
+      name: 'Name',
+      isKeyField: true,
+      placeholder: 'Name',
+      width: '30%',
+      render: ({ value, onChange }) => (
+        <SingleLineEditor
+          value={value || ''}
+          theme={storedTheme}
+          onSave={onSave}
+          onChange={(newValue) => onChange(newValue.replace(/[\r\n]/g, ''))}
+          autocomplete={headerAutoCompleteList}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          placeholder={!value ? 'Name' : ''}
+        />
+      )
+    },
+    {
+      key: 'value',
+      name: 'Value',
+      placeholder: 'Value',
+      render: ({ value, onChange }) => (
+        <SingleLineEditor
+          value={value || ''}
+          theme={storedTheme}
+          onSave={onSave}
+          onChange={onChange}
+          onRun={handleRun}
+          autocomplete={MimeTypes}
+          collection={collection}
+          item={item}
+          placeholder={!value ? 'Value' : ''}
+        />
+      )
+    }
+  ];
+
+  const defaultRow = {
+    name: '',
+    value: '',
+    description: ''
   };
+
+  if (isBulkEditMode) {
+    return (
+      <StyledWrapper className="w-full mt-3">
+        <BulkEditor
+          params={headers}
+          onChange={handleHeadersChange}
+          onToggle={toggleBulkEditMode}
+          onSave={onSave}
+          onRun={handleRun}
+        />
+      </StyledWrapper>
+    );
+  }
 
   return (
     <StyledWrapper className="w-full">
-      <table>
-        <thead>
-          <tr>
-            <td>Name</td>
-            <td>Value</td>
-            <td></td>
-          </tr>
-        </thead>
-        <tbody>
-          {headers && headers.length
-            ? headers.map((header) => {
-                return (
-                  <tr key={header.uid}>
-                    <td>
-                      <SingleLineEditor
-                        value={header.name}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) =>
-                          handleHeaderValueChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            header,
-                            'name'
-                          )
-                        }
-                        autocomplete={headerAutoCompleteList}
-                        onRun={handleRun}
-                        collection={collection}
-                      />
-                    </td>
-                    <td>
-                      <SingleLineEditor
-                        value={header.value}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) =>
-                          handleHeaderValueChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            header,
-                            'value'
-                          )
-                        }
-                        onRun={handleRun}
-                        collection={collection}
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={header.enabled}
-                          tabIndex="-1"
-                          className="mr-3 mousetrap"
-                          onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
-                        />
-                        <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            : null}
-        </tbody>
-      </table>
-      <button className="btn-add-header text-link pr-2 py-3 mt-2 select-none" onClick={addHeader}>
-        + Add Header
-      </button>
+      <EditableTable
+        columns={columns}
+        rows={headers || []}
+        onChange={handleHeadersChange}
+        defaultRow={defaultRow}
+        getRowError={getRowError}
+        reorderable={true}
+        onReorder={handleHeaderDrag}
+      />
+      <div className="flex justify-end mt-2">
+        <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
+          Bulk Edit
+        </button>
+      </div>
     </StyledWrapper>
   );
 };
+
 export default RequestHeaders;

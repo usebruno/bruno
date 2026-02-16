@@ -4,8 +4,9 @@ const StyledWrapper = styled.div`
   div.CodeMirror {
     background: ${(props) => props.theme.codemirror.bg};
     border: solid 1px ${(props) => props.theme.codemirror.border};
-    /* todo: find a better way */
-    height: calc(100vh - 220px);
+    font-family: ${(props) => (props.font ? props.font : 'default')};
+    font-size: ${(props) => (props.fontSize ? `${props.fontSize}px` : 'inherit')};
+    flex: 1 1 0;
   }
 
   textarea.cm-editor {
@@ -21,33 +22,53 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .cm-s-monokai span.cm-property,
-  .cm-s-monokai span.cm-attribute {
-    color: #9cdcfe !important;
+  .cm-s-default, .cm-s-monokai {
+    span.cm-def {
+      color: ${(props) => props.theme.codemirror.tokens.definition} !important;
+    }
+    span.cm-property {
+      color: ${(props) => props.theme.codemirror.tokens.property} !important;
+    }
+    span.cm-string {
+      color: ${(props) => props.theme.codemirror.tokens.string} !important;
+    }
+    span.cm-number {
+      color: ${(props) => props.theme.codemirror.tokens.number} !important;
+    }
+    span.cm-atom {
+      color: ${(props) => props.theme.codemirror.tokens.atom} !important;
+    }
+    span.cm-variable, span.cm-variable-2 {
+      color: ${(props) => props.theme.codemirror.tokens.variable} !important;
+    }
+    span.cm-keyword {
+      color: ${(props) => props.theme.codemirror.tokens.keyword} !important;
+    }
+    span.cm-comment {
+      color: ${(props) => props.theme.codemirror.tokens.comment} !important;
+    }
+    span.cm-operator {
+      color: ${(props) => props.theme.codemirror.tokens.operator} !important;
+    }
+    span.cm-tag {
+      color: ${(props) => props.theme.codemirror.tokens.tag} !important;
+    }
+    span.cm-tag.cm-bracket {
+      color: ${(props) => props.theme.codemirror.tokens.tagBracket} !important;
+    }
   }
 
-  .cm-s-monokai span.cm-property,
-  .cm-s-monokai span.cm-attribute {
-    color: #9cdcfe !important;
-  }
-
-  .cm-s-monokai span.cm-string {
-    color: #ce9178 !important;
-  }
-
-  .cm-s-monokai span.cm-number {
-    color: #b5cea8 !important;
-  }
-
-  .cm-s-monokai span.cm-atom {
-    color: #569cd6 !important;
-  }
-
+  /* Variable validation colors */
   .cm-variable-valid {
-    color: green;
+    color: ${(props) => props.theme.codemirror.variable.valid};
   }
   .cm-variable-invalid {
-    color: red;
+    color: ${(props) => props.theme.codemirror.variable.invalid};
+  }
+
+
+  .CodeMirror-search-hint {
+    display: inline;
   }
 `;
 

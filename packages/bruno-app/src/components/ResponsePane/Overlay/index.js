@@ -1,33 +1,37 @@
 import React from 'react';
 import { IconRefresh } from '@tabler/icons';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { cancelRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StopWatch from '../../StopWatch';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button/index';
 
 const ResponseLoadingOverlay = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const preferences = useSelector((state) => state.app.preferences);
+  const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
 
   const handleCancelRequest = () => {
     dispatch(cancelRequest(item.cancelTokenUid, item, collection));
   };
 
   return (
-    <StyledWrapper className="px-3 w-full">
+    <StyledWrapper className={`w-full ${isVerticalLayout ? 'vertical-layout' : ''}`}>
       <div className="overlay">
         <div style={{ marginBottom: 15, fontSize: 26 }}>
           <div style={{ display: 'inline-block', fontSize: 20, marginLeft: 5, marginRight: 5 }}>
-            <StopWatch requestTimestamp={item?.requestSent?.timestamp} />
+            <StopWatch startTime={item?.requestStartTime} />
           </div>
         </div>
         <IconRefresh size={24} className="loading-icon" />
-        <button
+        <Button
+          color="secondary"
+          size="sm"
           onClick={handleCancelRequest}
-          className="mt-4 uppercase btn-sm rounded btn-secondary ease-linear transition-all duration-150"
-          type="button"
+          className="mt-4"
         >
           Cancel Request
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

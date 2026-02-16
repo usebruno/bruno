@@ -1,9 +1,8 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  display: grid;
-  grid-template-columns: 100%;
-  grid-template-rows: ${(props) => (props.queryFilterEnabled ? '1.25rem 1fr 2.25rem' : '1.25rem 1fr')};
+  display: flex;
+  flex-direction: column;
 
   /* This is a hack to force Codemirror to use all available space */
   > div {
@@ -41,15 +40,19 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
+  .error {
+    color: ${(props) => props.theme.colors.text.danger};
+  }
+
   .response-filter {
     position: absolute;
     bottom: 0;
     width: 100%;
 
     input {
-      border: ${(props) => props.theme.sidebar.search.border};
-      border-radius: 2px;
-      background-color: ${(props) => props.theme.sidebar.search.bg};
+      border: solid 1px ${(props) => props.theme.border.border2};
+      border-radius: ${(props) => props.theme.border.radius.sm};
+      background-color: ${(props) => props.theme.background.base};
 
       &:focus {
         outline: none;

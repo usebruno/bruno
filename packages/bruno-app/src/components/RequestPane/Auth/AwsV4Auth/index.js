@@ -6,16 +6,22 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { update } from 'lodash';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 
-const AwsV4Auth = ({ onTokenChange, item, collection }) => {
+const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const awsv4Auth = item.draft ? get(item, 'draft.request.auth.awsv4', {}) : get(item, 'request.auth.awsv4', {});
+  const awsv4Auth = get(request, 'auth.awsv4', {});
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage } = isSensitive(awsv4Auth?.secretAccessKey);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+
+  const handleSave = () => {
+    save();
+  };
 
   const handleAccessKeyIdChange = (accessKeyId) => {
     dispatch(
@@ -25,11 +31,11 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
         itemUid: item.uid,
         content: {
           accessKeyId: accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -42,12 +48,12 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -60,12 +66,12 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -78,12 +84,12 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: service,
-          region: awsv4Auth.region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -96,12 +102,12 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: region,
-          profileName: awsv4Auth.profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: region || '',
+          profileName: awsv4Auth.profileName || ''
         }
       })
     );
@@ -114,12 +120,12 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          accessKeyId: awsv4Auth.accessKeyId,
-          secretAccessKey: awsv4Auth.secretAccessKey,
-          sessionToken: awsv4Auth.sessionToken,
-          service: awsv4Auth.service,
-          region: awsv4Auth.region,
-          profileName: profileName
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: profileName || ''
         }
       })
     );
@@ -127,8 +133,8 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
 
   return (
     <StyledWrapper className="mt-2 w-full">
-      <label className="block font-medium mb-2">Access Key ID</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Access Key ID</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={awsv4Auth.accessKeyId || ''}
           theme={storedTheme}
@@ -136,11 +142,13 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleAccessKeyIdChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Secret Access Key</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Secret Access Key</label>
+      <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
           value={awsv4Auth.secretAccessKey || ''}
           theme={storedTheme}
@@ -148,11 +156,16 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleSecretAccessKeyChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isSecret={true}
+          isCompact
         />
+
+        {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" warningMessage={warningMessage} />}
       </div>
 
-      <label className="block font-medium mb-2">Session Token</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Session Token</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={awsv4Auth.sessionToken || ''}
           theme={storedTheme}
@@ -160,11 +173,13 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleSessionTokenChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Service</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Service</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={awsv4Auth.service || ''}
           theme={storedTheme}
@@ -172,11 +187,13 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleServiceChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Region</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Region</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={awsv4Auth.region || ''}
           theme={storedTheme}
@@ -184,11 +201,13 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleRegionChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Profile Name</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Profile Name</label>
+      <div className="single-line-editor-wrapper">
         <SingleLineEditor
           value={awsv4Auth.profileName || ''}
           theme={storedTheme}
@@ -196,6 +215,8 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleProfileNameChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isCompact
         />
       </div>
     </StyledWrapper>

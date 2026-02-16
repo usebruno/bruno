@@ -1,0 +1,17 @@
+{
+  "version": "1",
+  "name": "OAuth2 Demo",
+  "type": "collection",
+  "scripts": {
+    "moduleWhitelist": [
+      "crypto"
+    ]
+  },
+  "clientCertificates": {
+    "enabled": true,
+    "certs": []
+  },
+  "presets": {
+    "requestType": "http"
+  }
+}

@@ -9,7 +9,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.yellow};
   }
 
-  input {
+  .non-passphrase-input {
     width: 300px;
   }
 
@@ -30,12 +30,59 @@ const StyledWrapper = styled.div`
     box-shadow: none;
     transition: border-color ease-in-out 0.1s;
     border-radius: 3px;
-    background-color: ${(props) => props.theme.modal.input.bg};
-    border: 1px solid ${(props) => props.theme.modal.input.border};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
 
     &:focus {
-      border: solid 1px ${(props) => props.theme.modal.input.focusBorder} !important;
+      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
       outline: none !important;
+    }
+  }
+
+  .protocol-placeholder {
+    height: 100%;
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    overflow: hidden;
+  }
+
+  .protocol-https,
+  .protocol-grpcs,
+  .protocol-wss {
+    position: absolute;
+    right: 8px;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .protocol-https {
+    animation: slideUpDown 9s infinite;
+    transform: translateY(0);
+  }
+
+  .protocol-grpcs {
+    animation: slideUpDown 9s infinite 3s;
+    transform: translateY(100%);
+  }
+
+  .protocol-wss {
+    animation: slideUpDown 9s infinite 6s;
+    transform: translateY(100%);
+  }
+
+  @keyframes slideUpDown {
+    0%, 30% {
+      transform: translateY(0);
+    }
+    33.33%, 97% {
+      transform: translateY(100%);
+    }
+    100% {
+      transform: translateY(0);
     }
   }
 `;

@@ -31,6 +31,10 @@
     "digest": {
       "username": "john",
       "password": "secret"
+    },
+    "wsse": {
+      "username": "john",
+      "password": "secret"
     }
   },
   "vars": {

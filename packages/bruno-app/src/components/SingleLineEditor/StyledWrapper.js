@@ -2,40 +2,46 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   width: 100%;
-  height: 30px;
+  height: ${(props) => (props.$isCompact ? '1.375rem' : '1.875rem')};
   overflow-y: hidden;
   overflow-x: hidden;
 
-  .CodeMirror {
-    background: transparent;
-    height: 34px;
-    font-size: 14px;
-    line-height: 30px;
-    overflow: hidden;
-
-    .CodeMirror-vscrollbar {
+  &.read-only {
+    .CodeMirror-cursor {
       display: none !important;
     }
+  }
+
+  .CodeMirror {
+    background: transparent;
+    height: ${(props) => (props.$isCompact ? '1.375rem' : '2.125rem')};
+    font-size: ${(props) => props.theme.font.size.base};
+    line-height: ${(props) => (props.$isCompact ? '1.375rem' : '1.875rem')};
+    overflow: hidden;
 
     .CodeMirror-scroll {
       overflow: hidden !important;
-      padding-bottom: 50px !important;
+      padding-bottom: 3.125rem !important;
     }
 
-    .CodeMirror-hscrollbar {
-      display: none !important;
-    }
+    .CodeMirror-vscrollbar,
+    .CodeMirror-hscrollbar,
     .CodeMirror-scrollbar-filler {
-      display: none !important;
+      display: none;
     }
 
     .CodeMirror-lines {
       padding: 0;
+
+      .CodeMirror-placeholder {
+        color: ${(props) => props.theme.codemirror.placeholder.color} !important;
+        opacity:  ${(props) => props.theme.codemirror.placeholder.opacity} !important
+      }
     }
 
     .CodeMirror-cursor {
-      height: 20px !important;
-      margin-top: 5px !important;
+      height: ${(props) => (props.$isCompact ? '0.875rem' : '1.25rem')} !important;
+      margin-top: ${(props) => (props.$isCompact ? '0.25rem' : '0.3125rem')} !important;
       border-left: 1px solid ${(props) => props.theme.text} !important;
     }
 
@@ -46,8 +52,11 @@ const StyledWrapper = styled.div`
 
     .CodeMirror-line {
       color: ${(props) => props.theme.text};
-      padding-left: 0;
-      padding-right: 0;
+      padding: 0;
+    }
+
+    .CodeMirror-selected {
+      background-color: rgba(212, 125, 59, 0.3);
     }
   }
 `;

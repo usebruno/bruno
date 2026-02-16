@@ -1,163 +1,119 @@
-import React from 'react';
-import toast from 'react-hot-toast';
+import React, { useMemo, useCallback } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
-import { useTheme } from 'providers/Theme';
+import { get } from 'lodash';
 import { useDispatch } from 'react-redux';
 import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
-import StyledWrapper from './StyledWrapper';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import { uuid } from 'utils/common';
-import { variableNameRegex } from 'utils/common/regex';
+import { setEnvironmentsDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
+import { flattenItems, isItemARequest } from 'utils/collections';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
+import { sensitiveFields } from './constants';
 
-const EnvironmentVariables = ({ environment, collection }) => {
+const EnvironmentVariables = ({ environment, setIsModified, collection, searchQuery = '' }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
 
-  const formik = useFormik({
-    enableReinitialize: true,
-    initialValues: environment.variables || [],
-    validationSchema: Yup.array().of(
-      Yup.object({
-        enabled: Yup.boolean(),
-        name: Yup.string()
-          .required('Name cannot be empty')
-          .matches(
-            variableNameRegex,
-            'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.'
-          )
-          .trim(),
-        secret: Yup.boolean(),
-        type: Yup.string(),
-        uid: Yup.string(),
-        value: Yup.string().trim().nullable()
-      })
-    ),
-    onSubmit: (values) => {
-      if (!formik.dirty) {
-        toast.error('Nothing to save');
-        return;
+  const environmentsDraft = collection?.environmentsDraft;
+  const hasDraftForThisEnv = environmentsDraft?.environmentUid === environment.uid;
+
+  // Check for non-secret variables used in sensitive fields
+  const nonSecretSensitiveVarUsageMap = useMemo(() => {
+    const result = {};
+    if (!collection || !environment?.variables) {
+      return result;
+    }
+    const nonSecretVars = environment.variables.filter((v) => v.enabled && !v.secret && v.name);
+    if (!nonSecretVars.length) {
+      return result;
+    }
+    const varNames = new Set(nonSecretVars.map((v) => v.name));
+
+    const checkSensitiveField = (obj, fieldPath) => {
+      const value = get(obj, fieldPath);
+      if (typeof value === 'string') {
+        varNames.forEach((varName) => {
+          if (new RegExp(`\\{\\{\\s*${varName}\\s*\\}\\}`).test(value)) {
+            result[varName] = true;
+          }
+        });
       }
-
-      dispatch(saveEnvironment(cloneDeep(values), environment.uid, collection.uid))
-        .then(() => {
-          toast.success('Changes saved successfully');
-          formik.resetForm({ values });
-        })
-        .catch(() => toast.error('An error occurred while saving the changes'));
-    }
-  });
-
-  const ErrorMessage = ({ name }) => {
-    const meta = formik.getFieldMeta(name);
-    if (!meta.error) {
-      return null;
-    }
-
-    return (
-      <label htmlFor={name} className="text-red-500">
-        {meta.error}
-      </label>
-    );
-  };
-
-  const addVariable = () => {
-    const newVariable = {
-      uid: uuid(),
-      name: '',
-      value: '',
-      type: 'text',
-      secret: false,
-      enabled: true
     };
-    formik.setFieldValue(formik.values.length, newVariable, false);
-  };
 
-  const handleRemoveVar = (id) => {
-    formik.setValues(formik.values.filter((variable) => variable.uid !== id));
-  };
+    const getObjectToProcess = (item) => {
+      if (isItemARequest(item)) {
+        return item.draft || item;
+      }
+      return item.root;
+    };
+
+    const collectionObj = getObjectToProcess(collection);
+    sensitiveFields.forEach((fieldPath) => {
+      checkSensitiveField(collectionObj, fieldPath);
+    });
+
+    const items = flattenItems(collection.items || []);
+    items.forEach((item) => {
+      const objToProcess = getObjectToProcess(item);
+      sensitiveFields.forEach((fieldPath) => {
+        checkSensitiveField(objToProcess, fieldPath);
+      });
+    });
+    return result;
+  }, [collection, environment]);
+
+  const hasSensitiveUsage = useCallback((name) => !!nonSecretSensitiveVarUsageMap[name], [nonSecretSensitiveVarUsageMap]);
+
+  const handleSave = useCallback(
+    (variables) => {
+      return dispatch(saveEnvironment(cloneDeep(variables), environment.uid, collection.uid));
+    },
+    [dispatch, environment.uid, collection.uid]
+  );
+
+  const handleDraftChange = useCallback(
+    (variables) => {
+      dispatch(
+        setEnvironmentsDraft({
+          collectionUid: collection.uid,
+          environmentUid: environment.uid,
+          variables
+        })
+      );
+    },
+    [dispatch, collection.uid, environment.uid]
+  );
+
+  const handleDraftClear = useCallback(() => {
+    dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
+  }, [dispatch, collection.uid]);
+
+  const renderExtraValueContent = useCallback(
+    (variable) => {
+      if (!variable.secret && hasSensitiveUsage(variable.name)) {
+        return (
+          <SensitiveFieldWarning
+            fieldName={variable.name}
+            warningMessage="This variable is used in sensitive fields. Mark it as a secret for security"
+          />
+        );
+      }
+      return null;
+    },
+    [hasSensitiveUsage]
+  );
 
   return (
-    <StyledWrapper className="w-full mt-6 mb-6">
-      <table>
-        <thead>
-          <tr>
-            <td>Enabled</td>
-            <td>Name</td>
-            <td>Value</td>
-            <td>Secret</td>
-            <td></td>
-          </tr>
-        </thead>
-        <tbody>
-          {formik.values.map((variable, index) => (
-            <tr key={variable.uid}>
-              <td className="text-center">
-                <input
-                  type="checkbox"
-                  className="mr-3 mousetrap"
-                  name={`${index}.enabled`}
-                  checked={variable.enabled}
-                  onChange={formik.handleChange}
-                />
-              </td>
-              <td>
-                <input
-                  type="text"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                  className="mousetrap"
-                  id={`${index}.name`}
-                  name={`${index}.name`}
-                  value={variable.name}
-                  onChange={formik.handleChange}
-                />
-                <ErrorMessage name={`${index}.name`} />
-              </td>
-              <td>
-                <SingleLineEditor
-                  theme={storedTheme}
-                  collection={collection}
-                  name={`${index}.value`}
-                  value={variable.value}
-                  onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
-                />
-              </td>
-              <td>
-                <input
-                  type="checkbox"
-                  className="mr-3 mousetrap"
-                  name={`${index}.secret`}
-                  checked={variable.secret}
-                  onChange={formik.handleChange}
-                />
-              </td>
-              <td>
-                <button onClick={() => handleRemoveVar(variable.uid)}>
-                  <IconTrash strokeWidth={1.5} size={20} />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <div>
-        <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={addVariable}>
-          + Add Variable
-        </button>
-      </div>
-
-      <div>
-        <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit}>
-          Save
-        </button>
-      </div>
-    </StyledWrapper>
+    <EnvironmentVariablesTable
+      environment={environment}
+      collection={collection}
+      onSave={handleSave}
+      draft={hasDraftForThisEnv ? environmentsDraft : null}
+      onDraftChange={handleDraftChange}
+      onDraftClear={handleDraftClear}
+      setIsModified={setIsModified}
+      renderExtraValueContent={renderExtraValueContent}
+      searchQuery={searchQuery}
+    />
   );
 };
+
 export default EnvironmentVariables;

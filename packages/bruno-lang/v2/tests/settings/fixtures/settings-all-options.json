@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "name": "Settings All Options Test",
+    "type": "http",
+    "seq": "3"
+  },
+  "http": {
+    "method": "put",
+    "url": "https://api.example.com/all-options"
+  },
+  "headers": [
+    {
+      "name": "content-type",
+      "value": "application/json",
+      "enabled": true
+    }
+  ],
+  "body": {
+    "json": "{\n  \"test\": \"data\"\n}"
+  },
+  "settings": {
+    "encodeUrl": true,
+    "followRedirects": false,
+    "maxRedirects": 0,
+    "timeout": 60000
+  }
+}

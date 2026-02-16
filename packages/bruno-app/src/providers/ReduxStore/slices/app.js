@@ -1,23 +1,59 @@
 import { createSlice } from '@reduxjs/toolkit';
-import toast from 'react-hot-toast';
+import filter from 'lodash/filter';
+import brunoClipboard from 'utils/bruno-clipboard';
+import { addTab, focusTab } from './tabs';
 
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
-  leftSidebarWidth: 222,
+  leftSidebarWidth: 250,
+  sidebarCollapsed: false,
   screenWidth: 500,
   showHomePage: false,
-  showPreferences: false,
+  showApiSpecPage: false,
+  showManageWorkspacePage: false,
+  isEnvironmentSettingsModalOpen: false,
+  isGlobalEnvironmentSettingsModalOpen: false,
+  activePreferencesTab: 'general',
   preferences: {
     request: {
       sslVerification: true,
-      timeout: 0
+      customCaCertificate: {
+        enabled: false,
+        filePath: null
+      },
+      keepDefaultCaCertificates: {
+        enabled: true
+      },
+      timeout: 0,
+      oauth2: {
+        useSystemBrowser: false
+      }
     },
     font: {
       codeFont: 'default'
+    },
+    general: {
+      defaultCollectionLocation: ''
+    },
+    autoSave: {
+      enabled: false,
+      interval: 1000
     }
   },
-  cookies: []
+  generateCode: {
+    mainLanguage: 'Shell',
+    library: 'curl',
+    shouldInterpolate: true
+  },
+  cookies: [],
+  taskQueue: [],
+  gitOperationProgress: {},
+  gitVersion: null,
+  clipboard: {
+    hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
+  },
+  systemProxyVariables: {}
 };
 
 export const appSlice = createSlice({
@@ -38,19 +74,88 @@ export const appSlice = createSlice({
     },
     showHomePage: (state) => {
       state.showHomePage = true;
+      state.showApiSpecPage = false;
+      state.showManageWorkspacePage = false;
     },
     hideHomePage: (state) => {
       state.showHomePage = false;
     },
-    showPreferences: (state, action) => {
-      state.showPreferences = action.payload;
+    showManageWorkspacePage: (state) => {
+      state.showManageWorkspacePage = true;
+      state.showHomePage = false;
+      state.showApiSpecPage = false;
+    },
+    hideManageWorkspacePage: (state) => {
+      state.showManageWorkspacePage = false;
+    },
+    showApiSpecPage: (state) => {
+      state.showHomePage = false;
+      state.showApiSpecPage = true;
+    },
+    hideApiSpecPage: (state) => {
+      state.showApiSpecPage = false;
     },
     updatePreferences: (state, action) => {
       state.preferences = action.payload;
     },
+    updateActivePreferencesTab: (state, action) => {
+      state.activePreferencesTab = action.payload.tab;
+    },
     updateCookies: (state, action) => {
       state.cookies = action.payload;
+    },
+    insertTaskIntoQueue: (state, action) => {
+      state.taskQueue.push(action.payload);
+    },
+    removeTaskFromQueue: (state, action) => {
+      state.taskQueue = filter(state.taskQueue, (task) => task.uid !== action.payload.taskUid);
+    },
+    removeAllTasksFromQueue: (state) => {
+      state.taskQueue = [];
+    },
+    updateSystemProxyVariables: (state, action) => {
+      state.systemProxyVariables = action.payload;
+    },
+    updateGenerateCode: (state, action) => {
+      state.generateCode = {
+        ...state.generateCode,
+        ...action.payload
+      };
+    },
+    toggleSidebarCollapse: (state) => {
+      state.sidebarCollapsed = !state.sidebarCollapsed;
+    },
+    updateGitOperationProgress: (state, action) => {
+      const { uid, data } = action.payload;
+      if (!state.gitOperationProgress[uid]) {
+        state.gitOperationProgress[uid] = { progressData: [] };
+      }
+      state.gitOperationProgress[uid].progressData.push(data);
+    },
+    removeGitOperationProgress: (state, action) => {
+      delete state.gitOperationProgress[action.payload];
+    },
+    setGitVersion: (state, action) => {
+      state.gitVersion = action.payload;
+    },
+    setClipboard: (state, action) => {
+      // Update clipboard UI state
+      state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
     }
+  },
+  extraReducers: (builder) => {
+    // Automatically hide special pages when any tab is added or focused
+    builder
+      .addCase(addTab, (state) => {
+        state.showHomePage = false;
+        state.showApiSpecPage = false;
+        state.showManageWorkspacePage = false;
+      })
+      .addCase(focusTab, (state) => {
+        state.showHomePage = false;
+        state.showApiSpecPage = false;
+        state.showManageWorkspacePage = false;
+      });
   }
 });
 
@@ -61,9 +166,23 @@ export const {
   updateIsDragging,
   showHomePage,
   hideHomePage,
-  showPreferences,
+  showManageWorkspacePage,
+  hideManageWorkspacePage,
+  showApiSpecPage,
+  hideApiSpecPage,
   updatePreferences,
-  updateCookies
+  updateActivePreferencesTab,
+  updateCookies,
+  insertTaskIntoQueue,
+  removeTaskFromQueue,
+  removeAllTasksFromQueue,
+  updateSystemProxyVariables,
+  updateGenerateCode,
+  toggleSidebarCollapse,
+  updateGitOperationProgress,
+  removeGitOperationProgress,
+  setGitVersion,
+  setClipboard
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
@@ -72,14 +191,9 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:save-preferences', preferences)
-      .then(() => toast.success('Preferences saved successfully'))
       .then(() => dispatch(updatePreferences(preferences)))
       .then(resolve)
-      .catch((err) => {
-        toast.error('An error occurred while saving preferences');
-        console.error(err);
-        reject(err);
-      });
+      .catch(reject);
   });
 };
 
@@ -88,6 +202,79 @@ export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
     const { ipcRenderer } = window;
 
     ipcRenderer.invoke('renderer:delete-cookies-for-domain', domain).then(resolve).catch(reject);
+  });
+};
+
+export const deleteCookie = (domain, path, cookieKey) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:delete-cookie', domain, path, cookieKey).then(resolve).catch(reject);
+  });
+};
+
+export const addCookie = (domain, cookie) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:add-cookie', domain, cookie).then(resolve).catch(reject);
+  });
+};
+
+export const modifyCookie = (domain, oldCookie, cookie) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:modify-cookie', domain, oldCookie, cookie).then(resolve).catch(reject);
+  });
+};
+
+export const getParsedCookie = (cookieStr) => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:get-parsed-cookie', cookieStr).then(resolve).catch(reject);
+  });
+};
+
+export const createCookieString = (cookieObj) => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:create-cookie-string', cookieObj).then(resolve).catch(reject);
+  });
+};
+
+export const completeQuitFlow = () => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('main:complete-quit-flow');
+};
+
+export const copyRequest = (item) => (dispatch, getState) => {
+  brunoClipboard.write(item);
+  dispatch(setClipboard({ hasCopiedItems: true }));
+  return Promise.resolve();
+};
+
+export const getSystemProxyVariables = () => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:get-system-proxy-variables')
+      .then((variables) => {
+        dispatch(updateSystemProxyVariables(variables));
+        return variables;
+      })
+      .then(resolve).catch(reject);
+  });
+};
+
+export const refreshSystemProxy = () => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:refresh-system-proxy')
+      .then((variables) => {
+        dispatch(updateSystemProxyVariables(variables));
+        return variables;
+      })
+      .then(resolve).catch(reject);
   });
 };
 

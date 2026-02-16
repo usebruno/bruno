@@ -1,4 +1,4 @@
-[English](/publishing.md) | [Português (BR)](/docs/publishing/publishing_pt_br.md) | **Română**
+[English](../../publishing.md)
 
 ### Publicarea lui Bruno la un gestionar de pachete nou
 

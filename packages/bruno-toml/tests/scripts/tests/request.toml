@@ -1,0 +1,15 @@
+[meta]
+name = 'Get users'
+type = 'http'
+seq = 1
+
+[http]
+method = 'GET'
+url = 'https://reqres.in/api/users'
+
+[script]
+tests = '''
+test('Status code is 200', function () {
+  expect(res.statusCode).to.eql(200);
+});
+'''

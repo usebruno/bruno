@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "name": "collection_level_oauth2",
+  "type": "collection",
+  "scripts": {
+    "moduleWhitelist": ["crypto"]
+  },
+  "clientCertificates": {
+    "enabled": true,
+    "certs": []
+  },
+  "presets": {
+    "requestType": "http"
+  }
+}

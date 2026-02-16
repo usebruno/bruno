@@ -1,0 +1,22 @@
+meta {
+  name: echo multipart via scripting
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{echo-host}}
+  body: multipartForm
+  auth: none
+}
+
+assert {
+  res.body: contains form-data-value
+}
+
+script:pre-request {
+  const FormData = require("form-data");
+  const form = new FormData();
+  form.append('form-data-key', 'form-data-value');
+  req.setBody(form);
+}

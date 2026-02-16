@@ -1,15 +1,34 @@
-import Modal from 'components/Modal/index';
 import classnames from 'classnames';
-import React, { useState } from 'react';
+import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { updateActivePreferencesTab } from 'providers/ReduxStore/slices/app';
+import {
+  IconSettings,
+  IconPalette,
+  IconBrowser,
+  IconUserCircle,
+  IconKeyboard,
+  IconZoomQuestion,
+  IconSquareLetterB
+} from '@tabler/icons';
+
 import Support from './Support';
 import General from './General';
-import Font from './Font';
-import Theme from './Theme';
+import Themes from './Themes';
 import Proxy from './ProxySettings';
+import Display from './Display';
+import Keybindings from './Keybindings';
+import Beta from './Beta';
+
 import StyledWrapper from './StyledWrapper';
 
-const Preferences = ({ onClose }) => {
-  const [tab, setTab] = useState('general');
+const Preferences = () => {
+  const dispatch = useDispatch();
+  const tab = useSelector((state) => state.app.activePreferencesTab);
+
+  const setTab = (tab) => {
+    dispatch(updateActivePreferencesTab({ tab }));
+  };
 
   const getTabClassname = (tabName) => {
     return classnames(`tab select-none ${tabName}`, {
@@ -20,49 +39,77 @@ const Preferences = ({ onClose }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'general': {
-        return <General close={onClose} />;
+        return <General />;
+      }
+
+      case 'themes': {
+        return <Themes />;
       }
 
       case 'proxy': {
-        return <Proxy close={onClose} />;
+        return <Proxy />;
       }
 
-      case 'theme': {
-        return <Theme close={onClose} />;
+      case 'display': {
+        return <Display />;
+      }
+
+      case 'keybindings': {
+        return <Keybindings />;
+      }
+
+      case 'beta': {
+        return <Beta />;
       }
 
       case 'support': {
         return <Support />;
       }
-
-      case 'font': {
-        return <Font close={onClose} />;
-      }
     }
   };
 
   return (
-    <StyledWrapper>
-      <Modal size="lg" title="Preferences" handleCancel={onClose} hideFooter={true}>
-        <div className="flex items-center px-2 tabs" role="tablist">
+    <StyledWrapper className="h-full">
+      <div className="flex flex-row gap-2 h-full">
+        <div className="flex flex-col items-center tabs tablist" role="tablist">
           <div className={getTabClassname('general')} role="tab" onClick={() => setTab('general')}>
+            <IconSettings size={16} strokeWidth={1.5} />
             General
           </div>
-          <div className={getTabClassname('theme')} role="tab" onClick={() => setTab('theme')}>
-            Theme
+          <div className={getTabClassname('themes')} role="tab" onClick={() => setTab('themes')}>
+            <IconPalette size={16} strokeWidth={1.5} />
+            Themes
           </div>
-          <div className={getTabClassname('font')} role="tab" onClick={() => setTab('font')}>
-            Font
+          <div className={getTabClassname('display')} role="tab" onClick={() => setTab('display')}>
+            <IconBrowser size={16} strokeWidth={1.5} />
+            Display
           </div>
           <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
+            <IconUserCircle size={16} strokeWidth={1.5} />
             Proxy
           </div>
+          <div className={getTabClassname('keybindings')} role="tab" onClick={() => setTab('keybindings')}>
+            <IconKeyboard size={16} strokeWidth={1.5} />
+            Keybindings
+          </div>
           <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
+            <IconZoomQuestion size={16} strokeWidth={1.5} />
             Support
           </div>
+          <div className={getTabClassname('beta')} role="tab" onClick={() => setTab('beta')}>
+            <IconSquareLetterB size={16} strokeWidth={1.5} />
+            Beta
+          </div>
         </div>
-        <section className="flex flex-grow px-2 mt-4 tab-panel">{getTabPanel(tab)}</section>
-      </Modal>
+        <section
+          className="flex flex-grow ps-2 pe-4 pt-2 pb-6 p-[12px] tab-panel"
+          role="tabpanel"
+          id={`${tab}-panel`}
+          aria-labelledby={`${tab}-tab`}
+        >
+          {getTabPanel(tab)}
+        </section>
+      </div>
     </StyledWrapper>
   );
 };

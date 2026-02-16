@@ -1,0 +1,26 @@
+meta {
+  name: crypto-js-pre-request-script
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("crypto message", function() {
+    var CryptoJS = require("crypto-js");
+
+    // Encrypt
+    var ciphertext = CryptoJS.AES.encrypt('my message', 'secret key 123').toString();
+    
+    // Decrypt
+    var bytes  = CryptoJS.AES.decrypt(ciphertext, 'secret key 123');
+    var originalText = bytes.toString(CryptoJS.enc.Utf8);
+    
+    expect(originalText).to.eql('my message');
+  });
+}

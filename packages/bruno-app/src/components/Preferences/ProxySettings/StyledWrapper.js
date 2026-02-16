@@ -1,8 +1,13 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  
   .settings-label {
-    width: 80px;
+    width: 100px;
   }
 
   .textbox {
@@ -12,12 +17,53 @@ const StyledWrapper = styled.div`
     outline: none;
     transition: border-color ease-in-out 0.1s;
     border-radius: 3px;
-    background-color: ${(props) => props.theme.modal.input.bg};
-    border: 1px solid ${(props) => props.theme.modal.input.border};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
 
     &:focus {
-      border: solid 1px ${(props) => props.theme.modal.input.focusBorder} !important;
+      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
       outline: none !important;
+    }
+  }
+
+  .system-proxy-settings {
+    label {
+      color: ${(props) => props.theme.colors.text.yellow};
+    }
+
+    .system-proxy-title {
+      color: ${(props) => props.theme.text};
+    }
+
+    .system-proxy-description {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+
+    .system-proxy-error-container {
+      background: ${(props) => props.theme.status.danger.background};
+      border: 1px solid ${(props) => props.theme.status.danger.border};
+      width: fit-content;
+    }
+
+    .system-proxy-error-text {
+      color: ${(props) => props.theme.status.danger.text};
+    }
+
+    .system-proxy-source-label {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+
+    .system-proxy-source-value {
+      color: ${(props) => props.theme.text};
+    }
+
+    .system-proxy-info-text {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+
+    .system-proxy-value {
+      color: ${(props) => props.theme.colors.text.purple};
+      opacity: 0.8;
     }
   }
 `;

@@ -14,7 +14,7 @@ script:pre-request {
     const output = parser(input);
     const expected = {
       script: {
-        req: "$req.setHeader('Content-Type', 'application/json');"
+        req: '$req.setHeader(\'Content-Type\', \'application/json\');'
       }
     };
     expect(output).toEqual(expected);

@@ -1,0 +1,217 @@
+const { describe, it, expect } = require('@jest/globals');
+const xmlbuilder = require('xmlbuilder');
+const fs = require('fs');
+
+const makeJUnitOutput = require('../../src/reporters/junit');
+
+describe('makeJUnitOutput', () => {
+  let createStub = jest.fn();
+
+  beforeEach(() => {
+    jest.spyOn(xmlbuilder, 'create').mockImplementation(() => {
+      return { end: createStub };
+    });
+    jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('should produce a junit spec object for serialization', () => {
+    const results = [
+      {
+        description: 'description provided',
+        name: 'Tests/Suite A',
+        test: {
+          filename: 'Tests/Suite A.bru'
+        },
+        request: {
+          method: 'GET',
+          url: 'https://ima.test'
+        },
+        assertionResults: [
+          {
+            lhsExpr: 'res.status',
+            rhsExpr: 'eq 200',
+            status: 'pass'
+          },
+          {
+            lhsExpr: 'res.status',
+            rhsExpr: 'neq 200',
+            status: 'fail',
+            error: 'expected 200 to not equal 200'
+          }
+        ],
+        runDuration: 1.2345678
+      },
+      {
+        request: {
+          method: 'GET',
+          url: 'https://imanother.test'
+        },
+        name: 'Tests/Suite B',
+        test: {
+          filename: 'Tests/Suite B.bru'
+        },
+        testResults: [
+          {
+            lhsExpr: 'res.status',
+            rhsExpr: 'eq 200',
+            description: 'A test that passes',
+            status: 'pass'
+          },
+          {
+            description: 'A test that fails',
+            status: 'fail',
+            error: 'expected 200 to not equal 200',
+            status: 'fail'
+          }
+        ],
+        runDuration: 2.3456789
+      }
+    ];
+
+    makeJUnitOutput(results, '/tmp/testfile.xml');
+    expect(createStub).toBeCalled;
+
+    const junit = xmlbuilder.create.mock.calls[0][0];
+
+    expect(junit.testsuites).toBeDefined;
+    expect(junit.testsuites.testsuite.length).toBe(2);
+    expect(junit.testsuites.testsuite[0].testcase.length).toBe(2);
+    expect(junit.testsuites.testsuite[1].testcase.length).toBe(2);
+
+    expect(junit.testsuites.testsuite[0]['@name']).toBe('Tests/Suite A');
+    expect(junit.testsuites.testsuite[1]['@name']).toBe('Tests/Suite B');
+
+    expect(junit.testsuites.testsuite[0]['@file']).toBe('Tests/Suite A.bru');
+    expect(junit.testsuites.testsuite[1]['@file']).toBe('Tests/Suite B.bru');
+
+    expect(junit.testsuites.testsuite[0]['@tests']).toBe(2);
+    expect(junit.testsuites.testsuite[1]['@tests']).toBe(2);
+
+    const testcase = junit.testsuites.testsuite[0].testcase[0];
+
+    expect(testcase['@name']).toBe('res.status eq 200');
+    expect(testcase['@status']).toBe('pass');
+
+    const failcase = junit.testsuites.testsuite[0].testcase[1];
+
+    expect(failcase['@name']).toBe('res.status neq 200');
+    expect(failcase.failure).toBeDefined;
+    expect(failcase.failure[0]['@type']).toBe('failure');
+  });
+
+  it('should handle request errors', () => {
+    const results = [
+      {
+        description: 'description provided',
+        name: 'Tests/Suite A',
+        test: {
+          filename: 'Tests/Suite A.bru'
+        },
+        request: {
+          method: 'GET',
+          url: 'https://ima.test'
+        },
+        assertionResults: [
+          {
+            lhsExpr: 'res.status',
+            rhsExpr: 'eq 200',
+            status: 'fail'
+          }
+        ],
+        runDuration: 1.2345678,
+        error: 'timeout of 2000ms exceeded'
+      }
+    ];
+
+    makeJUnitOutput(results, '/tmp/testfile.xml');
+
+    const junit = xmlbuilder.create.mock.calls[0][0];
+
+    expect(createStub).toBeCalled;
+
+    expect(junit.testsuites).toBeDefined;
+    expect(junit.testsuites.testsuite.length).toBe(1);
+    expect(junit.testsuites.testsuite[0].testcase.length).toBe(1);
+    expect(junit.testsuites.testsuite[0]['@file']).toBe('Tests/Suite A.bru');
+
+    const failcase = junit.testsuites.testsuite[0].testcase[0];
+
+    expect(failcase['@name']).toBe('Test suite has no errors');
+    expect(failcase.error).toBeDefined;
+    expect(failcase.error[0]['@type']).toBe('error');
+    expect(failcase.error[0]['@message']).toBe('timeout of 2000ms exceeded');
+  });
+
+  it('should include preRequestTestResults and postResponseTestResults in the junit output', () => {
+    const results = [
+      {
+        name: 'Tests/Suite A',
+        test: {
+          filename: 'Tests/Suite A.bru'
+        },
+        request: {
+          method: 'GET',
+          url: 'https://ima.test'
+        },
+        preRequestTestResults: [
+          {
+            description: 'A test from Pre Request Script',
+            status: 'pass'
+          }
+        ],
+        testResults: [
+          {
+            description: 'A test from Tests tab',
+            status: 'pass'
+          }
+        ],
+        postResponseTestResults: [
+          {
+            description: 'A test from Post Response Script',
+            status: 'pass'
+          },
+          {
+            description: 'A failing test from Post Response Script',
+            status: 'fail',
+            error: 'expected 200 to equal 404'
+          }
+        ],
+        runDuration: 1.2345678
+      }
+    ];
+
+    makeJUnitOutput(results, '/tmp/testfile.xml');
+    expect(createStub).toBeCalled;
+
+    const junit = xmlbuilder.create.mock.calls[0][0];
+
+    expect(junit.testsuites).toBeDefined;
+    expect(junit.testsuites.testsuite.length).toBe(1);
+    expect(junit.testsuites.testsuite[0].testcase.length).toBe(4);
+    expect(junit.testsuites.testsuite[0]['@file']).toBe('Tests/Suite A.bru');
+    expect(junit.testsuites.testsuite[0]['@tests']).toBe(4);
+
+    const testcase1 = junit.testsuites.testsuite[0].testcase[0];
+    expect(testcase1['@name']).toBe('A test from Pre Request Script');
+    expect(testcase1['@status']).toBe('pass');
+
+    const testcase2 = junit.testsuites.testsuite[0].testcase[1];
+    expect(testcase2['@name']).toBe('A test from Tests tab');
+    expect(testcase2['@status']).toBe('pass');
+
+    const testcase3 = junit.testsuites.testsuite[0].testcase[2];
+    expect(testcase3['@name']).toBe('A test from Post Response Script');
+    expect(testcase3['@status']).toBe('pass');
+
+    const failcase = junit.testsuites.testsuite[0].testcase[3];
+    expect(failcase['@name']).toBe('A failing test from Post Response Script');
+    expect(failcase['@status']).toBe('fail');
+    expect(failcase.failure).toBeDefined;
+    expect(failcase.failure[0]['@type']).toBe('failure');
+    expect(failcase.failure[0]['@message']).toBe('expected 200 to equal 404');
+  });
+});

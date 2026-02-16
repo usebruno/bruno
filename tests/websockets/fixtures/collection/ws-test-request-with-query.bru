@@ -1,0 +1,19 @@
+meta {
+  name: ws-test-request-with-query
+  type: ws
+  seq: 3
+}
+
+ws {
+  url: ws://localhost:8081/ws?testParam=testValue&anotherParam={{variable}}
+  auth: inherit
+}
+
+body:ws {
+  name: message 1
+  content: '''
+    {
+      "func":"query"
+    }
+  '''
+}

@@ -1,57 +1,87 @@
-import React, { useRef, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useRef, useEffect, useState, forwardRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
-import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { browseDirectory, createCollection } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
-import Tooltip from 'components/Tooltip';
+import Portal from 'components/Portal';
 import Modal from 'components/Modal';
+import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
+import PathDisplay from 'components/PathDisplay/index';
+import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
+import Help from 'components/Help';
+import Dropdown from 'components/Dropdown';
+import { multiLineMsg } from 'utils/common';
+import { formatIpcError } from 'utils/common/error';
+import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
+import StyledWrapper from './StyledWrapper';
+import get from 'lodash/get';
+import Button from 'ui/Button';
 
-const CreateCollection = ({ onClose }) => {
+const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
+  const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
+  const workspaceUid = useSelector((state) => state.workspaces?.activeWorkspaceUid);
+  const [isEditing, toggleEditing] = useState(false);
+  const [showFileFormat, setShowFileFormat] = useState(false);
+  const preferences = useSelector((state) => state.app.preferences);
+
+  const dropdownTippyRef = useRef();
+  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+  const activeWorkspace = workspaces.find((w) => w.uid === workspaceUid);
+  const isDefaultWorkspace = activeWorkspace?.type === 'default';
+
+  const defaultLocation = isDefaultWorkspace ? get(preferences, 'general.defaultCollectionLocation', '') : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       collectionName: '',
       collectionFolderName: '',
-      collectionLocation: ''
+      collectionLocation: defaultLocation || '',
+      format: DEFAULT_COLLECTION_FORMAT
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
+        .max(255, 'must be 255 characters or less')
         .required('collection name is required'),
       collectionFolderName: Yup.string()
         .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
-        .matches(/^[\w\-. ]+$/, 'Folder name contains invalid characters')
-        .required('folder name is required'),
-      collectionLocation: Yup.string().min(1, 'location is required').required('location is required')
-    }),
-    onSubmit: (values) => {
-      dispatch(createCollection(values.collectionName, values.collectionFolderName, values.collectionLocation))
-        .then(() => {
-          toast.success('Collection created');
-          onClose();
+        .max(255, 'must be 255 characters or less')
+        .test('is-valid-collection-name', function (value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
         })
-        .catch(() => toast.error('An error occurred while creating the collection'));
+        .required('folder name is required'),
+      collectionLocation: Yup.string().min(1, 'location is required').required('location is required'),
+      format: Yup.string().oneOf(['bru', 'yml'], 'invalid format').required('format is required')
+    }),
+    onSubmit: async (values) => {
+      try {
+        await dispatch(createCollection(values.collectionName,
+          values.collectionFolderName,
+          values.collectionLocation,
+          { format: values.format }));
+
+        toast.success('Collection created!');
+        onClose();
+      } catch (e) {
+        toast.error(multiLineMsg('An error occurred while creating the collection', formatIpcError(e)));
+      }
     }
   });
 
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
-        // When the user closes the diolog without selecting anything dirPath will be false
         if (typeof dirPath === 'string') {
           formik.setFieldValue('collectionLocation', dirPath);
         }
       })
-      .catch((error) => {
+      .catch(() => {
         formik.setFieldValue('collectionLocation', '');
-        console.error(error);
       });
   };
 
@@ -61,87 +91,203 @@ const CreateCollection = ({ onClose }) => {
     }
   }, [inputRef]);
 
-  const onSubmit = () => formik.handleSubmit();
+  const AdvancedOptions = forwardRef((props, ref) => {
+    return (
+      <div ref={ref} className="flex mr-2 text-link cursor-pointer items-center">
+        <button
+          className="btn-advanced"
+          type="button"
+        >
+          Options
+        </button>
+        <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
+      </div>
+    );
+  });
 
   return (
-    <Modal size="sm" title="Create Collection" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div>
-          <label htmlFor="collection-name" className="flex items-center font-semibold">
-            Name
-          </label>
-          <input
-            id="collection-name"
-            type="text"
-            name="collectionName"
-            ref={inputRef}
-            className="block textbox mt-2 w-full"
-            onChange={(e) => {
-              formik.handleChange(e);
-              if (formik.values.collectionName === formik.values.collectionFolderName) {
-                formik.setFieldValue('collectionFolderName', e.target.value);
-              }
-            }}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            value={formik.values.collectionName || ''}
-          />
-          {formik.touched.collectionName && formik.errors.collectionName ? (
-            <div className="text-red-500">{formik.errors.collectionName}</div>
-          ) : null}
+    <Portal>
+      <StyledWrapper>
+        <Modal size="md" title="Create Collection" hideFooter={true} handleCancel={onClose}>
+          <form className="bruno-form" onSubmit={formik.handleSubmit}>
+            <div>
+              <label htmlFor="collection-name" className="flex items-center font-medium">
+                Name
+              </label>
+              <input
+                id="collection-name"
+                type="text"
+                name="collectionName"
+                ref={inputRef}
+                className="block textbox mt-2 w-full"
+                onChange={(e) => {
+                  formik.handleChange(e);
+                  !isEditing && formik.setFieldValue('collectionFolderName', sanitizeName(e.target.value));
+                }}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                value={formik.values.collectionName || ''}
+              />
+              {formik.touched.collectionName && formik.errors.collectionName ? (
+                <div className="text-red-500">{formik.errors.collectionName}</div>
+              ) : null}
 
-          <label htmlFor="collection-location" className="block font-semibold mt-3">
-            Location
-          </label>
-          <input
-            id="collection-location"
-            type="text"
-            name="collectionLocation"
-            readOnly={true}
-            className="block textbox mt-2 w-full cursor-pointer"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            value={formik.values.collectionLocation || ''}
-            onClick={browse}
-          />
-          {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
-            <div className="text-red-500">{formik.errors.collectionLocation}</div>
-          ) : null}
-          <div className="mt-1">
-            <span className="text-link cursor-pointer hover:underline" onClick={browse}>
-              Browse
-            </span>
-          </div>
+              <label htmlFor="collection-location" className="font-medium mt-3 flex items-center">
+                Location
+                <Help>
+                  <p>
+                    Bruno stores your collections on your computer's filesystem.
+                  </p>
+                  <p className="mt-2">
+                    Choose the location where you want to store this collection.
+                  </p>
+                </Help>
+              </label>
+              <input
+                id="collection-location"
+                type="text"
+                name="collectionLocation"
+                className="block textbox mt-2 w-full cursor-pointer"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                readOnly={true}
+                value={formik.values.collectionLocation || ''}
+                onClick={browse}
+                onChange={(e) => {
+                  formik.setFieldValue('collectionLocation', e.target.value);
+                }}
+              />
+              {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
+                <div className="text-red-500">{formik.errors.collectionLocation}</div>
+              ) : null}
+              <div className="mt-1">
+                <span
+                  className="text-link cursor-pointer hover:underline"
+                  onClick={browse}
+                >
+                  Browse
+                </span>
+              </div>
+              {formik.values.collectionName?.trim()?.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="filename" className="flex items-center font-medium">
+                      Folder Name
+                      <Help width="300">
+                        <p>
+                          The name of the folder used to store the collection.
+                        </p>
+                        <p className="mt-2">
+                          You can choose a folder name different from your collection's name or one compatible with filesystem rules.
+                        </p>
+                      </Help>
+                    </label>
+                    {isEditing ? (
+                      <IconArrowBackUp
+                        className="cursor-pointer opacity-50 hover:opacity-80"
+                        size={16}
+                        strokeWidth={1.5}
+                        onClick={() => toggleEditing(false)}
+                      />
+                    ) : (
+                      <IconEdit
+                        className="cursor-pointer opacity-50 hover:opacity-80"
+                        size={16}
+                        strokeWidth={1.5}
+                        onClick={() => toggleEditing(true)}
+                      />
+                    )}
+                  </div>
+                  {isEditing ? (
+                    <input
+                      id="collection-folder-name"
+                      type="text"
+                      name="collectionFolderName"
+                      className="block textbox mt-2 w-full"
+                      onChange={formik.handleChange}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      value={formik.values.collectionFolderName || ''}
+                    />
+                  ) : (
+                    <div className="relative flex flex-row gap-1 items-center justify-between">
+                      <PathDisplay
+                        baseName={formik.values.collectionFolderName}
+                      />
+                    </div>
+                  )}
+                  {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
+                    <div className="text-red-500">{formik.errors.collectionFolderName}</div>
+                  ) : null}
+                </div>
+              )}
 
-          <label htmlFor="collection-folder-name" className="flex items-center mt-3">
-            <span className="font-semibold">Folder Name</span>
-            <Tooltip
-              text="This folder will be created under the selected location"
-              tooltipId="collection-folder-name-tooltip"
-            />
-          </label>
-          <input
-            id="collection-folder-name"
-            type="text"
-            name="collectionFolderName"
-            className="block textbox mt-2 w-full"
-            onChange={formik.handleChange}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            value={formik.values.collectionFolderName || ''}
-          />
-          {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
-            <div className="text-red-500">{formik.errors.collectionFolderName}</div>
-          ) : null}
-        </div>
-      </form>
-    </Modal>
+              {showFileFormat && (
+                <div className="mt-4">
+                  <label htmlFor="format" className="flex items-center font-medium">
+                    File Format
+                    <Help width="300">
+                      <p>
+                        Choose the file format for storing requests in this collection.
+                      </p>
+                      <p className="mt-2">
+                        <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
+                      </p>
+                      <p className="mt-1">
+                        <strong>BRU:</strong> Bruno's native file format (.bru files)
+                      </p>
+                    </Help>
+                  </label>
+                  <select
+                    id="format"
+                    name="format"
+                    className="block textbox mt-2 w-full"
+                    value={formik.values.format}
+                    onChange={formik.handleChange}
+                  >
+                    <option value="yml">OpenCollection (YAML)</option>
+                    <option value="bru">BRU Format (.bru)</option>
+                  </select>
+                  {formik.touched.format && formik.errors.format ? (
+                    <div className="text-red-500">{formik.errors.format}</div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-between items-center mt-8 bruno-modal-footer">
+              <div className="flex advanced-options">
+                <Dropdown onCreate={onDropdownCreate} icon={<AdvancedOptions />} placement="bottom-start">
+                  <div
+                    className="dropdown-item"
+                    key="show-file-format"
+                    onClick={(e) => {
+                      dropdownTippyRef.current.hide();
+                      setShowFileFormat(!showFileFormat);
+                    }}
+                  >
+                    {showFileFormat ? 'Hide File Format' : 'Show File Format'}
+                  </div>
+                </Dropdown>
+              </div>
+              <div className="flex justify-end">
+                <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Create
+                </Button>
+              </div>
+            </div>
+          </form>
+        </Modal>
+      </StyledWrapper>
+    </Portal>
   );
 };
 

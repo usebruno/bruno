@@ -1,148 +1,148 @@
-import React from 'react';
-import find from 'lodash/find';
+import React, { useRef, useCallback, useMemo } from 'react';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
+import { find, get } from 'lodash';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
 import Auth from 'components/RequestPane/Auth';
-import AuthMode from 'components/RequestPane/Auth/AuthMode';
 import Vars from 'components/RequestPane/Vars';
 import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
-import StyledWrapper from './StyledWrapper';
-import { get } from 'lodash';
+import Settings from 'components/RequestPane/Settings';
 import Documentation from 'components/Documentation/index';
+import StatusDot from 'components/StatusDot';
+import ResponsiveTabs from 'ui/ResponsiveTabs';
+import HeightBoundContainer from 'ui/HeightBoundContainer';
+import AuthMode from '../Auth/AuthMode/index';
 
-const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
+const TAB_CONFIG = [
+  { key: 'params', label: 'Params' },
+  { key: 'body', label: 'Body' },
+  { key: 'headers', label: 'Headers' },
+  { key: 'auth', label: 'Auth' },
+  { key: 'vars', label: 'Vars' },
+  { key: 'script', label: 'Script' },
+  { key: 'assert', label: 'Assert' },
+  { key: 'tests', label: 'Tests' },
+  { key: 'docs', label: 'Docs' },
+  { key: 'settings', label: 'Settings' }
+];
+
+const TAB_PANELS = {
+  params: QueryParams,
+  body: RequestBody,
+  headers: RequestHeaders,
+  auth: Auth,
+  vars: Vars,
+  assert: Assertions,
+  script: Script,
+  tests: Tests,
+  docs: Documentation,
+  settings: Settings
+};
+
+const HttpRequestPane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
-  const selectTab = (tab) => {
-    dispatch(
-      updateRequestPaneTab({
-        uid: item.uid,
-        requestPaneTab: tab
-      })
-    );
-  };
-
-  const getTabPanel = (tab) => {
-    switch (tab) {
-      case 'params': {
-        return <QueryParams item={item} collection={collection} />;
-      }
-      case 'body': {
-        return <RequestBody item={item} collection={collection} />;
-      }
-      case 'headers': {
-        return <RequestHeaders item={item} collection={collection} />;
-      }
-      case 'auth': {
-        return <Auth item={item} collection={collection} />;
-      }
-      case 'vars': {
-        return <Vars item={item} collection={collection} />;
-      }
-      case 'assert': {
-        return <Assertions item={item} collection={collection} />;
-      }
-      case 'script': {
-        return <Script item={item} collection={collection} />;
-      }
-      case 'tests': {
-        return <Tests item={item} collection={collection} />;
-      }
-      case 'docs': {
-        return <Documentation item={item} collection={collection} />;
-      }
-      default: {
-        return <div className="mt-4">404 | Not found</div>;
-      }
-    }
-  };
-
-  if (!activeTabUid) {
-    return <div>Something went wrong</div>;
-  }
+  const rightContentRef = useRef(null);
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  if (!focusedTab || !focusedTab.uid || !focusedTab.requestPaneTab) {
+  const requestPaneTab = focusedTab?.requestPaneTab;
+
+  const getProperty = useCallback(
+    (key) => (item.draft ? get(item, `draft.${key}`, []) : get(item, key, [])),
+    [item.draft, item]
+  );
+
+  const params = getProperty('request.params');
+  const body = getProperty('request.body');
+  const headers = getProperty('request.headers');
+  const script = getProperty('request.script');
+  const assertions = getProperty('request.assertions');
+  const tests = getProperty('request.tests');
+  const docs = getProperty('request.docs');
+  const requestVars = getProperty('request.vars.req');
+  const responseVars = getProperty('request.vars.res');
+  const auth = getProperty('request.auth');
+  const tags = getProperty('tags');
+
+  const activeCounts = useMemo(() => ({
+    params: params.filter((p) => p.enabled).length,
+    headers: headers.filter((h) => h.enabled).length,
+    assertions: assertions.filter((a) => a.enabled).length,
+    vars: requestVars.filter((r) => r.enabled).length + responseVars.filter((r) => r.enabled).length
+  }), [params, headers, assertions, requestVars, responseVars]);
+
+  const selectTab = useCallback(
+    (tabKey) => {
+      dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: tabKey }));
+    },
+    [dispatch, item.uid]
+  );
+
+  const indicators = useMemo(() => {
+    const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
+    const hasTestError = item.testScriptErrorMessage;
+
+    return {
+      params: activeCounts.params > 0 ? <sup className="font-medium">{activeCounts.params}</sup> : null,
+      body: body.mode !== 'none' ? <StatusDot /> : null,
+      headers: activeCounts.headers > 0 ? <sup className="font-medium">{activeCounts.headers}</sup> : null,
+      auth: auth.mode !== 'none' ? <StatusDot /> : null,
+      vars: activeCounts.vars > 0 ? <sup className="font-medium">{activeCounts.vars}</sup> : null,
+      script: (script.req || script.res) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null,
+      assert: activeCounts.assertions > 0 ? <sup className="font-medium">{activeCounts.assertions}</sup> : null,
+      tests: tests?.length > 0 ? (hasTestError ? <StatusDot type="error" /> : <StatusDot />) : null,
+      docs: docs?.length > 0 ? <StatusDot /> : null,
+      settings: tags?.length > 0 ? <StatusDot /> : null
+    };
+  }, [activeCounts, body.mode, auth.mode, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, tags]);
+
+  const allTabs = useMemo(
+    () => TAB_CONFIG.map(({ key, label }) => ({ key, label, indicator: indicators[key] })),
+    [indicators]
+  );
+
+  const tabPanel = useMemo(() => {
+    const Component = TAB_PANELS[requestPaneTab];
+    return Component ? <Component item={item} collection={collection} /> : <div className="mt-4">404 | Not found</div>;
+  }, [requestPaneTab, item, collection]);
+
+  if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const getTabClassname = (tabName) => {
-    return classnames(`tab select-none ${tabName}`, {
-      active: tabName === focusedTab.requestPaneTab
-    });
-  };
-
-  // get the length of active params, headers, asserts and vars
-  const params = item.draft ? get(item, 'draft.request.params', []) : get(item, 'request.params', []);
-  const headers = item.draft ? get(item, 'draft.request.headers', []) : get(item, 'request.headers', []);
-  const assertions = item.draft ? get(item, 'draft.request.assertions', []) : get(item, 'request.assertions', []);
-  const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
-  const responseVars = item.draft ? get(item, 'draft.request.vars.res', []) : get(item, 'request.vars.res', []);
-
-  const activeParamsLength = params.filter((param) => param.enabled).length;
-  const activeHeadersLength = headers.filter((header) => header.enabled).length;
-  const activeAssertionsLength = assertions.filter((assertion) => assertion.enabled).length;
-  const activeVarsLength =
-    requestVars.filter((request) => request.enabled).length +
-    responseVars.filter((response) => response.enabled).length;
+  const rightContent = requestPaneTab === 'body' ? (
+    <div ref={rightContentRef}>
+      <RequestBodyMode item={item} collection={collection} />
+    </div>
+  ) : requestPaneTab === 'auth' ? (
+    <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
+      <AuthMode item={item} collection={collection} />
+    </div>
+  ) : null;
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center tabs" role="tablist">
-        <div className={getTabClassname('params')} role="tab" onClick={() => selectTab('params')}>
-          Query
-          {activeParamsLength > 0 && <sup className="ml-1 font-medium">{activeParamsLength}</sup>}
-        </div>
-        <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>
-          Body
-        </div>
-        <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
-          Headers
-          {activeHeadersLength > 0 && <sup className="ml-1 font-medium">{activeHeadersLength}</sup>}
-        </div>
-        <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
-          Auth
-        </div>
-        <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
-          Vars
-          {activeVarsLength > 0 && <sup className="ml-1 font-medium">{activeVarsLength}</sup>}
-        </div>
-        <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
-          Script
-        </div>
-        <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
-          Assert
-          {activeAssertionsLength > 0 && <sup className="ml-1 font-medium">{activeAssertionsLength}</sup>}
-        </div>
-        <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
-          Tests
-        </div>
-        <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
-          Docs
-        </div>
-        {focusedTab.requestPaneTab === 'body' ? (
-          <div className="flex flex-grow justify-end items-center">
-            <RequestBodyMode item={item} collection={collection} />
-          </div>
-        ) : null}
-      </div>
-      <section
-        className={`flex w-full ${
-          ['script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'
-        }`}
-      >
-        {getTabPanel(focusedTab.requestPaneTab)}
+    <div className="flex flex-col h-full relative">
+      <ResponsiveTabs
+        tabs={allTabs}
+        activeTab={requestPaneTab}
+        onTabSelect={selectTab}
+        rightContent={rightContent}
+        rightContentRef={rightContent ? rightContentRef : null}
+        delayedTabs={['body']}
+      />
+
+      <section className={classnames('flex w-full flex-1 mt-4')}>
+        <HeightBoundContainer>{tabPanel}</HeightBoundContainer>
       </section>
-    </StyledWrapper>
+    </div>
   );
 };
 

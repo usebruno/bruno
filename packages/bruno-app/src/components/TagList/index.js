@@ -1,0 +1,85 @@
+import { useState } from 'react';
+import { IconX, IconTag } from '@tabler/icons';
+import StyledWrapper from './StyledWrapper';
+import SingleLineEditor from 'components/SingleLineEditor/index';
+import { useTheme } from 'providers/Theme/index';
+
+const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSave, handleValidation, collectionFormat }) => {
+  const { displayedTheme } = useTheme();
+  const isBruFormat = collectionFormat === 'bru';
+  const tagNameRegex = isBruFormat ? /^[\w-]+$/ : /^[\w-][\w\s-]*[\w-]$|^[\w-]+$/;
+  const [text, setText] = useState('');
+  const [error, setError] = useState('');
+
+  const handleInputChange = (value) => {
+    setError('');
+    setText(value);
+  };
+
+  const handleKeyDown = (e) => {
+    if (!text.trim()) {
+      return;
+    }
+    if (!tagNameRegex.test(text)) {
+      setError(isBruFormat
+        ? 'Tags in BRU format must only contain alpha-numeric characters, "-", "_".'
+        : 'Tags must only contain alpha-numeric characters, spaces, "-", "_"'
+      );
+      return;
+    }
+    if (tags.includes(text)) {
+      setError(`Tag "${text}" already exists`);
+      return;
+    }
+    if (handleValidation) {
+      const error = handleValidation(text);
+      if (error) {
+        setError(error);
+        return;
+      }
+    }
+    handleAddTag(text);
+    setText('');
+  };
+
+  return (
+    <StyledWrapper className="flex flex-wrap flex-col gap-2">
+      <SingleLineEditor
+        className="border border-gray-500/50 px-2"
+        value={text}
+        placeholder="e.g., smoke, regression etc"
+        autocomplete={tagsHintList}
+        showHintsOnClick={true}
+        showHintsFor={[]}
+        theme={displayedTheme}
+        onChange={handleInputChange}
+        onRun={handleKeyDown}
+        onSave={onSave}
+        data-testid="tag-input"
+      />
+      {error && <span className="text-xs text-red-500">{error}</span>}
+      <ul className="flex flex-wrap gap-1">
+        {tags && tags.length
+          ? tags.map((_tag) => (
+              <li key={_tag}>
+                <button
+                  className="tag-item"
+                  type="button"
+                >
+                  <IconTag size={12} className="tag-icon" aria-hidden="true" />
+                  <span className="tag-text" title={_tag}>
+                    {_tag}
+                  </span>
+                  <span className="tag-remove" title="Remove tag" onClick={() => handleRemoveTag(_tag)}>
+                    <IconX size={12} strokeWidth={2} aria-hidden="true" />
+                  </span>
+                </button>
+              </li>
+            ))
+          : null}
+      </ul>
+    </StyledWrapper>
+  );
+};
+
+export default TagList;

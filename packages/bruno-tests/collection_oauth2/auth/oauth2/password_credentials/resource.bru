@@ -1,0 +1,15 @@
+meta {
+  name: resource
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/auth/oauth2/password_credentials/resource
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{passwordCredentials_access_token}}
+}

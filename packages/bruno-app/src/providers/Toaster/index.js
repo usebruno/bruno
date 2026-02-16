@@ -1,20 +1,25 @@
 import React from 'react';
 import { Toaster } from 'react-hot-toast';
 import { useTheme } from 'providers/Theme';
+import { isPlaywright } from 'utils/common';
 
 export const ToastContext = React.createContext();
 
 export const ToastProvider = (props) => {
-  const { storedTheme } = useTheme();
+  const { theme, displayedTheme } = useTheme();
 
-  const toastOptions = { duration: 2000 };
-  if (storedTheme === 'dark') {
-    toastOptions.style = {
-      borderRadius: '10px',
-      background: '#3d3d3d',
-      color: '#fff'
-    };
-  }
+  const toastOptions = {
+    duration: isPlaywright() ? 500 : 2000,
+    style: {
+      // Break long word like file-path, URL etc. to prevent overflow
+      overflowWrap: 'anywhere',
+      borderRadius: theme.border.radius.lg,
+      background: displayedTheme === 'light'
+        ? theme.background.base
+        : theme.background.crust,
+      color: theme.text
+    }
+  };
 
   return (
     <ToastContext.Provider {...props} value="toastProvider">

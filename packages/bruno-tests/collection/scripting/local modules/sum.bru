@@ -1,0 +1,59 @@
+meta {
+  name: sum
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "a": 1,
+    "b": 2
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:pre-request {
+  const math = require("./lib/math.js");  
+  const body = req.getBody();
+  body.sum = math.sum(body.a, body.b);
+  
+  req.setBody(body);
+}
+
+tests {
+  test("should return json", function() {
+    const data = res.getBody();
+    expect(res.getBody()).to.eql({
+      "a": 1,
+      "b": 2,
+      "sum": 3
+    });
+  });
+  
+  test("should return json", function() {
+    const data = res.getBody();
+    expect(res.getBody()).to.eql({
+      "a": 1,
+      "b": 2,
+      "sum": 3
+    });
+  });
+  
+  test("should return json", function() {
+    const data = res.getBody();
+    expect(res.getBody()).to.eql({
+      "a": 1,
+      "b": 2,
+      "sum": 3
+    });
+  });
+}

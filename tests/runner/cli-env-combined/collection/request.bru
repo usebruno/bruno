@@ -1,0 +1,19 @@
+meta {
+  name: combined-env-test
+  type: http
+}
+
+http {
+  method: POST
+  url: {{baseUrl}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "overrideVar": "{{overrideVar}}",
+    "globalOnly": "{{globalOnly}}",
+    "collectionOnly": "{{collectionOnly}}"
+  }
+}

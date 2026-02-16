@@ -1,3 +1,5 @@
+[English](../../contributing.md)
+
 ## Vamos tornar o Bruno melhor, juntos!!
 
 Estamos felizes que você queira ajudar a melhorar o Bruno. Abaixo estão as diretrizes e orientações para começar a executar o Bruno no seu computador.
@@ -19,7 +21,7 @@ Bibliotecas que utilizamos:
 
 ### Dependências
 
-Você precisará do [Node v18.x (ou da versão LTS mais recente)](https://nodejs.org/en/) e do npm na versão 8.x. Nós utilizamos npm workspaces no projeto.
+Você precisará do [Node v20.x (ou da versão LTS mais recente)](https://nodejs.org/en/) e do npm na versão 8.x. Nós utilizamos npm workspaces no projeto.
 
 ## Desenvolvimento
 
@@ -68,11 +70,11 @@ find . -type f -name "package-lock.json" -delete
 ### Testando
 
 ```bash
-# bruno-schema
+# executar testes do bruno-schema
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# executar testes em todos os ambientes de trabalho
+npm test --workspaces --if-present
 ```
 
 ### Envio de Pull Request

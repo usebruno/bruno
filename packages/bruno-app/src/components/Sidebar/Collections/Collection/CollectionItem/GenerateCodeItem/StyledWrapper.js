@@ -1,37 +1,45 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  margin-inline: -1rem;
-  margin-block: -1.5rem;
-  background-color: ${(props) => props.theme.collection.environment.settings.bg};
+  height: 50vh;
+  display: flex;
+  flex-direction: column;
+  background-color: ${(props) => props.theme.modal.bg};
 
-  .generate-code-sidebar {
-    background-color: ${(props) => props.theme.collection.environment.settings.sidebar.bg};
-    border-right: solid 1px ${(props) => props.theme.collection.environment.settings.sidebar.borderRight};
-    min-height: 400px;
+  .code-generator {
+    display: flex;
+    flex-direction: column;
     height: 100%;
   }
 
-  .generate-code-item {
-    min-width: 150px;
-    display: block;
+  .editor-container {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
     position: relative;
-    cursor: pointer;
-    padding: 8px 10px;
-    border-left: solid 2px transparent;
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: none;
-      background-color: ${(props) => props.theme.collection.environment.settings.item.hoverBg};
-    }
+    background: ${(props) => props.theme.modal.bg};
+    margin-top: 0.5rem;
   }
 
-  .active {
-    background-color: ${(props) => props.theme.collection.environment.settings.item.active.bg} !important;
-    border-left: solid 2px ${(props) => props.theme.collection.environment.settings.item.border};
-    &:hover {
-      background-color: ${(props) => props.theme.collection.environment.settings.item.active.hoverBg} !important;
+  .error-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: ${(props) => props.theme.colors.text.muted};
+    text-align: center;
+    padding: 20px;
+
+    h1 {
+      font-size: ${(props) => props.theme.font.size.base};
+      margin-bottom: 8px;
+      color: ${(props) => props.theme.text};
+    }
+
+    p {
+      font-size: ${(props) => props.theme.font.size.sm};
+      opacity: 0.8;
     }
   }
 `;

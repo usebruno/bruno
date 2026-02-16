@@ -43,10 +43,10 @@ const CopyEnvironment = ({ collection, environment, onClose }) => {
 
   return (
     <Portal>
-      <Modal size="sm" title={'Copy Environment'} confirmText="Copy" handleConfirm={onSubmit} handleCancel={onClose}>
-        <form className="bruno-form" onSubmit={formik.handleSubmit}>
+      <Modal size="sm" title="Copy Environment" confirmText="Copy" handleConfirm={onSubmit} handleCancel={onClose}>
+        <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
-            <label htmlFor="name" className="block font-semibold">
+            <label htmlFor="name" className="block font-medium">
               New Environment Name
             </label>
             <input

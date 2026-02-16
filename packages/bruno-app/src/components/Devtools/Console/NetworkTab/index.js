@@ -1,0 +1,191 @@
+import React, { useMemo } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import {
+  IconNetwork
+} from '@tabler/icons';
+import {
+  setSelectedRequest
+} from 'providers/ReduxStore/slices/logs';
+import StyledWrapper from './StyledWrapper';
+
+const MethodBadge = ({ method }) => {
+  const methodLower = method?.toLowerCase() || 'get';
+
+  return (
+    <span className={`method-badge ${methodLower}`}>
+      {method?.toUpperCase() || 'GET'}
+    </span>
+  );
+};
+
+const StatusBadge = ({ status, statusCode }) => {
+  const displayStatus = statusCode || status;
+
+  return (
+    <span className="status-badge">
+      {displayStatus}
+    </span>
+  );
+};
+
+const RequestRow = ({ request, isSelected, onClick }) => {
+  const { data } = request;
+  const { request: req, response: res, timestamp } = data;
+
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      fractionalSecondDigits: 3
+    });
+  };
+
+  const formatDuration = (duration) => {
+    if (!duration) return '-';
+    if (duration < 1000) return `${Math.round(duration)}ms`;
+    return `${(duration / 1000).toFixed(2)}s`;
+  };
+
+  const formatSize = (size) => {
+    if (!size) return '-';
+    if (size < 1024) return `${size}B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)}KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)}MB`;
+  };
+
+  const getUrl = () => {
+    return req?.url || 'Unknown URL';
+  };
+
+  const getDomain = () => {
+    try {
+      const url = new URL(getUrl());
+      return url.hostname;
+    } catch {
+      return getUrl();
+    }
+  };
+
+  const getPath = () => {
+    try {
+      const url = new URL(getUrl());
+      return url.pathname + url.search;
+    } catch {
+      return getUrl();
+    }
+  };
+
+  return (
+    <div
+      className={`request-row ${isSelected ? 'selected' : ''}`}
+      onClick={onClick}
+    >
+      <div className="request-method">
+        <MethodBadge method={req?.method} />
+      </div>
+
+      <div className="request-status">
+        <StatusBadge status={res?.status} statusCode={res?.statusCode} />
+      </div>
+
+      <div className="request-domain" title={getDomain()}>
+        {getDomain()}
+      </div>
+
+      <div className="request-path" title={getPath()}>
+        {getPath()}
+      </div>
+
+      <div className="request-time">
+        {formatTime(timestamp)}
+      </div>
+
+      <div className="request-duration">
+        {formatDuration(res?.duration)}
+      </div>
+
+      <div className="request-size">
+        {formatSize(res?.size)}
+      </div>
+    </div>
+  );
+};
+
+const NetworkTab = () => {
+  const dispatch = useDispatch();
+  const { networkFilters, selectedRequest } = useSelector((state) => state.logs);
+  const collections = useSelector((state) => state.collections.collections);
+
+  const allRequests = useMemo(() => {
+    const requests = [];
+
+    collections.forEach((collection) => {
+      if (collection.timeline) {
+        collection.timeline
+          .filter((entry) => entry.type === 'request')
+          .forEach((entry) => {
+            requests.push({
+              ...entry,
+              collectionName: collection.name,
+              collectionUid: collection.uid
+            });
+          });
+      }
+    });
+
+    return requests.sort((a, b) => a.timestamp - b.timestamp);
+  }, [collections]);
+
+  const filteredRequests = useMemo(() => {
+    return allRequests.filter((request) => {
+      const method = request.data?.request?.method?.toUpperCase() || 'GET';
+      return networkFilters[method];
+    });
+  }, [allRequests, networkFilters]);
+
+  const handleRequestClick = (request) => {
+    dispatch(setSelectedRequest(request));
+  };
+
+  return (
+    <StyledWrapper>
+      <div className="network-content">
+        {filteredRequests.length === 0 ? (
+          <div className="network-empty">
+            <IconNetwork size={48} strokeWidth={1} />
+            <p>No network requests</p>
+            <span>Requests will appear here as you make API calls</span>
+          </div>
+        ) : (
+          <div className="requests-container">
+            <div className="requests-header">
+              <div>Method</div>
+              <div>Status</div>
+              <div>Domain</div>
+              <div>Path</div>
+              <div>Time</div>
+              <div className="text-right">Duration</div>
+              <div className="text-right">Size</div>
+            </div>
+
+            <div className="requests-list">
+              {filteredRequests.map((request, index) => (
+                <RequestRow
+                  key={`${request.collectionUid}-${request.itemUid}-${request.timestamp}-${index}`}
+                  request={request}
+                  isSelected={selectedRequest?.timestamp === request.timestamp && selectedRequest?.itemUid === request.itemUid}
+                  onClick={() => handleRequestClick(request)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </StyledWrapper>
+  );
+};
+
+export default NetworkTab;
