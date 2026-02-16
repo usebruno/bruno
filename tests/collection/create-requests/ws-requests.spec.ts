@@ -10,21 +10,6 @@ test.describe('Create WebSocket Requests', () => {
   });
 
   test.afterAll(async ({ pageWithUserData: page }) => {
-    const locators = buildCommonLocators(page);
-
-    // Clean up Folder WebSocket Request
-    await locators.sidebar.request('Folder WebSocket Request').hover();
-    await locators.actions.collectionItemActions('Folder WebSocket Request').click();
-    await locators.dropdown.item('Delete').click();
-    await locators.modal.button('Delete').click();
-
-    // Clean up Root WebSocket Request
-    await locators.sidebar.request('Root WebSocket Request').hover();
-    await locators.actions.collectionItemActions('Root WebSocket Request').click();
-    await locators.dropdown.item('Delete').click();
-    await locators.modal.button('Delete').click();
-
-    // Clean up collection
     await closeAllCollections(page);
   });
 
