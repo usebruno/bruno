@@ -18,7 +18,7 @@ params:query {
             value: 'active',
             enabled: true,
             type: 'query',
-            decorators: [{ type: 'choices', args: ['active', 'inactive', 'pending'] }]
+            decorators: [{ type: 'choices', args: { options: ['active', 'inactive', 'pending'] } }]
           },
           { name: 'environment', value: 'prod', enabled: true, type: 'query' }
         ]
@@ -42,7 +42,7 @@ params:path {
             value: '123',
             enabled: true,
             type: 'path',
-            decorators: [{ type: 'choices', args: ['123', '456', '789'] }]
+            decorators: [{ type: 'choices', args: { options: ['123', '456', '789'] } }]
           }
         ]
       };
@@ -61,7 +61,9 @@ params:query {
       const output = parser(input);
       expect(output.params[0].decorators).toHaveLength(2);
       expect(output.params[0].decorators[0].type).toBe('choices');
+      expect(output.params[0].decorators[0].args).toEqual({ options: ['10', '25', '50'] });
       expect(output.params[0].decorators[1].type).toBe('required');
+      expect(output.params[0].decorators[1].args).toEqual({});
       expect(output.params[0].value).toBe('10');
     });
 
@@ -73,7 +75,7 @@ params:query {
 `;
 
       const output = parser(input);
-      expect(output.params[0].decorators).toEqual([{ type: 'required', args: [] }]);
+      expect(output.params[0].decorators).toEqual([{ type: 'required', args: {} }]);
       expect(output.params[0].value).toBe('test');
     });
 
@@ -85,7 +87,7 @@ params:query {
 `;
 
       const output = parser(input);
-      expect(output.params[0].decorators).toEqual([{ type: 'optional', args: [] }]);
+      expect(output.params[0].decorators).toEqual([{ type: 'optional', args: {} }]);
     });
 
     it('handles disabled params with decorators', () => {
@@ -100,6 +102,7 @@ params:query {
       expect(output.params[0].name).toBe('status');
       expect(output.params[0].value).toBe('disabled');
       expect(output.params[0].decorators).toHaveLength(1);
+      expect(output.params[0].decorators[0].args).toEqual({ options: ['a', 'b'] });
     });
 
     it('handles params without decorators', () => {
@@ -123,6 +126,7 @@ params:query {
 `;
 
       const output = parser(input);
+      // Unknown types keep args as array for backwards compatibility
       expect(output.params[0].decorators[0].args).toEqual([1, 100]);
     });
 
@@ -140,7 +144,7 @@ params:query {
   });
 
   describe('jsonToBru stringify', () => {
-    it('serializes query params with inline decorators', () => {
+    it('serializes query params with inline decorators (old format)', () => {
       const input = {
         params: [
           {
@@ -157,6 +161,24 @@ params:query {
       expect(output).toContain('params:query {');
       expect(output).toContain('status: active @choices("active", "inactive", "pending")');
       expect(output).not.toContain('params:query:meta');
+    });
+
+    it('serializes query params with inline decorators (new format)', () => {
+      const input = {
+        params: [
+          {
+            name: 'status',
+            value: 'active',
+            enabled: true,
+            type: 'query',
+            decorators: [{ type: 'choices', args: { options: ['active', 'inactive', 'pending'] } }]
+          }
+        ]
+      };
+
+      const output = stringify(input);
+      expect(output).toContain('params:query {');
+      expect(output).toContain('status: active @choices("active", "inactive", "pending")');
     });
 
     it('serializes path params with inline decorators', () => {
@@ -241,10 +263,46 @@ params:query {
       const output = stringify(input);
       expect(output).toContain('~status: disabled @choices("a", "b")');
     });
+
+    it('serializes string type with pattern', () => {
+      const input = {
+        params: [
+          {
+            name: 'code',
+            value: 'ABC123',
+            enabled: true,
+            type: 'query',
+            decorators: [{ type: 'string', args: { pattern: '^[A-Z0-9]+$' } }]
+          }
+        ]
+      };
+
+      const output = stringify(input);
+      expect(output).toContain('@string(pattern="^[A-Z0-9]+$")');
+    });
+
+    it('serializes number type with constraints', () => {
+      const input = {
+        params: [
+          {
+            name: 'age',
+            value: '25',
+            enabled: true,
+            type: 'query',
+            decorators: [{ type: 'number', args: { min: '0', max: '120' } }]
+          }
+        ]
+      };
+
+      const output = stringify(input);
+      expect(output).toContain('@number(');
+      expect(output).toContain('min="0"');
+      expect(output).toContain('max="120"');
+    });
   });
 
   describe('round-trip (parse -> stringify -> parse)', () => {
-    it('preserves inline decorators through round-trip', () => {
+    it('preserves inline decorators through round-trip (new format)', () => {
       const original = {
         params: [
           {
@@ -252,7 +310,7 @@ params:query {
             value: 'active',
             enabled: true,
             type: 'query',
-            decorators: [{ type: 'choices', args: ['active', 'inactive', 'pending'] }]
+            decorators: [{ type: 'choices', args: { options: ['active', 'inactive', 'pending'] } }]
           },
           { name: 'env', value: 'prod', enabled: false, type: 'query' }
         ]
@@ -268,6 +326,26 @@ params:query {
       expect(parsed.params[1].decorators).toBeUndefined();
     });
 
+    it('converts old format to new format through round-trip', () => {
+      const original = {
+        params: [
+          {
+            name: 'status',
+            value: 'active',
+            enabled: true,
+            type: 'query',
+            decorators: [{ type: 'choices', args: ['active', 'inactive', 'pending'] }]
+          }
+        ]
+      };
+
+      const bruString = stringify(original);
+      const parsed = parser(bruString);
+
+      // After round-trip, args should be in new object format
+      expect(parsed.params[0].decorators[0].args).toEqual({ options: ['active', 'inactive', 'pending'] });
+    });
+
     it('preserves path params decorators through round-trip', () => {
       const original = {
         params: [
@@ -276,7 +354,7 @@ params:query {
             value: '42',
             enabled: true,
             type: 'path',
-            decorators: [{ type: 'choices', args: ['42', '100', '200'] }]
+            decorators: [{ type: 'choices', args: { options: ['42', '100', '200'] } }]
           }
         ]
       };
@@ -296,8 +374,8 @@ params:query {
             enabled: true,
             type: 'query',
             decorators: [
-              { type: 'choices', args: ['10', '25', '50'] },
-              { type: 'required', args: [] }
+              { type: 'choices', args: { options: ['10', '25', '50'] } },
+              { type: 'required', args: {} }
             ]
           }
         ]
@@ -308,6 +386,7 @@ params:query {
 
       expect(parsed.params[0].decorators).toHaveLength(2);
       expect(parsed.params[0].decorators[0].type).toBe('choices');
+      expect(parsed.params[0].decorators[0].args).toEqual({ options: ['10', '25', '50'] });
       expect(parsed.params[0].decorators[1].type).toBe('required');
     });
 
@@ -319,14 +398,14 @@ params:query {
             value: 'active',
             enabled: true,
             type: 'query',
-            decorators: [{ type: 'choices', args: ['active', 'inactive'] }]
+            decorators: [{ type: 'choices', args: { options: ['active', 'inactive'] } }]
           },
           {
             name: 'userId',
             value: '123',
             enabled: true,
             type: 'path',
-            decorators: [{ type: 'choices', args: ['123', '456'] }]
+            decorators: [{ type: 'choices', args: { options: ['123', '456'] } }]
           }
         ]
       };

@@ -15,7 +15,8 @@ const stripLastLine = (text) => {
 
 /**
  * Format decorators to inline syntax
- * @param {Array<{ type: string, args: any[] }>} decorators
+ * Supports both old format (args as array) and new format (args as object)
+ * @param {Array<{ type: string, args: any[] | object }>} decorators
  * @returns {string}
  */
 const formatDecoratorsInline = (decorators) => {
@@ -29,14 +30,48 @@ const formatDecoratorsInline = (decorators) => {
         return '';
       }
 
-      // Decorator without arguments
-      if (!decorator.args || decorator.args.length === 0) {
+      const args = decorator.args;
+
+      // No args case
+      if (!args) {
         return `@${decorator.type}`;
       }
 
-      // Format arguments as JSON values
-      const argsStr = decorator.args.map((arg) => JSON.stringify(arg)).join(', ');
-      return `@${decorator.type}(${argsStr})`;
+      // Old format: args is an array
+      if (Array.isArray(args)) {
+        if (args.length === 0) {
+          return `@${decorator.type}`;
+        }
+        const argsStr = args.map((arg) => JSON.stringify(arg)).join(', ');
+        return `@${decorator.type}(${argsStr})`;
+      }
+
+      // New format: args is an object
+      if (typeof args === 'object') {
+        // For choices type, serialize options array
+        if (decorator.type === 'choices' && args.options && Array.isArray(args.options)) {
+          if (args.options.length === 0) {
+            return `@${decorator.type}`;
+          }
+          const argsStr = args.options.map((opt) => JSON.stringify(opt)).join(', ');
+          return `@${decorator.type}(${argsStr})`;
+        }
+
+        // For other types, serialize non-empty args as key=value pairs
+        const argParts = [];
+        for (const [key, value] of Object.entries(args)) {
+          if (value !== undefined && value !== '' && value !== false) {
+            argParts.push(`${key}=${JSON.stringify(value)}`);
+          }
+        }
+
+        if (argParts.length === 0) {
+          return `@${decorator.type}`;
+        }
+        return `@${decorator.type}(${argParts.join(', ')})`;
+      }
+
+      return `@${decorator.type}`;
     })
     .filter(Boolean)
     .join(' ');

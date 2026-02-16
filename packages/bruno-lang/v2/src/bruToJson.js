@@ -196,6 +196,39 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
  * @param {string} value - The value string potentially containing inline decorators
  * @returns {{ value: string, decorators: Array<{ type: string, args: any[] }> }}
  */
+/**
+ * Convert parsed decorator args (array) to new object format for known types
+ * @param {string} type - Decorator type
+ * @param {any[]} args - Parsed args array
+ * @returns {object} - Args in new object format
+ */
+const convertArgsToObjectFormat = (type, args) => {
+  if (!args || args.length === 0) {
+    return {};
+  }
+
+  // Convert based on type
+  switch (type) {
+    case 'choices':
+      return { options: args };
+    case 'string':
+      // First arg is pattern
+      return args[0] ? { pattern: args[0] } : {};
+    case 'number':
+      // Args could be [min, max] or named
+      if (args.length >= 1) {
+        const result = {};
+        if (args[0] !== undefined) result.min = String(args[0]);
+        if (args[1] !== undefined) result.max = String(args[1]);
+        return result;
+      }
+      return {};
+    default:
+      // For unknown types, keep as array for backwards compatibility
+      return args;
+  }
+};
+
 const extractInlineDecorators = (value) => {
   if (!value || typeof value !== 'string') {
     return { value: value || '', decorators: [] };
@@ -215,15 +248,17 @@ const extractInlineDecorators = (value) => {
   while ((match = remaining.match(decoratorEndPattern))) {
     const [fullMatch, type, argsString] = match;
 
-    let args = [];
+    let parsedArgs = [];
     if (argsString !== undefined && argsString.trim() !== '') {
       try {
-        args = JSON.parse(`[${argsString}]`);
+        parsedArgs = JSON.parse(`[${argsString}]`);
       } catch (e) {
         break;
       }
     }
 
+    // Convert to new object format
+    const args = convertArgsToObjectFormat(type, parsedArgs);
     decorators.unshift({ type, args });
     remaining = remaining.slice(0, remaining.length - fullMatch.length);
   }
@@ -233,15 +268,17 @@ const extractInlineDecorators = (value) => {
     while ((match = remaining.match(decoratorStartPattern))) {
       const [fullMatch, type, argsString] = match;
 
-      let args = [];
+      let parsedArgs = [];
       if (argsString !== undefined && argsString.trim() !== '') {
         try {
-          args = JSON.parse(`[${argsString}]`);
+          parsedArgs = JSON.parse(`[${argsString}]`);
         } catch (e) {
           break;
         }
       }
 
+      // Convert to new object format
+      const args = convertArgsToObjectFormat(type, parsedArgs);
       decorators.push({ type, args });
       remaining = remaining.slice(fullMatch.length);
     }
