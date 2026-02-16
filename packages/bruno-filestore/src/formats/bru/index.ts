@@ -93,7 +93,19 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
       });
     } else {
       // For HTTP and GraphQL
-      (transformedJson.request as any).params = _.get(json, 'params', []);
+      const params = _.get(json, 'params', []);
+      const paramsMeta = _.get(json, 'paramsMeta', {});
+
+      // Merge decorators from paramsMeta into params
+      (transformedJson.request as any).params = params.map((param: any) => {
+        const metaType = param.type === 'path' ? 'path' : 'query';
+        const meta = paramsMeta[metaType]?.[param.name];
+        if (meta?.decorators && meta.decorators.length > 0) {
+          return { ...param, decorators: meta.decorators };
+        }
+        return param;
+      });
+
       transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
       transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
     }
@@ -155,7 +167,30 @@ export const stringifyBruRequest = (json: any): string => {
         auth: _.get(json, 'request.auth.mode', 'none'),
         body: _.get(json, 'request.body.mode', 'none')
       };
-      bruJson.params = _.get(json, 'request.params', []);
+
+      const params = _.get(json, 'request.params', []);
+      bruJson.params = params;
+
+      // Check if paramsMeta is already provided (from transformRequestToSaveToFilesystem)
+      const existingParamsMeta = _.get(json, 'request.paramsMeta');
+      if (existingParamsMeta && (Object.keys(existingParamsMeta.query || {}).length > 0 || Object.keys(existingParamsMeta.path || {}).length > 0)) {
+        bruJson.paramsMeta = existingParamsMeta;
+      } else {
+        // Build paramsMeta from decorators on params
+        const paramsMeta: { query: Record<string, any>; path: Record<string, any> } = { query: {}, path: {} };
+        params.forEach((param: any) => {
+          if (param.decorators && param.decorators.length > 0 && param.name) {
+            const metaType = param.type === 'path' ? 'path' : 'query';
+            paramsMeta[metaType][param.name] = { decorators: param.decorators };
+          }
+        });
+
+        // Only add paramsMeta if there are decorators
+        if (Object.keys(paramsMeta.query).length > 0 || Object.keys(paramsMeta.path).length > 0) {
+          bruJson.paramsMeta = paramsMeta;
+        }
+      }
+
       bruJson.body = _.get(json, 'request.body', {
         mode: 'json',
         json: '{}'
