@@ -589,13 +589,13 @@ const registerNetworkIpc = (mainWindow) => {
         let form = createFormData(request.data, collectionPath);
         request.data = form;
         if (contentTypeHeader !== 'multipart/form-data') {
-          //Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
+          // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
           const formHeaders = form.getHeaders();
           const ct = contentTypeHeader;
           formHeaders['content-type'] = `${ct}; boundary=${form.getBoundary()}`;
           form.getHeaders = function () {
             return formHeaders;
-          }
+          };
         }
 
         extend(request.headers, form.getHeaders());

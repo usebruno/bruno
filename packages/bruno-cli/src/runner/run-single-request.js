@@ -548,13 +548,13 @@ const runSingleRequest = async function (
         request.data = form;
 
         if (request?.headers?.['content-type'] !== 'multipart/form-data') {
-          //Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
+          // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
           const formHeaders = form.getHeaders();
           const ct = request.headers['content-type'];
           formHeaders['content-type'] = `${ct}; boundary=${form.getBoundary()}`;
           form.getHeaders = function () {
             return formHeaders;
-          }
+          };
         }
 
         extend(request.headers, form.getHeaders());
