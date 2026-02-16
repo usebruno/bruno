@@ -6,6 +6,7 @@
  */
 
 import { parseDecoratorSyntax } from './parser';
+import { getDecorator } from './registry';
 
 /**
  * Detect if input value is decorator syntax and parse it
@@ -70,13 +71,9 @@ export function detectAndParseDecorator(input) {
 
   // Valid decorator found
   if (decorator) {
-    // Calculate default value based on decorator type
-    let defaultValue = '';
-
-    if (decorator.type === 'choices' && decorator.args.length > 0) {
-      // For choices, default to first option
-      defaultValue = String(decorator.args[0]);
-    }
+    // Get default value from registry
+    const def = getDecorator(decorator.type);
+    const defaultValue = def ? def.getDefaultValue(decorator.args) : '';
 
     return {
       isDecorator: true,

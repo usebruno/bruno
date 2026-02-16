@@ -4,18 +4,23 @@ import Dropdown from 'components/Dropdown';
 import { IconDotsVertical, IconCheck } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import {
-  formatDecoratorsToSyntax,
   detectAndParseDecorator,
-  validateValueAgainstDecorators,
-  getDecoratorChoices
+  getVisualRenderer,
+  validateWithDecorators,
+  formatDecoratorsSyntax,
+  getDefaultValueForDecorators,
+  hasDecorator
 } from 'utils/decorators';
 import StyledWrapper from './StyledWrapper';
 
 /**
  * DecoratedInput component that supports three modes:
- * - Visual: Dropdown for @choices decorator
+ * - Visual: Custom component from decorator registry (e.g., dropdown for @choices)
  * - Value: Regular text input for editing the value
  * - Decorator: Text input for editing the raw decorator syntax
+ *
+ * The visual component is determined by the decorator registry.
+ * To add new decorator types with custom visuals, update the registry.
  */
 const DecoratedInput = ({
   value,
@@ -30,22 +35,22 @@ const DecoratedInput = ({
   placeholder = ''
 }) => {
   const { storedTheme } = useTheme();
-  const hasDecorators = decorators && decorators.length > 0;
+  const hasDecoratorsProp = decorators && decorators.length > 0;
 
   // Mode state: 'visual' | 'value' | 'decorator'
   // Default to 'visual' if has decorators, otherwise 'value'
-  const [mode, setMode] = useState(hasDecorators ? 'visual' : 'value');
+  const [mode, setMode] = useState(hasDecoratorsProp ? 'visual' : 'value');
 
   // Track previous hasDecorators to detect when decorators are first added
-  const prevHasDecorators = useRef(hasDecorators);
+  const prevHasDecorators = useRef(hasDecoratorsProp);
 
   // Auto-switch to visual mode when decorators are first added
   useEffect(() => {
-    if (hasDecorators && !prevHasDecorators.current) {
+    if (hasDecoratorsProp && !prevHasDecorators.current) {
       setMode('visual');
     }
-    prevHasDecorators.current = hasDecorators;
-  }, [hasDecorators]);
+    prevHasDecorators.current = hasDecoratorsProp;
+  }, [hasDecoratorsProp]);
 
   // Warning state for invalid decorator syntax
   const [decoratorWarning, setDecoratorWarning] = useState(null);
@@ -55,17 +60,20 @@ const DecoratedInput = ({
 
   // Live detection state - shows preview while typing (before blur)
   const liveDetection = useMemo(() => {
-    if (hasDecorators) return null;
+    if (hasDecoratorsProp) return null;
     if (!value || !value.trim().startsWith('@')) return null;
     return detectAndParseDecorator(value);
-  }, [value, hasDecorators]);
+  }, [value, hasDecoratorsProp]);
 
-  // Get choices from decorator if present
-  const choices = useMemo(() => getDecoratorChoices(decorators), [decorators]);
+  // Get visual renderer from registry (e.g., dropdown for @choices)
+  const visualRenderer = useMemo(
+    () => getVisualRenderer(decorators),
+    [decorators]
+  );
 
-  // Validate current value against decorators
+  // Validate current value against decorators using registry
   const validation = useMemo(
-    () => validateValueAgainstDecorators(value, decorators),
+    () => validateWithDecorators(value, decorators),
     [value, decorators]
   );
 
@@ -80,11 +88,11 @@ const DecoratedInput = ({
   // Handle blur - trigger decorator detection for non-decorated inputs
   const handleInputBlur = useCallback(
     (blurValue) => {
-      if (onBlur && !hasDecorators) {
+      if (onBlur && !hasDecoratorsProp) {
         onBlur(blurValue || value);
       }
     },
-    [onBlur, hasDecorators, value]
+    [onBlur, hasDecoratorsProp, value]
   );
 
   // Handle decorator syntax change (on blur from decorator mode)
@@ -100,6 +108,11 @@ const DecoratedInput = ({
       setDecoratorWarning(null);
 
       if (result.isDecorator && result.decorator) {
+        // Check if this is a known decorator type
+        if (!hasDecorator(result.decorator.type)) {
+          setDecoratorWarning(`Unknown decorator: @${result.decorator.type}`);
+          return;
+        }
         // Valid decorator - update decorators and set default value together
         onDecoratorChange([result.decorator], result.defaultValue);
         setMode('visual');
@@ -112,93 +125,57 @@ const DecoratedInput = ({
     [onDecoratorChange]
   );
 
-  // Handle dropdown selection in visual mode
-  const handleChoiceSelect = useCallback(
-    (e) => {
-      onChange(e.target.value);
-    },
-    [onChange]
+  // Render the default value editor (used in value mode or when no visual renderer)
+  const renderValueEditor = (additionalProps = {}) => (
+    <MultiLineEditor
+      value={value || ''}
+      theme={storedTheme}
+      onSave={onSave}
+      onChange={handleValueChange}
+      onRun={onRun}
+      collection={collection}
+      item={item}
+      variablesAutocomplete={true}
+      placeholder={placeholder || 'Value'}
+      {...additionalProps}
+    />
   );
 
   // Render based on mode
   const renderInput = () => {
     // If no decorators, always show value mode with blur detection
-    if (!hasDecorators) {
-      return (
-        <MultiLineEditor
-          value={value || ''}
-          theme={storedTheme}
-          onSave={onSave}
-          onChange={handleValueChange}
-          onBlur={handleInputBlur}
-          onRun={onRun}
-          collection={collection}
-          item={item}
-          variablesAutocomplete={true}
-          placeholder={placeholder || 'Value'}
-        />
-      );
+    if (!hasDecoratorsProp) {
+      return renderValueEditor({ onBlur: handleInputBlur });
     }
 
     switch (mode) {
       case 'visual':
-        // Visual mode: Show dropdown for choices
-        if (choices && choices.length > 0) {
+        // Visual mode: Use renderer from registry if available
+        if (visualRenderer) {
+          const { render: VisualComponent, decorator } = visualRenderer;
           return (
-            <select
-              className={`choices-dropdown ${!validation.isValid ? 'error' : ''}`}
-              value={value || ''}
-              onChange={handleChoiceSelect}
-            >
-              {!choices.includes(value) && value && (
-                <option value={value} disabled>
-                  {value} (invalid)
-                </option>
-              )}
-              {choices.map((choice) => (
-                <option key={choice} value={choice}>
-                  {choice}
-                </option>
-              ))}
-            </select>
+            <VisualComponent
+              value={value}
+              args={decorator.args}
+              onChange={handleValueChange}
+              isValid={validation.isValid}
+              onSave={onSave}
+              onRun={onRun}
+            />
           );
         }
-        // Fall through to value mode if no choices
-        return (
-          <MultiLineEditor
-            value={value || ''}
-            theme={storedTheme}
-            onSave={onSave}
-            onChange={handleValueChange}
-            onRun={onRun}
-            collection={collection}
-            item={item}
-            variablesAutocomplete={true}
-            placeholder={placeholder || 'Value'}
-          />
-        );
+        // Fall through to value mode if no visual renderer
+        return renderValueEditor();
 
       case 'value':
         // Value mode: Show the actual value
-        return (
-          <MultiLineEditor
-            value={value || ''}
-            theme={storedTheme}
-            onSave={onSave}
-            onChange={handleValueChange}
-            onRun={onRun}
-            collection={collection}
-            item={item}
-            variablesAutocomplete={true}
-            placeholder={placeholder || 'Value'}
-          />
-        );
+        return renderValueEditor();
 
       case 'decorator':
         // Decorator mode: Show raw decorator syntax
         return (
           <MultiLineEditor
-            value={formatDecoratorsToSyntax(decorators) || ''}
+            value={formatDecoratorsSyntax(decorators) || ''}
             theme={storedTheme}
             onSave={onSave}
             onChange={() => {}} // Don't update on every keystroke
@@ -227,10 +204,13 @@ const DecoratedInput = ({
 
   // Render mode selector only if has decorators
   const renderModeSelector = () => {
-    if (!hasDecorators) return null;
+    if (!hasDecoratorsProp) return null;
+
+    // Determine visual mode label based on renderer
+    const visualLabel = visualRenderer ? 'Select from options' : 'Visual mode';
 
     const modeOptions = [
-      { key: 'visual', label: 'Select from options', icon: '▼' },
+      { key: 'visual', label: visualLabel, icon: '▼' },
       { key: 'value', label: 'Edit value', icon: 'Aa' },
       { key: 'decorator', label: 'Edit decorator', icon: '@' }
     ];
@@ -271,9 +251,18 @@ const DecoratedInput = ({
     if (!liveDetection) return null;
 
     if (liveDetection.isDecorator && liveDetection.decorator) {
+      // Check if it's a known decorator
+      const isKnown = hasDecorator(liveDetection.decorator.type);
       // Valid decorator detected - show preview
       return (
-        <span className="live-detection valid" title={`Will set to: ${liveDetection.defaultValue || '(empty)'}`}>
+        <span
+          className={`live-detection ${isKnown ? 'valid' : 'warning'}`}
+          title={
+            isKnown
+              ? `Will set to: ${liveDetection.defaultValue || '(empty)'}`
+              : `Unknown decorator: @${liveDetection.decorator.type}`
+          }
+        >
           @{liveDetection.decorator.type}
         </span>
       );
