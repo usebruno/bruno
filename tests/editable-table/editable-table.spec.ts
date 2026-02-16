@@ -33,7 +33,8 @@ test.describe('EditableTable - Focus and Placeholder', () => {
     await expect(nameInput).toBeFocused();
 
     // Save the request
-    await page.keyboard.press('Meta+s');
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
 
     // Wait for save toast
     await expect(page.getByText('Request saved successfully').last()).toBeVisible();

@@ -1,7 +1,7 @@
 import { test, expect } from '../../playwright';
 import { execSync } from 'child_process';
 import path from 'path';
-import { clickResponseAction } from '../utils/page/actions';
+import { clickResponseAction, sendRequest } from '../utils/page/actions';
 
 test.describe.serial('Response Example Menu Operations', () => {
   test.setTimeout(1 * 60 * 1000); // 1 minute for all tests in this describe block, default is 30 seconds.
@@ -17,7 +17,7 @@ test.describe.serial('Response Example Menu Operations', () => {
     });
 
     await test.step('Create example', async () => {
-      await page.getByTestId('send-arrow-icon').click();
+      await sendRequest(page, 200);
       await clickResponseAction(page, 'response-bookmark-btn');
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Example to Clone');
@@ -33,7 +33,7 @@ test.describe.serial('Response Example Menu Operations', () => {
     await test.step('Clone example', async () => {
       const exampleRow = page.locator('.collection-item-name').filter({ hasText: 'Example to Clone' });
       await exampleRow.hover();
-      await exampleRow.locator('.menu-icon').click();
+      await exampleRow.locator('.menu-icon').click({ force: true });
 
       await page.getByTestId('response-example-menu-clone').click();
       const clonedExampleItem = page.locator('.collection-item-name').filter({ hasText: 'Example to Clone (Copy)' });
@@ -48,7 +48,7 @@ test.describe.serial('Response Example Menu Operations', () => {
     });
 
     await test.step('Create example to delete', async () => {
-      await page.getByTestId('send-arrow-icon').click();
+      await sendRequest(page, 200);
       await clickResponseAction(page, 'response-bookmark-btn');
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Example to Delete');
@@ -65,7 +65,7 @@ test.describe.serial('Response Example Menu Operations', () => {
       const exampleRow = page.locator('.collection-item-name').filter({ hasText: 'Example to Delete' });
       await expect(exampleRow).toBeVisible();
       await exampleRow.hover();
-      await exampleRow.locator('.menu-icon').click();
+      await exampleRow.locator('.menu-icon').click({ force: true });
 
       await page.getByTestId('response-example-menu-delete').click();
       await expect(page.getByText('Delete Example')).toBeVisible();
@@ -81,7 +81,7 @@ test.describe.serial('Response Example Menu Operations', () => {
     });
 
     await test.step('Create example to rename', async () => {
-      await page.getByTestId('send-arrow-icon').click();
+      await sendRequest(page, 200);
       await clickResponseAction(page, 'response-bookmark-btn');
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Example to Rename');
@@ -98,7 +98,7 @@ test.describe.serial('Response Example Menu Operations', () => {
       const exampleRow = page.locator('.collection-item-name').filter({ hasText: 'Example to Rename' });
       await expect(exampleRow).toBeVisible();
       await exampleRow.hover();
-      await exampleRow.locator('.menu-icon').click();
+      await exampleRow.locator('.menu-icon').click({ force: true });
       await page.getByTestId('response-example-menu-rename').click();
       await expect(page.getByText('Rename Example')).toBeVisible();
       const renameExampleNameInput = page.getByTestId('rename-example-name-input');

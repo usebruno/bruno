@@ -23,11 +23,11 @@ test.describe('Draft values are used in requests', () => {
 
     const nameEditor = headerRow.locator('.CodeMirror').first();
     await nameEditor.click();
-    await page.keyboard.type('X-Draft-Header');
+    await headerRow.locator('textarea').first().fill('X-Draft-Header');
 
     const valueEditor = headerRow.locator('.CodeMirror').nth(1);
     await valueEditor.click();
-    await page.keyboard.type('draft-value-123');
+    await headerRow.locator('textarea').nth(1).fill('draft-value-123');
 
     // Verify draft indicator appears (header is not saved yet)
     const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
@@ -51,11 +51,11 @@ test.describe('Draft values are used in requests', () => {
 
     const folderNameEditor = folderHeaderRow.locator('.CodeMirror').first();
     await folderNameEditor.click();
-    await page.keyboard.type('X-Folder-Draft-Header');
+    await folderHeaderRow.locator('textarea').first().fill('X-Folder-Draft-Header');
 
     const folderValueEditor = folderHeaderRow.locator('.CodeMirror').nth(1);
     await folderValueEditor.click();
-    await page.keyboard.type('folder-draft-value-123');
+    await folderHeaderRow.locator('textarea').nth(1).fill('folder-draft-value-123');
 
     // Create a request in the collection
     // Create a new request via collection menu
@@ -122,7 +122,7 @@ test.describe('Draft values are used in requests', () => {
     // Create a new request from collection menu
     const collection = page.locator('.collection-name').filter({ hasText: collectionName });
     await collection.hover();
-    await collection.locator('.collection-actions .icon').click();
+    await collection.locator('.collection-actions .icon').click({ force: true });
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByTestId('request-name').fill('Test Request');
     await page.getByTestId('new-request-url').locator('.CodeMirror').click();

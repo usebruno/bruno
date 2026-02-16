@@ -1,4 +1,4 @@
-import { test, expect } from '../../playwright';
+import { test, expect, closeElectronApp } from '../../playwright';
 
 test('should persist cookies across app restarts', async ({ createTmpDir, launchElectronApp }) => {
   // Create a temporary user-data directory so we control where the cookies store file is written.
@@ -26,7 +26,7 @@ test('should persist cookies across app restarts', async ({ createTmpDir, launch
 
   await expect(page1.getByText('example.com')).toBeVisible();
 
-  await app1.close();
+  await closeElectronApp(app1);
 
   // Second launch – verify the cookie was persisted and re-loaded
   const app2 = await launchElectronApp({ userDataPath });
@@ -39,5 +39,5 @@ test('should persist cookies across app restarts', async ({ createTmpDir, launch
   // The domain we added earlier should still be present.
   await expect(page2.getByText('example.com')).toBeVisible();
 
-  await app2.close();
+  await closeElectronApp(app2);
 });

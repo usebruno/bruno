@@ -29,7 +29,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
 
     // Add a request to the folder to make it more realistic
     await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).hover();
-    await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).locator('.menu-icon').click();
+    await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).locator('.menu-icon').click({ force: true });
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request-in-folder');
     await page.locator('#new-request-url .CodeMirror').click();
@@ -126,7 +126,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
 
     // Add a request to the folder to make it more realistic
     await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).hover();
-    await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).locator('.menu-icon').click();
+    await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).locator('.menu-icon').click({ force: true });
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('http-request');
     await page.locator('#new-request-url .CodeMirror').click();

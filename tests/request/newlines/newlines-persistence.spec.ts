@@ -1,4 +1,4 @@
-import { test, expect } from '../../../playwright';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import { createCollection, openCollection } from '../../utils/page';
 import { getTableCell } from '../../utils/page/locators';
 
@@ -39,16 +39,22 @@ test('should persist request with newlines across app restarts', async ({ create
   await page.getByRole('tab', { name: 'Vars' }).click();
   const preReqRow = page.locator('table').first().locator('tbody tr').first();
   await getTableCell(preReqRow, 0).getByRole('textbox').fill('preRequestVar');
+  // Wait for table to stabilize after fill (new empty row may be appended)
+  await expect(getTableCell(preReqRow, 0).getByRole('textbox')).toHaveValue('preRequestVar');
   await getTableCell(preReqRow, 1).locator('.CodeMirror').click();
   await getTableCell(preReqRow, 1).locator('textarea').fill('pre\nRequest\nValue');
 
   const postResRow = page.locator('table').nth(1).locator('tbody tr').first();
   await getTableCell(postResRow, 0).getByRole('textbox').fill('postResponseVar');
+  // Wait for table to stabilize after fill (new empty row may be appended)
+  await expect(getTableCell(postResRow, 0).getByRole('textbox')).toHaveValue('postResponseVar');
   await getTableCell(postResRow, 1).locator('.CodeMirror').click();
   await getTableCell(postResRow, 1).locator('textarea').fill('post\nResponse\nValue');
 
-  await page.keyboard.press('Meta+s');
-  await app1.close();
+  const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+  await page.keyboard.press(saveShortcut);
+  await expect(page.getByText('Request saved successfully')).toBeVisible();
+  await closeElectronApp(app1);
 
   // Verify persistence after restart
   const app2 = await launchElectronApp({ userDataPath });
@@ -70,5 +76,5 @@ test('should persist request with newlines across app restarts', async ({ create
   await expect(page2.locator('table').first().locator('tbody tr')).toHaveCount(2);
   await expect(page2.locator('table').nth(1).locator('tbody tr')).toHaveCount(2);
 
-  await app2.close();
+  await closeElectronApp(app2);
 });

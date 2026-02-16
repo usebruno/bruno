@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { isItemAFolder } from 'utils/collections';
 import { sortByNameThenSequence } from 'utils/common/index';
 import filter from 'lodash/filter';
@@ -63,6 +63,7 @@ const useCollectionFolderTree = (collectionUid) => {
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
   const [currentFolderPath, setCurrentFolderPath] = useState([]);
   const [selectedFolderUid, setSelectedFolderUid] = useState(null);
+
   const tree = useMemo(() => {
     if (!collection || !collection.items) {
       return {};
@@ -142,6 +143,10 @@ const useCollectionFolderTree = (collectionUid) => {
     setCurrentFolderPath([]);
     setSelectedFolderUid(null);
   }, []);
+
+  useEffect(() => {
+    reset();
+  }, [collectionUid, reset]);
 
   return {
     currentFolders,

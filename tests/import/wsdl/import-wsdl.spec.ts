@@ -37,6 +37,7 @@ test.describe('Import WSDL Collection', () => {
       // select a location
       await page.locator('#collection-location').fill(await createTmpDir('wsdl-xml-test'));
       await locationModal.getByRole('button', { name: 'Import' }).click();
+      await locationModal.waitFor({ state: 'hidden' });
       await expect(page.locator('#sidebar-collection-name').getByText('TestWSDLServiceXML')).toBeVisible();
     });
 
@@ -98,6 +99,7 @@ test.describe('Import WSDL Collection', () => {
       // select a location
       await page.locator('#collection-location').fill(await createTmpDir('wsdl-json-test'));
       await locationModal.getByRole('button', { name: 'Import' }).click();
+      await locationModal.waitFor({ state: 'hidden' });
     });
 
     await test.step('Verify that the collection was imported successfully', async () => {

@@ -1,4 +1,4 @@
-import { test as baseTest, BrowserContext, ElectronApplication, Page } from '@playwright/test';
+import { test as baseTest, BrowserContext, ElectronApplication, Page, TestInfo } from '@playwright/test';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
@@ -22,6 +22,71 @@ async function recursiveCopy(src: string, dest: string) {
     const fullPath = path.join(src, file.name);
     const fullDestPath = path.join(dest, file.name);
     await fs.promises.copyFile(fullPath, fullDestPath);
+  }
+}
+
+const TRACING_OPTIONS = { screenshots: true, snapshots: true, sources: true };
+
+function isTracingEnabled(testInfo: TestInfo): boolean {
+  return !!(testInfo as any)._tracing.traceOptions();
+}
+
+async function usePageWithTracing(
+  context: BrowserContext,
+  page: Page,
+  testInfo: TestInfo,
+  use: (page: Page) => Promise<void>,
+  options: { initTracing?: boolean; useChunks?: boolean } = {}
+) {
+  const { initTracing = false, useChunks = true } = options;
+
+  if (!isTracingEnabled(testInfo)) {
+    await use(page);
+    return;
+  }
+
+  const tracePath = testInfo.outputPath(`trace-${testInfo.testId}.zip`);
+
+  if (initTracing) {
+    try {
+      await context.tracing.start(TRACING_OPTIONS);
+    } catch (e) { }
+  }
+
+  if (useChunks) {
+    await context.tracing.startChunk();
+    await use(page);
+    await context.tracing.stopChunk({ path: tracePath });
+  } else {
+    await use(page);
+    await context.tracing.stop({ path: tracePath });
+  }
+
+  await testInfo.attach('trace', { path: tracePath });
+}
+
+/**
+ * Gracefully close an Electron app by telling it to exit with code 0.
+ * This avoids the macOS "quit unexpectedly" crash dialog that appears when
+ * app.context().close() kills subprocesses (renderer/GPU) abruptly before
+ * the main process can shut down cleanly.
+ *
+ * Emits 'before-quit' first so cleanup handlers run (e.g., saving cookies to disk),
+ * since app.exit() bypasses all lifecycle events.
+ */
+export async function closeElectronApp(app: ElectronApplication) {
+  try {
+    await app.evaluate(({ app }) => {
+      app.emit('before-quit');
+      app.exit(0);
+    });
+  } catch {
+    // Expected: process exited before the CDP response was sent
+  }
+  try {
+    await app.close();
+  } catch {
+    // Process already exited
   }
 }
 
@@ -113,8 +178,7 @@ export const test = baseTest.extend<
         return app;
       });
       for (const app of apps) {
-        await app.context().close();
-        await app.close();
+        await closeElectronApp(app);
       }
     },
     { scope: 'worker' }
@@ -130,10 +194,9 @@ export const test = baseTest.extend<
 
   context: async ({ electronApp }, use, testInfo) => {
     const context = await electronApp.context();
-    const tracingOptions = (testInfo as any)._tracing.traceOptions();
-    if (tracingOptions) {
+    if (isTracingEnabled(testInfo)) {
       try {
-        await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
+        await context.tracing.start(TRACING_OPTIONS);
       } catch (e) { }
     }
     await use(context);
@@ -141,32 +204,14 @@ export const test = baseTest.extend<
 
   page: async ({ electronApp, context }, use, testInfo) => {
     const page = await electronApp.firstWindow();
-    const tracingOptions = (testInfo as any)._tracing.traceOptions();
-    if (tracingOptions) {
-      const tracePath = testInfo.outputPath(`trace-${testInfo.testId}.zip`);
-      await context.tracing.startChunk();
-      await use(page);
-      await context.tracing.stopChunk({ path: tracePath });
-      await testInfo.attach('trace', { path: tracePath });
-    } else {
-      await use(page);
-    }
+    await usePageWithTracing(context, page, testInfo, use);
   },
 
   newPage: async ({ launchElectronApp }, use, testInfo) => {
     const app = await launchElectronApp();
     const context = await app.context();
     const page = await app.firstWindow();
-    const tracingOptions = (testInfo as any)._tracing.traceOptions();
-    if (tracingOptions) {
-      const tracePath = testInfo.outputPath(`trace-${testInfo.testId}.zip`);
-      await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
-      await use(page);
-      await context.tracing.stop({ path: tracePath });
-      await testInfo.attach('trace', { path: tracePath });
-    } else {
-      await use(page);
-    }
+    await usePageWithTracing(context, page, testInfo, use, { initTracing: true, useChunks: false });
   },
 
   reuseOrLaunchElectronApp: [
@@ -208,8 +253,7 @@ export const test = baseTest.extend<
 
     // Clean up all app instances
     for (const { app } of appInstances) {
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     }
   },
 
@@ -231,19 +275,7 @@ export const test = baseTest.extend<
 
     const context = await app.context();
     const page = await app.firstWindow();
-    const tracingOptions = (testInfo as any)._tracing.traceOptions();
-    if (tracingOptions) {
-      const tracePath = testInfo.outputPath(`trace-${testInfo.testId}.zip`);
-      try {
-        await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
-      } catch (e) { }
-      await context.tracing.startChunk();
-      await use(page);
-      await context.tracing.stopChunk({ path: tracePath });
-      await testInfo.attach('trace', { path: tracePath });
-    } else {
-      await use(page);
-    }
+    await usePageWithTracing(context, page, testInfo, use, { initTracing: true });
   }
 });
 

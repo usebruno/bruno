@@ -1,0 +1,43 @@
+{
+  "version": "1",
+  "uid": "bruno_test_collection_1",
+  "name": "Sample Bruno Collection",
+  "items": [
+    {
+      "uid": "bruno_test_request_1",
+      "type": "http-request",
+      "name": "Get Sample Data",
+      "seq": 1,
+      "request": {
+        "url": "https://jsonplaceholder.typicode.com/todos/1",
+        "method": "GET",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "none"
+        },
+        "auth": {
+          "mode": "none"
+        },
+        "script": {},
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "docs": ""
+      }
+    }
+  ],
+  "environments": [],
+  "activeEnvironmentUid": null,
+  "root": {
+    "request": {
+      "headers": [],
+      "auth": {
+        "mode": "none"
+      },
+      "script": {},
+      "vars": {},
+      "tests": ""
+    }
+  }
+}

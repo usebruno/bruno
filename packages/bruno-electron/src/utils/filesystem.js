@@ -474,6 +474,33 @@ const isCollectionRootBruFile = (pathname, collectionPath) => {
   return dirname === collectionPath && basename === 'collection.bru';
 };
 
+const scanForBrunoFiles = async (dir) => {
+  const brunoFolders = [];
+
+  const scanDir = (currentDir) => {
+    const files = fs.readdirSync(currentDir);
+
+    if (files && files.length) {
+      files.forEach((file) => {
+        const fullPath = path.join(currentDir, file);
+        const stat = fs.statSync(fullPath);
+
+        if (stat.isDirectory()) {
+          if (['node_modules', '.git'].includes(file)) {
+            return;
+          }
+          scanDir(fullPath);
+        } else if (file === 'bruno.json') {
+          brunoFolders.push(currentDir);
+        }
+      });
+    }
+  };
+
+  scanDir(dir);
+  return brunoFolders;
+};
+
 module.exports = {
   DEFAULT_GITIGNORE,
   isValidPathname,
@@ -514,5 +541,6 @@ module.exports = {
   isValidDotEnvFilename,
   isBrunoConfigFile,
   isBruEnvironmentConfig,
-  isCollectionRootBruFile
+  isCollectionRootBruFile,
+  scanForBrunoFiles
 };

@@ -383,6 +383,22 @@ describe('Bruno Autocomplete', () => {
         );
       });
 
+      it('should provide deleteHeader and deleteHeaders hints for req.delete prefix', () => {
+        const line = 'req.delete';
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
+        mockedCodemirror.getLine.mockReturnValue(line);
+        mockedCodemirror.getRange.mockReturnValue(line);
+
+        const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
+          showHintsFor: ['req']
+        });
+
+        expect(result).toBeTruthy();
+        expect(result.list).toEqual(
+          expect.arrayContaining(['deleteHeader(name)', 'deleteHeaders(data)'])
+        );
+      });
+
       it('should handle case-insensitive matching', () => {
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 10 });
         mockedCodemirror.getLine.mockReturnValue('{{varName}}');

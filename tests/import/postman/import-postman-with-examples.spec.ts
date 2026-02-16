@@ -79,6 +79,7 @@ test.describe('Import Postman Collection with Examples', () => {
     await test.step('Complete import by clicking import button', async () => {
       const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
       await locationModal.getByRole('button', { name: 'Import' }).click();
+      await locationModal.waitFor({ state: 'hidden' });
     });
 
     await test.step('Open collection', async () => {

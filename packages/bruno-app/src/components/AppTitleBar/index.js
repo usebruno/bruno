@@ -4,10 +4,11 @@ import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { savePreferences, showHomePage, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { savePreferences, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
 import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
+import { focusTab } from 'providers/ReduxStore/slices/tabs';
 
 import Bruno from 'components/Bruno';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -129,7 +130,10 @@ const AppTitleBar = () => {
   });
 
   const handleHomeClick = () => {
-    dispatch(showHomePage());
+    const scratchCollectionUid = activeWorkspace?.scratchCollectionUid;
+    if (scratchCollectionUid) {
+      dispatch(focusTab({ uid: `${scratchCollectionUid}-overview` }));
+    }
   };
 
   const handleWorkspaceSwitch = (workspaceUid) => {

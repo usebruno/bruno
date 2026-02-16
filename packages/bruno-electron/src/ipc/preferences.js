@@ -1,5 +1,6 @@
 const { ipcMain, nativeTheme } = require('electron');
 const { getPreferences, savePreferences } = require('../store/preferences');
+const { getGitVersion } = require('../utils/git');
 const { globalEnvironmentsStore } = require('../store/global-environments');
 const { getCachedSystemProxy, refreshSystemProxy } = require('../store/system-proxy');
 
@@ -19,6 +20,9 @@ const registerPreferencesIpc = (mainWindow) => {
       console.error('Error occured while fetching global environements!');
       console.error(error);
     }
+
+    const gitVersion = await getGitVersion();
+    mainWindow.webContents.send('main:git-version', gitVersion);
 
     ipcMain.emit('main:renderer-ready', mainWindow);
   });

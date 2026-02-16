@@ -6,13 +6,14 @@ import {
   updateWorkspace,
   addCollectionToWorkspace,
   removeCollectionFromWorkspace,
-  updateWorkspaceLoadingState
+  updateWorkspaceLoadingState,
+  setWorkspaceScratchCollection
 } from '../workspaces';
 import { showHomePage } from '../app';
-import { createCollection, openCollection, openMultipleCollections } from '../collections/actions';
-import { removeCollection } from '../collections';
+import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent } from '../collections/actions';
+import { removeCollection, addTransientDirectory, updateCollectionMountStatus } from '../collections';
 import { updateGlobalEnvironments } from '../global-environments';
-import { initializeWorkspaceTabs, setActiveWorkspaceTab } from '../workspaceTabs';
+import { addTab, focusTab } from '../tabs';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 
@@ -262,15 +263,29 @@ export const switchWorkspace = (workspaceUid) => {
       dispatch(updateGlobalEnvironments({ globalEnvironments: [], activeGlobalEnvironmentUid: null }));
     }
 
+    const scratchCollection = await dispatch(mountScratchCollection(workspaceUid));
     await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
-    dispatch(showHomePage());
 
-    const permanentTabs = [
-      { type: 'overview', label: 'Overview' },
-      { type: 'environments', label: 'Global Environments' }
-    ];
-    dispatch(initializeWorkspaceTabs({ workspaceUid, permanentTabs }));
-    dispatch(setActiveWorkspaceTab({ workspaceUid, type: 'overview' }));
+    if (scratchCollection?.uid) {
+      const overviewTabUid = `${scratchCollection.uid}-overview`;
+      const environmentsTabUid = `${scratchCollection.uid}-environments`;
+
+      dispatch(addTab({
+        uid: overviewTabUid,
+        collectionUid: scratchCollection.uid,
+        type: 'workspaceOverview'
+      }));
+
+      dispatch(addTab({
+        uid: environmentsTabUid,
+        collectionUid: scratchCollection.uid,
+        type: 'workspaceEnvironments'
+      }));
+
+      dispatch(focusTab({
+        uid: overviewTabUid
+      }));
+    }
   };
 };
 
@@ -839,4 +854,89 @@ export const deleteWorkspaceDotEnvFile = (workspaceUid, filename = '.env') => (d
       .then(resolve)
       .catch(reject);
   });
+};
+
+// Scratch Collection Actions
+
+/**
+ * Get the scratch collection for a workspace
+ */
+export const getScratchCollection = (workspaceUid) => {
+  return (dispatch, getState) => {
+    const state = getState();
+    const workspace = state.workspaces.workspaces.find((w) => w.uid === workspaceUid);
+    if (!workspace?.scratchCollectionUid) {
+      return null;
+    }
+    return state.collections.collections.find((c) => c.uid === workspace.scratchCollectionUid);
+  };
+};
+
+/**
+ * Mount scratch collection for a workspace
+ */
+export const mountScratchCollection = (workspaceUid) => {
+  return async (dispatch, getState) => {
+    const state = getState();
+    const workspace = state.workspaces.workspaces.find((w) => w.uid === workspaceUid);
+
+    if (!workspace) {
+      return null;
+    }
+
+    if (workspace.scratchCollectionUid) {
+      const existingCollection = state.collections.collections.find(
+        (c) => c.uid === workspace.scratchCollectionUid
+      );
+      if (existingCollection) {
+        return existingCollection;
+      }
+    }
+
+    try {
+      const tempDirectoryPath = await ipcRenderer.invoke('renderer:mount-workspace-scratch', {
+        workspaceUid,
+        workspacePath: workspace.pathname || 'default'
+      });
+
+      const { generateUidBasedOnHash } = await import('utils/common');
+      const scratchCollectionUid = generateUidBasedOnHash(tempDirectoryPath);
+
+      const brunoConfig = {
+        opencollection: '1.0.0',
+        name: 'Scratch',
+        type: 'collection',
+        ignore: ['node_modules', '.git']
+      };
+
+      await ipcRenderer.invoke('renderer:add-collection-watcher', {
+        collectionPath: tempDirectoryPath,
+        collectionUid: scratchCollectionUid,
+        brunoConfig
+      });
+
+      await dispatch(openScratchCollectionEvent(scratchCollectionUid, tempDirectoryPath, brunoConfig));
+
+      dispatch(setWorkspaceScratchCollection({
+        workspaceUid,
+        scratchCollectionUid,
+        scratchTempDirectory: tempDirectoryPath
+      }));
+
+      dispatch(addTransientDirectory({
+        collectionUid: scratchCollectionUid,
+        pathname: tempDirectoryPath
+      }));
+
+      dispatch(updateCollectionMountStatus({ collectionUid: scratchCollectionUid, mountStatus: 'mounted' }));
+
+      return { uid: scratchCollectionUid, pathname: tempDirectoryPath };
+    } catch (error) {
+      console.error('Error mounting scratch collection:', error);
+      if (workspace.scratchCollectionUid) {
+        dispatch(updateCollectionMountStatus({ collectionUid: workspace.scratchCollectionUid, mountStatus: 'unmounted' }));
+      }
+      return null;
+    }
+  };
 };

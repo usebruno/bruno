@@ -85,6 +85,17 @@ const Wrapper = styled.div`
       justify-content: center;
     }
 
+    .dropdown-tab-count {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: ${(props) => props.theme.dropdown.hoverBg};
+      min-width: 18px;
+      text-align: center;
+    }
+
     &:hover:not(:disabled):not(.disabled) {
       background-color: ${(props) => props.theme.dropdown.hoverBg};
     }

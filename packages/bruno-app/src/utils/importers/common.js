@@ -1,22 +1,31 @@
+import jsyaml from 'js-yaml';
 import each from 'lodash/each';
 import get from 'lodash/get';
+import filter from 'lodash/filter';
 
 import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
 import { isItemARequest } from 'utils/collections';
 import { collectionSchema } from '@usebruno/schema';
 import { BrunoError } from 'utils/common/error';
+import { isOpenApiSpec } from './openapi-collection';
+import { isPostmanCollection } from './postman-collection';
+import { isInsomniaCollection } from './insomnia-collection';
 
-export const validateSchema = (collection = {}) => {
-  return new Promise((resolve, reject) => {
-    collectionSchema
-      .validate(collection)
-      .then(() => resolve(collection))
-      .catch((err) => {
-        console.log(err);
-        reject(new BrunoError('The Collection file is corrupted'));
-      });
-  });
+export const validateSchema = async (collections = []) => {
+  collections = Array.isArray(collections) ? collections : [collections];
+
+  try {
+    await Promise.all(
+      collections.map(async (collection) => {
+        await collectionSchema.validate(collection);
+      })
+    );
+    return collections;
+  } catch (err) {
+    console.log(err);
+    throw new BrunoError('The Collection file is corrupted');
+  }
 };
 
 export const updateUidsInCollection = (_collection) => {
@@ -62,6 +71,18 @@ export const updateUidsInCollection = (_collection) => {
     });
   };
   updateEnvUids(collection.environments);
+
+  return collection;
+};
+
+export const filterItemsInCollection = (collection) => {
+  // this filters out the bruno.json item in older collection exports
+  collection.items = filter(collection.items, (item) => {
+    if (item?.name === 'bruno' && item?.type === 'json') {
+      return false;
+    }
+    return true;
+  });
 
   return collection;
 };
@@ -156,7 +177,12 @@ export const transformItemsInCollection = (collection) => {
     });
   };
 
-  transformItems(collection.items);
+  if (Array.isArray(collection)) {
+    collection.forEach((col) => transformItems(col.items));
+  } else {
+    transformItems(collection.items);
+  }
+
   return collection;
 };
 
@@ -173,7 +199,38 @@ export const hydrateSeqInCollection = (collection) => {
       }
     });
   };
-  hydrateSeq(collection.items);
+
+  if (Array.isArray(collection)) {
+    collection.forEach((col) => hydrateSeq(col.items));
+  } else {
+    hydrateSeq(collection.items);
+  }
 
   return collection;
+};
+
+/**
+ * Gets the schema type(postman, insomnia, openapi) of the CollectionJSON data
+ * @param {Object} data - The JSON data to get the type of
+ * @returns {'openapi' | 'postman' | 'insomnia' | 'unknown'} - The type of the CollectionJSON data
+ */
+const getCollectionSpecType = (data) => {
+  return isOpenApiSpec(data) ? 'openapi' : isPostmanCollection(data) ? 'postman' : isInsomniaCollection(data) ? 'insomnia' : 'unknown';
+};
+
+export const fetchAndValidateApiSpecFromUrl = ({ url }) => {
+  const { ipcRenderer } = window;
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:fetch-api-spec', url)
+      .then((res) => jsyaml.load(res))
+      .then((data) => {
+        const specType = getCollectionSpecType(data);
+        resolve({ data, specType: specType });
+      })
+      .catch((err) => {
+        console.error(err);
+        reject(new BrunoError('Failed to fetch API specification: ' + err.message));
+      });
+  });
 };

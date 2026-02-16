@@ -1,0 +1,41 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2023-01-01T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.1.0",
+  "resources": [
+    {
+      "_id": "req_123",
+      "authentication": {},
+      "body": {},
+      "created": 1672531200000,
+      "description": "",
+      "headers": [],
+      "isPrivate": false,
+      "metaSortKey": -1672531200000,
+      "method": "GET",
+      "modified": 1672531200000,
+      "name": "Get Posts",
+      "parameters": [],
+      "parentId": "wrk_456",
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingFollowRedirects": "global",
+      "settingRebuildPath": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true,
+      "url": "https://jsonplaceholder.typicode.com/posts",
+      "_type": "request"
+    },
+    {
+      "_id": "wrk_456",
+      "created": 1672531200000,
+      "description": "Sample Insomnia collection for testing",
+      "modified": 1672531200000,
+      "name": "Sample Insomnia Collection",
+      "parentId": null,
+      "scope": "collection",
+      "_type": "workspace"
+    }
+  ]
+}

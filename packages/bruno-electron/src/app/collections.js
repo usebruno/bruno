@@ -7,6 +7,14 @@ const { generateUidBasedOnHash } = require('../utils/common');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { parseCollection } = require('@usebruno/filestore');
 
+// Track scratch collection paths (temp directories for workspace scratch requests)
+const scratchCollectionPaths = new Set();
+
+// Register a scratch collection path
+const registerScratchCollectionPath = (scratchPath) => {
+  scratchCollectionPaths.add(path.normalize(scratchPath));
+};
+
 // todo: bruno.json config schema validation errors must be propagated to the UI
 const configSchema = Yup.object({
   name: Yup.string().max(256, 'name must be 256 characters or less').required('name is required'),
@@ -170,5 +178,6 @@ const openCollectionsByPathname = async (win, watcher, collectionPaths, options 
 module.exports = {
   openCollection,
   openCollectionDialog,
-  openCollectionsByPathname
+  openCollectionsByPathname,
+  registerScratchCollectionPath
 };

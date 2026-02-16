@@ -2,6 +2,8 @@ import { test, expect } from '../../playwright';
 import { createTransientRequest, fillRequestUrl, closeAllCollections, createCollection, sendRequest, clickResponseAction, selectRequestPaneTab } from '../utils/page';
 import { buildCommonLocators, buildWebsocketCommonLocators } from '../utils/page/locators';
 
+const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+
 test.describe.serial('Transient Requests', () => {
   let locators: ReturnType<typeof buildCommonLocators>;
 
@@ -123,7 +125,7 @@ test.describe.serial('Transient Requests', () => {
 
     await test.step('Trigger save action using keyboard shortcut', async () => {
       // Try to save using Cmd+S (Mac) or Ctrl+S (other platforms)
-      await page.keyboard.press('Meta+s');
+      await page.keyboard.press(saveShortcut);
       await page.waitForTimeout(500);
     });
 
@@ -171,7 +173,7 @@ test.describe.serial('Transient Requests', () => {
     });
 
     await test.step('Trigger save action using keyboard shortcut', async () => {
-      await page.keyboard.press('Meta+s');
+      await page.keyboard.press(saveShortcut);
       await page.waitForTimeout(500);
     });
 

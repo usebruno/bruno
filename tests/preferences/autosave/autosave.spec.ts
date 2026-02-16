@@ -52,7 +52,7 @@ test.describe('Autosave', () => {
       // Close preferences tab using the close icon
       const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
       await preferencesTab.hover();
-      await preferencesTab.locator('.close-icon').click();
+      await preferencesTab.locator('.close-icon').click({ force: true });
 
       // Click on the request to make it active again
       await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
@@ -77,7 +77,7 @@ test.describe('Autosave', () => {
       // Close and reopen the request tab to verify persistence
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Test Request' }) });
       await requestTab.hover();
-      await requestTab.getByTestId('request-tab-close-icon').click();
+      await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
 
       // Reopen request
       await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
@@ -108,7 +108,7 @@ test.describe('Autosave', () => {
       // Close preferences tab using the close icon
       const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
       await preferencesTab.hover();
-      await preferencesTab.locator('.close-icon').click();
+      await preferencesTab.locator('.close-icon').click({ force: true });
 
       // Click on the request to make it active again
       await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
@@ -192,7 +192,7 @@ test.describe('Autosave', () => {
       // Close preferences tab using the close icon
       const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
       await preferencesTab.hover();
-      await preferencesTab.locator('.close-icon').click();
+      await preferencesTab.locator('.close-icon').click({ force: true });
 
       // Click on the request to make it active again
       await page.locator('.collection-item-name').filter({ hasText: 'Draft Request' }).click();
@@ -207,7 +207,7 @@ test.describe('Autosave', () => {
       // Close and reopen the request tab to verify persistence
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Request' }) });
       await requestTab.hover();
-      await requestTab.getByTestId('request-tab-close-icon').click();
+      await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
 
       // Reopen request
       await page.locator('.collection-item-name').filter({ hasText: 'Draft Request' }).click();

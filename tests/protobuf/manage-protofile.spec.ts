@@ -108,7 +108,7 @@ test.describe('manage protofile', () => {
     await method.click();
     const requestTab = page.getByRole('tab', { name: 'gRPC sayHello' });
     await requestTab.hover();
-    await requestTab.getByTestId('request-tab-close-icon').click();
+    await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
     await page.getByRole('button', { name: 'Don\'t Save' }).click();
   });
 
@@ -127,8 +127,8 @@ test.describe('manage protofile', () => {
     // Use more specific selector for proto file selection
     await page.locator('div').filter({ hasText: /^product\.proto\.\.\/protos\/services\/product\.proto$/ }).first().click();
 
-    const loadedMethodsMessage = await page.getByText('Failed to load gRPC methods: Unknown error').first().isVisible();
-    expect(loadedMethodsMessage).toBe(true);
+    // Verify the error message is visible (auto-retrying)
+    await expect(page.getByText('Failed to load gRPC methods: Unknown error').first()).toBeVisible();
 
     // Check that methods dropdown is not visible when loading fails
     const methodsDropdown = page.getByTestId('grpc-methods-dropdown');
@@ -136,7 +136,7 @@ test.describe('manage protofile', () => {
 
     const requestTab = page.getByRole('tab', { name: 'gRPC sayHello' });
     await requestTab.hover();
-    await requestTab.getByTestId('request-tab-close-icon').click();
+    await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
     await page.getByRole('button', { name: 'Don\'t Save' }).click();
   });
 
@@ -180,7 +180,7 @@ test.describe('manage protofile', () => {
     // Clean up
     const requestTab = page.getByRole('tab', { name: 'gRPC sayHello' });
     await requestTab.hover();
-    await requestTab.getByTestId('request-tab-close-icon').click();
+    await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
     await page.getByRole('button', { name: 'Don\'t Save' }).click();
   });
 });

@@ -27,6 +27,7 @@ test.describe('Collection Environment Import Tests', () => {
     // Select a location and import
     await page.locator('#collection-location').fill(await createTmpDir('collection-env-import-test'));
     await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.waitFor({ state: 'hidden' });
 
     await expect(
       page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' })).toBeVisible({ timeout: 10000 });
@@ -61,7 +62,7 @@ test.describe('Collection Environment Import Tests', () => {
     await expect(page.locator('input[name="5.name"]')).toHaveValue('secretApiToken');
     await expect(page.locator('input[name="5.secret"]')).toBeChecked();
     await envTab.hover();
-    await envTab.getByTestId('request-tab-close-icon').click();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
 
     await page.locator('.collection-item-name').first().click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts/{{userId}}');

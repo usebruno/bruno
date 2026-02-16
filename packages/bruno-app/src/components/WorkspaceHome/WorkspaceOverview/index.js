@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
+import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
+import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
 import Button from 'ui/Button';
 import CollectionsList from './CollectionsList';
 import WorkspaceDocs from '../WorkspaceDocs';
@@ -19,6 +21,8 @@ const WorkspaceOverview = ({ workspace }) => {
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [importData, setImportData] = useState(null);
+  const [showCloneGitModal, setShowCloneGitModal] = useState(false);
+  const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
 
   const workspaceCollectionsCount = workspace?.collections?.length || 0;
 
@@ -51,8 +55,15 @@ const WorkspaceOverview = ({ workspace }) => {
     setImportCollectionModalOpen(true);
   };
 
-  const handleImportCollectionSubmit = ({ rawData, type, ...rest }) => {
+  const handleImportCollectionSubmit = ({ rawData, type, repositoryUrl, ...rest }) => {
     setImportCollectionModalOpen(false);
+
+    if (type === 'git-repository') {
+      setGitRepositoryUrl(repositoryUrl);
+      setShowCloneGitModal(true);
+      return;
+    }
+
     setImportData({ rawData, type, ...rest });
     setImportCollectionLocationModalOpen(true);
   };
@@ -66,12 +77,12 @@ const WorkspaceOverview = ({ workspace }) => {
       .then(() => {
         setImportCollectionLocationModalOpen(false);
         setImportData(null);
-        toast.success('Collection imported successfully');
-      })
-      .catch((err) => {
-        console.error(err);
-        toast.error(err.message);
       });
+  };
+
+  const handleCloseGitModal = () => {
+    setShowCloneGitModal(false);
+    setGitRepositoryUrl(null);
   };
 
   return (
@@ -87,12 +98,26 @@ const WorkspaceOverview = ({ workspace }) => {
         />
       )}
 
-      {importCollectionLocationModalOpen && importData && (
+      {importCollectionLocationModalOpen && importData && (importData.type !== 'multiple' && importData.type !== 'bulk') && (
         <ImportCollectionLocation
           rawData={importData.rawData}
           format={importData.type}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
+        />
+      )}
+      {importCollectionLocationModalOpen && importData && (importData.type === 'multiple' || importData.type === 'bulk') && (
+        <BulkImportCollectionLocation
+          importData={importData}
+          onClose={() => setImportCollectionLocationModalOpen(false)}
+          handleSubmit={handleImportCollectionLocation}
+        />
+      )}
+      {showCloneGitModal && (
+        <CloneGitRepository
+          onClose={handleCloseGitModal}
+          onFinish={handleCloseGitModal}
+          collectionRepositoryUrl={gitRepositoryUrl}
         />
       )}
 
