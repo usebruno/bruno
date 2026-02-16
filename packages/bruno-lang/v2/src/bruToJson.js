@@ -204,9 +204,11 @@ const extractInlineDecorators = (value) => {
   const decorators = [];
   let remaining = value;
 
-  // Pattern to match decorator at the end: @word or @word(...)
-  // We need to handle nested parentheses and quoted strings
+  // Pattern to match decorator at the end with preceding whitespace: @word or @word(...)
   const decoratorEndPattern = /\s+@(\w+)(?:\(([^)]*)\))?\s*$/;
+
+  // Pattern to match decorator at the start (entire value is just decorators)
+  const decoratorStartPattern = /^@(\w+)(?:\(([^)]*)\))?\s*/;
 
   // Keep extracting decorators from the end until no more found
   let match;
@@ -218,16 +220,31 @@ const extractInlineDecorators = (value) => {
       try {
         args = JSON.parse(`[${argsString}]`);
       } catch (e) {
-        // Invalid args, treat this as part of the value, stop extraction
         break;
       }
     }
 
-    // Add decorator to the beginning (since we're extracting from end)
     decorators.unshift({ type, args });
-
-    // Remove the matched decorator from the end
     remaining = remaining.slice(0, remaining.length - fullMatch.length);
+  }
+
+  // If no decorators found yet, check if the entire value starts with @ (empty value case)
+  if (decorators.length === 0 && remaining.trim().startsWith('@')) {
+    while ((match = remaining.match(decoratorStartPattern))) {
+      const [fullMatch, type, argsString] = match;
+
+      let args = [];
+      if (argsString !== undefined && argsString.trim() !== '') {
+        try {
+          args = JSON.parse(`[${argsString}]`);
+        } catch (e) {
+          break;
+        }
+      }
+
+      decorators.push({ type, args });
+      remaining = remaining.slice(fullMatch.length);
+    }
   }
 
   return {
