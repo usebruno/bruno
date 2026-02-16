@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   IconSearch,
@@ -13,6 +13,7 @@ import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { toggleCollectionItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { getDefaultRequestPaneTab } from 'utils/collections';
+import { normalizePath } from 'utils/common/path';
 import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, getItemPath } from './utils/searchUtils';
 import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG, DOCUMENTATION_RESULT } from './constants';
 import StyledWrapper from './StyledWrapper';
@@ -26,8 +27,20 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const debounceTimeoutRef = useRef(null);
   const dispatch = useDispatch();
 
-  const collections = useSelector((state) => state.collections.collections);
+  const allCollections = useSelector((state) => state.collections.collections);
+  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const tabs = useSelector((state) => state.tabs.tabs);
+
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+
+  const collections = useMemo(() => {
+    if (!activeWorkspace) return allCollections;
+
+    const workspacePaths = new Set(
+      activeWorkspace.collections?.map((wc) => normalizePath(wc.path)) || []
+    );
+    return allCollections.filter((c) => workspacePaths.has(normalizePath(c.pathname)));
+  }, [activeWorkspace, allCollections, workspaces]);
 
   const createCollectionResults = () => {
     const collectionResults = collections.map((collection) => ({
