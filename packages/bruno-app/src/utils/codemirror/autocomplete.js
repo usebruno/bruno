@@ -24,6 +24,7 @@ const STATIC_API_HINTS = {
     'req.setHeader(name, value)',
     'req.setHeaders(data)',
     'req.deleteHeader(name)',
+    'req.deleteHeaders(data)',
     'req.getBody()',
     'req.setBody(data)',
     'req.setMaxRedirects(maxRedirects)',
