@@ -102,9 +102,27 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     }
   }
 
-  // gRPC: interpolate body.json string (JSON message template).
-  if (isGrpcRequest && request.body && typeof request.body.json === 'string') {
-    request.body.json = _interpolate(request.body.json, { escapeJSONStrings: true });
+  // gRPC: interpolate entire body (JSON message template and any other keys).
+  if (isGrpcRequest && request.body) {
+    const jsonDoc = JSON.stringify(request.body);
+    const parsed = _interpolate(jsonDoc, { escapeJSONStrings: true });
+    request.body = JSON.parse(parsed);
+  }
+  // Interpolate WebSocket message body
+  const isWsRequest = request.mode === 'ws';
+  if (isWsRequest && request.body && request.body.ws && Array.isArray(request.body.ws)) {
+    request.body.ws.forEach((message) => {
+      if (message && message.content) {
+        let isJson = false;
+        try {
+          JSON.parse(message.content);
+          isJson = true;
+        } catch (e) {}
+        message.content = _interpolate(message.content, {
+          escapeJSONStrings: isJson
+        });
+      }
+    });
   }
 
   // GraphQL: interpolate query and variables in place. We do not stringify the whole body and interpolate that, because variables is a JSON string. Full-body stringify would nest it and double-escape any {{var}} inside.
