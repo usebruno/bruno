@@ -77,10 +77,10 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   const isGraphqlRequest = request.mode === 'graphql';
 
   /*
-    We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode.
-    Even if the selected file's content type is JSON, this prevents the buffer object from being interpolated.
+    Only when contentType is a string (e.g. not false) and indicates JSON: interpolate request.data.
+    We skip when request.data is a Buffer (raw body / file content) so we never interpolate binary.
   */
-  if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
+  if (typeof contentType === 'string' && contentType.includes('json') && !Buffer.isBuffer(request.data)) {
     if (typeof request.data === 'string') {
       if (request.data.length) {
         request.data = _interpolate(request.data);
@@ -92,7 +92,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
-  } else if (contentType === 'application/x-www-form-urlencoded') {
+  } else if (typeof contentType === 'string' && contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
       try {
         forOwn(request?.data, (value, key) => {
@@ -100,6 +100,11 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         });
       } catch (err) {}
     }
+  }
+
+  // gRPC: interpolate body.json string (JSON message template).
+  if (isGrpcRequest && request.body && typeof request.body.json === 'string') {
+    request.body.json = _interpolate(request.body.json, { escapeJSONStrings: true });
   }
 
   // GraphQL: interpolate query and variables in place. We do not stringify the whole body and interpolate that, because variables is a JSON string. Full-body stringify would nest it and double-escape any {{var}} inside.
@@ -139,7 +144,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     } else if (contentType.startsWith('multipart/')) {
       if (Array.isArray(request?.data) && !isFormData(request.data)) {
         try {
-          request.data = request?.data?.map(d => ({
+          request.data = request?.data?.map((d) => ({
             ...d,
             value: _interpolate(d?.value)
           }));
