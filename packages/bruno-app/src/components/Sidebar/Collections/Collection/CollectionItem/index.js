@@ -39,7 +39,7 @@ import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from '
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
-import { getKeyBindingsForOS } from 'providers/Hotkeys/keyMappings';
+import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from './CollectionItemInfo/index';
 import CollectionItemIcon from './CollectionItemIcon';
@@ -562,10 +562,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
     const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
 
-    // Get rename shortcut for this OS
-    let os = 'windows';
-    if (isMac) os = 'mac';
-    const renameKey = getKeyBindingsForOS(os)?.renameItem?.keys?.toLowerCase();
+    const [macRenameKey, winRenameKey] = getKeyBindingsForActionAllOS('renameItem');
+    const renameKey = isMac ? macRenameKey : winRenameKey;
 
     if (e.key.toLowerCase() === renameKey) {
       e.preventDefault();
