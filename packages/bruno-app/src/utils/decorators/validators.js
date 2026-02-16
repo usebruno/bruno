@@ -2,6 +2,20 @@
  * Validates values against decorator constraints
  */
 
+// Helper to get choices array from args (supports both old array format and new object format)
+function getChoicesFromArgs(args) {
+  if (!args) return [];
+  // New format: { options: [...] }
+  if (args.options && Array.isArray(args.options)) {
+    return args.options;
+  }
+  // Old format: [...]
+  if (Array.isArray(args)) {
+    return args;
+  }
+  return [];
+}
+
 export function validateValueAgainstDecorators(value, decorators) {
   if (!decorators || !Array.isArray(decorators) || decorators.length === 0) {
     return { isValid: true, errors: [] };
@@ -11,7 +25,7 @@ export function validateValueAgainstDecorators(value, decorators) {
 
   for (const decorator of decorators) {
     if (decorator.type === 'choices') {
-      const choices = decorator.args || [];
+      const choices = getChoicesFromArgs(decorator.args);
       const stringChoices = choices.map(String);
 
       if (value !== undefined && value !== null && value !== '' && !stringChoices.includes(String(value))) {
@@ -29,11 +43,16 @@ export function getDecoratorChoices(decorators) {
   }
 
   const choicesDecorator = decorators.find((d) => d.type === 'choices');
-  if (!choicesDecorator || !choicesDecorator.args || choicesDecorator.args.length === 0) {
+  if (!choicesDecorator) {
     return null;
   }
 
-  return choicesDecorator.args.map(String);
+  const choices = getChoicesFromArgs(choicesDecorator.args);
+  if (choices.length === 0) {
+    return null;
+  }
+
+  return choices.map(String);
 }
 
 export function hasDecoratorType(decorators, type) {

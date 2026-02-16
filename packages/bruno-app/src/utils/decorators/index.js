@@ -4,6 +4,14 @@ export { validateValueAgainstDecorators, getDecoratorChoices } from './validator
 
 // Registry exports - use these for new code
 export {
+  // New type-based API
+  getType,
+  hasType,
+  getTypeNames,
+  getAllTypes,
+  validateWithType,
+
+  // Decorator-compatible API (works with both old and new)
   getDecorator,
   hasDecorator,
   getDecoratorNames,

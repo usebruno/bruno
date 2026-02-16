@@ -1,97 +1,194 @@
 import {
-  getDecorator,
-  hasDecorator,
-  getDecoratorNames,
-  getAllDecorators,
-  validateWithDecorator,
+  getType,
+  hasType,
+  getTypeNames,
+  getAllTypes,
+  validateWithType,
   validateWithDecorators,
   getDefaultValueForDecorators,
   getVisualRenderer,
   formatDecoratorSyntax,
-  formatDecoratorsSyntax
+  formatDecoratorsSyntax,
+  // Legacy exports
+  getDecorator,
+  hasDecorator,
+  getDecoratorNames,
+  getAllDecorators,
+  validateWithDecorator
 } from './registry';
 
-describe('Decorator Registry', () => {
-  describe('getDecorator', () => {
-    it('returns decorator definition for known decorators', () => {
-      const choices = getDecorator('choices');
+describe('Type Registry', () => {
+  describe('getType', () => {
+    it('returns type definition for known types', () => {
+      const choices = getType('choices');
       expect(choices).not.toBeNull();
       expect(choices.name).toBe('choices');
       expect(typeof choices.validate).toBe('function');
       expect(typeof choices.getDefaultValue).toBe('function');
     });
 
-    it('returns null for unknown decorators', () => {
-      expect(getDecorator('unknownDecorator')).toBeNull();
+    it('returns null for unknown types', () => {
+      expect(getType('unknownType')).toBeNull();
     });
   });
 
-  describe('hasDecorator', () => {
-    it('returns true for registered decorators', () => {
-      expect(hasDecorator('choices')).toBe(true);
-      expect(hasDecorator('required')).toBe(true);
-      expect(hasDecorator('pattern')).toBe(true);
+  describe('hasType', () => {
+    it('returns true for registered types', () => {
+      expect(hasType('string')).toBe(true);
+      expect(hasType('number')).toBe(true);
+      expect(hasType('boolean')).toBe(true);
+      expect(hasType('choices')).toBe(true);
+      expect(hasType('date')).toBe(true);
+      expect(hasType('email')).toBe(true);
+      expect(hasType('url')).toBe(true);
     });
 
-    it('returns false for unregistered decorators', () => {
-      expect(hasDecorator('unknownDecorator')).toBe(false);
+    it('returns false for unregistered types', () => {
+      expect(hasType('unknownType')).toBe(false);
     });
   });
 
-  describe('getDecoratorNames', () => {
-    it('returns all registered decorator names', () => {
-      const names = getDecoratorNames();
+  describe('getTypeNames', () => {
+    it('returns all registered type names', () => {
+      const names = getTypeNames();
+      expect(names).toContain('string');
+      expect(names).toContain('number');
+      expect(names).toContain('boolean');
       expect(names).toContain('choices');
-      expect(names).toContain('required');
-      expect(names).toContain('pattern');
+      expect(names).toContain('date');
+      expect(names).toContain('email');
+      expect(names).toContain('url');
     });
   });
 
-  describe('validateWithDecorator', () => {
-    describe('@choices', () => {
-      it('validates value is in choices', () => {
-        const decorator = { type: 'choices', args: ['a', 'b', 'c'] };
-        expect(validateWithDecorator('a', decorator).isValid).toBe(true);
-        expect(validateWithDecorator('b', decorator).isValid).toBe(true);
-        expect(validateWithDecorator('d', decorator).isValid).toBe(false);
+  describe('validateWithType', () => {
+    describe('string', () => {
+      it('validates value against pattern', () => {
+        expect(validateWithType('123', 'string', { pattern: '^[0-9]+$' }).isValid).toBe(true);
+        expect(validateWithType('abc', 'string', { pattern: '^[0-9]+$' }).isValid).toBe(false);
+      });
+
+      it('returns valid when no pattern', () => {
+        expect(validateWithType('anything', 'string', {}).isValid).toBe(true);
+        expect(validateWithType('anything', 'string', null).isValid).toBe(true);
+      });
+    });
+
+    describe('number', () => {
+      it('validates numeric values', () => {
+        expect(validateWithType('123', 'number', {}).isValid).toBe(true);
+        expect(validateWithType('12.5', 'number', {}).isValid).toBe(true);
+        expect(validateWithType('abc', 'number', {}).isValid).toBe(false);
+      });
+
+      it('validates min constraint', () => {
+        expect(validateWithType('10', 'number', { min: '5' }).isValid).toBe(true);
+        expect(validateWithType('3', 'number', { min: '5' }).isValid).toBe(false);
+      });
+
+      it('validates max constraint', () => {
+        expect(validateWithType('5', 'number', { max: '10' }).isValid).toBe(true);
+        expect(validateWithType('15', 'number', { max: '10' }).isValid).toBe(false);
+      });
+
+      it('validates integer constraint', () => {
+        expect(validateWithType('5', 'number', { integer: true }).isValid).toBe(true);
+        expect(validateWithType('5.5', 'number', { integer: true }).isValid).toBe(false);
+      });
+
+      it('allows empty values', () => {
+        expect(validateWithType('', 'number', {}).isValid).toBe(true);
+      });
+    });
+
+    describe('boolean', () => {
+      it('validates true/false values', () => {
+        expect(validateWithType('true', 'boolean', {}).isValid).toBe(true);
+        expect(validateWithType('false', 'boolean', {}).isValid).toBe(true);
+        expect(validateWithType('yes', 'boolean', {}).isValid).toBe(false);
+      });
+
+      it('allows empty values', () => {
+        expect(validateWithType('', 'boolean', {}).isValid).toBe(true);
+      });
+    });
+
+    describe('choices', () => {
+      it('validates value is in choices (new format)', () => {
+        expect(validateWithType('a', 'choices', { options: ['a', 'b', 'c'] }).isValid).toBe(true);
+        expect(validateWithType('b', 'choices', { options: ['a', 'b', 'c'] }).isValid).toBe(true);
+        expect(validateWithType('d', 'choices', { options: ['a', 'b', 'c'] }).isValid).toBe(false);
+      });
+
+      it('validates value is in choices (old format)', () => {
+        expect(validateWithType('a', 'choices', ['a', 'b', 'c']).isValid).toBe(true);
+        expect(validateWithType('d', 'choices', ['a', 'b', 'c']).isValid).toBe(false);
       });
 
       it('returns error message for invalid value', () => {
-        const decorator = { type: 'choices', args: ['a', 'b'] };
-        const result = validateWithDecorator('c', decorator);
+        const result = validateWithType('c', 'choices', { options: ['a', 'b'] });
         expect(result.isValid).toBe(false);
         expect(result.error).toContain('a, b');
       });
     });
 
-    describe('@required', () => {
-      it('validates non-empty values', () => {
-        const decorator = { type: 'required', args: [] };
-        expect(validateWithDecorator('hello', decorator).isValid).toBe(true);
-        expect(validateWithDecorator('', decorator).isValid).toBe(false);
-        expect(validateWithDecorator('   ', decorator).isValid).toBe(false);
+    describe('date', () => {
+      it('validates ISO date format', () => {
+        expect(validateWithType('2024-01-15', 'date', {}).isValid).toBe(true);
+        expect(validateWithType('2024-1-15', 'date', {}).isValid).toBe(false);
+        expect(validateWithType('01-15-2024', 'date', {}).isValid).toBe(false);
+      });
+
+      it('allows empty values', () => {
+        expect(validateWithType('', 'date', {}).isValid).toBe(true);
       });
     });
 
-    describe('@pattern', () => {
-      it('validates value against regex', () => {
-        const decorator = { type: 'pattern', args: ['^[0-9]+$'] };
-        expect(validateWithDecorator('123', decorator).isValid).toBe(true);
-        expect(validateWithDecorator('abc', decorator).isValid).toBe(false);
+    describe('email', () => {
+      it('validates email format', () => {
+        expect(validateWithType('test@example.com', 'email', {}).isValid).toBe(true);
+        expect(validateWithType('invalid-email', 'email', {}).isValid).toBe(false);
+      });
+
+      it('allows empty values', () => {
+        expect(validateWithType('', 'email', {}).isValid).toBe(true);
       });
     });
 
-    it('returns valid for unknown decorators', () => {
-      const decorator = { type: 'unknownDecorator', args: [] };
-      expect(validateWithDecorator('anything', decorator).isValid).toBe(true);
+    describe('url', () => {
+      it('validates URL format', () => {
+        expect(validateWithType('https://example.com', 'url', {}).isValid).toBe(true);
+        expect(validateWithType('not-a-url', 'url', {}).isValid).toBe(false);
+      });
+
+      it('allows empty values', () => {
+        expect(validateWithType('', 'url', {}).isValid).toBe(true);
+      });
+    });
+
+    it('returns valid for unknown types', () => {
+      expect(validateWithType('anything', 'unknownType', {}).isValid).toBe(true);
     });
   });
 
   describe('validateWithDecorators', () => {
+    it('validates against type decorator', () => {
+      const decorators = [{ type: 'choices', args: { options: ['a', 'b', 'c'] } }];
+      expect(validateWithDecorators('a', decorators).isValid).toBe(true);
+      expect(validateWithDecorators('d', decorators).isValid).toBe(false);
+    });
+
+    it('validates required decorator', () => {
+      const decorators = [{ type: 'required', args: {} }];
+      expect(validateWithDecorators('hello', decorators).isValid).toBe(true);
+      expect(validateWithDecorators('', decorators).isValid).toBe(false);
+      expect(validateWithDecorators('   ', decorators).isValid).toBe(false);
+    });
+
     it('validates against multiple decorators', () => {
       const decorators = [
-        { type: 'choices', args: ['a', 'b', 'c'] },
-        { type: 'required', args: [] }
+        { type: 'choices', args: { options: ['a', 'b', 'c'] } },
+        { type: 'required', args: {} }
       ];
       expect(validateWithDecorators('a', decorators).isValid).toBe(true);
       expect(validateWithDecorators('', decorators).isValid).toBe(false);
@@ -100,9 +197,10 @@ describe('Decorator Registry', () => {
 
     it('collects all errors', () => {
       const decorators = [
-        { type: 'choices', args: ['a', 'b'] },
-        { type: 'required', args: [] }
+        { type: 'choices', args: { options: ['a', 'b'] } },
+        { type: 'required', args: {} }
       ];
+      // Empty string fails both: not in choices AND required
       const result = validateWithDecorators('', decorators);
       expect(result.errors.length).toBe(2);
     });
@@ -114,22 +212,24 @@ describe('Decorator Registry', () => {
   });
 
   describe('getDefaultValueForDecorators', () => {
-    it('returns first choice for @choices', () => {
+    it('returns first choice for choices type (new format)', () => {
+      const decorators = [{ type: 'choices', args: { options: ['first', 'second'] } }];
+      expect(getDefaultValueForDecorators(decorators)).toBe('first');
+    });
+
+    it('returns first choice for choices type (old format)', () => {
       const decorators = [{ type: 'choices', args: ['first', 'second'] }];
       expect(getDefaultValueForDecorators(decorators)).toBe('first');
     });
 
-    it('returns empty string for @required', () => {
-      const decorators = [{ type: 'required', args: [] }];
-      expect(getDefaultValueForDecorators(decorators)).toBe('');
+    it('returns true for boolean type', () => {
+      const decorators = [{ type: 'boolean', args: {} }];
+      expect(getDefaultValueForDecorators(decorators)).toBe('true');
     });
 
-    it('uses first decorator that provides non-empty default', () => {
-      const decorators = [
-        { type: 'required', args: [] },
-        { type: 'choices', args: ['opt1', 'opt2'] }
-      ];
-      expect(getDefaultValueForDecorators(decorators)).toBe('opt1');
+    it('returns empty string for string type', () => {
+      const decorators = [{ type: 'string', args: {} }];
+      expect(getDefaultValueForDecorators(decorators)).toBe('');
     });
 
     it('returns empty string for empty array', () => {
@@ -139,26 +239,24 @@ describe('Decorator Registry', () => {
   });
 
   describe('getVisualRenderer', () => {
-    it('returns renderer for @choices', () => {
-      const decorators = [{ type: 'choices', args: ['a', 'b'] }];
+    it('returns renderer for choices type', () => {
+      const decorators = [{ type: 'choices', args: { options: ['a', 'b'] } }];
       const result = getVisualRenderer(decorators);
       expect(result).not.toBeNull();
       expect(typeof result.render).toBe('function');
       expect(result.decorator).toEqual(decorators[0]);
     });
 
-    it('returns null for decorators without visual renderer', () => {
-      const decorators = [{ type: 'required', args: [] }];
-      expect(getVisualRenderer(decorators)).toBeNull();
+    it('returns renderer for boolean type', () => {
+      const decorators = [{ type: 'boolean', args: {} }];
+      const result = getVisualRenderer(decorators);
+      expect(result).not.toBeNull();
+      expect(typeof result.render).toBe('function');
     });
 
-    it('returns first visual renderer when multiple decorators', () => {
-      const decorators = [
-        { type: 'required', args: [] },
-        { type: 'choices', args: ['a', 'b'] }
-      ];
-      const result = getVisualRenderer(decorators);
-      expect(result.decorator.type).toBe('choices');
+    it('returns null for types without visual renderer', () => {
+      const decorators = [{ type: 'string', args: {} }];
+      expect(getVisualRenderer(decorators)).toBeNull();
     });
 
     it('returns null for empty array', () => {
@@ -168,27 +266,41 @@ describe('Decorator Registry', () => {
   });
 
   describe('formatDecoratorSyntax', () => {
-    it('formats @choices with args', () => {
+    it('formats choices with args (new format)', () => {
+      const decorator = { type: 'choices', args: { options: ['a', 'b', 'c'] } };
+      expect(formatDecoratorSyntax(decorator)).toBe('@choices("a", "b", "c")');
+    });
+
+    it('formats choices with args (old format)', () => {
       const decorator = { type: 'choices', args: ['a', 'b', 'c'] };
       expect(formatDecoratorSyntax(decorator)).toBe('@choices("a", "b", "c")');
     });
 
-    it('formats decorator without args', () => {
-      const decorator = { type: 'required', args: [] };
-      expect(formatDecoratorSyntax(decorator)).toBe('@required');
+    it('formats type without args', () => {
+      const decorator = { type: 'boolean', args: {} };
+      expect(formatDecoratorSyntax(decorator)).toBe('@boolean');
     });
 
-    it('handles numeric args', () => {
-      const decorator = { type: 'pattern', args: ['^[0-9]+$'] };
-      expect(formatDecoratorSyntax(decorator)).toBe('@pattern("^[0-9]+$")');
+    it('formats string with pattern', () => {
+      const decorator = { type: 'string', args: { pattern: '^[0-9]+$' } };
+      expect(formatDecoratorSyntax(decorator)).toBe('@string(pattern="^[0-9]+$")');
+    });
+
+    it('formats number with constraints', () => {
+      const decorator = { type: 'number', args: { min: '0', max: '100', integer: true } };
+      const result = formatDecoratorSyntax(decorator);
+      expect(result).toContain('@number');
+      expect(result).toContain('min="0"');
+      expect(result).toContain('max="100"');
+      expect(result).toContain('integer=true');
     });
   });
 
   describe('formatDecoratorsSyntax', () => {
     it('formats multiple decorators', () => {
       const decorators = [
-        { type: 'choices', args: ['a', 'b'] },
-        { type: 'required', args: [] }
+        { type: 'choices', args: { options: ['a', 'b'] } },
+        { type: 'required', args: {} }
       ];
       expect(formatDecoratorsSyntax(decorators)).toBe('@choices("a", "b") @required');
     });
@@ -196,6 +308,31 @@ describe('Decorator Registry', () => {
     it('returns empty string for empty array', () => {
       expect(formatDecoratorsSyntax([])).toBe('');
       expect(formatDecoratorsSyntax(null)).toBe('');
+    });
+  });
+
+  // Legacy API compatibility tests
+  describe('Legacy API', () => {
+    it('getDecorator maps to getType', () => {
+      expect(getDecorator('choices')).toEqual(getType('choices'));
+    });
+
+    it('hasDecorator maps to hasType', () => {
+      expect(hasDecorator('choices')).toBe(hasType('choices'));
+    });
+
+    it('getDecoratorNames maps to getTypeNames', () => {
+      expect(getDecoratorNames()).toEqual(getTypeNames());
+    });
+
+    it('getAllDecorators maps to getAllTypes', () => {
+      expect(getAllDecorators()).toEqual(getAllTypes());
+    });
+
+    it('validateWithDecorator works with old format', () => {
+      const decorator = { type: 'choices', args: ['a', 'b', 'c'] };
+      expect(validateWithDecorator('a', decorator).isValid).toBe(true);
+      expect(validateWithDecorator('d', decorator).isValid).toBe(false);
     });
   });
 });
