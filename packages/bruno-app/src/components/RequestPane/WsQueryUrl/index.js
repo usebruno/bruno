@@ -62,18 +62,19 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
 
   useEffect(() => {
     if (
-      connectionStatus === CONNECTION_STATUS.CONNECTED ||
-      connectionStatus === CONNECTION_STATUS.DISCONNECTED
+      connectionStatus === CONNECTION_STATUS.CONNECTED
+      || connectionStatus === CONNECTION_STATUS.DISCONNECTED
     ) {
       connectAttemptRef.current = false;
     }
   }, [connectionStatus]);
 
-  const handleConnect = async () => {
+  const handleConnect = async (e, skipGuard = false) => {
     if (
-      connectionStatus === CONNECTION_STATUS.CONNECTED ||
-      connectionStatus === CONNECTION_STATUS.CONNECTING ||
-      connectAttemptRef.current
+      !skipGuard
+      && (connectionStatus === CONNECTION_STATUS.CONNECTED
+        || connectionStatus === CONNECTION_STATUS.CONNECTING
+        || connectAttemptRef.current)
     ) {
       toast.error('WebSocket is already connected or connecting');
       return;
@@ -100,9 +101,10 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   const handleReconnect = async (e) => {
     e && e.stopPropagation();
     try {
+      connectAttemptRef.current = false;
       handleDisconnect(e, false);
       setTimeout(() => {
-        handleConnect(e, false);
+        handleConnect(e, true);
       }, 2000);
     } catch (err) {
       console.error('Failed to re-connect WebSocket connection', err);
