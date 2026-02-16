@@ -11,11 +11,9 @@ get {
 }
 
 headers {
-  bruno: is-awesome
-  postman: is-not-great
-  yawk: lacks-features
+  X-Frame-Options: 1
+  Content-Type: application/json
 }
-
 
 assert {
   res.status: eq 200
@@ -23,14 +21,12 @@ assert {
 }
 
 script:pre-request {
-  req.deleteHeaders(['postman', 'yawk']);
+  req.deleteHeaders(['X-Frame-Options']);
 }
 
 tests {
   test("req.deleteHeaders(names)", function() {
     const h = req.getHeaders();
-    expect(h.bruno).to.equal("is-awesome");
-    expect(h.postman).to.be.undefined;
-    expect(h.yawk).to.be.undefined;
+    expect(h["x-frame-options"]).to.be.undefined;
   });
 }
