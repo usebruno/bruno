@@ -34,7 +34,7 @@ const grammar = ohm.grammar(`Bru {
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
-  params = paramspath | paramsquery | paramsquerymeta | paramspathmeta
+  params = paramspath | paramsquery
   
   // Oauth2 additional parameters
   authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
@@ -110,8 +110,6 @@ const grammar = ohm.grammar(`Bru {
   query = "query" dictionary
   paramspath = "params:path" dictionary
   paramsquery = "params:query" dictionary
-  paramsquerymeta = "params:query:meta" st* "{" nl* textblock tagend
-  paramspathmeta = "params:path:meta" st* "{" nl* textblock tagend
 
   varsandassert = varsreq | varsres | assert
   varsreq = "vars:pre-request" dictionary
@@ -191,25 +189,82 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   });
 };
 
+/**
+ * Extract inline decorators from the end of a value string
+ * Format: "actualValue @decorator1("arg1", "arg2") @decorator2"
+ *
+ * @param {string} value - The value string potentially containing inline decorators
+ * @returns {{ value: string, decorators: Array<{ type: string, args: any[] }> }}
+ */
+const extractInlineDecorators = (value) => {
+  if (!value || typeof value !== 'string') {
+    return { value: value || '', decorators: [] };
+  }
+
+  const decorators = [];
+  let remaining = value;
+
+  // Pattern to match decorator at the end: @word or @word(...)
+  // We need to handle nested parentheses and quoted strings
+  const decoratorEndPattern = /\s+@(\w+)(?:\(([^)]*)\))?\s*$/;
+
+  // Keep extracting decorators from the end until no more found
+  let match;
+  while ((match = remaining.match(decoratorEndPattern))) {
+    const [fullMatch, type, argsString] = match;
+
+    let args = [];
+    if (argsString !== undefined && argsString.trim() !== '') {
+      try {
+        args = JSON.parse(`[${argsString}]`);
+      } catch (e) {
+        // Invalid args, treat this as part of the value, stop extraction
+        break;
+      }
+    }
+
+    // Add decorator to the beginning (since we're extracting from end)
+    decorators.unshift({ type, args });
+
+    // Remove the matched decorator from the end
+    remaining = remaining.slice(0, remaining.length - fullMatch.length);
+  }
+
+  return {
+    value: remaining.trim(),
+    decorators
+  };
+};
+
 const mapRequestParams = (pairList = [], type) => {
   if (!pairList.length) {
     return [];
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
-    let value = pair[name];
+    let rawValue = pair[name];
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
       name = name.slice(1);
       enabled = false;
     }
 
-    return {
+    // Extract inline decorators from the value
+    const { value, decorators } = extractInlineDecorators(rawValue);
+
+    const param = {
       name,
       value,
       enabled,
       type
     };
+
+    // Only add decorators if present
+    if (decorators.length > 0) {
+      param.decorators = decorators;
+    }
+
+    return param;
   });
 };
 
@@ -612,40 +667,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       params: mapRequestParams(dictionary.ast, 'query')
     };
-  },
-  paramsquerymeta(_1, _2, _3, _4, textblock, _5) {
-    const content = outdentString(textblock.sourceString);
-    try {
-      const meta = safeParseJson(content);
-      return {
-        paramsMeta: {
-          query: meta || {}
-        }
-      };
-    } catch (e) {
-      return {
-        paramsMeta: {
-          query: {}
-        }
-      };
-    }
-  },
-  paramspathmeta(_1, _2, _3, _4, textblock, _5) {
-    const content = outdentString(textblock.sourceString);
-    try {
-      const meta = safeParseJson(content);
-      return {
-        paramsMeta: {
-          path: meta || {}
-        }
-      };
-    } catch (e) {
-      return {
-        paramsMeta: {
-          path: {}
-        }
-      };
-    }
   },
   headers(_1, dictionary) {
     return {

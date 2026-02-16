@@ -707,32 +707,23 @@ export const transformRequestToSaveToFilesystem = (item) => {
 
   // Only process params for non-gRPC requests
   if (!['grpc-request', 'ws-request'].includes(_item.type)) {
-    // Build paramsMeta from decorators
-    const paramsMeta = { query: {}, path: {} };
-
     each(_item.request.params, (param) => {
-      itemToSave.request.params.push({
+      const paramToSave = {
         uid: param.uid,
         name: param.name,
         value: param.value,
         description: param.description,
         type: param.type,
         enabled: param.enabled
-      });
+      };
 
-      // If param has decorators, add to paramsMeta
-      if (param.decorators && param.decorators.length > 0 && param.name) {
-        const metaType = param.type === 'path' ? 'path' : 'query';
-        paramsMeta[metaType][param.name] = {
-          decorators: param.decorators
-        };
+      // Include decorators directly on the param if present
+      if (param.decorators && param.decorators.length > 0) {
+        paramToSave.decorators = param.decorators;
       }
-    });
 
-    // Only add paramsMeta to request if there are decorators
-    if (Object.keys(paramsMeta.query).length > 0 || Object.keys(paramsMeta.path).length > 0) {
-      itemToSave.request.paramsMeta = paramsMeta;
-    }
+      itemToSave.request.params.push(paramToSave);
+    });
   }
 
   each(_item.request.headers, (header) => {

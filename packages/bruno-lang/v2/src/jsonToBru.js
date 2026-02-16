@@ -13,8 +13,53 @@ const stripLastLine = (text) => {
   return text.replace(/(\r?\n)$/, '');
 };
 
+/**
+ * Format decorators to inline syntax
+ * @param {Array<{ type: string, args: any[] }>} decorators
+ * @returns {string}
+ */
+const formatDecoratorsInline = (decorators) => {
+  if (!decorators || !Array.isArray(decorators) || decorators.length === 0) {
+    return '';
+  }
+
+  return decorators
+    .map((decorator) => {
+      if (!decorator || !decorator.type) {
+        return '';
+      }
+
+      // Decorator without arguments
+      if (!decorator.args || decorator.args.length === 0) {
+        return `@${decorator.type}`;
+      }
+
+      // Format arguments as JSON values
+      const argsStr = decorator.args.map((arg) => JSON.stringify(arg)).join(', ');
+      return `@${decorator.type}(${argsStr})`;
+    })
+    .filter(Boolean)
+    .join(' ');
+};
+
+/**
+ * Get value string with inline decorators appended
+ * @param {string} value
+ * @param {Array} decorators
+ * @returns {string}
+ */
+const getValueWithDecorators = (value, decorators) => {
+  const valueStr = getValueString(value);
+  const decoratorsStr = formatDecoratorsInline(decorators);
+
+  if (decoratorsStr) {
+    return `${valueStr} ${decoratorsStr}`;
+  }
+  return valueStr;
+};
+
 const jsonToBru = (json) => {
-  const { meta, http, grpc, ws, params, paramsMeta, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples } = json;
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples } = json;
 
   let bru = '';
 
@@ -128,7 +173,7 @@ const jsonToBru = (json) => {
       if (enabled(queryParams).length) {
         bru += `\n${indentString(
           enabled(queryParams)
-            .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `${getKeyString(item.name)}: ${getValueWithDecorators(item.value, item.decorators)}`)
             .join('\n')
         )}`;
       }
@@ -136,7 +181,7 @@ const jsonToBru = (json) => {
       if (disabled(queryParams).length) {
         bru += `\n${indentString(
           disabled(queryParams)
-            .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `~${getKeyString(item.name)}: ${getValueWithDecorators(item.value, item.decorators)}`)
             .join('\n')
         )}`;
       }
@@ -144,25 +189,25 @@ const jsonToBru = (json) => {
       bru += '\n}\n\n';
     }
 
-    // Serialize params:query:meta if there are decorators
-    if (paramsMeta && paramsMeta.query && Object.keys(paramsMeta.query).length) {
-      bru += 'params:query:meta {\n';
-      bru += indentString(JSON.stringify(paramsMeta.query, null, 2));
-      bru += '\n}\n\n';
-    }
-
     if (pathParams.length) {
       bru += 'params:path {';
 
-      bru += `\n${indentString(pathParams.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      if (enabled(pathParams).length) {
+        bru += `\n${indentString(
+          enabled(pathParams)
+            .map((item) => `${getKeyString(item.name)}: ${getValueWithDecorators(item.value, item.decorators)}`)
+            .join('\n')
+        )}`;
+      }
 
-      bru += '\n}\n\n';
-    }
+      if (disabled(pathParams).length) {
+        bru += `\n${indentString(
+          disabled(pathParams)
+            .map((item) => `~${getKeyString(item.name)}: ${getValueWithDecorators(item.value, item.decorators)}`)
+            .join('\n')
+        )}`;
+      }
 
-    // Serialize params:path:meta if there are decorators
-    if (paramsMeta && paramsMeta.path && Object.keys(paramsMeta.path).length) {
-      bru += 'params:path:meta {\n';
-      bru += indentString(JSON.stringify(paramsMeta.path, null, 2));
       bru += '\n}\n\n';
     }
   }

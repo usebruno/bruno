@@ -398,15 +398,6 @@ const exampleSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
-// Schema for paramsMeta - stores decorator metadata for params
-const paramsMetaSchema = Yup.object({
-  query: Yup.object().nullable(),
-  path: Yup.object().nullable()
-})
-  .noUnknown(true)
-  .strict()
-  .nullable();
-
 // Right now, the request schema is very tightly coupled with http request
 // As we introduce more request types in the future, we will improve the definition to support
 // schema structure based on other request type
@@ -415,7 +406,6 @@ const requestSchema = Yup.object({
   method: requestMethodSchema,
   headers: Yup.array().of(keyValueSchema).required('headers are required'),
   params: Yup.array().of(requestParamsSchema).required('params are required'),
-  paramsMeta: paramsMetaSchema,
   auth: authSchema,
   body: requestBodySchema,
   script: Yup.object({
