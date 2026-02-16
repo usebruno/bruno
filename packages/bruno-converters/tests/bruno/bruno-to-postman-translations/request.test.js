@@ -73,10 +73,10 @@ describe('Bruno to Postman Request Translation', () => {
     expect(translatedCode).toBe('const contentType = pm.request.headers.get("Content-Type");');
   });
 
-  it('should translate req.setHeader() to pm.request.headers.set()', () => {
+  it('should translate req.setHeader() to pm.request.headers.add() with object arg', () => {
     const code = 'req.setHeader("Authorization", "Bearer token123");';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('pm.request.headers.set("Authorization", "Bearer token123");');
+    expect(translatedCode).toContain('pm.request.headers.add({\n  key: "Authorization",\n  value: "Bearer token123"\n})');
   });
 
   it('should translate req.deleteHeader() to pm.request.headers.remove()', () => {
