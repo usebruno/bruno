@@ -1,17 +1,34 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef, forwardRef } from 'react';
 import MultiLineEditor from 'components/MultiLineEditor';
 import Dropdown from 'components/Dropdown';
-import { IconDotsVertical, IconCheck } from '@tabler/icons';
+import { IconChevronDown, IconCheck } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import {
   detectAndParseDecorator,
   getVisualRenderer,
   validateWithDecorators,
   formatDecoratorsSyntax,
-  getDefaultValueForDecorators,
-  hasDecorator
+  hasDecorator,
+  getAllDecorators
 } from 'utils/decorators';
 import StyledWrapper from './StyledWrapper';
+
+// Badge icon component (needs forwardRef for Tippy)
+const BadgeIcon = forwardRef(({ decoratorType, isValid, errors }, ref) => {
+  const hasErrors = !isValid && errors && errors.length > 0;
+  const errorText = hasErrors ? errors.join(', ') : '';
+
+  return (
+    <div
+      ref={ref}
+      className={`decorator-badge ${!isValid ? 'has-error' : ''}`}
+      title={hasErrors ? errorText : `@${decoratorType}`}
+    >
+      <span className="badge-text">@{decoratorType}</span>
+      <IconChevronDown size={10} className="badge-dropdown-icon" />
+    </div>
+  );
+});
 
 /**
  * DecoratedInput component that supports three modes:
@@ -19,8 +36,11 @@ import StyledWrapper from './StyledWrapper';
  * - Value: Regular text input for editing the value
  * - Decorator: Text input for editing the raw decorator syntax
  *
- * The visual component is determined by the decorator registry.
- * To add new decorator types with custom visuals, update the registry.
+ * Features:
+ * - Decorator badge showing active decorator type
+ * - Autocomplete when typing @
+ * - Error state with red background
+ * - Tooltip for error messages
  */
 const DecoratedInput = ({
   value,
@@ -38,11 +58,15 @@ const DecoratedInput = ({
   const hasDecoratorsProp = decorators && decorators.length > 0;
 
   // Mode state: 'visual' | 'value' | 'decorator'
-  // Default to 'visual' if has decorators, otherwise 'value'
   const [mode, setMode] = useState(hasDecoratorsProp ? 'visual' : 'value');
 
   // Track previous hasDecorators to detect when decorators are first added
   const prevHasDecorators = useRef(hasDecoratorsProp);
+
+  // Autocomplete state
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [autocompleteIndex, setAutocompleteIndex] = useState(0);
+  const autocompleteRef = useRef(null);
 
   // Auto-switch to visual mode when decorators are first added
   useEffect(() => {
@@ -58,6 +82,40 @@ const DecoratedInput = ({
   // Dropdown instance ref for programmatic control
   const dropdownRef = useRef(null);
 
+  // Check if value starts with @ (potential decorator being typed)
+  const isTypingDecorator = useMemo(() => {
+    if (hasDecoratorsProp) return false;
+    return value && value.trim().startsWith('@');
+  }, [value, hasDecoratorsProp]);
+
+  // Show autocomplete when typing @
+  useEffect(() => {
+    if (isTypingDecorator && !hasDecoratorsProp) {
+      setShowAutocomplete(true);
+      setAutocompleteIndex(0);
+    } else {
+      setShowAutocomplete(false);
+    }
+  }, [isTypingDecorator, hasDecoratorsProp]);
+
+  // Get available decorators for autocomplete
+  const availableDecorators = useMemo(() => {
+    const all = getAllDecorators();
+    return Object.values(all).map((d) => ({
+      name: d.name,
+      description: d.description,
+      syntax: d.name === 'choices' ? '@choices("opt1", "opt2")' : `@${d.name}`
+    }));
+  }, []);
+
+  // Filter decorators based on typed text
+  const filteredDecorators = useMemo(() => {
+    if (!isTypingDecorator) return availableDecorators;
+    const typed = value.trim().slice(1).toLowerCase(); // Remove @ and lowercase
+    if (!typed) return availableDecorators;
+    return availableDecorators.filter((d) => d.name.toLowerCase().startsWith(typed));
+  }, [isTypingDecorator, value, availableDecorators]);
+
   // Live detection state - shows preview while typing (before blur)
   const liveDetection = useMemo(() => {
     if (hasDecoratorsProp) return null;
@@ -65,19 +123,19 @@ const DecoratedInput = ({
     return detectAndParseDecorator(value);
   }, [value, hasDecoratorsProp]);
 
-  // Get visual renderer from registry (e.g., dropdown for @choices)
-  const visualRenderer = useMemo(
-    () => getVisualRenderer(decorators),
-    [decorators]
-  );
+  // Get visual renderer from registry
+  const visualRenderer = useMemo(() => getVisualRenderer(decorators), [decorators]);
 
   // Validate current value against decorators using registry
-  const validation = useMemo(
-    () => validateWithDecorators(value, decorators),
-    [value, decorators]
-  );
+  const validation = useMemo(() => validateWithDecorators(value, decorators), [value, decorators]);
 
-  // Handle value change from any input mode
+  // Get primary decorator type for badge
+  const primaryDecoratorType = useMemo(() => {
+    if (!decorators || decorators.length === 0) return null;
+    return decorators[0].type;
+  }, [decorators]);
+
+  // Handle value change
   const handleValueChange = useCallback(
     (newValue) => {
       onChange(newValue);
@@ -88,6 +146,7 @@ const DecoratedInput = ({
   // Handle blur - trigger decorator detection for non-decorated inputs
   const handleInputBlur = useCallback(
     (blurValue) => {
+      setShowAutocomplete(false);
       if (onBlur && !hasDecoratorsProp) {
         onBlur(blurValue || value);
       }
@@ -108,16 +167,13 @@ const DecoratedInput = ({
       setDecoratorWarning(null);
 
       if (result.isDecorator && result.decorator) {
-        // Check if this is a known decorator type
         if (!hasDecorator(result.decorator.type)) {
           setDecoratorWarning(`Unknown decorator: @${result.decorator.type}`);
           return;
         }
-        // Valid decorator - update decorators and set default value together
         onDecoratorChange([result.decorator], result.defaultValue);
         setMode('visual');
       } else {
-        // Not a decorator - clear decorators and set value
         onDecoratorChange([], newSyntax);
         setMode('value');
       }
@@ -125,7 +181,38 @@ const DecoratedInput = ({
     [onDecoratorChange]
   );
 
-  // Render the default value editor (used in value mode or when no visual renderer)
+  // Handle autocomplete selection
+  const handleAutocompleteSelect = useCallback(
+    (decorator) => {
+      setShowAutocomplete(false);
+      // Set the value to the decorator syntax for the user to complete
+      onChange(decorator.syntax);
+    },
+    [onChange]
+  );
+
+  // Handle keyboard navigation in autocomplete
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (!showAutocomplete || filteredDecorators.length === 0) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setAutocompleteIndex((prev) => (prev + 1) % filteredDecorators.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setAutocompleteIndex((prev) => (prev - 1 + filteredDecorators.length) % filteredDecorators.length);
+      } else if (e.key === 'Enter' && showAutocomplete) {
+        e.preventDefault();
+        handleAutocompleteSelect(filteredDecorators[autocompleteIndex]);
+      } else if (e.key === 'Escape') {
+        setShowAutocomplete(false);
+      }
+    },
+    [showAutocomplete, filteredDecorators, autocompleteIndex, handleAutocompleteSelect]
+  );
+
+  // Render the default value editor
   const renderValueEditor = (additionalProps = {}) => (
     <MultiLineEditor
       value={value || ''}
@@ -141,16 +228,49 @@ const DecoratedInput = ({
     />
   );
 
+  // Render autocomplete dropdown
+  const renderAutocomplete = () => {
+    if (!showAutocomplete) return null;
+
+    return (
+      <div className="decorator-autocomplete" ref={autocompleteRef}>
+        <div className="autocomplete-header">Decorators</div>
+        {filteredDecorators.length === 0 ? (
+          <div className="autocomplete-empty">No matching decorators</div>
+        ) : (
+          filteredDecorators.map((decorator, index) => (
+            <div
+              key={decorator.name}
+              className={`autocomplete-item ${index === autocompleteIndex ? 'selected' : ''}`}
+              onClick={() => handleAutocompleteSelect(decorator)}
+              onMouseEnter={() => setAutocompleteIndex(index)}
+            >
+              <div className="item-name">
+                <span className="at-symbol">@</span>
+                {decorator.name}
+              </div>
+              <div className="item-description">{decorator.description}</div>
+              <div className="item-syntax">{decorator.syntax}</div>
+            </div>
+          ))
+        )}
+      </div>
+    );
+  };
+
   // Render based on mode
   const renderInput = () => {
-    // If no decorators, always show value mode with blur detection
     if (!hasDecoratorsProp) {
-      return renderValueEditor({ onBlur: handleInputBlur });
+      return (
+        <>
+          {renderValueEditor({ onBlur: handleInputBlur })}
+          {renderAutocomplete()}
+        </>
+      );
     }
 
     switch (mode) {
       case 'visual':
-        // Visual mode: Use renderer from registry if available
         if (visualRenderer) {
           const { render: VisualComponent, decorator } = visualRenderer;
           return (
@@ -164,21 +284,18 @@ const DecoratedInput = ({
             />
           );
         }
-        // Fall through to value mode if no visual renderer
         return renderValueEditor();
 
       case 'value':
-        // Value mode: Show the actual value
         return renderValueEditor();
 
       case 'decorator':
-        // Decorator mode: Show raw decorator syntax
         return (
           <MultiLineEditor
             value={formatDecoratorsSyntax(decorators) || ''}
             theme={storedTheme}
             onSave={onSave}
-            onChange={() => {}} // Don't update on every keystroke
+            onChange={() => {}}
             onBlur={(e) => handleDecoratorBlur(e.target?.value || e)}
             onRun={onRun}
             collection={collection}
@@ -196,21 +313,17 @@ const DecoratedInput = ({
   // Handle mode selection
   const handleModeSelect = useCallback((newMode) => {
     setMode(newMode);
-    // Hide dropdown after selection
     if (dropdownRef.current) {
       dropdownRef.current.hide();
     }
   }, []);
 
-  // Render mode selector only if has decorators
-  const renderModeSelector = () => {
+  // Render decorator badge with dropdown menu
+  const renderDecoratorBadge = () => {
     if (!hasDecoratorsProp) return null;
 
-    // Determine visual mode label based on renderer
-    const visualLabel = visualRenderer ? 'Select from options' : 'Visual mode';
-
     const modeOptions = [
-      { key: 'visual', label: visualLabel, icon: '▼' },
+      { key: 'visual', label: visualRenderer ? 'Select from options' : 'Visual mode', icon: '▼' },
       { key: 'value', label: 'Edit value', icon: 'Aa' },
       { key: 'decorator', label: 'Edit decorator', icon: '@' }
     ];
@@ -219,11 +332,14 @@ const DecoratedInput = ({
       <Dropdown
         onCreate={(instance) => (dropdownRef.current = instance)}
         icon={(
-          <button type="button" className="mode-menu-trigger" title="Change edit mode">
-            <IconDotsVertical size={14} strokeWidth={1.5} />
-          </button>
+          <BadgeIcon
+            decoratorType={primaryDecoratorType}
+            isValid={validation.isValid}
+            errors={validation.errors}
+          />
         )}
         placement="bottom-end"
+        appendTo={() => document.body}
       >
         <div className="mode-dropdown-menu">
           {modeOptions.map((option) => (
@@ -248,12 +364,10 @@ const DecoratedInput = ({
 
   // Render live detection preview (shows while typing a decorator)
   const renderLiveDetectionPreview = () => {
-    if (!liveDetection) return null;
+    if (!liveDetection || showAutocomplete) return null;
 
     if (liveDetection.isDecorator && liveDetection.decorator) {
-      // Check if it's a known decorator
       const isKnown = hasDecorator(liveDetection.decorator.type);
-      // Valid decorator detected - show preview
       return (
         <span
           className={`live-detection ${isKnown ? 'valid' : 'warning'}`}
@@ -269,7 +383,6 @@ const DecoratedInput = ({
     }
 
     if (liveDetection.warning) {
-      // Invalid syntax - show warning
       return (
         <span className="live-detection warning" title={liveDetection.warning}>
           @?
@@ -280,14 +393,27 @@ const DecoratedInput = ({
     return null;
   };
 
+  // Determine container classes based on state
+  const containerClasses = useMemo(() => {
+    const classes = ['decorated-input-container'];
+    if (hasDecoratorsProp && !validation.isValid) {
+      classes.push('has-error');
+    }
+    if (decoratorWarning) {
+      classes.push('has-warning');
+    }
+    return classes.join(' ');
+  }, [hasDecoratorsProp, validation.isValid, decoratorWarning]);
+
   return (
-    <StyledWrapper>
-      <div className="decorated-input-container">{renderInput()}</div>
+    <StyledWrapper onKeyDown={handleKeyDown}>
+      <div className={containerClasses}>{renderInput()}</div>
       {renderLiveDetectionPreview()}
-      {renderModeSelector()}
-      {decoratorWarning && <span className="decorator-warning" title={decoratorWarning}>!</span>}
-      {!validation.isValid && mode === 'visual' && (
-        <span className="value-error" title={validation.errors.join(', ')}>!</span>
+      {renderDecoratorBadge()}
+      {decoratorWarning && (
+        <span className="decorator-warning" title={decoratorWarning}>
+          ⚠
+        </span>
       )}
     </StyledWrapper>
   );

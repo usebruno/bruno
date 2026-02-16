@@ -15,7 +15,9 @@
  * - formatArgs: function - Formats args to string (called during syntax serialization)
  */
 
-import React from 'react';
+import React, { useRef, forwardRef } from 'react';
+import Dropdown from 'components/Dropdown';
+import { IconChevronDown, IconCheck } from '@tabler/icons';
 
 /**
  * @typedef {Object} DecoratorDefinition
@@ -29,29 +31,59 @@ import React from 'react';
  */
 
 /**
+ * Trigger component for choices dropdown (needs forwardRef for Tippy)
+ */
+const ChoicesTrigger = forwardRef(({ value, isValid }, ref) => (
+  <div ref={ref} className={`choices-trigger ${!isValid ? 'error' : ''}`}>
+    <span className="choices-value">{value || 'Select...'}</span>
+    <IconChevronDown size={14} strokeWidth={1.5} className="choices-chevron" />
+  </div>
+));
+
+/**
  * Choices Dropdown Component for Visual mode
  */
 const ChoicesDropdown = ({ value, args, onChange, isValid }) => {
   const choices = args || [];
+  const dropdownRef = useRef(null);
+
+  const handleSelect = (choice) => {
+    onChange(choice);
+    if (dropdownRef.current) {
+      dropdownRef.current.hide();
+    }
+  };
 
   return (
-    <select
-      className={`choices-dropdown ${!isValid ? 'error' : ''}`}
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value)}
+    <Dropdown
+      onCreate={(ref) => (dropdownRef.current = ref)}
+      icon={<ChoicesTrigger value={value} isValid={isValid} />}
+      placement="bottom-start"
+      appendTo={() => document.body}
     >
-      {/* Show invalid value option if current value not in choices */}
-      {!choices.includes(value) && value && (
-        <option value={value} disabled>
-          {value} (invalid)
-        </option>
-      )}
-      {choices.map((choice) => (
-        <option key={choice} value={choice}>
-          {choice}
-        </option>
-      ))}
-    </select>
+      <div className="choices-menu">
+        {/* Show invalid value option if current value not in choices */}
+        {!choices.includes(value) && value && (
+          <div className="dropdown-item disabled" onClick={() => handleSelect(value)}>
+            <span className="dropdown-label">{value} (invalid)</span>
+          </div>
+        )}
+        {choices.map((choice) => (
+          <div
+            key={choice}
+            className={`dropdown-item ${value === choice ? 'dropdown-item-active' : ''}`}
+            onClick={() => handleSelect(choice)}
+          >
+            <span className="dropdown-label">{choice}</span>
+            {value === choice && (
+              <span className="dropdown-right-section">
+                <IconCheck size={14} strokeWidth={2} />
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </Dropdown>
   );
 };
 
