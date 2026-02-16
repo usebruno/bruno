@@ -11,17 +11,14 @@ const Wrapper = styled.div`
     min-width: 0;
     position: relative;
 
-    /* Error state - red background with opacity */
     &.has-error {
       .CodeMirror,
-      .choices-dropdown,
       input,
       textarea {
         background-color: rgba(220, 53, 69, 0.08);
       }
     }
 
-    /* Warning state - yellow background with opacity */
     &.has-warning {
       .CodeMirror,
       input,
@@ -31,7 +28,6 @@ const Wrapper = styled.div`
     }
   }
 
-  /* Decorator Badge/Pill - shows active decorator type */
   .decorator-badge {
     display: inline-flex;
     align-items: center;
@@ -45,7 +41,6 @@ const Wrapper = styled.div`
     flex-shrink: 0;
     transition: all 0.15s ease;
     border: 1px solid transparent;
-
     background: ${(props) => props.theme.colors?.text?.green || '#28a745'}15;
     color: ${(props) => props.theme.colors?.text?.green || '#28a745'};
     border-color: ${(props) => props.theme.colors?.text?.green || '#28a745'}30;
@@ -66,11 +61,6 @@ const Wrapper = styled.div`
       }
     }
 
-    .badge-icon {
-      font-size: 10px;
-      opacity: 0.7;
-    }
-
     .badge-text {
       max-width: 80px;
       overflow: hidden;
@@ -79,32 +69,8 @@ const Wrapper = styled.div`
     }
 
     .badge-dropdown-icon {
-      font-size: 8px;
       opacity: 0.6;
       margin-left: 2px;
-    }
-  }
-
-  .mode-menu-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    margin-left: 4px;
-    padding: 0;
-    border: none;
-    background: transparent;
-    color: ${(props) => props.theme.table.thead.color};
-    cursor: pointer;
-    border-radius: 3px;
-    opacity: 0.6;
-    transition: all 0.15s ease;
-    flex-shrink: 0;
-
-    &:hover {
-      opacity: 1;
-      background: ${(props) => props.theme.dropdown?.hoverBg || props.theme.sidebar.bg};
     }
   }
 
@@ -117,7 +83,6 @@ const Wrapper = styled.div`
     align-items: center;
     width: 100%;
     height: 30px;
-    padding: 0;
     background: transparent;
     color: inherit;
     font-size: ${(props) => props.theme.font?.size?.base || '13px'};
@@ -153,7 +118,6 @@ const Wrapper = styled.div`
     overflow-y: auto;
   }
 
-  /* Decorator Autocomplete Dropdown */
   .decorator-autocomplete {
     position: absolute;
     top: 100%;
@@ -235,10 +199,6 @@ const Wrapper = styled.div`
     cursor: help;
   }
 
-  .value-error {
-    display: none; /* Hidden - using badge and background instead */
-  }
-
   .live-detection {
     display: flex;
     align-items: center;
@@ -262,7 +222,6 @@ const Wrapper = styled.div`
       border: 1px solid ${(props) => props.theme.colors?.text?.yellow || '#f0ad4e'}44;
     }
   }
-
 `;
 
 export default Wrapper;
