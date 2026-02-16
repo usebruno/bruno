@@ -585,10 +585,11 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     } else {
       sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
         .then((response) => {
+          const { requestSent, ...responseData } = response;
           // Ensure any timestamps in the response are converted to numbers
           const serializedResponse = {
-            ...response,
-            timeline: response.timeline?.map((entry) => ({
+            ...responseData,
+            timeline: responseData.timeline?.map((entry) => ({
               ...entry,
               timestamp: entry.timestamp instanceof Date ? entry.timestamp.getTime() : entry.timestamp
             }))
@@ -598,7 +599,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
             responseReceived({
               itemUid,
               collectionUid,
-              response: serializedResponse
+              response: serializedResponse,
+              requestSent
             })
           );
         })
