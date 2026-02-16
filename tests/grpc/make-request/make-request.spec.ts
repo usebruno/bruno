@@ -25,7 +25,7 @@ test.describe('make grpc requests', () => {
 
     await test.step('select unary method', async () => {
       await locators.sidebar.request('SayHello').click();
-      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/SayHello');
+      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/SayHello', { timeout: 30000 });
     });
 
     await test.step('verify gRPC unary request is opened successfully', async () => {

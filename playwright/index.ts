@@ -56,13 +56,13 @@ async function usePageWithTracing(
   if (useChunks) {
     await context.tracing.startChunk();
     await use(page);
-    await context.tracing.stopChunk({ path: tracePath });
+    try { await context.tracing.stopChunk({ path: tracePath }); } catch { }
   } else {
     await use(page);
-    await context.tracing.stop({ path: tracePath });
+    try { await context.tracing.stop({ path: tracePath }); } catch { }
   }
 
-  await testInfo.attach('trace', { path: tracePath });
+  try { await testInfo.attach('trace', { path: tracePath }); } catch { }
 }
 
 /**
@@ -96,13 +96,14 @@ export const test = baseTest.extend<
     page: Page;
     newPage: Page;
     pageWithUserData: Page;
+    collectionFixturePath: string | null;
     restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>;
   },
   {
     createTmpDir: (tag?: string) => Promise<string>;
-    launchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string; dotEnv?: Record<string, string> }) => Promise<ElectronApplication>;
+    launchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string; dotEnv?: Record<string, string>; templateVars?: Record<string, string> }) => Promise<ElectronApplication>;
     electronApp: ElectronApplication;
-    reuseOrLaunchElectronApp: (options?: { initUserDataPath?: string; testFile?: string; userDataPath?: string; dotEnv?: Record<string, string> }) => Promise<ElectronApplication>;
+    reuseOrLaunchElectronApp: (options?: { initUserDataPath?: string; testFile?: string; userDataPath?: string; dotEnv?: Record<string, string>; templateVars?: Record<string, string>; closePrevious?: boolean }) => Promise<ElectronApplication>;
   }
 >({
   createTmpDir: [
@@ -120,10 +121,27 @@ export const test = baseTest.extend<
     { scope: 'worker' }
   ],
 
+  collectionFixturePath: async ({ createTmpDir }, use, testInfo) => {
+    const testDir = path.dirname(testInfo.file);
+    const fixturesDir = path.join(testDir, 'fixtures');
+    // fixtures/collections — multiple named collections (subdirs with bruno.json/opencollection.yml)
+    // fixtures/collection — single collection (single dir with bruno.json/opencollection.yml)
+    const srcPath = [path.join(fixturesDir, 'collections'), path.join(fixturesDir, 'collection')]
+      .find((p) => fs.existsSync(p));
+
+    if (srcPath) {
+      const tmpDir = await createTmpDir(path.basename(srcPath));
+      await fs.promises.cp(srcPath, tmpDir, { recursive: true });
+      await use(tmpDir);
+    } else {
+      await use(null);
+    }
+  },
+
   launchElectronApp: [
     async ({ playwright, createTmpDir }, use, workerInfo) => {
       const apps: ElectronApplication[] = [];
-      await use(async ({ initUserDataPath, userDataPath: providedUserDataPath, dotEnv = {} } = {}) => {
+      await use(async ({ initUserDataPath, userDataPath: providedUserDataPath, dotEnv = {}, templateVars = {} } = {}) => {
         const userDataPath = providedUserDataPath || (await createTmpDir('electron-userdata'));
 
         // Ensure dir exists when caller supplies their own path
@@ -132,8 +150,9 @@ export const test = baseTest.extend<
         }
 
         if (initUserDataPath) {
-          const replacements = {
-            projectRoot: path.posix.join(__dirname, '..')
+          const replacements: Record<string, string> = {
+            projectRoot: path.posix.join(__dirname, '..'),
+            ...templateVars
           };
 
           for (const file of await fs.promises.readdir(initUserDataPath)) {
@@ -217,12 +236,26 @@ export const test = baseTest.extend<
   reuseOrLaunchElectronApp: [
     async ({ launchElectronApp }, use, testInfo) => {
       const apps: Record<string, ElectronApplication> = {};
-      await use(async ({ initUserDataPath, testFile, userDataPath, dotEnv = {} } = {}) => {
+      await use(async ({ initUserDataPath, testFile, userDataPath, dotEnv = {}, templateVars = {}, closePrevious = false } = {}) => {
         const key = testFile || userDataPath || initUserDataPath;
         if (key && apps[key]) {
-          return apps[key];
+          if (closePrevious) {
+            await closeElectronApp(apps[key]);
+            delete apps[key];
+          } else {
+            return apps[key];
+          }
         }
-        const app = await launchElectronApp({ initUserDataPath, userDataPath, dotEnv });
+
+        // Close other cached apps to prevent resource accumulation across test files
+        for (const existingKey of Object.keys(apps)) {
+          if (existingKey !== key) {
+            await closeElectronApp(apps[existingKey]);
+            delete apps[existingKey];
+          }
+        }
+
+        const app = await launchElectronApp({ initUserDataPath, userDataPath, dotEnv, templateVars });
         if (key) {
           apps[key] = app;
         }
@@ -232,32 +265,39 @@ export const test = baseTest.extend<
     { scope: 'worker' }
   ],
 
-  restartApp: async ({ launchElectronApp }, use, testInfo) => {
-    const appInstances: Array<{ app: ElectronApplication; initUserDataPath?: string }> = [];
+  restartApp: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath }, use, testInfo) => {
     await use(async ({ initUserDataPath } = {}) => {
-      // Get the test directory and check for init-user-data folder
       const testDir = path.dirname(testInfo.file);
       const defaultInitUserDataPath = path.join(testDir, 'init-user-data');
 
-      // Use provided initUserDataPath, or check if default path exists, or use undefined
-      let userDataPath = initUserDataPath;
-      if (!userDataPath) {
+      let srcUserDataPath = initUserDataPath;
+      if (!srcUserDataPath) {
         const hasInitUserData = await fs.promises.stat(defaultInitUserDataPath).catch(() => false);
-        userDataPath = hasInitUserData ? defaultInitUserDataPath : undefined;
+        srcUserDataPath = hasInitUserData ? defaultInitUserDataPath : undefined;
       }
 
-      const app = await launchElectronApp({ initUserDataPath: userDataPath });
-      appInstances.push({ app, initUserDataPath: userDataPath });
-      return app;
-    });
+      // Copy init-user-data to a fresh tmp dir (same as pageWithUserData)
+      const tmpAppDataDir = await createTmpDir();
+      if (srcUserDataPath) {
+        await recursiveCopy(srcUserDataPath, tmpAppDataDir);
+      }
 
-    // Clean up all app instances
-    for (const { app } of appInstances) {
-      await closeElectronApp(app);
-    }
+      const templateVars: Record<string, string> = {};
+      if (collectionFixturePath) {
+        templateVars.collectionPath = collectionFixturePath;
+      }
+
+      // Close the previous app (from pageWithUserData) before launching a new one
+      return await reuseOrLaunchElectronApp({
+        initUserDataPath: tmpAppDataDir,
+        testFile: testInfo.file,
+        templateVars,
+        closePrevious: true
+      });
+    });
   },
 
-  pageWithUserData: async ({ reuseOrLaunchElectronApp, createTmpDir }, use, testInfo) => {
+  pageWithUserData: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
     const initUserDataPath = path.join(testDir, 'init-user-data');
 
@@ -271,10 +311,18 @@ export const test = baseTest.extend<
       throw err;
     }
 
-    const app = await reuseOrLaunchElectronApp({ initUserDataPath: tmpAppDataDir, testFile: testInfo.file });
+    const templateVars: Record<string, string> = {};
+    if (collectionFixturePath) {
+      templateVars.collectionPath = collectionFixturePath;
+    }
+
+    const app = await reuseOrLaunchElectronApp({ initUserDataPath: tmpAppDataDir, testFile: testInfo.file, templateVars });
 
     const context = await app.context();
     const page = await app.firstWindow();
+
+    // Wait for app to be ready
+    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
     await usePageWithTracing(context, page, testInfo, use, { initTracing: true });
   }
 });

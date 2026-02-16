@@ -11,25 +11,25 @@
   "protobuf": {
     "protoFiles": [
       {
-        "path": "../protos/services/invalid-file-path.proto",
+        "path": "./protos/services/invalid-file-path.proto",
         "type": "file"
       },
       {
-        "path": "../protos/services/product.proto",
+        "path": "./protos/services/product.proto",
         "type": "file"
       },
       {
-        "path": "../protos/services/order.proto",
+        "path": "./protos/services/order.proto",
         "type": "file"
       }
     ],
     "importPaths": [
       {
-        "path": "../protos/invalid-import-path",
+        "path": "./protos/invalid-import-path",
         "enabled": true
       },
       {
-        "path": "../protos/types",
+        "path": "./protos/types",
         "enabled": false
       },
       {

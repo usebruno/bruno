@@ -35,7 +35,7 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
     }
   });
 
-  test('should persist multiple environment variables from different requests', async ({ pageWithUserData: page }) => {
+  test('should persist multiple environment variables from different requests', async ({ pageWithUserData: page, collectionFixturePath }) => {
     await test.step('Select collection', async () => {
       await page.locator('#sidebar-collection-name').click();
       // The collection name should be 'collection' based on the test setup
@@ -90,7 +90,7 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
 
     await test.step('Verify variables are persisted to file', async () => {
       // Check that the variables are written to the Stage.bru file
-      const stageBruPath = path.join(__dirname, 'fixtures/collection/environments/Stage.bru');
+      const stageBruPath = path.join(collectionFixturePath!, 'environments', 'Stage.bru');
       const stageBruContent = fs.readFileSync(stageBruPath, 'utf8');
 
       // Both variables should be present in the file
