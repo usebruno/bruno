@@ -85,8 +85,13 @@ const CreateApiSpec = ({ onClose }) => {
             ...variables
           };
         }
+        // Convert envVariables (keyed by filename) to environments array for multi-server export
+        const environmentsList = Object.entries(envVariables || {}).map(([envFile, vars]) => ({
+          name: envFile.replace(/\.(bru|yml)$/, ''),
+          variables: vars
+        }));
         // Create API spec yaml
-        let exportedYamlContentData = exportApiSpec({ name: values?.apiSpecName, variables, items: files });
+        let exportedYamlContentData = exportApiSpec({ name: values?.apiSpecName, variables, items: files, environments: environmentsList });
         if (exportedYamlContentData?.content) {
           yamlContent = exportedYamlContentData?.content;
         }
