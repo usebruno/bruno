@@ -47,8 +47,8 @@ const General = () => {
         .test('isNumber', 'Save Delay must be a number', (value) => {
           return value === undefined || !isNaN(value);
         })
-        .test('isValidInterval', 'Save Delay must be at least 100ms', (value) => {
-          return value === undefined || Number(value) >= 100;
+        .test('isValidInterval', 'Save Delay must be at least 500ms', (value) => {
+          return value === undefined || Number(value) >= 500;
         })
     }).test('intervalRequired', 'Save Delay is required when Auto Save is enabled', (value) => {
       // If autosave is enabled, interval must be provided

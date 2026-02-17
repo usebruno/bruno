@@ -13,7 +13,7 @@ import DotEnvFileDetails from 'components/Environments/DotEnvFileDetails';
 import ColorBadge from 'components/ColorBadge';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
-import { addGlobalEnvironment, renameGlobalEnvironment, selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { addGlobalEnvironment, renameGlobalEnvironment, selectGlobalEnvironment, setGlobalEnvironmentDraft, clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import {
   saveWorkspaceDotEnvVariables,
   saveWorkspaceDotEnvRaw,
@@ -72,9 +72,22 @@ const EnvironmentList = ({
   const envUids = environments ? environments.map((env) => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
 
+  const handleDotEnvModifiedChange = useCallback((modified) => {
+    setIsDotEnvModified(modified);
+    if (modified) {
+      dispatch(setGlobalEnvironmentDraft({
+        environmentUid: `dotenv:${selectedDotEnvFile}`,
+        variables: []
+      }));
+    } else {
+      dispatch(clearGlobalEnvironmentDraft());
+    }
+  }, [dispatch, selectedDotEnvFile]);
+
   useEffect(() => {
     if (dotEnvFiles.length === 0) {
       setSelectedDotEnvFile(null);
+      handleDotEnvModifiedChange(false);
       return;
     }
 
@@ -422,7 +435,7 @@ const EnvironmentList = ({
     dispatch(deleteWorkspaceDotEnvFile(workspace.uid, filename))
       .then(() => {
         toast.success(`${filename} file deleted!`);
-        setIsDotEnvModified(false);
+        handleDotEnvModifiedChange(false);
         if (selectedDotEnvFile === filename) {
           const remainingFiles = dotEnvFiles.filter((f) => f.filename !== filename);
           if (remainingFiles.length > 0) {
@@ -465,7 +478,7 @@ const EnvironmentList = ({
             onSave={handleSaveDotEnv}
             onSaveRaw={handleSaveDotEnvRaw}
             isModified={isDotEnvModified}
-            setIsModified={setIsDotEnvModified}
+            setIsModified={handleDotEnvModifiedChange}
             dotEnvExists={selectedDotEnvData?.exists}
             viewMode={dotEnvViewMode}
           />

@@ -55,7 +55,37 @@ describe('Bruno to Postman Variables Translation', () => {
   it('should translate bru.getCollectionVar', () => {
     const code = 'bru.getCollectionVar("baseUrl");';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('pm.variables.get("baseUrl");');
+    expect(translatedCode).toBe('pm.collectionVariables.get("baseUrl");');
+  });
+
+  it('should translate bru.setCollectionVar', () => {
+    const code = 'bru.setCollectionVar("baseUrl", "https://api.example.com");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.collectionVariables.set("baseUrl", "https://api.example.com");');
+  });
+
+  it('should translate bru.hasCollectionVar', () => {
+    const code = 'bru.hasCollectionVar("baseUrl");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.collectionVariables.has("baseUrl");');
+  });
+
+  it('should translate bru.deleteCollectionVar', () => {
+    const code = 'bru.deleteCollectionVar("baseUrl");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.collectionVariables.unset("baseUrl");');
+  });
+
+  it('should translate bru.getAllCollectionVars', () => {
+    const code = 'const vars = bru.getAllCollectionVars();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const vars = pm.collectionVariables.toObject();');
+  });
+
+  it('should translate bru.deleteAllCollectionVars', () => {
+    const code = 'bru.deleteAllCollectionVars();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.collectionVariables.clear();');
   });
 
   // Folder variables tests

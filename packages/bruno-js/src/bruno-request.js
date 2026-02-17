@@ -125,6 +125,13 @@ class BrunoRequest {
     this.req.headers = headers;
   }
 
+  deleteHeaders(headers) {
+    headers.forEach((name) => {
+      delete this.headers[name];
+      delete this.req.headers[name];
+    });
+  }
+
   getHeader(name) {
     return this.req.headers[name];
   }
@@ -132,6 +139,11 @@ class BrunoRequest {
   setHeader(name, value) {
     this.headers[name] = value;
     this.req.headers[name] = value;
+  }
+
+  deleteHeader(name) {
+    delete this.headers[name];
+    delete this.req.headers[name];
   }
 
   hasJSONContentType(headers) {

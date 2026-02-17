@@ -1,0 +1,33 @@
+meta {
+  name: deleteAllCollectionVars
+  type: http
+  seq: 28
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setCollectionVar("testDelAllCollectionA", "a");
+  bru.setCollectionVar("testDelAllCollectionB", "b");
+}
+
+tests {
+  const savedCollectionVars = bru.getAllCollectionVars();
+  bru.deleteAllCollectionVars();
+
+  test("should delete all collection vars", function() {
+    const valA = bru.getCollectionVar("testDelAllCollectionA");
+    const valB = bru.getCollectionVar("testDelAllCollectionB");
+    expect(valA).to.be.undefined;
+    expect(valB).to.be.undefined;
+  });
+
+  // Restore collection vars for subsequent requests
+  for (const [key, value] of Object.entries(savedCollectionVars)) {
+    bru.setCollectionVar(key, value);
+  }
+}
