@@ -1,4 +1,4 @@
-import { test, expect } from '../../../playwright';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import { sendRequest } from '../../utils/page';
 
 test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
@@ -55,6 +55,6 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
     await newEnvTab.hover();
     await newEnvTab.getByTestId('request-tab-close-icon').click({ force: true });
 
-    await newPage.close();
+    await closeElectronApp(newApp);
   });
 });
