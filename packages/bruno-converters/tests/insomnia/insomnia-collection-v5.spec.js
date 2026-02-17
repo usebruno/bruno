@@ -33,6 +33,9 @@ collection:
           isPrivate: false
           sortKey: -1744194421965
         method: GET
+        parameters:
+          - name: date
+            value: 2022-10-28
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -127,7 +130,14 @@ const expectedOutput = {
             },
             headers: [],
             method: 'GET',
-            params: [],
+            params: [
+              {
+                enabled: true,
+                name: 'date',
+                type: 'query',
+                value: '2022-10-28'
+              }
+            ],
             url: 'https://testbench-sanity.usebruno.com/ping'
           },
           seq: 1,
