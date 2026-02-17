@@ -171,7 +171,7 @@ class GlobalEnvironmentsManager {
     });
   }
 
-  async createGlobalEnvironment(workspacePath, { uid, name, variables }) {
+  async createGlobalEnvironment(workspacePath, { uid, name, variables, color }) {
     try {
       if (!workspacePath) {
         throw new Error('Workspace path is required');
@@ -191,7 +191,8 @@ class GlobalEnvironmentsManager {
 
       const environment = {
         name: name,
-        variables: variables || []
+        variables: variables || [],
+        color
       };
 
       if (this.envHasSecrets(environment)) {
@@ -204,7 +205,8 @@ class GlobalEnvironmentsManager {
       return {
         uid: generateUidBasedOnHash(environmentFilePath),
         name,
-        variables
+        variables,
+        color
       };
     } catch (error) {
       throw error;

@@ -347,6 +347,12 @@ const BODY_TYPE_HANDLERS = [
   }
 ];
 
+const getContentLevelExample = (bodyContent) => {
+  if (bodyContent.example !== undefined) return bodyContent.example;
+  const firstExample = Object.values(bodyContent.examples ?? {})[0];
+  return firstExample?.value;
+};
+
 /**
  * Extracts or generates an example value from an OpenAPI schema
  * Handles objects, arrays, primitives, and explicit examples
@@ -488,7 +494,7 @@ const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, examp
   return brunoExample;
 };
 
-const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
+const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
   let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
@@ -524,7 +530,17 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
+    tags: [...new Set(
+      (request.operationObject.tags || []).map((tag) => {
+        let sanitized = tag.trim();
+        if (options.collectionFormat !== 'yml') {
+          sanitized = sanitized.replace(/\s+/g, '_');
+        }
+        return sanitized;
+      }).filter((tag) => tag.trim())
+    )],
     request: {
+      docs: _operationObject.description,
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
@@ -733,7 +749,14 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
     const content = get(_operationObject, 'requestBody.content', {});
     const mimeType = Object.keys(content)[0];
     const bodyContent = content[mimeType] || {};
-    const bodySchema = bodyContent.schema;
+    let bodySchema = bodyContent.schema;
+
+    if (bodySchema?.example === undefined) {
+      const contentExample = getContentLevelExample(bodyContent);
+      if (contentExample !== undefined) {
+        bodySchema = { ...bodySchema, example: contentExample };
+      }
+    }
 
     // Normalize: lowercase (object keys may vary in case)
     const normalizedMimeType = typeof mimeType === 'string' ? mimeType.toLowerCase() : '';
@@ -1037,7 +1060,7 @@ const groupRequestsByTags = (requests) => {
   return [groups, ungrouped];
 };
 
-const groupRequestsByPath = (requests) => {
+const groupRequestsByPath = (requests, options = {}) => {
   const pathGroups = {};
 
   // Group requests by their path segments
@@ -1097,7 +1120,7 @@ const groupRequestsByPath = (requests) => {
   const buildFolderStructure = (group) => {
     // Create a new usedNames set for each folder/subfolder scope
     const localUsedNames = new Set();
-    const items = group.requests.map((req) => transformOpenapiRequestItem(req, localUsedNames));
+    const items = group.requests.map((req) => transformOpenapiRequestItem(req, localUsedNames, options));
 
     // Add sub-folders
     const subFolders = [];
@@ -1245,7 +1268,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
     const groupingType = options.groupBy || 'tags';
 
     if (groupingType === 'path') {
-      brunoCollection.items = groupRequestsByPath(allRequests);
+      brunoCollection.items = groupRequestsByPath(allRequests, options);
     } else {
       // Default tag-based grouping
       let [groups, ungroupedRequests] = groupRequestsByTags(allRequests);
@@ -1269,11 +1292,11 @@ export const parseOpenApiCollection = (data, options = {}) => {
               name: group.name
             }
           },
-          items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames))
+          items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames, options))
         };
       });
 
-      let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames));
+      let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames, options));
       let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
       brunoCollection.items = brunoCollectionItems;
     }

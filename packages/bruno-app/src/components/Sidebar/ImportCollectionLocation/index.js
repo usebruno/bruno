@@ -43,19 +43,21 @@ const getCollectionName = (format, rawData) => {
       return rawData.info?.name || 'OpenCollection';
     case 'wsdl':
       return 'WSDL Collection';
+    case 'bruno-zip':
+      return rawData.collectionName || 'Bruno Collection';
     default:
       return 'Collection';
   }
 };
 
 // Convert raw data to Bruno collection format
-const convertCollection = async (format, rawData, groupingType) => {
+const convertCollection = async (format, rawData, groupingType, collectionFormat) => {
   try {
     let collection;
 
     switch (format) {
       case 'openapi':
-        collection = convertOpenapiToBruno(rawData, { groupBy: groupingType });
+        collection = convertOpenapiToBruno(rawData, { groupBy: groupingType, collectionFormat });
         break;
       case 'wsdl':
         collection = await wsdlToBruno(rawData);
@@ -71,6 +73,10 @@ const convertCollection = async (format, rawData, groupingType) => {
         break;
       case 'opencollection':
         collection = await processOpenCollection(rawData);
+        break;
+      case 'bruno-zip':
+        // ZIP doesn't need conversion
+        collection = rawData;
         break;
       default:
         throw new Error('Unknown collection format');
@@ -96,6 +102,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
   const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
   const dropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
+  const isZipImport = format === 'bruno-zip';
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const preferences = useSelector((state) => state.app.preferences);
@@ -120,7 +127,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
         .required('Location is required')
     }),
     onSubmit: async (values) => {
-      const convertedCollection = await convertCollection(format, rawData, groupingType);
+      const convertedCollection = await convertCollection(format, rawData, groupingType, collectionFormat);
       handleSubmit(convertedCollection, values.collectionLocation, { format: collectionFormat });
     }
   });
@@ -159,7 +166,19 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
     }
   }, [inputRef]);
 
-  const onSubmit = () => formik.handleSubmit();
+  const onSubmit = async () => {
+    if (isZipImport) {
+      const errors = await formik.validateForm();
+      if (Object.keys(errors).length > 0) {
+        formik.setTouched({ collectionLocation: true });
+        return;
+      }
+      const collectionLocation = formik.values.collectionLocation;
+      handleSubmit(rawData, collectionLocation, { format: collectionFormat, isZipImport: true });
+    } else {
+      formik.handleSubmit();
+    }
+  };
 
   return (
     <StyledWrapper>
@@ -212,30 +231,32 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
               </span>
             </div>
 
-            <div className="mt-4">
-              <label htmlFor="format" className="flex items-center font-medium">
-                File Format
-                <Help width="300">
-                  <p>Choose the file format for storing requests in this collection.</p>
-                  <p className="mt-2">
-                    <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
-                  </p>
-                  <p className="mt-1">
-                    <strong>BRU:</strong> Bruno's native file format (.bru files)
-                  </p>
-                </Help>
-              </label>
-              <select
-                id="format"
-                name="format"
-                className="block textbox mt-2 w-full"
-                value={collectionFormat}
-                onChange={(e) => setCollectionFormat(e.target.value)}
-              >
-                <option value="yml">OpenCollection (YAML)</option>
-                <option value="bru">BRU Format (.bru)</option>
-              </select>
-            </div>
+            {!isZipImport && (
+              <div className="mt-4">
+                <label htmlFor="format" className="flex items-center font-medium">
+                  File Format
+                  <Help width="300">
+                    <p>Choose the file format for storing requests in this collection.</p>
+                    <p className="mt-2">
+                      <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
+                    </p>
+                    <p className="mt-1">
+                      <strong>BRU:</strong> Bruno's native file format (.bru files)
+                    </p>
+                  </Help>
+                </label>
+                <select
+                  id="format"
+                  name="format"
+                  className="block textbox mt-2 w-full"
+                  value={collectionFormat}
+                  onChange={(e) => setCollectionFormat(e.target.value)}
+                >
+                  <option value="yml">OpenCollection (YAML)</option>
+                  <option value="bru">BRU Format (.bru)</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {isOpenApi && (

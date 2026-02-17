@@ -4,6 +4,7 @@ const StyledWrapper = styled.div`
   .hue-slider {
     -webkit-appearance: none;
     appearance: none;
+    width: 100%;
     height: 4px;
     border-radius: 2px;
     outline: none;

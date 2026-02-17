@@ -26,7 +26,9 @@ export const tabsSlice = createSlice({
         'collection-runner',
         'environment-settings',
         'global-environment-settings',
-        'preferences'
+        'preferences',
+        'workspaceOverview',
+        'workspaceEnvironments'
       ];
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
@@ -94,7 +96,11 @@ export const tabsSlice = createSlice({
       state.activeTabUid = uid;
     },
     focusTab: (state, action) => {
-      state.activeTabUid = action.payload.uid;
+      const { uid } = action.payload;
+      const tabExists = state.tabs.some((t) => t.uid === uid);
+      if (tabExists) {
+        state.activeTabUid = uid;
+      }
     },
     switchTab: (state, action) => {
       if (!state.tabs || !state.tabs.length) {
@@ -169,8 +175,10 @@ export const tabsSlice = createSlice({
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
 
-      // remove the tabs from the state
-      state.tabs = filter(state.tabs, (t) => !tabUids.includes(t.uid));
+      const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
+      state.tabs = filter(state.tabs, (t) =>
+        !tabUids.includes(t.uid) || nonClosableTypes.includes(t.type)
+      );
 
       if (activeTab && state.tabs.length) {
         const { collectionUid } = activeTab;
@@ -197,9 +205,14 @@ export const tabsSlice = createSlice({
       }
     },
     closeAllCollectionTabs: (state, action) => {
-      const collectionUid = action.payload.collectionUid;
+      const { collectionUid } = action.payload;
+      const prevActiveTabUid = state.activeTabUid;
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
-      state.activeTabUid = null;
+
+      const activeTabStillExists = state.tabs.some((t) => t.uid === prevActiveTabUid);
+      if (!activeTabStillExists) {
+        state.activeTabUid = state.tabs.length > 0 ? last(state.tabs).uid : null;
+      }
     },
     makeTabPermanent: (state, action) => {
       const { uid } = action.payload;

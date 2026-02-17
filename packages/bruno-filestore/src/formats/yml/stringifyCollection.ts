@@ -16,7 +16,7 @@ import type { Auth } from '@opencollection/types/common/auth';
 const hasCollectionConfig = (brunoConfig: any): boolean => {
   // protobuf
   const hasProtobuf = (
-    brunoConfig.protobuf?.protofFiles?.length > 0
+    brunoConfig.protobuf?.protoFiles?.length > 0
     || brunoConfig.protobuf?.importPaths?.length > 0
   );
 
@@ -47,13 +47,16 @@ const hasRequestDefaults = (collectionRoot: any): boolean => {
 };
 
 const hasRequestAuth = (collectionRoot: any): boolean => {
-  return Boolean((collectionRoot.request?.auth?.mode !== 'none'));
+  const reqAuthMode = collectionRoot?.request?.auth?.mode;
+  return Boolean(reqAuthMode && reqAuthMode !== 'none');
 };
 
 const hasRequestScripts = (collectionRoot: any): boolean => {
-  return (collectionRoot.request?.script?.req)
-    || (collectionRoot.request?.script?.res)
-    || (collectionRoot.request?.tests);
+  if (!collectionRoot?.request) return false;
+
+  return (collectionRoot.request.script?.req)
+    || (collectionRoot.request.script?.res)
+    || (collectionRoot.request.tests);
 };
 
 const hasPresets = (brunoConfig: any): boolean => {
@@ -74,17 +77,25 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
     if (hasCollectionConfig(brunoConfig)) {
       oc.config = {};
 
-      if (brunoConfig.protobuf?.protofFiles?.length) {
-        oc.config.protobuf = {
-          protoFiles: brunoConfig.protobuf.protofFiles.map((protoFile: any): ProtoFileItem => ({
+      if (brunoConfig.protobuf?.protoFiles?.length || brunoConfig.protobuf?.importPaths?.length) {
+        oc.config.protobuf = {};
+
+        if (brunoConfig.protobuf.protoFiles?.length) {
+          oc.config.protobuf.protoFiles = brunoConfig.protobuf.protoFiles.map((protoFile: any): ProtoFileItem => ({
             type: 'file' as const,
             path: protoFile.path
-          })),
-          importPaths: brunoConfig.protobuf.importPaths.map((importPath: any): ProtoFileImportPath => ({
-            path: importPath.path,
-            disabled: importPath.disabled
-          }))
-        };
+          }));
+        }
+
+        if (brunoConfig.protobuf.importPaths?.length) {
+          oc.config.protobuf.importPaths = brunoConfig.protobuf.importPaths.map((importPath: any): ProtoFileImportPath => {
+            const item: ProtoFileImportPath = { path: importPath.path };
+            if (importPath.enabled === false) {
+              item.disabled = true;
+            }
+            return item;
+          });
+        }
       }
 
       // proxy - only write newer format
@@ -199,7 +210,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
     }
 
     // docs
-    if (collectionRoot.docs?.trim().length) {
+    if (collectionRoot?.docs?.trim().length) {
       oc.docs = {
         content: collectionRoot.docs,
         type: 'text/markdown'
