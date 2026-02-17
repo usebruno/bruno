@@ -533,17 +533,20 @@ const runSingleRequest = async function (
       // if `data` is of string type - return as-is (assumes already encoded)
     }
 
-    if (contentTypeHeader && contentTypeHeader.startsWith('multipart/')) {
+    // Multipart body is a stream; following redirects (307/308) would require re-sending the body,
+    // but the stream cannot be replayed, so redirects with multipart often cause socket hang up.
+    const contentTypeValue = contentTypeHeader ? request.headers[contentTypeHeader] : '';
+    if (contentTypeHeader && typeof contentTypeValue === 'string' && contentTypeValue.startsWith('multipart/')) {
       if (!isFormData(request?.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);
         request.data = form;
 
-        if (request?.headers?.['content-type'] !== 'multipart/form-data') {
+        if (contentTypeValue !== 'multipart/form-data') {
           // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
           const formHeaders = form.getHeaders();
-          const ct = request.headers['content-type'];
+          const ct = contentTypeValue;
           formHeaders['content-type'] = `${ct}; boundary=${form.getBoundary()}`;
           form.getHeaders = function () {
             return formHeaders;
