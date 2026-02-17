@@ -115,6 +115,9 @@ export const findParentItemInCollectionByPathname = (collection, pathname) => {
 };
 
 export const findItemInCollection = (collection, itemUid) => {
+  if (!collection || !collection.items) {
+    return null;
+  }
   let flattenedItems = flattenItems(collection.items);
 
   return findItem(flattenedItems, itemUid);
@@ -288,6 +291,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
+        return;
+      }
+
+      // Skip transient requests
+      if (si.isTransient) {
         return;
       }
 
@@ -1060,6 +1068,16 @@ export const hasExampleChanges = (_item, exampleUid) => {
 
 export const getDefaultRequestPaneTab = (item) => {
   if (item.type === 'http-request') {
+    // If no params are enabled and body mode is set, default to 'body' tab
+    // This provides better UX for POST/PUT requests with a body
+    const request = item.draft?.request || item.request;
+    const params = request?.params || [];
+    const bodyMode = request?.body?.mode;
+    const hasEnabledParams = params.some((p) => p.enabled);
+
+    if (!hasEnabledParams && bodyMode && bodyMode !== 'none') {
+      return 'body';
+    }
     return 'params';
   }
 
@@ -1146,7 +1164,7 @@ const getPathParams = (item) => {
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
   each(collection.items, (item) => {
-    if (isItemARequest(item)) {
+    if (isItemARequest(item) && !item.isTransient) {
       count++;
     } else if (isItemAFolder(item)) {
       count += getTotalRequestCountInCollection(item);
@@ -1164,7 +1182,14 @@ export const getAllVariables = (collection, item) => {
   const pathParams = getPathParams(item);
   const { globalEnvironmentVariables = {} } = collection;
 
-  const { processEnvVariables = {}, runtimeVariables = {}, promptVariables = {} } = collection;
+  const { processEnvVariables = {}, runtimeVariables = {}, promptVariables = {}, workspaceProcessEnvVariables = {} } = collection;
+
+  // Merge workspace and collection processEnvVariables (collection takes priority)
+  const mergedProcessEnvVariables = {
+    ...workspaceProcessEnvVariables,
+    ...processEnvVariables
+  };
+
   const mergedVariables = {
     ...folderVariables,
     ...requestVariables,
@@ -1206,7 +1231,7 @@ export const getAllVariables = (collection, item) => {
     maskedEnvVariables: uniqueMaskedVariables,
     process: {
       env: {
-        ...processEnvVariables
+        ...mergedProcessEnvVariables
       }
     }
   };
@@ -1448,7 +1473,7 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
   }
 
   const requestTypes = ['http-request', 'graphql-request'];
-  requestItems = requestItems.filter((request) => requestTypes.includes(request.type));
+  requestItems = requestItems.filter((request) => requestTypes.includes(request.type) && !request.isTransient);
 
   if (tags && tags.include && tags.exclude) {
     const includeTags = tags.include ? tags.include : [];
@@ -1683,4 +1708,43 @@ export const generateUniqueRequestName = async (collection, baseName = 'Untitled
   const nextNumber = lastElement.number + 1;
 
   return `${baseName}${nextNumber}`;
+};
+
+export const isItemTransientRequest = (item) => {
+  return isItemARequest(item) && item?.isTransient;
+};
+
+/**
+ * Recursively filter out transient items from a collection's items array.
+ * Used for collection runner, exports, and other operations that shouldn't include transient requests.
+ * @param {Array} items - The items array to filter
+ * @returns {Array} A new array with transient items removed
+ */
+export const filterTransientItems = (items) => {
+  if (!items || !Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .filter((item) => !item?.isTransient)
+    .map((item) => {
+      if (item.items && item.items.length > 0) {
+        return {
+          ...item,
+          items: filterTransientItems(item.items)
+        };
+      }
+      return item;
+    });
+};
+
+/**
+ * Checks if a collection is a scratch collection for any workspace
+ * @param {Object} collection - The collection to check
+ * @param {Array} workspaces - Array of workspace objects
+ * @returns {boolean} True if the collection is a scratch collection
+ */
+export const isScratchCollection = (collection, workspaces) => {
+  if (!collection || !workspaces) return false;
+  return workspaces.some((w) => w.scratchCollectionUid === collection.uid);
 };

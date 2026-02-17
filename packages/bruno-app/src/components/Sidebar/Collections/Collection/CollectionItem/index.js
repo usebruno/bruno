@@ -37,9 +37,9 @@ import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
-import { hideHomePage, hideApiSpecPage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
+import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from './CollectionItemInfo/index';
 import CollectionItemIcon from './CollectionItemIcon';
@@ -48,14 +48,17 @@ import ExampleIcon from 'components/Icons/ExampleIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
-import { calculateDraggedItemNewPathname, getInitialExampleName } from 'utils/collections/index';
+import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
+import { getRevealInFolderLabel } from 'utils/common/platform';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
+import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
+  const { dropdownContainerRef } = useSidebarAccordion();
   const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
   const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
 
@@ -214,8 +217,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
     if (isRequest) {
-      dispatch(hideHomePage());
-      dispatch(hideApiSpecPage());
       if (isTabForItemPresent) {
         dispatch(
           focusTab({
@@ -233,8 +234,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         })
       );
     } else {
-      dispatch(hideHomePage());
-      dispatch(hideApiSpecPage());
       dispatch(
         addTab({
           uid: item.uid,
@@ -293,14 +292,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   // Build menu items for MenuDropdown
   const buildMenuItems = () => {
-    const items = [
-      {
-        id: 'info',
-        leftSection: IconInfoCircle,
-        label: 'Info',
-        onClick: () => setItemInfoModalOpen(true)
-      }
-    ];
+    const items = [];
 
     if (isFolder) {
       items.push(
@@ -355,12 +347,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         leftSection: IconEdit,
         label: 'Rename',
         onClick: () => setRenameItemModalOpen(true)
-      },
-      {
-        id: 'show-in-folder',
-        leftSection: IconFolder,
-        label: 'Show in Folder',
-        onClick: handleShowInFolder
       }
     );
     if (!isFolder && isItemARequest(item) && !(item.type === 'http-request' || item.type === 'graphql-request')) {
@@ -392,7 +378,23 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       });
     }
 
+    items.push(
+      {
+        id: 'show-in-folder',
+        leftSection: IconFolder,
+        label: getRevealInFolderLabel(),
+        onClick: handleShowInFolder
+      }
+    );
+
     items.push({ id: 'separator-1', type: 'divider' });
+
+    items.push({
+      id: 'info',
+      leftSection: IconInfoCircle,
+      label: 'Info',
+      onClick: () => setItemInfoModalOpen(true)
+    });
 
     if (isFolder) {
       items.push(
@@ -486,7 +488,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }));
 
     // Save the request
-    await dispatch(saveRequest(item.uid, collectionUid));
+    await dispatch(saveRequest(item.uid, collectionUid, true));
 
     // Task middleware will track this and open the example in a new tab once the file is reloaded
     dispatch(insertTaskIntoQueue({
@@ -501,8 +503,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setCreateExampleModalOpen(false);
   };
 
-  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i)));
-  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i)));
+  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i) && !i.isTransient));
+  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
 
   const handleGenerateCode = () => {
     if (
@@ -534,17 +536,18 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const handleCopyItem = () => {
     dispatch(copyRequest(item));
     const itemType = isFolder ? 'Folder' : 'Request';
-    toast.success(`${itemType} copied to clipboard`);
+    toast.success(`${itemType} copied`);
   };
 
   const handlePasteItem = () => {
-    // Only allow paste into folders
+    // Determine target folder: if item is a folder, paste into it; otherwise paste into parent folder
+    let targetFolderUid = item.uid;
     if (!isFolder) {
-      toast.error('Paste is only available for folders');
-      return;
+      const parentFolder = findParentItemInCollection(collection, item.uid);
+      targetFolderUid = parentFolder ? parentFolder.uid : null;
     }
 
-    dispatch(pasteItem(collectionUid, item.uid))
+    dispatch(pasteItem(collectionUid, targetFolderUid))
       .then(() => {
         toast.success('Item pasted successfully');
       })
@@ -559,7 +562,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
     const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
 
-    if (isModifierPressed && e.key.toLowerCase() === 'c') {
+    const [macRenameKey, winRenameKey] = getKeyBindingsForActionAllOS('renameItem');
+    const renameKey = isMac ? macRenameKey : winRenameKey;
+
+    if (e.key.toLowerCase() === renameKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      setRenameItemModalOpen(true);
+    } else if (isModifierPressed && e.key.toLowerCase() === 'c') {
       e.preventDefault();
       e.stopPropagation();
       handleCopyItem();
@@ -644,8 +654,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
             onClick={handleClick}
             onDoubleClick={handleDoubleClick}
           >
-            <ActionIcon style={{ width: 16, minWidth: 16 }}>
-              {isFolder ? (
+
+            {isFolder ? (
+              <ActionIcon style={{ width: 16, minWidth: 16 }}>
                 <IconChevronRight
                   size={16}
                   strokeWidth={2}
@@ -655,7 +666,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   onDoubleClick={handleFolderDoubleClick}
                   data-testid="folder-chevron"
                 />
-              ) : hasExamples ? (
+              </ActionIcon>
+            ) : hasExamples ? (
+              <ActionIcon style={{ width: 16, minWidth: 16 }}>
                 <IconChevronRight
                   size={16}
                   strokeWidth={2}
@@ -665,8 +678,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   onDoubleClick={handleExamplesDoubleClick}
                   data-testid="request-item-chevron"
                 />
-              ) : null}
-            </ActionIcon>
+              </ActionIcon>
+            ) : null}
+
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
@@ -680,6 +694,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               items={buildMenuItems()}
               placement="bottom-start"
               data-testid="collection-item-menu"
+              popperOptions={{ strategy: 'fixed' }}
+              appendTo={dropdownContainerRef?.current || document.body}
             >
               <ActionIcon className="menu-icon">
                 <IconDots size={18} className="collection-item-menu-icon" />

@@ -66,7 +66,12 @@ const SidebarSection = ({
           {actions && (
             <div
               className="section-actions"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!localExpanded) {
+                  setSectionExpanded(id, true);
+                }
+              }}
             >
               {actions}
             </div>

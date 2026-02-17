@@ -1,4 +1,4 @@
-import translateCode from '../../../../src/utils/jscode-shift-translator';
+import translateCode from '../../../../src/utils/postman-to-bruno-translator';
 
 describe('Response Translation', () => {
   // Basic response property tests
@@ -281,7 +281,7 @@ describe('Response Translation', () => {
     const translatedCode = translateCode(code);
 
     expect(translatedCode).toContain('const items = res.getBody().items;');
-    expect(translatedCode).toContain('bru.setVar("item_" + i, items[i].id);');
+    expect(translatedCode).toContain('bru.setCollectionVar("item_" + i, items[i].id);');
   });
 
   it('should handle response JSON with optional chaining and nullish coalescing', () => {
@@ -582,5 +582,98 @@ describe('Response Translation', () => {
     const code = 'const responseSize = pm.response.responseSize;';
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe('const responseSize = res.getSize().body;');
+  });
+
+  // --- BDD-style response assertions ---------------------------
+
+  it('should translate pm.response.to.be.ok', () => {
+    const code = 'pm.response.to.be.ok;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(200, 299)');
+  });
+
+  it('should translate pm.response.to.be.success', () => {
+    const code = 'pm.response.to.be.success;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(200, 299)');
+  });
+
+  it('should translate pm.response.to.be.redirection', () => {
+    const code = 'pm.response.to.be.redirection;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(300, 399)');
+  });
+
+  it('should translate pm.response.to.be.clientError', () => {
+    const code = 'pm.response.to.be.clientError;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(400, 499)');
+  });
+
+  it('should translate pm.response.to.be.serverError', () => {
+    const code = 'pm.response.to.be.serverError;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(500, 599)');
+  });
+
+  it('should translate pm.response.to.be.error', () => {
+    const code = 'pm.response.to.be.error;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.at.least(400)');
+  });
+
+  it('should handle BDD-style assertions inside test blocks', () => {
+    const code = `
+        pm.test("Status check", function() {
+            pm.response.to.be.ok;
+            pm.response.to.be.success;
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Status check", function() {');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(200, 299)');
+  });
+
+  it('should translate pm.response.to.have.jsonBody with path', () => {
+    const code = 'pm.response.to.have.jsonBody("user.id");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("user.id")');
+  });
+
+  it('should translate pm.response.to.have.jsonBody with path and value', () => {
+    const code = 'pm.response.to.have.jsonBody("status", "success");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("status", "success")');
+  });
+
+  it('should translate pm.response.to.have.jsonBody without arguments', () => {
+    const code = 'pm.response.to.have.jsonBody();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.exist');
+  });
+
+  it('should handle pm.response.to.have.jsonBody inside test blocks', () => {
+    const code = `
+        pm.test("Response validation", function() {
+            pm.response.to.have.jsonBody("data");
+            pm.response.to.have.jsonBody("data.id", 123);
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Response validation", function() {');
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("data")');
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("data.id", 123)');
+  });
+
+  it('should translate pm.response.to.have.jsonBody with nested path', () => {
+    const code = 'pm.response.to.have.jsonBody("response.data.items[0].name");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("response.data.items[0].name")');
+  });
+
+  it('should translate pm.response.to.have.jsonBody with variable path', () => {
+    const code = 'const path = "user.id"; pm.response.to.have.jsonBody(path);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property(path)');
   });
 });

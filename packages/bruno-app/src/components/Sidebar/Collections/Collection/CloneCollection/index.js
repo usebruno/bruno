@@ -20,7 +20,14 @@ const CloneCollection = ({ onClose, collectionUid }) => {
   const [isEditing, toggleEditing] = useState(false);
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
   const preferences = useSelector((state) => state.app.preferences);
-  const defaultLocation = get(preferences, 'general.defaultCollectionLocation', '');
+  const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
+  const workspaceUid = useSelector((state) => state.workspaces?.activeWorkspaceUid);
+  const activeWorkspace = workspaces.find((w) => w.uid === workspaceUid);
+  const isDefaultWorkspace = activeWorkspace?.type === 'default';
+
+  const defaultLocation = isDefaultWorkspace
+    ? get(preferences, 'general.defaultCollectionLocation', '')
+    : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
   const { name } = collection;
 
   const formik = useFormik({
@@ -85,7 +92,7 @@ const CloneCollection = ({ onClose, collectionUid }) => {
   const onSubmit = () => formik.handleSubmit();
 
   return (
-    <Modal size="sm" title="Clone Collection" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
+    <Modal size="md" title="Clone Collection" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
       <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
         <div>
           <label htmlFor="collection-name" className="flex items-center font-medium">

@@ -17,11 +17,24 @@ const closeAllCollections = async (page) => {
       await firstCollection.hover();
       await firstCollection.locator('.collection-actions .icon').click();
       await page.locator('.dropdown-item').getByText('Remove').click();
-      // Wait for the remove collection modal to be visible
-      await page.locator('.bruno-modal-header-title', { hasText: 'Remove Collection' }).waitFor({ state: 'visible' });
-      await page.locator('.bruno-modal-footer .submit').click();
-      // Wait for the remove collection modal to be hidden
-      await page.locator('.bruno-modal-header-title', { hasText: 'Remove Collection' }).waitFor({ state: 'hidden' });
+
+      // Wait for modal to appear - could be either regular remove or drafts confirmation
+      const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
+      await removeModal.waitFor({ state: 'visible', timeout: 5000 });
+
+      // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
+      const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+
+      if (hasDiscardButton) {
+        // Drafts modal - click "Discard All and Remove"
+        await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+      } else {
+        // Regular modal - click the submit button
+        await page.locator('.bruno-modal-footer .submit').click();
+      }
+
+      // Wait for modal to close
+      await removeModal.waitFor({ state: 'hidden', timeout: 5000 });
     }
 
     // Wait until no collections are left open (check sidebar only)
@@ -60,6 +73,12 @@ const createCollection = async (page, collectionName: string, collectionLocation
     await createCollectionModal.getByLabel('Name').fill(collectionName);
     const locationInput = createCollectionModal.getByLabel('Location');
     if (await locationInput.isVisible()) {
+      // Location input can be read-only; drop the attribute so fill can type
+      await locationInput.evaluate((el) => {
+        const input = el as HTMLInputElement;
+        input.removeAttribute('readonly');
+        input.readOnly = false;
+      });
       await locationInput.fill(collectionLocation);
     }
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
@@ -134,6 +153,77 @@ const createUntitledRequest = async (
     await expect(page.getByText('New request created!')).toBeVisible({ timeout: 2000 }).catch(() => {
       // Toast might have already disappeared, that's okay
     });
+  });
+};
+
+type CreateTransientRequestOptions = {
+  requestType?: 'HTTP' | 'GraphQL' | 'gRPC' | 'WebSocket';
+};
+
+/**
+ * Create a transient request using the + icon button in the tabs area
+ * Based on the CreateTransientRequest component behavior
+ * @param page - The page object
+ * @param options - Optional settings (requestType)
+ * @returns void
+ */
+const createTransientRequest = async (
+  page: Page,
+  options: CreateTransientRequestOptions = {}
+) => {
+  const { requestType = 'HTTP' } = options;
+
+  await test.step(`Create transient ${requestType} request`, async () => {
+    // Find the + icon button (ActionIcon with aria-label="New Transient Request")
+    const createButton = page.getByRole('button', { name: 'New Transient Request' });
+    await createButton.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Click the + icon to open the dropdown
+    await createButton.click({
+      button: 'right'
+    });
+
+    // Wait for dropdown to be visible
+    await page.locator('.dropdown-item').first().waitFor({ state: 'visible' });
+
+    // Select the request type from dropdown
+    // The dropdown items have both icon and label, we match by the label text
+    await page.locator('.dropdown-item').filter({ hasText: requestType }).click();
+
+    // Wait for the request tab to be active (transient requests show as "Untitled X")
+    await page.locator('.request-tab.active').waitFor({ state: 'visible' });
+    await expect(page.locator('.request-tab.active')).toContainText('Untitled');
+    await page.waitForTimeout(300);
+  });
+};
+
+/**
+ * Fill the URL field in the currently active request
+ * Works with HTTP, GraphQL, gRPC, and WebSocket requests
+ * @param page - The page object
+ * @param url - The URL to fill
+ * @returns void
+ */
+const fillRequestUrl = async (page: Page, url: string) => {
+  await test.step(`Fill request URL: ${url}`, async () => {
+    // HTTP/GraphQL requests use #request-url
+    // gRPC/WebSocket don't have a specific ID, so we need to find the CodeMirror in the active request pane
+    const httpGraphqlUrl = page.locator('#request-url .CodeMirror');
+    const grpcWsUrl = page.locator('.input-container .CodeMirror').first();
+
+    // Try HTTP/GraphQL selector first
+    const isHttpOrGraphql = await httpGraphqlUrl.isVisible().catch(() => false);
+
+    if (isHttpOrGraphql) {
+      await httpGraphqlUrl.click();
+      await page.locator('#request-url textarea').fill(url);
+    } else {
+      // Fall back to generic selector for gRPC/WebSocket
+      await grpcWsUrl.click();
+      await page.locator('.input-container textarea').first().fill(url);
+    }
+
+    await page.waitForTimeout(200);
   });
 };
 
@@ -287,10 +377,23 @@ const removeCollection = async (page: Page, collectionName: string) => {
     await collectionRow.locator('.collection-actions .icon').click();
     await locators.dropdown.item('Remove').click();
 
-    // Wait for and confirm modal
-    await locators.modal.title('Remove Collection').waitFor({ state: 'visible' });
-    await locators.modal.button('Remove').click();
-    await locators.modal.title('Remove Collection').waitFor({ state: 'hidden' });
+    // Wait for modal to appear - could be either regular remove or drafts confirmation
+    const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
+    await removeModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
+    const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+
+    if (hasDiscardButton) {
+      // Drafts modal - click "Discard All and Remove"
+      await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+    } else {
+      // Regular modal - click Remove button
+      await locators.modal.button('Remove').click();
+    }
+
+    // Wait for modal to close
+    await removeModal.waitFor({ state: 'hidden', timeout: 5000 });
 
     // Verify collection is removed
     await expect(
@@ -466,7 +569,7 @@ const closeEnvironmentPanel = async (page: Page, type: EnvironmentType = 'collec
     const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
     const envTab = page.locator('.request-tab').filter({ hasText: tabLabel });
     await envTab.hover();
-    await envTab.getByTestId('request-tab-close-icon').click();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
   });
 };
 
@@ -543,13 +646,17 @@ const sendRequest = async (
 * @param collectionName - The name of the collection
 * @param requestName - The name of the request
 */
-const openRequest = async (page: Page, collectionName: string, requestName: string) => {
+const openRequest = async (page: Page, collectionName: string, requestName: string, { persist = false } = {}) => {
   await test.step(`Navigate to collection "${collectionName}" and open request "${requestName}"`, async () => {
     const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
     await collectionContainer.click();
     const collectionWrapper = collectionContainer.locator('..');
     const request = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName });
-    await request.click();
+    if (!persist) {
+      await request.click();
+    } else {
+      await request.dblclick();
+    }
   });
 };
 /**
@@ -595,7 +702,10 @@ const switchResponseFormat = async (page: Page, format: string) => {
   await test.step(`Switch response format to ${format}`, async () => {
     const responseFormatTab = page.getByTestId('format-response-tab');
     await responseFormatTab.click();
-    await page.getByTestId('format-response-tab-dropdown').getByText(format).click();
+    // Wait for dropdown to be visible before clicking the format option
+    const dropdown = page.getByTestId('format-response-tab-dropdown');
+    await dropdown.waitFor({ state: 'visible' });
+    await dropdown.getByText(format).click();
   });
 };
 
@@ -635,24 +745,30 @@ const getResponseBody = async (page: Page): Promise<string> => {
 };
 
 const selectRequestPaneTab = async (page: Page, tabName: string) => {
+  await test.step(`Wait for request to open up "${tabName}"`, async () => {
+    const requestPane = page.locator('.request-pane > .px-4');
+    await expect(requestPane).toBeVisible();
+    await expect(requestPane.locator('.tabs')).toBeVisible();
+  });
   await test.step(`Select request pane tab "${tabName}"`, async () => {
     const visibleTab = page.locator('.tabs').getByRole('tab', { name: tabName });
-    const overflowButton = page.locator('.tabs .more-tabs');
 
     // Check if tab is directly visible
     if (await visibleTab.isVisible()) {
       await visibleTab.click();
+      await expect(visibleTab).toContainClass('active');
       return;
     }
 
+    const overflowButton = page.locator('.tabs .more-tabs');
     // Check if there's an overflow dropdown
     if (await overflowButton.isVisible()) {
       await overflowButton.click();
 
       // Wait for dropdown to appear and click the menu item (overflow tabs are rendered as menuitems)
-      const dropdownItem = page.locator('.tippy-content').getByRole('menuitem', { name: tabName });
-      await expect(dropdownItem).toBeVisible();
+      const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
       await dropdownItem.click();
+      await expect(visibleTab).toContainClass('active');
       return;
     }
 
@@ -842,12 +958,45 @@ const saveRequest = async (page: Page) => {
   });
 };
 
+/**
+ * Close all open request tabs using the right-click context menu
+ * @param page - The page object
+ * @returns void
+ */
+const closeAllTabs = async (page: Page) => {
+  await test.step('Close all tabs', async () => {
+    // Find actual request tabs (those with .tab-method, not Overview/Environments)
+    const requestTabLabel = page.locator('.request-tab').filter({ has: page.locator('.tab-method') }).locator('.tab-label').first();
+    if (!(await requestTabLabel.isVisible().catch(() => false))) {
+      return; // No request tabs to close
+    }
+
+    // Right-click on the tab label to open context menu
+    await requestTabLabel.click({ button: 'right' });
+
+    // Wait for the dropdown menu to appear
+    const dropdown = page.locator('.tippy-box.dropdown');
+    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Click "Close All" menu item
+    await dropdown.locator('[role="menuitem"][data-item-id="close-all"]').click();
+
+    // Handle "Unsaved Transient Requests" modal if it appears
+    const discardAllButton = page.getByRole('button', { name: 'Discard All' });
+    if (await discardAllButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await discardAllButton.click();
+    }
+  });
+};
+
 export {
   closeAllCollections,
   openCollection,
   createCollection,
   createRequest,
   createUntitledRequest,
+  createTransientRequest,
+  fillRequestUrl,
   deleteRequest,
   importCollection,
   removeCollection,
@@ -873,7 +1022,8 @@ export {
   addAssertion,
   editAssertion,
   deleteAssertion,
-  saveRequest
+  saveRequest,
+  closeAllTabs
 };
 
-export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, AssertionInput };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

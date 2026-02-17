@@ -85,6 +85,12 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
       }
     }
 
+    // auth
+    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
+    if (auth) {
+      grpc.auth = auth;
+    }
+
     ocRequest.grpc = grpc;
 
     // runtime block
@@ -109,13 +115,6 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
     const assertions: Assertion[] | undefined = toOpenCollectionAssertions(brunoRequest.assertions);
     if (assertions) {
       runtime.assertions = assertions;
-      hasRuntime = true;
-    }
-
-    // auth
-    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
-    if (auth) {
-      runtime.auth = auth;
       hasRuntime = true;
     }
 

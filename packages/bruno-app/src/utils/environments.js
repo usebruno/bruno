@@ -50,3 +50,12 @@ export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
     ...envVariable
   };
 };
+
+/**
+ * Strips the UID from an environment variable for comparison purposes.
+ * This is useful when comparing variables where UIDs may differ but the actual data is the same.
+ */
+export const stripEnvVarUid = (variable) => {
+  const { name, value, type, enabled, secret } = variable;
+  return { name, value, type, enabled, secret };
+};

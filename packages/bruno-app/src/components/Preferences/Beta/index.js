@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
+import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
 import { IconFlask } from '@tabler/icons';
 import get from 'lodash/get';
@@ -56,30 +57,45 @@ const Beta = ({ close }) => {
     }
   });
 
-  const handleSave = (newBetaPreferences) => {
+  const handleSave = useCallback((newBetaPreferences) => {
     dispatch(
       savePreferences({
         ...preferences,
         beta: newBetaPreferences
       })
     )
-      .then(() => {
-        toast.success('Beta preferences saved successfully');
-        close();
-      })
       .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
-  };
+  }, [dispatch, preferences]);
+
+  const debouncedSave = useCallback(
+    debounce((values) => {
+      betaSchema.validate(values, { abortEarly: true })
+        .then((validatedValues) => {
+          handleSave(validatedValues);
+        })
+        .catch((error) => {
+        });
+    }, 500),
+    [handleSave, betaSchema]
+  );
+
+  // Auto-save when form values change
+  useEffect(() => {
+    if (formik.dirty && formik.isValid) {
+      debouncedSave(formik.values);
+    }
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 
   const hasAnyBetaFeatures = BETA_FEATURES.length > 0;
 
   return (
     <StyledWrapper>
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+      <div className="section-header">Beta Features</div>
+      <form onSubmit={formik.handleSubmit}>
         <div className="mb-6">
-          <div className="flex items-center mb-2">
-            <IconFlask size={20} className="mr-2 text-orange-500" />
-            <h2 className="text-lg font-medium">Beta Features</h2>
-          </div>
           <p className="text-gray-500 dark:text-gray-400 mb-4 text-wrap">
             Beta features are experimental previews that may change before full release. Try them and share feedback.
           </p>
@@ -113,12 +129,6 @@ const Beta = ({ close }) => {
             <p>No beta features are currently available</p>
           </div>
         )}
-
-        <div className="mt-10">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
-            Save
-          </button>
-        </div>
       </form>
     </StyledWrapper>
   );

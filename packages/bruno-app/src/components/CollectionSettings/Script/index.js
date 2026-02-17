@@ -6,18 +6,38 @@ import { updateCollectionRequestScript, updateCollectionResponseScript } from 'p
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
+import StatusDot from 'components/StatusDot';
+import { flattenItems, isItemARequest } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const Script = ({ collection }) => {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState('pre-request');
   const preRequestEditorRef = useRef(null);
   const postResponseEditorRef = useRef(null);
   const requestScript = collection.draft?.root ? get(collection, 'draft.root.request.script.req', '') : get(collection, 'root.request.script.req', '');
   const responseScript = collection.draft?.root ? get(collection, 'draft.root.request.script.res', '') : get(collection, 'root.request.script.res', '');
 
+  // Default to post-response if pre-request script is empty
+  const getInitialTab = () => {
+    const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
+    return hasPreRequestScript ? 'pre-request' : 'post-response';
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+  const prevCollectionUidRef = useRef(collection.uid);
+
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+
+  // Update active tab only when switching to a different collection
+  useEffect(() => {
+    if (prevCollectionUidRef.current !== collection.uid) {
+      prevCollectionUidRef.current = collection.uid;
+      const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
+      setActiveTab(hasPreRequestScript ? 'pre-request' : 'post-response');
+    }
+  }, [collection.uid, requestScript]);
 
   // Refresh CodeMirror when tab becomes visible
   useEffect(() => {
@@ -54,16 +74,30 @@ const Script = ({ collection }) => {
     dispatch(saveCollectionSettings(collection.uid));
   };
 
+  const items = flattenItems(collection.items || []);
+  const hasPreRequestScriptError = items.some((i) => isItemARequest(i) && i.preRequestScriptErrorMessage);
+  const hasPostResponseScriptError = items.some((i) => isItemARequest(i) && i.postResponseScriptErrorMessage);
+
   return (
-    <StyledWrapper className="w-full flex flex-col h-full pt-4">
+    <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">
         Write pre and post-request scripts that will run before and after any request in this collection is sent.
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="pre-request">Pre Request</TabsTrigger>
-          <TabsTrigger value="post-response">Post Response</TabsTrigger>
+          <TabsTrigger value="pre-request">
+            Pre Request
+            {requestScript && requestScript.trim().length > 0 && (
+              <StatusDot type={hasPreRequestScriptError ? 'error' : 'default'} />
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="post-response">
+            Post Response
+            {responseScript && responseScript.trim().length > 0 && (
+              <StatusDot type={hasPostResponseScriptError ? 'error' : 'default'} />
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pre-request" className="mt-2">
@@ -98,9 +132,9 @@ const Script = ({ collection }) => {
       </Tabs>
 
       <div className="mt-12">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

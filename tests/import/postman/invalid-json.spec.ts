@@ -16,11 +16,9 @@ test.describe('Invalid Postman Collection - Invalid JSON', () => {
     await page.setInputFiles('input[type="file"]', postmanFile);
 
     // Check for error message
-    const hasError = await page.getByText('Unsupported collection format').first().isVisible();
-
-    expect(hasError).toBe(true);
+    await expect(page.getByText('Unsupported collection format').first()).toBeVisible();
 
     // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
   });
 });

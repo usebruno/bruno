@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useRef, useCallback, useMemo } from 'react';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
 import { find, get } from 'lodash';
@@ -18,8 +18,6 @@ import StatusDot from 'components/StatusDot';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import AuthMode from '../Auth/AuthMode/index';
-
-const MULTIPLE_CONTENT_TABS = new Set(['params', 'script', 'vars', 'auth', 'docs']);
 
 const TAB_CONFIG = [
   { key: 'params', label: 'Params' },
@@ -53,7 +51,6 @@ const HttpRequestPane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
   const rightContentRef = useRef(null);
-  const initialAutoSelectDone = useRef(false);
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const requestPaneTab = focusedTab?.requestPaneTab;
@@ -117,18 +114,9 @@ const HttpRequestPane = ({ item, collection }) => {
     return Component ? <Component item={item} collection={collection} /> : <div className="mt-4">404 | Not found</div>;
   }, [requestPaneTab, item, collection]);
 
-  useEffect(() => {
-    if (!initialAutoSelectDone.current && activeCounts.params === 0 && body.mode !== 'none') {
-      selectTab('body');
-    }
-    initialAutoSelectDone.current = true;
-  }, [activeCounts.params, body.mode, selectTab]);
-
   if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
-
-  const isMultipleContentTab = MULTIPLE_CONTENT_TABS.has(requestPaneTab);
 
   const rightContent = requestPaneTab === 'body' ? (
     <div ref={rightContentRef}>
@@ -151,7 +139,7 @@ const HttpRequestPane = ({ item, collection }) => {
         delayedTabs={['body']}
       />
 
-      <section className={classnames('flex w-full flex-1', { 'mt-3': !isMultipleContentTab })}>
+      <section className={classnames('flex w-full flex-1 mt-4')}>
         <HeightBoundContainer>{tabPanel}</HeightBoundContainer>
       </section>
     </div>

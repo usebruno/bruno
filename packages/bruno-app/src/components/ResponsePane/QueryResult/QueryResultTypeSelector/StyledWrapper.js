@@ -2,16 +2,14 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .caret {
-    fill: currentColor;
+    color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.caret};
+    fill: ${(props) => props.theme.app.collection.toolbar.environmentSelector.caret};
   }
 
   .button-dropdown-button {
-    color: ${(props) => props.theme.dropdown.primaryText};
+    color: ${(props) => props.theme.text};
     border-color: ${(props) => props.theme.workspace.border};
 
-    &:hover {
-      background-color: ${(props) => props.theme.dropdown.hoverBg};
-    }
   }
 
   .dropdown-divider {
@@ -21,7 +19,11 @@ const StyledWrapper = styled.div`
   }
 
   .active {
-    color: ${(props) => props.theme.colors.text.yellow};
+    color: ${(props) => props.theme.primary.text};
+  }
+
+  .icon-muted {
+    color: ${(props) => props.theme.colors.text.muted};
   }
 
   .preview-response-tab-label {

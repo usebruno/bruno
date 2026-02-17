@@ -5,7 +5,6 @@ const qs = require('qs');
 const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
-const FormData = require('form-data');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
@@ -35,8 +34,8 @@ const { isRequestTagsIncluded } = require('@usebruno/common');
 const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
-const { getCertsAndProxyConfig } = require('./cert-utils');
-const { buildFormUrlEncodedPayload } = require('@usebruno/common').utils;
+const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
+const { buildFormUrlEncodedPayload, isFormData } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -150,7 +149,8 @@ const configureRequest = async (
     proxyConfig,
     requestMaxRedirects,
     httpsAgentRequestFields,
-    interpolationOptions
+    interpolationOptions,
+    followRedirects
   });
 
   if (request.ntlmConfig) {
@@ -160,12 +160,66 @@ const configureRequest = async (
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
-    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy || {};
+    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
+
+    // Get cert/proxy configs for token and refresh URLs
+    let certsAndProxyConfigForTokenUrl = certsAndProxyConfig;
+    let certsAndProxyConfigForRefreshUrl = certsAndProxyConfig;
+
+    if (accessTokenUrl && grantType !== 'implicit') {
+      const interpolatedTokenUrl = interpolateString(accessTokenUrl, {
+        globalEnvironmentVariables,
+        collectionVariables,
+        envVars,
+        folderVariables,
+        requestVariables,
+        runtimeVariables,
+        processEnvVars,
+        promptVariables
+      });
+      const tokenRequestForConfig = { ...requestCopy, url: interpolatedTokenUrl };
+      certsAndProxyConfigForTokenUrl = await getCertsAndProxyConfig({
+        collectionUid,
+        collection,
+        request: tokenRequestForConfig,
+        envVars,
+        runtimeVariables,
+        processEnvVars,
+        collectionPath,
+        globalEnvironmentVariables
+      });
+    }
+
+    const tokenUrlForRefresh = refreshTokenUrl || accessTokenUrl;
+    if (tokenUrlForRefresh && grantType !== 'implicit') {
+      const interpolatedRefreshUrl = interpolateString(tokenUrlForRefresh, {
+        globalEnvironmentVariables,
+        collectionVariables,
+        envVars,
+        folderVariables,
+        requestVariables,
+        runtimeVariables,
+        processEnvVars,
+        promptVariables
+      });
+      const refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
+      certsAndProxyConfigForRefreshUrl = await getCertsAndProxyConfig({
+        collectionUid,
+        collection,
+        request: refreshRequestForConfig,
+        envVars,
+        runtimeVariables,
+        processEnvVars,
+        collectionPath,
+        globalEnvironmentVariables
+      });
+    }
+
     let credentials, credentialsId, oauth2Url, debugInfo;
     switch (grantType) {
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfig }));
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
@@ -193,7 +247,7 @@ const configureRequest = async (
         break;
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
@@ -207,7 +261,7 @@ const configureRequest = async (
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfig }));
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         if (tokenPlacement == 'header' && credentials?.access_token) {
           request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
@@ -278,9 +332,6 @@ const configureRequest = async (
     urlObj.searchParams.set(key, value);
     request.url = urlObj.toString();
   }
-
-  // Remove pathParams, already in URL (Issue #2439)
-  delete request.pathParams;
 
   // Remove apiKeyAuthValueForQueryParams, already interpolated and added to URL
   delete request.apiKeyAuthValueForQueryParams;
@@ -393,6 +444,39 @@ const registerNetworkIpc = (mainWindow) => {
     });
   };
 
+  const appendScriptErrorResult = (scriptType, scriptResult, error) => {
+    if (!error) {
+      return scriptResult;
+    }
+
+    const descriptionMap = {
+      'test': 'Test Script Error',
+      'post-response': 'Post-Response Script Error',
+      'pre-request': 'Pre-Request Script Error'
+    };
+
+    const messageMap = {
+      'test': 'An error occurred while executing the test script.',
+      'post-response': 'An error occurred while executing the post-response script.',
+      'pre-request': 'An error occurred while executing the pre-request script.'
+    };
+
+    const results = [
+      ...(scriptResult?.results || []),
+      {
+        status: 'fail',
+        description: descriptionMap[scriptType] || 'Script Error',
+        error: error.message || messageMap[scriptType] || 'An error occurred while executing the script.',
+        isScriptError: true
+      }
+    ];
+
+    return {
+      ...(scriptResult || {}),
+      results
+    };
+  };
+
   const runPreRequest = async (
     request,
     requestUid,
@@ -457,8 +541,12 @@ const registerNetworkIpc = (mainWindow) => {
 
     // if this is a graphql request, parse the variables, only after interpolation
     // https://github.com/usebruno/bruno/issues/884
-    if (request.mode === 'graphql') {
-      request.data.variables = JSON.parse(request.data.variables);
+    if (request.mode === 'graphql' && typeof request.data?.variables === 'string') {
+      try {
+        request.data.variables = JSON.parse(request.data.variables);
+      } catch (err) {
+        throw new Error(`Failed to parse GraphQL variables: ${err.message}`);
+      }
     }
 
     // stringify the request url encoded params
@@ -474,7 +562,7 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
-      if (!(request.data instanceof FormData)) {
+      if (!isFormData(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);
@@ -630,6 +718,20 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
+      // Build certsAndProxyConfig for bru.sendRequest
+      const certsAndProxyConfig = await buildCertsAndProxyConfig({
+        collectionUid,
+        collection,
+        collectionPath,
+        envVars,
+        runtimeVariables,
+        processEnvVars,
+        request
+      });
+
+      // Add certsAndProxyConfig to request object for bru.sendRequest
+      request.certsAndProxyConfig = certsAndProxyConfig;
+
       let preRequestScriptResult = null;
       let preRequestError = null;
       try {
@@ -648,6 +750,12 @@ const registerNetworkIpc = (mainWindow) => {
       } catch (error) {
         preRequestError = error;
       }
+
+      if (preRequestError?.partialResults) {
+        preRequestScriptResult = preRequestError.partialResults;
+      }
+
+      preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
 
       if (preRequestScriptResult?.results) {
         mainWindow.webContents.send('main:run-request-event', {
@@ -814,6 +922,15 @@ const registerNetworkIpc = (mainWindow) => {
           postResponseError = error;
         }
 
+        // Extract partial results from error if available
+        // This preserves any test() calls that passed before the script errored
+        // (e.g., if 2 tests pass then script throws, we still want to show those 2 passing tests)
+        if (postResponseError?.partialResults) {
+          postResponseScriptResult = postResponseError.partialResults;
+        }
+
+        postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
+
         if (postResponseScriptResult?.results) {
           mainWindow.webContents.send('main:run-request-event', {
             type: 'test-results-post-response',
@@ -887,6 +1004,8 @@ const registerNetworkIpc = (mainWindow) => {
             }
           }
 
+          testResults = appendScriptErrorResult('test', testResults, testError);
+
           !runInBackground && mainWindow.webContents.send('main:run-request-event', {
             type: 'test-results',
             results: testResults.results,
@@ -936,9 +1055,9 @@ const registerNetworkIpc = (mainWindow) => {
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
-        dataBuffer: response.dataBuffer.toString('base64'),
         stream: isResponseStream ? axiosDataStream : null,
         cancelTokenUid: cancelTokenUid,
+        dataBuffer: response.dataBuffer.toString('base64'),
         size: Buffer.byteLength(response.dataBuffer),
         duration: responseTime ?? 0,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
@@ -1003,6 +1122,7 @@ const registerNetworkIpc = (mainWindow) => {
 
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
+    let seq = 0;
     const collectionUid = collection.uid;
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
@@ -1012,16 +1132,29 @@ const registerNetworkIpc = (mainWindow) => {
       response.stream = { running: response.status >= 200 && response.status < 300 };
 
       stream.on('data', (newData) => {
+        seq += 1;
+
         const parsed = parseDataFromResponse({ data: newData, headers: {} });
-        mainWindow.webContents.send('main:http-stream-new-data', { collectionUid, itemUid: item.uid, data: parsed });
+
+        mainWindow.webContents.send('main:http-stream-new-data', {
+          collectionUid,
+          itemUid: item.uid,
+          seq,
+          timestamp: Date.now(),
+          data: parsed
+        });
       });
 
       stream.on('close', () => {
-        if (!cancelTokens[response.cancelTokenUid]) {
-          return;
-        }
+        if (!cancelTokens[response.cancelTokenUid]) return;
 
-        mainWindow.webContents.send('main:http-stream-end', { collectionUid, itemUid: item.uid });
+        mainWindow.webContents.send('main:http-stream-end', {
+          collectionUid,
+          itemUid: item.uid,
+          seq: seq + 1,
+          timestamp: Date.now()
+        });
+
         deleteCancelToken(response.cancelTokenUid);
       });
     }
@@ -1115,7 +1248,8 @@ const registerNetworkIpc = (mainWindow) => {
           folderRequests = getAllRequestsInFolderRecursively(sortedFolder);
         } else {
           each(folder.items, (item) => {
-            if (item.request) {
+            // Skip transient requests
+            if (item.request && !item.isTransient) {
               folderRequests.push(item);
             }
           });
@@ -1224,6 +1358,20 @@ const registerNetworkIpc = (mainWindow) => {
           }
 
           try {
+            // Build certsAndProxyConfig for bru.sendRequest
+            const certsAndProxyConfig = await buildCertsAndProxyConfig({
+              collectionUid,
+              collection,
+              collectionPath,
+              envVars,
+              runtimeVariables,
+              processEnvVars,
+              request
+            });
+
+            // Add certsAndProxyConfig to request object for bru.sendRequest
+            request.certsAndProxyConfig = certsAndProxyConfig;
+
             let preRequestScriptResult;
             let preRequestError = null;
             try {
@@ -1243,6 +1391,12 @@ const registerNetworkIpc = (mainWindow) => {
               console.error('Pre-request script error:', error);
               preRequestError = error;
             }
+
+            if (preRequestError?.partialResults) {
+              preRequestScriptResult = preRequestError.partialResults;
+            }
+
+            preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
 
             if (preRequestScriptResult?.results) {
               mainWindow.webContents.send('main:run-folder-event', {
@@ -1410,7 +1564,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
 
               if (error?.response) {
-                error.response.data = await promisifyStream(error.response.data, currentAbortController, true);
+                error.response.data = await promisifyStream(error.response.data, currentAbortController, false);
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
                 error.response.responseTime = error.response.headers.get('request-duration');
                 error.response.headers.delete('request-duration');
@@ -1465,6 +1619,14 @@ const registerNetworkIpc = (mainWindow) => {
               console.error('Post-response script error:', error);
               postResponseError = error;
             }
+
+            // Extract partial results from error if available
+            // (e.g., if 2 tests pass then script throws, we still want to show those 2 passing tests)
+            if (postResponseError?.partialResults) {
+              postResponseScriptResult = postResponseError.partialResults;
+            }
+
+            postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
 
             notifyScriptExecution({
               channel: 'main:run-folder-event',
@@ -1551,6 +1713,8 @@ const registerNetworkIpc = (mainWindow) => {
                   };
                 }
               }
+
+              testResults = appendScriptErrorResult('test', testResults, testError);
 
               if (testResults?.nextRequestName !== undefined) {
                 nextRequestName = testResults.nextRequestName;
@@ -1704,7 +1868,9 @@ const registerNetworkIpc = (mainWindow) => {
         } else {
           await writeFile(filePath, data, true);
         }
+        return { success: true, filePath };
       }
+      return { success: false, cancelled: true };
     } catch (error) {
       return Promise.reject(error);
     }

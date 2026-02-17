@@ -1,41 +1,55 @@
 import React from 'react';
+import { Validator } from 'jsonschema';
+import toast from 'react-hot-toast';
 import themes from 'themes/index';
+import themeSchema from 'themes/schema';
 import useLocalStorage from 'hooks/useLocalStorage/index';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { ThemeProvider as SCThemeProvider } from 'styled-components';
+
+const validator = new Validator();
+
+// Helper: Get effective theme ('light' or 'dark') based on storedTheme
+const getEffectiveTheme = (storedTheme) => {
+  if (storedTheme === 'system') {
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+  return storedTheme;
+};
+
+// Helper: Apply theme class to root element
+const applyThemeToRoot = (theme) => {
+  const root = window.document.documentElement;
+  root.classList.remove('light', 'dark');
+  root.classList.add(theme);
+};
 
 export const ThemeContext = createContext();
 export const ThemeProvider = (props) => {
-  const isBrowserThemeLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-  const [displayedTheme, setDisplayedTheme] = useState(isBrowserThemeLight ? 'light' : 'dark');
   const [storedTheme, setStoredTheme] = useLocalStorage('bruno.theme', 'system');
-  const toggleHtml = () => {
-    const html = document.querySelector('html');
-    if (html) {
-      html.classList.toggle('dark');
-    }
-  };
+  const [displayedTheme, setDisplayedTheme] = useState(() => getEffectiveTheme(storedTheme));
+  const [themeVariantLight, setThemeVariantLight] = useLocalStorage('bruno.themeVariantLight', 'light');
+  const [themeVariantDark, setThemeVariantDark] = useLocalStorage('bruno.themeVariantDark', 'dark');
 
+  // Listen for system theme changes (only affects 'system' mode)
   useEffect(() => {
-    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+    const handleChange = (e) => {
       if (storedTheme !== 'system') return;
-      setDisplayedTheme(e.matches ? 'light' : 'dark');
-      toggleHtml();
-    });
-  }, []);
+      const newTheme = e.matches ? 'light' : 'dark';
+      setDisplayedTheme(newTheme);
+      applyThemeToRoot(newTheme);
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [storedTheme]);
 
+  // Apply theme when storedTheme changes
   useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
-    if (storedTheme === 'system') {
-      const isBrowserThemeLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-      setDisplayedTheme(isBrowserThemeLight ? 'light' : 'dark');
-      root.classList.add(isBrowserThemeLight ? 'light' : 'dark');
-    } else {
-      setDisplayedTheme(storedTheme);
-      root.classList.add(storedTheme);
-    }
+    const effectiveTheme = getEffectiveTheme(storedTheme);
+    setDisplayedTheme(effectiveTheme);
+    applyThemeToRoot(effectiveTheme);
 
     if (window.ipcRenderer) {
       window.ipcRenderer.send('renderer:theme-change', storedTheme);
@@ -45,14 +59,50 @@ export const ThemeProvider = (props) => {
   // storedTheme can have 3 values: 'light', 'dark', 'system'
   // displayedTheme can have 2 values: 'light', 'dark'
 
-  const theme = storedTheme === 'system' ? themes[displayedTheme] : themes[storedTheme];
-  const themeOptions = Object.keys(themes);
+  // Compute theme object directly from storedTheme to avoid race conditions
+  const theme = useMemo(() => {
+    const isLightMode = getEffectiveTheme(storedTheme) === 'light';
+    const variantName = isLightMode ? themeVariantLight : themeVariantDark;
+    const fallbackTheme = isLightMode ? themes.light : themes.dark;
+    const fallbackName = isLightMode ? 'light' : 'dark';
+
+    // Check if the variant exists in themes
+    const selectedTheme = themes[variantName];
+    if (!selectedTheme) {
+      // Only show toast if using a non-default variant that doesn't exist
+      if (variantName !== fallbackName) {
+        toast.error(`Theme "${variantName}" not found. Using default ${fallbackName} theme.`, {
+          duration: 4000,
+          id: `theme-not-found-${variantName}` // Prevent duplicate toasts
+        });
+      }
+      return fallbackTheme;
+    }
+
+    // Validate the theme against the schema
+    const validationResult = validator.validate(selectedTheme, themeSchema);
+    if (!validationResult.valid) {
+      const errors = validationResult.errors?.map((e) => e.stack).join(', ') || 'Unknown validation error';
+      console.error(`Theme "${variantName}" validation failed:`, errors);
+      toast.error(`Invalid theme "${variantName}". Using default ${fallbackName} theme.`, {
+        duration: 4000,
+        id: `theme-invalid-${variantName}` // Prevent duplicate toasts
+      });
+      return fallbackTheme;
+    }
+
+    return selectedTheme;
+  }, [storedTheme, themeVariantLight, themeVariantDark]);
+
   const value = {
     theme,
-    themeOptions,
     storedTheme,
     displayedTheme,
-    setStoredTheme
+    setStoredTheme,
+    themeVariantLight,
+    setThemeVariantLight,
+    themeVariantDark,
+    setThemeVariantDark
   };
 
   return (

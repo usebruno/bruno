@@ -71,7 +71,7 @@ const createRedirectConfig = (error, redirectUrl) => {
  * @see https://github.com/axios/axios/issues/695
  * @returns {axios.AxiosInstance}
  */
-function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
+function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies, followRedirects = true } = {}) {
   let redirectCount = 0;
 
   /** @type {axios.AxiosInstance} */
@@ -113,6 +113,14 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies } = {}) {
         error.response.headers['request-duration'] = end - start;
 
         if (redirectResponseCodes.includes(error.response.status)) {
+          if (!followRedirects) {
+            if (!disableCookies) {
+              saveCookies(error.config.url, error.response.headers);
+            }
+
+            return Promise.reject(error);
+          }
+
           if (redirectCount >= requestMaxRedirects) {
             // todo: needs to be discussed whether the original error response message should be modified or not
             return Promise.reject(error);

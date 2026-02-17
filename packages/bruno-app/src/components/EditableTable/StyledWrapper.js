@@ -6,10 +6,15 @@ const StyledWrapper = styled.div`
   flex: 1;
   overflow: hidden;
 
+  &.is-resizing {
+    cursor: col-resize !important;
+    user-select: none;
+  }
+
   .table-container {
-    overflow-y: auto;
+    overflow: auto;
     border-radius: ${(props) => props.theme.border.radius.base};
-    border: ${(props) => props.theme.workspace.environments.indentBorder};
+    border: solid 1px ${(props) => props.theme.border.border0};
   }
 
   table {
@@ -24,6 +29,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.table.thead.color} !important;
     background: ${(props) => props.theme.sidebar.bg};
     user-select: none;
+    overflow: visible;
 
     border: none !important;
 
@@ -31,12 +37,38 @@ const StyledWrapper = styled.div`
       padding: 5px 10px !important;
       border-top: none !important;
       border-left: none !important;
-      border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
-      border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+      border-bottom: solid 1px ${(props) => props.theme.border.border0};
+      border-right: solid 1px ${(props) => props.theme.border.border0};
       vertical-align: middle;
+      position: relative;
+      overflow: visible;
 
       &:last-child {
         border-right: none;
+      }
+
+      .column-name {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding-right: 4px;
+      }
+
+      .resize-handle {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 4px;
+        height: 100%;
+        cursor: col-resize;
+        background: transparent;
+        z-index: 100;
+
+        &:hover,
+        &.resizing {
+          background: ${(props) => props.theme.colors.accent};
+        }
       }
     }
   }
@@ -58,12 +90,34 @@ const StyledWrapper = styled.div`
         padding: 1px 10px !important;
         border-top: none !important;
         border-left: none !important;
-        border-bottom: ${(props) => props.theme.workspace.environments.indentBorder};
-        border-right: ${(props) => props.theme.workspace.environments.indentBorder};
+        border-bottom: solid 1px ${(props) => props.theme.border.border0};
+        border-right: solid 1px ${(props) => props.theme.border.border0};
         vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
 
         &:last-child {
           border-right: none;
+        }
+
+        /* Handle CodeMirror editors overflow */
+        .cm-editor {
+          max-width: 100%;
+
+          .cm-scroller {
+            overflow: hidden !important;
+          }
+
+          .cm-content {
+            max-width: 100%;
+          }
+
+          .cm-line {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
         }
       }
     }
@@ -75,6 +129,7 @@ const StyledWrapper = styled.div`
     text-align: center;
     vertical-align: middle;
     line-height: 1;
+    text-overflow: clip;
 
     input[type='checkbox'] {
       vertical-align: baseline;
@@ -83,8 +138,10 @@ const StyledWrapper = styled.div`
   }
 
   .tooltip-mod {
-    font-size: 11px !important;
     max-width: 200px !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
   }
 
   input[type='text'] {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
+import Button from 'ui/Button';
 
 const ConfirmRequestClose = ({ item, example, onCancel, onCloseWithoutSave, onSaveAndClose }) => {
   const isExample = !!example;
@@ -33,17 +34,15 @@ const ConfirmRequestClose = ({ item, example, onCancel, onCloseWithoutSave, onSa
 
       <div className="flex justify-between mt-6">
         <div>
-          <button className="btn btn-sm btn-danger" onClick={onCloseWithoutSave}>
+          <Button color="danger" onClick={onCloseWithoutSave}>
             Don't Save
-          </button>
+          </Button>
         </div>
-        <div>
-          <button className="btn btn-close btn-sm mr-2" onClick={onCancel}>
+        <div className="flex gap-2">
+          <Button size="sm" color="secondary" variant="ghost" onClick={onCancel}>
             Cancel
-          </button>
-          <button className="btn btn-secondary btn-sm" onClick={onSaveAndClose}>
-            Save
-          </button>
+          </Button>
+          <Button onClick={onSaveAndClose}>Save</Button>
         </div>
       </div>
     </Modal>

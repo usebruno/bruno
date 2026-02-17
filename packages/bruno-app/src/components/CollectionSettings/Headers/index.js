@@ -10,6 +10,8 @@ import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from 'components/BulkEditor/index';
+import Button from 'ui/Button';
+import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
@@ -31,6 +33,22 @@ const Headers = ({ collection }) => {
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
+  const getRowError = useCallback((row, index, key) => {
+    if (key === 'name') {
+      if (!row.name || row.name.trim() === '') return null;
+      if (!headerNameRegex.test(row.name)) {
+        return 'Header name cannot contain spaces or newlines';
+      }
+    }
+    if (key === 'value') {
+      if (!row.value) return null;
+      if (!headerValueRegex.test(row.value)) {
+        return 'Header value cannot contain newlines';
+      }
+    }
+    return null;
+  }, []);
+
   const columns = [
     {
       key: 'name',
@@ -38,7 +56,7 @@ const Headers = ({ collection }) => {
       isKeyField: true,
       placeholder: 'Name',
       width: '30%',
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -46,7 +64,7 @@ const Headers = ({ collection }) => {
           onChange={(newValue) => onChange(newValue.replace(/[\r\n]/g, ''))}
           autocomplete={headerAutoCompleteList}
           collection={collection}
-          placeholder={isLastEmptyRow ? 'Name' : ''}
+          placeholder={!value ? 'Name' : ''}
         />
       )
     },
@@ -54,7 +72,7 @@ const Headers = ({ collection }) => {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -62,7 +80,7 @@ const Headers = ({ collection }) => {
           onChange={onChange}
           collection={collection}
           autocomplete={MimeTypes}
-          placeholder={isLastEmptyRow ? 'Value' : ''}
+          placeholder={!value ? 'Value' : ''}
         />
       )
     }
@@ -100,6 +118,7 @@ const Headers = ({ collection }) => {
         rows={headers}
         onChange={handleHeadersChange}
         defaultRow={defaultRow}
+        getRowError={getRowError}
       />
       <div className="flex justify-end mt-2">
         <button className="text-link select-none" onClick={toggleBulkEditMode}>
@@ -107,9 +126,9 @@ const Headers = ({ collection }) => {
         </button>
       </div>
       <div className="mt-6">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

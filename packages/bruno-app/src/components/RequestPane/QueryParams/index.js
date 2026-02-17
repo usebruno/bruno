@@ -70,7 +70,7 @@ const QueryParams = ({ item, collection }) => {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -80,7 +80,7 @@ const QueryParams = ({ item, collection }) => {
           collection={collection}
           item={item}
           variablesAutocomplete={true}
-          placeholder={isLastEmptyRow ? 'Value' : ''}
+          placeholder={!value ? 'Value' : ''}
         />
       )
     }
@@ -135,7 +135,7 @@ const QueryParams = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col">
-      <div className="flex-1 mt-2">
+      <div className="flex-1">
         <div className="mb-3 title text-xs">Query</div>
         <EditableTable
           columns={queryColumns}

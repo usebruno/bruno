@@ -201,6 +201,19 @@ const Wrapper = styled.div`
     margin-left: 6px;
   }
 
+  &.os-linux .titlebar-content {
+    padding-right: 0px;
+    padding-left: 0px;
+  }
+
+  &.os-linux .titlebar-left {
+    margin-left: 6px;
+  }
+
+  .app-menu {
+    margin-left: 8px;
+  }
+
   /* Custom window control buttons for Windows - always interactive, above modal overlay */
   .window-controls {
     display: flex;
@@ -236,12 +249,6 @@ const Wrapper = styled.div`
       background: #e81123;
       color: white;
     }
-  }
-
-  .dropdown-item-active {
-    font-weight: 400 !important;
-    background-color: ${(props) => props.theme.dropdown.selectedBg} !important;
-    color: ${(props) => props.theme.dropdown.selectedColor} !important;
   }
 `;
 

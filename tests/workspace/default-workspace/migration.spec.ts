@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect } from '../../../playwright';
+import { test, expect, closeElectronApp } from '../../../playwright';
 
 const env = {
   DISABLE_SAMPLE_COLLECTION_IMPORT: 'false'
@@ -35,7 +35,7 @@ test.describe('Default Workspace Migration', () => {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
       await test.step('Verify workspace UI', async () => {
-        await expect(page.locator('.workspace-name')).toContainText('My Workspace');
+        await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
       });
 
       await test.step('Verify workspace filesystem artifacts', async () => {
@@ -50,8 +50,7 @@ test.describe('Default Workspace Migration', () => {
       });
 
       await test.step('Cleanup', async () => {
-        await app.context().close();
-        await app.close();
+        await closeElectronApp(app);
       });
     });
 
@@ -87,7 +86,7 @@ test.describe('Default Workspace Migration', () => {
       const page = await app.firstWindow();
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
-      await expect(page.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // Verify workspace.yml has both collections
       const workspacePath = path.join(userDataPath, 'default-workspace');
@@ -97,8 +96,7 @@ test.describe('Default Workspace Migration', () => {
       expect(workspaceYml).toContain('collection-1');
       expect(workspaceYml).toContain('collection-2');
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
   });
 
@@ -132,14 +130,13 @@ test.describe('Default Workspace Migration', () => {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
       // Verify default workspace is created
-      await expect(page.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // Sample collection should NOT be created (because user has existing collections)
       const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
       await expect(sampleCollection).not.toBeVisible();
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
   });
 
@@ -151,21 +148,20 @@ test.describe('Default Workspace Migration', () => {
       const app1 = await launchElectronApp({ userDataPath });
       const page1 = await app1.firstWindow();
       await page1.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
-      await expect(page1.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page1.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // Verify initial workspace was created
       const workspacePath = path.join(userDataPath, 'default-workspace');
       expect(fs.existsSync(workspacePath)).toBe(true);
       const originalYmlContent = fs.readFileSync(path.join(workspacePath, 'workspace.yml'), 'utf8');
 
-      await app1.context().close();
-      await app1.close();
+      await closeElectronApp(app1);
 
       // Second launch - should reuse existing workspace
       const app2 = await launchElectronApp({ userDataPath });
       const page2 = await app2.firstWindow();
       await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
-      await expect(page2.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page2.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // workspace.yml should NOT have been modified
       const currentYmlContent = fs.readFileSync(path.join(workspacePath, 'workspace.yml'), 'utf8');
@@ -174,8 +170,7 @@ test.describe('Default Workspace Migration', () => {
       // No new workspace should have been created
       expect(fs.existsSync(path.join(userDataPath, 'default-workspace-1'))).toBe(false);
 
-      await app2.context().close();
-      await app2.close();
+      await closeElectronApp(app2);
     });
   });
 
@@ -188,7 +183,7 @@ test.describe('Default Workspace Migration', () => {
       const page = await app.firstWindow();
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
-      await expect(page.locator('.workspace-name')).toContainText('My Workspace');
+      await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // Verify workspace was created
       const workspacePath = path.join(userDataPath, 'default-workspace');
@@ -201,8 +196,7 @@ test.describe('Default Workspace Migration', () => {
       // Collections should be empty (just the key)
       expect(workspaceYml).toMatch(/collections:\s*\n/);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
   });
 });

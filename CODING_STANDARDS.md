@@ -66,7 +66,16 @@ Remember, these rules are here to make our codebase harmonious. If something doe
 
 - Use styled component's theme prop to manage CSS colors and not CSS variables when in the context of a styled component or any react component using the styled component 
 - Styled Components are used as wrappers to define both self and children components style, tailwind classes are used specifically for layout based styles. 
-- Styled Component CSS might also change layout but tailwind classes shouldn't define colors. 
+- Styled Component CSS might also change layout but tailwind classes shouldn't define colors.
+- MUST: Prefer custom hooks for business logic, data fetching, and side-effects.
+- MUST: Avoid `useEffect` unless absolutely needed. Prefer derived state, event handlers.
+- SHOULD: Memoize only when necessary (`useMemo`/`useCallback`), and prefer moving logic into hooks first.
+- MUST: Do not use namespace access for hooks in app code (e.g., `React.useCallback`, `React.useMemo`, `React.useState`). Import hooks directly.
+  - Correct: `import { useCallback, useMemo, useState } from "react";`
+  - Avoid: `import * as React from "react";` then `React.useCallback(...)`
+- Add `data-testid` to testable elements for Playwright
+- Co-locate utilities that are truly component-specific next to the component, otherwise place shared items under a common folder
+
 
 ## Readability and Abstractions
 

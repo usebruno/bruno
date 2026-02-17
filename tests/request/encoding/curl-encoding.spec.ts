@@ -1,10 +1,10 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createUntitledRequest } from '../../utils/page';
+import { closeAllCollections, createCollection, createRequest } from '../../utils/page';
 
 test.describe('Code Generation URL Encoding', () => {
   test.afterEach(async ({ page }) => {
     try {
-      const modalCloseButton = page.locator('[data-test-id="modal-close-button"]');
+      const modalCloseButton = page.getByTestId('modal-close-button');
       if (await modalCloseButton.isVisible()) {
         await modalCloseButton.click();
         await modalCloseButton.waitFor({ state: 'hidden' });
@@ -18,27 +18,15 @@ test.describe('Code Generation URL Encoding', () => {
     page,
     createTmpDir
   }) => {
-    // Use plus icon button in new workspace UI
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
-    await page.getByLabel('Name').fill('unencoded-test-collection');
-    const locationInput = page.getByLabel('Location');
-    if (await locationInput.isVisible()) {
-      await locationInput.fill(await createTmpDir('unencoded-test-collection'));
-    }
-    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
+    const collectionName = 'unencoded-test-collection';
+    const requestName = 'curl-encoding-unencoded';
 
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'unencoded-test-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'unencoded-test-collection' }).click();
+    // Create collection and request
+    await createCollection(page, collectionName, await createTmpDir(collectionName));
+    await createRequest(page, requestName, collectionName, { url: 'http://base.source?name=John Doe' });
 
-    // Create a new request using the new dropdown flow
-    await createUntitledRequest(page, {
-      requestType: 'HTTP',
-      url: 'http://base.source?name=John Doe'
-    });
-
-    // Find the untitled request and click on it
-    await page.locator('.item-name').filter({ hasText: /^Untitled/ }).first().click();
+    // Click the request in the sidebar
+    await page.locator('.collection-item-name').filter({ hasText: requestName }).first().click();
 
     await page.locator('#send-request .infotip').first().click();
 
@@ -52,36 +40,24 @@ test.describe('Code Generation URL Encoding', () => {
 
     expect(generatedCode).toContain('http://base.source/?name=John%20Doe');
 
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
 
-    await page.locator('[data-test-id="modal-close-button"]').waitFor({ state: 'hidden' });
+    await page.getByTestId('modal-close-button').waitFor({ state: 'hidden' });
   });
 
   test('Should generate code with proper URL encoding for encoded input', async ({
     page,
     createTmpDir
   }) => {
-    // Use plus icon button in new workspace UI
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
-    await page.getByLabel('Name').fill('encoded-test-collection');
-    const locationInput = page.getByLabel('Location');
-    if (await locationInput.isVisible()) {
-      await locationInput.fill(await createTmpDir('encoded-test-collection'));
-    }
-    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
+    const collectionName = 'encoded-test-collection';
+    const requestName = 'curl-encoding-encoded';
 
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'encoded-test-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'encoded-test-collection' }).click();
+    // Create collection and request
+    await createCollection(page, collectionName, await createTmpDir(collectionName));
+    await createRequest(page, requestName, collectionName, { url: 'http://base.source?name=John%20Doe' });
 
-    // Create a new request using the new dropdown flow
-    await createUntitledRequest(page, {
-      requestType: 'HTTP',
-      url: 'http://base.source?name=John%20Doe'
-    });
-
-    // Find the untitled request and click on it
-    await page.locator('.item-name').filter({ hasText: /^Untitled/ }).first().click();
+    // Click the request in the sidebar
+    await page.locator('.collection-item-name').filter({ hasText: requestName }).first().click();
 
     await page.locator('#send-request .infotip').first().click();
 
@@ -95,8 +71,8 @@ test.describe('Code Generation URL Encoding', () => {
 
     expect(generatedCode).toContain('http://base.source/?name=John%20Doe');
 
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
 
-    await page.locator('[data-test-id="modal-close-button"]').waitFor({ state: 'hidden' });
+    await page.getByTestId('modal-close-button').waitFor({ state: 'hidden' });
   });
 });

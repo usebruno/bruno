@@ -1,4 +1,4 @@
-const { default: postmanTranslation } = require('../../../src/postman/postman-translations');
+import postmanTranslation from '../../../src/postman/postman-translations';
 
 describe('postmanTranslations - variables commands', () => {
   test('should translate variable commands correctly', () => {
@@ -16,8 +16,8 @@ describe('postmanTranslations - variables commands', () => {
       bru.setEnvVar('key', 'value');
       bru.getVar('key');
       bru.setVar('key', 'value');
-      bru.getVar('key');
-      bru.setVar('key', 'value');
+      bru.getCollectionVar('key');
+      bru.setCollectionVar('key', 'value');
       expect(bru.getEnvVar('key') !== undefined && bru.getEnvVar('key') !== null).to.be.true;
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);

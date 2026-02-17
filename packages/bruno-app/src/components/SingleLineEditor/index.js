@@ -169,12 +169,21 @@ class SingleLineEditor extends Component {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      this.cachedValue = String(this.props.value);
-      this.editor.setValue(String(this.props.value ?? ''));
+      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
+      const nextValue = String(this.props.value ?? '');
+      const currentValue = this.editor.getValue();
+      if (this.editor.hasFocus?.() && currentValue !== nextValue) {
+        this.cachedValue = currentValue;
+      } else {
+        const cursor = this.editor.getCursor();
+        this.cachedValue = nextValue;
+        this.editor.setValue(nextValue);
+        this.editor.setCursor(cursor);
 
-      // Update newline markers after value change
-      if (this.props.showNewlineArrow) {
-        this._updateNewlineMarkers();
+        // Update newline markers after value change
+        if (this.props.showNewlineArrow) {
+          this._updateNewlineMarkers();
+        }
       }
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
@@ -303,6 +312,7 @@ class SingleLineEditor extends Component {
         <StyledWrapper
           ref={this.editorRef}
           className={`single-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`}
+          $isCompact={this.props.isCompact}
           {...(this.props['data-testid'] ? { 'data-testid': this.props['data-testid'] } : {})}
         />
         <div className="flex items-center">

@@ -30,7 +30,7 @@ const StyledWrapper = styled.div`
   }
 
   .terminal-sessions-header {
-    padding: 12px;
+    padding: 6px 8px;
     font-weight: 600;
     font-size: 13px;
     color: ${(props) => props.theme.text};

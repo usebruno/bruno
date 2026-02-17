@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection } from '../../utils/page';
+import { closeAllCollections, createCollection, createRequest } from '../../utils/page';
 
 test.describe('Copy and Paste Requests', () => {
   test.afterAll(async ({ page }) => {
@@ -24,7 +24,7 @@ test.describe('Copy and Paste Requests', () => {
     // Copy the request
     const requestItem = page.locator('.collection-item-name').filter({ hasText: 'original-request' });
     await requestItem.hover();
-    await requestItem.locator('.menu-icon').click();
+    await requestItem.locator('.menu-icon').click({ force: true });
     await page.locator('.dropdown-item').filter({ hasText: 'Copy' }).click();
 
     // Paste into the collection root
@@ -48,7 +48,7 @@ test.describe('Copy and Paste Requests', () => {
     const folder = page.locator('.collection-item-name').filter({ hasText: 'test-folder' });
     await folder.click();
     await folder.hover();
-    await folder.locator('.menu-icon').click();
+    await folder.locator('.menu-icon').click({ force: true });
     await page.locator('.dropdown-item').filter({ hasText: 'Paste' }).click();
 
     await expect(page.locator('.collection-item-name').filter({ hasText: 'original-request' })).toHaveCount(3);
@@ -65,5 +65,21 @@ test.describe('Copy and Paste Requests', () => {
 
     // Verify the pasted request appears with the same name
     await expect(page.locator('.collection-item-name').filter({ hasText: 'original-request' })).toHaveCount(4);
+  });
+
+  test('should paste request into parent folder even if request is selected', async ({ page, createTmpDir }) => {
+    // Create a collection and a request
+    await createCollection(page, 'test-collection-3', await createTmpDir('test-collection-3'));
+    await createRequest(page, 'request-to-copy', 'test-collection-3');
+
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+
+    // Copy the request
+    await page.locator('.collection-item-name').filter({ hasText: 'request-to-copy' }).click();
+    await page.keyboard.press(`${modifier}+C`);
+    await page.keyboard.press(`${modifier}+V`);
+
+    // Verify the pasted request appears with the same name
+    await expect(page.locator('.collection-item-name').filter({ hasText: 'request-to-copy' })).toHaveCount(2);
   });
 });

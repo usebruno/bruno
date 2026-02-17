@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createUntitledRequest } from '../../utils/page';
+import { closeAllCollections, createCollection, createRequest } from '../../utils/page';
 
 test.describe('Create collection', () => {
   test.afterEach(async ({ page }) => {
@@ -8,20 +8,13 @@ test.describe('Create collection', () => {
   });
 
   test('Create collection and add a simple HTTP request', async ({ page, createTmpDir }) => {
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
-    await page.getByLabel('Name').click();
-    await page.getByLabel('Name').fill('test-collection');
-    await page.getByLabel('Name').press('Tab');
-    const locationInput = page.locator('.bruno-modal').getByLabel('Location');
-    if (await locationInput.isVisible()) {
-      await locationInput.fill(await createTmpDir('test-collection'));
-    }
-    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'test-collection' }).click();
+    const collectionName = 'test-collection';
+    const requestName = 'ping';
 
-    // Create a new request using the new dropdown flow
-    await createUntitledRequest(page, { requestType: 'HTTP' });
+    await createCollection(page, collectionName, await createTmpDir(collectionName));
+
+    // Create a new request using the dialog/modal flow
+    await createRequest(page, requestName, collectionName);
 
     // Set the URL
     await page.locator('#request-url .CodeMirror').click();

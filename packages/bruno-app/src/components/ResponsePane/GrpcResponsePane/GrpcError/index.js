@@ -6,7 +6,7 @@ const GrpcError = ({ error, onClose }) => {
   if (!error) return null;
 
   return (
-    <StyledWrapper className="mt-4 mb-2">
+    <StyledWrapper>
       <div className="flex items-start gap-3 px-4 py-3">
         <div className="flex-1 min-w-0">
           <div className="error-title">gRPC Server Error</div>

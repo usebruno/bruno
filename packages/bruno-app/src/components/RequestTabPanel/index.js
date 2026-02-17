@@ -19,7 +19,6 @@ import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import StyledWrapper from './StyledWrapper';
-import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
 import { produce } from 'immer';
@@ -33,19 +32,17 @@ import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
 import ResponseExample from 'components/ResponseExample';
-import WorkspaceHome from 'components/WorkspaceHome';
+import WorkspaceOverview from 'components/WorkspaceHome/WorkspaceOverview';
+import Preferences from 'components/Preferences';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 
 const MIN_LEFT_PANE_WIDTH = 300;
-const MIN_RIGHT_PANE_WIDTH = 480;
+const MIN_RIGHT_PANE_WIDTH = 490;
 const MIN_TOP_PANE_HEIGHT = 150;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 
 const RequestTabPanel = () => {
-  if (typeof window == 'undefined') {
-    return <div></div>;
-  }
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -53,6 +50,8 @@ const RequestTabPanel = () => {
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const _collections = useSelector((state) => state.collections.collections);
   const preferences = useSelector((state) => state.app.preferences);
+  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
 
@@ -171,11 +170,27 @@ const RequestTabPanel = () => {
     }
   }, [isConsoleOpen, isVerticalLayout]);
 
+  if (typeof window == 'undefined') {
+    return <div></div>;
+  }
+
   if (!activeTabUid || !focusedTab) {
-    return <WorkspaceHome />;
+    return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
   if (focusedTab.type === 'global-environment-settings') {
+    return <GlobalEnvironmentSettings />;
+  }
+
+  if (focusedTab.type === 'preferences') {
+    return <Preferences />;
+  }
+
+  if (focusedTab.type === 'workspaceOverview') {
+    return activeWorkspace ? <WorkspaceOverview workspace={activeWorkspace} /> : null;
+  }
+
+  if (focusedTab.type === 'workspaceEnvironments') {
     return <GlobalEnvironmentSettings />;
   }
 
@@ -224,10 +239,6 @@ const RequestTabPanel = () => {
     }
 
     return <FolderSettings collection={collection} folder={folder} />;
-  }
-
-  if (focusedTab.type === 'security-settings') {
-    return <SecuritySettings collection={collection} />;
   }
 
   if (focusedTab.type === 'environment-settings') {

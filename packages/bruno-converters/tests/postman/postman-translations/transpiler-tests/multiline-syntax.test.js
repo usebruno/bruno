@@ -1,4 +1,4 @@
-import translateCode from '../../../../src/utils/jscode-shift-translator';
+import translateCode from '../../../../src/utils/postman-to-bruno-translator';
 
 describe('Multiline Syntax Handling', () => {
   it('should handle basic multiline variable syntax with indentation', () => {
@@ -43,8 +43,8 @@ describe('Multiline Syntax Handling', () => {
     `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
-    const apiKey = bru.getVar("apiKey");
-    bru.setVar("lastRun", new Date().toISOString());
+    const apiKey = bru.getCollectionVar("apiKey");
+    bru.setCollectionVar("lastRun", new Date().toISOString());
     `);
   });
 
@@ -265,7 +265,7 @@ describe('Multiline Syntax Handling', () => {
     expect(translatedCode).toContain('bru.setVar("timestamp", new Date().toISOString())');
 
     // Check collection variables
-    expect(translatedCode).toContain('bru.setVar("lastRun", new Date())');
+    expect(translatedCode).toContain('bru.setCollectionVar("lastRun", new Date())');
 
     // Check complex conditionals
     expect(translatedCode).toContain('if (bru.getEnvVar("apiKey") !== undefined && bru.getEnvVar("apiKey") !== null &&');

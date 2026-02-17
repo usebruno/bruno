@@ -16,11 +16,11 @@ const StyledMenuIcon = styled.button`
   height: 1.25rem;
   width: 1.5rem;
   border: 1px solid ${(props) => props.theme.workspace.border};
-  color: ${(props) => props.theme.codemirror.variable.info.iconColor};
+  color: ${(props) => props.theme.dropdown.iconColor};
   border-radius: 4px;
 
   &:hover {
-    background-color: ${(props) => props.theme.workspace.button.bg};
+    border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBorder} !important;
     color: ${(props) => props.theme.text};
   }
 `;
@@ -37,7 +37,7 @@ const MenuIcon = forwardRef((props, ref) => (
 
 MenuIcon.displayName = 'MenuIcon';
 
-const ResponsePaneActions = ({ item, collection, responseSize }) => {
+const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, selectedTab, data, dataBuffer }) => {
   const { orientation } = useResponseLayoutToggle();
 
   // Refs to access child component imperative handles (click, isDisabled)
@@ -46,6 +46,49 @@ const ResponsePaneActions = ({ item, collection, responseSize }) => {
   const clearButtonRef = useRef(null);
   const copyButtonRef = useRef(null);
   const layoutToggleButtonRef = useRef(null);
+
+  /**
+   * GQL response actions missing with Save response - because their is schema validation missing for saving GQL response will undo once example
+   * scehem is updated
+   */
+  const gqlMenuItems = [
+    {
+      id: 'copy-response',
+      label: 'Copy response',
+      leftSection: IconCopy,
+      get disabled() {
+        return copyButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => copyButtonRef.current?.click()
+    },
+    {
+      id: 'download-response',
+      label: 'Download response',
+      leftSection: IconDownload,
+      get disabled() {
+        return downloadButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => downloadButtonRef.current?.click()
+    },
+    {
+      id: 'clear-response',
+      label: 'Clear response',
+      leftSection: IconEraser,
+      get disabled() {
+        return clearButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => clearButtonRef.current?.click()
+    },
+    {
+      id: 'change-layout',
+      label: 'Change layout',
+      leftSection: orientation === 'vertical' ? IconLayoutColumns : IconLayoutRows,
+      get disabled() {
+        return layoutToggleButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => layoutToggleButtonRef.current?.click()
+    }
+  ];
 
   const menuItems = [
     {
@@ -95,7 +138,7 @@ const ResponsePaneActions = ({ item, collection, responseSize }) => {
     }
   ];
 
-  if (item.type !== 'http-request') {
+  if (!['http-request', 'graphql-request'].includes(item.type)) {
     return null;
   }
 
@@ -103,7 +146,7 @@ const ResponsePaneActions = ({ item, collection, responseSize }) => {
     <StyledWrapper className="response-pane-actions-wrapper">
       <div className="actions-dropdown">
         <MenuDropdown
-          items={menuItems}
+          items={item.type !== 'graphql-request' ? menuItems : gqlMenuItems}
           placement="bottom-end"
           data-testid="response-actions-menu"
         >
@@ -111,13 +154,19 @@ const ResponsePaneActions = ({ item, collection, responseSize }) => {
         </MenuDropdown>
       </div>
       <div className="actions-buttons flex items-center gap-[2px]">
-        <ResponseCopy ref={copyButtonRef} item={item} />
-        <ResponseBookmark ref={bookmarkButtonRef} item={item} collection={collection} responseSize={responseSize} />
+        <ResponseCopy
+          ref={copyButtonRef}
+          item={item}
+          selectedFormat={selectedFormat}
+          selectedTab={selectedTab}
+          data={data}
+          dataBuffer={dataBuffer}
+        />
+        {item.type !== 'graphql-request' && <ResponseBookmark ref={bookmarkButtonRef} item={item} collection={collection} responseSize={responseSize} />}
         <ResponseDownload ref={downloadButtonRef} item={item} />
         <ResponseClear ref={clearButtonRef} item={item} collection={collection} />
         <ResponseLayoutToggle ref={layoutToggleButtonRef} />
       </div>
-
     </StyledWrapper>
   );
 };

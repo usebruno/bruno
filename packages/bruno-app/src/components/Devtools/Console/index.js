@@ -64,6 +64,89 @@ const LogTimestamp = ({ timestamp }) => {
   return <span className="log-timestamp">{time}</span>;
 };
 
+// Helper function to check if an object is a plain object (not a class instance)
+const isPlainObject = (obj) => {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const proto = Object.getPrototypeOf(obj);
+  return proto === null || proto === Object.prototype;
+};
+
+// Helper function to transform Bruno special types back to readable format
+// Extracted outside component to avoid recreation on every render
+const transformBrunoTypes = (obj, seen = new WeakSet()) => {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
+  }
+
+  // Guard against circular references
+  if (seen.has(obj)) {
+    return '[Circular]';
+  }
+  seen.add(obj);
+
+  // Handle Bruno special types
+  if (obj.__brunoType) {
+    switch (obj.__brunoType) {
+      case 'Set':
+        // Transform Set to display values at top level with numeric indices
+        if (Array.isArray(obj.__brunoValue)) {
+          return Object.fromEntries(
+            obj.__brunoValue.map((value, index) => [index, transformBrunoTypes(value, seen)])
+          );
+        }
+        return {};
+      case 'Map':
+        // Transform Map to display entries at top level with => notation
+        if (Array.isArray(obj.__brunoValue)) {
+          const mapEntries = {};
+          for (const entry of obj.__brunoValue) {
+            // Defensive check: ensure entry is a valid [key, value] pair
+            if (Array.isArray(entry) && entry.length >= 2) {
+              const [key, value] = entry;
+              mapEntries[`${String(key)} =>`] = transformBrunoTypes(value, seen);
+            }
+          }
+          return mapEntries;
+        }
+        return {};
+      case 'Function':
+        return `[Function: ${obj.__brunoValue?.split?.('\n')?.[0]?.substring(0, 50) ?? 'anonymous'}...]`;
+      case 'undefined':
+        return 'undefined';
+      default:
+        return obj;
+    }
+  }
+
+  // Handle arrays - recurse into elements
+  if (Array.isArray(obj)) {
+    return obj.map((item) => transformBrunoTypes(item, seen));
+  }
+
+  // Preserve non-plain objects (Date, Error, RegExp, class instances, etc.)
+  if (!isPlainObject(obj)) {
+    return obj;
+  }
+
+  // Only deep-clone plain objects
+  const transformed = {};
+  for (const [key, value] of Object.entries(obj)) {
+    transformed[key] = transformBrunoTypes(value, seen);
+  }
+  return transformed;
+};
+
+// Helper to get metadata about Bruno types for display purposes
+const getBrunoTypeMetadata = (obj) => {
+  if (typeof obj !== 'object' || obj === null) {
+    return {};
+  }
+  if (obj.__brunoType === 'Set' || obj.__brunoType === 'Map') {
+    return { type: obj.__brunoType };
+  }
+  return {};
+};
+
 const LogMessage = ({ message, args }) => {
   const { displayedTheme } = useTheme();
 
@@ -71,18 +154,30 @@ const LogMessage = ({ message, args }) => {
     if (originalArgs && originalArgs.length > 0) {
       return originalArgs.map((arg, index) => {
         if (typeof arg === 'object' && arg !== null) {
+          const metadata = getBrunoTypeMetadata(arg);
+          const transformedArg = transformBrunoTypes(arg);
+
+          // Determine the name to display based on the type
+          let displayName = false;
+          let shouldCollapse = 1; // Default: collapse at depth 1 for regular objects
+
+          if (metadata.type === 'Map' || metadata.type === 'Set') {
+            displayName = metadata.type;
+            shouldCollapse = true; // Fully collapse Maps/Sets by default
+          }
+
           return (
             <div key={index} className="log-object">
               <ReactJson
-                src={arg}
+                src={transformedArg}
                 theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
                 iconStyle="triangle"
                 indentWidth={2}
-                collapsed={1}
+                collapsed={shouldCollapse}
                 displayDataTypes={false}
                 displayObjectSize={false}
                 enableClipboard={false}
-                name={false}
+                name={displayName}
                 style={{
                   backgroundColor: 'transparent',
                   fontSize: '${(props) => props.theme.font.size.sm}',
@@ -182,19 +277,6 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
   const allFiltersEnabled = Object.values(filters).every((f) => f);
   const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
 
-  const getMethodColor = (method) => {
-    switch (method?.toUpperCase()) {
-      case 'GET': return '#10b981';
-      case 'POST': return '#8b5cf6';
-      case 'PUT': return '#f59e0b';
-      case 'DELETE': return '#ef4444';
-      case 'PATCH': return '#06b6d4';
-      case 'HEAD': return '#6b7280';
-      case 'OPTIONS': return '#84cc16';
-      default: return '#6b7280';
-    }
-  };
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -241,9 +323,6 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
                   onChange={(e) => onFilterToggle(method, e.target.checked)}
                 />
                 <div className="filter-option-content">
-                  <span className="method-badge" style={{ backgroundColor: getMethodColor(method) }}>
-                    {method}
-                  </span>
                   <span className="filter-option-label">{method}</span>
                   <span className="filter-option-count">({requestCounts[method] || 0})</span>
                 </div>

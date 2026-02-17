@@ -4,6 +4,7 @@ import VarsTable from './VarsTable';
 import StyledWrapper from './StyledWrapper';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
+import Button from 'ui/Button';
 
 const Vars = ({ collection }) => {
   const dispatch = useDispatch();
@@ -13,7 +14,7 @@ const Vars = ({ collection }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col">
-      <div className="flex-1 mt-2">
+      <div className="flex-1">
         <div className="mb-3 title text-xs">Pre Request</div>
         <VarsTable collection={collection} vars={requestVars} varType="request" />
       </div>
@@ -22,9 +23,9 @@ const Vars = ({ collection }) => {
         <VarsTable collection={collection} vars={responseVars} varType="response" />
       </div>
       <div className="mt-6">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

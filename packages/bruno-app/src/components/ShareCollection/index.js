@@ -1,18 +1,27 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Modal from 'components/Modal';
-import { IconUpload, IconLoader2, IconAlertTriangle } from '@tabler/icons';
+import Button from 'ui/Button';
+import { IconCheck, IconAlertTriangle, IconFileExport } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
-import Bruno from 'components/Bruno';
-import exportBrunoCollection from 'utils/collections/export';
 import exportPostmanCollection from 'utils/exporters/postman-collection';
+import exportOpenCollection from 'utils/exporters/opencollection';
 import { cloneDeep } from 'lodash';
 import { transformCollectionToSaveToExportAsFile } from 'utils/collections/index';
 import { useSelector } from 'react-redux';
 import { findCollectionByUid, areItemsLoading } from 'utils/collections/index';
+import toast from 'react-hot-toast';
+
+const EXPORT_FORMATS = {
+  ZIP: 'zip',
+  YAML: 'yaml',
+  POSTMAN: 'postman'
+};
 
 const ShareCollection = ({ onClose, collectionUid }) => {
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
   const isCollectionLoading = areItemsLoading(collection);
+  const [selectedFormat, setSelectedFormat] = useState(EXPORT_FORMATS.ZIP);
+  const [isExporting, setIsExporting] = useState(false);
 
   const hasNonExportableRequestTypes = useMemo(() => {
     let types = new Set();
@@ -36,81 +45,156 @@ const ShareCollection = ({ onClose, collectionUid }) => {
     };
   }, [collection]);
 
-  const handleExportBrunoCollection = () => {
-    const collectionCopy = cloneDeep(collection);
-    exportBrunoCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
-    onClose();
+  const handleExportZip = async () => {
+    try {
+      const { ipcRenderer } = window;
+      const result = await ipcRenderer.invoke('renderer:export-collection-zip', collection.pathname, collection.name);
+      if (result.success) {
+        toast.success('Collection exported successfully');
+      }
+    } catch (error) {
+      toast.error('Failed to export collection: ' + error.message);
+    }
   };
 
-  const handleExportPostmanCollection = () => {
+  const handleExportYaml = () => {
+    const collectionCopy = cloneDeep(collection);
+    exportOpenCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
+  };
+
+  const handleExportPostman = () => {
     const collectionCopy = cloneDeep(collection);
     exportPostmanCollection(collectionCopy);
-    onClose();
   };
 
+  const handleProceed = async () => {
+    if (isCollectionLoading || isExporting) return;
+
+    setIsExporting(true);
+    try {
+      switch (selectedFormat) {
+        case EXPORT_FORMATS.ZIP:
+          await handleExportZip();
+          break;
+        case EXPORT_FORMATS.YAML:
+          handleExportYaml();
+          break;
+        case EXPORT_FORMATS.POSTMAN:
+          handleExportPostman();
+          break;
+      }
+      onClose();
+    } catch (error) {
+      console.error('Export error:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const isDisabled = isCollectionLoading || isExporting;
+
   return (
-    <Modal
-      size="md"
-      title="Share Collection"
-      confirmText="Close"
-      handleConfirm={onClose}
-      handleCancel={onClose}
-      hideCancel
-    >
-      <StyledWrapper className="flex flex-col h-full w-[500px]">
-        <div className="space-y-2">
-          <div
-            className={`flex border border-gray-200 dark:border-gray-600 items-center p-3 rounded-lg transition-colors ${
-              isCollectionLoading
-                ? 'opacity-50 cursor-not-allowed'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-500/10 cursor-pointer'
-            }`}
-            onClick={isCollectionLoading ? undefined : handleExportBrunoCollection}
+    <Modal size="lg" title="Share Collection" handleCancel={onClose} hideFooter>
+      <StyledWrapper className="flex flex-col">
+        <p className="text-sm mb-4">
+          Bruno uses{' '}
+          <a
+            href="https://opencollection.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="opencollection-link"
           >
-            <div className="mr-3 p-1 rounded-full">
-              {isCollectionLoading ? <IconLoader2 size={28} className="animate-spin" /> : <Bruno width={28} />}
+            OpenCollection
+          </a>
+          {' '}- An open format for API collections
+        </p>
+
+        {/* Bruno Format Section */}
+        <div className="section-title">Bruno Format</div>
+        <div className="bruno-format-grid mb-6">
+          {/* ZIP Option */}
+          <div
+            className={`format-card ${selectedFormat === EXPORT_FORMATS.ZIP ? 'selected' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => !isDisabled && setSelectedFormat(EXPORT_FORMATS.ZIP)}
+          >
+            <div className="card-header">
+              <span className="card-title">Bruno Collection (ZIP)</span>
+              <span className="recommended-badge">Recommended</span>
             </div>
-            <div className="flex-1">
-              <div className="font-medium">Bruno Collection</div>
-              <div className="text-xs">{isCollectionLoading ? 'Loading collection...' : 'Export in Bruno format'}</div>
+            <p className="card-description">OpenCollection format organized as folders and files</p>
+            <div className="feature-list">
+              <div className="feature-item">
+                <IconCheck size={14} className="checkmark" />
+                <span>Folder structure with individual .yml files</span>
+              </div>
+              <div className="feature-item">
+                <IconCheck size={14} className="checkmark" />
+                <span>Collaborate with your team via pull requests</span>
+              </div>
+              <div className="feature-item">
+                <IconCheck size={14} className="checkmark" />
+                <span>Extract and open directly in Bruno</span>
+              </div>
             </div>
+            <p className="best-for">Best for: Team collaboration, version control, publishing</p>
           </div>
 
+          {/* Single File YAML Option */}
           <div
-            className={`flex flex-col border border-gray-200 dark:border-gray-600 items-center rounded-lg transition-colors ${
-              isCollectionLoading
-                ? 'opacity-50 cursor-not-allowed'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-500/10 cursor-pointer'
-            }`}
-            onClick={isCollectionLoading ? undefined : handleExportPostmanCollection}
+            className={`format-card ${selectedFormat === EXPORT_FORMATS.YAML ? 'selected' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => !isDisabled && setSelectedFormat(EXPORT_FORMATS.YAML)}
           >
-            {hasNonExportableRequestTypes.has && (
-              <div className="px-3 py-2 bg-yellow-50 w-full dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 text-xs border-b border-yellow-100 dark:border-yellow-800/20 flex items-center">
-                <IconAlertTriangle size={16} className="mr-2 flex-shrink-0" />
-                <span>
-                  Note:
-                  {hasNonExportableRequestTypes.types.join(', ')}
-                  {' '}
-                  requests in this collection will not be exported
-                </span>
+            <div className="card-header">
+              <span className="card-title">Single File (YAML)</span>
+            </div>
+            <p className="card-description">OpenCollection format bundled into one .yml file</p>
+            <div className="feature-list">
+              <div className="feature-item">
+                <IconCheck size={14} className="checkmark" />
+                <span>Everything in a single YAML file</span>
               </div>
-            )}
-            <div className="flex items-center p-3 w-full">
-              <div className="mr-3 p-1 rounded-full">
-                {isCollectionLoading ? (
-                  <IconLoader2 size={28} className="animate-spin" />
-                ) : (
-                  <IconUpload size={28} strokeWidth={1} className="" />
-                )}
-              </div>
-              <div className="flex-1">
-                <div className="font-medium">Postman Collection</div>
-                <div className="text-xs">
-                  {isCollectionLoading ? 'Loading collection...' : 'Export in Postman format'}
-                </div>
+              <div className="feature-item">
+                <IconCheck size={14} className="checkmark" />
+                <span>Paste in a gist or attach to an issue</span>
               </div>
             </div>
+            <p className="best-for">Best for: Quick sharing as a single file</p>
           </div>
+        </div>
+
+        <div className="section-title">Other Format</div>
+        <div className="other-format-grid">
+          <div
+            className={`other-format-card ${selectedFormat === EXPORT_FORMATS.POSTMAN ? 'selected' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => !isDisabled && setSelectedFormat(EXPORT_FORMATS.POSTMAN)}
+          >
+            <div className="format-icon">
+              <IconFileExport size={28} strokeWidth={1.5} />
+            </div>
+            <div className="format-info">
+              <div className="format-name">Postman</div>
+              <div className="format-description">Export for Postman</div>
+            </div>
+          </div>
+        </div>
+
+        {selectedFormat === EXPORT_FORMATS.POSTMAN && hasNonExportableRequestTypes.has && (
+          <div className="flex items-center mt-4 p-3 rounded" style={{ backgroundColor: 'rgba(251, 191, 36, 0.1)' }}>
+            <IconAlertTriangle size={16} className="mr-2 flex-shrink-0" style={{ color: '#f59e0b' }} />
+            <span className="text-sm" style={{ color: '#f59e0b' }}>
+              Note: {hasNonExportableRequestTypes.types.join(', ')} requests in this collection will not be exported
+            </span>
+          </div>
+        )}
+
+        <div className="modal-footer">
+          <Button
+            onClick={handleProceed}
+            disabled={isDisabled}
+            loading={isExporting}
+          >
+            {isExporting ? 'Exporting...' : 'Proceed'}
+          </Button>
         </div>
       </StyledWrapper>
     </Modal>

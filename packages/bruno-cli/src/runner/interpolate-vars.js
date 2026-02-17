@@ -1,6 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
-const FormData = require('form-data');
+const { isFormData } = require('@usebruno/common').utils;
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -10,10 +10,12 @@ const getContentType = (headers = {}) => {
     }
   });
 
-  return contentType;
+  // Return empty string if contentType is not a string (e.g., null/false for no body requests)
+  return typeof contentType === 'string' ? contentType : '';
 };
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
+  const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
   const collectionVariables = request?.collectionVariables || {};
   const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
@@ -40,6 +42,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
     // runtimeVariables take precedence over envVars
     const combinedVars = {
+      ...globalEnvironmentVariables,
       ...collectionVariables,
       ...envVariables,
       ...folderVariables,
@@ -64,39 +67,47 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   });
 
   const contentType = getContentType(request.headers);
+  const isGraphqlRequest = request.mode === 'graphql';
 
-  if (contentType.includes('json')) {
-    if (typeof request.data === 'object') {
-      try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed, { escapeJSONStrings: true });
-        request.data = JSON.parse(parsed);
-      } catch (err) {}
-    }
+  // GraphQL: interpolate query and variables in place. We do not stringify the whole body and interpolate that, because variables is a JSON string. Full-body stringify would nest it and double-escape any {{var}} inside.
+  if (isGraphqlRequest && request.data && typeof request.data === 'object') {
+    request.data.query = _interpolate(request.data.query, { escapeJSONStrings: true });
+    request.data.variables = _interpolate(request.data.variables, { escapeJSONStrings: true });
+  }
 
-    if (typeof request.data === 'string') {
-      if (request?.data?.length) {
-        request.data = _interpolate(request.data, { escapeJSONStrings: true });
+  // Skip body interpolation for GraphQL requests.
+  if (!isGraphqlRequest) {
+    if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
+      if (typeof request.data === 'string') {
+        if (request?.data?.length) {
+          request.data = _interpolate(request.data, { escapeJSONStrings: true });
+        }
+      } else if (typeof request.data === 'object') {
+        try {
+          let parsed = JSON.stringify(request.data);
+          parsed = _interpolate(parsed, { escapeJSONStrings: true });
+          request.data = JSON.parse(parsed);
+        } catch (err) {}
       }
-    }
-  } else if (contentType === 'application/x-www-form-urlencoded') {
-    if (request.data && Array.isArray(request.data)) {
-      request.data = request.data.map((d) => ({
-        ...d,
-        value: _interpolate(d?.value)
-      }));
-    }
-  } else if (contentType === 'multipart/form-data') {
-    if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
-      try {
-        request.data = request?.data?.map((d) => ({
+    } else if (contentType === 'application/x-www-form-urlencoded') {
+      if (request.data && Array.isArray(request.data)) {
+        request.data = request.data.map((d) => ({
           ...d,
           value: _interpolate(d?.value)
         }));
-      } catch (err) {}
+      }
+    } else if (contentType === 'multipart/form-data') {
+      if (Array.isArray(request?.data) && !isFormData(request.data)) {
+        try {
+          request.data = request?.data?.map((d) => ({
+            ...d,
+            value: _interpolate(d?.value)
+          }));
+        } catch (err) {}
+      }
+    } else {
+      request.data = _interpolate(request.data);
     }
-  } else {
-    request.data = _interpolate(request.data);
   }
 
   each(request?.pathParams, (param) => {

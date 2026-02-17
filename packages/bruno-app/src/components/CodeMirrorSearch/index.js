@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { IconRegex, IconArrowUp, IconArrowDown, IconX, IconLetterCase, IconLetterW } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
@@ -46,7 +46,7 @@ function createCacheKey(editor, searchText, regex, caseSensitive, wholeWord) {
   return `${editor.getValue().length}-${searchText}-${regex}-${caseSensitive}-${wholeWord}`;
 }
 
-const CodeMirrorSearch = ({ visible, editor, onClose }) => {
+const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   const [searchText, setSearchText] = useState('');
   const [regex, setRegex] = useState(false);
   const [caseSensitive, setCaseSensitive] = useState(false);
@@ -58,6 +58,7 @@ const CodeMirrorSearch = ({ visible, editor, onClose }) => {
   const searchLineHighlight = useRef(null);
   const searchMatches = useRef([]);
   const searchCacheKey = useRef('');
+  const inputRef = useRef(null);
 
   const debouncedSearchText = useDebounce(searchText, 250);
   const doSearch = useCallback((newIndex = 0) => {
@@ -158,6 +159,14 @@ const CodeMirrorSearch = ({ visible, editor, onClose }) => {
     }
   }, [debouncedSearchText, regex, caseSensitive, wholeWord, editor, visible]);
 
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }
+  }));
+
   useEffect(() => {
     doSearch(0);
   }, [debouncedSearchText, doSearch]);
@@ -214,8 +223,9 @@ const CodeMirrorSearch = ({ visible, editor, onClose }) => {
 
   return (
     <StyledWrapper>
-      <div className="bruno-search-bar compact">
+      <div className="bruno-search-bar">
         <input
+          ref={inputRef}
           autoFocus
           type="text"
           value={searchText}
@@ -244,6 +254,6 @@ const CodeMirrorSearch = ({ visible, editor, onClose }) => {
       </div>
     </StyledWrapper>
   );
-};
+});
 
 export default CodeMirrorSearch;

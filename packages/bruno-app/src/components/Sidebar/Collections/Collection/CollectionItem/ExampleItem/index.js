@@ -19,13 +19,15 @@ import DeleteResponseExampleModal from './DeleteResponseExampleModal';
 import GenerateCodeItem from '../GenerateCodeItem';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
+import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 
 const ExampleItem = ({ example, item, collection }) => {
+  const { dropdownContainerRef } = useSidebarAccordion();
   const dispatch = useDispatch();
   // Check if this example is the active tab
   const activeTabUid = useSelector((state) => state.tabs?.activeTabUid);
   const isExampleActive = activeTabUid === example.uid;
-  const [editName, setEditName] = useState(example.name);
+  const [editName, setEditName] = useState(example.name || '');
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
@@ -84,7 +86,7 @@ const ExampleItem = ({ example, item, collection }) => {
     }));
 
     // Save the request
-    await dispatch(saveRequest(item.uid, collection.uid));
+    await dispatch(saveRequest(item.uid, collection.uid, true));
 
     // Task middleware will track this and open the example in a new tab once the file is reloaded
     dispatch(insertTaskIntoQueue({
@@ -123,8 +125,11 @@ const ExampleItem = ({ example, item, collection }) => {
         name: newName
       }
     }));
-    dispatch(saveRequest(item.uid, collection.uid));
-    setShowRenameModal(false);
+    dispatch(saveRequest(item.uid, collection.uid, true))
+      .then(() => {
+        toast.success(`Example renamed to "${newName}"`);
+        setShowRenameModal(false);
+      });
   };
 
   // Build menu items for MenuDropdown
@@ -206,6 +211,8 @@ const ExampleItem = ({ example, item, collection }) => {
           ref={menuDropdownRef}
           items={buildMenuItems()}
           placement="bottom-start"
+          appendTo={dropdownContainerRef?.current || document.body}
+          popperOptions={{ strategy: 'fixed' }}
           data-testid="response-example-menu"
         >
           <IconDots size={22} data-testid="response-example-menu-icon" />
@@ -223,7 +230,7 @@ const ExampleItem = ({ example, item, collection }) => {
           handleConfirm={() => handleRenameConfirm(editName)}
           confirmText="Rename"
           cancelText="Cancel"
-          confirmDisabled={!editName.trim()}
+          confirmDisabled={!editName || !editName.trim()}
         >
           <div>
             <label htmlFor="renameExampleName" className="block font-medium">

@@ -1,8 +1,8 @@
 const { customAlphabet } = require('nanoid');
 const iconv = require('iconv-lite');
 const { cloneDeep } = require('lodash');
-const FormData = require('form-data');
 const { formatMultipartData } = require('./form-data');
+const { isFormData } = require('@usebruno/common').utils;
 
 // a customized version of nanoid without using _ and -
 const uuid = () => {
@@ -135,7 +135,7 @@ const parseDataFromRequest = (request) => {
   // File uploads are redacted, multipart FormData is formatted from original data for readability, and other types are stringified as-is.
   if (request.mode === 'file') {
     requestDataString = '<request body redacted>';
-  } else if (request?.data instanceof FormData && Array.isArray(request._originalMultipartData)) {
+  } else if (isFormData(request?.data) && Array.isArray(request._originalMultipartData)) {
     const boundary = request.data._boundary || 'boundary';
     requestDataString = formatMultipartData(request._originalMultipartData, boundary);
   } else {

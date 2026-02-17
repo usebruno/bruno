@@ -5,12 +5,15 @@ import { ThemeProvider } from 'styled-components';
 import HttpMethodSelector from './index';
 import themes from 'themes/index';
 import userEvent from '@testing-library/user-event';
+import { ThemeContext } from 'providers/Theme';
 
 const renderWithTheme = (component) => {
   return render(
-    <ThemeProvider theme={themes.dark}>
-      {component}
-    </ThemeProvider>
+    <ThemeContext.Provider value={{ theme: themes.dark }}>
+      <ThemeProvider theme={themes.dark}>
+        {component}
+      </ThemeProvider>
+    </ThemeContext.Provider>
   );
 };
 

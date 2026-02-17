@@ -29,8 +29,8 @@ const SettingsInput = ({
         type="text"
         className={`block px-2 py-1 rounded-sm outline-none transition-colors duration-100 w-24 h-8 ${className}`}
         style={{
-          backgroundColor: theme.modal.input.bg,
-          border: `1px solid ${theme.modal.input.border}`
+          backgroundColor: theme.input.bg,
+          border: `1px solid ${theme.input.border}`
         }}
         autoComplete="off"
         autoCorrect="off"

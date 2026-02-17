@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 import {
-  showPreferences,
   updateCookies,
   updatePreferences,
-  updateSystemProxyEnvVariables
+  setGitVersion
 } from 'providers/ReduxStore/slices/app';
+import {
+  addTab
+} from 'providers/ReduxStore/slices/tabs';
 import {
   brunoConfigUpdateEvent,
   collectionAddDirectoryEvent,
@@ -15,16 +17,22 @@ import {
   collectionUnlinkEnvFileEvent,
   collectionUnlinkFileEvent,
   processEnvUpdateEvent,
+  workspaceEnvUpdateEvent,
   requestCancelled,
   runFolderEvent,
   runRequestEvent,
   scriptEnvironmentUpdateEvent,
-  streamDataReceived
+  streamDataReceived,
+  setDotEnvVariables
 } from 'providers/ReduxStore/slices/collections';
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import { workspaceOpenedEvent, workspaceConfigUpdatedEvent } from 'providers/ReduxStore/slices/workspaces/actions';
+import {
+  workspaceOpenedEvent,
+  workspaceConfigUpdatedEvent
+} from 'providers/ReduxStore/slices/workspaces/actions';
+import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
@@ -34,6 +42,7 @@ import { apiSpecAddFileEvent, apiSpecChangeFileEvent } from 'providers/ReduxStor
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
+  const store = useStore();
 
   useEffect(() => {
     if (!isElectron()) {
@@ -124,7 +133,7 @@ const useIpcEvents = () => {
     });
 
     const removeWorkspaceEnvironmentAddedListener = ipcRenderer.on('main:workspace-environment-added', (workspaceUid, file) => {
-      const state = window.__store__.getState();
+      const state = store.getState();
       const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
       if (activeWorkspaceUid === workspaceUid) {
         const workspace = state.workspaces?.workspaces?.find((w) => w.uid === workspaceUid);
@@ -142,7 +151,7 @@ const useIpcEvents = () => {
     });
 
     const removeWorkspaceEnvironmentChangedListener = ipcRenderer.on('main:workspace-environment-changed', (workspaceUid, file) => {
-      const state = window.__store__.getState();
+      const state = store.getState();
       const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
       if (activeWorkspaceUid === workspaceUid) {
         const workspace = state.workspaces?.workspaces?.find((w) => w.uid === workspaceUid);
@@ -160,7 +169,7 @@ const useIpcEvents = () => {
     });
 
     const removeWorkspaceEnvironmentDeletedListener = ipcRenderer.on('main:workspace-environment-deleted', (workspaceUid, environmentUid) => {
-      const state = window.__store__.getState();
+      const state = store.getState();
       const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
       if (activeWorkspaceUid === workspaceUid) {
         const workspace = state.workspaces?.workspaces?.find((w) => w.uid === workspaceUid);
@@ -175,10 +184,6 @@ const useIpcEvents = () => {
           });
         }
       }
-    });
-
-    const removeCollectionAlreadyOpenedListener = ipcRenderer.on('main:collection-already-opened', (pathname) => {
-      toast.success('Collection is already opened');
     });
 
     const removeDisplayErrorListener = ipcRenderer.on('main:display-error', (error) => {
@@ -218,6 +223,38 @@ const useIpcEvents = () => {
       dispatch(processEnvUpdateEvent(val));
     });
 
+    const removeWorkspaceDotEnvUpdatesListener = ipcRenderer.on('main:workspace-dotenv-update', (val) => {
+      dispatch(workspaceDotEnvUpdateEvent(val));
+      dispatch(workspaceEnvUpdateEvent({ processEnvVariables: val.processEnvVariables }));
+    });
+
+    const removeDotEnvFileUpdateListener = ipcRenderer.on('main:dotenv-file-update', (val) => {
+      const { type, collectionUid, workspaceUid, filename, variables, exists, processEnvVariables } = val;
+
+      if (type === 'collection' && collectionUid) {
+        dispatch(setDotEnvVariables({
+          collectionUid,
+          variables,
+          exists,
+          filename
+        }));
+        if (filename === '.env') {
+          dispatch(processEnvUpdateEvent({ collectionUid, processEnvVariables }));
+        }
+      } else if (type === 'workspace' && workspaceUid) {
+        dispatch(setWorkspaceDotEnvVariables({
+          workspaceUid,
+          variables,
+          exists,
+          filename
+        }));
+        if (filename === '.env') {
+          dispatch(workspaceDotEnvUpdateEvent(val));
+          dispatch(workspaceEnvUpdateEvent({ processEnvVariables }));
+        }
+      }
+    });
+
     const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => {
       console[val.type](...val.args);
       dispatch(addLog({
@@ -236,15 +273,27 @@ const useIpcEvents = () => {
     );
 
     const removeShowPreferencesListener = ipcRenderer.on('main:open-preferences', () => {
-      dispatch(showPreferences(true));
+      const state = store.getState();
+      const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
+      const workspaces = state.workspaces?.workspaces;
+      const tabs = state.tabs?.tabs;
+      const activeTabUid = state.tabs?.activeTabUid;
+      const activeTab = tabs?.find((t) => t.uid === activeTabUid);
+
+      const activeWorkspace = workspaces?.find((w) => w.uid === activeWorkspaceUid);
+      const collectionUid = activeTab?.collectionUid || activeWorkspace?.scratchCollectionUid;
+
+      dispatch(
+        addTab({
+          type: 'preferences',
+          uid: collectionUid ? `${collectionUid}-preferences` : 'preferences',
+          collectionUid
+        })
+      );
     });
 
     const removePreferencesUpdatesListener = ipcRenderer.on('main:load-preferences', (val) => {
       dispatch(updatePreferences(val));
-    });
-
-    const removeSystemProxyEnvUpdatesListener = ipcRenderer.on('main:load-system-proxy-env', (val) => {
-      dispatch(updateSystemProxyEnvVariables(val));
     });
 
     const removeCookieUpdateListener = ipcRenderer.on('main:cookies-update', (val) => {
@@ -281,6 +330,10 @@ const useIpcEvents = () => {
       dispatch(updateCollectionLoadingState(val));
     });
 
+    const gitVersionListener = ipcRenderer.on('main:git-version', (val) => {
+      dispatch(setGitVersion(val));
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
       removeApiSpecTreeUpdateListener();
@@ -290,7 +343,6 @@ const useIpcEvents = () => {
       removeWorkspaceEnvironmentAddedListener();
       removeWorkspaceEnvironmentChangedListener();
       removeWorkspaceEnvironmentDeletedListener();
-      removeCollectionAlreadyOpenedListener();
       removeDisplayErrorListener();
       removeScriptEnvUpdateListener();
       removeGlobalEnvironmentVariablesUpdateListener();
@@ -298,12 +350,13 @@ const useIpcEvents = () => {
       removeRunFolderEventListener();
       removeRunRequestEventListener();
       removeProcessEnvUpdatesListener();
+      removeWorkspaceDotEnvUpdatesListener();
+      removeDotEnvFileUpdateListener();
       removeConsoleLogListener();
       removeConfigUpdatesListener();
       removeShowPreferencesListener();
       removePreferencesUpdatesListener();
       removeCookieUpdateListener();
-      removeSystemProxyEnvUpdatesListener();
       removeGlobalEnvironmentsUpdatesListener();
       removeSnapshotHydrationListener();
       removeCollectionOauth2CredentialsUpdatesListener();
@@ -312,6 +365,7 @@ const useIpcEvents = () => {
       removeCollectionLoadingStateListener();
       removePersistentEnvVariablesUpdateListener();
       removeSystemResourcesListener();
+      gitVersionListener();
     };
   }, [isElectron]);
 };

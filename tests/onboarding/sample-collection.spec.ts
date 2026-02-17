@@ -1,5 +1,5 @@
 import path from 'path';
-import { test, expect, errors } from '../../playwright';
+import { test, expect, errors, closeElectronApp } from '../../playwright';
 
 const env = {
   DISABLE_SAMPLE_COLLECTION_IMPORT: 'false'
@@ -28,7 +28,7 @@ test.describe('Onboarding', () => {
     await expect(page.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
 
     // Clean up
-    await app.close();
+    await closeElectronApp(app);
   });
 
   test('should not create duplicate collections on subsequent launches', async ({ launchElectronApp, createTmpDir }) => {
@@ -51,7 +51,7 @@ test.describe('Onboarding', () => {
     await expect(page.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
 
     // Close the first app instance
-    await app.close();
+    await closeElectronApp(app);
 
     // Restart app - should not create sample collection again
     const newApp = await launchElectronApp({ userDataPath, dotEnv: env });
@@ -71,7 +71,7 @@ test.describe('Onboarding', () => {
     await expect(newPage.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
 
     // Clean up
-    await newApp.close();
+    await closeElectronApp(newApp);
   });
 
   test('should not recreate sample collection after user deletes it', async ({ launchElectronApp, reuseOrLaunchElectronApp, createTmpDir }) => {
@@ -92,9 +92,20 @@ test.describe('Onboarding', () => {
     await expect(removeOption).toBeVisible();
     await removeOption.click();
 
-    // Confirm removal in the modal
-    const removeModal = page.getByRole('dialog').filter({ has: page.getByText('Remove Collection') });
-    await removeModal.getByRole('button', { name: 'Remove' }).click();
+    // Wait for modal to appear - could be either regular remove or drafts confirmation
+    const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
+    await removeModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
+    const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+
+    if (hasDiscardButton) {
+      // Drafts modal - click "Discard All and Remove"
+      await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+    } else {
+      // Regular modal - click the submit button
+      await page.locator('.bruno-modal-footer .submit').click();
+    }
 
     // Verify collection is closed (no longer visible in sidebar)
     await expect(sampleCollection).not.toBeVisible();

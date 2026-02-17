@@ -1,170 +1,120 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { IconFileImport } from '@tabler/icons';
-import { toastError } from 'utils/common/error';
+import React, { useState } from 'react';
+import { IconFileImport, IconBrandGit, IconUnlink, IconX } from '@tabler/icons';
 import Modal from 'components/Modal';
-import jsyaml from 'js-yaml';
-import { isPostmanCollection } from 'utils/importers/postman-collection';
-import { isInsomniaCollection } from 'utils/importers/insomnia-collection';
-import { isOpenApiSpec } from 'utils/importers/openapi-collection';
-import { isWSDLCollection } from 'utils/importers/wsdl-collection';
-import { isBrunoCollection } from 'utils/importers/bruno-collection';
+import classnames from 'classnames';
+import StyledWrapper from './StyledWrapper';
+import FileTab from './FileTab';
+import GitHubTab from './GitHubTab';
+import UrlTab from './UrlTab';
 import FullscreenLoader from './FullscreenLoader/index';
+import { useTheme } from 'providers/Theme';
 
-const convertFileToObject = async (file) => {
-  const text = await file.text();
-
-  // Handle WSDL files - return as plain text
-  if (file.name.endsWith('.wsdl') || file.type === 'text/xml' || file.type === 'application/xml') {
-    return text;
-  }
-
-  try {
-    if (file.type === 'application/json' || file.name.endsWith('.json')) {
-      return JSON.parse(text);
-    }
-
-    const parsed = jsyaml.load(text);
-    if (typeof parsed !== 'object' || parsed === null) {
-      throw new Error();
-    }
-    return parsed;
-  } catch {
-    throw new Error('Failed to parse the file – ensure it is valid JSON or YAML');
-  }
+const IMPORT_TABS = {
+  FILE: 'file',
+  GITHUB: 'github',
+  URL: 'url'
 };
 
 const ImportCollection = ({ onClose, handleSubmit }) => {
+  const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef(null);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [tab, setTab] = useState(IMPORT_TABS.FILE);
 
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'copy';
-    }
-
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
+  const handleTabSelect = (value) => () => {
+    setTab(value);
+    setErrorMessage('');
   };
 
-  const processFile = async (file) => {
-    setIsLoading(true);
-    try {
-      const data = await convertFileToObject(file);
-
-      if (!data) {
-        throw new Error('Failed to parse file content');
-      }
-
-      let type = null;
-
-      if (isOpenApiSpec(data)) {
-        type = 'openapi';
-      } else if (isWSDLCollection(data)) {
-        type = 'wsdl';
-      } else if (isPostmanCollection(data)) {
-        type = 'postman';
-      } else if (isInsomniaCollection(data)) {
-        type = 'insomnia';
-      } else if (isBrunoCollection(data)) {
-        type = 'bruno';
-      } else {
-        throw new Error('Unsupported collection format');
-      }
-
-      handleSubmit({ rawData: data, type });
-    } catch (err) {
-      toastError(err, 'Import collection failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDrop = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      await processFile(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleBrowseFiles = () => {
-    fileInputRef.current.click();
-  };
-
-  const handleFileInputChange = async (e) => {
-    if (e.target.files && e.target.files[0]) {
-      await processFile(e.target.files[0]);
-    }
+  const getTabClassname = (tabName) => {
+    return classnames(`flex tab items-center py-2 px-4 ${tabName}`, {
+      active: tabName === tab
+    });
   };
 
   if (isLoading) {
     return <FullscreenLoader isLoading={isLoading} />;
   }
 
-  const acceptedFileTypes = [
-    '.json',
-    '.yaml',
-    '.yml',
-    '.wsdl',
-    'application/json',
-    'application/yaml',
-    'application/x-yaml',
-    'text/xml',
-    'application/xml'
-  ];
-
   return (
-    <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
-      <div className="flex flex-col">
-        <div className="mb-4">
-          <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Import from file</h3>
-          <div
-            onDragEnter={handleDrag}
-            onDragOver={handleDrag}
-            onDragLeave={handleDrag}
-            onDrop={handleDrop}
-            className={`
-              border-2 border-dashed rounded-lg p-6 transition-colors duration-200
-              ${dragActive ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'}
-            `}
-          >
-            <div className="flex flex-col items-center justify-center">
-              <IconFileImport
-                size={28}
-                className="text-gray-400 dark:text-gray-500 mb-3"
-              />
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={handleFileInputChange}
-                accept={acceptedFileTypes.join(',')}
-              />
-              <p className="text-gray-600 dark:text-gray-300 mb-2">
-                Drop file to import or{' '}
-                <button
-                  className="text-blue-500 underline cursor-pointer"
-                  onClick={handleBrowseFiles}
-                >
-                  choose a file
-                </button>
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Supports Bruno, Postman, Insomnia, OpenAPI v3, and WSDL formats
-              </p>
+    <Modal size="md" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
+      <StyledWrapper className="flex flex-col h-full w-[600px] max-w-[600px]">
+        <div className="flex w-full mb-6">
+          <div className="flex justify-start w-full tabs">
+            <div
+              className={getTabClassname(IMPORT_TABS.FILE)}
+              onClick={handleTabSelect(IMPORT_TABS.FILE)}
+              data-testid="file-tab"
+            >
+              <IconFileImport size={18} strokeWidth={1.5} className="mr-2" />
+              File
+            </div>
+            <div
+              className={getTabClassname(IMPORT_TABS.GITHUB)}
+              onClick={handleTabSelect(IMPORT_TABS.GITHUB)}
+              data-testid="github-tab"
+            >
+              <IconBrandGit size={18} strokeWidth={1.5} className="mr-2" />
+              Git Repository
+            </div>
+            <div
+              className={getTabClassname(IMPORT_TABS.URL)}
+              onClick={handleTabSelect(IMPORT_TABS.URL)}
+              data-testid="url-tab"
+            >
+              <IconUnlink size={18} strokeWidth={1.5} className="mr-2" />
+              URL
             </div>
           </div>
         </div>
-      </div>
+
+        {errorMessage && (
+          <div
+            className="mb-4 p-2 border rounded-md"
+            style={{
+              backgroundColor: theme.status.danger.background,
+              borderColor: theme.status.danger.border
+            }}
+          >
+            <div className="flex gap-2">
+              <div
+                className="text-xs flex-1"
+                style={{ color: theme.status.danger.text }}
+              >
+                {errorMessage}
+              </div>
+              <div
+                className="close-button flex items-center cursor-pointer"
+                onClick={() => setErrorMessage('')}
+                style={{ color: theme.status.danger.text }}
+              >
+                <IconX size={16} strokeWidth={1.5} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === IMPORT_TABS.FILE && (
+          <FileTab
+            setIsLoading={setIsLoading}
+            handleSubmit={handleSubmit}
+            setErrorMessage={setErrorMessage}
+          />
+        )}
+        {tab === IMPORT_TABS.GITHUB && (
+          <GitHubTab
+            handleSubmit={handleSubmit}
+            setErrorMessage={setErrorMessage}
+          />
+        )}
+        {tab === IMPORT_TABS.URL && (
+          <UrlTab
+            setIsLoading={setIsLoading}
+            handleSubmit={handleSubmit}
+            setErrorMessage={setErrorMessage}
+          />
+        )}
+      </StyledWrapper>
     </Modal>
   );
 };

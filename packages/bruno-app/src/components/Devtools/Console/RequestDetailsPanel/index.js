@@ -141,7 +141,7 @@ const NetworkTab = ({ response }) => {
     <div className="tab-content">
       <div className="section">
         <h4>Network Logs</h4>
-        <div className="network-logs-container">
+        <div className="network-logs-wrapper">
           {timeline.length > 0 ? (
             <Network logs={timeline} />
           ) : (

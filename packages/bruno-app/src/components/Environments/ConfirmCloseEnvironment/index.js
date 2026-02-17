@@ -2,8 +2,16 @@ import React from 'react';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
+import Button from 'ui/Button';
 
-const ConfirmCloseEnvironment = ({ onCancel, onCloseWithoutSave, onSaveAndClose, isGlobal }) => {
+const ConfirmCloseEnvironment = ({ onCancel, onCloseWithoutSave, onSaveAndClose, isGlobal, isDotEnv }) => {
+  let settingsLabel = 'collection environment settings';
+  if (isDotEnv) {
+    settingsLabel = '.env file';
+  } else if (isGlobal) {
+    settingsLabel = 'global environment settings';
+  }
+
   return (
     <Portal>
       <Modal
@@ -20,22 +28,22 @@ const ConfirmCloseEnvironment = ({ onCancel, onCloseWithoutSave, onSaveAndClose,
           <h1 className="ml-2 text-lg font-medium">Hold on...</h1>
         </div>
         <div className="font-normal mt-4">
-          You have unsaved changes in {isGlobal ? 'global' : 'collection'} environment settings.
+          You have unsaved changes in {settingsLabel}.
         </div>
 
         <div className="flex justify-between mt-6">
           <div>
-            <button className="btn btn-sm btn-danger" onClick={onCloseWithoutSave}>
+            <Button color="danger" onClick={onCloseWithoutSave}>
               Don't Save
-            </button>
+            </Button>
           </div>
-          <div>
-            <button className="btn btn-close btn-sm mr-2" onClick={onCancel}>
+          <div className="flex gap-2">
+            <Button size="sm" color="secondary" variant="ghost" onClick={onCancel}>
               Cancel
-            </button>
-            <button className="btn btn-secondary btn-sm" onClick={onSaveAndClose}>
+            </Button>
+            <Button onClick={onSaveAndClose}>
               Save
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

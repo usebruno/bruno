@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
@@ -6,16 +6,18 @@ import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
-import CollectionToolBar from './CollectionToolBar';
+import CollectionHeader from './CollectionHeader';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
-import CreateUntitledRequest from 'components/CreateUntitledRequest';
+import CreateTransientRequest from 'components/CreateTransientRequest';
+import ActionIcon from 'ui/ActionIcon/index';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
   const tabsRef = useRef();
   const scrollContainerRef = useRef();
+  const collectionTabsRef = useRef();
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [tabOverflowStates, setTabOverflowStates] = useState({});
   const [showChevrons, setShowChevrons] = useState(false);
@@ -25,6 +27,7 @@ const RequestTabs = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
+  const workspaces = useSelector((state) => state.workspaces.workspaces);
 
   const createSetHasOverflow = useCallback((tabUid) => {
     return (hasOverflow) => {
@@ -41,15 +44,19 @@ const RequestTabs = () => {
   }, []);
 
   const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-  const activeCollection = find(collections, (c) => c.uid === activeTab?.collectionUid);
+  const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
+
+  const isScratchCollection = useMemo(() => {
+    return activeCollection ? workspaces.some((w) => w.scratchCollectionUid === activeCollection.uid) : false;
+  }, [workspaces, activeCollection]);
 
   useEffect(() => {
     if (!activeTabUid || !activeTab) return;
 
     const checkOverflow = () => {
       if (tabsRef.current && scrollContainerRef.current) {
-        const hasOverflow = tabsRef.current.scrollWidth > scrollContainerRef.current.clientWidth;
+        const hasOverflow = tabsRef.current.scrollWidth > scrollContainerRef.current.clientWidth + 1;
         setShowChevrons(hasOverflow);
       }
     };
@@ -100,36 +107,32 @@ const RequestTabs = () => {
     });
   };
 
-  const getRootClassname = () => {
-    return classnames({
-      'has-chevrons': showChevrons
-    });
-  };
   // Todo: Must support ephemeral requests
   return (
-    <StyledWrapper className={getRootClassname()}>
+    <StyledWrapper>
       {newRequestModalOpen && (
         <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
-          <CollectionToolBar collection={activeCollection} />
-          <div className="flex items-center pl-2">
-            <ul role="tablist">
-              {showChevrons ? (
-                <li className="select-none short-tab" onClick={leftSlide}>
-                  <div className="flex items-center">
-                    <IconChevronLeft size={18} strokeWidth={1.5} />
-                  </div>
-                </li>
-              ) : null}
-              {/* Moved to post mvp */}
-              {/* <li className="select-none new-tab mr-1" onClick={createNewTab}>
-                <div className="flex items-center home-icon-container">
-                  <IconHome2 size={18} strokeWidth={1.5}/>
-                </div>
-              </li> */}
-            </ul>
+          {activeCollection && (
+            <CollectionHeader
+              collection={activeCollection}
+              isScratchCollection={isScratchCollection}
+            />
+          )}
+          <div className="flex items-center gap-2 pl-2" ref={collectionTabsRef}>
+            <div className={classnames('scroll-chevrons', { hidden: !showChevrons })}>
+              <ActionIcon size="lg" onClick={leftSlide} aria-label="Left Chevron" style={{ marginBottom: '3px' }}>
+                <IconChevronLeft size={18} strokeWidth={1.5} />
+              </ActionIcon>
+            </div>
+            {/* Moved to post mvp */}
+            {/* <li className="select-none new-tab mr-1" onClick={createNewTab}>
+              <div className="flex items-center home-icon-container">
+                <IconHome2 size={18} strokeWidth={1.5}/>
+              </div>
+            </li> */}
             <div className="tabs-scroll-container" style={{ maxWidth: maxTablistWidth }} ref={scrollContainerRef}>
               <ul role="tablist" ref={tabsRef}>
                 {collectionRequestTabs && collectionRequestTabs.length
@@ -157,6 +160,7 @@ const RequestTabs = () => {
                             folderUid={tab.folderUid}
                             hasOverflow={tabOverflowStates[tab.uid]}
                             setHasOverflow={createSetHasOverflow(tab.uid)}
+                            dropdownContainerRef={collectionTabsRef}
                           />
                         </DraggableTab>
                       );
@@ -165,33 +169,23 @@ const RequestTabs = () => {
               </ul>
             </div>
 
-            <ul role="tablist">
-              {showChevrons ? (
-                <li className="select-none short-tab" onClick={rightSlide}>
-                  <div className="flex items-center">
-                    <IconChevronRight size={18} strokeWidth={1.5} />
-                  </div>
-                </li>
-              ) : null}
-              <div className="flex items-center cursor-pointer short-tab">
+            {activeCollection && (
+              <CreateTransientRequest collectionUid={activeCollection.uid} />
+            )}
 
-                {activeCollection && (
-                  <CreateUntitledRequest
-                    collectionUid={activeCollection.uid}
-                    itemUid={null}
-                    placement="bottom-start"
-                  />
-                )}
-              </div>
-              {/* Moved to post mvp */}
-              {/* <li className="select-none new-tab choose-request">
+            <div className={classnames('scroll-chevrons', { hidden: !showChevrons })}>
+              <ActionIcon size="lg" onClick={rightSlide} aria-label="Right Chevron" style={{ marginBottom: '3px' }}>
+                <IconChevronRight size={18} strokeWidth={1.5} />
+              </ActionIcon>
+            </div>
+            {/* Moved to post mvp */}
+            {/* <li className="select-none new-tab choose-request">
                 <div className="flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
                   </svg>
                 </div>
               </li> */}
-            </ul>
           </div>
         </>
       ) : null}

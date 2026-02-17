@@ -8,6 +8,7 @@ const Keybindings = ({ close }) => {
 
   return (
     <StyledWrapper className="w-full">
+      <div className="section-header">Keybindings</div>
       <div className="table-container">
         <table>
           <thead>

@@ -5,24 +5,17 @@ import { toBrunoAuth } from '../common/auth';
 import { toBrunoHttpHeaders } from '../common/headers';
 import { toBrunoVariables } from '../common/variables';
 import { toBrunoScripts } from '../common/scripts';
-import { uuid } from '../../../utils';
+import { uuid, ensureString } from '../../../utils';
 
-interface WebSocketRequestWithSettings extends WebSocketRequest {
-  settings?: {
-    timeout?: number;
-    keepAliveInterval?: number;
-  };
-}
-
-const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoItem => {
+const parseWebsocketRequest = (ocRequest: WebSocketRequest): BrunoItem => {
   const info = ocRequest.info;
   const websocket = ocRequest.websocket;
   const runtime = ocRequest.runtime;
 
   const brunoRequest: BrunoWebSocketRequest = {
-    url: websocket?.url || '',
+    url: ensureString(websocket?.url),
     headers: toBrunoHttpHeaders(websocket?.headers) || [],
-    auth: toBrunoAuth(runtime?.auth),
+    auth: toBrunoAuth(websocket?.auth),
     body: {
       mode: 'ws',
       ws: []
@@ -43,11 +36,12 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoIt
   // message
   if (websocket?.message) {
     const message = websocket.message as WebSocketMessage;
-    if (message.data?.trim().length) {
+    const messageData = ensureString(message.data);
+    if (messageData.trim().length) {
       brunoRequest.body.ws = [{
         name: '',
         type: message.type || 'text',
-        content: message.data
+        content: messageData
       }];
     }
   }
@@ -95,7 +89,7 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoIt
     uid: uuid(),
     type: 'ws-request',
     seq: info?.seq || 1,
-    name: info?.name || 'Untitled Request',
+    name: ensureString(info?.name, 'Untitled Request'),
     tags: info?.tags || [],
     request: brunoRequest,
     settings: wsSettings as any,

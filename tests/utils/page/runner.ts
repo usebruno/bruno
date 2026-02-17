@@ -1,4 +1,5 @@
 import { Page, expect, test } from '../../../playwright';
+import { buildSandboxLocators } from './locators';
 
 /**
  * Builds locators for the runner results view
@@ -79,19 +80,6 @@ export const runCollection = async (page: Page, collectionName: string) => {
 };
 
 /**
- * Builds locators for sandbox mode settings
- * @param page - The Playwright page object
- * @returns Object with locators for sandbox elements
- */
-export const buildSandboxLocators = (page: Page) => ({
-  sandboxModeSelector: () => page.getByTestId('sandbox-mode-selector'),
-  safeModeRadio: () => page.getByLabel('Safe Mode'),
-  developerModeRadio: () => page.getByLabel('Developer Mode(use only if'),
-  jsSandboxHeading: () => page.getByText('JavaScript Sandbox'),
-  saveButton: () => page.getByRole('button', { name: 'Save' })
-});
-
-/**
  * Sets up the JavaScript sandbox mode for a collection
  * @param page - The Playwright page object
  * @param collectionName - The name of the collection (can be title or text)
@@ -126,25 +114,13 @@ export const setSandboxMode = async (page: Page, collectionName: string, mode: '
 
     if (mode === 'developer') {
       await sandboxLocators.developerModeRadio().waitFor({ state: 'visible', timeout: 5000 });
-      await sandboxLocators.developerModeRadio().check();
+      await sandboxLocators.developerModeRadio().click();
     } else {
-      // For safe mode, check if developer mode is currently selected
-      const developerModeChecked = await sandboxLocators.developerModeRadio().isChecked().catch(() => false);
-
-      if (developerModeChecked) {
-        // Click the Developer Mode label text inside the security settings form
-        const securityForm = page.locator('div').filter({ hasText: 'JavaScript Sandbox' }).locator('..').first();
-        const developerLabel = securityForm.locator('label').filter({ hasText: /^Developer Mode/ }).first();
-        await developerLabel.waitFor({ state: 'visible', timeout: 5000 });
-        await developerLabel.click();
-      }
-
-      // Ensure Safe Mode radio is visible and check it
       await sandboxLocators.safeModeRadio().waitFor({ state: 'visible', timeout: 5000 });
-      await sandboxLocators.safeModeRadio().check();
+      await sandboxLocators.safeModeRadio().click();
     }
 
-    await sandboxLocators.saveButton().click();
+    await page.keyboard.press('Escape');
   });
 };
 

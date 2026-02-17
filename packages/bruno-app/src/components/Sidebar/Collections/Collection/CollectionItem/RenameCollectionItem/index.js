@@ -4,17 +4,17 @@ import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
-import { renameItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { renameItem, saveRequest, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import path from 'utils/common/path';
 import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import Help from 'components/Help';
 import PathDisplay from 'components/PathDisplay';
 import Portal from 'components/Portal';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
@@ -216,19 +216,12 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                 </Dropdown>
               </div>
               <div className="flex justify-end">
-                <span className="mr-2">
-                  <button type="button" onClick={onClose} className="btn btn-md btn-close">
-                    Cancel
-                  </button>
-                </span>
-                <span>
-                  <button
-                    type="submit"
-                    className="submit btn btn-md btn-secondary"
-                  >
-                    Rename
-                  </button>
-                </span>
+                <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Rename
+                </Button>
               </div>
             </div>
           </form>

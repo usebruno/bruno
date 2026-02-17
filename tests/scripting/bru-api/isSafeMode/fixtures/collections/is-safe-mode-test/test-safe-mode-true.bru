@@ -1,0 +1,17 @@
+meta {
+  name: test-safe-mode-true
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://echo.usebruno.com
+  body: none
+  auth: none
+}
+
+tests {
+  test("bru.isSafeMode() returns true in safe mode", function() {
+    expect(bru.isSafeMode()).to.be.true;
+  });
+}

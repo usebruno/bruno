@@ -66,10 +66,57 @@ const wsStatusCodes = {
   1015: 'TLS_HANDSHAKE'
 };
 
+/**
+ * Preserves UIDs from existing array items when merging with new data.
+ * UIDs are matched by position to keep React keys stable after file reloads.
+ */
+const preserveUidsAtPaths = (existing, updated, paths) => {
+  if (!existing || !updated) return updated;
+
+  const merged = cloneDeep(updated);
+
+  paths.forEach((path) => {
+    const newArray = get(merged, path);
+    const existingArray = get(existing, path, []);
+
+    if (Array.isArray(newArray) && newArray.length) {
+      set(
+        merged,
+        path,
+        newArray.map((item, i) => (existingArray[i]?.uid ? { ...item, uid: existingArray[i].uid } : item))
+      );
+    }
+  });
+
+  return merged;
+};
+
+// Paths containing arrays with UIDs that need preservation
+const REQUEST_UID_PATHS = [
+  'params',
+  'headers',
+  'vars.req',
+  'vars.res',
+  'assertions',
+  'body.formUrlEncoded',
+  'body.multipartForm',
+  'body.file'
+];
+
+const ROOT_UID_PATHS = ['request.headers', 'request.vars.req', 'request.vars.res'];
+
+const mergeRequestWithPreservedUids = (existingRequest, newRequest) =>
+  preserveUidsAtPaths(existingRequest, newRequest, REQUEST_UID_PATHS);
+
+const mergeRootWithPreservedUids = (existingRoot, newRoot) =>
+  preserveUidsAtPaths(existingRoot, newRoot, ROOT_UID_PATHS);
+
 const initialState = {
   collections: [],
   collectionSortOrder: 'default',
-  activeConnections: []
+  activeConnections: [],
+  tempDirectories: {},
+  saveTransientRequestModals: []
 };
 
 const initiatedGrpcResponse = {
@@ -275,6 +322,18 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateEnvironmentColor: (state, action) => {
+      const { environmentUid, color, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const environment = findEnvironmentInCollection(collection, environmentUid);
+
+        if (environment) {
+          environment.color = color;
+        }
+      }
+    },
     newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -334,6 +393,9 @@ export const collectionsSlice = createSlice({
         const activeEnvironment = findEnvironmentInCollection(collection, activeEnvironmentUid);
 
         if (activeEnvironment) {
+          const existingEnvVarNames = new Set(Object.keys(envVariables));
+
+          // Update or add variables that exist in envVariables
           forOwn(envVariables, (value, key) => {
             const variable = find(activeEnvironment.variables, (v) => v.name === key);
             const isPersistent = persistentEnvVariables && persistentEnvVariables[key] !== undefined;
@@ -369,6 +431,26 @@ export const collectionsSlice = createSlice({
               }
             }
           });
+
+          // Handle variables that were deleted via bru.deleteEnvVar()
+          activeEnvironment.variables = activeEnvironment.variables.filter((variable) => {
+            // Variable still exists in envVariables after script execution - keep it
+            if (existingEnvVarNames.has(variable.name)) {
+              return true;
+            }
+
+            // Variable was deleted via bru.deleteEnvVar() - handle based on its state
+            // If variable was modified by script (has persistedValue), restore original value
+            if (variable.persistedValue !== undefined) {
+              variable.value = variable.persistedValue;
+              variable.ephemeral = false;
+              delete variable.persistedValue;
+              return true;
+            }
+
+            // Remove variable: either ephemeral (created by scripts) or non-ephemeral deleted via API
+            return false;
+          });
         }
 
         collection.runtimeVariables = runtimeVariables;
@@ -382,8 +464,45 @@ export const collectionsSlice = createSlice({
         collection.processEnvVariables = processEnvVariables;
       }
     },
+    workspaceEnvUpdateEvent: (state, action) => {
+      const { processEnvVariables } = action.payload;
+      state.collections.forEach((collection) => {
+        collection.workspaceProcessEnvVariables = processEnvVariables;
+      });
+    },
+    setDotEnvVariables: (state, action) => {
+      const { collectionUid, variables, exists, filename = '.env' } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        if (!collection.dotEnvFiles) {
+          collection.dotEnvFiles = [];
+        }
+
+        const existingIndex = collection.dotEnvFiles.findIndex((f) => f.filename === filename);
+        if (existingIndex >= 0) {
+          if (exists) {
+            collection.dotEnvFiles[existingIndex] = { filename, variables, exists };
+          } else {
+            collection.dotEnvFiles.splice(existingIndex, 1);
+          }
+        } else if (exists) {
+          collection.dotEnvFiles.push({ filename, variables, exists });
+        }
+
+        collection.dotEnvFiles.sort((a, b) => {
+          if (a.filename === '.env') return -1;
+          if (b.filename === '.env') return 1;
+          return a.filename.localeCompare(b.filename);
+        });
+
+        const mainEnvFile = collection.dotEnvFiles.find((f) => f.filename === '.env');
+        collection.dotEnvVariables = mainEnvFile?.variables || [];
+        collection.dotEnvExists = mainEnvFile?.exists || false;
+      }
+    },
     requestCancelled: (state, action) => {
-      const { itemUid, collectionUid } = action.payload;
+      const { itemUid, collectionUid, seq, timestamp } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -394,7 +513,7 @@ export const collectionsSlice = createSlice({
 
             const startTimestamp = item.requestSent.timestamp;
             item.response.duration = startTimestamp ? Date.now() - startTimestamp : item.response.duration;
-            item.response.data = [{ type: 'info', timestamp: Date.now(), message: 'Connection Closed' }].concat(item.response.data);
+            item.response.data = [{ type: 'info', timestamp: Date.now(), seq: seq, message: 'Connection Closed' }].concat(item.response.data);
           } else {
             item.response = null;
             item.requestUid = null;
@@ -746,6 +865,7 @@ export const collectionsSlice = createSlice({
           uid: action.payload.uid,
           name: action.payload.requestName,
           type: action.payload.requestType,
+          isTransient: false,
           request: {
             url: action.payload.requestUrl,
             method: action.payload.requestMethod,
@@ -2309,7 +2429,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (!collection) return;
 
-      const folder = collection ? findItemInCollection(collection, action.payload.itemUid) : null;
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (!folder) return;
 
       if (folder) {
@@ -2517,7 +2637,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
       if (isCollectionRoot) {
         if (collection) {
-          collection.root = file.data;
+          collection.root = mergeRootWithPreservedUids(collection.root, file.data);
         }
         return;
       }
@@ -2529,7 +2649,7 @@ export const collectionsSlice = createSlice({
           if (file?.data?.meta?.name) {
             folderItem.name = file?.data?.meta?.name;
           }
-          folderItem.root = file.data;
+          folderItem.root = mergeRootWithPreservedUids(folderItem.root, file.data);
           if (file?.data?.meta?.seq) {
             folderItem.seq = file.data?.meta?.seq;
           }
@@ -2539,6 +2659,10 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         const dirname = path.dirname(file.meta.pathname);
+
+        const tempDirectory = state.tempDirectories?.[file.meta.collectionUid];
+        const isTransientFile = tempDirectory && file.meta.pathname.startsWith(tempDirectory);
+
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
@@ -2552,9 +2676,13 @@ export const collectionsSlice = createSlice({
               name: directoryName,
               collapsed: true,
               type: 'folder',
+              isTransient: isTransientFile,
               items: []
             };
             currentSubItems.push(childItem);
+          } else if (isTransientFile && !childItem.isTransient) {
+            // Update existing folder to be transient if the file is transient
+            childItem.isTransient = true;
           }
           currentSubItems = childItem.items;
         }
@@ -2569,7 +2697,7 @@ export const collectionsSlice = createSlice({
             currentItem.type = file.data.type;
             currentItem.seq = file.data.seq;
             currentItem.tags = file.data.tags;
-            currentItem.request = file.data.request;
+            currentItem.request = mergeRequestWithPreservedUids(currentItem.request, file.data.request);
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
             currentItem.settings = file.data.settings;
@@ -2579,6 +2707,7 @@ export const collectionsSlice = createSlice({
             currentItem.loading = file.loading;
             currentItem.size = file.size;
             currentItem.error = file.error;
+            currentItem.isTransient = isTransientFile;
           } else {
             currentSubItems.push({
               uid: file.data.uid,
@@ -2595,7 +2724,8 @@ export const collectionsSlice = createSlice({
               partial: file.partial,
               loading: file.loading,
               size: file.size,
-              error: file.error
+              error: file.error,
+              isTransient: isTransientFile
             });
           }
         }
@@ -2607,6 +2737,10 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, dir.meta.collectionUid);
 
       if (collection) {
+        // Check if this directory is in a temp directory (transient request)
+        const tempDirectory = state.tempDirectories?.[dir.meta.collectionUid];
+        const isTransientDir = tempDirectory && dir.meta.pathname.startsWith(tempDirectory);
+
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
@@ -2622,9 +2756,13 @@ export const collectionsSlice = createSlice({
               filename: directoryName,
               collapsed: true,
               type: 'folder',
+              isTransient: isTransientDir,
               items: []
             };
             currentSubItems.push(childItem);
+          } else if (isTransientDir && !childItem.isTransient) {
+            // Update existing folder to be transient if the directory is transient
+            childItem.isTransient = true;
           }
           currentSubItems = childItem.items;
         }
@@ -2638,7 +2776,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
       if (isCollectionRoot) {
         if (collection) {
-          collection.root = file.data;
+          collection.root = mergeRootWithPreservedUids(collection.root, file.data);
         }
         return;
       }
@@ -2653,7 +2791,7 @@ export const collectionsSlice = createSlice({
           if (file?.data?.meta?.seq) {
             folderItem.seq = file?.data?.meta?.seq;
           }
-          folderItem.root = file.data;
+          folderItem.root = mergeRootWithPreservedUids(folderItem.root, file.data);
         }
         return;
       }
@@ -2678,12 +2816,17 @@ export const collectionsSlice = createSlice({
             item.type = file.data.type;
             item.seq = file.data.seq;
             item.tags = file.data.tags;
-            item.request = file.data.request;
+            item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
             item.settings = file.data.settings;
             item.examples = file.data.examples;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
-            item.draft = null;
+
+            // Only clear draft if it matches the file content
+            // This preserves characters typed during autosave
+            if (item.draft && areItemsTheSameExceptSeqUpdate(item.draft, file.data)) {
+              item.draft = null;
+            }
           }
         }
       }
@@ -2725,6 +2868,7 @@ export const collectionsSlice = createSlice({
           const prevEphemerals = (existingEnv.variables || []).filter((v) => v.ephemeral);
           existingEnv.name = environment.name;
           existingEnv.variables = environment.variables;
+          existingEnv.color = environment.color;
           /*
            Apply temporary (ephemeral) values only to variables that actually exist in the file. This prevents deleted temporaries from “popping back” after a save. If a variable is present in the file, we temporarily override the UI value while also remembering the on-disk value in persistedValue for future saves.
           */
@@ -3113,21 +3257,24 @@ export const collectionsSlice = createSlice({
       }
     },
     streamDataReceived: (state, action) => {
-      const { itemUid, collectionUid, data } = action.payload;
+      const { itemUid, collectionUid, seq, timestamp, data } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (data.data) {
           item.response.data ||= [];
-          item.response.data = [{
+          item.response.data.push({
             type: 'incoming',
+            seq,
             message: data.data,
             messageHexdump: hexdump(data.data),
-            timestamp: Date.now()
-          }].concat(item.response.data);
+            timestamp: timestamp || Date.now()
+          });
         }
-        item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
+        if (data.dataBuffer) {
+          item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
+        }
         item.response.size = data.data?.length + (item.response.size || 0);
       }
     },
@@ -3250,7 +3397,8 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             message: eventData.message,
             type: eventData.type,
-            timestamp: eventData.timestamp
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
           });
           break;
 
@@ -3266,7 +3414,8 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             message: `Connected to ${eventData.url}`,
             type: 'info',
-            timestamp: eventData.timestamp
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
           });
           break;
 
@@ -3282,7 +3431,8 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             type: code !== 1000 ? 'info' : 'error',
             message: reason.trim().length ? ['Closed:', reason.trim()].join(' ') : 'Closed',
-            timestamp
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
           });
           break;
 
@@ -3297,7 +3447,8 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             type: 'error',
             message: errorDetails || 'WebSocket error occurred',
-            timestamp
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
           });
 
           break;
@@ -3321,6 +3472,26 @@ export const collectionsSlice = createSlice({
       }
     },
 
+    addTransientDirectory: (state, action) => {
+      state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
+    },
+    addSaveTransientRequestModal: (state, action) => {
+      const { item, collection } = action.payload;
+      // Avoid duplicates - check if this item is already in the array
+      const exists = state.saveTransientRequestModals.some((modal) => modal.item.uid === item.uid);
+      if (!exists) {
+        state.saveTransientRequestModals.push({ item, collection });
+      }
+    },
+    removeSaveTransientRequestModal: (state, action) => {
+      const { itemUid } = action.payload;
+      state.saveTransientRequestModals = state.saveTransientRequestModals.filter(
+        (modal) => modal.item.uid !== itemUid
+      );
+    },
+    clearAllSaveTransientRequestModals: (state) => {
+      state.saveTransientRequestModals = [];
+    },
     /* Response Example Actions */
     addResponseExample: exampleReducers.addResponseExample,
     cloneResponseExample: exampleReducers.cloneResponseExample,
@@ -3382,12 +3553,15 @@ export const {
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
+  updateEnvironmentColor,
   newItem,
   deleteItem,
   renameItem,
   cloneItem,
   scriptEnvironmentUpdateEvent,
   processEnvUpdateEvent,
+  workspaceEnvUpdateEvent,
+  setDotEnvVariables,
   requestCancelled,
   responseReceived,
   runGrpcRequestEvent,
@@ -3545,8 +3719,12 @@ export const {
   deleteResponseExampleRequestHeader,
   moveResponseExampleRequestHeader,
   setResponseExampleRequestHeaders,
-  setResponseExampleParams
+  setResponseExampleParams,
   /* Response Example Actions - End */
+  addTransientDirectory,
+  addSaveTransientRequestModal,
+  removeSaveTransientRequestModal,
+  clearAllSaveTransientRequestModals
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

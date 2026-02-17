@@ -3,7 +3,6 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   height: 100%;
   overflow: hidden;
-  background: ${(props) => props.theme.bg};
   border-radius: 4px;
 
   div.tabs {
@@ -12,7 +11,7 @@ const StyledWrapper = styled.div`
       border: none;
       border-bottom: solid 2px transparent;
       margin-right: ${(props) => props.theme.tabs.marginRight};
-      color: var(--color-tab-inactive);
+      color: ${(props) => props.theme.colors.text.subtext0};
       cursor: pointer;
 
       &:focus,

@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
-import { importCollection, openCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
+import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
+import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
+import Button from 'ui/Button';
 import CollectionsList from './CollectionsList';
 import WorkspaceDocs from '../WorkspaceDocs';
 import StyledWrapper from './StyledWrapper';
@@ -18,6 +21,8 @@ const WorkspaceOverview = ({ workspace }) => {
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [importData, setImportData] = useState(null);
+  const [showCloneGitModal, setShowCloneGitModal] = useState(false);
+  const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
 
   const workspaceCollectionsCount = workspace?.collections?.length || 0;
 
@@ -50,23 +55,34 @@ const WorkspaceOverview = ({ workspace }) => {
     setImportCollectionModalOpen(true);
   };
 
-  const handleImportCollectionSubmit = ({ rawData, type }) => {
+  const handleImportCollectionSubmit = ({ rawData, type, repositoryUrl, ...rest }) => {
     setImportCollectionModalOpen(false);
-    setImportData({ rawData, type });
+
+    if (type === 'git-repository') {
+      setGitRepositoryUrl(repositoryUrl);
+      setShowCloneGitModal(true);
+      return;
+    }
+
+    setImportData({ rawData, type, ...rest });
     setImportCollectionLocationModalOpen(true);
   };
 
-  const handleImportCollectionLocation = (convertedCollection, collectionLocation) => {
-    dispatch(importCollection(convertedCollection, collectionLocation))
+  const handleImportCollectionLocation = (convertedCollection, collectionLocation, options = {}) => {
+    const importAction = options.isZipImport
+      ? importCollectionFromZip(convertedCollection.zipFilePath, collectionLocation)
+      : importCollection(convertedCollection, collectionLocation, options);
+
+    dispatch(importAction)
       .then(() => {
         setImportCollectionLocationModalOpen(false);
         setImportData(null);
-        toast.success('Collection imported successfully');
-      })
-      .catch((err) => {
-        console.error(err);
-        toast.error(err.message);
       });
+  };
+
+  const handleCloseGitModal = () => {
+    setShowCloneGitModal(false);
+    setGitRepositoryUrl(null);
   };
 
   return (
@@ -82,12 +98,26 @@ const WorkspaceOverview = ({ workspace }) => {
         />
       )}
 
-      {importCollectionLocationModalOpen && importData && (
+      {importCollectionLocationModalOpen && importData && (importData.type !== 'multiple' && importData.type !== 'bulk') && (
         <ImportCollectionLocation
           rawData={importData.rawData}
           format={importData.type}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
+        />
+      )}
+      {importCollectionLocationModalOpen && importData && (importData.type === 'multiple' || importData.type === 'bulk') && (
+        <BulkImportCollectionLocation
+          importData={importData}
+          onClose={() => setImportCollectionLocationModalOpen(false)}
+          handleSubmit={handleImportCollectionLocation}
+        />
+      )}
+      {showCloneGitModal && (
+        <CloneGitRepository
+          onClose={handleCloseGitModal}
+          onFinish={handleCloseGitModal}
+          collectionRepositoryUrl={gitRepositoryUrl}
         />
       )}
 
@@ -107,18 +137,30 @@ const WorkspaceOverview = ({ workspace }) => {
           <div className="quick-actions-section">
             <div className="section-title">Quick Actions</div>
             <div className="quick-actions-buttons">
-              <button className="quick-action-btn" onClick={handleCreateCollection}>
-                <IconPlus size={14} strokeWidth={1.5} />
-                <span>Create Collection</span>
-              </button>
-              <button className="quick-action-btn" onClick={handleOpenCollection}>
-                <IconFolder size={14} strokeWidth={1.5} />
-                <span>Open Collection</span>
-              </button>
-              <button className="quick-action-btn" onClick={handleImportCollection}>
-                <IconDownload size={14} strokeWidth={1.5} />
-                <span>Import Collection</span>
-              </button>
+              <Button
+                color="light"
+                size="sm"
+                icon={<IconPlus size={14} strokeWidth={1.5} />}
+                onClick={handleCreateCollection}
+              >
+                Create Collection
+              </Button>
+              <Button
+                color="light"
+                size="sm"
+                icon={<IconFolder size={14} strokeWidth={1.5} />}
+                onClick={handleOpenCollection}
+              >
+                Open Collection
+              </Button>
+              <Button
+                color="light"
+                size="sm"
+                icon={<IconDownload size={14} strokeWidth={1.5} />}
+                onClick={handleImportCollection}
+              >
+                Import Collection
+              </Button>
             </div>
           </div>
 

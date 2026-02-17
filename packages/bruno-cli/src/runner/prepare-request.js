@@ -45,7 +45,8 @@ const prepareRequest = async (item = {}, collection = {}) => {
     tags: item.tags || [],
     pathParams: request.params?.filter((param) => param.type === 'path'),
     settings: item.settings,
-    responseType: 'arraybuffer'
+    responseType: 'arraybuffer',
+    mode: request.body?.mode
   };
 
   const collectionRoot = collection?.draft?.root || collection?.root || {};
@@ -288,13 +289,16 @@ const prepareRequest = async (item = {}, collection = {}) => {
   request.body = request.body || {};
 
   if (request.body.mode === 'json') {
-    if (!contentTypeDefined) {
-      axiosRequest.headers['content-type'] = 'application/json';
-    }
-    try {
-      axiosRequest.data = decomment(request?.body?.json);
-    } catch (error) {
-      axiosRequest.data = request?.body?.json;
+    const jsonBody = request.body.json;
+    if (jsonBody && jsonBody.length > 0) {
+      if (!contentTypeDefined) {
+        axiosRequest.headers['content-type'] = 'application/json';
+      }
+      try {
+        axiosRequest.data = decomment(jsonBody);
+      } catch (error) {
+        axiosRequest.data = jsonBody;
+      }
     }
   }
 
@@ -368,12 +372,24 @@ const prepareRequest = async (item = {}, collection = {}) => {
   if (request.body.mode === 'graphql') {
     const graphqlQuery = {
       query: get(request, 'body.graphql.query'),
-      variables: JSON.parse(decomment(get(request, 'body.graphql.variables') || '{}'))
+      // Parse variables only after interpolation (github.com/usebruno/bruno/issues/884)
+      variables: decomment(get(request, 'body.graphql.variables') || '{}')
     };
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
     axiosRequest.data = graphqlQuery;
+  }
+
+  // if the mode is 'none' then set the content-type header to null to prevent axios from adding default. #1693
+  // AWS SigV4 requires Content-Type header in canonical request for signature calculation,
+  // even with no body. Omitting it would cause authentication failures.
+  if (request.body.mode === 'none' && (!request.auth || request.auth.mode !== 'awsv4')) {
+    if (!contentTypeDefined) {
+      // Setting to null tells axios not to add a default Content-Type header
+      // Use lowercase to match what scripts use, avoiding duplicate headers
+      axiosRequest.headers['content-type'] = null;
+    }
   }
 
   if (request.script) {

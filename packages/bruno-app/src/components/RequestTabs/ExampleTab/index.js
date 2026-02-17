@@ -1,8 +1,8 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { hasExampleChanges, findItemInCollection } from 'utils/collections';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import ConfirmRequestClose from '../RequestTab/ConfirmRequestClose';
@@ -58,7 +58,7 @@ const ExampleTab = ({ tab, collection }) => {
   if (!item || !example) {
     return (
       <StyledWrapper
-        className="flex items-center justify-between tab-container px-3"
+        className="flex items-center justify-between tab-container"
         onMouseUp={(e) => {
           if (e.button === 1) {
             e.preventDefault();
@@ -93,7 +93,7 @@ const ExampleTab = ({ tab, collection }) => {
           onSaveAndClose={() => {
             // For examples, we don't have a separate save action
             // The changes are saved automatically when the request is saved
-            dispatch(saveRequest(item.uid, collection.uid));
+            dispatch(saveRequest(item.uid, collection.uid, true));
             dispatch(closeTabs({
               tabUids: [tab.uid]
             }));

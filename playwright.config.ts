@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-const reporter: any[] = [['list'], ['html']];
+const reporter: any[] = [['list'], ['html'], ['json', { outputFile: 'playwright-report/results.json' }]];
 
 if (process.env.CI) {
   reporter.push(['github']);

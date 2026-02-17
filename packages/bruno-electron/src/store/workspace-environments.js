@@ -7,7 +7,12 @@ const { writeFile, createDirectory } = require('../utils/filesystem');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
 const EnvironmentSecretsStore = require('./env-secrets');
-const { generateYamlContent } = require('../utils/workspace-config');
+const {
+  readWorkspaceConfig,
+  generateYamlContent,
+  writeWorkspaceFileAtomic
+} = require('../utils/workspace-config');
+const { withLock, getWorkspaceLockKey } = require('../utils/workspace-lock');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -147,32 +152,26 @@ class GlobalEnvironmentsManager {
   }
 
   async setActiveGlobalEnvironmentUid(workspacePath, environmentUid) {
-    try {
-      if (!workspacePath) {
-        throw new Error('Workspace path is required');
-      }
-
-      const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-
-      if (!fs.existsSync(workspaceFilePath)) {
-        throw new Error('Invalid workspace: workspace.yml not found');
-      }
-
-      const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-      const workspaceConfig = yaml.load(yamlContent);
-
-      workspaceConfig.activeEnvironmentUid = environmentUid;
-
-      const yamlOutput = generateYamlContent(workspaceConfig);
-
-      await writeFile(workspaceFilePath, yamlOutput);
-      return true;
-    } catch (error) {
-      throw error;
+    if (!workspacePath) {
+      throw new Error('Workspace path is required');
     }
+
+    const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+
+    if (!fs.existsSync(workspaceFilePath)) {
+      throw new Error('Invalid workspace: workspace.yml not found');
+    }
+
+    return withLock(getWorkspaceLockKey(workspacePath), async () => {
+      const workspaceConfig = readWorkspaceConfig(workspacePath);
+      workspaceConfig.activeEnvironmentUid = environmentUid;
+      const yamlOutput = generateYamlContent(workspaceConfig);
+      await writeWorkspaceFileAtomic(workspacePath, yamlOutput);
+      return true;
+    });
   }
 
-  async createGlobalEnvironment(workspacePath, { uid, name, variables }) {
+  async createGlobalEnvironment(workspacePath, { uid, name, variables, color }) {
     try {
       if (!workspacePath) {
         throw new Error('Workspace path is required');
@@ -192,7 +191,8 @@ class GlobalEnvironmentsManager {
 
       const environment = {
         name: name,
-        variables: variables || []
+        variables: variables || [],
+        color
       };
 
       if (this.envHasSecrets(environment)) {
@@ -205,7 +205,8 @@ class GlobalEnvironmentsManager {
       return {
         uid: generateUidBasedOnHash(environmentFilePath),
         name,
-        variables
+        variables,
+        color
       };
     } catch (error) {
       throw error;
@@ -326,6 +327,30 @@ class GlobalEnvironmentsManager {
     }
   }
 
+  async updateGlobalEnvironmentColor(workspacePath, environmentUid, color) {
+    try {
+      if (!workspacePath) {
+        throw new Error('Workspace path is required');
+      }
+
+      const envFile = this.findEnvironmentFileByUid(workspacePath, environmentUid);
+
+      if (!envFile) {
+        throw new Error(`Environment file not found for uid: ${environmentUid}`);
+      }
+
+      const environment = await this.parseEnvironmentFile(envFile.filePath, workspacePath);
+      environment.color = color;
+
+      const content = stringifyEnvironment(environment, { format: 'yml' });
+      await writeFile(envFile.filePath, content);
+
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getGlobalEnvironmentsByPath(workspacePath) {
     return this.getGlobalEnvironments(workspacePath);
   }
@@ -348,6 +373,10 @@ class GlobalEnvironmentsManager {
 
   async selectGlobalEnvironmentByPath(workspacePath, params) {
     return this.selectGlobalEnvironment(workspacePath, params);
+  }
+
+  async updateGlobalEnvironmentColorByPath(workspacePath, { environmentUid, color }) {
+    return this.updateGlobalEnvironmentColor(workspacePath, environmentUid, color);
   }
 }
 

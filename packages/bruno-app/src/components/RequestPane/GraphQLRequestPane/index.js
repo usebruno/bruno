@@ -20,8 +20,7 @@ import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import Settings from 'components/RequestPane/Settings';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-
-const MULTIPLE_CONTENT_TABS = new Set(['script', 'vars', 'auth', 'docs']);
+import AuthMode from '../Auth/AuthMode/index';
 
 const TAB_CONFIG = [
   { key: 'query', label: 'Query' },
@@ -136,13 +135,15 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const isMultipleContentTab = MULTIPLE_CONTENT_TABS.has(requestPaneTab);
-
-  const rightContent = (
+  const rightContent = requestPaneTab === 'auth' ? (
+    <div ref={schemaActionsRef} className="flex flex-grow justify-start items-center">
+      <AuthMode item={item} collection={collection} />
+    </div>
+  ) : requestPaneTab === 'query' ? (
     <div ref={schemaActionsRef}>
       <GraphQLSchemaActions item={item} collection={collection} onSchemaLoad={setSchema} toggleDocs={toggleDocs} />
     </div>
-  );
+  ) : null;
 
   return (
     <div className="flex flex-col h-full relative">
@@ -151,10 +152,10 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
         activeTab={requestPaneTab}
         onTabSelect={selectTab}
         rightContent={rightContent}
-        rightContentRef={schemaActionsRef}
+        rightContentRef={rightContent ? schemaActionsRef : null}
       />
 
-      <section className={classnames('flex w-full flex-1', { 'mt-5': !isMultipleContentTab })}>
+      <section className={classnames('flex w-full flex-1 mt-4')}>
         <HeightBoundContainer>{tabPanel}</HeightBoundContainer>
       </section>
     </div>
