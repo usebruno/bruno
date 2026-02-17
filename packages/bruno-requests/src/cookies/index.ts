@@ -214,6 +214,35 @@ const cookieJarWrapper = () => {
       });
     },
 
+    // Check whether a cookie with the given name exists for the URL.
+    hasCookie: function (
+      url: string,
+      cookieName: string,
+      callback?: (err: Error | null | undefined, exists?: boolean) => void
+    ) {
+      if (!url || !cookieName) {
+        const error = new Error('URL and cookie name are required');
+        if (callback) return callback(error);
+        return Promise.reject(error);
+      }
+
+      if (callback) {
+        return cookieJar.getCookies(url, (err: Error | null, cookies?: Cookie[]) => {
+          if (err) return callback(err);
+          const cookieList = cookies || [];
+          callback(null, cookieList.some((c) => c.key === cookieName));
+        });
+      }
+
+      return new Promise<boolean>((resolve, reject) => {
+        cookieJar.getCookies(url, (err: Error | null, cookies?: Cookie[]) => {
+          if (err) return reject(err);
+          const cookieList = cookies || [];
+          resolve(cookieList.some((c) => c.key === cookieName));
+        });
+      });
+    },
+
     // Get all cookies that would be sent to the given URL.
     getCookies: function (url: string, callback?: (err: Error | null | undefined, cookies?: Cookie[]) => void) {
       if (!url) {

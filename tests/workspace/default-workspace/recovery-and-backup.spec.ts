@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect } from '../../../playwright';
+import { test, expect, closeElectronApp } from '../../../playwright';
 
 test.describe('Default Workspace Recovery and Backup', () => {
   test.describe('Global Environments Backup', () => {
@@ -61,8 +61,7 @@ test.describe('Default Workspace Recovery and Backup', () => {
       expect(backup.activeGlobalEnvironmentUid).toBe('env1abcdefghijk123456');
       expect(backup.backupDate).toBeDefined();
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     test('should preserve global environments backup across multiple app restarts', async ({ launchElectronApp, createTmpDir }) => {
@@ -96,7 +95,7 @@ test.describe('Default Workspace Recovery and Backup', () => {
       const app1 = await launchElectronApp({ userDataPath });
       const page1 = await app1.firstWindow();
       await page1.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
-      await app1.close();
+      await closeElectronApp(app1);
 
       // Verify backup exists
       const backupPath = path.join(userDataPath, 'global-environments-backup.json');
@@ -113,8 +112,7 @@ test.describe('Default Workspace Recovery and Backup', () => {
       const backupContentAfterSecond = fs.readFileSync(backupPath, 'utf8');
       expect(backupContentAfterSecond).toBe(backupContentAfterFirst);
 
-      await app2.context().close();
-      await app2.close();
+      await closeElectronApp(app2);
     });
   });
 
@@ -140,7 +138,7 @@ test.describe('Default Workspace Recovery and Backup', () => {
       const app = await launchElectronApp({ userDataPath });
       const page = await app.firstWindow();
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
-      await app.close();
+      await closeElectronApp(app);
 
       // Verify lastOpenedCollections is still in preferences
       const prefsPath = path.join(userDataPath, 'preferences.json');
@@ -192,8 +190,7 @@ docs: ''
       const prefs = JSON.parse(fs.readFileSync(path.join(userDataPath, 'preferences.json'), 'utf8'));
       expect(prefs.preferences?.general?.defaultWorkspacePath).toBe(workspacePath);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     test('should find latest numbered workspace when multiple exist and path not in preferences', async ({ launchElectronApp, createTmpDir }) => {
@@ -240,8 +237,7 @@ docs: ''
       // No new workspace should be created
       expect(fs.existsSync(path.join(userDataPath, 'default-workspace-3'))).toBe(false);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     test('should skip invalid workspaces and use latest valid one', async ({ launchElectronApp, createTmpDir }) => {
@@ -301,8 +297,7 @@ docs: ''
       const prefs = JSON.parse(fs.readFileSync(path.join(userDataPath, 'preferences.json'), 'utf8'));
       expect(prefs.preferences?.general?.defaultWorkspacePath).toBe(workspace1);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
   });
 
@@ -357,8 +352,7 @@ docs: ''
       const newWorkspace = path.join(userDataPath, 'default-workspace-1');
       expect(fs.existsSync(newWorkspace)).toBe(true);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     test('should recover environments from broken workspace to new workspace', async ({ launchElectronApp, createTmpDir }) => {
@@ -432,8 +426,7 @@ docs: ''
       expect(fs.existsSync(path.join(newEnvDir, 'production.yml'))).toBe(true);
       expect(fs.existsSync(path.join(newEnvDir, 'staging.yml'))).toBe(true);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     test('should use lastOpenedCollections as fallback when workspace config parsing fails', async ({ launchElectronApp, createTmpDir }) => {
@@ -473,8 +466,7 @@ docs: ''
       const workspaceYml = fs.readFileSync(path.join(newWorkspace, 'workspace.yml'), 'utf8');
       expect(workspaceYml).toContain('fallback-collection');
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
   });
 
@@ -531,8 +523,7 @@ docs: ''
       const createdNew = fs.existsSync(path.join(userDataPath, 'default-workspace-1'));
       expect(usedExisting || createdNew).toBe(true);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     test('should recover from latest workspace when path does not exist and multiple workspaces exist', async ({ launchElectronApp, createTmpDir }) => {
@@ -611,8 +602,7 @@ docs: ''
       const createdWorkspace2 = fs.existsSync(path.join(userDataPath, 'default-workspace-2'));
       expect(usedWorkspace1 || createdWorkspace2).toBe(true);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
   });
 
@@ -637,7 +627,7 @@ docs: ''
       const workspacePath = path.join(userDataPath, 'default-workspace');
       expect(fs.existsSync(workspacePath)).toBe(true);
 
-      await app1.close();
+      await closeElectronApp(app1);
 
       // Now add collection to the workspace
       const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
@@ -686,8 +676,7 @@ variables:
       // Environment should be recovered
       expect(fs.existsSync(path.join(newWorkspace, 'environments', 'myenv.yml'))).toBe(true);
 
-      await app2.context().close();
-      await app2.close();
+      await closeElectronApp(app2);
     });
 
     test('should handle workspace deleted between app restarts', async ({ launchElectronApp, createTmpDir }) => {
@@ -701,7 +690,7 @@ variables:
       const workspacePath = path.join(userDataPath, 'default-workspace');
       expect(fs.existsSync(workspacePath)).toBe(true);
 
-      await app1.close();
+      await closeElectronApp(app1);
 
       // DELETE the workspace directory
       fs.rmSync(workspacePath, { recursive: true, force: true });
@@ -716,8 +705,7 @@ variables:
       expect(fs.existsSync(workspacePath)).toBe(true);
       expect(fs.existsSync(path.join(workspacePath, 'workspace.yml'))).toBe(true);
 
-      await app2.context().close();
-      await app2.close();
+      await closeElectronApp(app2);
     });
 
     test('should preserve all data through multiple corruption and recovery cycles', async ({ launchElectronApp, createTmpDir }) => {
@@ -741,7 +729,7 @@ variables:
       const app1 = await launchElectronApp({ userDataPath });
       const page1 = await app1.firstWindow();
       await page1.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
-      await app1.close();
+      await closeElectronApp(app1);
 
       // Verify workspace-0 created
       const ws0 = path.join(userDataPath, 'default-workspace');
@@ -764,7 +752,7 @@ variables: []
       const app2 = await launchElectronApp({ userDataPath });
       const page2 = await app2.firstWindow();
       await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
-      await app2.close();
+      await closeElectronApp(app2);
 
       // Verify workspace-1 created with recovered data
       const ws1 = path.join(userDataPath, 'default-workspace-1');
@@ -790,8 +778,7 @@ variables: []
       const ws2Yml = fs.readFileSync(path.join(ws2, 'workspace.yml'), 'utf8');
       expect(ws2Yml).toContain('persistent-collection');
 
-      await app3.context().close();
-      await app3.close();
+      await closeElectronApp(app3);
     });
   });
 
@@ -818,8 +805,7 @@ variables: []
       const newWorkspace = path.join(userDataPath, 'default-workspace-1');
       expect(fs.existsSync(newWorkspace)).toBe(true);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     test('should handle missing environments directory during recovery', async ({ launchElectronApp, createTmpDir }) => {
@@ -842,8 +828,7 @@ variables: []
       // Should not crash
       expect(fs.existsSync(path.join(userDataPath, 'default-workspace-1'))).toBe(true);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     test('should deduplicate collections between recovered and preference sources', async ({ launchElectronApp, createTmpDir }) => {
@@ -885,8 +870,7 @@ variables: []
       const collectionEntries = yml.match(/- name:/g);
       expect(collectionEntries).toHaveLength(1);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     test('should not overwrite recovered environments with global environments of same name', async ({ launchElectronApp, createTmpDir }) => {
@@ -943,8 +927,7 @@ variables:
       expect(envContent).toContain('workspace-value');
       expect(envContent).not.toContain('global-value');
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
   });
 });

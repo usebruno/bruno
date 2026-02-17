@@ -398,14 +398,14 @@ const lightPastelTheme = {
   },
 
   codemirror: {
-    bg: 'transparent',
+    bg: colors.BACKGROUND,
     border: colors.WHITE,
     placeholder: {
       color: colors.GRAY_6,
       opacity: 0.75
     },
     gutter: {
-      bg: 'transparent'
+      bg: colors.BACKGROUND
     },
     variable: {
       valid: colors.GREEN,

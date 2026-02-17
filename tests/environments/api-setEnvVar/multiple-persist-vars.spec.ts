@@ -27,7 +27,7 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
         }
 
         await envTab.hover();
-        await envTab.getByTestId('request-tab-close-icon').click();
+        await envTab.getByTestId('request-tab-close-icon').click({ force: true });
       }
     } catch (error) {
       // Ignore cleanup errors to avoid masking test failures
@@ -35,7 +35,7 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
     }
   });
 
-  test('should persist multiple environment variables from different requests', async ({ pageWithUserData: page }) => {
+  test('should persist multiple environment variables from different requests', async ({ pageWithUserData: page, collectionFixturePath }) => {
     await test.step('Select collection', async () => {
       await page.locator('#sidebar-collection-name').click();
       // The collection name should be 'collection' based on the test setup
@@ -85,12 +85,12 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
       await expect(page.getByRole('row', { name: 'multiple-persist-vars-key2' }).getByRole('cell').nth(1)).toBeVisible();
       await expect(page.getByRole('row', { name: 'value2' }).getByRole('cell').nth(2)).toBeVisible();
       await envTab.hover();
-      await envTab.getByTestId('request-tab-close-icon').click();
+      await envTab.getByTestId('request-tab-close-icon').click({ force: true });
     });
 
     await test.step('Verify variables are persisted to file', async () => {
       // Check that the variables are written to the Stage.bru file
-      const stageBruPath = path.join(__dirname, 'fixtures/collection/environments/Stage.bru');
+      const stageBruPath = path.join(collectionFixturePath!, 'environments', 'Stage.bru');
       const stageBruContent = fs.readFileSync(stageBruPath, 'utf8');
 
       // Both variables should be present in the file

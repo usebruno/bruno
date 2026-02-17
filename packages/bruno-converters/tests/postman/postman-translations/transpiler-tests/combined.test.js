@@ -99,7 +99,7 @@ describe('Combined API Features Translation', () => {
     expect(translatedCode).toContain('const response = res.getBody();');
     expect(translatedCode).toContain('expect(response.authenticated).to.be.true;');
     expect(translatedCode).toContain('bru.setEnvVar("userId", response.user.id);');
-    expect(translatedCode).toContain('bru.setVar("sessionId", response.session.id);');
+    expect(translatedCode).toContain('bru.setCollectionVar("sessionId", response.session.id);');
   });
 
   // Nested expressions
@@ -112,7 +112,7 @@ describe('Combined API Features Translation', () => {
   it('should handle more complex nested expressions', () => {
     const code = 'pm.collectionVariables.set("fullPath", pm.environment.get("baseUrl") + pm.variables.get("endpoint"));';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.setVar("fullPath", bru.getEnvVar("baseUrl") + bru.getVar("endpoint"));');
+    expect(translatedCode).toBe('bru.setCollectionVar("fullPath", bru.getEnvVar("baseUrl") + bru.getVar("endpoint"));');
   });
 
   // Unrelated code
@@ -352,7 +352,7 @@ describe('Combined API Features Translation', () => {
             test("Status code is 200", function() { expect(res.getStatus()).to.equal(200); });
             bru.setEnvVar("userId", res.getBody().userId);
             bru.setVar("token", res.getBody().token);
-            bru.setVar("sessionId", res.getBody().sessionId);
+            bru.setCollectionVar("sessionId", res.getBody().sessionId);
         }
         `);
   });
@@ -366,7 +366,7 @@ describe('Combined API Features Translation', () => {
         `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
-        bru.getVar(bru.getEnvVar('key'))
+        bru.getCollectionVar(bru.getEnvVar('key'))
         test("Status code is 200", function() {
             expect(res.getStatus()).to.equal(200);
         });

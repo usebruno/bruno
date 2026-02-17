@@ -99,6 +99,8 @@ const VariablesEditor = ({ collection }) => {
       <div className="mt-8 muted text-xs">
         Note: As of today, runtime variables can only be set via the API - <span className="font-medium">getVar()</span>{' '}
         and <span className="font-medium">setVar()</span>. <br />
+        You can use the <span className="font-medium">var</span> variable with the
+        <span className="font-medium">{'{{var}}'}</span> syntax.<br />
       </div>
     </StyledWrapper>
   );

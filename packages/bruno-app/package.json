@@ -88,7 +88,7 @@
     "shell-quote": "^1.8.3",
     "strip-json-comments": "^5.0.1",
     "styled-components": "^5.3.3",
-    "swagger-ui-react": "5.17.12",
+    "swagger-ui-react": "^5.31.0",
     "system": "^2.0.1",
     "url": "^0.11.3",
     "xml-formatter": "^3.5.0",

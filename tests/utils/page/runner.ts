@@ -114,11 +114,10 @@ export const setSandboxMode = async (page: Page, collectionName: string, mode: '
 
     if (mode === 'developer') {
       await sandboxLocators.developerModeRadio().waitFor({ state: 'visible', timeout: 5000 });
-      await sandboxLocators.developerModeRadio().check();
+      await sandboxLocators.developerModeRadio().click();
     } else {
-      // Ensure Safe Mode radio is visible and check it
       await sandboxLocators.safeModeRadio().waitFor({ state: 'visible', timeout: 5000 });
-      await sandboxLocators.safeModeRadio().check();
+      await sandboxLocators.safeModeRadio().click();
     }
 
     await page.keyboard.press('Escape');

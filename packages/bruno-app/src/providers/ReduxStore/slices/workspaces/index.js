@@ -116,6 +116,16 @@ export const workspacesSlice = createSlice({
         workspace.dotEnvVariables = mainEnvFile?.variables || [];
         workspace.dotEnvExists = mainEnvFile?.exists || false;
       }
+    },
+
+    // Set scratch collection info on workspace
+    setWorkspaceScratchCollection: (state, action) => {
+      const { workspaceUid, scratchCollectionUid, scratchTempDirectory } = action.payload;
+      const workspace = state.workspaces.find((w) => w.uid === workspaceUid);
+      if (workspace) {
+        workspace.scratchCollectionUid = scratchCollectionUid;
+        workspace.scratchTempDirectory = scratchTempDirectory;
+      }
     }
   }
 });
@@ -129,7 +139,8 @@ export const {
   removeCollectionFromWorkspace,
   updateWorkspaceLoadingState,
   workspaceDotEnvUpdateEvent,
-  setWorkspaceDotEnvVariables
+  setWorkspaceDotEnvVariables,
+  setWorkspaceScratchCollection
 } = workspacesSlice.actions;
 
 export default workspacesSlice.reducer;

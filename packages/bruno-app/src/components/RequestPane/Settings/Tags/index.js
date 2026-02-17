@@ -58,6 +58,7 @@ const Tags = ({ item, collection }) => {
         handleRemoveTag={handleRemove}
         tags={tags}
         onSave={handleRequestSave}
+        collectionFormat={collection.format}
       />
     </div>
   );

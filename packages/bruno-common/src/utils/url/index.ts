@@ -18,7 +18,7 @@ function buildQueryString(paramsArray: QueryParam[], { encode = false }: BuildQu
       const finalName = encode ? encodeURIComponent(name) : name;
       const finalValue = encode ? encodeURIComponent(value ?? '') : (value ?? '');
 
-      return finalValue ? `${finalName}=${finalValue}` : finalName;
+      return `${finalName}=${finalValue}`;
     })
     .join('&');
 }
