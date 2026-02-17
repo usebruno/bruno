@@ -22,7 +22,6 @@ import {
 } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { addTab, reorderTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
-import { closeWorkspaceTab, setActiveWorkspaceTab } from 'providers/ReduxStore/slices/workspaceTabs';
 import { savePreferences, toggleSidebarCollapse, copyRequest } from 'providers/ReduxStore/slices/app';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
@@ -185,14 +184,7 @@ function bindAllHotkeys(userKeyBindings) {
   // CLOSE TAB
   bindHotkey('closeTab', () => {
     const state = getState();
-    const showHomePage = state.app.showHomePage;
-    const activeWorkspaceTabUid = state.workspaceTabs.activeTabUid;
     const activeTabUid = state.tabs.activeTabUid;
-
-    if (showHomePage && activeWorkspaceTabUid) {
-      dispatch(closeWorkspaceTab({ uid: activeWorkspaceTabUid }));
-      return;
-    }
 
     if (activeTabUid) {
       dispatch(closeTabs({ tabUids: [activeTabUid] }));
@@ -265,25 +257,17 @@ function bindAllHotkeys(userKeyBindings) {
   // OPEN PREFERENCES -> open preferences tab
   bindHotkey('openPreferences', () => {
     const state = getState();
-    const activeWorkspaceUid = state.workspaces.activeWorkspaceUid;
-    const { showHomePage, showManageWorkspacePage, showApiSpecPage } = state.app;
     const tabs = state.tabs.tabs;
     const activeTabUid = state.tabs.activeTabUid;
     const activeTab = tabs.find((t) => t.uid === activeTabUid);
 
-    if (showHomePage || showManageWorkspacePage || showApiSpecPage || !activeTabUid) {
-      if (activeWorkspaceUid) {
-        dispatch(setActiveWorkspaceTab({ workspaceUid: activeWorkspaceUid, type: 'preferences' }));
-      }
-    } else {
-      dispatch(
-        addTab({
-          type: 'preferences',
-          uid: activeTab?.collectionUid ? `${activeTab.collectionUid}-preferences` : 'preferences',
-          collectionUid: activeTab?.collectionUid
-        })
-      );
-    }
+    dispatch(
+      addTab({
+        type: 'preferences',
+        uid: activeTab?.collectionUid ? `${activeTab.collectionUid}-preferences` : 'preferences',
+        collectionUid: activeTab?.collectionUid
+      })
+    );
   }, userKeyBindings);
 
   // IMPORT COLLECTION -> trigger event to open import modal

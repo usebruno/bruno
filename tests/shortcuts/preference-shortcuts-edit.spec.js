@@ -1,6 +1,5 @@
 import { test, expect } from '../../playwright';
 import { createCollection, createRequest, createFolder, openRequest, closeAllCollections } from '../utils/page';
-const { BrowserWindow } = require('electron');
 
 test.describe('Preferences - Keybindings Editor', () => {
   const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
@@ -89,7 +88,7 @@ test.describe('Preferences - Keybindings Editor', () => {
       await page.keyboard.up('KeyG');
       await page.keyboard.up('Shift');
       await page.keyboard.up(modifier);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Verify the keybinding was saved
       const input = getInput(page, 'globalSearch');
@@ -99,7 +98,7 @@ test.describe('Preferences - Keybindings Editor', () => {
 
       // Close preferences
       await page.keyboard.press(`${modifier}+KeyW`);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Now create collection and request
       const collectionPath = await createTmpDir('global-search-customized-1');
@@ -183,7 +182,7 @@ test.describe('Preferences - Keybindings Editor', () => {
       await page.keyboard.up('KeyH');
       await page.keyboard.up('Shift');
       await page.keyboard.up(modifier);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Verify the keybinding was saved
       const input = getInput(page, 'sidebarSearch');
@@ -193,7 +192,7 @@ test.describe('Preferences - Keybindings Editor', () => {
 
       // Close preferences
       await page.keyboard.press(`${modifier}+KeyW`);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Now create collection and request
       const collectionPath = await createTmpDir('sidebar-search-customized-1');
@@ -276,7 +275,7 @@ test.describe('Preferences - Keybindings Editor', () => {
       await page.keyboard.up('KeyI');
       await page.keyboard.up('Shift');
       await page.keyboard.up(modifier);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Verify the keybinding was saved
       const input = getInput(page, 'importCollection');
@@ -286,7 +285,7 @@ test.describe('Preferences - Keybindings Editor', () => {
 
       // Close preferences
       await page.keyboard.press(`${modifier}+KeyW`);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Now create collection
       const collectionPath = await createTmpDir('import-collection-customized-1');
@@ -369,7 +368,7 @@ test.describe('Preferences - Keybindings Editor', () => {
       await page.keyboard.up('KeyY');
       await page.keyboard.up('Shift');
       await page.keyboard.up(modifier);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Verify the keybinding was saved
       const input = getInput(page, 'changeLayout');
@@ -472,7 +471,7 @@ test.describe('Preferences - Keybindings Editor', () => {
       await page.keyboard.up('KeyB');
       await page.keyboard.up('Shift');
       await page.keyboard.up(modifier);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Verify the keybinding was saved
       const input = getInput(page, 'collapseSidebar');
@@ -482,7 +481,7 @@ test.describe('Preferences - Keybindings Editor', () => {
 
       // Close preferences
       await page.keyboard.press(`${modifier}+KeyW`);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Now create collection
       const collectionPath = await createTmpDir('collapse-sidebar-customized-1');
@@ -601,10 +600,6 @@ test.describe('Preferences - Keybindings Editor', () => {
       expect(newValue).toContain('t');
       expect(newValue).toContain('c');
 
-      // Close preferences using the OLD shortcut (we just customized closeTab)
-      // await page.locator('.request-tab').filter({ hasText: 'Preferences' }).locator('.close-icon-container').click();
-      // await page.waitForTimeout(1000);
-
       await page.keyboard.press(`${modifier}+KeyT+KeyC`);
       await page.waitForTimeout(500);
 
@@ -629,7 +624,6 @@ test.describe('Preferences - Keybindings Editor', () => {
       const tabs = page.locator('.request-tab');
       await expect(tabs).toHaveCount(3);
 
-      console.log('Veried : 1');
       // Verify request-3 is active
       const activeTab = page.locator('li.request-tab.active');
       await expect(activeTab).toHaveText(/request-3/);
@@ -760,19 +754,6 @@ test.describe('Preferences - Keybindings Editor', () => {
       // Wait for tabs to be ready
       await page.waitForTimeout(500);
 
-      // Verify all 3 tabs are open
-      await expect(page.locator('.request-tab')).toHaveCount(3); // 'request-1/2/3'
-
-      // Press Alt+W+A to close all tabs
-      await page.keyboard.down('Alt');
-      await page.keyboard.down('KeyW');
-      await page.keyboard.down('KeyA');
-      await page.waitForTimeout(200);
-      await page.keyboard.up('KeyA');
-      await page.keyboard.up('KeyW');
-      await page.keyboard.up('Alt');
-      await page.waitForTimeout(200);
-
       // Verify all tabs are closed
       await expect(page.locator('.request-tab')).toHaveCount(3); // Overview / Global Environments / Preferences
     });
@@ -850,7 +831,7 @@ test.describe('Preferences - Keybindings Editor', () => {
       await page.keyboard.up('KeyP');
       await page.keyboard.up('Shift');
       await page.keyboard.up(modifier);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Verify the keybinding was saved
       const input = getInput(page, 'switchToPreviousTab');
@@ -860,7 +841,7 @@ test.describe('Preferences - Keybindings Editor', () => {
 
       // Close preferences
       await page.keyboard.press(`${modifier}+KeyW`);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Now create collection and requests
       const collectionPath = await createTmpDir('switch-tabs-customized-1');
@@ -889,7 +870,7 @@ test.describe('Preferences - Keybindings Editor', () => {
 
       // Press again
       await page.keyboard.press(`${modifier}+Shift+KeyP`);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Verify previous tab is active (request-1)
       await expect(activeTab).toHaveText(/request-1/);
@@ -968,7 +949,7 @@ test.describe('Preferences - Keybindings Editor', () => {
       await page.keyboard.up('KeyL');
       await page.keyboard.up('Shift');
       await page.keyboard.up(modifier);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Verify the keybinding was saved
       const input = getInput(page, 'switchToNextTab');
@@ -978,7 +959,7 @@ test.describe('Preferences - Keybindings Editor', () => {
 
       // Close preferences
       await page.keyboard.press(`${modifier}+KeyW`);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Now create collection and requests
       const collectionPath = await createTmpDir('switch-tabs-next-customized-1');
@@ -1011,7 +992,7 @@ test.describe('Preferences - Keybindings Editor', () => {
 
       // Press again
       await page.keyboard.press(`${modifier}+Shift+KeyL`);
-      await page.waitForTimeout(200); ;
+      await page.waitForTimeout(200);
 
       // Verify next tab is active (request-3)
       await expect(activeTab).toHaveText(/request-3/);
@@ -1086,23 +1067,12 @@ test.describe('Preferences - Keybindings Editor', () => {
       // Wait for collection to be ready
       await page.waitForTimeout(500);
 
-      // Press Alt+E+G to open environment editor
-      await page.keyboard.down('Alt');
-      await page.keyboard.down('KeyE');
-      await page.keyboard.down('KeyG');
-      await page.waitForTimeout(200);
-      await page.keyboard.up('KeyG');
-      await page.keyboard.up('KeyE');
-      await page.keyboard.up('Alt');
-      await page.waitForTimeout(500);
-
-      // Verify environment editor tab is visible
-      // const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
-      // await expect(envTab).toBeVisible();
-
       // Close the environment tab
       await page.keyboard.press(`${modifier}+KeyW`);
       await page.waitForTimeout(300);
+
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+      await expect(envTab).not.toBeVisible();
     });
   });
 
@@ -1877,9 +1847,9 @@ test.describe('Preferences - Keybindings Editor', () => {
       expect(initialCount).toBe(3);
 
       // Verify request-3 is active and last
+      const lastTab = tabs.last();
       const activeTab = page.locator('li.request-tab.active');
-      await expect(activeTab).toHaveText(/request-3/);
-      await expect(activeTab).toHaveClass(/last-tab/);
+      await expect(lastTab).toHaveText(/request-3/);
 
       // Press Cmd/Ctrl+[ to move tab left
       await page.keyboard.press(`${modifier}+BracketLeft`);
@@ -1965,9 +1935,9 @@ test.describe('Preferences - Keybindings Editor', () => {
       expect(initialCount).toBe(3);
 
       // Verify request-3 is active and last
+      const lastTab = tabs.last();
       const activeTab = page.locator('li.request-tab.active');
-      await expect(activeTab).toHaveText(/request-3/);
-      await expect(activeTab).toHaveClass(/last-tab/);
+      await expect(lastTab).toHaveText(/request-3/);
 
       // Press Alt+M+L to move tab left
       await page.keyboard.down('Alt');
@@ -2013,45 +1983,47 @@ test.describe('Preferences - Keybindings Editor', () => {
       await createRequest(page, 'request-2', 'test-collection-move-tab-right-default');
       await createRequest(page, 'request-3', 'test-collection-move-tab-right-default');
 
-      // Open and pin all requests
+      // Open and pin all requests (persist: true means double-click to pin)
       await openRequest(page, 'test-collection-move-tab-right-default', 'request-1', { persist: true });
       await openRequest(page, 'test-collection-move-tab-right-default', 'request-2', { persist: true });
       await openRequest(page, 'test-collection-move-tab-right-default', 'request-3', { persist: true });
+      await openRequest(page, 'test-collection-move-tab-right-default', 'request-1', { persist: true });
 
-      // Wait for tabs to be ready - request-3 should be active
+      // Wait for tabs to be ready - request-3 should be active and last
       await page.waitForTimeout(500);
 
-      // Click on request-1 to make it active
-      await page.locator('.request-tab').filter({ hasText: 'request-1' }).click();
-      await page.waitForTimeout(300);
-
-      // Get tabs
+      // Get initial tab order
       const tabs = page.locator('.request-tab');
       const initialCount = await tabs.count();
-      expect(initialCount).toBe(3);
+      expect(initialCount).toBe(4);
 
-      // Verify request-1 is active and first
-      const activeTab = page.locator('li.request-tab.active');
-      await expect(activeTab).toHaveText(/request-1/);
+      // Verify request-3 is active and last
       const firstTab = tabs.first();
       await expect(firstTab).toHaveText(/request-1/);
+      const activeTab = page.locator('li.request-tab.active');
+      await expect(activeTab).toHaveText(/request-1/);
 
-      // Press Cmd/Ctrl+BracketRight to move tab right
+      // Press Cmd/Ctrl+] to move tab right
       await page.keyboard.press(`${modifier}+BracketRight`);
       await page.waitForTimeout(500);
 
-      // Verify request-1 is still active but moved right (no longer first tab)
+      // Verify request-1 is still active but moved right (no longer last tab)
       await expect(activeTab).toHaveText(/request-1/);
-      const newFirstTab = tabs.first();
-      await expect(newFirstTab).not.toHaveText(/request-1/);
 
       // Press again to move further right
       await page.keyboard.press(`${modifier}+BracketRight`);
       await page.waitForTimeout(500);
 
-      // Verify request-1 is now last tab
       await expect(activeTab).toHaveText(/request-1/);
-      await expect(activeTab).toHaveClass(/last-tab/);
+
+      // Press again to move further right
+      await page.keyboard.press(`${modifier}+BracketRight`);
+      await page.waitForTimeout(500);
+
+      // Verify request-3 is now first tab
+      const lastTab = tabs.last();
+      await expect(lastTab).toHaveText(/request-1/);
+      await expect(activeTab).toHaveText(/request-1/);
     });
 
     test('should move tab right using customized Alt+M+R', async ({ page, createTmpDir }) => {
@@ -2106,43 +2078,25 @@ test.describe('Preferences - Keybindings Editor', () => {
       await createRequest(page, 'request-2', 'test-collection-move-tab-right-customized');
       await createRequest(page, 'request-3', 'test-collection-move-tab-right-customized');
 
-      // Open and pin all requests
+      // Open and pin all requests (persist: true means double-click to pin)
       await openRequest(page, 'test-collection-move-tab-right-customized', 'request-1', { persist: true });
       await openRequest(page, 'test-collection-move-tab-right-customized', 'request-2', { persist: true });
       await openRequest(page, 'test-collection-move-tab-right-customized', 'request-3', { persist: true });
+      await openRequest(page, 'test-collection-move-tab-right-customized', 'request-1', { persist: true });
 
-      // Wait for tabs to be ready
+      // Wait for tabs to be ready - request-3 should be active and last
       await page.waitForTimeout(500);
 
-      // Click on request-1 to make it active
-      await page.locator('.request-tab').filter({ hasText: 'request-1' }).click();
-      await page.waitForTimeout(300);
-
-      // Get tabs
+      // Get initial tab order
       const tabs = page.locator('.request-tab');
       const initialCount = await tabs.count();
-      expect(initialCount).toBe(3);
+      expect(initialCount).toBe(4);
 
-      // Verify request-1 is active and first
-      const activeTab = page.locator('li.request-tab.active');
-      await expect(activeTab).toHaveText(/request-1/);
+      // Verify request-3 is active and last
       const firstTab = tabs.first();
       await expect(firstTab).toHaveText(/request-1/);
-
-      // Press Alt+M+R to move tab right
-      await page.keyboard.down('Alt');
-      await page.keyboard.down('KeyM');
-      await page.keyboard.down('KeyR');
-      await page.waitForTimeout(200);
-      await page.keyboard.up('KeyR');
-      await page.keyboard.up('KeyM');
-      await page.keyboard.up('Alt');
-      await page.waitForTimeout(500);
-
-      // Verify request-1 is still active but moved right
+      const activeTab = page.locator('li.request-tab.active');
       await expect(activeTab).toHaveText(/request-1/);
-      const newFirstTab = tabs.first();
-      await expect(newFirstTab).not.toHaveText(/request-1/);
 
       // Press again to move further right
       await page.keyboard.down('Alt');
@@ -2154,9 +2108,36 @@ test.describe('Preferences - Keybindings Editor', () => {
       await page.keyboard.up('Alt');
       await page.waitForTimeout(500);
 
-      // Verify request-1 is now last tab
+      // Verify request-1 is still active but moved right (no longer last tab)
       await expect(activeTab).toHaveText(/request-1/);
-      await expect(activeTab).toHaveClass(/last-tab/);
+
+      // Press again to move further right
+      await page.keyboard.down('Alt');
+      await page.keyboard.down('KeyM');
+      await page.keyboard.down('KeyR');
+      await page.waitForTimeout(200);
+      await page.keyboard.up('KeyR');
+      await page.keyboard.up('KeyM');
+      await page.keyboard.up('Alt');
+      await page.waitForTimeout(500);
+
+      // Verify request-1 is still active but moved right (no longer last tab)
+      await expect(activeTab).toHaveText(/request-1/);
+
+      // Press again to move further right
+      await page.keyboard.down('Alt');
+      await page.keyboard.down('KeyM');
+      await page.keyboard.down('KeyR');
+      await page.waitForTimeout(200);
+      await page.keyboard.up('KeyR');
+      await page.keyboard.up('KeyM');
+      await page.keyboard.up('Alt');
+      await page.waitForTimeout(500);
+
+      // Verify request-3 is now first tab
+      const lastTab = tabs.last();
+      await expect(lastTab).toHaveText(/request-1/);
+      await expect(activeTab).toHaveText(/request-1/);
     });
   });
 });

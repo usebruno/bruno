@@ -68,7 +68,7 @@ const template = [
         click() {
           const focusedWindow = BrowserWindow.getFocusedWindow();
           if (focusedWindow) {
-            focusedWindow.webContents.send('main:menu-zoom-reset');
+            focusedWindow.webContents.setZoomLevel(0);
           }
         }
       },
@@ -77,7 +77,8 @@ const template = [
         click() {
           const focusedWindow = BrowserWindow.getFocusedWindow();
           if (focusedWindow) {
-            focusedWindow.webContents.send('main:menu-zoom-in');
+            const current = focusedWindow.webContents.getZoomLevel();
+            focusedWindow.webContents.setZoomLevel(current + 0.5);
           }
         }
       },
@@ -86,7 +87,8 @@ const template = [
         click() {
           const focusedWindow = BrowserWindow.getFocusedWindow();
           if (focusedWindow) {
-            focusedWindow.webContents.send('main:menu-zoom-out');
+            const current = focusedWindow.webContents.getZoomLevel();
+            focusedWindow.webContents.setZoomLevel(current - 0.5);
           }
         }
       },

@@ -220,7 +220,7 @@ const Keybindings = () => {
     const arr = uniqSorted(arrRaw);
     const sig = comboSignature(arr);
 
-    if (!sig) return { code: ERROR.EMPTY, message: 'Shortcut can’t be empty.' };
+    if (!sig) return { code: ERROR.EMPTY, message: `Shortcut can’t be empty.` };
     if (isOnlyModifiers(arr))
       return { code: ERROR.ONLY_MODIFIERS, message: 'Add a non-modifier key (e.g. Ctrl + K).' };
 

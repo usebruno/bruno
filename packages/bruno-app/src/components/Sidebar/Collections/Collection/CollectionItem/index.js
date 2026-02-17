@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
@@ -67,11 +67,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
+  const preferences = useSelector((state) => state.app.preferences);
+  const userKeyBindings = preferences?.keyBindings || {};
+  const hasCustomCopyBinding = !!userKeyBindings?.copyItem;
+  const hasCustomPasteBinding = !!userKeyBindings?.pasteItem;
   const dispatch = useDispatch();
 
   // We use a single ref for drag and drop.
   const ref = useRef(null);
   const menuDropdownRef = useRef(null);
+
+  // Refs to store current handler references for event listeners (avoid stale closures)
+  const copyHandlerRef = useRef(null);
+  const pasteHandlerRef = useRef(null);
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
@@ -133,15 +141,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
     const handleCopyItemOpen = () => {
       // Copy item to clipboard if this item is keyboard focused
-      if (isFocusedRef.current) {
-        handleCopyItem();
+      if (isFocusedRef.current && copyHandlerRef.current) {
+        copyHandlerRef.current();
       }
     };
 
     const handlePasteItemOpen = () => {
       // Paste item from clipboard if this item is keyboard focused
-      if (isFocusedRef.current) {
-        handlePasteItem();
+      if (isFocusedRef.current && pasteHandlerRef.current) {
+        pasteHandlerRef.current();
       }
     };
 
@@ -569,13 +577,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   };
 
-  const handleCopyItem = () => {
+  const handleCopyItem = useCallback(() => {
     dispatch(copyRequest(item));
     const itemType = isFolder ? 'Folder' : 'Request';
     toast.success(`${itemType} copied`);
-  };
+  }, [dispatch, item, isFolder]);
 
-  const handlePasteItem = () => {
+  const handlePasteItem = useCallback(() => {
     // Determine target folder: if item is a folder, paste into it; otherwise paste into parent folder
     let targetFolderUid = item.uid;
     if (!isFolder) {
@@ -590,14 +598,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       .catch((err) => {
         toast.error(err ? err.message : 'An error occurred while pasting the item');
       });
-  };
+  }, [dispatch, collection, item, isFolder, collectionUid]);
+
+  // Update refs whenever handlers change
+  copyHandlerRef.current = handleCopyItem;
+  pasteHandlerRef.current = handlePasteItem;
 
   // Keyboard shortcuts handler
-  const preferences = useSelector((state) => state.app.preferences);
-  const userKeyBindings = preferences?.keyBindings || {};
-  const hasCustomCopyBinding = !!userKeyBindings?.copyItem;
-  const hasCustomPasteBinding = !!userKeyBindings?.pasteItem;
-
   const handleKeyDown = (e) => {
     // Detect Mac by checking both metaKey and platform
     const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
@@ -607,11 +614,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     if (!hasCustomCopyBinding && isModifierPressed && e.key.toLowerCase() === 'c') {
       e.preventDefault();
       e.stopPropagation();
-      handleCopyItem();
+      if (copyHandlerRef.current) copyHandlerRef.current();
     } else if (!hasCustomPasteBinding && isModifierPressed && e.key.toLowerCase() === 'v') {
       e.preventDefault();
       e.stopPropagation();
-      handlePasteItem();
+      if (pasteHandlerRef.current) pasteHandlerRef.current();
     }
   };
 
