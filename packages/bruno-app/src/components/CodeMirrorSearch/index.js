@@ -43,7 +43,7 @@ function findSearchMatches(editor, searchText, regex, caseSensitive, wholeWord) 
 }
 
 function createCacheKey(editor, searchText, regex, caseSensitive, wholeWord) {
-  return `${editor.getValue().length}-${searchText}-${regex}-${caseSensitive}-${wholeWord}`;
+  return `${editor.getValue().length}⇴${searchText}⇴${regex}⇴${caseSensitive}⇴${wholeWord}`;
 }
 
 const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
