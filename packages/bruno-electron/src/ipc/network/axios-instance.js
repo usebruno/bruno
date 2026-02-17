@@ -167,7 +167,8 @@ function makeAxiosInstance({
       };
     }
 
-    config.headers['request-start-time'] = Date.now();
+    // Store request start time in config instead of headers to avoid server validation issues
+    config.requestStartTime = Date.now();
 
     const agentOptions = {
       ...httpsAgentRequestFields,
@@ -204,7 +205,7 @@ function makeAxiosInstance({
     (response) => {
       let timeline;
       const end = Date.now();
-      const start = response.config.headers['request-start-time'];
+      const start = response.config.requestStartTime;
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
 
@@ -252,7 +253,7 @@ function makeAxiosInstance({
       });
       if (error.response) {
         const end = Date.now();
-        const start = error.config.headers['request-start-time'];
+        const start = error.config.requestStartTime;
         error.response.headers['request-duration'] = end - start;
         const duration = end - config?.metadata?.startTime;
         if (error.response && redirectResponseCodes.includes(error.response.status)) {
