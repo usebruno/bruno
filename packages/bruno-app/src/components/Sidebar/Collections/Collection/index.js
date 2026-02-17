@@ -258,6 +258,24 @@ const Collection = ({ collection, searchText }) => {
     }
   }, [isCollectionFocused]);
 
+  // Listen for clone-item-open event from Hotkeys provider
+  const isFocusedRef = useRef(isKeyboardFocused);
+  isFocusedRef.current = isKeyboardFocused;
+
+  useEffect(() => {
+    const handleCloneItemOpen = () => {
+      // Only open modal if this collection is keyboard focused
+      if (isFocusedRef.current) {
+        setShowCloneCollectionModalOpen(true);
+      }
+    };
+
+    window.addEventListener('clone-item-open', handleCloneItemOpen);
+    return () => {
+      window.removeEventListener('clone-item-open', handleCloneItemOpen);
+    };
+  }, []);
+
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
       return null;

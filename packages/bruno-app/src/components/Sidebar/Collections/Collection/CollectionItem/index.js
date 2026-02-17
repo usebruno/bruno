@@ -119,6 +119,43 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   }, [isTabForItemActive]);
 
+  // Listen for clone-item-open event from Hotkeys provider
+  const isFocusedRef = useRef(isKeyboardFocused);
+  isFocusedRef.current = isKeyboardFocused;
+
+  useEffect(() => {
+    const handleCloneItemOpen = () => {
+      // Only open modal if this item is keyboard focused
+      if (isFocusedRef.current) {
+        setCloneItemModalOpen(true);
+      }
+    };
+
+    const handleCopyItemOpen = () => {
+      // Copy item to clipboard if this item is keyboard focused
+      if (isFocusedRef.current) {
+        handleCopyItem();
+      }
+    };
+
+    const handlePasteItemOpen = () => {
+      // Paste item from clipboard if this item is keyboard focused
+      if (isFocusedRef.current) {
+        handlePasteItem();
+      }
+    };
+
+    window.addEventListener('clone-item-open', handleCloneItemOpen);
+    window.addEventListener('copy-item-open', handleCopyItemOpen);
+    window.addEventListener('paste-item-open', handlePasteItemOpen);
+
+    return () => {
+      window.removeEventListener('clone-item-open', handleCloneItemOpen);
+      window.removeEventListener('copy-item-open', handleCopyItemOpen);
+      window.removeEventListener('paste-item-open', handlePasteItemOpen);
+    };
+  }, []);
+
   const determineDropType = (monitor) => {
     const hoverBoundingRect = ref.current?.getBoundingClientRect();
     const clientOffset = monitor.getClientOffset();
@@ -556,16 +593,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   // Keyboard shortcuts handler
+  const preferences = useSelector((state) => state.app.preferences);
+  const userKeyBindings = preferences?.keyBindings || {};
+  const hasCustomCopyBinding = !!userKeyBindings?.copyItem;
+  const hasCustomPasteBinding = !!userKeyBindings?.pasteItem;
+
   const handleKeyDown = (e) => {
     // Detect Mac by checking both metaKey and platform
     const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
     const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
 
-    if (isModifierPressed && e.key.toLowerCase() === 'c') {
+    // Only use default handler if no custom keybinding is set for copy/paste
+    if (!hasCustomCopyBinding && isModifierPressed && e.key.toLowerCase() === 'c') {
       e.preventDefault();
       e.stopPropagation();
       handleCopyItem();
-    } else if (isModifierPressed && e.key.toLowerCase() === 'v') {
+    } else if (!hasCustomPasteBinding && isModifierPressed && e.key.toLowerCase() === 'v') {
       e.preventDefault();
       e.stopPropagation();
       handlePasteItem();
