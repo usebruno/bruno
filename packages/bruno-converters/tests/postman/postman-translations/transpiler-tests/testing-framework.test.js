@@ -67,7 +67,7 @@ describe('Testing Framework Translation', () => {
     expect(translatedCode).toContain('const response = res.getBody();');
     expect(translatedCode).toContain('expect(response.authenticated).to.be.true;');
     expect(translatedCode).toContain('bru.setEnvVar("userId", response.user.id);');
-    expect(translatedCode).toContain('bru.setVar("sessionId", response.session.id);');
+    expect(translatedCode).toContain('bru.setCollectionVar("sessionId", response.session.id);');
   });
 
   it('should translate pm.test with arrow functions', () => {

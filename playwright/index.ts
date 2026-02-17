@@ -1,4 +1,4 @@
-import { test as baseTest, BrowserContext, ElectronApplication, Page } from '@playwright/test';
+import { test as baseTest, BrowserContext, ElectronApplication, Page, TestInfo } from '@playwright/test';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
@@ -25,19 +25,85 @@ async function recursiveCopy(src: string, dest: string) {
   }
 }
 
+const TRACING_OPTIONS = { screenshots: true, snapshots: true, sources: true };
+
+function isTracingEnabled(testInfo: TestInfo): boolean {
+  return !!(testInfo as any)._tracing.traceOptions();
+}
+
+async function usePageWithTracing(
+  context: BrowserContext,
+  page: Page,
+  testInfo: TestInfo,
+  use: (page: Page) => Promise<void>,
+  options: { initTracing?: boolean; useChunks?: boolean } = {}
+) {
+  const { initTracing = false, useChunks = true } = options;
+
+  if (!isTracingEnabled(testInfo)) {
+    await use(page);
+    return;
+  }
+
+  const tracePath = testInfo.outputPath(`trace-${testInfo.testId}.zip`);
+
+  if (initTracing) {
+    try {
+      await context.tracing.start(TRACING_OPTIONS);
+    } catch (e) { }
+  }
+
+  if (useChunks) {
+    await context.tracing.startChunk();
+    await use(page);
+    try { await context.tracing.stopChunk({ path: tracePath }); } catch { }
+  } else {
+    await use(page);
+    try { await context.tracing.stop({ path: tracePath }); } catch { }
+  }
+
+  try { await testInfo.attach('trace', { path: tracePath }); } catch { }
+}
+
+/**
+ * Gracefully close an Electron app by telling it to exit with code 0.
+ * This avoids the macOS "quit unexpectedly" crash dialog that appears when
+ * app.context().close() kills subprocesses (renderer/GPU) abruptly before
+ * the main process can shut down cleanly.
+ *
+ * Emits 'before-quit' first so cleanup handlers run (e.g., saving cookies to disk),
+ * since app.exit() bypasses all lifecycle events.
+ */
+export async function closeElectronApp(app: ElectronApplication) {
+  try {
+    await app.evaluate(({ app }) => {
+      app.emit('before-quit');
+      app.exit(0);
+    });
+  } catch {
+    // Expected: process exited before the CDP response was sent
+  }
+  try {
+    await app.close();
+  } catch {
+    // Process already exited
+  }
+}
+
 export const test = baseTest.extend<
   {
     context: BrowserContext;
     page: Page;
     newPage: Page;
     pageWithUserData: Page;
+    collectionFixturePath: string | null;
     restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>;
   },
   {
     createTmpDir: (tag?: string) => Promise<string>;
-    launchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string; dotEnv?: Record<string, string> }) => Promise<ElectronApplication>;
+    launchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string; dotEnv?: Record<string, string>; templateVars?: Record<string, string> }) => Promise<ElectronApplication>;
     electronApp: ElectronApplication;
-    reuseOrLaunchElectronApp: (options?: { initUserDataPath?: string; testFile?: string; userDataPath?: string; dotEnv?: Record<string, string> }) => Promise<ElectronApplication>;
+    reuseOrLaunchElectronApp: (options?: { initUserDataPath?: string; testFile?: string; userDataPath?: string; dotEnv?: Record<string, string>; templateVars?: Record<string, string>; closePrevious?: boolean }) => Promise<ElectronApplication>;
   }
 >({
   createTmpDir: [
@@ -55,10 +121,27 @@ export const test = baseTest.extend<
     { scope: 'worker' }
   ],
 
+  collectionFixturePath: async ({ createTmpDir }, use, testInfo) => {
+    const testDir = path.dirname(testInfo.file);
+    const fixturesDir = path.join(testDir, 'fixtures');
+    // fixtures/collections — multiple named collections (subdirs with bruno.json/opencollection.yml)
+    // fixtures/collection — single collection (single dir with bruno.json/opencollection.yml)
+    const srcPath = [path.join(fixturesDir, 'collections'), path.join(fixturesDir, 'collection')]
+      .find((p) => fs.existsSync(p));
+
+    if (srcPath) {
+      const tmpDir = await createTmpDir(path.basename(srcPath));
+      await fs.promises.cp(srcPath, tmpDir, { recursive: true });
+      await use(tmpDir);
+    } else {
+      await use(null);
+    }
+  },
+
   launchElectronApp: [
     async ({ playwright, createTmpDir }, use, workerInfo) => {
       const apps: ElectronApplication[] = [];
-      await use(async ({ initUserDataPath, userDataPath: providedUserDataPath, dotEnv = {} } = {}) => {
+      await use(async ({ initUserDataPath, userDataPath: providedUserDataPath, dotEnv = {}, templateVars = {} } = {}) => {
         const userDataPath = providedUserDataPath || (await createTmpDir('electron-userdata'));
 
         // Ensure dir exists when caller supplies their own path
@@ -67,8 +150,9 @@ export const test = baseTest.extend<
         }
 
         if (initUserDataPath) {
-          const replacements = {
-            projectRoot: path.posix.join(__dirname, '..')
+          const replacements: Record<string, string> = {
+            projectRoot: path.posix.join(__dirname, '..'),
+            ...templateVars
           };
 
           for (const file of await fs.promises.readdir(initUserDataPath)) {
@@ -113,8 +197,7 @@ export const test = baseTest.extend<
         return app;
       });
       for (const app of apps) {
-        await app.context().close();
-        await app.close();
+        await closeElectronApp(app);
       }
     },
     { scope: 'worker' }
@@ -130,10 +213,9 @@ export const test = baseTest.extend<
 
   context: async ({ electronApp }, use, testInfo) => {
     const context = await electronApp.context();
-    const tracingOptions = (testInfo as any)._tracing.traceOptions();
-    if (tracingOptions) {
+    if (isTracingEnabled(testInfo)) {
       try {
-        await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
+        await context.tracing.start(TRACING_OPTIONS);
       } catch (e) { }
     }
     await use(context);
@@ -141,43 +223,39 @@ export const test = baseTest.extend<
 
   page: async ({ electronApp, context }, use, testInfo) => {
     const page = await electronApp.firstWindow();
-    const tracingOptions = (testInfo as any)._tracing.traceOptions();
-    if (tracingOptions) {
-      const tracePath = testInfo.outputPath(`trace-${testInfo.testId}.zip`);
-      await context.tracing.startChunk();
-      await use(page);
-      await context.tracing.stopChunk({ path: tracePath });
-      await testInfo.attach('trace', { path: tracePath });
-    } else {
-      await use(page);
-    }
+    await usePageWithTracing(context, page, testInfo, use);
   },
 
   newPage: async ({ launchElectronApp }, use, testInfo) => {
     const app = await launchElectronApp();
     const context = await app.context();
     const page = await app.firstWindow();
-    const tracingOptions = (testInfo as any)._tracing.traceOptions();
-    if (tracingOptions) {
-      const tracePath = testInfo.outputPath(`trace-${testInfo.testId}.zip`);
-      await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
-      await use(page);
-      await context.tracing.stop({ path: tracePath });
-      await testInfo.attach('trace', { path: tracePath });
-    } else {
-      await use(page);
-    }
+    await usePageWithTracing(context, page, testInfo, use, { initTracing: true, useChunks: false });
   },
 
   reuseOrLaunchElectronApp: [
     async ({ launchElectronApp }, use, testInfo) => {
       const apps: Record<string, ElectronApplication> = {};
-      await use(async ({ initUserDataPath, testFile, userDataPath, dotEnv = {} } = {}) => {
+      await use(async ({ initUserDataPath, testFile, userDataPath, dotEnv = {}, templateVars = {}, closePrevious = false } = {}) => {
         const key = testFile || userDataPath || initUserDataPath;
         if (key && apps[key]) {
-          return apps[key];
+          if (closePrevious) {
+            await closeElectronApp(apps[key]);
+            delete apps[key];
+          } else {
+            return apps[key];
+          }
         }
-        const app = await launchElectronApp({ initUserDataPath, userDataPath, dotEnv });
+
+        // Close other cached apps to prevent resource accumulation across test files
+        for (const existingKey of Object.keys(apps)) {
+          if (existingKey !== key) {
+            await closeElectronApp(apps[existingKey]);
+            delete apps[existingKey];
+          }
+        }
+
+        const app = await launchElectronApp({ initUserDataPath, userDataPath, dotEnv, templateVars });
         if (key) {
           apps[key] = app;
         }
@@ -187,33 +265,39 @@ export const test = baseTest.extend<
     { scope: 'worker' }
   ],
 
-  restartApp: async ({ launchElectronApp }, use, testInfo) => {
-    const appInstances: Array<{ app: ElectronApplication; initUserDataPath?: string }> = [];
+  restartApp: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath }, use, testInfo) => {
     await use(async ({ initUserDataPath } = {}) => {
-      // Get the test directory and check for init-user-data folder
       const testDir = path.dirname(testInfo.file);
       const defaultInitUserDataPath = path.join(testDir, 'init-user-data');
 
-      // Use provided initUserDataPath, or check if default path exists, or use undefined
-      let userDataPath = initUserDataPath;
-      if (!userDataPath) {
+      let srcUserDataPath = initUserDataPath;
+      if (!srcUserDataPath) {
         const hasInitUserData = await fs.promises.stat(defaultInitUserDataPath).catch(() => false);
-        userDataPath = hasInitUserData ? defaultInitUserDataPath : undefined;
+        srcUserDataPath = hasInitUserData ? defaultInitUserDataPath : undefined;
       }
 
-      const app = await launchElectronApp({ initUserDataPath: userDataPath });
-      appInstances.push({ app, initUserDataPath: userDataPath });
-      return app;
-    });
+      // Copy init-user-data to a fresh tmp dir (same as pageWithUserData)
+      const tmpAppDataDir = await createTmpDir();
+      if (srcUserDataPath) {
+        await recursiveCopy(srcUserDataPath, tmpAppDataDir);
+      }
 
-    // Clean up all app instances
-    for (const { app } of appInstances) {
-      await app.context().close();
-      await app.close();
-    }
+      const templateVars: Record<string, string> = {};
+      if (collectionFixturePath) {
+        templateVars.collectionPath = collectionFixturePath;
+      }
+
+      // Close the previous app (from pageWithUserData) before launching a new one
+      return await reuseOrLaunchElectronApp({
+        initUserDataPath: tmpAppDataDir,
+        testFile: testInfo.file,
+        templateVars,
+        closePrevious: true
+      });
+    });
   },
 
-  pageWithUserData: async ({ reuseOrLaunchElectronApp, createTmpDir }, use, testInfo) => {
+  pageWithUserData: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
     const initUserDataPath = path.join(testDir, 'init-user-data');
 
@@ -227,23 +311,19 @@ export const test = baseTest.extend<
       throw err;
     }
 
-    const app = await reuseOrLaunchElectronApp({ initUserDataPath: tmpAppDataDir, testFile: testInfo.file });
+    const templateVars: Record<string, string> = {};
+    if (collectionFixturePath) {
+      templateVars.collectionPath = collectionFixturePath;
+    }
+
+    const app = await reuseOrLaunchElectronApp({ initUserDataPath: tmpAppDataDir, testFile: testInfo.file, templateVars });
 
     const context = await app.context();
     const page = await app.firstWindow();
-    const tracingOptions = (testInfo as any)._tracing.traceOptions();
-    if (tracingOptions) {
-      const tracePath = testInfo.outputPath(`trace-${testInfo.testId}.zip`);
-      try {
-        await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
-      } catch (e) { }
-      await context.tracing.startChunk();
-      await use(page);
-      await context.tracing.stopChunk({ path: tracePath });
-      await testInfo.attach('trace', { path: tracePath });
-    } else {
-      await use(page);
-    }
+
+    // Wait for app to be ready
+    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    await usePageWithTracing(context, page, testInfo, use, { initTracing: true });
   }
 });
 

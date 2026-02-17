@@ -1,6 +1,6 @@
 import React from 'react';
 import GradientCloseButton from './GradientCloseButton';
-import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock, IconDatabase, IconWorld } from '@tabler/icons';
+import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock, IconDatabase, IconWorld, IconHome } from '@tabler/icons';
 
 const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft }) => {
   const getTabInfo = (type, tabName) => {
@@ -69,6 +69,22 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
           </>
         );
       }
+      case 'workspaceOverview': {
+        return (
+          <>
+            <IconHome size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
+            <span className="ml-1 tab-name">Overview</span>
+          </>
+        );
+      }
+      case 'workspaceEnvironments': {
+        return (
+          <>
+            <IconWorld size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
+            <span className="ml-1 tab-name">Environments</span>
+          </>
+        );
+      }
     }
   };
 
@@ -80,7 +96,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
       >
         {getTabInfo(type, tabName)}
       </div>
-      <GradientCloseButton hasChanges={hasDraft} onClick={(e) => handleCloseClick(e)} />
+      {handleCloseClick && <GradientCloseButton hasChanges={hasDraft} onClick={(e) => handleCloseClick(e)} />}
     </>
   );
 };
