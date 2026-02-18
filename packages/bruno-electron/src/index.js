@@ -133,7 +133,7 @@ if (useSingleInstance && !gotTheLock) {
       if (url) {
         if (mainWindow) {
           focusMainWindow();
-          handleAppProtocolUrl(url);
+          handleAppProtocolUrl(url, mainWindow);
         } else {
           // Store for handling after window is ready
           appProtocolUrl = url;
@@ -148,7 +148,7 @@ if (useSingleInstance && !gotTheLock) {
     // Extract and handle protocol URL from the second instance attempt
     const url = getAppProtocolUrlFromArgv(commandLine);
     if (url) {
-      handleAppProtocolUrl(url);
+      handleAppProtocolUrl(url, mainWindow);
     }
   });
 }
@@ -350,12 +350,6 @@ app.on('ready', async () => {
     }
   });
 
-  mainWindow.webContents.once('did-finish-load', () => {
-    if (appProtocolUrl) {
-      handleAppProtocolUrl(appProtocolUrl);
-    }
-  });
-
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     try {
       const { protocol } = new URL(url);
@@ -392,6 +386,11 @@ app.on('ready', async () => {
     mainWindow.webContents.send('main:app-loaded', {
       isRunningInRosetta: getIsRunningInRosetta()
     });
+
+    if (appProtocolUrl) {
+      handleAppProtocolUrl(appProtocolUrl, mainWindow);
+      appProtocolUrl = null;
+    }
   });
 
   // register all ipc handlers
