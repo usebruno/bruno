@@ -514,8 +514,8 @@ const processCollectionItems = async (items = [], currentPath) => {
         sanitizedFilename += '.bru';
       }
 
-      // Convert JSON to BRU format based on the item type
-      let type = item.type === 'http-request' ? 'http' : 'graphql';
+      // Keep schema item type so filestore can stringify request correctly
+      const type = item.type;
       const bruJson = {
         type: type,
         name: item.name,
