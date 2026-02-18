@@ -97,7 +97,7 @@ const sanitizeCollections = (collections) => {
   }).map((collection) => {
     const sanitized = {
       name: collection.name.trim(),
-      path: collection.path.trim()
+      path: posixifyPath(collection.path.trim())
     };
 
     if (collection.remote && typeof collection.remote === 'string') {
@@ -121,7 +121,7 @@ const sanitizeSpecs = (specs) => {
     return true;
   }).map((spec) => ({
     name: spec.name.trim(),
-    path: spec.path.trim()
+    path: posixifyPath(spec.path.trim())
   }));
 };
 
