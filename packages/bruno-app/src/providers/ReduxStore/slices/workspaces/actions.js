@@ -12,6 +12,7 @@ import {
 import { showHomePage } from '../app';
 import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus } from '../collections';
+import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
 import { addTab, focusTab } from '../tabs';
 import { normalizePath } from 'utils/common/path';
@@ -154,6 +155,7 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
 
         if (workspaceCollection) {
           dispatch(removeCollection({ collectionUid: collection.uid }));
+          dispatch(clearCollectionState({ collectionUid: collection.uid }));
         }
       }
 

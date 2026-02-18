@@ -2701,7 +2701,10 @@ export const importCollection = (collection, collectionLocation, options = {}) =
       const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
       const isMultiple = Array.isArray(collection);
 
-      const result = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, options.format || DEFAULT_COLLECTION_FORMAT);
+      const result = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, {
+        format: options.format || DEFAULT_COLLECTION_FORMAT,
+        rawOpenAPISpec: options.rawOpenAPISpec
+      });
       const importedPaths = result.success.items;
 
       if (importedPaths.length > 0 && activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {

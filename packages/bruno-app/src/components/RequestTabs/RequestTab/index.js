@@ -146,6 +146,20 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     setShowConfirmFolderClose(true);
   };
 
+  const specialTabs = [
+    'collection-overview',
+    'collection-settings',
+    'folder-settings',
+    'variables',
+    'collection-runner',
+    'environment-settings',
+    'global-environment-settings',
+    'preferences',
+    'workspaceOverview',
+    'workspaceEnvironments',
+    'openapi-sync'
+  ];
+
   const hasDraft = tab.type === 'collection-settings' && collection?.draft;
   const hasFolderDraft = tab.type === 'folder-settings' && folder?.draft;
   const hasEnvironmentDraft = tab.type === 'environment-settings' && collection?.environmentsDraft;
@@ -172,7 +186,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     setShowConfirmGlobalEnvironmentClose(true);
   };
 
-  if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'environment-settings', 'global-environment-settings', 'preferences', 'workspaceOverview', 'workspaceEnvironments'].includes(tab.type)) {
+  if (specialTabs.includes(tab.type)) {
     return (
       <StyledWrapper
         className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
@@ -339,6 +353,13 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           <SpecialTab handleCloseClick={null} type={tab.type} />
         ) : tab.type === 'workspaceEnvironments' ? (
           <SpecialTab handleCloseClick={null} type={tab.type} />
+        ) : tab.type === 'openapi-sync' ? (
+          <SpecialTab
+            handleCloseClick={handleCloseClick}
+            handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
+            type={tab.type}
+            hasDraft={false}
+          />
         ) : (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}

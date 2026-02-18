@@ -12,7 +12,8 @@ import {
   IconX,
   IconCheck,
   IconFolder,
-  IconUpload
+  IconUpload,
+  IconRefresh
 } from '@tabler/icons';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
@@ -28,6 +29,7 @@ import ActionIcon from 'ui/ActionIcon';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
+import { useTheme } from 'providers/Theme';
 
 const CollectionHeader = ({ collection, isScratchCollection }) => {
   const dispatch = useDispatch();
@@ -74,9 +76,16 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     };
   }, [isRenamingWorkspace, handleCancelWorkspaceRename]);
 
+  const collectionUpdates = useSelector((state) => state.openapiSync?.collectionUpdates || {});
+  const { theme } = useTheme();
+
   if (!collection) {
     return null;
   }
+
+  const hasOpenApiSync = collection?.brunoConfig?.openapi?.sync?.sourceUrl;
+  const hasOpenApiUpdates = hasOpenApiSync && collectionUpdates[collection.uid]?.hasUpdates;
+  const hasOpenApiError = hasOpenApiSync && collectionUpdates[collection.uid]?.error;
 
   // Get mounted collections for the current workspace (excluding scratch collections)
   const mountedCollections = collections.filter((c) => {
@@ -162,6 +171,14 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         type: 'collection-settings'
       })
     );
+  };
+
+  const viewOpenApiSync = () => {
+    dispatch(addTab({
+      uid: uuid(),
+      collectionUid: collection.uid,
+      type: 'openapi-sync'
+    }));
   };
 
   // Workspace action handlers (only used when isScratchCollection is true)
@@ -423,6 +440,18 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         {/* Right side: Actions (only for regular collections) */}
         {!isScratchCollection && (
           <div className="flex flex-grow gap-1 items-center justify-end">
+            <ToolHint
+              text={hasOpenApiError ? 'OpenAPI Sync Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI Sync'}
+              toolhintId="OpenApiSyncToolhintId"
+              place="bottom"
+            >
+              <ActionIcon onClick={viewOpenApiSync} aria-label="OpenAPI Sync" size="sm" className="relative">
+                <IconRefresh size={16} strokeWidth={1.5} />
+                {(hasOpenApiUpdates || hasOpenApiError) && (
+                  <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: hasOpenApiError ? theme.status.danger.text : theme.status.warning.text }} />
+                )}
+              </ActionIcon>
+            </ToolHint>
             <ToolHint text="Runner" toolhintId="RunnerToolhintId" place="bottom">
               <ActionIcon onClick={handleRun} aria-label="Runner" size="sm">
                 <IconRun size={16} strokeWidth={1.5} />

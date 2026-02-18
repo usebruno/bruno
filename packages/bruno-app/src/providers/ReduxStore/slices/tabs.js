@@ -28,7 +28,8 @@ export const tabsSlice = createSlice({
         'global-environment-settings',
         'preferences',
         'workspaceOverview',
-        'workspaceEnvironments'
+        'workspaceEnvironments',
+        'openapi-sync'
       ];
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);

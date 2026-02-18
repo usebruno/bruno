@@ -262,6 +262,22 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
       };
     }
 
+    // bruno-specific extensions
+    if (brunoConfig.openapi?.sync) {
+      if (!oc.extensions.bruno) {
+        oc.extensions.bruno = {};
+      }
+      (oc.extensions.bruno as any).openapi = {
+        sync: {
+          sourceUrl: brunoConfig.openapi.sync.sourceUrl,
+          groupBy: brunoConfig.openapi.sync.groupBy,
+          specFilename: brunoConfig.openapi.sync.specFilename,
+          ...(brunoConfig.openapi.sync.lastSyncDate && { lastSyncDate: brunoConfig.openapi.sync.lastSyncDate }),
+          ...(brunoConfig.openapi.sync.specHash && { specHash: brunoConfig.openapi.sync.specHash })
+        }
+      };
+    }
+
     return stringifyYml(oc);
   } catch (error) {
     console.error('Error stringifying opencollection.yml:', error);

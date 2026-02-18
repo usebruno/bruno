@@ -2,6 +2,7 @@ import each from 'lodash/each';
 import get from 'lodash/get';
 import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
+import { HTTP_METHODS } from '../utils/openapi-utils';
 
 // Content type patterns for matching MIME type variants
 // These patterns handle structured types with many variants (e.g., application/ld+json, application/vnd.api+json)
@@ -1245,9 +1246,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
       .map(([path, methods]) => {
         return Object.entries(methods)
           .filter(([method, op]) => {
-            return ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'].includes(
-              method.toLowerCase()
-            );
+            return HTTP_METHODS.includes(method.toLowerCase());
           })
           .map(([method, operationObject]) => {
             return {

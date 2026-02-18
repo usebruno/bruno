@@ -20,7 +20,8 @@ import {
   IconSettings,
   IconTerminal2,
   IconFolder,
-  IconBook
+  IconBook,
+  IconRefresh
 } from '@tabler/icons';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
@@ -67,6 +68,18 @@ const Collection = ({ collection, searchText }) => {
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const menuDropdownRef = useRef(null);
+
+  // Open the OpenAPI Sync tab
+  const openOpenAPISyncTab = () => {
+    ensureCollectionIsMounted();
+    dispatch(
+      addTab({
+        uid: uuid(),
+        collectionUid: collection.uid,
+        type: 'openapi-sync'
+      })
+    );
+  };
 
   const handleRun = () => {
     dispatch(
@@ -314,6 +327,12 @@ const Collection = ({ collection, searchText }) => {
       onClick: () => {
         setShowCloneCollectionModalOpen(true);
       }
+    },
+    {
+      id: 'sync-openapi',
+      leftSection: IconRefresh,
+      label: 'OpenAPI Sync',
+      onClick: openOpenAPISyncTab
     },
     ...(hasCopiedItems
       ? [
