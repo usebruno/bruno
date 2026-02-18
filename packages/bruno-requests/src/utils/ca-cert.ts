@@ -17,6 +17,16 @@ type T_CACertificatesResult = {
 };
 
 let systemCertsCache: string[] | undefined;
+let cachedResult: { key: string; result: T_CACertificatesResult } | undefined;
+
+function getFileMtimeMs(filePath: string | undefined): number | null {
+  if (!filePath) return null;
+  try {
+    return fs.statSync(filePath).mtimeMs;
+  } catch {
+    return null;
+  }
+}
 
 function getSystemCerts(): string[] {
   if (systemCertsCache) return systemCertsCache;
@@ -90,6 +100,18 @@ function getNodeExtraCACerts(): string[] {
  */
 
 const getCACertificates = ({ caCertFilePath, shouldKeepDefaultCerts = true }: T_CACertificatesOptions): T_CACertificatesResult => {
+  const cacheKey = JSON.stringify({
+    caCertFilePath: caCertFilePath ?? null,
+    caCertFilePathMtime: getFileMtimeMs(caCertFilePath),
+    extraCertPath: process.env.NODE_EXTRA_CA_CERTS ?? null,
+    extraCertPathMtime: getFileMtimeMs(process.env.NODE_EXTRA_CA_CERTS),
+    shouldKeepDefaultCerts
+  });
+
+  if (cachedResult && cachedResult.key === cacheKey) {
+    return cachedResult.result;
+  }
+
   try {
     let caCertificates = '';
     let caCertificatesCount = {
@@ -149,10 +171,10 @@ const getCACertificates = ({ caCertFilePath, shouldKeepDefaultCerts = true }: T_
     const mergedCerts = mergeCA(systemCerts, rootCerts, customCerts, nodeExtraCerts);
     caCertificates = mergedCerts;
 
-    return {
-      caCertificates,
-      caCertificatesCount
-    };
+    const result = { caCertificates, caCertificatesCount };
+    cachedResult = { key: cacheKey, result };
+
+    return result;
   } catch (err) {
     console.error('Error configuring CA certificates:', (err as Error).message);
     throw err; // Re-throw certificate loading errors as they're critical
