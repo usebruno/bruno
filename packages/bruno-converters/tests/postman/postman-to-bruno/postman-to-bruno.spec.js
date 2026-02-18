@@ -604,6 +604,58 @@ describe('postman-collection', () => {
       digest: null
     });
   });
+
+  it('should skip query params where both key and value are null', async () => {
+    const collectionWithNullQueryParams = {
+      info: {
+        _postman_id: 'test-null-query-params',
+        name: 'collection with null query params',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with null query params',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              raw: 'https://example.com/api?search=test',
+              protocol: 'https',
+              host: ['example', 'com'],
+              path: ['api'],
+              query: [
+                { key: 'search', value: 'test' },
+                { key: null, value: null },
+                { key: null, value: 'somevalue' },
+                { key: 'emptyval', value: null }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNullQueryParams);
+    const params = brunoCollection.items[0].request.params;
+
+    // Fully-null entry should be skipped
+    expect(params).toHaveLength(3);
+
+    // Normal param preserved as-is
+    expect(params[0].name).toBe('search');
+    expect(params[0].value).toBe('test');
+    expect(params[0].type).toBe('query');
+
+    // Null key normalized to empty string, value preserved
+    expect(params[1].name).toBe('');
+    expect(params[1].value).toBe('somevalue');
+    expect(params[1].type).toBe('query');
+
+    // Key preserved, null value normalized to empty string
+    expect(params[2].name).toBe('emptyval');
+    expect(params[2].value).toBe('');
+    expect(params[2].type).toBe('query');
+  });
 });
 
 // Simple Collection (postman)

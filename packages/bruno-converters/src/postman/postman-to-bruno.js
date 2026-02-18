@@ -533,10 +533,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       processAuth(i.request.auth, brunoRequestItem.request);
 
       each(get(i, 'request.url.query'), (param) => {
+        if (param.key == null && param.value == null) {
+          return;
+        }
         brunoRequestItem.request.params.push({
           uid: uuid(),
-          name: param.key,
-          value: param.value,
+          name: param.key ?? '',
+          value: param.value ?? '',
           description: transformDescription(param.description),
           type: 'query',
           enabled: !param.disabled
@@ -619,10 +622,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           // Convert original request query parameters
           if (originalRequest.url && originalRequest.url.query && Array.isArray(originalRequest.url.query)) {
             originalRequest.url.query.forEach((param) => {
+              if (param.key == null && param.value == null) {
+                return;
+              }
               example.request.params.push({
                 uid: uuid(),
-                name: param.key,
-                value: param.value,
+                name: param.key ?? '',
+                value: param.value ?? '',
                 description: transformDescription(param.description),
                 type: 'query',
                 enabled: !param.disabled
