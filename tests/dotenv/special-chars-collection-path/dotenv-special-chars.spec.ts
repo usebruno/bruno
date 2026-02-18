@@ -6,7 +6,7 @@ test.describe('DotEnv file in collection with special characters in path', () =>
     await closeAllCollections(page);
   });
 
-  test('should detect .env file in collection with brackets in folder name', async ({ page, createTmpDir }) => {
+  test('should detect .env file in collection with brackets in collection name', async ({ page, createTmpDir }) => {
     const collectionName = 'My API (v2)';
     const tmpDir = await createTmpDir(collectionName);
 
