@@ -7,18 +7,17 @@ import { interpolateAuth, interpolateHeaders, interpolateBody, interpolateParams
 import { parse, format } from 'url';
 import { stringify } from 'querystring';
 
-const getEncodedUrl = (rawUrl) => {
+// Replicates HTTPSnippet's internal URL encoding to compute the encoded path+query.
+// Replacing the path portion covers all targets: full-URL targets (curl, fetch) contain
+// the path as a substring, and path-only targets (http.client, raw HTTP) use it directly.
+const getEncodedPath = (rawUrl) => {
   const parsed = parse(rawUrl, true, true);
   if (!parsed.query || Object.keys(parsed.query).length === 0) {
-    return rawUrl;
+    return null;
   }
   const search = stringify(parsed.query);
-  return format({
-    ...parsed,
-    search,
-    query: parsed.query,
-    path: search ? `${parsed.pathname}?${search}` : parsed.pathname
-  });
+  const encodedPath = search ? `${parsed.pathname}?${search}` : parsed.pathname;
+  return { encodedPath, rawPath: parsed.path };
 };
 
 const addCurlAuthFlags = (curlCommand, auth) => {
@@ -95,14 +94,14 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       result = addCurlAuthFlags(result, effectiveAuth);
     }
 
-    // Respect encodeUrl setting: when not explicitly true, replace HTTPSnippet's encoded URL with the raw URL
+    // Respect encodeUrl setting: when not explicitly true, replace HTTPSnippet's encoded path+query with the raw version.
+    // Replacing the path portion works for all targets since it's a substring of the full URL.
     // encodeUrl defaults to false in the UI when undefined/null
     const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
     if (settings?.encodeUrl !== true) {
-      const rawUrl = request.url;
-      const encodedUrl = getEncodedUrl(rawUrl);
-      if (encodedUrl !== rawUrl) {
-        result = result.replaceAll(encodedUrl, rawUrl);
+      const parts = getEncodedPath(request.url);
+      if (parts && parts.encodedPath !== parts.rawPath) {
+        result = result.replaceAll(parts.encodedPath, parts.rawPath);
       }
     }
 

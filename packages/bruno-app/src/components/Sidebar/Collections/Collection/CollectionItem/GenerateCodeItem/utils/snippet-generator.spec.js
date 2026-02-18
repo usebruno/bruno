@@ -911,21 +911,16 @@ describe('generateSnippet – encodeUrl setting', () => {
   const language = { target: 'shell', client: 'curl' };
   const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
 
-  // Replicate HTTPSnippet's internal encoding pipeline
-  const getEncodedUrl = (url) => {
-    const { parse, format } = require('url');
+  // Replicate HTTPSnippet's internal encoding to get encoded path+query
+  const getEncodedPath = (url) => {
+    const { parse } = require('url');
     const { stringify } = require('querystring');
     const parsed = parse(url, true, true);
     if (!parsed.query || Object.keys(parsed.query).length === 0) {
-      return url;
+      return parsed.path;
     }
     const search = stringify(parsed.query);
-    return format({
-      ...parsed,
-      search,
-      query: parsed.query,
-      path: search ? `${parsed.pathname}?${search}` : parsed.pathname
-    });
+    return search ? `${parsed.pathname}?${search}` : parsed.pathname;
   };
 
   const makeItem = (url, settings, draft) => ({
@@ -945,11 +940,19 @@ describe('generateSnippet – encodeUrl setting', () => {
     jest.clearAllMocks();
     // Mock HTTPSnippet to simulate encoding (same pipeline as the real library)
     require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation((harRequest) => ({
-      convert: jest.fn(() => {
+      convert: jest.fn((target) => {
         const method = harRequest?.method || 'GET';
         const url = harRequest?.url || 'http://example.com';
-        const encodedUrl = getEncodedUrl(url);
-        return `curl -X ${method} '${encodedUrl}'`;
+        const { parse } = require('url');
+        const parsed = parse(url, false, true);
+        const encodedPath = getEncodedPath(url);
+        // Simulate targets that use only the path (e.g., python http.client, raw HTTP)
+        if (target === 'python') {
+          return `conn.request("${method}", "${encodedPath}", headers=headers)`;
+        }
+        // Full URL targets: reconstruct with encoded path
+        const fullEncodedUrl = `${parsed.protocol}//${parsed.host}${encodedPath}`;
+        return `curl -X ${method} '${fullEncodedUrl}'`;
       })
     }));
   });
@@ -1028,5 +1031,16 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).toContain('token=abc123==');
     // %3D%3D = encoded '=='
     expect(result).not.toContain('%3D%3D');
+  });
+
+  it('should replace encoded path for targets that use only path+query (e.g., python http.client)', () => {
+    const pythonLanguage = { target: 'python', client: 'python3' };
+    const rawUrl = 'https://example.com/api?token=abc123==&type=test';
+    const item = makeItem(rawUrl, { encodeUrl: false });
+
+    const result = generateSnippet({ language: pythonLanguage, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('/api?token=abc123==&type=test');
+    // %3D = encoded '='
+    expect(result).not.toContain('%3D');
   });
 });
