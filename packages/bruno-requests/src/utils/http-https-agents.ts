@@ -10,6 +10,7 @@ import { HttpProxyAgent } from 'http-proxy-agent';
 import { isEmpty, get, isUndefined, isNull } from 'lodash';
 import { getCACertificates } from './ca-cert';
 import { transformProxyConfig } from './proxy-util';
+import { getOrCreateAgent, getOrCreateHttpAgent } from './agent-cache';
 
 const DEFAULT_PORTS: Record<string, number> = {
   ftp: 21,
@@ -113,6 +114,12 @@ type GetCertsAndProxyConfigResult = {
   certsConfig: CertsConfig;
 };
 
+type TimelineEntry = {
+  timestamp: Date;
+  type: 'info' | 'tls' | 'error';
+  message: string;
+};
+
 type CreateAgentsParams = {
   requestUrl?: string;
   proxyMode: ProxyMode;
@@ -120,6 +127,7 @@ type CreateAgentsParams = {
   certsConfig: CertsConfig;
   httpsAgentRequestFields: HttpsAgentRequestFields;
   systemProxyConfig?: SystemProxyConfig;
+  timeline?: TimelineEntry[];
 };
 
 type GetHttpHttpsAgentsParams = {
@@ -132,6 +140,7 @@ type GetHttpHttpsAgentsParams = {
   collectionLevelProxy?: ProxyConfig;
   appLevelProxyConfig?: Record<string, any>;
   systemProxyConfig?: SystemProxyConfig;
+  timeline?: TimelineEntry[];
 };
 
 /**
@@ -342,7 +351,8 @@ function createAgents({
   proxyConfig,
   systemProxyConfig,
   certsConfig,
-  httpsAgentRequestFields
+  httpsAgentRequestFields,
+  timeline
 }: CreateAgentsParams): AgentResult {
   // Ensure TLS options are properly set
   const tlsOptions: TlsOptions = {
@@ -359,6 +369,8 @@ function createAgents({
   let httpsAgent: HttpsAgent | HttpsProxyAgent<any> | SocksProxyAgent | undefined;
 
   if (proxyMode === 'on') {
+    // Determine if this is an HTTPS request
+    const isHttpsRequest = requestUrl ? requestUrl.startsWith('https:') : true;
     const shouldProxy = shouldUseProxy(requestUrl, get(proxyConfig, 'bypassProxy', ''));
     if (shouldProxy) {
       const proxyProtocol = get(proxyConfig, 'protocol');
@@ -381,16 +393,26 @@ function createAgents({
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
 
+      // Only set the agent needed for the request protocol
       if (socksEnabled) {
-        httpAgent = new SocksProxyAgent(proxyUri);
-        httpsAgent = new SocksProxyAgent(proxyUri, tlsOptions as any);
+        if (isHttpsRequest) {
+          httpsAgent = getOrCreateAgent(SocksProxyAgent, tlsOptions as any, proxyUri, timeline || null) as HttpsAgent;
+        } else {
+          httpAgent = getOrCreateHttpAgent(SocksProxyAgent, { keepAlive: true }, proxyUri, timeline || null);
+        }
       } else {
-        httpAgent = new HttpProxyAgent(proxyUri);
-        httpsAgent = new PatchedHttpsProxyAgent(proxyUri, tlsOptions);
+        if (isHttpsRequest) {
+          httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions as any, proxyUri, timeline || null) as HttpsAgent;
+        } else {
+          httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, proxyUri, timeline || null);
+        }
       }
     } else {
-      // If proxy should not be used, set default HTTPS agent
-      httpsAgent = new https.Agent(tlsOptions as any);
+      // If proxy should not be used, only set HTTPS agent for HTTPS requests
+      if (isHttpsRequest) {
+        httpsAgent = getOrCreateAgent(https.Agent, tlsOptions as any, null, timeline || null) as HttpsAgent;
+      }
+      // HTTP requests without proxy don't need a custom agent
     }
   } else if (proxyMode === 'system') {
     const http_proxy = get(systemProxyConfig, 'http_proxy');
@@ -401,7 +423,7 @@ function createAgents({
       try {
         if (http_proxy?.length) {
           new URL(http_proxy);
-          httpAgent = new HttpProxyAgent(http_proxy);
+          httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, http_proxy, timeline || null);
         }
       } catch (error) {
         throw new Error('Invalid system http_proxy');
@@ -409,18 +431,18 @@ function createAgents({
       try {
         if (https_proxy?.length) {
           new URL(https_proxy);
-          httpsAgent = new PatchedHttpsProxyAgent(https_proxy, tlsOptions as any);
+          httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions as any, https_proxy, timeline || null) as HttpsAgent;
         } else {
-          httpsAgent = new https.Agent(tlsOptions as any);
+          httpsAgent = getOrCreateAgent(https.Agent, tlsOptions as any, null, timeline || null) as HttpsAgent;
         }
       } catch (error) {
         throw new Error('Invalid system https_proxy');
       }
     } else {
-      httpsAgent = new https.Agent(tlsOptions as any);
+      httpsAgent = getOrCreateAgent(https.Agent, tlsOptions as any, null, timeline || null) as HttpsAgent;
     }
   } else {
-    httpsAgent = new https.Agent(tlsOptions as any);
+    httpsAgent = getOrCreateAgent(https.Agent, tlsOptions as any, null, timeline || null) as HttpsAgent;
   }
 
   return { httpAgent, httpsAgent };
@@ -433,7 +455,8 @@ const getHttpHttpsAgents = async ({
   collectionLevelProxy,
   appLevelProxyConfig,
   systemProxyConfig,
-  options
+  options,
+  timeline
 }: GetHttpHttpsAgentsParams): Promise<AgentResult> => {
   const { proxyMode, proxyConfig, certsConfig } = getCertsAndProxyConfig({
     requestUrl,
@@ -460,7 +483,8 @@ const getHttpHttpsAgents = async ({
     proxyConfig,
     systemProxyConfig,
     certsConfig,
-    httpsAgentRequestFields
+    httpsAgentRequestFields,
+    timeline
   });
 
   return { httpAgent, httpsAgent };

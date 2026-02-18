@@ -9,7 +9,8 @@ const { interpolateString, interpolateObject } = require('./interpolate-string')
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
-const https = require('https');
+const https = require('node:https');
+const http = require('node:http');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
@@ -22,7 +23,7 @@ const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2 } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig, getOrCreateAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
 const { getOAuth2Token } = require('../utils/oauth2');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData } = require('@usebruno/common').utils;
 
@@ -408,6 +409,15 @@ const runSingleRequest = async function (
     }
     // else: collection proxy is disabled, proxyMode stays 'off'
 
+    // Prepare TLS options for agent caching
+    const tlsOptions = {
+      ...httpsAgentRequestFields,
+      keepAlive: true
+    };
+
+    const parsedRequestUrl = new URL(request.url);
+    const isHttpsRequest = parsedRequestUrl.protocol === 'https:';
+
     if (proxyMode === 'on') {
       const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
       if (shouldProxy) {
@@ -426,35 +436,30 @@ const runSingleRequest = async function (
         } else {
           proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
         }
+        // Only set the agent needed for the request protocol
         if (socksEnabled) {
-          request.httpsAgent = new SocksProxyAgent(
-            proxyUri,
-            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-          );
-          request.httpAgent = new SocksProxyAgent(proxyUri);
+          if (isHttpsRequest) {
+            request.httpsAgent = getOrCreateAgent(SocksProxyAgent, tlsOptions, proxyUri);
+          } else {
+            request.httpAgent = getOrCreateHttpAgent(SocksProxyAgent, { keepAlive: true }, proxyUri);
+          }
         } else {
-          request.httpsAgent = new PatchedHttpsProxyAgent(
-            proxyUri,
-            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-          );
-          request.httpAgent = new HttpProxyAgent(proxyUri);
+          if (isHttpsRequest) {
+            request.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, proxyUri);
+          } else {
+            request.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, proxyUri);
+          }
         }
-      } else {
-        request.httpsAgent = new https.Agent({
-          ...httpsAgentRequestFields
-        });
       }
     } else if (proxyMode === 'system') {
       try {
         const { http_proxy, https_proxy, no_proxy } = cachedSystemProxy || {};
         const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
-        const parsedUrl = new URL(request.url);
-        const isHttpsRequest = parsedUrl.protocol === 'https:';
         if (shouldUseSystemProxy) {
           try {
             if (http_proxy?.length && !isHttpsRequest) {
               new URL(http_proxy);
-              request.httpAgent = new HttpProxyAgent(http_proxy);
+              request.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, http_proxy);
             }
           } catch (error) {
             throw new Error('Invalid system http_proxy');
@@ -462,30 +467,24 @@ const runSingleRequest = async function (
           try {
             if (https_proxy?.length && isHttpsRequest) {
               new URL(https_proxy);
-              request.httpsAgent = new PatchedHttpsProxyAgent(https_proxy,
-                Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined);
-            } else {
-              request.httpsAgent = new https.Agent({
-                ...httpsAgentRequestFields
-              });
+              request.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, https_proxy);
             }
           } catch (error) {
             throw new Error('Invalid system https_proxy');
           }
-        } else {
-          request.httpsAgent = new https.Agent({
-            ...httpsAgentRequestFields
-          });
         }
       } catch (error) {
-        request.httpsAgent = new https.Agent({
-          ...httpsAgentRequestFields
-        });
+        // Log system proxy detection errors but continue without proxy
+        console.warn('Failed to configure system proxy:', error.message);
       }
-    } else if (Object.keys(httpsAgentRequestFields).length > 0) {
-      request.httpsAgent = new https.Agent({
-        ...httpsAgentRequestFields
-      });
+    }
+
+    if (!request.httpAgent && !request.httpsAgent) {
+      if (isHttpsRequest) {
+        request.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null);
+      } else {
+        request.httpAgent = getOrCreateHttpAgent(http.Agent, { keepAlive: true }, null);
+      }
     }
 
     // set cookies if enabled
