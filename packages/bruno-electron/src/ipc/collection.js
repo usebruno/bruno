@@ -86,7 +86,7 @@ const MAX_COLLECTION_FILES_COUNT = 2000;
 
 // Get the base directory for transient request files (stored in app data directory)
 const getTransientDirectoryBase = () => {
-  return path.join(app.getPath('userData'), 'transient');
+  return path.join(app.getPath('userData'), 'tmp', 'transient');
 };
 
 // Get the prefix used for transient collection directories
