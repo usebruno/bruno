@@ -79,6 +79,24 @@ const grammar = ohm.grammar(`Bru {
   docs = "docs" st* "{" nl* textblock tagend
 }`);
 
+const extractDescription = (pair) => {
+  if (!_.isString(pair.value)) {
+    return;
+  }
+  const tripleMatch = pair.value.match(/\s*@description\('''([\s\S]*?)'''\)\s*$/);
+  if (tripleMatch) {
+    pair.description = tripleMatch[1].trim();
+    pair.value = pair.value.slice(0, -tripleMatch[0].length).trim();
+    return;
+  }
+  const doubleMatch = pair.value.match(/\s*@description\("([^"]*)"\)\s*$/);
+  if (doubleMatch) {
+    pair.description = doubleMatch[1].trim();
+    pair.value = pair.value.slice(0, -doubleMatch[0].length).trim();
+    return;
+  }
+};
+
 const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   if (!pairList.length) {
     return [];
@@ -100,11 +118,13 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       enabled = false;
     }
 
-    return {
+    const result = {
       name,
       value,
       enabled
     };
+    extractDescription(result);
+    return result;
   });
 };
 

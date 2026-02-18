@@ -20,6 +20,7 @@ const EditableTable = ({
   reorderable = false,
   onReorder,
   showAddRow = true,
+  addRowLabel,
   testId = 'editable-table'
 }) => {
   const tableRef = useRef(null);
@@ -234,6 +235,10 @@ const EditableTable = ({
     onChange(filteredRows);
   }, [rows, onChange]);
 
+  const handleAddRow = useCallback(() => {
+    onChange([...rows, createEmptyRow()]);
+  }, [rows, onChange, createEmptyRow]);
+
   const handleDragStart = useCallback((e, index) => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', index);
@@ -423,6 +428,18 @@ const EditableTable = ({
           </tbody>
         </table>
       </div>
+      {showAddRow && addRowLabel && (
+        <div className="mt-2">
+          <button
+            type="button"
+            className="btn-action text-link select-none"
+            onClick={handleAddRow}
+            data-testid="editable-table-add-row"
+          >
+            {addRowLabel}
+          </button>
+        </div>
+      )}
     </StyledWrapper>
   );
 };

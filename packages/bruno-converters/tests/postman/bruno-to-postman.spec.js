@@ -241,8 +241,8 @@ describe('brunoToPostman null checks and fallbacks', () => {
 
     const result = brunoToPostman(simpleCollection);
     expect(result.item[0].request.body.urlencoded).toEqual([
-      { key: '', value: 'test-value', disabled: false, type: 'default' },
-      { key: 'field', value: '', disabled: false, type: 'default' }
+      { key: '', value: 'test-value', disabled: false, type: 'default', description: '' },
+      { key: 'field', value: '', disabled: false, type: 'default', description: '' }
     ]);
   });
 
@@ -524,6 +524,7 @@ describe('brunoToPostman multipartForm handling', () => {
       mode: 'formdata',
       formdata: [
         {
+          description: '',
           key: 'myFile',
           src: ['/path/to/file1.txt', '/path/to/file2.txt'],
           disabled: false,
@@ -563,6 +564,7 @@ describe('brunoToPostman multipartForm handling', () => {
       mode: 'formdata',
       formdata: [
         {
+          description: '',
           key: 'myField',
           value: 'some text value',
           disabled: false,
@@ -603,6 +605,7 @@ describe('brunoToPostman multipartForm handling', () => {
       mode: 'formdata',
       formdata: [
         {
+          description: '',
           key: 'myFile',
           src: ['/path/to/file.json'],
           disabled: false,
@@ -649,12 +652,14 @@ describe('brunoToPostman multipartForm handling', () => {
       mode: 'formdata',
       formdata: [
         {
+          description: '',
           key: 'textField',
           value: 'hello',
           disabled: false,
           type: 'text'
         },
         {
+          description: '',
           key: 'fileField',
           src: ['/path/to/file.txt'],
           disabled: true,
@@ -691,6 +696,7 @@ describe('brunoToPostman multipartForm handling', () => {
 
     const result = brunoToPostman(simpleCollection);
     expect(result.item[0].request.body.formdata[0]).toEqual({
+      description: '',
       key: 'myFile',
       src: ['/single/file/path.txt'],
       disabled: false,
@@ -725,6 +731,7 @@ describe('brunoToPostman multipartForm handling', () => {
 
     const result = brunoToPostman(simpleCollection);
     expect(result.item[0].request.body.formdata[0]).toEqual({
+      description: '',
       key: 'myFile',
       src: [],
       disabled: false,

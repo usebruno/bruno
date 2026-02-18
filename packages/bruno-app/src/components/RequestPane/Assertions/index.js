@@ -163,6 +163,7 @@ const Assertions = ({ item, collection }) => {
         defaultRow={defaultRow}
         reorderable={true}
         onReorder={handleAssertionDrag}
+        addRowLabel="Add Assertion"
         testId="assertions-table"
       />
     </StyledWrapper>

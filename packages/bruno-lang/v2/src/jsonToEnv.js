@@ -1,6 +1,15 @@
 const _ = require('lodash');
 const { getValueString, indentString } = require('./utils');
 
+const getDescriptionSuffix = (variable) => {
+  const desc = variable && variable.description && String(variable.description).trim();
+  if (!desc) return '';
+  if (desc.includes('\'\'\'')) {
+    return ' @description("' + desc.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '")';
+  }
+  return ' @description(\'\'\'' + desc.replace(/\\/g, '\\\\') + '\'\'\')';
+};
+
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);
   const color = _.get(json, 'color', null);
@@ -11,7 +20,7 @@ const envToJson = (json) => {
       const { name, value, enabled } = variable;
       const prefix = enabled ? '' : '~';
 
-      return indentString(`${prefix}${name}: ${getValueString(value)}`);
+      return indentString(`${prefix}${name}: ${getValueString(value)}${getDescriptionSuffix(variable)}`);
     });
 
   const secretVars = variables

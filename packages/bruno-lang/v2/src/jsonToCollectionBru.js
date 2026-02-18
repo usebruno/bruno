@@ -5,6 +5,15 @@ const { indentString, getValueString, getKeyString } = require('./utils');
 const enabled = (items = []) => items.filter((item) => item.enabled);
 const disabled = (items = []) => items.filter((item) => !item.enabled);
 
+const getDescriptionSuffix = (item) => {
+  const desc = item && item.description && String(item.description).trim();
+  if (!desc) return '';
+  if (desc.includes('\'\'\'')) {
+    return ' @description("' + desc.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '")';
+  }
+  return ' @description(\'\'\'' + desc.replace(/\\/g, '\\\\') + '\'\'\')';
+};
+
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
   if (!text || !text.length) return text;
@@ -30,7 +39,7 @@ const jsonToCollectionBru = (json) => {
     if (enabled(query).length) {
       bru += `\n${indentString(
         enabled(query)
-          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
@@ -38,7 +47,7 @@ const jsonToCollectionBru = (json) => {
     if (disabled(query).length) {
       bru += `\n${indentString(
         disabled(query)
-          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
@@ -51,7 +60,7 @@ const jsonToCollectionBru = (json) => {
     if (enabled(headers).length) {
       bru += `\n${indentString(
         enabled(headers)
-          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
@@ -59,7 +68,7 @@ const jsonToCollectionBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
-          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`)
           .join('\n')
       )}`;
     }
@@ -354,19 +363,19 @@ ${indentString(
     bru += `vars:pre-request {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -380,19 +389,19 @@ ${indentString(
     bru += `vars:post-response {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}${getDescriptionSuffix(item)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';

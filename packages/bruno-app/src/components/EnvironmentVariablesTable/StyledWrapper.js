@@ -31,10 +31,28 @@ const Wrapper = styled.div`
         width: 25px;
         border-right: none;
       }
+      &:nth-child(3) {
+        vertical-align: top;
+      }
       &:nth-child(4) {
         width: 80px;
       }
       &:nth-child(5) {
+        width: 10%;
+      }
+    }
+
+    &.has-description-column td {
+      &:nth-child(4) {
+        vertical-align: top;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        word-break: break-word;
+      }
+      &:nth-child(5) {
+        width: 80px;
+      }
+      &:nth-child(6) {
         width: 60px;
       }
     }
@@ -49,11 +67,8 @@ const Wrapper = styled.div`
         padding: 5px 10px !important;
         border-bottom: solid 1px ${(props) => props.theme.border.border0};
         border-right: solid 1px ${(props) => props.theme.border.border0};
+        border-left: solid 1px ${(props) => props.theme.border.border0};
         position: relative;
-
-        &:last-child {
-          border-right: none;
-        }
 
         .resize-handle {
           position: absolute;
@@ -154,6 +169,23 @@ const Wrapper = styled.div`
     &:hover {
       opacity: 0.9;
     }
+  }
+
+  .description-toggle {
+    background: transparent;
+    padding: 6px;
+    color: ${(props) => props.theme.brand};
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  .secret-column {
+    width: 8% !important;
+  }
+
+  .actions-column {
+    width: 5%;
   }
 
   .reset {
