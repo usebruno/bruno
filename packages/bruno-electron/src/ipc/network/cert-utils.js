@@ -4,7 +4,8 @@ const { get } = require('lodash');
 const { getCACertificates } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
-const { interpolateString } = require('./interpolate-string');
+const { getCachedSystemProxy } = require('../../store/system-proxy');
+const { interpolateString, interpolateObject } = require('./interpolate-string');
 
 /**
  * Gets certificates and proxy configuration for a request
@@ -142,8 +143,10 @@ const getCertsAndProxyConfig = async ({
       proxyConfig = globalProxyConfigData;
       proxyMode = 'on';
     } else if (!globalDisabled && globalInherit) {
-      // Use system proxy
+      // Use system proxy (cached at app startup)
       proxyMode = 'system';
+      const systemProxyConfig = getCachedSystemProxy();
+      proxyConfig = systemProxyConfig || { http_proxy: null, https_proxy: null, no_proxy: null, source: 'cache-miss' };
     }
     // else: global proxy is disabled, proxyMode stays 'off'
   }
@@ -152,4 +155,72 @@ const getCertsAndProxyConfig = async ({
   return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
 };
 
-module.exports = { getCertsAndProxyConfig };
+/**
+ * Builds the certsAndProxyConfig object for bru.sendRequest
+ * This allows bru.sendRequest to use the same proxy/certs config as the main request
+ */
+const buildCertsAndProxyConfig = async ({
+  collectionUid,
+  collection,
+  collectionPath,
+  envVars,
+  runtimeVariables,
+  processEnvVars,
+  request
+}) => {
+  const brunoConfig = getBrunoConfig(collectionUid, collection);
+
+  // Build interpolation options (same pattern as getCertsAndProxyConfig)
+  const globalEnvironmentVariables = collection.globalEnvironmentVariables || {};
+  const { promptVariables } = collection;
+  const collectionVariables = request?.collectionVariables || {};
+  const folderVariables = request?.folderVariables || {};
+  const requestVariables = request?.requestVariables || {};
+
+  const interpolationOptions = {
+    globalEnvironmentVariables,
+    collectionVariables,
+    envVars,
+    folderVariables,
+    requestVariables,
+    runtimeVariables,
+    promptVariables,
+    processEnvVars
+  };
+
+  // Build options for getHttpHttpsAgents
+  const options = {
+    noproxy: false,
+    shouldVerifyTls: preferencesUtil.shouldVerifyTls(),
+    shouldUseCustomCaCertificate: preferencesUtil.shouldUseCustomCaCertificate(),
+    customCaCertificateFilePath: preferencesUtil.getCustomCaCertificateFilePath(),
+    shouldKeepDefaultCaCertificates: preferencesUtil.shouldKeepDefaultCaCertificates()
+  };
+
+  // Get client certificates from bruno config and interpolate
+  const rawClientCertificates = get(brunoConfig, 'clientCertificates');
+  const clientCertificates = rawClientCertificates
+    ? interpolateObject(rawClientCertificates, interpolationOptions)
+    : undefined;
+
+  // Get proxy config from bruno config and interpolate
+  const collectionProxyConfig = get(brunoConfig, 'proxy', {});
+  const collectionLevelProxy = interpolateObject(collectionProxyConfig, interpolationOptions);
+
+  // Get app-level proxy config from global preferences
+  const appLevelProxyConfig = preferencesUtil.getGlobalProxyConfig();
+
+  // Get system proxy config
+  const systemProxyConfig = getCachedSystemProxy();
+
+  return {
+    collectionPath,
+    options,
+    clientCertificates,
+    collectionLevelProxy,
+    appLevelProxyConfig,
+    systemProxyConfig
+  };
+};
+
+module.exports = { getCertsAndProxyConfig, buildCertsAndProxyConfig };

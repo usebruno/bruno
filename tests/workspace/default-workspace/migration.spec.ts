@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect } from '../../../playwright';
+import { test, expect, closeElectronApp } from '../../../playwright';
 
 const env = {
   DISABLE_SAMPLE_COLLECTION_IMPORT: 'false'
@@ -50,8 +50,7 @@ test.describe('Default Workspace Migration', () => {
       });
 
       await test.step('Cleanup', async () => {
-        await app.context().close();
-        await app.close();
+        await closeElectronApp(app);
       });
     });
 
@@ -97,8 +96,7 @@ test.describe('Default Workspace Migration', () => {
       expect(workspaceYml).toContain('collection-1');
       expect(workspaceYml).toContain('collection-2');
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
   });
 
@@ -138,8 +136,7 @@ test.describe('Default Workspace Migration', () => {
       const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
       await expect(sampleCollection).not.toBeVisible();
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
   });
 
@@ -158,8 +155,7 @@ test.describe('Default Workspace Migration', () => {
       expect(fs.existsSync(workspacePath)).toBe(true);
       const originalYmlContent = fs.readFileSync(path.join(workspacePath, 'workspace.yml'), 'utf8');
 
-      await app1.context().close();
-      await app1.close();
+      await closeElectronApp(app1);
 
       // Second launch - should reuse existing workspace
       const app2 = await launchElectronApp({ userDataPath });
@@ -174,8 +170,7 @@ test.describe('Default Workspace Migration', () => {
       // No new workspace should have been created
       expect(fs.existsSync(path.join(userDataPath, 'default-workspace-1'))).toBe(false);
 
-      await app2.context().close();
-      await app2.close();
+      await closeElectronApp(app2);
     });
   });
 
@@ -201,8 +196,7 @@ test.describe('Default Workspace Migration', () => {
       // Collections should be empty (just the key)
       expect(workspaceYml).toMatch(/collections:\s*\n/);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
   });
 });

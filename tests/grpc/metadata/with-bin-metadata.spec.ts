@@ -26,7 +26,8 @@ test.describe('grpc metadata', () => {
 
     /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
     await test.step('save request via shortcut', async () => {
-      await page.keyboard.press('Meta+s');
+      const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+      await page.keyboard.press(saveShortcut);
     });
   });
 });

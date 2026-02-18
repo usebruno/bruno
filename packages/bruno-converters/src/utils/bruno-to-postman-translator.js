@@ -17,12 +17,17 @@ const simpleTranslations = {
   // Global variables
   'bru.getGlobalEnvVar': 'pm.globals.get',
   'bru.setGlobalEnvVar': 'pm.globals.set',
+  'bru.deleteGlobalEnvVar': 'pm.globals.unset',
+  'bru.getAllGlobalEnvVars': 'pm.globals.toObject',
+  'bru.deleteAllGlobalEnvVars': 'pm.globals.clear',
 
   // Environment variables
   'bru.getEnvVar': 'pm.environment.get',
   'bru.setEnvVar': 'pm.environment.set',
   'bru.hasEnvVar': 'pm.environment.has',
   'bru.deleteEnvVar': 'pm.environment.unset',
+  'bru.getAllEnvVars': 'pm.environment.toObject',
+  'bru.deleteAllEnvVars': 'pm.environment.clear',
   // Note: bru.getEnvName() is handled in complexTransformations because it's a function -> property conversion
 
   // Runtime variables
@@ -30,11 +35,16 @@ const simpleTranslations = {
   'bru.setVar': 'pm.variables.set',
   'bru.hasVar': 'pm.variables.has',
   'bru.deleteVar': 'pm.variables.unset',
+  'bru.getAllVars': 'pm.variables.toObject',
   // 'bru.deleteAllVars':  Postman does not have a way to delete all variables
 
   // Collection variables
-  'bru.getCollectionVar': 'pm.variables.get',
-  /* Bruno does not have a way to set, has or delete collection variables */
+  'bru.getCollectionVar': 'pm.collectionVariables.get',
+  'bru.setCollectionVar': 'pm.collectionVariables.set',
+  'bru.hasCollectionVar': 'pm.collectionVariables.has',
+  'bru.deleteCollectionVar': 'pm.collectionVariables.unset',
+  'bru.getAllCollectionVars': 'pm.collectionVariables.toObject',
+  'bru.deleteAllCollectionVars': 'pm.collectionVariables.clear',
 
   // Folder variables
   'bru.getFolderVar': 'pm.variables.get',
@@ -55,15 +65,28 @@ const simpleTranslations = {
   // Request helpers
   // Note: req.getUrl(), req.getMethod(), req.getHeaders(), req.getBody(), req.getName() are handled
   // in complexTransformations because they're function -> property conversions
+  'req.url': 'pm.request.url',
+  'req.method': 'pm.request.method',
+  'req.headers': 'pm.request.headers',
+  'req.body': 'pm.request.body',
   'req.getHeader': 'pm.request.headers.get',
   'req.setHeader': 'pm.request.headers.set',
+  'req.deleteHeader': 'pm.request.headers.remove',
+
+  // URL helper methods
+  'req.getHost': 'pm.request.url.getHost',
+  'req.getPath': 'pm.request.url.getPath',
+  'req.getQueryString': 'pm.request.url.getQueryString',
 
   // Response helpers
-  // Note: res.getStatus(), res.getResponseTime(), res.getHeaders() are handled
+  // Note: res.getStatus(), res.getResponseTime(), res.getHeaders(), res.getUrl() are handled
   // in complexTransformations because they're function -> property conversions
   'res.status': 'pm.response.code',
   'res.statusText': 'pm.response.status',
   'res.body': 'pm.response.body',
+  'res.url': 'pm.response.url',
+  'res.responseTime': 'pm.response.responseTime',
+  'res.headers': 'pm.response.headers',
   'res.getBody': 'pm.response.json',
   'res.getHeader': 'pm.response.headers.get',
   'res.getSize': 'pm.response.size',
@@ -74,6 +97,38 @@ const simpleTranslations = {
   // Testing
   'expect.fail': 'pm.expect.fail'
 };
+
+// =============================================================================
+// UNSUPPORTED BRUNO APIs (No Postman Equivalent)
+// =============================================================================
+
+/**
+ * UNSUPPORTED BRUNO APIs (No Postman Equivalent)
+ *
+ * These Bruno APIs have no direct Postman equivalent and will be left unchanged
+ * in the translated code. Users should be aware that these calls will not work
+ * in Postman:
+ *
+ * Request APIs:
+ * - req.getTags() - Postman doesn't have tags
+ * - req.setMaxRedirects() - Postman doesn't expose redirect settings
+ * - req.getTimeout() / req.setTimeout() - Postman doesn't expose timeout settings
+ * - req.getExecutionMode() / req.getExecutionPlatform() - Bruno-specific
+ * - req.onFail() - Postman doesn't support error handlers
+ *
+ * Response APIs:
+ * - res.setBody() - Postman response is read-only
+ *
+ * Bru APIs:
+ * - bru.runRequest() - Postman doesn't support nested request execution
+ * - bru.sleep() - Postman doesn't have sleep (use setTimeout workaround)
+ * - bru.getProcessEnv() - Postman doesn't expose process env vars
+ * - bru.getOauth2CredentialVar() - Bruno-specific
+ * - bru.getCollectionName() - pm.info doesn't expose collection name
+ * - bru.disableParsingResponseJson() - Bruno-specific
+ * - bru.cwd() - Bruno-specific
+ * - bru.getAssertionResults() / bru.getTestResults() - Bruno-specific
+ */
 
 // =============================================================================
 // COMPLEX TRANSFORMATIONS
@@ -158,6 +213,16 @@ const complexTransformations = [
     pattern: 'req.getName',
     transform: () => buildMemberExpressionFromString('pm.info.requestName')
   },
+  // req.getAuthMode() -> pm.request.auth.type
+  {
+    pattern: 'req.getAuthMode',
+    transform: () => buildMemberExpressionFromString('pm.request.auth.type')
+  },
+  // req.getPathParams() -> pm.request.url.variables
+  {
+    pattern: 'req.getPathParams',
+    transform: () => buildMemberExpressionFromString('pm.request.url.variables')
+  },
 
   // Response helpers: function -> property conversions
   // res.getStatus() -> pm.response.code
@@ -179,6 +244,138 @@ const complexTransformations = [
   {
     pattern: 'res.getHeaders',
     transform: () => buildMemberExpressionFromString('pm.response.headers')
+  },
+  // res.getUrl() -> pm.response.url
+  {
+    pattern: 'res.getUrl',
+    transform: () => buildMemberExpressionFromString('pm.response.url')
+  },
+
+  // Request modifiers: function calls -> assignments
+  // req.setUrl(url) -> pm.request.url = url
+  {
+    pattern: 'req.setUrl',
+    transform: (path) => {
+      const callExpr = path.value;
+      const args = callExpr.arguments;
+      if (!args || args.length === 0) {
+        // No arguments, return the property access
+        return buildMemberExpressionFromString('pm.request.url');
+      }
+      // Transform req.setUrl(url) to pm.request.url = url
+      return j.assignmentExpression(
+        '=',
+        buildMemberExpressionFromString('pm.request.url'),
+        args[0]
+      );
+    }
+  },
+  // req.setMethod(method) -> pm.request.method = method
+  {
+    pattern: 'req.setMethod',
+    transform: (path) => {
+      const callExpr = path.value;
+      const args = callExpr.arguments;
+      if (!args || args.length === 0) {
+        // No arguments, return the property access
+        return buildMemberExpressionFromString('pm.request.method');
+      }
+      // Transform req.setMethod(method) to pm.request.method = method
+      return j.assignmentExpression(
+        '=',
+        buildMemberExpressionFromString('pm.request.method'),
+        args[0]
+      );
+    }
+  },
+  // req.setBody(data) -> pm.request.body.update({mode: "raw", raw: JSON.stringify(data)})
+  {
+    pattern: 'req.setBody',
+    transform: (path) => {
+      const callExpr = path.value;
+      const args = callExpr.arguments;
+      if (!args || args.length === 0) {
+        // No arguments, return the property access
+        return buildMemberExpressionFromString('pm.request.body');
+      }
+      // Transform req.setBody(data) to pm.request.body.update({mode: "raw", raw: JSON.stringify(data)})
+      const bodyArg = args[0];
+      const updateCall = j.callExpression(
+        j.memberExpression(
+          buildMemberExpressionFromString('pm.request.body'),
+          j.identifier('update')
+        ),
+        [
+          j.objectExpression([
+            j.property('init', j.identifier('mode'), j.literal('raw')),
+            j.property('init', j.identifier('raw'), j.callExpression(
+              j.identifier('JSON.stringify'),
+              [bodyArg]
+            ))
+          ])
+        ]
+      );
+      return updateCall;
+    }
+  },
+  // req.setHeaders(headers) -> loop calling pm.request.headers.upsert() for each header
+  {
+    pattern: 'req.setHeaders',
+    transform: (path) => {
+      const callExpr = path.value;
+      const args = callExpr.arguments;
+      if (!args || args.length === 0) {
+        // No arguments, return the property access
+        return buildMemberExpressionFromString('pm.request.headers');
+      }
+      const headersArg = args[0];
+
+      // Transform req.setHeaders(obj) to a for...in loop that calls upsert for each property
+      // Generate: for (const key in headersObj) { pm.request.headers.upsert({key: key, value: headersObj[key]}); }
+      const headersVar = j.identifier('_headers');
+      const keyVar = j.identifier('key');
+
+      // Create: for (const key in _headers) { pm.request.headers.upsert({key: key, value: _headers[key]}); }
+      const forLoop = j.forInStatement(
+        j.variableDeclaration('const', [j.variableDeclarator(keyVar)]),
+        headersVar,
+        j.blockStatement([
+          j.expressionStatement(
+            j.callExpression(
+              j.memberExpression(
+                buildMemberExpressionFromString('pm.request.headers'),
+                j.identifier('upsert')
+              ),
+              [
+                j.objectExpression([
+                  j.property('init', j.identifier('key'), keyVar),
+                  j.property('init', j.identifier('value'), j.memberExpression(headersVar, keyVar, true))
+                ])
+              ]
+            )
+          )
+        ])
+      );
+
+      // We need to replace the call expression with a block that includes the variable declaration and loop
+      // But the current architecture only replaces the call expression itself
+      // So we'll create an IIFE (Immediately Invoked Function Expression) that contains both
+      const iife = j.callExpression(
+        j.functionExpression(
+          null,
+          [],
+          j.blockStatement([
+            j.variableDeclaration('const', [
+              j.variableDeclarator(headersVar, headersArg)
+            ]),
+            forLoop
+          ])
+        ),
+        []
+      );
+
+      return iife;
+    }
   }
 ];
 

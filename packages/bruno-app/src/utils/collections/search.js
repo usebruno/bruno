@@ -8,14 +8,14 @@ export const doesRequestMatchSearchText = (request, searchText = '') => {
 
 export const doesFolderHaveItemsMatchSearchText = (item, searchText = '') => {
   let flattenedItems = flattenItems(item.items);
-  let requestItems = filter(flattenedItems, (item) => isItemARequest(item));
+  let requestItems = filter(flattenedItems, (item) => isItemARequest(item) && !item.isTransient);
 
   return find(requestItems, (request) => doesRequestMatchSearchText(request, searchText));
 };
 
 export const doesCollectionHaveItemsMatchingSearchText = (collection, searchText = '') => {
   let flattenedItems = flattenItems(collection.items);
-  let requestItems = filter(flattenedItems, (item) => isItemARequest(item));
+  let requestItems = filter(flattenedItems, (item) => isItemARequest(item) && !item.isTransient);
 
   return find(requestItems, (request) => doesRequestMatchSearchText(request, searchText));
 };

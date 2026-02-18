@@ -85,6 +85,17 @@ const Wrapper = styled.div`
       justify-content: center;
     }
 
+    .dropdown-tab-count {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: ${(props) => props.theme.dropdown.hoverBg};
+      min-width: 18px;
+      text-align: center;
+    }
+
     &:hover:not(:disabled):not(.disabled) {
       background-color: ${(props) => props.theme.dropdown.hoverBg};
     }
@@ -172,6 +183,18 @@ const Wrapper = styled.div`
     height: 1px;
     background-color: ${(props) => props.theme.dropdown.separator};
     margin: 0.25rem 0;
+  }
+
+  .submenu-trigger {
+    position: relative;
+  }
+
+  .submenu-arrow {
+    color: ${(props) => props.theme.dropdown.mutedText};
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
   }
 `;
 

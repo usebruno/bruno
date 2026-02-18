@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "name": "Multiline Description Test",
+    "type": "http",
+    "seq": "1"
+  },
+  "http": {
+    "method": "get",
+    "url": "https://api.example.com/test"
+  },
+  "examples": [
+    {
+      "name": "Test Example",
+      "description": "This is a multiline description.\nIt spans multiple lines.\nAnd should be parsed correctly.",
+      "request": {
+        "url": "https://api.example.com/test",
+        "method": "get"
+      }
+    }
+  ]
+}

@@ -18,12 +18,13 @@ export const globalEnvironmentsSlice = createSlice({
       state.activeGlobalEnvironmentUid = action.payload?.activeGlobalEnvironmentUid;
     },
     _addGlobalEnvironment: (state, action) => {
-      const { name, uid, variables = [] } = action.payload;
+      const { name, uid, variables = [], color } = action.payload;
       if (name?.length) {
         state.globalEnvironments.push({
           uid,
           name,
-          variables
+          variables,
+          color
         });
       }
     },
@@ -81,6 +82,12 @@ export const globalEnvironmentsSlice = createSlice({
     },
     clearGlobalEnvironmentDraft: (state) => {
       state.globalEnvironmentDraft = null;
+    },
+    _updateGlobalEnvironmentColor: (state, action) => {
+      const { environmentUid, color } = action.payload;
+      if (environmentUid) {
+        state.globalEnvironments = state.globalEnvironments.map((env) => env?.uid == environmentUid ? { ...env, color } : env);
+      }
     }
   }
 });
@@ -93,6 +100,7 @@ export const {
   _copyGlobalEnvironment,
   _selectGlobalEnvironment,
   _deleteGlobalEnvironment,
+  _updateGlobalEnvironmentColor,
   setGlobalEnvironmentDraft,
   clearGlobalEnvironmentDraft
 } = globalEnvironmentsSlice.actions;
@@ -103,7 +111,7 @@ const getWorkspaceContext = (state) => {
   return { workspaceUid, workspacePath: workspace?.pathname };
 };
 
-export const addGlobalEnvironment = ({ name, variables = [] }) => (dispatch, getState) => {
+export const addGlobalEnvironment = ({ name, variables = [], color }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const uid = uuid();
     const environment = { name, uid, variables };
@@ -113,12 +121,13 @@ export const addGlobalEnvironment = ({ name, variables = [] }) => (dispatch, get
 
     environmentSchema
       .validate(environment)
-      .then(() => ipcRenderer.invoke('renderer:create-global-environment', { name, uid, variables, workspaceUid, workspacePath }))
+      .then(() => ipcRenderer.invoke('renderer:create-global-environment', { name, uid, variables, color, workspaceUid, workspacePath }))
       .then((result) => {
         const finalUid = result?.uid || uid;
         const finalName = result?.name || name;
         const finalVariables = result?.variables || variables;
-        dispatch(_addGlobalEnvironment({ name: finalName, uid: finalUid, variables: finalVariables }));
+        const finalColor = result?.color || color;
+        dispatch(_addGlobalEnvironment({ name: finalName, uid: finalUid, variables: finalVariables, color: finalColor }));
         return finalUid;
       })
       .then((finalUid) => dispatch(selectGlobalEnvironment({ environmentUid: finalUid })))
@@ -174,6 +183,13 @@ export const renameGlobalEnvironment = ({ name: newName, environmentUid }) => (d
           .invoke('renderer:get-global-environments', { workspaceUid, workspacePath })
           .then((data) => {
             dispatch(updateGlobalEnvironments(data));
+            if (resolvedUid !== environmentUid) {
+              const currentState = getState();
+              const draft = currentState.globalEnvironments.globalEnvironmentDraft;
+              if (draft?.environmentUid === environmentUid) {
+                dispatch(setGlobalEnvironmentDraft({ environmentUid: resolvedUid, variables: draft.variables }));
+              }
+            }
             return resolvedUid;
           });
       })
@@ -298,6 +314,18 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
         workspacePath
       }))
       .then(() => dispatch(_saveGlobalEnvironment({ environmentUid, variables })))
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const updateGlobalEnvironmentColor = (environmentUid, color) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    const state = getState();
+    const { workspaceUid, workspacePath } = getWorkspaceContext(state);
+    ipcRenderer.invoke('renderer:update-global-environment-color', { environmentUid, color, workspaceUid, workspacePath })
+      .then(() => dispatch(_updateGlobalEnvironmentColor({ environmentUid, color })))
       .then(resolve)
       .catch(reject);
   });

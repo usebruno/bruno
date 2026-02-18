@@ -49,12 +49,14 @@ bruno.iml
 .idea
 .vscode
 .cursor
+.claude
 
 # Playwright
 /blob-report/
 
 # Development plan files
 CLAUDE.md
+AGENTS.md
 *.plan.md
 
 # packages dist

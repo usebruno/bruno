@@ -4,6 +4,7 @@ import { parseYml } from './utils';
 import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
+import { toBrunoPostResponseVariables } from './common/actions';
 import { toBrunoScripts } from './common/scripts';
 import { ensureString } from '../../utils';
 
@@ -23,13 +24,15 @@ const parseCollection = (ymlString: string): ParsedCollection => {
       type: 'collection',
       ignore: []
     };
-    if (oc.extensions?.ignore && Array.isArray(oc.extensions.ignore)) {
-      brunoConfig.ignore = oc.extensions.ignore;
+
+    const brunoExtension = (oc.extensions as any)?.bruno;
+    if (brunoExtension?.ignore && Array.isArray(brunoExtension.ignore)) {
+      brunoConfig.ignore = brunoExtension.ignore;
     }
 
     // presets
-    if (oc.extensions?.presets) {
-      const presets = oc.extensions.presets as any;
+    if (brunoExtension?.presets) {
+      const presets = brunoExtension.presets as any;
       if (presets.request) {
         brunoConfig.presets = {
           requestType: presets.request.type || [],
@@ -38,15 +41,29 @@ const parseCollection = (ymlString: string): ParsedCollection => {
       }
     }
 
+    // bruno-specific script extensions
+    const brunoExtensions = oc.extensions?.bruno as any;
+    if (Array.isArray(brunoExtensions?.scripts?.additionalContextRoots)) {
+      const sanitizedRoots = brunoExtensions.scripts.additionalContextRoots
+        .filter((item: any) => typeof item === 'string');
+
+      if (sanitizedRoots.length > 0) {
+        brunoConfig.scripts = {
+          ...brunoConfig.scripts,
+          additionalContextRoots: sanitizedRoots
+        };
+      }
+    }
+
     // protobuf
     if (oc.config?.protobuf) {
       brunoConfig.protobuf = {
-        protofFiles: oc.config.protobuf.protoFiles?.map((protoFile: any) => ({
+        protoFiles: oc.config.protobuf.protoFiles?.map((protoFile: any) => ({
           path: protoFile.path
         })) || [],
         importPaths: oc.config.protobuf.importPaths?.map((importPath: any) => ({
           path: importPath.path,
-          disabled: importPath.disabled || false
+          enabled: importPath.disabled !== true
         })) || []
       };
     }
@@ -160,7 +177,11 @@ const parseCollection = (ymlString: string): ParsedCollection => {
 
       // variables
       const variables = toBrunoVariables(oc.request.variables);
-      collectionRoot.request.vars = variables;
+      const postResponseVars = toBrunoPostResponseVariables((oc.request as any).actions);
+      collectionRoot.request.vars = {
+        req: variables.req,
+        res: postResponseVars
+      };
 
       // scripts
       const scripts = toBrunoScripts(oc.request.scripts);

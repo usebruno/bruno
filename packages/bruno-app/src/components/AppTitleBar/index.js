@@ -4,10 +4,11 @@ import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { savePreferences, showHomePage, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { savePreferences, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
 import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
+import { focusTab } from 'providers/ReduxStore/slices/tabs';
 
 import Bruno from 'components/Bruno';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -17,6 +18,7 @@ import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 import ImportWorkspace from 'components/WorkspaceSidebar/ImportWorkspace';
 
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
+import AppMenu from './AppMenu';
 import StyledWrapper from './StyledWrapper';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
 import { isMacOS, isWindowsOS, isLinuxOS } from 'utils/common/platform';
@@ -128,7 +130,10 @@ const AppTitleBar = () => {
   });
 
   const handleHomeClick = () => {
-    dispatch(showHomePage());
+    const scratchCollectionUid = activeWorkspace?.scratchCollectionUid;
+    if (scratchCollectionUid) {
+      dispatch(focusTab({ uid: `${scratchCollectionUid}-overview` }));
+    }
   };
 
   const handleWorkspaceSwitch = (workspaceUid) => {
@@ -247,8 +252,9 @@ const AppTitleBar = () => {
       )}
 
       <div className="titlebar-content">
-        {/* Left section: Home + Workspace */}
         <div className="titlebar-left">
+          {showWindowControls && <AppMenu />}
+
           <ActionIcon onClick={handleHomeClick} label="Home" size="lg" className="home-button">
             <IconHome size={16} stroke={1.5} />
           </ActionIcon>

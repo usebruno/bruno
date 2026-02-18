@@ -14,7 +14,7 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
-const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables } = require('../utils/proxy-util');
+const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
@@ -43,9 +43,10 @@ const getCACertHostRegex = (domain) => {
  * @returns {string[]} An array of extracted prompt variables
  */
 const extractPromptVariablesForRequest = ({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig }) => {
-  const { vars, collectionVariables, folderVariables, requestVariables, ...requestObj } = request;
+  const { vars, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, ...requestObj } = request;
 
   const allVariables = {
+    ...globalEnvironmentVariables,
     ...envVariables,
     ...collectionVariables,
     ...folderVariables,
@@ -62,6 +63,7 @@ const extractPromptVariablesForRequest = ({ request, collection, envVariables, r
   prompts.push(...extractPromptVariables(allVariables));
 
   const interpolationOptions = {
+    globalEnvVars: globalEnvironmentVariables,
     envVars: envVariables,
     runtimeVariables,
     processEnvVars
@@ -93,7 +95,8 @@ const runSingleRequest = async function (
   collectionRoot,
   runtime,
   collection,
-  runSingleRequestByPathname
+  runSingleRequestByPathname,
+  globalEnvVars = {}
 ) {
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
@@ -125,6 +128,9 @@ const runSingleRequest = async function (
     let postResponseTestResults = [];
 
     request = await prepareRequest(item, collection);
+
+    // Set global environment variables on the request for scripts to access via bru.getGlobalEnvVar()
+    request.globalEnvironmentVariables = globalEnvVars;
 
     // Detect prompt variables before proceeding
     const promptVars = extractPromptVariablesForRequest({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig });
@@ -164,32 +170,111 @@ const runSingleRequest = async function (
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = runtime;
 
+    // Build certsAndProxyConfig for bru.sendRequest
+    const options = getOptions();
+    const systemProxyConfig = options['cachedSystemProxy'];
+    const sendRequestInterpolationOptions = {
+      envVars: envVariables,
+      runtimeVariables,
+      processEnvVars,
+      globalEnvVars,
+      collectionVariables: request.collectionVariables || {},
+      folderVariables: request.folderVariables || {},
+      requestVariables: request.requestVariables || {}
+    };
+    const rawClientCertificates = get(brunoConfig, 'clientCertificates');
+    const rawProxyConfig = get(brunoConfig, 'proxy', {});
+    const certsAndProxyConfig = {
+      collectionPath,
+      options: {
+        noproxy: get(options, 'noproxy', false),
+        shouldVerifyTls: !get(options, 'insecure', false),
+        shouldUseCustomCaCertificate: !!options['cacert'],
+        customCaCertificateFilePath: options['cacert'],
+        shouldKeepDefaultCaCertificates: !options['ignoreTruststore']
+      },
+      clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
+      collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
+      systemProxyConfig
+    };
+
+    // Add certsAndProxyConfig to request object for bru.sendRequest
+    request.certsAndProxyConfig = certsAndProxyConfig;
+
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
     const collectionName = collection?.brunoConfig?.name;
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
-      const result = await scriptRuntime.runRequestScript(
-        decomment(requestScriptFile),
-        request,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        onConsoleLog,
-        processEnvVars,
-        scriptingConfig,
-        runSingleRequestByPathname,
-        collectionName
-      );
-      if (result?.nextRequestName !== undefined) {
-        nextRequestName = result.nextRequestName;
-      }
+      try {
+        const result = await scriptRuntime.runRequestScript(decomment(requestScriptFile),
+          request,
+          envVariables,
+          runtimeVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig,
+          runSingleRequestByPathname,
+          collectionName);
+        if (result?.nextRequestName !== undefined) {
+          nextRequestName = result.nextRequestName;
+        }
 
-      if (result?.stopExecution) {
-        shouldStopRunnerExecution = true;
-      }
+        if (result?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
 
-      if (result?.skipRequest) {
+        if (result?.skipRequest) {
+          return {
+            test: {
+              filename: relativeItemPathname
+            },
+            request: {
+              method: request.method,
+              url: request.url,
+              headers: request.headers,
+              data: request.data
+            },
+            response: {
+              status: 'skipped',
+              statusText: 'request skipped via pre-request script',
+              data: null,
+              responseTime: 0
+            },
+            error: null,
+            status: 'skipped',
+            skipped: true,
+            assertionResults: [],
+            testResults: [],
+            preRequestTestResults: result?.results || [],
+            postResponseTestResults: [],
+            shouldStopRunnerExecution
+          };
+        }
+
+        preRequestTestResults = result?.results || [];
+      } catch (error) {
+        // Pre-request errors are treated as request errors (we return early with status: 'error'), not as failures. Unlike post-response and test script errors, we do not add a synthetic fail and continue.
+        console.error('Pre-request script execution error:', error);
+        console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${error.message})`));
+
+        // Extract partial results from the error (tests that passed before the error)
+        preRequestTestResults = error?.partialResults?.results || [];
+
+        // Preserve nextRequestName if it was set before the error
+        if (error?.partialResults?.nextRequestName !== undefined) {
+          nextRequestName = error.partialResults.nextRequestName;
+        }
+
+        // Preserve stopExecution if it was set before the error
+        if (error?.partialResults?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        logResults(preRequestTestResults, 'Pre-Request Tests');
+
+        // Pre-request script error: execution didn't complete (request never sent). Return early so we don't run the HTTP request, post-response script, assertions, or tests.
         return {
           test: {
             filename: relativeItemPathname
@@ -201,27 +286,37 @@ const runSingleRequest = async function (
             data: request.data
           },
           response: {
-            status: 'skipped',
-            statusText: 'request skipped via pre-request script',
+            status: 'error',
+            statusText: null,
+            headers: null,
             data: null,
+            url: null,
             responseTime: 0
           },
-          error: null,
-          status: 'skipped',
-          skipped: true,
+          error: error?.message || 'An error occurred while executing the pre-request script.',
+          status: 'error',
           assertionResults: [],
           testResults: [],
-          preRequestTestResults: result?.results || [],
+          preRequestTestResults,
           postResponseTestResults: [],
+          nextRequestName: nextRequestName,
           shouldStopRunnerExecution
         };
       }
-
-      preRequestTestResults = result?.results || [];
     }
 
     // interpolate variables inside request
     interpolateVars(request, envVariables, runtimeVariables, processEnvVars);
+
+    // if this is a graphql request, parse the variables, only after interpolation
+    // https://github.com/usebruno/bruno/issues/884
+    if (request.mode === 'graphql' && typeof request.data?.variables === 'string') {
+      try {
+        request.data.variables = JSON.parse(request.data.variables);
+      } catch (err) {
+        throw new Error(`Failed to parse GraphQL variables: ${err.message}`);
+      }
+    }
 
     if (request.settings?.encodeUrl) {
       request.url = encodeUrl(request.url);
@@ -231,9 +326,9 @@ const runSingleRequest = async function (
       request.url = `http://${request.url}`;
     }
 
-    const options = getOptions();
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
+    const cachedSystemProxy = get(options, 'cachedSystemProxy', null);
     const httpsAgentRequestFields = {};
 
     if (insecure) {
@@ -246,6 +341,7 @@ const runSingleRequest = async function (
     }
 
     const interpolationOptions = {
+      globalEnvVars: request.globalEnvironmentVariables || {},
       envVars: envVariables,
       runtimeVariables,
       processEnvVars
@@ -302,9 +398,11 @@ const runSingleRequest = async function (
       proxyMode = 'on';
     } else if (!collectionProxyDisabled && collectionProxyInherit) {
       // Inherit from system proxy
-      const { http_proxy, https_proxy } = getSystemProxyEnvVariables();
-      if (http_proxy?.length || https_proxy?.length) {
-        proxyMode = 'system';
+      if (cachedSystemProxy) {
+        const { http_proxy, https_proxy } = cachedSystemProxy;
+        if (http_proxy?.length || https_proxy?.length) {
+          proxyMode = 'system';
+        }
       }
       // else: no system proxy available, proxyMode stays 'off'
     }
@@ -347,33 +445,39 @@ const runSingleRequest = async function (
         });
       }
     } else if (proxyMode === 'system') {
-      const { http_proxy, https_proxy, no_proxy } = getSystemProxyEnvVariables();
-      const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
-      if (shouldUseSystemProxy) {
-        try {
-          if (http_proxy?.length) {
-            new URL(http_proxy);
-            request.httpAgent = new HttpProxyAgent(http_proxy);
+      try {
+        const { http_proxy, https_proxy, no_proxy } = cachedSystemProxy || {};
+        const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
+        const parsedUrl = new URL(request.url);
+        const isHttpsRequest = parsedUrl.protocol === 'https:';
+        if (shouldUseSystemProxy) {
+          try {
+            if (http_proxy?.length && !isHttpsRequest) {
+              new URL(http_proxy);
+              request.httpAgent = new HttpProxyAgent(http_proxy);
+            }
+          } catch (error) {
+            throw new Error('Invalid system http_proxy');
           }
-        } catch (error) {
-          throw new Error('Invalid system http_proxy');
-        }
-        try {
-          if (https_proxy?.length) {
-            new URL(https_proxy);
-            request.httpsAgent = new PatchedHttpsProxyAgent(
-              https_proxy,
-              Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-            );
-          } else {
-            request.httpsAgent = new https.Agent({
-              ...httpsAgentRequestFields
-            });
+          try {
+            if (https_proxy?.length && isHttpsRequest) {
+              new URL(https_proxy);
+              request.httpsAgent = new PatchedHttpsProxyAgent(https_proxy,
+                Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined);
+            } else {
+              request.httpsAgent = new https.Agent({
+                ...httpsAgentRequestFields
+              });
+            }
+          } catch (error) {
+            throw new Error('Invalid system https_proxy');
           }
-        } catch (error) {
-          throw new Error('Invalid system https_proxy');
+        } else {
+          request.httpsAgent = new https.Agent({
+            ...httpsAgentRequestFields
+          });
         }
-      } else {
+      } catch (error) {
         request.httpsAgent = new https.Agent({
           ...httpsAgentRequestFields
         });
@@ -462,6 +566,7 @@ const runSingleRequest = async function (
       try {
         // Prepare interpolation options with all available variables
         const oauth2InterpolationOptions = {
+          globalEnvVars: request.globalEnvironmentVariables || {},
           envVars: envVariables,
           runtimeVariables,
           processEnvVars,
@@ -488,6 +593,7 @@ const runSingleRequest = async function (
           const proxyConfig = get(brunoConfig, 'proxy');
           const interpolatedClientCertificates = clientCertificates ? interpolateObject(clientCertificates, oauth2InterpolationOptions) : undefined;
           const interpolatedProxyConfig = proxyConfig ? interpolateObject(proxyConfig, oauth2InterpolationOptions) : undefined;
+          const systemProxyConfig = cachedSystemProxy;
 
           const { httpAgent: oauth2HttpAgent, httpsAgent: oauth2HttpsAgent } = await getHttpHttpsAgents({
             requestUrl: oauth2RequestUrl,
@@ -495,7 +601,7 @@ const runSingleRequest = async function (
             options: tlsOptions,
             clientCertificates: interpolatedClientCertificates,
             collectionLevelProxy: interpolatedProxyConfig,
-            systemProxyConfig: getSystemProxyEnvVariables()
+            systemProxyConfig
           });
 
           const oauth2AxiosInstance = makeAxiosInstanceForOauth2({
@@ -541,7 +647,8 @@ const runSingleRequest = async function (
 
       let axiosInstance = makeAxiosInstance({
         requestMaxRedirects: requestMaxRedirects,
-        disableCookies: options.disableCookies
+        disableCookies: options.disableCookies,
+        followRedirects: followRedirects
       });
 
       if (request.ntlmConfig) {
@@ -684,6 +791,27 @@ const runSingleRequest = async function (
         logResults(postResponseTestResults, 'Post-Response Tests');
       } catch (error) {
         console.error('Post-response script execution error:', error);
+
+        const partialResults = error?.partialResults?.results || [];
+        postResponseTestResults = [
+          ...partialResults,
+          {
+            status: 'fail',
+            description: 'Post-Response Script Error',
+            error: error.message || 'An error occurred while executing the post-response script.',
+            isScriptError: true
+          }
+        ];
+
+        if (error?.partialResults?.nextRequestName !== undefined) {
+          nextRequestName = error.partialResults.nextRequestName;
+        }
+
+        if (error?.partialResults?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        logResults(postResponseTestResults, 'Post-Response Tests');
       }
     }
 
@@ -733,6 +861,27 @@ const runSingleRequest = async function (
         logResults(testResults, 'Tests');
       } catch (error) {
         console.error('Test script execution error:', error);
+
+        const partialResults = error?.partialResults?.results || [];
+        testResults = [
+          ...partialResults,
+          {
+            status: 'fail',
+            description: 'Test Script Error',
+            error: error.message || 'An error occurred while executing the test script.',
+            isScriptError: true
+          }
+        ];
+
+        if (error?.partialResults?.nextRequestName !== undefined) {
+          nextRequestName = error.partialResults.nextRequestName;
+        }
+
+        if (error?.partialResults?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        logResults(testResults, 'Tests');
       }
     }
 

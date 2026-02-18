@@ -157,7 +157,7 @@ const MultipartFormParams = ({ item, collection }) => {
                 allowNewlines={true}
                 collection={collection}
                 item={item}
-                placeholder={isLastEmptyRow ? 'Value' : ''}
+                placeholder={!value ? 'Value' : ''}
               />
             </div>
             {!hasTextValue && !isLastEmptyRow && (
@@ -178,11 +178,11 @@ const MultipartFormParams = ({ item, collection }) => {
       name: 'Content-Type',
       placeholder: 'Auto',
       width: '20%',
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           onSave={onSave}
           theme={storedTheme}
-          placeholder={isLastEmptyRow ? 'Auto' : ''}
+          placeholder={!value ? 'Auto' : ''}
           value={value || ''}
           onChange={onChange}
           onRun={handleRun}

@@ -4,7 +4,7 @@ import { IconBookmark } from '@tabler/icons';
 import { addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
-import { uuid } from 'utils/common';
+import { uuid, formatResponse } from 'utils/common';
 import toast from 'react-hot-toast';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { getBodyType } from 'utils/responseBodyProcessor';
@@ -83,7 +83,7 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
     const contentType = contentTypeHeader?.value?.toLowerCase() || '';
 
     const bodyType = getBodyType(contentType);
-    const content = response.data;
+    const content = formatResponse(response.data, response.dataBuffer, bodyType);
 
     const exampleData = {
       name: name,
@@ -112,7 +112,7 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
     }));
 
     // Save the request
-    await dispatch(saveRequest(item.uid, collection.uid));
+    await dispatch(saveRequest(item.uid, collection.uid, true));
 
     // Task middleware will track this and open the example in a new tab once the file is reloaded
     dispatch(insertTaskIntoQueue({

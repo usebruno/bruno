@@ -34,7 +34,8 @@ taskMiddleware.startListening({
               addTab({
                 uid: item.uid,
                 collectionUid: collection.uid,
-                requestPaneTab: getDefaultRequestPaneTab(item)
+                requestPaneTab: getDefaultRequestPaneTab(item),
+                preview: task?.preview ?? true
               })
             );
           }
