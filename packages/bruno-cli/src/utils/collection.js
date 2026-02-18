@@ -1,4 +1,4 @@
-const { get, each, find, compact } = require('lodash');
+const { get, each, find } = require('lodash');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
@@ -227,6 +227,35 @@ ${script}
 })();`;
 };
 
+/**
+* Wraps each script segment in an async IIFE, joins them with double newlines,
+* and records the line range of the "request" segment for stack-trace mapping.
+*
+* Merged scripts = collection + folders + request; the runtime runs one combined
+* script, so we need requestStartLine/requestEndLine to map a VM line number
+* back to the request's script in the .bru file.
+*
+* @param {string[]} scripts - Script segments in order (e.g. collection, folders, request).
+* @param {number} requestIndex - Index in scripts of the request-level segment.
+* @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number } | null }}
+*/
+const wrapAndJoinScripts = (scripts, requestIndex) => {
+  const wrapped = scripts.map((s) => wrapScriptInClosure(s));
+  const code = wrapped.filter(Boolean).join(os.EOL + os.EOL);
+
+  let offset = 0;
+  let metadata = null;
+  for (let i = 0; i < scripts.length; i++) {
+    if (!wrapped[i]) continue;
+    const lineCount = wrapped[i].split('\n').length;
+    if (i === requestIndex) {
+      metadata = { requestStartLine: offset + 1, requestEndLine: offset + lineCount };
+    }
+    offset += lineCount + 1;
+  }
+  return { code, metadata };
+};
+
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   const collectionRoot = collection?.draft?.root || collection?.root || {};
   let collectionPreReqScript = get(collectionRoot, 'request.script.req', '');
@@ -265,7 +294,9 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     ...combinedPreReqScript,
     request?.script?.req || ''
   ];
-  request.script.req = compact(preReqScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
+  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1);
+  request.script.req = preReq.code;
+  request.script.reqMetadata = preReq.metadata;
 
   // Handle post-response scripts based on scriptFlow
   if (scriptFlow === 'sequential') {
@@ -274,7 +305,9 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       ...combinedPostResScript,
       request?.script?.res || ''
     ];
-    request.script.res = compact(postResScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
+    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1);
+    request.script.res = postRes.code;
+    request.script.resMetadata = postRes.metadata;
   } else {
     // Reverse order for non-sequential flow
     const postResScripts = [
@@ -282,7 +315,9 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       ...[...combinedPostResScript].reverse(),
       collectionPostResScript
     ];
-    request.script.res = compact(postResScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
+    const postRes = wrapAndJoinScripts(postResScripts, 0);
+    request.script.res = postRes.code;
+    request.script.resMetadata = postRes.metadata;
   }
 
   // Handle tests based on scriptFlow
@@ -292,7 +327,9 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       ...combinedTests,
       request?.tests || ''
     ];
-    request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
+    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1);
+    request.tests = tests.code;
+    request.testsMetadata = tests.metadata;
   } else {
     // Reverse order for non-sequential flow
     const testScripts = [
@@ -300,7 +337,9 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       ...[...combinedTests].reverse(),
       collectionTests
     ];
-    request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
+    const tests = wrapAndJoinScripts(testScripts, 0);
+    request.tests = tests.code;
+    request.testsMetadata = tests.metadata;
   }
 };
 
