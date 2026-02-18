@@ -5,6 +5,9 @@ const { writeFile, validateName, isValidCollectionDirectory } = require('./files
 const { generateUidBasedOnHash } = require('./common');
 const { withLock, getWorkspaceLockKey } = require('./workspace-lock');
 
+// Normalize Windows backslash paths to forward slashes for cross-platform compatibility.
+const posixifyPath = (p) => p.replace(/\\/g, '/');
+
 const WORKSPACE_TYPE = 'workspace';
 const OPENCOLLECTION_VERSION = '1.0.0';
 
@@ -124,17 +127,17 @@ const sanitizeSpecs = (specs) => {
 
 const makeRelativePath = (workspacePath, absolutePath) => {
   if (!path.isAbsolute(absolutePath)) {
-    return absolutePath;
+    return posixifyPath(absolutePath);
   }
 
   try {
     const relativePath = path.relative(workspacePath, absolutePath);
     if (relativePath.startsWith('..') && relativePath.split(path.sep).filter((s) => s === '..').length > 2) {
-      return absolutePath;
+      return posixifyPath(absolutePath);
     }
-    return relativePath;
+    return posixifyPath(relativePath);
   } catch (error) {
-    return absolutePath;
+    return posixifyPath(absolutePath);
   }
 };
 
@@ -335,14 +338,14 @@ const addCollectionToWorkspace = async (workspacePath, collection) => {
 
     const normalizedCollection = {
       name: collection.name.trim(),
-      path: collection.path.trim()
+      path: posixifyPath(collection.path.trim())
     };
 
     if (collection.remote && typeof collection.remote === 'string') {
       normalizedCollection.remote = collection.remote.trim();
     }
 
-    const existingIndex = config.collections.findIndex((c) => c.path === normalizedCollection.path);
+    const existingIndex = config.collections.findIndex((c) => c.path && posixifyPath(c.path) === normalizedCollection.path);
 
     if (existingIndex >= 0) {
       config.collections[existingIndex] = normalizedCollection;
@@ -363,7 +366,7 @@ const removeCollectionFromWorkspace = async (workspacePath, collectionPath) => {
     let removedCollection = null;
 
     config.collections = (config.collections || []).filter((c) => {
-      const collectionPathFromYml = c.path;
+      const collectionPathFromYml = c.path ? posixifyPath(c.path) : c.path;
 
       if (!collectionPathFromYml) {
         return true;
@@ -398,13 +401,14 @@ const getWorkspaceCollections = (workspacePath) => {
   const seenPaths = new Set();
   return collections
     .map((collection) => {
-      if (collection.path && !path.isAbsolute(collection.path)) {
+      const collectionPath = collection.path ? posixifyPath(collection.path) : collection.path;
+      if (collectionPath && !path.isAbsolute(collectionPath)) {
         return {
           ...collection,
-          path: path.resolve(workspacePath, collection.path)
+          path: path.resolve(workspacePath, collectionPath)
         };
       }
-      return collection;
+      return { ...collection, path: collectionPath };
     })
     .filter((collection) => {
       if (!collection.path) {
@@ -427,13 +431,14 @@ const getWorkspaceApiSpecs = (workspacePath) => {
   const specs = config.specs || [];
 
   return specs.map((spec) => {
-    if (spec.path && !path.isAbsolute(spec.path)) {
+    const specPath = spec.path ? posixifyPath(spec.path) : spec.path;
+    if (specPath && !path.isAbsolute(specPath)) {
       return {
         ...spec,
-        path: path.join(workspacePath, spec.path)
+        path: path.join(workspacePath, specPath)
       };
     }
-    return spec;
+    return { ...spec, path: specPath };
   });
 };
 
@@ -455,7 +460,7 @@ const addApiSpecToWorkspace = async (workspacePath, apiSpec) => {
     };
 
     const existingIndex = config.specs.findIndex(
-      (a) => a.name === normalizedSpec.name || a.path === normalizedSpec.path
+      (a) => a.name === normalizedSpec.name || (a.path && posixifyPath(a.path) === normalizedSpec.path)
     );
 
     if (existingIndex >= 0) {
@@ -481,7 +486,7 @@ const removeApiSpecFromWorkspace = async (workspacePath, apiSpecPath) => {
     let removedApiSpec = null;
 
     config.specs = config.specs.filter((a) => {
-      const specPathFromYml = a.path;
+      const specPathFromYml = a.path ? posixifyPath(a.path) : a.path;
       if (!specPathFromYml) return true;
 
       const absoluteSpecPath = path.isAbsolute(specPathFromYml)
