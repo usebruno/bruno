@@ -398,6 +398,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
   if (request.tests) {
     axiosRequest.tests = request.tests;
+    axiosRequest.testsMetadata = request.testsMetadata;
   }
 
   axiosRequest.vars = request.vars;
