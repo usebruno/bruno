@@ -67,4 +67,28 @@ describe('createCollectionFromBrunoObject', () => {
     expect(graphqlRequest).toHaveProperty('type', 'graphql-request');
     expect(graphqlRequest).toHaveProperty('request.method', 'POST');
   });
+
+  it('throws for unsupported item types', async () => {
+    outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-import-'));
+
+    await expect(
+      createCollectionFromBrunoObject(
+        {
+          name: 'invalid-type-collection',
+          items: [
+            {
+              type: 'htttttppp',
+              name: 'Invalid Request',
+              filename: 'invalid-request.bru',
+              request: {
+                method: 'GET',
+                url: 'https://api.example.com'
+              }
+            }
+          ]
+        },
+        outputDir
+      )
+    ).rejects.toThrow('Unsupported item type: htttttppp');
+  });
 });
