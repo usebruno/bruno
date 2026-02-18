@@ -4,6 +4,22 @@ import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from '
 import { resolveInheritedAuth } from 'utils/auth';
 import { get } from 'lodash';
 import { interpolateAuth, interpolateHeaders, interpolateBody, interpolateParams } from './interpolation';
+import { parse, format } from 'url';
+import { stringify } from 'querystring';
+
+const getEncodedUrl = (rawUrl) => {
+  const parsed = parse(rawUrl, true, true);
+  if (!parsed.query || Object.keys(parsed.query).length === 0) {
+    return rawUrl;
+  }
+  const search = stringify(parsed.query);
+  return format({
+    ...parsed,
+    search,
+    query: parsed.query,
+    path: search ? `${parsed.pathname}?${search}` : parsed.pathname
+  });
+};
 
 const addCurlAuthFlags = (curlCommand, auth) => {
   if (!auth || !curlCommand) return curlCommand;
@@ -77,6 +93,17 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     // For curl target, add special auth flags for digest/ntlm
     if (language.target === 'shell' && language.client === 'curl') {
       result = addCurlAuthFlags(result, effectiveAuth);
+    }
+
+    // Respect encodeUrl setting: when not explicitly true, replace HTTPSnippet's encoded URL with the raw URL
+    // encodeUrl defaults to false in the UI when undefined/null
+    const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
+    if (settings?.encodeUrl !== true) {
+      const rawUrl = request.url;
+      const encodedUrl = getEncodedUrl(rawUrl);
+      if (encodedUrl !== rawUrl) {
+        result = result.replaceAll(encodedUrl, rawUrl);
+      }
     }
 
     return result;
