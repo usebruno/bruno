@@ -322,6 +322,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       } catch (error) {
+        win.webContents.send('main:display-error', `Failed to parse request file:${pathname} reason:${error?.message}`);
         console.error(error);
       } finally {
         watcher.markFileAsProcessed(win, collectionUid, pathname);
