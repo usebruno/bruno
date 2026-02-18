@@ -1,6 +1,7 @@
 const { describe, it, expect } = require('@jest/globals');
 const TestRuntime = require('../src/runtime/test-runtime');
 const ScriptRuntime = require('../src/runtime/script-runtime');
+const AssertRuntime = require('../src/runtime/assert-runtime');
 const Bru = require('../src/bru');
 const VarsRuntime = require('../src/runtime/vars-runtime');
 
@@ -256,6 +257,89 @@ describe('runtime', () => {
       const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
 
       expect(result.runtimeVariables.title).toBe('{{$randomFirstName}}');
+    });
+  });
+
+  describe('assert-runtime', () => {
+    const baseRequest = {
+      method: 'GET',
+      url: 'http://localhost:3000/',
+      headers: {},
+      data: undefined
+    };
+
+    const makeResponse = (data) => ({
+      status: 200,
+      statusText: 'OK',
+      data,
+      headers: {}
+    });
+
+    const runAssertions = (assertions, response, runtime = 'nodevm') => {
+      const assertRuntime = new AssertRuntime({ runtime });
+      return assertRuntime.runAssertions(assertions, { ...baseRequest }, response, {}, {}, process.env);
+    };
+
+    describe('isJson', () => {
+      it('should pass for a plain object', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse({ id: 1, name: 'test' })
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for a nested object', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse({ user: { id: 1, tags: ['a', 'b'] } })
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for objects from a different realm (e.g. after res.setBody in node-vm)', async () => {
+        const response = makeResponse({ id: 1, name: 'original' });
+
+        // res.setBody() inside node-vm creates a cross-realm object whose
+        // constructor is the VM's Object, not the host's Object
+        const scriptRuntime = new ScriptRuntime({ runtime: 'nodevm' });
+        await scriptRuntime.runResponseScript(
+          `res.setBody({ id: 2, name: 'updated' });`,
+          { ...baseRequest },
+          response,
+          {}, {}, '.', null, process.env
+        );
+
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          response
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should fail for an array', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse([1, 2, 3])
+        );
+        expect(results[0].status).toBe('fail');
+      });
+
+      it('should fail for a string', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse('hello')
+        );
+        expect(results[0].status).toBe('fail');
+      });
+
+      it('should fail for null', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse(null)
+        );
+        expect(results[0].status).toBe('fail');
+      });
     });
   });
 });
