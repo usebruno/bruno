@@ -17,7 +17,7 @@ type T_CACertificatesResult = {
 };
 
 let systemCertsCache: string[] | undefined;
-let cachedResult: { key: string; result: T_CACertificatesResult } | undefined;
+let cachedResult = new Map<string, T_CACertificatesResult>();
 
 function getFileMtimeMs(filePath: string | undefined): number | null {
   if (!filePath) return null;
@@ -108,8 +108,8 @@ const getCACertificates = ({ caCertFilePath, shouldKeepDefaultCerts = true }: T_
     shouldKeepDefaultCerts
   });
 
-  if (cachedResult && cachedResult.key === cacheKey) {
-    return cachedResult.result;
+  if (cachedResult.has(cacheKey)) {
+    return cachedResult.get(cacheKey)!;
   }
 
   try {
@@ -172,7 +172,7 @@ const getCACertificates = ({ caCertFilePath, shouldKeepDefaultCerts = true }: T_
     caCertificates = mergedCerts;
 
     const result = { caCertificates, caCertificatesCount };
-    cachedResult = { key: cacheKey, result };
+    cachedResult.set(cacheKey, result);
 
     return result;
   } catch (err) {
