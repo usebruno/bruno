@@ -325,7 +325,7 @@ const StyledWrapper = styled.div`
       }
 
       &.info {
-        background: ${(props) => props.theme.status.info.background};
+        /* background: ${(props) => props.theme.status.info.background}; */
         /* border-top-color: ${(props) => props.theme.status.info.border}; */
       }
 
@@ -335,7 +335,7 @@ const StyledWrapper = styled.div`
       }
 
       &.danger {
-        background: ${(props) => props.theme.status.danger.background};
+        /* background: ${(props) => props.theme.status.danger.background}; */
         /* border-top-color: ${(props) => props.theme.status.danger.border}; */
       }
 
