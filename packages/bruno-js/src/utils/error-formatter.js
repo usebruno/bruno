@@ -243,7 +243,7 @@ const adjustStackTrace = (stack, scriptType = null, cache = null, scriptMetadata
 
 /** Resolve original error name from wrapped errors (QuickJS cause / Node VM ScriptError) */
 const getErrorTypeName = (error) => {
-  return error.cause?.name || error.originalError?.name || error.name || error.constructor.name || 'Error';
+  return error.cause?.name || error.originalError?.name || error.name || error.constructor?.name || 'Error';
 };
 
 /** Format an error with source context and adjusted line numbers */

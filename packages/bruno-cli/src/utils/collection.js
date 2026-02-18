@@ -228,17 +228,17 @@ ${script}
 };
 
 /**
-* Wraps each script segment in an async IIFE, joins them with double newlines,
-* and records the line range of the "request" segment for stack-trace mapping.
-*
-* Merged scripts = collection + folders + request; the runtime runs one combined
-* script, so we need requestStartLine/requestEndLine to map a VM line number
-* back to the request's script in the .bru file.
-*
-* @param {string[]} scripts - Script segments in order (e.g. collection, folders, request).
-* @param {number} requestIndex - Index in scripts of the request-level segment.
-* @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number } | null }}
-*/
+ * Wraps each script segment in an async IIFE, joins them with double newlines,
+ * and records the line range of the "request" segment for stack-trace mapping.
+ *
+ * Merged scripts = collection + folders + request; the runtime runs one combined
+ * script, so we need requestStartLine/requestEndLine to map a VM line number
+ * back to the request's script in the .bru file.
+ *
+ * @param {string[]} scripts - Script segments in order (e.g. collection, folders, request).
+ * @param {number} requestIndex - Index in scripts of the request-level segment.
+ * @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number } | null }}
+ */
 const wrapAndJoinScripts = (scripts, requestIndex) => {
   const wrapped = scripts.map((s) => wrapScriptInClosure(s));
   const code = wrapped.filter(Boolean).join(os.EOL + os.EOL);
