@@ -500,7 +500,7 @@ const processCollectionItems = async (items = [], currentPath) => {
         if (item.seq) {
           item.root.meta.seq = item.seq;
         }
-        const folderContent = await stringifyFolder(item.root, { format: 'bru' });
+        const folderContent = stringifyFolder(item.root, { format: 'bru' });
         safeWriteFileSync(folderBruFilePath, folderContent);
       }
 
@@ -515,10 +515,9 @@ const processCollectionItems = async (items = [], currentPath) => {
         sanitizedFilename += '.bru';
       }
 
-      // Keep schema item type so filestore can stringify request correctly
-      const type = item.type;
       const bruJson = {
-        type: type,
+        // Keep schema item type so filestore can stringify request correctly
+        type: item.type,
         name: item.name,
         seq: typeof item.seq === 'number' ? item.seq : 1,
         tags: item.tags || [],
@@ -539,7 +538,7 @@ const processCollectionItems = async (items = [], currentPath) => {
       };
 
       // Convert to BRU format and write to file
-      const content = await stringifyRequest(bruJson, { format: 'bru' });
+      const content = stringifyRequest(bruJson, { format: 'bru' });
       safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
     } else {
       throw new Error(`Unsupported item type: ${item.type}`);

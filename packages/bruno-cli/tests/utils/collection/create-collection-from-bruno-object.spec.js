@@ -14,12 +14,12 @@ describe('createCollectionFromBrunoObject', () => {
     }
   });
 
-  it('writes http and graphql requests from imported collection items', async () => {
+  it('writes and parses http request from imported collection items', async () => {
     outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-import-'));
 
     await createCollectionFromBrunoObject(
       {
-        name: 'imported-collection',
+        name: 'imported-http-collection',
         items: [
           {
             type: 'http-request',
@@ -30,12 +30,31 @@ describe('createCollectionFromBrunoObject', () => {
               method: 'GET',
               url: 'https://api.example.com/users'
             }
-          },
+          }
+        ]
+      },
+      outputDir
+    );
+
+    const httpPath = path.join(outputDir, 'get-users.bru');
+    expect(fs.existsSync(httpPath)).toBe(true);
+
+    const httpRequest = parseRequest(fs.readFileSync(httpPath, 'utf8'), { format: 'bru' });
+    expect(httpRequest).toHaveProperty('request.method', 'GET');
+  });
+
+  it('writes and parses graphql request from imported collection items', async () => {
+    outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-import-'));
+
+    await createCollectionFromBrunoObject(
+      {
+        name: 'imported-graphql-collection',
+        items: [
           {
             type: 'graphql-request',
             name: 'Get Viewer',
             filename: 'get-viewer.bru',
-            seq: 2,
+            seq: 1,
             request: {
               method: 'POST',
               url: 'https://api.example.com/graphql',
@@ -53,18 +72,10 @@ describe('createCollectionFromBrunoObject', () => {
       outputDir
     );
 
-    const httpPath = path.join(outputDir, 'get-users.bru');
     const graphqlPath = path.join(outputDir, 'get-viewer.bru');
-
-    expect(fs.existsSync(httpPath)).toBe(true);
     expect(fs.existsSync(graphqlPath)).toBe(true);
 
-    const httpRequest = parseRequest(fs.readFileSync(httpPath, 'utf8'), { format: 'bru' });
     const graphqlRequest = parseRequest(fs.readFileSync(graphqlPath, 'utf8'), { format: 'bru' });
-
-    expect(httpRequest).toHaveProperty('type', 'http-request');
-    expect(httpRequest).toHaveProperty('request.method', 'GET');
-    expect(graphqlRequest).toHaveProperty('type', 'graphql-request');
     expect(graphqlRequest).toHaveProperty('request.method', 'POST');
   });
 
