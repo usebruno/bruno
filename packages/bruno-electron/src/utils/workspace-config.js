@@ -419,8 +419,10 @@ const reorderWorkspaceCollections = async (workspacePath, collectionPaths) => {
     const matched = new Set();
 
     for (const absolutePath of collectionPaths) {
-      const targetPath = path.normalize(absolutePath);
-      const entry = existing.find((c) => getNormalizedAbsoluteCollectionPath(workspacePath, c) === targetPath);
+      const targetPath = posixifyPath(path.normalize(absolutePath));
+      const entry = existing.find(
+        (c) => posixifyPath(getNormalizedAbsoluteCollectionPath(workspacePath, c)) === targetPath
+      );
       if (entry && !matched.has(entry)) {
         inNewOrder.push(entry);
         matched.add(entry);
