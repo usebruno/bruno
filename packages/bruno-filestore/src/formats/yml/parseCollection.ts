@@ -58,12 +58,12 @@ const parseCollection = (ymlString: string): ParsedCollection => {
     // protobuf
     if (oc.config?.protobuf) {
       brunoConfig.protobuf = {
-        protofFiles: oc.config.protobuf.protoFiles?.map((protoFile: any) => ({
+        protoFiles: oc.config.protobuf.protoFiles?.map((protoFile: any) => ({
           path: protoFile.path
         })) || [],
         importPaths: oc.config.protobuf.importPaths?.map((importPath: any) => ({
           path: importPath.path,
-          disabled: importPath.disabled || false
+          enabled: importPath.disabled !== true
         })) || []
       };
     }

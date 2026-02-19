@@ -10,19 +10,6 @@ test.describe('Create GraphQL Requests', () => {
   });
 
   test.afterAll(async ({ pageWithUserData: page }) => {
-    // Clean up Root GraphQL Request
-    await locators.sidebar.request('Root GraphQL Request').hover();
-    await locators.actions.collectionItemActions('Root GraphQL Request').click();
-    await locators.dropdown.item('Delete').click();
-    await locators.modal.button('Delete').click();
-
-    // Clean up Folder GraphQL Request
-    await locators.sidebar.request('Folder GraphQL Request').hover();
-    await locators.actions.collectionItemActions('Folder GraphQL Request').click();
-    await locators.dropdown.item('Delete').click();
-    await locators.modal.button('Delete').click();
-
-    // Clean up collection
     await closeAllCollections(page);
   });
 

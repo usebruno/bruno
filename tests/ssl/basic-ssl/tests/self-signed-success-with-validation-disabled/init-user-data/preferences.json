@@ -1,5 +1,5 @@
 {
-  "maximized": true,
+  "maximized": false,
   "lastOpenedCollections": ["{{projectRoot}}/tests/ssl/basic-ssl/collections/self-signed-badssl"],
   "preferences": {
 		"request": {

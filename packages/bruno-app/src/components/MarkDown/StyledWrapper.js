@@ -15,20 +15,20 @@ const StyledMarkdownBodyWrapper = styled.div`
       margin: 0.67em 0;
       font-weight: var(--base-text-weight-semibold, 600);
       padding-bottom: 0.3em;
-      font-size: 1.4em;
+      font-size: 2.2em;
       border-bottom: 1px solid var(--color-border-muted);
     }
 
     h2 {
       font-weight: var(--base-text-weight-semibold, 600);
       padding-bottom: 0.3em;
-      font-size: 1.3em;
+      font-size: 1.7em;
       border-bottom: 1px solid var(--color-border-muted);
     }
 
     h3 {
       font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 1.2em;
+      font-size: 1.45em;
     }
 
     h4 {
@@ -38,12 +38,12 @@ const StyledMarkdownBodyWrapper = styled.div`
 
     h5 {
       font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 1em;
+      font-size: 0.975em;
     }
 
     h6 {
       font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 0.9em;
+      font-size: 0.85em;
       color: var(--color-fg-muted);
     }
 

@@ -58,7 +58,7 @@ test.describe('Global Environment Variable Update via Script', () => {
     await test.step('Close the global environment config tab.', async () => {
       const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
       await envTab.hover();
-      await envTab.getByTestId('request-tab-close-icon').click();
+      await envTab.getByTestId('request-tab-close-icon').click({ force: true });
     });
   });
 });

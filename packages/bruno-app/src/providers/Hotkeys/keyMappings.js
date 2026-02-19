@@ -35,7 +35,8 @@ const KeyMapping = {
   collapseSidebar: { mac: 'command+\\', windows: 'ctrl+\\', name: 'Collapse Sidebar' },
   zoomIn: { mac: 'command+=', windows: 'ctrl+=', name: 'Zoom In' },
   zoomOut: { mac: 'command+-', windows: 'ctrl+-', name: 'Zoom Out' },
-  resetZoom: { mac: 'command+0', windows: 'ctrl+0', name: 'Reset Zoom' }
+  resetZoom: { mac: 'command+0', windows: 'ctrl+0', name: 'Reset Zoom' },
+  renameItem: { mac: 'enter', windows: 'f2', name: 'Rename Collection Item' }
 };
 
 /**

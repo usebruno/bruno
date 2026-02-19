@@ -58,6 +58,27 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
       globalThis.test = Test(__brunoTestResults);
     `
   );
+
+  // Register custom chai assertion for isJson (expect(...).to.be.json)
+  // The bundled chai only exposes { expect, assert } — no Assertion class.
+  // Access the prototype through an expect() instance instead.
+  vm.evalCode(
+    `
+      (function() {
+        var proto = Object.getPrototypeOf(expect(null));
+        Object.defineProperty(proto, 'json', {
+          get: function () {
+            var obj = this._obj;
+            var isJson = typeof obj === 'object' && obj !== null && !Array.isArray(obj) &&
+              Object.prototype.toString.call(obj) === '[object Object]';
+            this.assert(isJson, 'expected #{this} to be JSON', 'expected #{this} not to be JSON');
+            return this;
+          },
+          configurable: true
+        });
+      })();
+    `
+  );
 };
 
 module.exports = addBruShimToContext;

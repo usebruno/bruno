@@ -79,6 +79,18 @@ describe('Bruno to Postman Request Translation', () => {
     expect(translatedCode).toBe('pm.request.headers.set("Authorization", "Bearer token123");');
   });
 
+  it('should translate req.deleteHeader() to pm.request.headers.remove()', () => {
+    const code = 'req.deleteHeader("Authorization");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.request.headers.remove("Authorization");');
+  });
+
+  it('should handle req.deleteHeader() with a variable argument', () => {
+    const code = 'const headerName = "X-Custom"; req.deleteHeader(headerName);';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const headerName = "X-Custom"; pm.request.headers.remove(headerName);');
+  });
+
   it('should handle all request properties together', () => {
     const code = `
 // All request properties

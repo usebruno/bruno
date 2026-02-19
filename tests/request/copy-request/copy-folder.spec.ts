@@ -22,7 +22,7 @@ test.describe('Copy and Paste Folders', () => {
 
     // Add a request to the folder
     await folder.hover();
-    await folder.locator('.menu-icon').click();
+    await folder.locator('.menu-icon').click({ force: true });
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('request-in-folder');
     await page.locator('#new-request-url .CodeMirror').click();
@@ -34,7 +34,7 @@ test.describe('Copy and Paste Folders', () => {
 
     // Copy the folder
     await folder.hover();
-    await folder.locator('.menu-icon').click();
+    await folder.locator('.menu-icon').click({ force: true });
     await page.locator('.dropdown-item').filter({ hasText: 'Copy' }).click();
 
     // Paste into the collection root
@@ -77,13 +77,13 @@ test.describe('Copy and Paste Folders', () => {
 
     // Copy folder-to-copy
     await folderToCopy.hover();
-    await folderToCopy.locator('.menu-icon').click();
+    await folderToCopy.locator('.menu-icon').click({ force: true });
     await page.locator('.dropdown-item').filter({ hasText: 'Copy' }).click();
     await folderToCopy.click();
 
     // Paste into target folder
     await targetFolder.hover();
-    await targetFolder.locator('.menu-icon').click();
+    await targetFolder.locator('.menu-icon').click({ force: true });
     await page.locator('.dropdown-item').filter({ hasText: 'Paste' }).click();
 
     // Verify folder was pasted inside target folder

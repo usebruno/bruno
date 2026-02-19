@@ -569,7 +569,7 @@ const closeEnvironmentPanel = async (page: Page, type: EnvironmentType = 'collec
     const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
     const envTab = page.locator('.request-tab').filter({ hasText: tabLabel });
     await envTab.hover();
-    await envTab.getByTestId('request-tab-close-icon').click();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
   });
 };
 

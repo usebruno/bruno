@@ -200,7 +200,7 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
     await test.step('Close environment tab', async () => {
       const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
       await envTab.hover();
-      await envTab.getByTestId('request-tab-close-icon').click();
+      await envTab.getByTestId('request-tab-close-icon').click({ force: true });
     });
   });
 });

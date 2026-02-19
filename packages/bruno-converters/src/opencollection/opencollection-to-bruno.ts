@@ -48,7 +48,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
       })),
       importPaths: config.protobuf.importPaths?.map((p) => ({
         path: p.path,
-        disabled: p.disabled || false
+        enabled: p.disabled !== true
       }))
     };
   }

@@ -94,8 +94,8 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await expect(page.getByText(/Error: Cannot copy.*already exists/i)).toBeVisible();
 
     // source and target collection request should remain unchanged
-    await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toBeVisible();
+    await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first()).toBeVisible();
     await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-    await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toBeVisible();
+    await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first()).toBeVisible();
   });
 });

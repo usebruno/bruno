@@ -1,6 +1,6 @@
 {
     "maximized": false,
     "lastOpenedCollections": [
-        "{{projectRoot}}/tests/environments/api-setEnvVar/fixtures/collection"
+        "{{collectionPath}}"
     ]
 }

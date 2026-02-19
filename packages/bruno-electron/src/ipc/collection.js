@@ -84,6 +84,27 @@ const MAX_COLLECTION_SIZE_IN_MB = 20;
 const MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB = 5;
 const MAX_COLLECTION_FILES_COUNT = 2000;
 
+// Get the base directory for transient request files (stored in app data directory)
+const getTransientDirectoryBase = () => {
+  return path.join(app.getPath('userData'), 'tmp', 'transient');
+};
+
+// Get the prefix used for transient collection directories
+const getTransientCollectionPrefix = () => {
+  return path.join(getTransientDirectoryBase(), 'bruno-');
+};
+
+// Get the prefix used for scratch collection directories
+const getTransientScratchPrefix = () => {
+  return path.join(getTransientDirectoryBase(), 'bruno-scratch-');
+};
+
+// Check if a path is within the transient directory
+const isTransientPath = (filePath) => {
+  const transientBase = getTransientDirectoryBase();
+  return filePath.startsWith(transientBase + path.sep) || filePath.startsWith(transientBase);
+};
+
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
 
@@ -91,11 +112,10 @@ const envHasSecrets = (environment = {}) => {
 };
 
 const findCollectionPathByItemPath = (filePath) => {
-  const tmpDir = os.tmpdir();
   const parts = filePath.split(path.sep);
   const index = parts.findIndex((part) => part.startsWith('bruno-'));
 
-  if (filePath.startsWith(tmpDir) && index !== -1) {
+  if (isTransientPath(filePath) && index !== -1) {
     const transientDirPath = parts.slice(0, index + 1).join(path.sep);
     const metadataPath = path.join(transientDirPath, 'metadata.json');
     try {
@@ -1021,10 +1041,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // This is a simpler handler specifically for cleaning up transient requests
   // tempDirectory: the collection's temp directory path to validate files belong to this collection
   ipcMain.handle('renderer:delete-transient-requests', async (event, filePaths, tempDirectory) => {
-    const brunoTempPrefix = path.join(os.tmpdir(), 'bruno-');
+    const brunoTempPrefix = getTransientCollectionPrefix();
     const results = { deleted: [], skipped: [], errors: [] };
 
-    // Validate tempDirectory is within Bruno temp prefix
+    // Validate tempDirectory is within Bruno transient directory
     const normalizedTempDir = tempDirectory ? path.normalize(tempDirectory) : null;
     if (!normalizedTempDir || !normalizedTempDir.startsWith(brunoTempPrefix)) {
       return { deleted: [], skipped: filePaths.map((p) => ({ path: p, reason: 'Invalid temp directory' })), errors: [] };
@@ -1897,7 +1917,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:mount-collection', async (event, { collectionUid, collectionPathname, brunoConfig }) => {
     let tempDirectoryPath = null;
     try {
-      tempDirectoryPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-'));
+      // Ensure the transient base directory exists
+      const transientBase = getTransientDirectoryBase();
+      if (!fs.existsSync(transientBase)) {
+        fs.mkdirSync(transientBase, { recursive: true });
+      }
+      tempDirectoryPath = fs.mkdtempSync(getTransientCollectionPrefix());
       const metadata = {
         collectionPath: collectionPathname
       };
@@ -1926,7 +1951,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:mount-workspace-scratch', async (event, { workspaceUid, workspacePath }) => {
     try {
-      const tempDirectoryPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-scratch-'));
+      // Ensure the transient base directory exists
+      const transientBase = getTransientDirectoryBase();
+      if (!fs.existsSync(transientBase)) {
+        fs.mkdirSync(transientBase, { recursive: true });
+      }
+      const tempDirectoryPath = fs.mkdtempSync(getTransientScratchPrefix());
       registerScratchCollectionPath(tempDirectoryPath);
 
       const collectionRoot = {

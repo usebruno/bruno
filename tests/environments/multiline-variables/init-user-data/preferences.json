@@ -1,7 +1,7 @@
 {
-  "maximized": true,
+  "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/tests/environments/multiline-variables/collection"
+    "{{collectionPath}}"
   ],
   "request": {
     "sslVerification": false,

@@ -62,7 +62,7 @@ test.describe('Collection Environment Import Tests', () => {
     await expect(page.locator('input[name="5.name"]')).toHaveValue('secretApiToken');
     await expect(page.locator('input[name="5.secret"]')).toBeChecked();
     await envTab.hover();
-    await envTab.getByTestId('request-tab-close-icon').click();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
 
     await page.locator('.collection-item-name').first().click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts/{{userId}}');
