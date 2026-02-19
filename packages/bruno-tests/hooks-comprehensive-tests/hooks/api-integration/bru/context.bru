@@ -1,0 +1,40 @@
+meta {
+  name: context
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    bru.setVar('hook-collection-name', bru.getCollectionName());
+    bru.setVar('hook-env-name', bru.getEnvName());
+    bru.setVar('hook-process-env', bru.getProcessEnv('PATH'));
+  });
+}
+
+tests {
+  test("bru.getCollectionName - returns collection name", function() {
+    const name = bru.getVar('hook-collection-name');
+    expect(name).to.be.a('string');
+    expect(name.length).to.be.greaterThan(0);
+  });
+  
+  test("bru.getEnvName - returns environment name", function() {
+    const envName = bru.getVar('hook-env-name');
+    expect(envName).to.equal('Prod');
+  });
+  
+  test("bru.getProcessEnv - returns process env value", function() {
+    // PATH is typically available in all environments
+    const path = bru.getProcessEnv('PATH');
+    const storedPath = bru.getVar('hook-process-env');
+    expect(path).to.equal(storedPath);
+  });
+}
+

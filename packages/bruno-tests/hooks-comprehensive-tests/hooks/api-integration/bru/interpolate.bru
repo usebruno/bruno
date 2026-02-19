@@ -1,0 +1,32 @@
+meta {
+  name: interpolate
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    bru.setVar('test-value', 'interpolated');
+    bru.setVar('interpolate-result', bru.interpolate('Result: {{test-value}}'));
+    bru.setVar('interpolate-env', bru.interpolate('Host: {{host}}'));
+  });
+}
+
+tests {
+  test("bru.interpolate - with runtime variable", function() {
+    expect(bru.getVar('interpolate-result')).to.equal('Result: interpolated');
+  });
+  
+  test("bru.interpolate - with env variable", function() {
+    const result = bru.getVar('interpolate-env');
+    expect(result).to.include('Host:');
+    expect(result).to.include('http');
+  });
+}
+

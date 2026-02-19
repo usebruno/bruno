@@ -1,0 +1,55 @@
+meta {
+  name: async-before-request
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(async ({ req }) => {
+    console.log('[beforeRequest] Starting async hook...');
+    
+    // Test: Can use async/await
+    await bru.sleep(1000);
+    
+    // Test: Can access req object in async context
+    const url = req.getUrl();
+    const method = req.getMethod();
+    
+    console.log('[beforeRequest] Request:', method, url);
+    
+    // Test: Can use bru APIs in async context
+    bru.setVar('async-beforeRequest-executed', 'true');
+    bru.setVar('async-request-method', method);
+    
+    // Test: Can modify request
+    req.setHeader('X-Async-Header', 'async-before-request');
+    
+    await bru.sleep(500);
+    console.log('[beforeRequest] Async hook completed');
+  });
+}
+
+tests {
+  test("async beforeRequest hook should have executed", function() {
+    const executed = bru.getVar('async-beforeRequest-executed');
+    expect(executed).to.equal('true');
+  });
+  
+  test("should have captured request method in async hook", function() {
+    const method = bru.getVar('async-request-method');
+    expect(method).to.equal('GET');
+  });
+  
+  test("request should execute after async hook completes", function() {
+    // If we get here, the request executed after the hook
+    // The hook had 1.5 seconds of sleep, so this test verifies waiting
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+

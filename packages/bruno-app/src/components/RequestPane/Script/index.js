@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
-import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
+import { updateRequestScript, updateResponseScript, updateRequestHooksScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
@@ -14,8 +14,10 @@ const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
   const preRequestEditorRef = useRef(null);
   const postResponseEditorRef = useRef(null);
+  const hooksEditorRef = useRef(null);
   const requestScript = item.draft ? get(item, 'draft.request.script.req') : get(item, 'request.script.req');
   const responseScript = item.draft ? get(item, 'draft.request.script.res') : get(item, 'request.script.res');
+  const hooks = item.draft ? get(item, 'draft.request.script.hooks', '') : get(item, 'request.script.hooks', '');
 
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -41,6 +43,8 @@ const Script = ({ item, collection }) => {
         preRequestEditorRef.current.editor.refresh();
       } else if (activeTab === 'post-response' && postResponseEditorRef.current?.editor) {
         postResponseEditorRef.current.editor.refresh();
+      } else if (activeTab === 'hooks' && hooksEditorRef.current?.editor) {
+        hooksEditorRef.current.editor.refresh();
       }
     }, 0);
 
@@ -65,6 +69,14 @@ const Script = ({ item, collection }) => {
         collectionUid: collection.uid
       })
     );
+  };
+
+  const onHooksEdit = (value) => {
+    dispatch(updateRequestHooksScript({
+      hooks: value,
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    }));
   };
 
   const onRun = () => dispatch(sendRequest(item, collection.uid));
@@ -93,6 +105,10 @@ const Script = ({ item, collection }) => {
               <StatusDot type={item.postResponseScriptErrorMessage ? 'error' : 'default'} />
             )}
           </TabsTrigger>
+          <TabsTrigger value="hooks">
+            Hooks
+            {hooks && hooks.trim().length > 0 && <StatusDot />}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pre-request" className="mt-2" dataTestId="pre-request-script-editor">
@@ -120,6 +136,22 @@ const Script = ({ item, collection }) => {
             font={get(preferences, 'font.codeFont', 'default')}
             fontSize={get(preferences, 'font.codeFontSize')}
             onEdit={onResponseScriptEdit}
+            mode="javascript"
+            onRun={onRun}
+            onSave={onSave}
+            showHintsFor={['req', 'res', 'bru']}
+          />
+        </TabsContent>
+
+        <TabsContent value="hooks" className="mt-2" dataTestId="hooks-editor">
+          <CodeEditor
+            ref={hooksEditorRef}
+            collection={collection}
+            value={hooks || ''}
+            theme={displayedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+            onEdit={onHooksEdit}
             mode="javascript"
             onRun={onRun}
             onSave={onSave}

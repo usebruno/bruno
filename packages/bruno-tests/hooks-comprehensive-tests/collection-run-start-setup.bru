@@ -1,0 +1,28 @@
+meta {
+  name: collection-run-start-setup
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("setup should have set token", function() {
+    const token = bru.getVar('setup-token');
+    expect(token).to.equal('mock-token-12345');
+  });
+  
+  test("setup should have set env token", function() {
+    const apiToken = bru.getEnvVar('api-token');
+    expect(apiToken).to.equal('mock-token-12345');
+  });
+
+  test("request should have access to setup vars", function() {
+    const setupComplete = bru.getVar('setup-complete');
+    expect(setupComplete).to.equal('true');
+  });
+}

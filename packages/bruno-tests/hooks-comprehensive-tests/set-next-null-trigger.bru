@@ -1,0 +1,45 @@
+meta {
+  name: set-next-null-trigger
+  type: http
+  seq: 900
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] Testing bru.runner.setNextRequest(null) API');
+    
+    // Clear any previous error markers
+    bru.deleteVar('set-next-null-error');
+    
+    // Mark that this request started
+    bru.setVar('set-next-null-trigger-ran', 'true');
+    
+    console.log('[beforeRequest] setNextRequest(null) trigger starting');
+  });
+  
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    console.log('[afterResponse] Setting next request to null to stop runner gracefully');
+    
+    // Setting nextRequest to null should stop the runner gracefully
+    bru.runner.setNextRequest(null);
+    
+    console.log('[afterResponse] Called bru.runner.setNextRequest(null) - runner should stop');
+  });
+}
+
+tests {
+  test("trigger request should execute successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("trigger marker should be set", function() {
+    const ran = bru.getVar('set-next-null-trigger-ran');
+    expect(ran).to.equal('true');
+  });
+}

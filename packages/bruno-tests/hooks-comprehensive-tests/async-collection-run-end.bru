@@ -1,0 +1,19 @@
+meta {
+  name: async-collection-run-end
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("request should execute successfully", function() {
+    // This request helps track request count for onAfterCollectionRun
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+

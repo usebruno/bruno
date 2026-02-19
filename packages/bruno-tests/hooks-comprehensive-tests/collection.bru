@@ -1,0 +1,202 @@
+vars:pre-request {
+  testCollectionVar: collection-value
+}
+
+script:hooks {
+  // ============================================
+  // Comprehensive Hooks Test Collection
+  // This collection tests all available hooks:
+  // - HTTP Hooks: onBeforeRequest, onAfterResponse (tested in individual request files)
+  // - Runner Hooks: onBeforeCollectionRun, onAfterCollectionRun (tested here)
+  // ============================================
+  
+  // ============================================
+  // Runner Hooks: onBeforeCollectionRun Tests
+  // ============================================
+  
+  // Test: Sync onBeforeCollectionRun hook
+  bru.hooks.runner.onBeforeCollectionRun(() => {
+    console.log('[onBeforeCollectionRun] Sync hook - Collection run starting...');
+    
+    // Test: Can use bru APIs
+    bru.setVar('collection-run-started', 'true');
+    bru.setVar('start-time', Date.now().toString());
+    
+    // Test: Can set collection-level vars
+    bru.setEnvVar('collection-setup-complete', 'true');
+    
+    // Test: Can use getEnvName
+    const envName = bru.getEnvName();
+    bru.setVar('env-name-at-start', envName);
+    
+    // Test: Can use getCollectionName
+    const collectionName = bru.getCollectionName();
+    bru.setVar('collection-name-at-start', collectionName);
+    
+    console.log('[onBeforeCollectionRun] Sync setup complete');
+  });
+  
+  // Test: Async onBeforeCollectionRun hook
+  bru.hooks.runner.onBeforeCollectionRun(async() => {
+    console.log('[onBeforeCollectionRun] Async hook - Starting async setup...');
+    
+    // Test: Can use async/await
+    await bru.sleep(1000);
+    
+    // Test: Can use bru APIs in async context
+    bru.setVar('async-collection-run-started', 'true');
+    bru.setVar('async-start-time', Date.now().toString());
+    
+    // Test: Can set env vars
+    bru.setEnvVar('async-setup-complete', 'true');
+    
+    await bru.sleep(500);
+    console.log('[onBeforeCollectionRun] Async setup completed');
+  });
+  
+  // Test: onBeforeCollectionRun with setup operations
+  bru.hooks.runner.onBeforeCollectionRun(async() => {
+    console.log('[onBeforeCollectionRun] Setup hook - Performing setup operations...');
+    
+    // Simulate setup operations like fetching tokens, initializing data, etc.
+    await bru.sleep(500);
+    
+    // Test: Setup - Set initial vars
+    bru.setVar('setup-token', 'mock-token-12345');
+    bru.setVar('setup-complete', 'true');
+    
+    // Test: Setup - Set env vars
+    bru.setEnvVar('api-token', 'mock-token-12345');
+    bru.setEnvVar('setup-timestamp', Date.now().toString());
+    
+    console.log('[onBeforeCollectionRun] Setup complete - token and counters initialized');
+  });
+  
+  // Test: bru.runRequest in onBeforeCollectionRun hook
+  bru.hooks.runner.onBeforeCollectionRun(async() => {
+    console.log('[onBeforeCollectionRun] Testing bru.runRequest in collection-level hook...');
+    
+    try {
+      // Call another request using bru.runRequest
+      const response = await bru.runRequest('hooks/bru-run-request/helper-request');
+      
+      // Store the response for verification in tests
+      if (response) {
+        bru.setVar('collection-run-request-response', response.data);
+        bru.setVar('collection-run-request-status', response.status);
+        bru.setVar('collection-run-request-tested', 'true');
+        console.log('[onBeforeCollectionRun] bru.runRequest succeeded:', response.data);
+      } else {
+        bru.setVar('collection-run-request-error', 'No response received');
+        console.log('[onBeforeCollectionRun] bru.runRequest failed - no response');
+      }
+    } catch (error) {
+      bru.setVar('collection-run-request-error', error.message || String(error));
+      console.log('[onBeforeCollectionRun] bru.runRequest error:', error);
+    }
+    
+    console.log('[onBeforeCollectionRun] bru.runRequest test completed');
+  });
+  
+  // ============================================
+  // onAfterCollectionRun Hook Tests
+  // ============================================
+  
+  // Test: Sync onAfterCollectionRun hook
+  bru.hooks.runner.onAfterCollectionRun(() => {
+    console.log('[onAfterCollectionRun] Sync hook - Collection run ending...');
+    
+    // Test: Can use bru APIs
+    // Test: Can read final state (read before other hooks delete)
+    const requestCount = bru.getVar('request-count') || '0';
+    console.log('[onAfterCollectionRun] Final request count:', requestCount);
+    
+    // Test: Can set final env vars
+    bru.setEnvVar('collection-run-complete', 'true');
+    
+    console.log('[onAfterCollectionRun] Sync cleanup complete');
+  });
+  
+  // Test: Async onAfterCollectionRun hook
+  bru.hooks.runner.onAfterCollectionRun(async() => {
+    console.log('[onAfterCollectionRun] Async hook - Starting async cleanup...');
+    
+    // Test: Can use async/await
+    await bru.sleep(1000);
+    
+    // Test: Can use bru APIs in async context
+    // Test: Can read final state (read before cleanup hook deletes)
+    const requestCount = bru.getVar('request-count') || '0';
+    console.log('[onAfterCollectionRun] Async cleanup - Final request count:', requestCount);
+    
+    // Test: Can set final env vars
+    bru.setEnvVar('async-cleanup-complete', 'true');
+    
+    await bru.sleep(500);
+    console.log('[onAfterCollectionRun] Async cleanup completed');
+  });
+  
+  // Test: onAfterCollectionRun with cleanup operations
+  bru.hooks.runner.onAfterCollectionRun(async() => {
+    console.log('[onAfterCollectionRun] Cleanup hook - Performing cleanup operations...');
+    
+    // Test: Cleanup - Read final statistics (read before cleanup)
+    const requestCount = bru.getVar('request-count') || '0';
+    const successCount = bru.getVar('success-count') || '0';
+    
+    console.log('[onAfterCollectionRun] Final statistics:', {
+      requests: parseInt(requestCount),
+      successes: parseInt(successCount)
+    });
+    
+    // Test: Cleanup - Set final env vars
+    bru.setEnvVar('collection-run-finished', 'true');
+    bru.setEnvVar('final-request-count', requestCount);
+    
+    // Cleanup: Remove all test variables created during the run
+    bru.deleteVar('collection-run-started');
+    bru.deleteVar('start-time');
+    bru.deleteVar('env-name-at-start');
+    bru.deleteVar('collection-name-at-start');
+    bru.deleteVar('async-collection-run-started');
+    bru.deleteVar('async-start-time');
+    bru.deleteVar('setup-token');
+    bru.deleteVar('setup-complete');
+    bru.deleteVar('request-count');
+    bru.deleteVar('success-count');
+    bru.deleteVar('final-stats');
+    bru.deleteVar('cleanup-performed');
+    bru.deleteVar('collection-run-request-response');
+    bru.deleteVar('collection-run-request-status');
+    bru.deleteVar('collection-run-request-tested');
+    bru.deleteVar('collection-run-request-error');
+    
+    await bru.sleep(300);
+    console.log('[onAfterCollectionRun] Cleanup complete - all test variables removed');
+  });
+  
+  // ============================================
+  // HTTP Hooks: Collection-level HTTP hooks
+  // Individual request files in hooks/ subdirectories test HTTP hooks at request level
+  // This collection-level hook tracks requests for runner hook tests
+  // ============================================
+  
+  // Collection-level HTTP hook: Track requests for onAfterCollectionRun tests
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    const count = bru.getVar('request-count') || 0;
+    bru.setVar('request-count', parseInt(count) + 1);
+    if (res.getStatus() === 200) {
+      const successCount = bru.getVar('success-count') || 0;
+      bru.setVar('success-count', parseInt(successCount) + 1);
+    } else {
+      console.log('[onAfterResponse] Request failed:');
+    }
+  });
+  
+  // Collection-level HTTP hook: Example onBeforeRequest hook
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    // This hook runs before every request in the collection
+    // Individual request files in hooks/ subdirectories have their own request-level hooks
+    console.log('[Collection-level HTTP Hook] Before request:', req.getName());
+  });
+}
