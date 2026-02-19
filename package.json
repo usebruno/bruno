@@ -23,6 +23,9 @@
     "@eslint/compat": "^1.3.2",
     "@faker-js/faker": "^7.6.0",
     "@jest/globals": "^29.2.0",
+    "@lerna-lite/cli": "^4.11.2",
+    "@lerna-lite/publish": "^4.11.2",
+    "@lerna-lite/version": "^4.11.2",
     "@opencollection/types": "~0.7.0",
     "@playwright/test": "^1.51.1",
     "@rollup/plugin-json": "^6.1.0",
@@ -84,7 +87,8 @@
     "test:e2e:ssl": "playwright test --project=ssl",
     "lint": "cross-env NODE_OPTIONS=\"--max_old_space_size=4096\" npx eslint",
     "lint:fix": "cross-env NODE_OPTIONS=\"--max_old_space_size=4096\" npx eslint --fix",
-    "prepare": "husky"
+    "prepare": "husky",
+    "version:since:last":"npx lerna version --exact --since=$(git describe --tags $(git rev-list --tags --max-count=1)) --dry-run"
   },
   "nano-staged": {
     "*.{js,ts,jsx}": [
