@@ -23,7 +23,8 @@ const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2 } = require('@usebruno/requests');
 const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
-const { getOAuth2Token } = require('../utils/oauth2');
+const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
+const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
@@ -223,6 +224,12 @@ const runSingleRequest = async function (
 
         if (result?.stopExecution) {
           shouldStopRunnerExecution = true;
+        }
+
+        if (result?.oauth2CredentialsToReset?.length) {
+          for (const credentialId of result.oauth2CredentialsToReset) {
+            tokenStore.deleteCredentialById(credentialId);
+          }
         }
 
         if (result?.skipRequest) {
@@ -633,6 +640,8 @@ const runSingleRequest = async function (
         console.error('OAuth2 token fetch error:', error.message);
       }
 
+      request.oauth2CredentialVariables = getFormattedOauth2Credentials();
+
       // Remove oauth2 config from request to prevent it from being sent
       delete request.oauth2;
     }
@@ -787,6 +796,12 @@ const runSingleRequest = async function (
           shouldStopRunnerExecution = true;
         }
 
+        if (result?.oauth2CredentialsToReset?.length) {
+          for (const credentialId of result.oauth2CredentialsToReset) {
+            tokenStore.deleteCredentialById(credentialId);
+          }
+        }
+
         postResponseTestResults = result?.results || [];
         logResults(postResponseTestResults, 'Post-Response Tests');
       } catch (error) {
@@ -856,6 +871,12 @@ const runSingleRequest = async function (
 
         if (result?.stopExecution) {
           shouldStopRunnerExecution = true;
+        }
+
+        if (result?.oauth2CredentialsToReset?.length) {
+          for (const credentialId of result.oauth2CredentialsToReset) {
+            tokenStore.deleteCredentialById(credentialId);
+          }
         }
 
         logResults(testResults, 'Tests');
