@@ -559,18 +559,22 @@ const fixConcatenatedMethods = (command) => {
  * Decode bash ANSI $'..' escape sequences
  */
 const decodeAnsiEscapes = (value) => {
-  return value
-    .replace(/\\\\/g, '\\')
-    .replace(/\\'/g, '\'')
-    .replace(/\\n/g, '\n')
-    .replace(/\\r/g, '\r')
-    .replace(/\\t/g, '\t')
-    .replace(/\\v/g, '\v')
-    .replace(/\\f/g, '\f')
-    .replace(/\\a/g, '\x07')
-    .replace(/\\b/g, '\b')
-    .replace(/\\x([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-    .replace(/\\u([0-9A-Fa-f]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  return value.replace(/\\(\\|'|n|r|t|v|f|a|b|x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4})/g, (match, seq) => {
+    switch (seq[0]) {
+      case '\\': return '\\';
+      case '\'': return '\'';
+      case 'n': return '\n';
+      case 'r': return '\r';
+      case 't': return '\t';
+      case 'v': return '\v';
+      case 'f': return '\f';
+      case 'a': return '\x07';
+      case 'b': return '\b';
+      case 'x': return String.fromCharCode(parseInt(seq.slice(1), 16));
+      case 'u': return String.fromCharCode(parseInt(seq.slice(1), 16));
+      default: return match;
+    }
+  });
 };
 
 /**
