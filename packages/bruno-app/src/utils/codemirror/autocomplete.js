@@ -117,7 +117,6 @@ const STATIC_API_HINTS = {
     'bru.utils',
     'bru.utils.minifyJson(json)',
     'bru.utils.minifyXml(xml)',
-    'bru.getOauth2CredentialVar(key)',
     'bru.resetOauth2Credential(credentialId)'
   ]
 };
