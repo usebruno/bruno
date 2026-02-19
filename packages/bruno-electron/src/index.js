@@ -3,6 +3,10 @@ const path = require('path');
 const { execSync } = require('node:child_process');
 const isDev = require('electron-is-dev');
 const os = require('os');
+const { initializeShellEnv } = require('@usebruno/requests');
+
+// Fetch shell environment early (before app ready)
+const shellEnvPromise = initializeShellEnv();
 
 if (isDev) {
   if (!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
@@ -155,6 +159,9 @@ if (useSingleInstance && !gotTheLock) {
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
+  // Ensure shell environment is loaded before any operations that need it
+  await shellEnvPromise;
+
   if (isDev) {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
     try {
