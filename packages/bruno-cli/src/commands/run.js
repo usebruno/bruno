@@ -1,3 +1,5 @@
+#!/usr/bin/env -S node --no-deprecation
+
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
