@@ -393,6 +393,14 @@ const exampleSchema = Yup.object({
 // Right now, the request schema is very tightly coupled with http request
 // As we introduce more request types in the future, we will improve the definition to support
 // schema structure based on other request type
+const bodyVariantSchema = Yup.object({
+  uid: uidSchema,
+  name: Yup.string().min(1).required('name is required'),
+  body: requestBodySchema
+})
+  .noUnknown(true)
+  .strict();
+
 const requestSchema = Yup.object({
   url: requestUrlSchema,
   method: requestMethodSchema,
@@ -400,6 +408,8 @@ const requestSchema = Yup.object({
   params: Yup.array().of(requestParamsSchema).required('params are required'),
   auth: authSchema,
   body: requestBodySchema,
+  bodyVariants: Yup.array().of(bodyVariantSchema).nullable().optional(),
+  activeBodyVariantUid: Yup.string().nullable().optional(),
   script: Yup.object({
     req: Yup.string().nullable(),
     res: Yup.string().nullable()
