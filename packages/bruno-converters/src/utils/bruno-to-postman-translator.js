@@ -318,19 +318,19 @@ const complexTransformations = [
       return updateCall;
     }
   },
-  // req.setHeader(key, value) -> pm.request.headers.add({key: key, value: value})
+  // req.setHeader(key, value) -> pm.request.headers.upsert({key: key, value: value})
   {
     pattern: 'req.setHeader',
     transform: (path) => {
       const args = path.value.arguments;
       if (!args || args.length < 2) {
         return j.callExpression(
-          buildMemberExpressionFromString('pm.request.headers.add'),
+          buildMemberExpressionFromString('pm.request.headers.upsert'),
           args || []
         );
       }
       return j.callExpression(
-        buildMemberExpressionFromString('pm.request.headers.add'),
+        buildMemberExpressionFromString('pm.request.headers.upsert'),
         [
           j.objectExpression([
             j.property('init', j.identifier('key'), args[0]),
