@@ -605,6 +605,119 @@ describe('postman-collection', () => {
     });
   });
 
+  it('should skip headers where both key and value are null, and coalesce partial nulls', async () => {
+    const collectionWithNullHeaders = {
+      info: {
+        _postman_id: 'test-null-headers',
+        name: 'collection with null headers',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with null headers',
+          request: {
+            method: 'GET',
+            header: [
+              { key: 'Content-Type', value: 'application/json' },
+              { key: null, value: null },
+              { key: null, value: 'somevalue' },
+              { key: 'X-Custom', value: null }
+            ],
+            url: { raw: 'https://example.com/api' }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNullHeaders);
+    const headers = brunoCollection.items[0].request.headers;
+
+    expect(headers).toHaveLength(3);
+    expect(headers[0].name).toBe('Content-Type');
+    expect(headers[0].value).toBe('application/json');
+    expect(headers[1].name).toBe('');
+    expect(headers[1].value).toBe('somevalue');
+    expect(headers[2].name).toBe('X-Custom');
+    expect(headers[2].value).toBe('');
+  });
+
+  it('should skip urlencoded params where both key and value are null', async () => {
+    const collectionWithNullUrlencoded = {
+      info: {
+        _postman_id: 'test-null-urlencoded',
+        name: 'collection with null urlencoded',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with null urlencoded',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/api' },
+            body: {
+              mode: 'urlencoded',
+              urlencoded: [
+                { key: 'field1', value: 'value1' },
+                { key: null, value: null },
+                { key: null, value: 'partialvalue' },
+                { key: 'field2', value: null }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNullUrlencoded);
+    const formUrlEncoded = brunoCollection.items[0].request.body.formUrlEncoded;
+
+    expect(formUrlEncoded).toHaveLength(3);
+    expect(formUrlEncoded[0].name).toBe('field1');
+    expect(formUrlEncoded[0].value).toBe('value1');
+    expect(formUrlEncoded[1].name).toBe('');
+    expect(formUrlEncoded[1].value).toBe('partialvalue');
+    expect(formUrlEncoded[2].name).toBe('field2');
+    expect(formUrlEncoded[2].value).toBe('');
+  });
+
+  it('should skip formdata params where both key and value are null', async () => {
+    const collectionWithNullFormdata = {
+      info: {
+        _postman_id: 'test-null-formdata',
+        name: 'collection with null formdata',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with null formdata',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/api' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                { key: 'field1', value: 'value1', type: 'text' },
+                { key: null, value: null, type: 'text' },
+                { key: 'field2', value: null, type: 'text' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNullFormdata);
+    const multipartForm = brunoCollection.items[0].request.body.multipartForm;
+
+    expect(multipartForm).toHaveLength(2);
+    expect(multipartForm[0].name).toBe('field1');
+    expect(multipartForm[0].value).toBe('value1');
+    expect(multipartForm[1].name).toBe('field2');
+    expect(multipartForm[1].value).toBe('');
+  });
+
   it('should skip query params where both key and value are null', async () => {
     const collectionWithNullQueryParams = {
       info: {
