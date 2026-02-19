@@ -1,18 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
+import { IconCheck, IconX } from '@tabler/icons';
 import Collection from './Collection';
-import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
 
-const Collections = ({ showSearch }) => {
+const Collections = ({ showSearch, isCreatingInline, inlineCreationProps, onCreateClick }) => {
   const [searchText, setSearchText] = useState('');
   const { collections } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
 
@@ -27,27 +26,62 @@ const Collections = ({ showSearch }) => {
     });
   }, [activeWorkspace, collections, workspaces]);
 
+  const inlineInput = isCreatingInline ? (
+    <div className="inline-collection-create" ref={inlineCreationProps.containerRef}>
+      <input
+        ref={inlineCreationProps.inputRef}
+        type="text"
+        className="collection-name-input"
+        value={inlineCreationProps.name}
+        onChange={inlineCreationProps.onNameChange}
+        onKeyDown={inlineCreationProps.onKeyDown}
+        placeholder="Collection name..."
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck="false"
+      />
+      <div className="inline-actions">
+        <button
+          className="inline-action-btn save"
+          onClick={inlineCreationProps.onSave}
+          onMouseDown={(e) => e.preventDefault()}
+          title="Save"
+        >
+          <IconCheck size={14} strokeWidth={2} />
+        </button>
+        <button
+          className="inline-action-btn cancel"
+          onClick={inlineCreationProps.onCancel}
+          onMouseDown={(e) => e.preventDefault()}
+          title="Cancel"
+        >
+          <IconX size={14} strokeWidth={2} />
+        </button>
+      </div>
+      {inlineCreationProps.error && (
+        <div className="inline-create-error">{inlineCreationProps.error}</div>
+      )}
+    </div>
+  ) : null;
+
   if (!workspaceCollections || !workspaceCollections.length) {
     return (
       <StyledWrapper>
-        <CreateOrOpenCollection />
+        {inlineInput}
+        <CreateOrOpenCollection onCreateClick={onCreateClick} />
       </StyledWrapper>
     );
   }
 
   return (
     <StyledWrapper data-testid="collections">
-      {createCollectionModalOpen ? (
-        <CreateCollection
-          onClose={() => setCreateCollectionModalOpen(false)}
-        />
-      ) : null}
-
       {showSearch && (
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
       )}
 
       <div className="collections-list">
+        {inlineInput}
         {workspaceCollections && workspaceCollections.length
           ? workspaceCollections.map((c) => {
               return (

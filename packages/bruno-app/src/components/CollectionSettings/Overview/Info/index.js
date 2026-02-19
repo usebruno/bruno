@@ -3,10 +3,13 @@ import { getTotalRequestCountInCollection } from 'utils/collections/';
 import { IconFolder, IconWorld, IconApi, IconShare, IconBook } from '@tabler/icons';
 import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from 'components/Sidebar/Collections/Collection/GenerateDocumentation';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { browseDirectory, cloneCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { sanitizeName } from 'utils/common/regex';
 import StyledWrapper from './StyledWrapper';
 
 const Info = ({ collection }) => {
@@ -41,6 +44,28 @@ const Info = ({ collection }) => {
               <div className="mt-1 text-muted break-all">
                 {collection.pathname}
               </div>
+              <button
+                type="button"
+                className="text-link cursor-pointer hover:underline text-left bg-transparent mt-1"
+                onClick={() => {
+                  dispatch(browseDirectory())
+                    .then((dirPath) => {
+                      if (typeof dirPath === 'string') {
+                        const folderName = sanitizeName(collection.name);
+                        dispatch(cloneCollection(collection.name, folderName, dirPath, collection.pathname))
+                          .then(() => {
+                            toast.success('Collection moved successfully!');
+                          })
+                          .catch((err) => {
+                            toast.error('An error occurred while moving the collection.');
+                          });
+                      }
+                    })
+                    .catch(() => {});
+                }}
+              >
+                Change Location
+              </button>
             </div>
           </div>
 

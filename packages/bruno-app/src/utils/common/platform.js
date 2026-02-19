@@ -46,6 +46,18 @@ export const getRevealInFolderLabel = () => {
   return 'Reveal in File Manager';
 };
 
+export const getDefaultCollectionLocation = () => {
+  try {
+    const homedir = window.homedir;
+    if (homedir) {
+      return `${homedir}/Documents/bruno-data`;
+    }
+  } catch (e) {
+    // fallback below
+  }
+  return '';
+};
+
 export const getAppInstallDate = () => {
   let dateString = localStorage.getItem('bruno.installedOn');
 
