@@ -116,7 +116,9 @@ const STATIC_API_HINTS = {
     'bru.cookies.jar().deleteCookie(url, name, callback)',
     'bru.utils',
     'bru.utils.minifyJson(json)',
-    'bru.utils.minifyXml(xml)'
+    'bru.utils.minifyXml(xml)',
+    'bru.getOauth2CredentialVar(key)',
+    'bru.resetOauth2Credential(credentialId)'
   ]
 };
 

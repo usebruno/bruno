@@ -44,7 +44,7 @@ import {
   updateLastAction,
   setCollectionSecurityConfig,
   collectionAddOauth2CredentialsByUrl,
-  collectionClearOauth2CredentialsByUrl,
+  collectionClearOauth2CredentialsByUrlAndCredentialsId,
   initRunRequestEvent,
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
@@ -2851,9 +2851,10 @@ export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
       .invoke('clear-oauth2-cache', collectionUid, url, credentialsId)
       .then(() => {
         dispatch(
-          collectionClearOauth2CredentialsByUrl({
+          collectionClearOauth2CredentialsByUrlAndCredentialsId({
             url,
-            collectionUid
+            collectionUid,
+            credentialsId
           })
         );
         resolve();

@@ -3217,7 +3217,8 @@ export const collectionsSlice = createSlice({
       }
     },
 
-    collectionClearOauth2CredentialsByUrl: (state, action) => {
+    // Clears a specific credential matching url + collectionUid + credentialsId (used by UI "Clear OAuth2 Cache")
+    collectionClearOauth2CredentialsByUrlAndCredentialsId: (state, action) => {
       const { collectionUid, url, credentialsId } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
@@ -3227,21 +3228,23 @@ export const collectionsSlice = createSlice({
         const filteredOauth2Credentials = filter(
           collectionOauth2Credentials,
           (creds) =>
-            !(creds.url === url && creds.collectionUid === collectionUid)
+            !(creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId)
         );
         collection.oauth2Credentials = filteredOauth2Credentials;
       }
     },
 
-    collectionGetOauth2CredentialsByUrl: (state, action) => {
-      const { collectionUid, url, credentialsId } = action.payload;
+    // Clears all credentials matching credentialsId regardless of URL (used by script bru.resetOauth2Credential)
+    collectionClearOauth2CredentialsByCredentialsId: (state, action) => {
+      const { collectionUid, credentialsId } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
-      const oauth2Credential = find(
-        collection?.oauth2Credentials || [],
-        (creds) =>
-          creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId
-      );
-      return oauth2Credential;
+      if (!collection) return;
+
+      if (collection.oauth2Credentials) {
+        collection.oauth2Credentials = collection.oauth2Credentials.filter(
+          (creds) => creds.credentialsId !== credentialsId
+        );
+      }
     },
 
     updateFolderAuthMode: (state, action) => {
@@ -3676,8 +3679,8 @@ export const {
   moveCollection,
   streamDataReceived,
   collectionAddOauth2CredentialsByUrl,
-  collectionClearOauth2CredentialsByUrl,
-  collectionGetOauth2CredentialsByUrl,
+  collectionClearOauth2CredentialsByUrlAndCredentialsId,
+  collectionClearOauth2CredentialsByCredentialsId,
   updateFolderAuth,
   updateFolderAuthMode,
   addRequestTag,
