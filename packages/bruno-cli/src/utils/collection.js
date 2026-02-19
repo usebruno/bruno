@@ -500,7 +500,7 @@ const processCollectionItems = async (items = [], currentPath) => {
         if (item.seq) {
           item.root.meta.seq = item.seq;
         }
-        const folderContent = await stringifyFolder(item.root);
+        const folderContent = await stringifyFolder(item.root, { format: 'bru' });
         safeWriteFileSync(folderBruFilePath, folderContent);
       }
 
@@ -539,7 +539,7 @@ const processCollectionItems = async (items = [], currentPath) => {
       };
 
       // Convert to BRU format and write to file
-      const content = await stringifyRequest(bruJson);
+      const content = await stringifyRequest(bruJson, { format: 'bru' });
       safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
     } else {
       throw new Error(`Unsupported item type: ${item.type}`);

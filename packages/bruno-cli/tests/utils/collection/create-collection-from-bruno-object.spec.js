@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { describe, it, expect, afterEach } = require('@jest/globals');
-const { parseRequest } = require('@usebruno/filestore');
+const { parseRequest, parseFolder } = require('@usebruno/filestore');
 const { createCollectionFromBrunoObject } = require('../../../src/utils/collection');
 
 describe('createCollectionFromBrunoObject', () => {
@@ -66,6 +66,37 @@ describe('createCollectionFromBrunoObject', () => {
     expect(httpRequest).toHaveProperty('request.method', 'GET');
     expect(graphqlRequest).toHaveProperty('type', 'graphql-request');
     expect(graphqlRequest).toHaveProperty('request.method', 'POST');
+  });
+
+  it('writes folder.bru in BRU format for folder items', async () => {
+    outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-import-'));
+
+    await createCollectionFromBrunoObject(
+      {
+        name: 'folder-collection',
+        items: [
+          {
+            type: 'folder',
+            name: 'Users',
+            seq: 3,
+            root: {
+              meta: {
+                name: 'Users'
+              }
+            },
+            items: []
+          }
+        ]
+      },
+      outputDir
+    );
+
+    const folderBruPath = path.join(outputDir, 'Users', 'folder.bru');
+    expect(fs.existsSync(folderBruPath)).toBe(true);
+
+    const folderRoot = parseFolder(fs.readFileSync(folderBruPath, 'utf8'), { format: 'bru' });
+    expect(folderRoot).toHaveProperty('meta.name', 'Users');
+    expect(folderRoot).toHaveProperty('meta.seq', 3);
   });
 
   it('throws for unsupported item types', async () => {
