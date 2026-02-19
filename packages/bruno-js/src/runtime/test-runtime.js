@@ -24,7 +24,8 @@ class TestRuntime {
     processEnvVars,
     scriptingConfig,
     runRequestByItemPathname,
-    collectionName
+    collectionName,
+    scriptPath
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
@@ -89,14 +90,16 @@ class TestRuntime {
           script: testsFile,
           context,
           collectionPath,
-          scriptingConfig
+          scriptingConfig,
+          scriptPath
         });
       } else {
         // default runtime is `quickjs`
         await executeQuickJsVmAsync({
           script: testsFile,
           context: context,
-          collectionPath
+          collectionPath,
+          scriptPath
         });
       }
     } catch (error) {

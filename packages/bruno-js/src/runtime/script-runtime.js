@@ -24,7 +24,8 @@ class ScriptRuntime {
     processEnvVars,
     scriptingConfig,
     runRequestByItemPathname,
-    collectionName
+    collectionName,
+    scriptPath
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
@@ -93,7 +94,8 @@ class ScriptRuntime {
           script,
           context,
           collectionPath,
-          scriptingConfig
+          scriptingConfig,
+          scriptPath
         });
       } catch (error) {
         scriptError = error;
@@ -114,7 +116,8 @@ class ScriptRuntime {
       await executeQuickJsVmAsync({
         script: script,
         context: context,
-        collectionPath
+        collectionPath,
+        scriptPath
       });
     } catch (error) {
       scriptError = error;
@@ -139,7 +142,8 @@ class ScriptRuntime {
     processEnvVars,
     scriptingConfig,
     runRequestByItemPathname,
-    collectionName
+    collectionName,
+    scriptPath
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
@@ -210,7 +214,8 @@ class ScriptRuntime {
           script,
           context,
           collectionPath,
-          scriptingConfig
+          scriptingConfig,
+          scriptPath
         });
       } catch (error) {
         scriptError = error;
@@ -231,7 +236,8 @@ class ScriptRuntime {
       await executeQuickJsVmAsync({
         script: script,
         context: context,
-        collectionPath
+        collectionPath,
+        scriptPath
       });
     } catch (error) {
       scriptError = error;

@@ -487,7 +487,8 @@ const registerNetworkIpc = (mainWindow) => {
     runtimeVariables,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    itemPathname
   ) => {
     // run pre-request script
     let scriptResult;
@@ -497,7 +498,7 @@ const registerNetworkIpc = (mainWindow) => {
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runRequestScript(
-        decomment(requestScript),
+        decomment(requestScript, { space: true }),
         request,
         envVars,
         runtimeVariables,
@@ -506,7 +507,8 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars,
         scriptingConfig,
         runRequestByItemPathname,
-        collectionName
+        collectionName,
+        itemPathname
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -585,7 +587,8 @@ const registerNetworkIpc = (mainWindow) => {
     runtimeVariables,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    itemPathname
   ) => {
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
@@ -634,7 +637,7 @@ const registerNetworkIpc = (mainWindow) => {
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runResponseScript(
-        decomment(responseScript),
+        decomment(responseScript, { space: true }),
         request,
         response,
         envVars,
@@ -644,7 +647,8 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars,
         scriptingConfig,
         runRequestByItemPathname,
-        collectionName
+        collectionName,
+        itemPathname
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -745,7 +749,8 @@ const registerNetworkIpc = (mainWindow) => {
           runtimeVariables,
           processEnvVars,
           scriptingConfig,
-          runRequestByItemPathname
+          runRequestByItemPathname,
+          item.pathname
         );
       } catch (error) {
         preRequestError = error;
@@ -916,7 +921,8 @@ const registerNetworkIpc = (mainWindow) => {
             runtimeVariables,
             processEnvVars,
             scriptingConfig,
-            runRequestByItemPathname);
+            runRequestByItemPathname,
+            item.pathname);
         } catch (error) {
           console.error('Post-response script error:', error);
           postResponseError = error;
@@ -976,7 +982,7 @@ const registerNetworkIpc = (mainWindow) => {
           let testError = null;
 
           try {
-            testResults = await testRuntime.runTests(decomment(testFile),
+            testResults = await testRuntime.runTests(decomment(testFile, { space: true }),
               request,
               response,
               envVars,
@@ -986,7 +992,8 @@ const registerNetworkIpc = (mainWindow) => {
               processEnvVars,
               scriptingConfig,
               runRequestByItemPathname,
-              collectionName);
+              collectionName,
+              item.pathname);
           } catch (error) {
             testError = error;
 
@@ -1385,7 +1392,8 @@ const registerNetworkIpc = (mainWindow) => {
                 runtimeVariables,
                 processEnvVars,
                 scriptingConfig,
-                runRequestByItemPathname
+                runRequestByItemPathname,
+                item.pathname
               );
             } catch (error) {
               console.error('Pre-request script error:', error);
@@ -1613,7 +1621,8 @@ const registerNetworkIpc = (mainWindow) => {
                 runtimeVariables,
                 processEnvVars,
                 scriptingConfig,
-                runRequestByItemPathname
+                runRequestByItemPathname,
+                item.pathname
               );
             } catch (error) {
               console.error('Post-response script error:', error);
@@ -1685,7 +1694,7 @@ const registerNetworkIpc = (mainWindow) => {
               try {
                 const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
                 testResults = await testRuntime.runTests(
-                  decomment(testFile),
+                  decomment(testFile, { space: true }),
                   request,
                   response,
                   envVars,
@@ -1695,7 +1704,8 @@ const registerNetworkIpc = (mainWindow) => {
                   processEnvVars,
                   scriptingConfig,
                   runRequestByItemPathname,
-                  collectionName
+                  collectionName,
+                  item.pathname
                 );
               } catch (error) {
                 testError = error;
