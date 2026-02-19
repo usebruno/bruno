@@ -11,6 +11,7 @@ const FORMAT_CONFIG = {
   yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
   bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
 };
+const REQUEST_ITEM_TYPES = ['http-request', 'graphql-request'];
 
 const getCollectionFormat = (collectionPath) => {
   if (fs.existsSync(path.join(collectionPath, 'opencollection.yml'))) return 'yml';
@@ -499,7 +500,7 @@ const processCollectionItems = async (items = [], currentPath) => {
         if (item.seq) {
           item.root.meta.seq = item.seq;
         }
-        const folderContent = await stringifyFolder(item.root, { format: 'bru' });
+        const folderContent = stringifyFolder(item.root, { format: 'bru' });
         safeWriteFileSync(folderBruFilePath, folderContent);
       }
 
@@ -507,7 +508,7 @@ const processCollectionItems = async (items = [], currentPath) => {
       if (item.items && item.items.length) {
         await processCollectionItems(item.items, folderPath);
       }
-    } else if (['http-request', 'graphql-request'].includes(item.type)) {
+    } else if (REQUEST_ITEM_TYPES.includes(item.type)) {
       // Create request file
       let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
       if (!sanitizedFilename.endsWith('.bru')) {
@@ -537,8 +538,10 @@ const processCollectionItems = async (items = [], currentPath) => {
       };
 
       // Convert to BRU format and write to file
-      const content = await stringifyRequest(bruJson, { format: 'bru' });
+      const content = stringifyRequest(bruJson, { format: 'bru' });
       safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
+    } else {
+      throw new Error(`Unsupported item type: ${item.type}`);
     }
   }
 };

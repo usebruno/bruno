@@ -7,6 +7,12 @@ const { createCollectionFromBrunoObject } = require('../../../src/utils/collecti
 
 describe('createCollectionFromBrunoObject', () => {
   let outputDir;
+  const createOutputDir = () => {
+    outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-import-'));
+    return outputDir;
+  };
+  const parseBruRequestFromPath = (filePath) => parseRequest(fs.readFileSync(filePath, 'utf8'), { format: 'bru' });
+  const parseBruFolderFromPath = (filePath) => parseFolder(fs.readFileSync(filePath, 'utf8'), { format: 'bru' });
 
   afterEach(() => {
     if (outputDir && fs.existsSync(outputDir)) {
@@ -15,7 +21,7 @@ describe('createCollectionFromBrunoObject', () => {
   });
 
   it('writes http and graphql requests from imported collection items', async () => {
-    outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-import-'));
+    createOutputDir();
 
     await createCollectionFromBrunoObject(
       {
@@ -59,8 +65,8 @@ describe('createCollectionFromBrunoObject', () => {
     expect(fs.existsSync(httpPath)).toBe(true);
     expect(fs.existsSync(graphqlPath)).toBe(true);
 
-    const httpRequest = parseRequest(fs.readFileSync(httpPath, 'utf8'), { format: 'bru' });
-    const graphqlRequest = parseRequest(fs.readFileSync(graphqlPath, 'utf8'), { format: 'bru' });
+    const httpRequest = parseBruRequestFromPath(httpPath);
+    const graphqlRequest = parseBruRequestFromPath(graphqlPath);
 
     expect(httpRequest).toHaveProperty('type', 'http-request');
     expect(httpRequest).toHaveProperty('request.method', 'GET');
@@ -69,7 +75,7 @@ describe('createCollectionFromBrunoObject', () => {
   });
 
   it('writes folder.bru in bru format', async () => {
-    outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-import-'));
+    createOutputDir();
 
     await createCollectionFromBrunoObject(
       {
@@ -82,17 +88,56 @@ describe('createCollectionFromBrunoObject', () => {
             root: {
               meta: { name: 'Users' }
             },
-            items: []
+            items: [
+              {
+                type: 'http-request',
+                name: 'List Users',
+                filename: 'list-users.bru',
+                seq: 1,
+                request: {
+                  method: 'GET',
+                  url: 'https://api.example.com/users'
+                }
+              }
+            ]
           }
         ]
       },
       outputDir
     );
 
-    const folderContent = fs.readFileSync(path.join(outputDir, 'Users', 'folder.bru'), 'utf8');
-    const folder = parseFolder(folderContent, { format: 'bru' });
+    const folderPath = path.join(outputDir, 'Users');
+    const folderBruPath = path.join(folderPath, 'folder.bru');
+    const nestedRequestPath = path.join(folderPath, 'list-users.bru');
+
+    expect(fs.existsSync(folderBruPath)).toBe(true);
+    expect(fs.existsSync(nestedRequestPath)).toBe(true);
+
+    const folder = parseBruFolderFromPath(folderBruPath);
+    const nestedRequest = parseBruRequestFromPath(nestedRequestPath);
 
     expect(folder).toHaveProperty('meta.name', 'Users');
     expect(folder).toHaveProperty('meta.seq', 3);
+    expect(nestedRequest).toHaveProperty('type', 'http-request');
+    expect(nestedRequest).toHaveProperty('request.method', 'GET');
+  });
+
+  it('throws for unsupported item types', async () => {
+    createOutputDir();
+
+    await expect(
+      createCollectionFromBrunoObject(
+        {
+          name: 'invalid-item-type-collection',
+          items: [
+            {
+              type: 'unsupported-type',
+              name: 'Unsupported'
+            }
+          ]
+        },
+        outputDir
+      )
+    ).rejects.toThrow('Unsupported item type: unsupported-type');
   });
 });
