@@ -336,7 +336,7 @@ const WelcomeModal = ({ onDismiss, onImportCollection, onCreateCollection, onOpe
               </Button>
             )}
             {isLastStep && (
-              <Button type="button" color="secondary"onClick={handleSaveAndDismiss}>
+              <Button type="button" color="secondary" onClick={handleSaveAndDismiss}>
                 I'll explore on my own
               </Button>
             )}
