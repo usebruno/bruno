@@ -141,8 +141,12 @@ const findCollectionPathByItemPath = (filePath) => {
   // Sort by length descending to find the most specific (deepest) match first
   const sortedPaths = allCollectionPaths.sort((a, b) => b.length - a.length);
 
+  // Normalize the file path for comparison
+  const normalizedFilePath = path.normalize(filePath);
+
   for (const collectionPath of sortedPaths) {
-    if (filePath.startsWith(collectionPath + path.sep) || filePath === collectionPath) {
+    const normalizedCollectionPath = path.normalize(collectionPath);
+    if (normalizedFilePath.startsWith(normalizedCollectionPath + path.sep) || normalizedFilePath === normalizedCollectionPath) {
       return collectionPath;
     }
   }
