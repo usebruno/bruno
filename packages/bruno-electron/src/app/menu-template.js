@@ -27,7 +27,6 @@ const template = [
       },
       {
         label: 'Preferences',
-        accelerator: 'CommandOrControl+,',
         click() {
           ipcMain.emit('main:open-preferences');
         }
@@ -62,16 +61,42 @@ const template = [
     submenu: [
       { role: 'toggledevtools' },
       { type: 'separator' },
-      { role: 'resetzoom' },
-      { role: 'zoomin' },
-      { role: 'zoomout' },
       { type: 'separator' },
+      {
+        label: 'Reset Zoom',
+        click() {
+          const focusedWindow = BrowserWindow.getFocusedWindow();
+          if (focusedWindow) {
+            focusedWindow.webContents.setZoomLevel(0);
+          }
+        }
+      },
+      {
+        label: 'Zoom In',
+        click() {
+          const focusedWindow = BrowserWindow.getFocusedWindow();
+          if (focusedWindow) {
+            const current = focusedWindow.webContents.getZoomLevel();
+            focusedWindow.webContents.setZoomLevel(current + 0.5);
+          }
+        }
+      },
+      {
+        label: 'Zoom Out',
+        click() {
+          const focusedWindow = BrowserWindow.getFocusedWindow();
+          if (focusedWindow) {
+            const current = focusedWindow.webContents.getZoomLevel();
+            focusedWindow.webContents.setZoomLevel(current - 0.5);
+          }
+        }
+      },
       { role: 'togglefullscreen' }
     ]
   },
   {
     role: 'window',
-    submenu: [{ role: 'minimize' }, { role: 'close', accelerator: 'CommandOrControl+Shift+Q' }]
+    submenu: [{ role: 'minimize' }, { role: 'close' }]
   },
   {
     role: 'help',
