@@ -56,7 +56,8 @@ describe('createCollectionFromBrunoObject', () => {
           }
         ]
       },
-      outputDir
+      outputDir,
+      { format: 'bru' }
     );
 
     const httpPath = path.join(outputDir, 'get-users.bru');
@@ -103,7 +104,8 @@ describe('createCollectionFromBrunoObject', () => {
           }
         ]
       },
-      outputDir
+      outputDir,
+      { format: 'bru' }
     );
 
     const folderPath = path.join(outputDir, 'Users');
@@ -136,7 +138,8 @@ describe('createCollectionFromBrunoObject', () => {
             }
           ]
         },
-        outputDir
+        outputDir,
+        { format: 'bru' }
       )
     ).rejects.toThrow('Unsupported item type: unsupported-type');
   });
