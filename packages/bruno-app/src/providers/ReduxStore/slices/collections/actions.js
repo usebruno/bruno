@@ -467,13 +467,14 @@ const extractPromptVariablesForRequest = async (item, collection) => {
     const request = item.draft?.request ?? item.request ?? {};
     const allVariables = getAllVariables(collection, item);
     const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
+    const enabledCerts = clientCertConfig.filter((clientCert) => clientCert.enabled !== false);
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
     // Get active headers from collection, folders, and request by priority order
     const headers = mergeHeaders(collection, request, requestTreePath);
     // Get request auth or inherited auth
     const resolvedAuthRequest = resolveInheritedAuth(item, collection);
 
-    for (let clientCert of clientCertConfig) {
+    for (let clientCert of enabledCerts) {
       const domain = interpolateUrl({ url: clientCert?.domain, variables: allVariables });
 
       if (domain) {
