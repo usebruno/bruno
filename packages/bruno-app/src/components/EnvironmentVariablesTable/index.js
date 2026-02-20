@@ -242,7 +242,13 @@ const EnvironmentVariablesTable = ({
     return (
       <span>
         <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
-        <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
+        <Tooltip
+          className="tooltip-mod"
+          anchorId={id}
+          html={meta.error || ''}
+          place="top"
+          style={{ zIndex: 10000 }}
+        />
       </span>
     );
   };
@@ -466,14 +472,14 @@ const EnvironmentVariablesTable = ({
                 )}
               </td>
               <td style={{ width: columnWidths.name }}>
-                <div className="flex items-center">
+                <div className="flex items-center relative">
                   <input
                     type="text"
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck="false"
-                    className="mousetrap"
+                    className="mousetrap flex-grow pr-2"
                     id={`${actualIndex}.name`}
                     name={`${actualIndex}.name`}
                     value={variable.name}
@@ -482,11 +488,13 @@ const EnvironmentVariablesTable = ({
                     onBlur={() => handleNameBlur(actualIndex)}
                     onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
                   />
-                  <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
+                  <div className="flex-shrink-0">
+                    <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
+                  </div>
                 </div>
               </td>
-              <td className="flex flex-row flex-nowrap items-center" style={{ width: columnWidths.value }}>
-                <div className="overflow-hidden grow w-full relative">
+              <td className="flex flex-row flex-nowrap items-center relative" style={{ width: columnWidths.value }}>
+                <div className="overflow-hidden grow w-full relative pr-2">
                   <MultiLineEditor
                     theme={storedTheme}
                     collection={_collection}
@@ -507,12 +515,13 @@ const EnvironmentVariablesTable = ({
                   />
                 </div>
                 {typeof variable.value !== 'string' && (
-                  <span className="ml-2 flex items-center">
+                  <span className="ml-2 flex items-center flex-shrink-0">
                     <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
                     <Tooltip
                       anchorId={`${variable.uid}-disabled-info-icon`}
                       content="Non-string values set via scripts are read-only and can only be updated through scripts."
                       place="top"
+                      style={{ zIndex: 10000 }}
                     />
                   </span>
                 )}
