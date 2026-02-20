@@ -100,13 +100,13 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
   let brunoConfig = getBrunoJsonConfig(collection);
 
   if (format === 'yml') {
-    const collectionContent = await stringifyCollection(collection.root, { format });
+    const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
     await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
   } else if (format === 'bru') {
     const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
     await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
-    const collectionContent = await stringifyCollection(collection.root, { format });
+    const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
     await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
   } else {
     throw new Error(`Invalid format: ${format}`);

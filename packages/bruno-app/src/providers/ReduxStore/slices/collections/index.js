@@ -2868,6 +2868,7 @@ export const collectionsSlice = createSlice({
           const prevEphemerals = (existingEnv.variables || []).filter((v) => v.ephemeral);
           existingEnv.name = environment.name;
           existingEnv.variables = environment.variables;
+          existingEnv.color = environment.color;
           /*
            Apply temporary (ephemeral) values only to variables that actually exist in the file. This prevents deleted temporaries from “popping back” after a save. If a variable is present in the file, we temporarily override the UI value while also remembering the on-disk value in persistedValue for future saves.
           */
@@ -3216,7 +3217,8 @@ export const collectionsSlice = createSlice({
       }
     },
 
-    collectionClearOauth2CredentialsByUrl: (state, action) => {
+    // Clears a specific credential matching url + collectionUid + credentialsId (used by UI "Clear OAuth2 Cache")
+    collectionClearOauth2CredentialsByUrlAndCredentialsId: (state, action) => {
       const { collectionUid, url, credentialsId } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
@@ -3226,21 +3228,23 @@ export const collectionsSlice = createSlice({
         const filteredOauth2Credentials = filter(
           collectionOauth2Credentials,
           (creds) =>
-            !(creds.url === url && creds.collectionUid === collectionUid)
+            !(creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId)
         );
         collection.oauth2Credentials = filteredOauth2Credentials;
       }
     },
 
-    collectionGetOauth2CredentialsByUrl: (state, action) => {
-      const { collectionUid, url, credentialsId } = action.payload;
+    // Clears all credentials matching credentialsId regardless of URL (used by script bru.resetOauth2Credential)
+    collectionClearOauth2CredentialsByCredentialsId: (state, action) => {
+      const { collectionUid, credentialsId } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
-      const oauth2Credential = find(
-        collection?.oauth2Credentials || [],
-        (creds) =>
-          creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId
-      );
-      return oauth2Credential;
+      if (!collection) return;
+
+      if (collection.oauth2Credentials) {
+        collection.oauth2Credentials = collection.oauth2Credentials.filter(
+          (creds) => creds.credentialsId !== credentialsId
+        );
+      }
     },
 
     updateFolderAuthMode: (state, action) => {
@@ -3271,10 +3275,9 @@ export const collectionsSlice = createSlice({
             timestamp: timestamp || Date.now()
           });
         }
-        if (item.response.dataBuffer && item.response.dataBuffer.length && data.dataBuffer) {
+        if (data.dataBuffer) {
           item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
         }
-
         item.response.size = data.data?.length + (item.response.size || 0);
       }
     },
@@ -3676,8 +3679,8 @@ export const {
   moveCollection,
   streamDataReceived,
   collectionAddOauth2CredentialsByUrl,
-  collectionClearOauth2CredentialsByUrl,
-  collectionGetOauth2CredentialsByUrl,
+  collectionClearOauth2CredentialsByUrlAndCredentialsId,
+  collectionClearOauth2CredentialsByCredentialsId,
   updateFolderAuth,
   updateFolderAuthMode,
   addRequestTag,

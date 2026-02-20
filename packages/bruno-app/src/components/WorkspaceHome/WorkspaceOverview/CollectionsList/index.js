@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconBox, IconTrash, IconEdit, IconShare, IconDots, IconX } from '@tabler/icons';
+import { IconBox, IconTrash, IconEdit, IconShare, IconDots, IconX, IconFolder } from '@tabler/icons';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { getRevealInFolderLabel } from 'utils/common/platform';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 import RenameCollection from 'components/Sidebar/Collections/Collection/RenameCollection';
@@ -28,7 +29,14 @@ const CollectionsList = ({ workspace }) => {
       return [];
     }
 
-    return workspace.collections.map((wc) => {
+    const filteredCollections = workspace.collections.filter((wc) => {
+      if (workspace.scratchTempDirectory) {
+        return normalizePath(wc.path) !== normalizePath(workspace.scratchTempDirectory);
+      }
+      return true;
+    });
+
+    return filteredCollections.map((wc) => {
       const loadedCollection = collections.find(
         (c) => normalizePath(c.pathname) === normalizePath(wc.path)
       );
@@ -64,7 +72,7 @@ const CollectionsList = ({ workspace }) => {
         }
       };
     });
-  }, [workspace.collections, collections]);
+  }, [workspace.collections, workspace.scratchTempDirectory, collections]);
 
   const handleOpenCollectionClick = (collection, event) => {
     if (event.target.closest('.collection-menu')) {
@@ -146,6 +154,14 @@ const CollectionsList = ({ workspace }) => {
     setDeleteCollectionModalOpen(true);
   };
 
+  const handleShowInFolder = (collection) => {
+    dropdownRefs.current[collection.uid]?.hide();
+    dispatch(showInFolder(collection.pathname)).catch((error) => {
+      console.error('Error opening the folder', error);
+      toast.error('Error opening the folder');
+    });
+  };
+
   return (
     <StyledWrapper>
       {renameCollectionModalOpen && selectedCollectionUid && (
@@ -194,9 +210,7 @@ const CollectionsList = ({ workspace }) => {
           <div className="empty-state">
             <IconBox size={32} strokeWidth={1.5} className="empty-icon" />
             <h3 className="empty-title">No collections yet</h3>
-            <p className="empty-description">
-              Create your first collection or open an existing one to get started.
-            </p>
+            <p className="empty-description">Create your first collection or open an existing one to get started.</p>
           </div>
         ) : (
           workspaceCollections.map((collection, index) => (
@@ -241,6 +255,16 @@ const CollectionsList = ({ workspace }) => {
                     >
                       <IconShare size={16} strokeWidth={1.5} />
                       <span>Share</span>
+                    </div>
+                    <div
+                      className="dropdown-item"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShowInFolder(collection);
+                      }}
+                    >
+                      <IconFolder size={16} strokeWidth={1.5} />
+                      <span>{getRevealInFolderLabel()}</span>
                     </div>
                     <div
                       className="dropdown-item"

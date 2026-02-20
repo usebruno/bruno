@@ -1,7 +1,7 @@
 {
-    "maximized": true,
+    "maximized": false,
     "lastOpenedCollections": [
-        "{{projectRoot}}/tests/protobuf/collection"
+        "{{collectionPath}}"
     ],
     "preferences": {
         "beta": {

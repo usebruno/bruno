@@ -38,6 +38,7 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
 
       await page.locator('#collection-location').fill(await createTmpDir('insomnia-v5-env-test'));
       await locationModal.getByRole('button', { name: 'Import' }).click();
+      await locationModal.waitFor({ state: 'hidden' });
 
       await openCollection(page, 'Test API Collection v5 with Environments');
     });
@@ -224,7 +225,7 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
     await test.step('Close environment tab', async () => {
       const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
       await envTab.hover();
-      await envTab.getByTestId('request-tab-close-icon').click();
+      await envTab.getByTestId('request-tab-close-icon').click({ force: true });
     });
   });
 });

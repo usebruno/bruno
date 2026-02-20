@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
-import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
@@ -172,7 +172,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     setShowConfirmGlobalEnvironmentClose(true);
   };
 
-  if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'environment-settings', 'global-environment-settings', 'preferences'].includes(tab.type)) {
+  if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'environment-settings', 'global-environment-settings', 'preferences', 'workspaceOverview', 'workspaceEnvironments'].includes(tab.type)) {
     return (
       <StyledWrapper
         className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
@@ -236,6 +236,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         {showConfirmEnvironmentClose && tab.type === 'environment-settings' && (
           <ConfirmCloseEnvironment
             isGlobal={false}
+            isDotEnv={collection.environmentsDraft?.environmentUid?.startsWith('dotenv:')}
             onCancel={() => setShowConfirmEnvironmentClose(false)}
             onCloseWithoutSave={() => {
               dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
@@ -244,7 +245,25 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
             onSaveAndClose={() => {
               const draft = collection.environmentsDraft;
-              if (draft?.environmentUid && draft?.variables) {
+              if (draft?.environmentUid?.startsWith('dotenv:')) {
+                const onSuccess = () => {
+                  cleanup();
+                  dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
+                  dispatch(closeTabs({ tabUids: [tab.uid] }));
+                  setShowConfirmEnvironmentClose(false);
+                };
+                const onFailed = () => {
+                  cleanup();
+                  setShowConfirmEnvironmentClose(false);
+                };
+                const cleanup = () => {
+                  window.removeEventListener('dotenv-save-complete', onSuccess);
+                  window.removeEventListener('dotenv-save-failed', onFailed);
+                };
+                window.addEventListener('dotenv-save-complete', onSuccess, { once: true });
+                window.addEventListener('dotenv-save-failed', onFailed, { once: true });
+                window.dispatchEvent(new Event('dotenv-save'));
+              } else if (draft?.environmentUid && draft?.variables) {
                 dispatch(saveEnvironment(draft.variables, draft.environmentUid, collection.uid))
                   .then(() => {
                     dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
@@ -263,6 +282,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         {showConfirmGlobalEnvironmentClose && tab.type === 'global-environment-settings' && (
           <ConfirmCloseEnvironment
             isGlobal={true}
+            isDotEnv={globalEnvironmentDraft?.environmentUid?.startsWith('dotenv:')}
             onCancel={() => setShowConfirmGlobalEnvironmentClose(false)}
             onCloseWithoutSave={() => {
               dispatch(clearGlobalEnvironmentDraft());
@@ -271,7 +291,25 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
             onSaveAndClose={() => {
               const draft = globalEnvironmentDraft;
-              if (draft?.environmentUid && draft?.variables) {
+              if (draft?.environmentUid?.startsWith('dotenv:')) {
+                const onSuccess = () => {
+                  cleanup();
+                  dispatch(clearGlobalEnvironmentDraft());
+                  dispatch(closeTabs({ tabUids: [tab.uid] }));
+                  setShowConfirmGlobalEnvironmentClose(false);
+                };
+                const onFailed = () => {
+                  cleanup();
+                  setShowConfirmGlobalEnvironmentClose(false);
+                };
+                const cleanup = () => {
+                  window.removeEventListener('dotenv-save-complete', onSuccess);
+                  window.removeEventListener('dotenv-save-failed', onFailed);
+                };
+                window.addEventListener('dotenv-save-complete', onSuccess, { once: true });
+                window.addEventListener('dotenv-save-failed', onFailed, { once: true });
+                window.dispatchEvent(new Event('dotenv-save'));
+              } else if (draft?.environmentUid && draft?.variables) {
                 dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }))
                   .then(() => {
                     dispatch(clearGlobalEnvironmentDraft());
@@ -297,6 +335,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           <SpecialTab handleCloseClick={handleCloseEnvironmentSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} hasDraft={hasEnvironmentDraft} />
         ) : tab.type === 'global-environment-settings' ? (
           <SpecialTab handleCloseClick={handleCloseGlobalEnvironmentSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} hasDraft={hasGlobalEnvironmentDraft} />
+        ) : tab.type === 'workspaceOverview' ? (
+          <SpecialTab handleCloseClick={null} type={tab.type} />
+        ) : tab.type === 'workspaceEnvironments' ? (
+          <SpecialTab handleCloseClick={null} type={tab.type} />
         ) : (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}
@@ -474,19 +516,42 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     } catch (err) { }
   }
 
+  async function handleCloseMultipleTabs(tabs) {
+    const tabUidsToClose = [];
+
+    for (const tab of tabs) {
+      const item = findItemInCollection(collection, tab.uid);
+      if (item && hasRequestChanges(item)) {
+        try {
+          await dispatch(saveRequest(item.uid, collection.uid, true));
+        } catch (err) {
+          continue;
+        }
+      }
+
+      if (tab?.uid) {
+        tabUidsToClose.push(tab.uid);
+      }
+    }
+
+    if (tabUidsToClose.length > 0) {
+      dispatch(closeTabs({ tabUids: tabUidsToClose }));
+    }
+  }
+
   async function handleCloseOtherTabs() {
     const otherTabs = collectionRequestTabs.filter((_, index) => index !== tabIndex);
-    await Promise.all(otherTabs.map((tab) => handleCloseTab(tab.uid)));
+    await handleCloseMultipleTabs(otherTabs);
   }
 
   async function handleCloseTabsToTheLeft() {
     const leftTabs = collectionRequestTabs.filter((_, index) => index < tabIndex);
-    await Promise.all(leftTabs.map((tab) => handleCloseTab(tab.uid)));
+    await handleCloseMultipleTabs(leftTabs);
   }
 
   async function handleCloseTabsToTheRight() {
     const rightTabs = collectionRequestTabs.filter((_, index) => index > tabIndex);
-    await Promise.all(rightTabs.map((tab) => handleCloseTab(tab.uid)));
+    await handleCloseMultipleTabs(rightTabs);
   }
 
   function handleCloseSavedTabs() {
@@ -497,7 +562,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   }
 
   async function handleCloseAllTabs() {
-    await Promise.all(collectionRequestTabs.map((tab) => handleCloseTab(tab.uid)));
+    await handleCloseMultipleTabs(collectionRequestTabs);
   }
 
   const menuItems = useMemo(() => [

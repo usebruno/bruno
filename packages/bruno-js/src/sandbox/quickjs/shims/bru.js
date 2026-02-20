@@ -60,10 +60,22 @@ const addBruShimToContext = (vm, bru) => {
   setEnvVar.dispose();
 
   let deleteEnvVar = vm.newFunction('deleteEnvVar', function (key) {
-    return marshallToVm(bru.deleteEnvVar(vm.dump(key)), vm);
+    bru.deleteEnvVar(vm.dump(key));
   });
   vm.setProp(bruObject, 'deleteEnvVar', deleteEnvVar);
   deleteEnvVar.dispose();
+
+  let getAllEnvVars = vm.newFunction('getAllEnvVars', function () {
+    return marshallToVm(bru.getAllEnvVars(), vm);
+  });
+  vm.setProp(bruObject, 'getAllEnvVars', getAllEnvVars);
+  getAllEnvVars.dispose();
+
+  let deleteAllEnvVars = vm.newFunction('deleteAllEnvVars', function () {
+    bru.deleteAllEnvVars();
+  });
+  vm.setProp(bruObject, 'deleteAllEnvVars', deleteAllEnvVars);
+  deleteAllEnvVars.dispose();
 
   let getGlobalEnvVar = vm.newFunction('getGlobalEnvVar', function (key) {
     return marshallToVm(bru.getGlobalEnvVar(vm.dump(key)), vm);
@@ -77,11 +89,35 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getOauth2CredentialVar', getOauth2CredentialVar);
   getOauth2CredentialVar.dispose();
 
+  let resetOauth2Credential = vm.newFunction('resetOauth2Credential', function (credentialId) {
+    bru.resetOauth2Credential(vm.dump(credentialId));
+  });
+  vm.setProp(bruObject, 'resetOauth2Credential', resetOauth2Credential);
+  resetOauth2Credential.dispose();
+
   let setGlobalEnvVar = vm.newFunction('setGlobalEnvVar', function (key, value) {
     bru.setGlobalEnvVar(vm.dump(key), vm.dump(value));
   });
   vm.setProp(bruObject, 'setGlobalEnvVar', setGlobalEnvVar);
   setGlobalEnvVar.dispose();
+
+  let deleteGlobalEnvVar = vm.newFunction('deleteGlobalEnvVar', function (key) {
+    bru.deleteGlobalEnvVar(vm.dump(key));
+  });
+  vm.setProp(bruObject, 'deleteGlobalEnvVar', deleteGlobalEnvVar);
+  deleteGlobalEnvVar.dispose();
+
+  let getAllGlobalEnvVars = vm.newFunction('getAllGlobalEnvVars', function () {
+    return marshallToVm(bru.getAllGlobalEnvVars(), vm);
+  });
+  vm.setProp(bruObject, 'getAllGlobalEnvVars', getAllGlobalEnvVars);
+  getAllGlobalEnvVars.dispose();
+
+  let deleteAllGlobalEnvVars = vm.newFunction('deleteAllGlobalEnvVars', function () {
+    bru.deleteAllGlobalEnvVars();
+  });
+  vm.setProp(bruObject, 'deleteAllGlobalEnvVars', deleteAllGlobalEnvVars);
+  deleteAllGlobalEnvVars.dispose();
 
   let hasVar = vm.newFunction('hasVar', function (key) {
     return marshallToVm(bru.hasVar(vm.dump(key)), vm);
@@ -112,6 +148,12 @@ const addBruShimToContext = (vm, bru) => {
   });
   vm.setProp(bruObject, 'deleteAllVars', deleteAllVars);
   deleteAllVars.dispose();
+
+  let getAllVars = vm.newFunction('getAllVars', function () {
+    return marshallToVm(bru.getAllVars(), vm);
+  });
+  vm.setProp(bruObject, 'getAllVars', getAllVars);
+  getAllVars.dispose();
 
   let setNextRequest = vm.newFunction('setNextRequest', function (nextRequest) {
     bru.setNextRequest(vm.dump(nextRequest));
@@ -166,6 +208,36 @@ const addBruShimToContext = (vm, bru) => {
   });
   vm.setProp(bruObject, 'getCollectionVar', getCollectionVar);
   getCollectionVar.dispose();
+
+  let setCollectionVar = vm.newFunction('setCollectionVar', function (key, value) {
+    bru.setCollectionVar(vm.dump(key), vm.dump(value));
+  });
+  vm.setProp(bruObject, 'setCollectionVar', setCollectionVar);
+  setCollectionVar.dispose();
+
+  let hasCollectionVar = vm.newFunction('hasCollectionVar', function (key) {
+    return marshallToVm(bru.hasCollectionVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'hasCollectionVar', hasCollectionVar);
+  hasCollectionVar.dispose();
+
+  let deleteCollectionVar = vm.newFunction('deleteCollectionVar', function (key) {
+    bru.deleteCollectionVar(vm.dump(key));
+  });
+  vm.setProp(bruObject, 'deleteCollectionVar', deleteCollectionVar);
+  deleteCollectionVar.dispose();
+
+  let deleteAllCollectionVars = vm.newFunction('deleteAllCollectionVars', function () {
+    bru.deleteAllCollectionVars();
+  });
+  vm.setProp(bruObject, 'deleteAllCollectionVars', deleteAllCollectionVars);
+  deleteAllCollectionVars.dispose();
+
+  let getAllCollectionVars = vm.newFunction('getAllCollectionVars', function () {
+    return marshallToVm(bru.getAllCollectionVars(), vm);
+  });
+  vm.setProp(bruObject, 'getAllCollectionVars', getAllCollectionVars);
+  getAllCollectionVars.dispose();
 
   let getTestResults = vm.newFunction('getTestResults', () => {
     const promise = vm.newPromise();
