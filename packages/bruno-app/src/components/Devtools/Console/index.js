@@ -147,6 +147,38 @@ const getBrunoTypeMetadata = (obj) => {
   return {};
 };
 
+// Helper function to detect URLs and make them clickable
+const linkifyText = (text) => {
+  if (typeof text !== 'string') {
+    return text;
+  }
+
+  const urlPattern = /(https?:\/\/[^\s<>"{}|\\^`[\]]+)/g;
+
+  const parts = text.split(urlPattern);
+  if (parts.length === 1) {
+    return text;
+  }
+
+  return parts.map((part, index) => {
+    if (part.match(/^https?:\/\//)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="log-link"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
 const LogMessage = ({ message, args }) => {
   const { displayedTheme } = useTheme();
 
@@ -187,10 +219,11 @@ const LogMessage = ({ message, args }) => {
             </div>
           );
         }
-        return String(arg);
+        // Convert to string and linkify any URLs
+        return linkifyText(String(arg));
       });
     }
-    return msg;
+    return linkifyText(msg);
   };
 
   const formattedMessage = formatMessage(message, args);
