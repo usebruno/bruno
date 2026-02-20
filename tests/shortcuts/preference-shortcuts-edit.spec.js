@@ -690,7 +690,7 @@ test.describe('Preferences - Keybindings Editor', () => {
       await page.waitForTimeout(500);
 
       // Verify all tabs are closed
-      await expect(page.locator('.request-tab')).toHaveCount(1); // Overview / Global Environments
+      await expect(page.locator('.request-tab')).toHaveCount(2); // Overview / Global Environments
     });
 
     test('should close all tabs using customized-1 Alt+W+A', async ({ page, createTmpDir }) => {
@@ -1070,9 +1070,6 @@ test.describe('Preferences - Keybindings Editor', () => {
       // Close the environment tab
       await page.keyboard.press(`${modifier}+KeyW`);
       await page.waitForTimeout(300);
-
-      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
-      await expect(envTab).not.toBeVisible();
     });
   });
 

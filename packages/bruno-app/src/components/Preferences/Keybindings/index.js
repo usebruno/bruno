@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import toast from 'react-hot-toast';
 
 import StyledWrapper from './StyledWrapper';
 import { IconRefresh, IconPencil } from '@tabler/icons';
@@ -200,11 +201,6 @@ const Keybindings = () => {
     return false;
   }, [keyBindings, os]);
 
-  const revertDraftToCurrent = (action) => {
-    const currentArr = fromKeysString(getCurrentRowKeysString(action));
-    setDraftByAction((prev) => ({ ...prev, [action]: currentArr }));
-  };
-
   const buildUsedSignatures = (excludeAction) => {
     const used = new Set();
     for (const [action, binding] of Object.entries(keyBindings)) {
@@ -293,6 +289,7 @@ const Keybindings = () => {
     dispatch(savePreferences(updatedPreferences));
   };
 
+  // Commit only if valid. Returns true if commit succeeded (or no-op), false if invalid.
   const commitCombo = (action) => {
     const draftArr = draftByAction[action] || [];
     if (!draftArr.length) return;
@@ -302,12 +299,9 @@ const Keybindings = () => {
 
     if (err) {
       setErrorByAction((prev) => ({ ...prev, [action]: err }));
-      // keep UX consistent: never leave an invalid combo displayed
-      revertDraftToCurrent(action);
-      return;
+      return false;
     }
 
-    // clear error for this row
     setErrorByAction((prev) => {
       const next = { ...prev };
       delete next[action];
@@ -315,13 +309,14 @@ const Keybindings = () => {
     });
 
     const nextKeys = toKeysString(arr);
-
-    // avoid redundant write if unchanged
     const currentKeys = getCurrentRowKeysString(action);
-    if (nextKeys === currentKeys) return;
+    if (nextKeys === currentKeys) return true;
 
-    // persist immediately: preferences is the source of truth
     persistToPreferences(action, nextKeys);
+    // toast success for 2s with Command name
+    const commandName = keyBindings?.[action]?.name || action;
+    toast.success(`"${commandName}" shortcut updated`, { autoClose: 2000 });
+    return true;
   };
 
   const resetRowToDefault = (action) => {
@@ -354,7 +349,15 @@ const Keybindings = () => {
   const startEditing = (action) => {
     // if another row is editing, commit/stop it first
     if (editingAction && editingAction !== action) {
-      commitCombo(editingAction);
+      const ok = commitCombo(editingAction);
+      if (ok) {
+        setRecordingAction(null);
+        setEditingAction(null);
+        pressedKeysRef.current = new Set();
+      } else {
+        // keep previous row editing if invalid
+        return;
+      }
     }
 
     setEditingAction(action);
@@ -384,7 +387,9 @@ const Keybindings = () => {
   };
 
   const stopEditing = (action) => {
-    commitCombo(action);
+    const ok = commitCombo(action);
+    if (!ok) return; // keep editing if invalid
+
     setRecordingAction(null);
     setEditingAction(null);
     pressedKeysRef.current = new Set();
@@ -396,13 +401,13 @@ const Keybindings = () => {
     e.preventDefault();
     e.stopPropagation();
 
+    // allow user to clear and keep editing (do NOT auto-stop)
     if (e.key === 'Backspace' || e.key === 'Delete') {
       pressedKeysRef.current = new Set();
       setDraftByAction((prev) => ({ ...prev, [action]: [] }));
-      // Show error immediately for empty combo
       setErrorByAction((prev) => ({
         ...prev,
-        [action]: { code: ERROR.EMPTY, message: 'Shortcut can\'t be empty.' }
+        [action]: { code: ERROR.EMPTY, message: `Shortcut can't be empty.` }
       }));
       return;
     }
@@ -421,12 +426,10 @@ const Keybindings = () => {
       [action]: currentDraft
     }));
 
-    // Validate in real-time as user types
     const err = validateCombo(action, currentDraft);
     if (err) {
       setErrorByAction((prev) => ({ ...prev, [action]: err }));
     } else {
-      // Clear error if combo is now valid
       setErrorByAction((prev) => {
         const next = { ...prev };
         delete next[action];
@@ -446,8 +449,16 @@ const Keybindings = () => {
 
     pressedKeysRef.current.delete(keyName);
 
-    // commit when user releases all keys
+    // commit only when released AND currently valid
     if (pressedKeysRef.current.size === 0) {
+      const currentDraft = draftByAction[action] || [];
+
+      // if empty -> keep editing
+      if (currentDraft.length === 0) return;
+
+      // if error -> keep editing
+      if (errorByAction[action]?.message) return;
+
       stopEditing(action);
     }
   };
@@ -478,7 +489,7 @@ const Keybindings = () => {
             title="Reset all keybindings to default"
           >
             <IconRefresh size={14} stroke={1.5} />
-            {/* <span>Reset All</span> */}
+
           </button>
         )}
       </div>
