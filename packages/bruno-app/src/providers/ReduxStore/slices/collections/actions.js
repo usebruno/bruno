@@ -474,7 +474,7 @@ const extractPromptVariablesForRequest = async (item, collection) => {
     // Get request auth or inherited auth
     const resolvedAuthRequest = resolveInheritedAuth(item, collection);
 
-    for (let clientCert of enabledCerts) {
+    for (const clientCert of enabledCerts) {
       const domain = interpolateUrl({ url: clientCert?.domain, variables: allVariables });
 
       if (domain) {

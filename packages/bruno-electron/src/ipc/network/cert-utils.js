@@ -69,7 +69,7 @@ const getCertsAndProxyConfig = async ({
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
   const enabledCerts = clientCertConfig.filter((cert) => cert.enabled !== false);
 
-  for (let clientCert of enabledCerts) {
+  for (const clientCert of enabledCerts) {
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
     const type = clientCert?.type || 'cert';
     if (domain) {

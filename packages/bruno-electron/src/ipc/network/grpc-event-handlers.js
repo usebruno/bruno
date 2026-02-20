@@ -351,7 +351,7 @@ const registerGrpcEventHandlers = (window) => {
       const clientCertConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
       const enabledCerts = clientCertConfig.filter((clientCert) => clientCert.enabled !== false);
 
-      for (let clientCert of enabledCerts) {
+      for (const clientCert of enabledCerts) {
         const domain = interpolateString(clientCert?.domain, interpolationOptions);
         const type = clientCert?.type || 'cert';
         if (domain) {
