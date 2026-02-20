@@ -180,7 +180,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         if (!fs.existsSync(dirPath)) {
-          await createDirectory(dirPath);
+          fs.mkdirSync(dirPath, { recursive: true });
         }
 
         const uid = generateUidBasedOnHash(dirPath);
