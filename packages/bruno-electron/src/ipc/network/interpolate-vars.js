@@ -76,11 +76,36 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   const contentType = getContentType(request.headers);
   const isGraphqlRequest = request.mode === 'graphql';
 
-  if (isGrpcRequest) {
+  /*
+    Only when contentType is a string (e.g. not false) and indicates JSON: interpolate request.data.
+    We skip when request.data is a Buffer (raw body / file content) so we never interpolate binary.
+  */
+  if (typeof contentType === 'string' && contentType.includes('json') && !Buffer.isBuffer(request.data)) {
+    if (typeof request.data === 'string') {
+      if (request.data.length) {
+        request.data = _interpolate(request.data);
+      }
+    } else if (typeof request.data === 'object') {
+      try {
+        let parsed = JSON.stringify(request.data);
+        parsed = _interpolate(parsed);
+        request.data = JSON.parse(parsed);
+      } catch (err) {}
+    }
+  } else if (typeof contentType === 'string' && contentType === 'application/x-www-form-urlencoded') {
+    if (typeof request.data === 'object') {
+      try {
+        forOwn(request?.data, (value, key) => {
+          request.data[key] = _interpolate(value);
+        });
+      } catch (err) {}
+    }
+  }
+
+  // gRPC: interpolate entire body (JSON message template and any other keys).
+  if (isGrpcRequest && request.body) {
     const jsonDoc = JSON.stringify(request.body);
-    const parsed = _interpolate(jsonDoc, {
-      escapeJSONStrings: true
-    });
+    const parsed = _interpolate(jsonDoc, { escapeJSONStrings: true });
     request.body = JSON.parse(parsed);
   }
   // Interpolate WebSocket message body
@@ -88,15 +113,11 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (isWsRequest && request.body && request.body.ws && Array.isArray(request.body.ws)) {
     request.body.ws.forEach((message) => {
       if (message && message.content) {
-        // Try to detect if content is JSON for proper escaping
         let isJson = false;
         try {
           JSON.parse(message.content);
           isJson = true;
-        } catch (e) {
-          // Not JSON, treat as regular string
-        }
-
+        } catch (e) {}
         message.content = _interpolate(message.content, {
           escapeJSONStrings: isJson
         });
@@ -138,7 +159,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           value: _interpolate(d?.value)
         }));
       }
-    } else if (contentType === 'multipart/form-data') {
+    } else if (contentType.startsWith('multipart/')) {
       if (Array.isArray(request?.data) && !isFormData(request.data)) {
         try {
           request.data = request?.data?.map((d) => ({
