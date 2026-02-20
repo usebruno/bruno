@@ -198,7 +198,7 @@ app.on('ready', async () => {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       webviewTag: true,
-      zoomFactor: 1.0 // Disable default zoom shortcuts, we handle them in the app
+      zoomFactor: 1.0
     },
     title: 'Bruno',
     icon: path.join(__dirname, 'about/256x256.png'),
@@ -461,14 +461,6 @@ app.on('window-all-closed', app.quit);
 // Open collection from Recent menu (#1521)
 app.on('open-file', (event, path) => {
   openCollection(mainWindow, collectionWatcher, path);
-});
-
-// Register the global shortcuts
-app.on('browser-window-focus', () => {
-  // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
-  globalShortcut.register('Ctrl+=', () => {
-    mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
-  });
 });
 
 // Disable global shortcuts when not focused

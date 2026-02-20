@@ -270,9 +270,19 @@ const Collection = ({ collection, searchText }) => {
       }
     };
 
+    const handleRenameCollectionOpen = () => {
+      // Only open rename collection modal if this collection is keyboard focused
+      if (isFocusedRef.current) {
+        setShowRenameCollectionModal(true);
+      }
+    };
+
     window.addEventListener('clone-item-open', handleCloneItemOpen);
+    window.addEventListener('rename-item-open', handleRenameCollectionOpen);
+
     return () => {
       window.removeEventListener('clone-item-open', handleCloneItemOpen);
+      window.removeEventListener('rename-item-open', handleRenameCollectionOpen);
     };
   }, []);
 

@@ -72,6 +72,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const userKeyBindings = preferences?.keyBindings || {};
   const hasCustomCopyBinding = !!userKeyBindings?.copyItem;
   const hasCustomPasteBinding = !!userKeyBindings?.pasteItem;
+  const hasCustomRenameBinding = !!userKeyBindings?.renameItem;
   const dispatch = useDispatch();
 
   // We use a single ref for drag and drop.
@@ -154,14 +155,23 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       }
     };
 
+    const handleRenameItemOpen = () => {
+      // Rename item if this item is keyboard focused
+      if (isFocusedRef.current) {
+        setRenameItemModalOpen(true);
+      }
+    };
+
     window.addEventListener('clone-item-open', handleCloneItemOpen);
     window.addEventListener('copy-item-open', handleCopyItemOpen);
     window.addEventListener('paste-item-open', handlePasteItemOpen);
+    window.addEventListener('rename-item-open', handleRenameItemOpen);
 
     return () => {
       window.removeEventListener('clone-item-open', handleCloneItemOpen);
       window.removeEventListener('copy-item-open', handleCopyItemOpen);
       window.removeEventListener('paste-item-open', handlePasteItemOpen);
+      window.removeEventListener('rename-item-open', handleRenameItemOpen);
     };
   }, []);
 
@@ -620,6 +630,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       e.preventDefault();
       e.stopPropagation();
       if (pasteHandlerRef.current) pasteHandlerRef.current();
+    } else if (!hasCustomRenameBinding && e.key === 'F2') {
+      e.preventDefault();
+      e.stopPropagation();
+      setRenameItemModalOpen(true);
     }
   };
 

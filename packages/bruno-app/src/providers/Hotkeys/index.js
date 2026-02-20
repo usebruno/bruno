@@ -51,7 +51,8 @@ const BOUND_ACTIONS = [
   'resetZoom',
   'cloneItem',
   'copyItem',
-  'pasteItem'
+  'pasteItem',
+  'renameItem'
 ];
 
 /**
@@ -291,6 +292,11 @@ function bindAllHotkeys(userKeyBindings) {
   // PASTE ITEM -> paste from clipboard to current location
   bindHotkey('pasteItem', () => {
     window.dispatchEvent(new CustomEvent('paste-item-open'));
+  }, userKeyBindings);
+
+  // RENAME ITEM -> trigger event so the sidebar can handle opening the rename modal
+  bindHotkey('renameItem', () => {
+    window.dispatchEvent(new CustomEvent('rename-item-open'));
   }, userKeyBindings);
 }
 

@@ -27,7 +27,6 @@ const template = [
       },
       {
         label: 'Preferences',
-        accelerator: 'CommandOrControl+,',
         click() {
           ipcMain.emit('main:open-preferences');
         }
@@ -97,7 +96,7 @@ const template = [
   },
   {
     role: 'window',
-    submenu: [{ role: 'minimize' }, { role: 'close', accelerator: 'CommandOrControl+Shift+Q' }]
+    submenu: [{ role: 'minimize' }, { role: 'close' }]
   },
   {
     role: 'help',
