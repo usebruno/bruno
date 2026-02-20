@@ -76,13 +76,17 @@ async function usePageWithTracing(
  */
 export async function closeElectronApp(app: ElectronApplication) {
   try {
-    await app.evaluate(({ app }) => {
+    await app.evaluate(async ({ app }) => {
       app.emit('before-quit');
+
+      // Add a delay to ensure the app is fully closed
+      await new Promise((resolve) => setTimeout(resolve, 250));
       app.exit(0);
     });
   } catch {
     // Expected: process exited before the CDP response was sent
   }
+
   try {
     await app.close();
   } catch {

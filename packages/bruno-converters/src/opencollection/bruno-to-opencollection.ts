@@ -24,7 +24,7 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
     if (brunoConfig.protobuf.importPaths?.length) {
       config.protobuf.importPaths = brunoConfig.protobuf.importPaths.map((p) => {
         const importPath: { path: string; disabled?: boolean } = { path: p.path };
-        if (p.disabled) {
+        if (p.enabled === false) {
           importPath.disabled = true;
         }
         return importPath;

@@ -76,7 +76,8 @@ function makeAxiosInstance({
   proxyConfig = {},
   requestMaxRedirects = 5,
   httpsAgentRequestFields = {},
-  interpolationOptions = {}
+  interpolationOptions = {},
+  followRedirects = true
 } = {}) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
@@ -276,6 +277,14 @@ function makeAxiosInstance({
 
           // Attach the timeline to the response
           error.response.timeline = timeline;
+
+          if (!followRedirects) {
+            if (preferencesUtil.shouldStoreCookies()) {
+              saveCookies(error.config.url, error.response.headers);
+            }
+
+            return Promise.reject(error);
+          }
 
           if (redirectCount >= requestMaxRedirects) {
             const errorResponseData = error.response.data;
