@@ -183,12 +183,7 @@ function bindAllHotkeys(userKeyBindings) {
 
   // CLOSE TAB
   bindHotkey('closeTab', () => {
-    const state = getState();
-    const activeTabUid = state.tabs.activeTabUid;
-
-    if (activeTabUid) {
-      dispatch(closeTabs({ tabUids: [activeTabUid] }));
-    }
+    window.dispatchEvent(new CustomEvent('close-active-tab'));
   }, userKeyBindings);
 
   // SWITCH PREV TAB
@@ -203,19 +198,7 @@ function bindAllHotkeys(userKeyBindings) {
 
   // CLOSE ALL TABS
   bindHotkey('closeAllTabs', () => {
-    const state = getState();
-    const tabs = state.tabs.tabs;
-    const collections = state.collections.collections;
-    const activeTabUid = state.tabs.activeTabUid;
-
-    const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-    if (!activeTab) return;
-
-    const collection = findCollectionByUid(collections, activeTab.collectionUid);
-    if (!collection) return;
-
-    const tabUids = tabs.filter((tab) => tab.collectionUid === collection.uid).map((tab) => tab.uid);
-    dispatch(closeTabs({ tabUids }));
+    window.dispatchEvent(new CustomEvent('close-active-tab'));
   }, userKeyBindings);
 
   // COLLAPSE SIDEBAR
