@@ -830,7 +830,7 @@ export const renameItem
             .invoke('renderer:rename-item-filename', { oldPath: item.pathname, newPath, newName, newFilename, collectionPathname: collection.pathname })
             .catch((err) => {
               console.error(err);
-              throw new Error('Failed to rename the file');
+              throw new Error('Duplicate request names are not allowed under the same folder');
             });
         };
 
