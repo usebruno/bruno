@@ -100,10 +100,9 @@ class DotEnvWatcher {
       this.collectionWatchers.get(collectionPath).close();
     }
 
-    const dotEnvPattern = path.join(collectionPath, '.env*');
-
-    const watcher = chokidar.watch(dotEnvPattern, {
+    const watcher = chokidar.watch(collectionPath, {
       ...DEFAULT_WATCHER_OPTIONS,
+      disableGlobbing: true,
       awaitWriteFinish: {
         stabilityThreshold: 80,
         pollInterval: 100
@@ -151,10 +150,9 @@ class DotEnvWatcher {
       this.workspaceWatchers.get(workspacePath).close();
     }
 
-    const dotEnvPattern = path.join(workspacePath, '.env*');
-
-    const watcher = chokidar.watch(dotEnvPattern, {
+    const watcher = chokidar.watch(workspacePath, {
       ...DEFAULT_WATCHER_OPTIONS,
+      disableGlobbing: true,
       awaitWriteFinish: {
         stabilityThreshold: 80,
         pollInterval: 250
