@@ -318,6 +318,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
             onSubmit={formik.handleSubmit}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
+                // Skip events from CodeMirror — form submission from the URL field
+                if (e.target.closest && e.target.closest('.CodeMirror')) {
+                  return;
+                }
                 e.preventDefault();
                 formik.handleSubmit();
               }
@@ -521,6 +525,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                         placeholder="Request URL"
                         value={formik.values.requestUrl || ''}
                         theme={storedTheme}
+                        onRun={formik.handleSubmit}
                         onChange={(value) => {
                           formik.handleChange({
                             target: {
