@@ -453,7 +453,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath, options = {}
   };
 
   const collectionContent = await stringifyCollection(collection.root || {}, brunoConfig, {
-    format: format === 'opencollection' ? 'yml' : 'bru'
+    format
   });
   const collectionRootFilePath = format == 'bru' ? path.join(dirPath, 'collection.bru') : path.join(dirPath, 'opencollection.yml');
 
@@ -495,7 +495,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath, options = {}
  * @param {"bru"|"yml"} options.format - Current directory path
  */
 const processCollectionItems = async (items = [], currentPath, options = {}) => {
-  const { format } = options;
+  const { format = 'bru' } = options;
   for (const item of items) {
     if (item.type === 'folder') {
       // Create folder
@@ -516,7 +516,7 @@ const processCollectionItems = async (items = [], currentPath, options = {}) => 
 
       // Process folder items recursively
       if (item.items && item.items.length) {
-        await processCollectionItems(item.items, folderPath);
+        await processCollectionItems(item.items, folderPath, options);
       }
     } else if (REQUEST_ITEM_TYPES.includes(item.type)) {
       // Create request file
