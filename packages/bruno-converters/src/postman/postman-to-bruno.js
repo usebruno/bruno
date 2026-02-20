@@ -465,15 +465,16 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           brunoRequestItem.request.body.mode = 'multipartForm';
 
           each(i.request.body.formdata, (param) => {
+            if (param.key == null && param.value == null) return;
             const isFile = param.type === 'file' || (param.type === 'default' && param.src);
             const value = isFile
               ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
-              : (Array.isArray(param.value) ? param.value.join('') : param.value);
+              : (Array.isArray(param.value) ? param.value.join('') : param.value ?? '');
 
             brunoRequestItem.request.body.multipartForm.push({
               uid: uuid(),
               type: isFile ? 'file' : 'text',
-              name: param.key,
+              name: param.key ?? '',
               value,
               description: transformDescription(param.description),
               enabled: !param.disabled,
@@ -485,10 +486,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         if (bodyMode === 'urlencoded') {
           brunoRequestItem.request.body.mode = 'formUrlEncoded';
           each(i.request.body.urlencoded, (param) => {
+            if (param.key == null && param.value == null) return;
             brunoRequestItem.request.body.formUrlEncoded.push({
               uid: uuid(),
-              name: param.key,
-              value: param.value,
+              name: param.key ?? '',
+              value: param.value ?? '',
               description: transformDescription(param.description),
               enabled: !param.disabled
             });
@@ -520,10 +522,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       }
 
       each(i.request.header, (header) => {
+        if (header.key == null && header.value == null) return;
         brunoRequestItem.request.headers.push({
           uid: uuid(),
-          name: header.key,
-          value: header.value,
+          name: header.key ?? '',
+          value: header.value ?? '',
           description: transformDescription(header.description),
           enabled: !header.disabled
         });
@@ -533,10 +536,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       processAuth(i.request.auth, brunoRequestItem.request);
 
       each(get(i, 'request.url.query'), (param) => {
+        if (param.key == null && param.value == null) {
+          return;
+        }
         brunoRequestItem.request.params.push({
           uid: uuid(),
-          name: param.key,
-          value: param.value,
+          name: param.key ?? '',
+          value: param.value ?? '',
           description: transformDescription(param.description),
           type: 'query',
           enabled: !param.disabled
@@ -606,10 +612,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           // Convert original request headers
           if (originalRequest.header && Array.isArray(originalRequest.header)) {
             originalRequest.header.forEach((header) => {
+              if (header.key == null && header.value == null) return;
               example.request.headers.push({
                 uid: uuid(),
-                name: header.key,
-                value: header.value,
+                name: header.key ?? '',
+                value: header.value ?? '',
                 description: transformDescription(header.description),
                 enabled: !header.disabled
               });
@@ -619,10 +626,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           // Convert original request query parameters
           if (originalRequest.url && originalRequest.url.query && Array.isArray(originalRequest.url.query)) {
             originalRequest.url.query.forEach((param) => {
+              if (param.key == null && param.value == null) {
+                return;
+              }
               example.request.params.push({
                 uid: uuid(),
-                name: param.key,
-                value: param.value,
+                name: param.key ?? '',
+                value: param.value ?? '',
                 description: transformDescription(param.description),
                 type: 'query',
                 enabled: !param.disabled
@@ -632,6 +642,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
 
           if (originalRequest.url && originalRequest.url.variable && Array.isArray(originalRequest.url.variable)) {
             originalRequest.url.variable.forEach((param) => {
+              if (!param.key) return;
               example.request.params.push({
                 uid: uuid(),
                 name: param.key,
@@ -650,15 +661,16 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               example.request.body.mode = 'multipartForm';
               if (originalRequest.body.formdata && Array.isArray(originalRequest.body.formdata)) {
                 originalRequest.body.formdata.forEach((param) => {
+                  if (param.key == null && param.value == null) return;
                   const isFile = param.type === 'file' || (param.type === 'default' && param.src);
                   const value = isFile
                     ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
-                    : (Array.isArray(param.value) ? param.value.join('') : param.value);
+                    : (Array.isArray(param.value) ? param.value.join('') : param.value ?? '');
 
                   example.request.body.multipartForm.push({
                     uid: uuid(),
                     type: isFile ? 'file' : 'text',
-                    name: param.key,
+                    name: param.key ?? '',
                     value,
                     description: transformDescription(param.description),
                     enabled: !param.disabled,
@@ -670,10 +682,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               example.request.body.mode = 'formUrlEncoded';
               if (originalRequest.body.urlencoded && Array.isArray(originalRequest.body.urlencoded)) {
                 originalRequest.body.urlencoded.forEach((param) => {
+                  if (param.key == null && param.value == null) return;
                   example.request.body.formUrlEncoded.push({
                     uid: uuid(),
-                    name: param.key,
-                    value: param.value,
+                    name: param.key ?? '',
+                    value: param.value ?? '',
                     description: transformDescription(param.description),
                     enabled: !param.disabled
                   });
@@ -700,10 +713,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           // Convert response headers
           if (response.header && Array.isArray(response.header)) {
             response.header.forEach((header) => {
+              if (header.key == null && header.value == null) return;
               example.response.headers.push({
                 uid: uuid(),
-                name: header.key,
-                value: header.value,
+                name: header.key ?? '',
+                value: header.value ?? '',
                 description: transformDescription(header.description),
                 enabled: true
               });
