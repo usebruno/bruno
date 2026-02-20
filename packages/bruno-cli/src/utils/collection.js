@@ -441,7 +441,8 @@ const safeWriteFileSync = (filePath, content) => {
  * @param {Object} collection - The Bruno collection object
  * @param {string} dirPath - The output directory path
  */
-const createCollectionFromBrunoObject = async (collection, dirPath) => {
+const createCollectionFromBrunoObject = async (collection, dirPath, options = {}) => {
+  const { format = 'bru' } = options;
   // Create brunoConfig for yml format
   const brunoConfig = {
     version: '1',
@@ -450,9 +451,21 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
     ignore: ['node_modules', '.git']
   };
 
-  // Create opencollection.yml
-  const collectionContent = stringifyCollection(collection.root || {}, brunoConfig);
-  fs.writeFileSync(path.join(dirPath, 'opencollection.yml'), collectionContent);
+  const collectionContent = await stringifyCollection(collection.root || {}, brunoConfig, {
+    format: format === 'opencollection' ? 'yml' : 'bru'
+  });
+  const collectionRootFilePath = format == 'bru' ? path.join(dirPath, 'collection.bru') : path.join(dirPath, 'opencollection.yml');
+
+  if (format === 'bru') {
+    fs.writeFileSync(
+      path.join(dirPath, 'bruno.json'),
+      JSON.stringify(brunoConfig, null, 2)
+    );
+  }
+
+  if (collection.root) {
+    fs.writeFileSync(collectionRootFilePath, collectionContent);
+  }
 
   // Process environments
   if (collection.environments && collection.environments.length) {
@@ -460,14 +473,14 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
     fs.mkdirSync(envDirPath, { recursive: true });
 
     for (const env of collection.environments) {
-      const content = stringifyEnvironment(env);
-      const filename = sanitizeName(`${env.name}.yml`);
+      const content = stringifyEnvironment(env, { format });
+      const filename = format === 'bru' ? sanitizeName(`${env.name}.bru`) : sanitizeName(`${env.name}.yml`);
       fs.writeFileSync(path.join(envDirPath, filename), content);
     }
   }
 
   // Process collection items
-  await processCollectionItems(collection.items, dirPath);
+  await processCollectionItems(collection.items, dirPath, { format });
 
   return dirPath;
 };
@@ -477,8 +490,11 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
  *
  * @param {Array} items - Collection items
  * @param {string} currentPath - Current directory path
+ * @param {object} [options] - Current directory path
+ * @param {"bru"|"yml"} options.format - Current directory path
  */
-const processCollectionItems = async (items = [], currentPath) => {
+const processCollectionItems = async (items = [], currentPath, options = {}) => {
+  const { format } = options;
   for (const item of items) {
     if (item.type === 'folder') {
       // Create folder
@@ -488,12 +504,13 @@ const processCollectionItems = async (items = [], currentPath) => {
 
       // Create folder.yml file if root exists
       if (item?.root?.meta?.name) {
-        const folderYmlFilePath = path.join(folderPath, 'folder.yml');
+        const folderFileName = format === 'bru' ? 'folder.bru' : 'folder.yml';
+        const folderFilePath = path.join(folderPath, folderFileName);
         if (item.seq) {
           item.root.meta.seq = item.seq;
         }
-        const folderContent = stringifyFolder(item.root);
-        safeWriteFileSync(folderYmlFilePath, folderContent);
+        const folderContent = stringifyFolder(item.root, { format });
+        safeWriteFileSync(folderFilePath, folderContent);
       }
 
       // Process folder items recursively
@@ -502,9 +519,17 @@ const processCollectionItems = async (items = [], currentPath) => {
       }
     } else if (['http-request', 'graphql-request'].includes(item.type)) {
       // Create request file
-      let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.yml`);
-      if (!sanitizedFilename.endsWith('.yml')) {
-        sanitizedFilename += '.yml';
+      let sanitizedFilename;
+      if (format == 'yml') {
+        sanitizedFilename = sanitizeName(item?.filename || `${item.name}.yml`);
+        if (!sanitizedFilename.endsWith('.yml')) {
+          sanitizedFilename += '.yml';
+        }
+      } else {
+        sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
+        if (!sanitizedFilename.endsWith('.bru')) {
+          sanitizedFilename += '.bru';
+        }
       }
 
       // Convert to YML format
@@ -530,7 +555,7 @@ const processCollectionItems = async (items = [], currentPath) => {
       };
 
       // Convert to YML format and write to file
-      const content = stringifyRequest(itemJson);
+      const content = stringifyRequest(itemJson, { format });
       safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
     }
   }
