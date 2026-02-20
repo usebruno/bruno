@@ -89,7 +89,7 @@ const EnvironmentVariablesTable = ({
   }, []);
 
   const handleTotalHeightChanged = useCallback((h) => {
-    setTableHeight(h);
+    setTableHeight(h + 2);
   }, []);
 
   const prevEnvUidRef = useRef(null);

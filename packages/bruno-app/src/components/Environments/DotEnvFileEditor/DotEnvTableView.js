@@ -28,7 +28,7 @@ const DotEnvTableView = ({
   isSaving
 }) => {
   const handleTotalHeightChanged = useCallback((h) => {
-    onHeightChange(h);
+    onHeightChange(h + 2);
   }, [onHeightChange]);
 
   // Use refs for stable access to formik values in callbacks
