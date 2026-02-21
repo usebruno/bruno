@@ -221,9 +221,11 @@ const configureRequest = async (
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header' && credentials?.access_token) {
-          const token = credentials[tokenSource] || credentials.access_token;
-          request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
+        if (tokenPlacement == 'header') {
+          const token = credentials?.[tokenSource] || credentials?.access_token;
+          if (token) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
+          }
         } else {
           try {
             const url = new URL(request.url);
@@ -265,9 +267,11 @@ const configureRequest = async (
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header' && credentials?.access_token) {
-          const token = credentials[tokenSource] || credentials.access_token;
-          request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
+        if (tokenPlacement == 'header') {
+          const token = credentials?.[tokenSource] || credentials?.access_token;
+          if (token) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
+          }
         } else {
           try {
             const url = new URL(request.url);
