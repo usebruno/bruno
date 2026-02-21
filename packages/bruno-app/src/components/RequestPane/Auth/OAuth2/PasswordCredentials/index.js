@@ -18,6 +18,8 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+  const tokenSourceRef = useRef();
+  const onTokenSourceCreate = (ref) => (tokenSourceRef.current = ref);
   const oAuth = get(request, 'auth.oauth2', {});
   const { isSensitive } = useDetectSensitiveField(collection);
 
@@ -215,11 +217,11 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         <div className="flex items-center gap-4 w-full" key="input-token-source">
           <label className="block min-w-[140px]">Use token</label>
           <div className="inline-flex items-center cursor-pointer token-placement-selector">
-            <Dropdown onCreate={onDropdownCreate} icon={<TokenSourceIcon />} placement="bottom-end">
+            <Dropdown onCreate={onTokenSourceCreate} icon={<TokenSourceIcon />} placement="bottom-end">
               <div
                 className="dropdown-item"
                 onClick={() => {
-                  dropdownTippyRef.current.hide();
+                  tokenSourceRef.current.hide();
                   handleChange('tokenSource', 'access_token');
                 }}
               >
@@ -228,7 +230,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
               <div
                 className="dropdown-item"
                 onClick={() => {
-                  dropdownTippyRef.current.hide();
+                  tokenSourceRef.current.hide();
                   handleChange('tokenSource', 'id_token');
                 }}
               >

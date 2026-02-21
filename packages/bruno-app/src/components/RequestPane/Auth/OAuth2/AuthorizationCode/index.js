@@ -22,6 +22,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+  const tokenSourceRef = useRef();
+  const onTokenSourceCreate = (ref) => (tokenSourceRef.current = ref);
   const { isSensitive } = useDetectSensitiveField(collection);
   const oAuth = get(request, 'auth.oauth2', {});
   const {
@@ -320,11 +322,11 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         <div className="flex items-center gap-4 w-full" key="input-token-source">
           <label className="block min-w-[140px]">Use token</label>
           <div className="inline-flex items-center cursor-pointer token-placement-selector">
-            <Dropdown onCreate={onDropdownCreate} icon={<TokenSourceIcon />} placement="bottom-end">
+            <Dropdown onCreate={onTokenSourceCreate} icon={<TokenSourceIcon />} placement="bottom-end">
               <div
                 className="dropdown-item"
                 onClick={() => {
-                  dropdownTippyRef.current.hide();
+                  tokenSourceRef.current.hide();
                   handleChange('tokenSource', 'access_token');
                 }}
               >
@@ -333,7 +335,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
               <div
                 className="dropdown-item"
                 onClick={() => {
-                  dropdownTippyRef.current.hide();
+                  tokenSourceRef.current.hide();
                   handleChange('tokenSource', 'id_token');
                 }}
               >
