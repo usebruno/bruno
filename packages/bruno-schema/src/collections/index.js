@@ -291,9 +291,15 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   tokenHeaderPrefix: Yup.string().when(['grantType', 'tokenPlacement'], {
-    is: (grantType, tokenPlacement) => 
+    is: (grantType, tokenPlacement) =>
       ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'header',
     then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  tokenSource: Yup.string().when(['grantType', 'tokenPlacement'], {
+    is: (grantType, tokenPlacement) =>
+      ['password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'header',
+    then: Yup.string().oneOf(['access_token', 'id_token']).nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   tokenQueryKey: Yup.string().when(['grantType', 'tokenPlacement'], {
