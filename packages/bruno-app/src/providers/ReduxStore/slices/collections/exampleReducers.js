@@ -41,7 +41,7 @@ export const addResponseExample = (state, action) => {
       body: requestBody
     },
     response: {
-      status: String(example.status ?? ''),
+      status: example.status,
       statusText: String(example.statusText ?? (example.status ? (statusCodePhraseMap[Number(example.status)] ?? '') : '')),
       headers: (example.headers || []).map((header) => ({
         uid: uuid(),

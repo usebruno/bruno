@@ -440,9 +440,12 @@ const populateRequestBody = ({ body, bodySchema, contentType }) => {
  * @param {string} [params.requestBodyContentType] - Optional request body content type
  * @returns {Object} Bruno example object
  */
+
 const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType, requestBodySchema = null, requestBodyContentType = null }) => {
   const sanitized = String(exampleName ?? '').replace(/\r?\n/g, ' ').trim();
   const name = sanitized || `${statusCode} Response`;
+  const numericStatus = Number(statusCode);
+  const safeStatus = Number.isFinite(numericStatus) ? numericStatus : null;
   // Deep copy the body to avoid shared references
   const bodyCopy = {
     mode: brunoRequestItem.request.body.mode,
@@ -468,8 +471,8 @@ const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, examp
       body: bodyCopy
     },
     response: {
-      status: String(statusCode),
-      statusText: getStatusText(statusCode),
+      status: safeStatus,
+      statusText: safeStatus ? getStatusText(safeStatus) : null,
       headers: contentType ? [
         {
           uid: uuid(),
@@ -1413,9 +1416,12 @@ export const openApiToBruno = (openApiSpecification, options = {}) => {
     }
 
     const collection = parseOpenApiCollection(openApiSpecification, options);
+
     const transformedCollection = transformItemsInCollection(collection);
+
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
     const validatedCollection = validateSchema(hydratedCollection);
+
     return validatedCollection;
   } catch (err) {
     console.error('Error converting OpenAPI to Bruno:', err);
