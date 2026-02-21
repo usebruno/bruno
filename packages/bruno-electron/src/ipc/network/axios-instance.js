@@ -15,6 +15,48 @@ const LOCALHOST = 'localhost';
 const version = electronApp?.app?.getVersion() ?? '';
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 
+/**
+ * Reconstruct response headers preserving the original casing as sent by the server.
+ *
+ * Node.js's `http` module (and by extension axios) normalises all response
+ * header names to lowercase before exposing them on `response.headers`. This
+ * matches the HTTP/1.1 specification (RFC 7230 §3.2) which states that header
+ * field names are case-insensitive, and is a mandatory requirement for HTTP/2
+ * (RFC 7540 §8.1.2). However it means Bruno's UI shows `content-type` instead
+ * of `Content-Type`, which is surprising to users and breaks any test that
+ * asserts header names by their original casing (see issue #2012).
+ *
+ * Node exposes the raw headers as a flat array on `res.rawHeaders` in the form
+ * `[name1, value1, name2, value2, ...]`. We use that array to rebuild an object
+ * with the server-sent casing.  When `rawHeaders` is not available (HTTP/2,
+ * mocked responses, etc.) we fall back to the already-lowercase `headers` object
+ * so the function is always safe to call.
+ *
+ * @param {import('http').IncomingMessage|undefined} res  - The raw Node.js response object.
+ * @param {Record<string,string>} headers                 - The axios-normalised headers object.
+ * @returns {Record<string,string>}
+ */
+const reconstructOriginalCaseHeaders = (res, headers) => {
+  const rawHeaders = res?.rawHeaders;
+  if (!rawHeaders || rawHeaders.length === 0) {
+    return headers;
+  }
+
+  const result = {};
+  for (let i = 0; i < rawHeaders.length; i += 2) {
+    const name = rawHeaders[i];
+    const value = rawHeaders[i + 1];
+    // When a header appears multiple times (e.g. Set-Cookie) concatenate with ', '
+    // to mirror what axios does when building its `headers` object.
+    if (Object.prototype.hasOwnProperty.call(result, name)) {
+      result[name] = `${result[name]}, ${value}`;
+    } else {
+      result[name] = value;
+    }
+  }
+  return result;
+};
+
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
     let setCookieHeaders = [];
@@ -212,6 +254,15 @@ function makeAxiosInstance({
       const config = response.config;
       timeline = config?.metadata?.timeline || [];
       const duration = end - config?.metadata.startTime;
+
+      // Rebuild headers with original server-sent casing (Node.js http module
+      // normalises header names to lowercase; we restore them from rawHeaders).
+      // See: https://github.com/usebruno/bruno/issues/2012
+      const originalCaseHeaders = reconstructOriginalCaseHeaders(
+        response?.request?.res,
+        response.headers
+      );
+      response.headers = originalCaseHeaders;
 
       const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
       if (httpVersion?.startsWith('2')) {
