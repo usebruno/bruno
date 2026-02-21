@@ -131,6 +131,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           tokenPlacement,
           tokenHeaderPrefix,
           tokenQueryKey,
+          tokenSource,
           autoFetchToken,
           additionalParameters,
           pkce: !Boolean(oAuth?.['pkce'])
