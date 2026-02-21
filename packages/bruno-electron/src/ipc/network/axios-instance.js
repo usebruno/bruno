@@ -16,7 +16,7 @@ const version = electronApp?.app?.getVersion() ?? '';
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 
 /**
- * Reconstruct response headers preserving the original casing as sent by the server.
+ * Restore original server-sent header casing on an AxiosHeaders instance.
  *
  * Node.js's `http` module (and by extension axios) normalises all response
  * header names to lowercase before exposing them on `response.headers`. This
@@ -27,14 +27,26 @@ const redirectResponseCodes = [301, 302, 303, 307, 308];
  * asserts header names by their original casing (see issue #2012).
  *
  * Node exposes the raw headers as a flat array on `res.rawHeaders` in the form
- * `[name1, value1, name2, value2, ...]`. We use that array to rebuild an object
- * with the server-sent casing.  When `rawHeaders` is not available (HTTP/2,
- * mocked responses, etc.) we fall back to the already-lowercase `headers` object
- * so the function is always safe to call.
+ * `[name1, value1, name2, value2, ...]`. We use that array to determine which
+ * key names the server actually sent, then rename the matching keys on the
+ * existing `AxiosHeaders` instance **in place** so that:
  *
- * @param {import('http').IncomingMessage|undefined} res  - The raw Node.js response object.
- * @param {Record<string,string>} headers                 - The axios-normalised headers object.
- * @returns {Record<string,string>}
+ *  - Downstream code that calls `headers.get()`/`headers.delete()` (which
+ *    relies on the AxiosHeaders prototype) keeps working.
+ *  - Synthetic headers added by Bruno before this call (e.g. `request-duration`)
+ *    are untouched because they are not present in `rawHeaders`.
+ *  - `Set-Cookie` entries are left as-is — AxiosHeaders already stores them as
+ *    an array, so we only rename the key, never the values.
+ *  - Duplicate raw header names with different casings (pathological but
+ *    theoretically possible) are de-duplicated using the casing of the first
+ *    occurrence, consistent with RFC 7230 §3.2.2.
+ *
+ * When `rawHeaders` is not available (HTTP/2, mocked responses, intercepted
+ * responses) the function returns the headers object unchanged — no regression.
+ *
+ * @param {import('http').IncomingMessage|undefined} res - The raw Node.js response object.
+ * @param {import('axios').AxiosHeaders} headers        - The axios response headers instance.
+ * @returns {import('axios').AxiosHeaders}
  */
 const reconstructOriginalCaseHeaders = (res, headers) => {
   const rawHeaders = res?.rawHeaders;
@@ -42,19 +54,32 @@ const reconstructOriginalCaseHeaders = (res, headers) => {
     return headers;
   }
 
-  const result = {};
+  // Build a map of lowercase-name -> first-seen original-cased name from rawHeaders.
+  // Only the first occurrence wins (RFC 7230 §3.2.2: no redefinition of field names).
+  const originalCaseMap = {};
   for (let i = 0; i < rawHeaders.length; i += 2) {
     const name = rawHeaders[i];
-    const value = rawHeaders[i + 1];
-    // When a header appears multiple times (e.g. Set-Cookie) concatenate with ', '
-    // to mirror what axios does when building its `headers` object.
-    if (Object.prototype.hasOwnProperty.call(result, name)) {
-      result[name] = `${result[name]}, ${value}`;
-    } else {
-      result[name] = value;
+    const lower = name.toLowerCase();
+    if (!Object.prototype.hasOwnProperty.call(originalCaseMap, lower)) {
+      originalCaseMap[lower] = name;
     }
   }
-  return result;
+
+  // Rename server-sent headers on the existing AxiosHeaders instance so that
+  // the prototype (and therefore .get()/.delete()/.set()) is preserved, and
+  // synthetic Bruno-added headers (e.g. 'request-duration') are left untouched.
+  for (const [lower, originalName] of Object.entries(originalCaseMap)) {
+    // Skip if the key is already stored with the correct casing, or if the
+    // header is not present on the instance at all.
+    if (lower === originalName || !Object.prototype.hasOwnProperty.call(headers, lower)) {
+      continue;
+    }
+    // Copy the value under the original-cased name, then remove the lowercase key.
+    headers[originalName] = headers[lower];
+    delete headers[lower];
+  }
+
+  return headers;
 };
 
 const saveCookies = (url, headers) => {
@@ -255,14 +280,11 @@ function makeAxiosInstance({
       timeline = config?.metadata?.timeline || [];
       const duration = end - config?.metadata.startTime;
 
-      // Rebuild headers with original server-sent casing (Node.js http module
-      // normalises header names to lowercase; we restore them from rawHeaders).
+      // Restore original server-sent header casing on the AxiosHeaders instance
+      // (Node.js http normalises names to lowercase; we rename keys in-place
+      // from rawHeaders so synthetic headers like 'request-duration' are kept).
       // See: https://github.com/usebruno/bruno/issues/2012
-      const originalCaseHeaders = reconstructOriginalCaseHeaders(
-        response?.request?.res,
-        response.headers
-      );
-      response.headers = originalCaseHeaders;
+      reconstructOriginalCaseHeaders(response?.request?.res, response.headers);
 
       const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
       if (httpVersion?.startsWith('2')) {
