@@ -1031,16 +1031,19 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const pairs = mapPairListToKeyValPairs(dictionary.ast, false);
     const namePair = _.find(pairs, { name: 'name' });
     const contentPair = _.find(pairs, { name: 'content' });
+    const enabledPair = _.find(pairs, { name: 'enabled' });
 
     const messageName = namePair ? namePair.value : '';
     const messageContent = contentPair ? contentPair.value : '';
+    const messageEnabled = enabledPair ? enabledPair.value === 'true' : true;
 
     return {
       body: {
         mode: 'grpc',
         grpc: [{
           name: messageName,
-          content: messageContent
+          content: messageContent,
+          enabled: messageEnabled
         }]
       }
     };

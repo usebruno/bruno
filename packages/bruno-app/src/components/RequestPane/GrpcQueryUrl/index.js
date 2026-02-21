@@ -12,23 +12,26 @@ import {
   IconRefresh,
   IconDeviceFloppy,
   IconArrowRight,
-  IconCode
+  IconCode,
+  IconChevronDown,
+  IconPlugConnected,
+  IconSend
 } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import {
   cancelGrpcConnection,
-  endGrpcConnection
+  endGrpcConnection,
+  sendGrpcMessage,
+  startGrpcRequest
 } from 'utils/network/index';
+import { get } from 'lodash';
 import GrpcurlModal from './GrpcurlModal';
 import { debounce } from 'lodash';
-import { getPropertyFromDraftOrRequest } from 'utils/collections';
+import { getPropertyFromDraftOrRequest, findEnvironmentInCollection } from 'utils/collections';
 import useReflectionManagement from 'hooks/useReflectionManagement/index';
 import useProtoFileManagement from 'hooks/useProtoFileManagement/index';
 import MethodDropdown from './MethodDropdown';
 import ProtoFileDropdown from './ProtoFileDropdown';
-
-const STREAMING_METHOD_TYPES = ['client-streaming', 'server-streaming', 'bidi-streaming'];
-const CLIENT_STREAMING_METHOD_TYPES = ['client-streaming', 'bidi-streaming'];
 
 const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
@@ -36,6 +39,9 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const method = getPropertyFromDraftOrRequest(item, 'request.method');
   const type = getPropertyFromDraftOrRequest(item, 'request.type');
   const url = getPropertyFromDraftOrRequest(item, 'request.url', '');
+  const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
+  const grpcMessages = body?.grpc || [];
+  const enabledMessages = grpcMessages.filter((m) => m.enabled !== false);
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
@@ -51,10 +57,12 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const [showGrpcurlModal, setShowGrpcurlModal] = useState(false);
   const [grpcurlCommand, setGrpcurlCommand] = useState('');
   const [showProtoDropdown, setShowProtoDropdown] = useState(false);
+  const [showSendMessageDropdown, setShowSendMessageDropdown] = useState(false);
 
   const methodDropdownRef = useRef(null);
   const protoDropdownRef = useRef(null);
   const haveFetchedMethodsRef = useRef(false);
+  const sendMessageDropdownRef = useRef(null);
 
   const protoFileManagement = useProtoFileManagement(collection, protoFilePath);
   const reflectionManagement = useReflectionManagement(item, collection.uid);
@@ -81,8 +89,10 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const onMethodDropdownCreate = (ref) => (methodDropdownRef.current = ref);
   const onProtoDropdownCreate = (ref) => (protoDropdownRef.current = ref);
 
-  const isStreamingMethod = selectedGrpcMethod && selectedGrpcMethod.type && STREAMING_METHOD_TYPES.includes(selectedGrpcMethod.type);
-  const isClientStreamingMethod = selectedGrpcMethod && selectedGrpcMethod.type && CLIENT_STREAMING_METHOD_TYPES.includes(selectedGrpcMethod.type);
+  // Server-streaming: connection stays open for receiving responses
+  // Client-streaming and bidi-streaming: can use atomic connect-and-send OR interactive mode
+  const isServerStreamingMethod = selectedGrpcMethod?.type === 'server-streaming';
+  const isClientStreamingMethod = selectedGrpcMethod?.type === 'client-streaming' || selectedGrpcMethod?.type === 'bidi-streaming';
 
   const onSave = () => {
     dispatch(saveRequest(item.uid, collection.uid));
@@ -256,6 +266,83 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       });
   };
 
+  const handleConnectOnly = async (e) => {
+    e.stopPropagation();
+
+    try {
+      const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+      await startGrpcRequest(item, collection, environment, collection.runtimeVariables);
+      toast.success('Connected - send messages when ready');
+    } catch (err) {
+      console.error('Failed to connect:', err);
+      toast.error(err.message || 'Failed to connect');
+    }
+  };
+
+  const handleSendMessage = async (messageContent) => {
+    try {
+      await sendGrpcMessage(item, collection.uid, messageContent);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
+    }
+  };
+
+  const handleSendFirstMessage = async (e) => {
+    e.stopPropagation();
+    setShowSendMessageDropdown(false);
+
+    if (enabledMessages.length === 0) {
+      toast.error('No enabled messages to send');
+      return;
+    }
+
+    await handleSendMessage(enabledMessages[0].content);
+  };
+
+  const handleSendAllMessages = async (e) => {
+    e.stopPropagation();
+    setShowSendMessageDropdown(false);
+
+    if (enabledMessages.length === 0) {
+      toast.error('No enabled messages to send');
+      return;
+    }
+
+    let sentCount = 0;
+    for (const message of enabledMessages) {
+      try {
+        await sendGrpcMessage(item, collection.uid, message.content);
+        sentCount++;
+      } catch (error) {
+        console.error('Error sending message:', error);
+        toast.error(`Failed to send message ${sentCount + 1}`);
+        break;
+      }
+    }
+
+    if (sentCount > 0) {
+      toast.success(`Sent ${sentCount} message${sentCount > 1 ? 's' : ''}`);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sendMessageDropdownRef.current && !sendMessageDropdownRef.current.contains(event.target)) {
+        setShowSendMessageDropdown(false);
+      }
+    };
+
+    if (showSendMessageDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSendMessageDropdown]);
+
   const handleReflectionModeToggle = (e) => {
     e.stopPropagation();
     e.preventDefault();
@@ -395,27 +482,94 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           </span>
         </div>
 
-        {isConnectionActive && isStreamingMethod && (
+        {/* Show connection controls for server-streaming when connected */}
+        {isConnectionActive && isServerStreamingMethod && (
           <div className="connection-controls relative flex items-center h-full gap-3">
             <div className="infotip" onClick={handleCancelConnection} data-testid="grpc-cancel-connection-button">
-              <IconX color={theme.requestTabs.icon.color} strokeWidth={1.5} size={20} className="cursor-pointer" />
+              <IconX color={theme.colors.text.danger} strokeWidth={1.5} size={20} className="cursor-pointer" />
               <span className="infotip-text text-xs">Cancel</span>
             </div>
-
-            {isClientStreamingMethod && (
-              <div onClick={handleEndConnection} data-testid="grpc-end-connection-button">
-                <IconCheck
-                  color={theme.colors.text.green}
-                  strokeWidth={2}
-                  size={20}
-                  className="cursor-pointer"
-                />
-              </div>
-            )}
           </div>
         )}
 
-        {(!isConnectionActive || !isStreamingMethod) && (
+        {/* Show connection controls for client-streaming/bidi-streaming when connected (interactive mode) */}
+        {isConnectionActive && isClientStreamingMethod && (
+          <div className="connection-controls relative flex items-center h-full gap-3">
+            <div className="infotip" onClick={handleCancelConnection} data-testid="grpc-cancel-connection-button">
+              <IconX color={theme.colors.text.danger} strokeWidth={1.5} size={20} className="cursor-pointer" />
+              <span className="infotip-text text-xs">Cancel</span>
+            </div>
+
+            <div className="infotip" onClick={handleEndConnection} data-testid="grpc-end-connection-button">
+              <IconCheck color={theme.colors.text.green} strokeWidth={2} size={20} className="cursor-pointer" />
+              <span className="infotip-text text-xs">End Stream</span>
+            </div>
+
+            {/* Send message dropdown */}
+            <div className="send-dropdown-container" ref={sendMessageDropdownRef}>
+              <div
+                className="send-dropdown-trigger cursor-pointer flex items-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSendMessageDropdown(!showSendMessageDropdown);
+                }}
+                data-testid="grpc-send-message-dropdown-trigger"
+              >
+                <IconSend color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={18} />
+                <IconChevronDown color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={14} />
+              </div>
+
+              {showSendMessageDropdown && (
+                <div className="send-dropdown-menu">
+                  <div
+                    className="send-dropdown-item"
+                    onClick={handleSendFirstMessage}
+                    data-testid="grpc-send-first-message"
+                  >
+                    <IconSend size={14} strokeWidth={1.5} />
+                    <span>Send Message</span>
+                  </div>
+                  <div
+                    className={`send-dropdown-item ${enabledMessages.length === 0 ? 'disabled' : ''}`}
+                    onClick={enabledMessages.length > 0 ? handleSendAllMessages : undefined}
+                    data-testid="grpc-send-all-messages"
+                  >
+                    <IconSend size={14} strokeWidth={1.5} />
+                    <span>Send All ({enabledMessages.length})</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Show two buttons for client-streaming/bidi-streaming when NOT connected */}
+        {!isConnectionActive && isClientStreamingMethod && (
+          <div className="flex items-center gap-2">
+            <div
+              className="infotip"
+              onClick={handleConnectOnly}
+              data-testid="grpc-connect-only"
+            >
+              <IconPlugConnected color={theme.colors.text.green} strokeWidth={1.5} size={20} className="cursor-pointer" />
+              <span className="infotip-text text-xs">Connect</span>
+            </div>
+            <div
+              className="infotip"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRun(e);
+              }}
+              data-testid="grpc-connect-and-send"
+            >
+              <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={20} className="cursor-pointer" />
+              <span className="infotip-text text-xs">Connect & Send</span>
+            </div>
+          </div>
+        )}
+
+        {/* Show simple Send button for unary and server-streaming when not connected */}
+        {!isConnectionActive && !isClientStreamingMethod && (
           <div
             className="cursor-pointer"
             data-testid="grpc-send-request-button"
@@ -428,7 +582,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           </div>
         )}
       </div>
-      {isConnectionActive && isStreamingMethod && (
+      {/* Connection status strip when connected */}
+      {isConnectionActive && (isServerStreamingMethod || isClientStreamingMethod) && (
         <div className="connection-status-strip"></div>
       )}
 

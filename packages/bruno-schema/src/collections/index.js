@@ -431,7 +431,8 @@ const grpcRequestSchema = Yup.object({
     mode: Yup.string().oneOf(['grpc']).required('mode is required'),
     grpc: Yup.array().of(Yup.object({
       name: Yup.string().nullable(),
-      content: Yup.string().nullable()
+      content: Yup.string().nullable(),
+      enabled: Yup.boolean().default(true)
     })).nullable()
   })
     .strict()
