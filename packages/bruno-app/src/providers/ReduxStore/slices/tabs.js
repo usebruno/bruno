@@ -159,6 +159,13 @@ export const tabsSlice = createSlice({
         tab.responsePaneScrollPosition = action.payload.scrollY;
       }
     },
+    updateRequestBodyScrollPosition: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.requestBodyScrollPosition = action.payload.scrollY;
+      }
+    },
     updateResponseFormat: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -271,6 +278,7 @@ export const {
   updateRequestPaneTab,
   updateResponsePaneTab,
   updateResponsePaneScrollPosition,
+  updateRequestBodyScrollPosition,
   updateResponseFormat,
   updateResponseViewTab,
   updateScriptPaneTab,
