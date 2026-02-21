@@ -34,6 +34,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
     tokenPlacement,
     tokenHeaderPrefix,
     tokenQueryKey,
+    tokenSource,
     autoFetchToken
   } = oAuth;
 
@@ -46,6 +47,15 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
     return (
       <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
         {tokenPlacement == 'url' ? 'URL' : 'Headers'}
+        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+      </div>
+    );
+  });
+
+  const TokenSourceIcon = forwardRef((props, ref) => {
+    return (
+      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
+        {tokenSource === 'id_token' ? 'ID Token' : 'Access Token'}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
@@ -70,6 +80,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           tokenPlacement,
           tokenHeaderPrefix,
           tokenQueryKey,
+          tokenSource,
           autoFetchToken,
           [key]: value
         }
@@ -226,6 +237,33 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         </div>
       </div>
 
+      {tokenPlacement === 'header' && (
+        <div className="flex items-center gap-4 w-full" key="input-token-source">
+          <label className="block min-w-[140px]">Use token</label>
+          <div className="inline-flex items-center cursor-pointer token-placement-selector">
+            <Dropdown onCreate={onDropdownCreate} icon={<TokenSourceIcon />} placement="bottom-end">
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  dropdownTippyRef.current.hide();
+                  handleChange('tokenSource', 'access_token');
+                }}
+              >
+                Access Token
+              </div>
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  dropdownTippyRef.current.hide();
+                  handleChange('tokenSource', 'id_token');
+                }}
+              >
+                ID Token
+              </div>
+            </Dropdown>
+          </div>
+        </div>
+      )}
       {tokenPlacement == 'header' ? (
         <div className="flex items-center gap-4 w-full" key="input-token-header-prefix">
           <label className="block min-w-[140px]">Header Prefix</label>

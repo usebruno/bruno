@@ -65,7 +65,8 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
           credentialsId: 'credentials',
           tokenPlacement: 'header',
           tokenHeaderPrefix: 'Bearer',
-          tokenQueryKey: 'access_token'
+          tokenQueryKey: 'access_token',
+          tokenSource: 'access_token'
         }
       })
     );
