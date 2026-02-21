@@ -118,7 +118,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
     request: {
       ...requestData.request,
       auth: resolvedRequest.auth,
-      url: finalUrl
+      url: generateCodePrefs.shouldInterpolate ? finalUrl : requestData.url
     }
   };
 

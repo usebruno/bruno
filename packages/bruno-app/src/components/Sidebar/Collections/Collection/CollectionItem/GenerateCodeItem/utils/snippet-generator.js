@@ -62,6 +62,8 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       headers = interpolateHeaders(headers, variables);
       request.body = interpolateBody(request.body, variables);
       request.params = interpolateParams(request.params, variables);
+    } else {
+      request.url = finalizeUrl(request.url);
     }
 
     // Build HAR request
@@ -83,6 +85,32 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
   } catch (error) {
     console.error('Error generating code snippet:', error);
     return 'Error generating code snippet';
+  }
+};
+
+const finalizeUrl = (str) => {
+  try {
+    if (typeof str !== 'string') return str;
+
+    let result = str.trim();
+
+    // If it starts with {{domain}}, prepend https://
+    if (!/^https?:\/\//i.test(result)) {
+      result = 'https://' + result;
+    }
+
+    // Encode placeholders first ({{domain}} -> %7B%7Bdomain%7D%7D)
+    result = result.replace(/\{\{([^}]+)\}\}/g, (match) => encodeURIComponent(match));
+
+    // handles spaces, single quotes, and literal percent signs
+    result = result
+      .replace(/ /g, '%20') // Space -> %20
+      .replace(/'/g, '%27') // ' -> %27
+      .replace(/%(?![0-9a-fA-F]{2})/g, '%25'); // Literal % -> %25
+
+    return result;
+  } catch (error) {
+    console.log({ error });
   }
 };
 
