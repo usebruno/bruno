@@ -282,6 +282,7 @@ describe('setAuthHeaders', () => {
         tokenPlacement: 'header',
         tokenHeaderPrefix: 'Bearer',
         tokenQueryKey: 'access_token',
+        tokenSource: 'access_token',
         autoFetchToken: true,
         autoRefreshToken: true,
         additionalParameters: { authorization: [], token: [], refresh: [] }
@@ -333,6 +334,7 @@ describe('setAuthHeaders', () => {
         tokenPlacement: 'header',
         tokenHeaderPrefix: 'Bearer',
         tokenQueryKey: 'access_token',
+        tokenSource: 'access_token',
         autoFetchToken: true,
         autoRefreshToken: true,
         additionalParameters: { authorization: [], token: [], refresh: [] }
@@ -373,6 +375,7 @@ describe('setAuthHeaders', () => {
         tokenPlacement: 'header',
         tokenHeaderPrefix: 'Bearer',
         tokenQueryKey: 'access_token',
+        tokenSource: 'access_token',
         autoFetchToken: true,
         additionalParameters: { authorization: [], token: [], refresh: [] }
       });
@@ -684,6 +687,7 @@ describe('setAuthHeaders', () => {
         tokenPlacement: 'query',
         tokenHeaderPrefix: 'Token',
         tokenQueryKey: 'token',
+        tokenSource: 'access_token',
         autoFetchToken: false,
         autoRefreshToken: false,
         additionalParameters: { authorization: [], token: [], refresh: [] }
@@ -747,6 +751,7 @@ describe('setAuthHeaders', () => {
         tokenPlacement: 'header',
         tokenHeaderPrefix: 'Bearer',
         tokenQueryKey: 'access_token',
+        tokenSource: 'access_token',
         autoFetchToken: true,
         autoRefreshToken: true,
         additionalParameters: { authorization: [], token: [], refresh: [] }
@@ -802,6 +807,7 @@ describe('setAuthHeaders', () => {
         tokenPlacement: 'query',
         tokenHeaderPrefix: 'Token',
         tokenQueryKey: 'token',
+        tokenSource: 'access_token',
         autoFetchToken: false,
         additionalParameters: { authorization: [], token: [], refresh: [] }
       });

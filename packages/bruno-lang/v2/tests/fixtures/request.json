@@ -149,7 +149,8 @@
       "state": "807061d5f0be",
       "tokenHeaderPrefix": "Bearer",
       "tokenPlacement": "header",
-      "tokenQueryKey": "access_token"
+      "tokenQueryKey": "access_token",
+      "tokenSource": "access_token"
     },
     "wsse": {
       "username": "john",

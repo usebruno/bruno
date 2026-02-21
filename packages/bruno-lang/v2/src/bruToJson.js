@@ -729,6 +729,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const tokenPlacementKey = _.find(auth, { name: 'token_placement' });
     const tokenHeaderPrefixKey = _.find(auth, { name: 'token_header_prefix' });
     const tokenQueryKeyKey = _.find(auth, { name: 'token_query_key' });
+    const tokenSourceKey = _.find(auth, { name: 'token_source' });
     const autoFetchTokenKey = _.find(auth, { name: 'auto_fetch_token' });
     const autoRefreshTokenKey = _.find(auth, { name: 'auto_refresh_token' });
     return {
@@ -749,6 +750,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                tokenSource: tokenSourceKey?.value || 'access_token',
                 autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
                 autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
@@ -769,6 +771,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                   tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                   tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
                   tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                  tokenSource: tokenSourceKey?.value || 'access_token',
                   autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
                   autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
                 }
@@ -800,6 +803,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                       tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                       tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
                       tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                      tokenSource: tokenSourceKey?.value || 'access_token',
                       autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true
                     }
                   : {}

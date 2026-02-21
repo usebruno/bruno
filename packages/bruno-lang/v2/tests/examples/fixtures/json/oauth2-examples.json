@@ -34,6 +34,7 @@
       "tokenPlacement": "header",
       "tokenHeaderPrefix": "Bearer",
       "tokenQueryKey": "access_token",
+      "tokenSource": "access_token",
       "autoFetchToken": true,
       "autoRefreshToken": true
     }

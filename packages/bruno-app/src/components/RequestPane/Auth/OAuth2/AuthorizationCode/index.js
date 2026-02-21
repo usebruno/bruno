@@ -22,6 +22,8 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+  const tokenSourceRef = useRef();
+  const onTokenSourceCreate = (ref) => (tokenSourceRef.current = ref);
   const { isSensitive } = useDetectSensitiveField(collection);
   const oAuth = get(request, 'auth.oauth2', {});
   const {
@@ -38,6 +40,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     tokenPlacement,
     tokenHeaderPrefix,
     tokenQueryKey,
+    tokenSource,
     refreshTokenUrl,
     autoRefreshToken,
     autoFetchToken,
@@ -51,6 +54,15 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     return (
       <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
         {tokenPlacement == 'url' ? 'URL' : 'Headers'}
+        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+      </div>
+    );
+  });
+
+  const TokenSourceIcon = forwardRef((props, ref) => {
+    return (
+      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
+        {tokenSource === 'id_token' ? 'ID Token' : 'Access Token'}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
@@ -88,6 +100,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           tokenPlacement,
           tokenHeaderPrefix,
           tokenQueryKey,
+          tokenSource,
           refreshTokenUrl,
           autoRefreshToken,
           autoFetchToken,
@@ -118,6 +131,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           tokenPlacement,
           tokenHeaderPrefix,
           tokenQueryKey,
+          tokenSource,
           autoFetchToken,
           additionalParameters,
           pkce: !Boolean(oAuth?.['pkce'])
@@ -305,6 +319,33 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           </Dropdown>
         </div>
       </div>
+      {tokenPlacement === 'header' && (
+        <div className="flex items-center gap-4 w-full" key="input-token-source">
+          <label className="block min-w-[140px]">Use token</label>
+          <div className="inline-flex items-center cursor-pointer token-placement-selector">
+            <Dropdown onCreate={onTokenSourceCreate} icon={<TokenSourceIcon />} placement="bottom-end">
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  tokenSourceRef.current.hide();
+                  handleChange('tokenSource', 'access_token');
+                }}
+              >
+                Access Token
+              </div>
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  tokenSourceRef.current.hide();
+                  handleChange('tokenSource', 'id_token');
+                }}
+              >
+                ID Token
+              </div>
+            </Dropdown>
+          </div>
+        </div>
+      )}
       {
         tokenPlacement === 'header'
           ? (
