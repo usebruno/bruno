@@ -73,18 +73,4 @@ test.describe('Multiline Variables - Write Test', () => {
       = '{\n  "user": {\n    "name": "John Doe",\n    "email": "john@example.com",\n    "preferences": {\n      "theme": "dark",\n      "notifications": true\n    }\n  },\n  "metadata": {\n    "created": "2025-09-03",\n    "version": "1.0"\n  }\n}';
     await expect(page.locator('.response-pane')).toContainText(`"body": ${JSON.stringify(expectedBody)}`);
   });
-
-  // clean up created variable after test
-  test.afterEach(async () => {
-    const fs = require('fs');
-    const path = require('path');
-
-    const testBruPath = path.join(__dirname, 'collection/environments/Test.bru');
-    let content = fs.readFileSync(testBruPath, 'utf8');
-
-    // remove the multiline_data_json variable and its content
-    content = content.replace(/\s*multiline_data_json:\s*'''\s*[\s\S]*?\s*'''/g, '');
-
-    fs.writeFileSync(testBruPath, content);
-  });
 });

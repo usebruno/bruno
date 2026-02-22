@@ -177,7 +177,7 @@ export interface BrunoConfig {
   };
   protobuf?: {
     protoFiles?: { path: string }[];
-    importPaths?: { path: string; disabled?: boolean }[];
+    importPaths?: { path: string; enabled?: boolean }[];
   };
   proxy?: {
     disabled?: boolean;

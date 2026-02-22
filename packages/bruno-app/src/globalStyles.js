@@ -395,11 +395,12 @@ const GlobalStyle = createGlobalStyle`
     font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
     font-weight: 400;
-    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
     line-height: 1.25rem;
     color: ${(props) => props.theme.dropdown.color};
     min-height: 1.75rem;
-    max-width: 13.1875rem;
+    max-width: 17.1875rem;
   }
 
   /* Value Editor (CodeMirror) */

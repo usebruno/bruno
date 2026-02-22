@@ -218,7 +218,7 @@ const SaveRequestsModal = ({ onClose }) => {
           </Button>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" color="secondary" variant="ghost" onClick={onClose}>
+          <Button color="secondary" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={closeWithSave}>

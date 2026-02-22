@@ -1,5 +1,5 @@
 {
-  "maximized": true,
+  "maximized": false,
   "lastOpenedCollections": [
     "{{projectRoot}}/tests/environments/update-global-environment-via-script/fixtures/collection"
   ]

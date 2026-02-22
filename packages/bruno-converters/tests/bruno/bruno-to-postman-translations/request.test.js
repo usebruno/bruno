@@ -73,10 +73,22 @@ describe('Bruno to Postman Request Translation', () => {
     expect(translatedCode).toBe('const contentType = pm.request.headers.get("Content-Type");');
   });
 
-  it('should translate req.setHeader() to pm.request.headers.set()', () => {
+  it('should translate req.setHeader() to pm.request.headers.upsert() with object arg', () => {
     const code = 'req.setHeader("Authorization", "Bearer token123");';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('pm.request.headers.set("Authorization", "Bearer token123");');
+    expect(translatedCode).toContain('pm.request.headers.upsert({\n  key: "Authorization",\n  value: "Bearer token123"\n})');
+  });
+
+  it('should translate req.deleteHeader() to pm.request.headers.remove()', () => {
+    const code = 'req.deleteHeader("Authorization");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.request.headers.remove("Authorization");');
+  });
+
+  it('should handle req.deleteHeader() with a variable argument', () => {
+    const code = 'const headerName = "X-Custom"; req.deleteHeader(headerName);';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const headerName = "X-Custom"; pm.request.headers.remove(headerName);');
   });
 
   it('should handle all request properties together', () => {

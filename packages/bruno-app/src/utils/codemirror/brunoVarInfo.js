@@ -91,9 +91,20 @@ const getMaskedDisplay = (value) => {
 const updateValueDisplay = (valueDisplay, value, isSecret, isMasked, isRevealed) => {
   if ((isSecret || isMasked) && !isRevealed) {
     valueDisplay.textContent = getMaskedDisplay(value);
-  } else {
-    valueDisplay.textContent = value || '';
+    return;
   }
+
+  if (typeof value === 'object') {
+    valueDisplay.textContent = value === null ? 'null' : JSON.stringify(value, null, 2);
+    return;
+  }
+
+  if (typeof value === 'undefined' || value === undefined) {
+    valueDisplay.textContent = '';
+    return;
+  }
+
+  valueDisplay.textContent = value;
 };
 
 // Check if the raw value contains references to secret variables
@@ -222,7 +233,7 @@ export const renderVarInfo = (token, options) => {
 
     // If variable doesn't exist in any scope, determine scope based on context
     if (!scopeInfo) {
-      if (item) {
+      if (item && item.uid) {
         // Determine if item is a folder or request
         const isFolder = item.type === 'folder';
 
