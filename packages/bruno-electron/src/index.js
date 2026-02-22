@@ -57,6 +57,7 @@ const { cookiesStore } = require('./store/cookies');
 const onboardUser = require('./app/onboarding');
 const SystemMonitor = require('./app/system-monitor');
 const { getIsRunningInRosetta } = require('./utils/arch');
+const { setupContextMenu } = require('./app/context-menu');
 const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/deeplink');
 
 const lastOpenedCollections = new LastOpenedCollections();
@@ -397,6 +398,9 @@ app.on('ready', async () => {
       isRunningInRosetta: getIsRunningInRosetta()
     });
   });
+
+  // Setup context menu for copy/paste functionality
+  setupContextMenu(mainWindow);
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
