@@ -4,16 +4,6 @@ const StyledWrapper = styled.div`
   max-width: 800px;
   position: relative;
 
-  .editing-mode {
-    cursor: pointer;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: ${(props) => props.theme.bg};
-    padding: 6px 0;
-    margin-bottom: 10px;
-  }
-
   .markdown-body {
     height: auto !important;
     overflow-y: visible !important;
