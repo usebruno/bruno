@@ -1,4 +1,5 @@
 import { openDB } from 'idb';
+import path from 'utils/common/path';
 
 const DB_NAME = 'bruno-parsed-file-cache';
 const STORE_NAME = 'parsedFiles';
@@ -96,10 +97,11 @@ export const parsedFileCacheStore = {
       const db = await getDB();
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const index = tx.store.index('collectionPath');
+      const normalizedDirPath = dirPath.endsWith(path.sep) ? dirPath : `${dirPath}${path.sep}`;
 
       let cursor = await index.openCursor(IDBKeyRange.only(collectionPath));
       while (cursor) {
-        if (cursor.value.filePath.startsWith(dirPath)) {
+        if (cursor.value.filePath.startsWith(normalizedDirPath)) {
           await cursor.delete();
         }
         cursor = await cursor.continue();

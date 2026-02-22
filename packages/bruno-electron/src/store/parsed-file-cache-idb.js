@@ -33,7 +33,7 @@ const initializeCacheIpc = (win) => {
 
 // Send a request to the renderer and wait for response
 const sendCacheRequest = (operation, ...args) => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     if (!mainWindow || mainWindow.isDestroyed()) {
       resolve(null);
       return;
@@ -46,7 +46,7 @@ const sendCacheRequest = (operation, ...args) => {
       resolve(null);
     }, REQUEST_TIMEOUT);
 
-    pendingRequests.set(requestId, { resolve, timeout });
+    pendingRequests.set(requestId, { resolve, reject, timeout });
 
     mainWindow.webContents.send('main:parsed-file-cache-request', operation, requestId, ...args);
   });
