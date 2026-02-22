@@ -4,8 +4,10 @@ import Modal from 'components/Modal';
 import StyledWrapper from './StyledWrapper';
 import { IconAlertTriangle } from '@tabler/icons';
 
-export default function PromptVariablesModal({ title = 'Input Required', prompts, onSubmit, onCancel }) {
-  const [values, setValues] = useState({});
+export default function PromptVariablesModal({ title = 'Input Required', prompts, promptValues, savePromptValues, setSavePromptValues, onSubmit, onCancel }) {
+  const [values, setValues] = useState(() => {
+    return savePromptValues ? promptValues : {};
+  });
 
   const handleChange = (prompt, value) => {
     setValues((prev) => ({ ...prev, [prompt]: value }));
@@ -20,13 +22,16 @@ export default function PromptVariablesModal({ title = 'Input Required', prompts
       <Modal
         size="lg"
         title={title}
+        hidePromptToggle={false}
+        savePromptValues={savePromptValues}
+        setSavePromptValues={setSavePromptValues}
         confirmText="Continue"
         cancelText="Cancel"
         handleConfirm={() => onSubmit(values)}
         handleCancel={onCancel}
       >
         <StyledWrapper data-testid="prompt-variables-modal-content">
-          <div className="space-y-5 mt-2">
+          <div className="space-y-5 mt-2 mb-2">
             {prompts.map((prompt, index) => (
               <div key={prompt} data-testid="prompt-variable-input-container">
                 <label htmlFor={`prompt-${index}`} className="block font-medium">
