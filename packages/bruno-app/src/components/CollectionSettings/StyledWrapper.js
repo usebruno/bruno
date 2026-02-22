@@ -8,7 +8,7 @@ const StyledWrapper = styled.div`
     position: sticky;
     top: 0;
     z-index: 10;
-    background: ${(props) => props.theme.bg}; 
+    background: ${(props) => props.theme.bg};
     padding: 6px 0;
     margin-bottom: 10px; 
   }
