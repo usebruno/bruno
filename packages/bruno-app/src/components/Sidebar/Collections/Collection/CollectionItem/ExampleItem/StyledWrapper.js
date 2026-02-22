@@ -7,12 +7,25 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.sidebar.dropdownIcon.color};
     visibility: hidden;
 
-    .dropdown {
+    .dropdown, .menu-icon-trigger {
       div[aria-expanded='true'] {
         visibility: visible;
       }
       div[aria-expanded='false'] {
         visibility: visible;
+      }
+    }
+
+    .menu-icon-trigger {
+      display: none;
+      width: 24px;
+      height: 24px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      &:hover {
+        color: ${(props) => props.theme.sidebar.dropdownIcon.hoverColor || 'inherit'};
+        background-color: ${(props) => props.theme.sidebar.dropdownIcon.hoverBg};
       }
     }
   }

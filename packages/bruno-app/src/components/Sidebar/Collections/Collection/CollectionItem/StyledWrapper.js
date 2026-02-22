@@ -6,13 +6,35 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.sidebar.dropdownIcon.color};
     visibility: hidden;
 
-    .dropdown {
+    .dropdown, .settings-icon, .new-request-icon, .menu-icon-trigger {
       div[aria-expanded='true'] {
         visibility: visible;
       }
       div[aria-expanded='false'] {
         visibility: visible;
       }
+    }
+
+    .settings-icon, .new-request-icon, .menu-icon-trigger {
+      display: none;
+      width: 24px;
+      height: 24px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      &:hover {
+        color: ${(props) => props.theme.sidebar.dropdownIcon.hoverColor || 'inherit'};
+        background-color: ${(props) => props.theme.sidebar.dropdownIcon.hoverBg};
+      }
+    }
+  }
+
+  .chevron-icon {
+    color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+    border-radius: 4px;
+    &:hover {
+        color: ${(props) => props.theme.sidebar.dropdownIcon.hoverColor || 'inherit'};
+        background-color: ${(props) => props.theme.sidebar.dropdownIcon.hoverBg};
     }
   }
 
@@ -104,10 +126,19 @@ const Wrapper = styled.div`
     &.item-hovered,
     &.item-keyboard-focused {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      .menu-icon,
+      .menu-icon {
+        visibility: visible;
+        .dropdown, .settings-icon, .new-request-icon, .menu-icon-trigger {
+          div[aria-expanded='false'] {
+            visibility: visible;
+          }
+        }
+        .settings-icon, .new-request-icon, .menu-icon-trigger {
+          display: flex;
+        }
+      }
       .collection-item-menu-icon {
         visibility: visible;
-        background-color: transparent !important;
       }
     }
 

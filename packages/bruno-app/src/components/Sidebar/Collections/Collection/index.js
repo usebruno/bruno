@@ -20,7 +20,8 @@ import {
   IconSettings,
   IconTerminal2,
   IconFolder,
-  IconBook
+  IconBook,
+  IconPlus
 } from '@tabler/icons';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
@@ -135,6 +136,25 @@ const Collection = ({ collection, searchText }) => {
     e.preventDefault();
     ensureCollectionIsMounted();
     dispatch(toggleCollection(collection.uid));
+  };
+
+  const handleSettingsClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (e.detail != 1) return;
+    setTimeout(scrollToTheActiveTab, 50);
+
+    dispatch(addTab({
+      uid: collection.uid,
+      collectionUid: collection.uid,
+      type: 'collection-settings'
+    }));
+  };
+
+  const handleSettingsDoubleClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    dispatch(makeTabPermanent({ uid: collection.uid }));
   };
 
   // prevent the parent's double-click handler from firing
@@ -424,12 +444,12 @@ const Collection = ({ collection, searchText }) => {
         onFocus={handleFocus}
         onBlur={handleBlur}
         data-testid="sidebar-collection-row"
+        onClick={handleCollectionCollapse}
+        onDoubleClick={handleCollectionDoubleClick}
+        onContextMenu={handleRightClick}
       >
         <div
           className="flex flex-grow items-center overflow-hidden"
-          onClick={handleClick}
-          onDoubleClick={handleDoubleClick}
-          onContextMenu={handleRightClick}
         >
           <ActionIcon style={{ width: 16, minWidth: 16 }}>
             <IconChevronRight
@@ -446,21 +466,39 @@ const Collection = ({ collection, searchText }) => {
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
-        <div>
-          <div className="pr-2">
-            <MenuDropdown
-              ref={menuDropdownRef}
-              items={menuItems}
-              placement="bottom-start"
-              appendTo={dropdownContainerRef?.current || document.body}
-              popperOptions={{ strategy: 'fixed' }}
-              data-testid="collection-actions"
-            >
-              <ActionIcon className="collection-actions">
-                <IconDots size={18} />
-              </ActionIcon>
-            </MenuDropdown>
-          </div>
+        <div className="collection-actions flex items-center" data-testid="collection-actions">
+          {/* <ActionIcon
+            className="new-request-icon mr-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowNewRequestModal(true);
+            }}
+            title="New Request"
+          >
+            <IconPlus size={18} strokeWidth={1.5} />
+          </ActionIcon> */}
+          <ActionIcon
+            className="settings-icon mr-1"
+            onClick={handleSettingsClick}
+            onDoubleClick={handleSettingsDoubleClick}
+            title="Collection Settings"
+            data-testid="collection-settings-icon"
+          >
+            <IconSettings size={18} strokeWidth={1.5} />
+          </ActionIcon>
+          <MenuDropdown
+            ref={menuDropdownRef}
+            items={menuItems}
+            placement="bottom-start"
+            appendTo={dropdownContainerRef?.current || document.body}
+            popperOptions={{ strategy: 'fixed' }}
+            data-testid="collection-actions"
+          >
+            <ActionIcon className="menu-icon">
+              <IconDots size={18} className="collection-menu-icon" />
+            </ActionIcon>
+          </MenuDropdown>
+
         </div>
       </div>
       <div>
