@@ -28,7 +28,7 @@ const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection')
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { parsedFileCacheStore } = require('../store/parsed-file-cache-idb');
-const { getAggregator } = require('./batch-aggregator');
+const { getBatcher } = require('./collection-tree-batcher');
 const dotEnvWatcher = require('./dotenv-watcher');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
@@ -312,7 +312,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       }
     };
 
-    const batchAggregator = getAggregator(win, collectionUid);
+    const batcher = getBatcher(win, collectionUid);
 
     try {
       const fileStats = await fsPromises.stat(pathname);
@@ -325,7 +325,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
-        batchAggregator.add('addFile', file);
+        batcher.add('addFile', file);
         watcher.markFileAsProcessed(win, collectionUid, pathname);
         return;
       }
@@ -339,7 +339,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
-        batchAggregator.add('addFile', file);
+        batcher.add('addFile', file);
 
         await parsedFileCacheStore.setEntry(collectionPath, pathname, {
           mtimeMs: fileStats.mtimeMs,
@@ -358,7 +358,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
-        batchAggregator.add('addFile', file);
+        batcher.add('addFile', file);
 
         await parsedFileCacheStore.setEntry(collectionPath, pathname, {
           mtimeMs: fileStats.mtimeMs,
@@ -371,7 +371,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
-        batchAggregator.add('addFile', file);
+        batcher.add('addFile', file);
       }
 
       watcher.markFileAsProcessed(win, collectionUid, pathname);
@@ -387,7 +387,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.partial = true;
       file.loading = false;
       hydrateRequestWithUuid(file.data, pathname);
-      batchAggregator.add('addFile', file);
+      batcher.add('addFile', file);
       watcher.markFileAsProcessed(win, collectionUid, pathname);
     }
   }
@@ -429,8 +429,8 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
     }
   };
 
-  const batchAggregator = getAggregator(win, collectionUid);
-  batchAggregator.add('addDir', directory);
+  const batcher = getBatcher(win, collectionUid);
+  batcher.add('addDir', directory);
 };
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
@@ -636,8 +636,8 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {
-  const batchAggregator = getAggregator(win, collectionUid);
-  batchAggregator.flush();
+  const batcher = getBatcher(win, collectionUid);
+  batcher.flush();
 
   watcher.completeCollectionDiscovery(win, collectionUid);
 

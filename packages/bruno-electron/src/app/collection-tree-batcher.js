@@ -1,8 +1,8 @@
 /**
- * BatchAggregator - Batches IPC events to reduce Redux dispatch overhead.
+ * CollectionTreeBatcher - Batches IPC events to reduce Redux dispatch overhead.
  *
  * Instead of sending individual 'main:collection-tree-updated' events for each file,
- * this aggregator collects events and sends them in batches, reducing the number of
+ * this batcher collects events and sends them in batches, reducing the number of
  * Redux updates and improving UI performance during collection mounting.
  *
  * Flush triggers:
@@ -14,14 +14,14 @@
 const DISPATCH_INTERVAL_MS = 200;
 const MAX_BATCH_SIZE = 300;
 
-class BatchAggregator {
+class CollectionTreeBatcher {
   constructor(win, collectionUid) {
     this.win = win;
     this.queue = [];
     this.timer = null;
     this.isDestroyed = false;
     // Bind methods
-    // We need to binf the methods because these are being called as callbacks to
+    // We need to bind the methods because these are being called as callbacks to
     // chokidar's add, addDir, change, unlink, unlinkDir events
 
     this.add = this.add.bind(this);
@@ -88,7 +88,7 @@ class BatchAggregator {
     }
 
     // Take all items from the queue
-    // This is a copy-type operatition to avoid mutating the original
+    // This is a copy-type operation to avoid mutating the original
     // Splice returns the deleted items
     const batch = this.queue.splice(0);
 
@@ -96,7 +96,7 @@ class BatchAggregator {
       // Send the batch to the renderer
       this.win.webContents.send('main:collection-tree-batch-updated', batch);
     } catch (error) {
-      console.error('BatchAggregator: Error sending batch:', error);
+      console.error('CollectionTreeBatcher: Error sending batch:', error);
     }
   }
 
@@ -120,7 +120,7 @@ class BatchAggregator {
   }
 
   /**
-   * Mark this aggregator as destroyed (e.g., when window closes)
+   * Mark this batcher as destroyed (e.g., when window closes)
    */
   destroy() {
     this.isDestroyed = true;
@@ -129,61 +129,68 @@ class BatchAggregator {
   }
 }
 
-// Store for managing aggregators per collection
-const aggregators = new Map();
+// Store for managing batchers per collection
+const batchers = new Map();
 
 /**
- * Get the aggregator key for a window and collection UID
+ * Get the batcher key for a window and collection UID
  * @param {BrowserWindow} win - The Electron BrowserWindow
  * @param {string} collectionUid - The collection UID
- * @returns {string} - The aggregator key
+ * @returns {string} - The batcher key
  */
-const getAggregatorKey = (win, collectionUid) => {
+const getBatcherKey = (win, collectionUid) => {
   return `${win.id}-${collectionUid}`;
 };
 
 /**
- * Get or create a BatchAggregator for a window
+ * Get or create a CollectionTreeBatcher for a window
  * @param {BrowserWindow} win - The Electron BrowserWindow
- * @returns {BatchAggregator} - The aggregator instance
+ * @param {string} collectionUid - The collection UID
+ * @returns {CollectionTreeBatcher} - The batcher instance
  */
-const getAggregator = (win, collectionUid) => {
-  const aggregatorKey = getAggregatorKey(win, collectionUid);
+const getBatcher = (win, collectionUid) => {
+  const batcherKey = getBatcherKey(win, collectionUid);
 
-  if (!aggregators.has(aggregatorKey)) {
-    const aggregator = new BatchAggregator(win, collectionUid);
+  if (!batchers.has(batcherKey)) {
+    const batcher = new CollectionTreeBatcher(win, collectionUid);
 
     // Clean up when window is closed
     win.on('closed', () => {
-      const agg = aggregators.get(aggregatorKey);
-      if (agg) {
-        agg.destroy();
-        aggregators.delete(aggregatorKey);
+      const b = batchers.get(batcherKey);
+      if (b) {
+        b.destroy();
+        batchers.delete(batcherKey);
       }
     });
 
-    aggregators.set(aggregatorKey, aggregator);
+    batchers.set(batcherKey, batcher);
   }
 
-  return aggregators.get(aggregatorKey);
+  return batchers.get(batcherKey);
 };
 
 /**
- * Remove an aggregator for a window
+ * Remove a batcher for a window
  * @param {BrowserWindow} win - The Electron BrowserWindow
+ * @param {string} collectionUid - The collection UID
  */
-const removeAggregator = (win, collectionUid) => {
-  const aggregatorKey = getAggregatorKey(win, collectionUid);
-  const aggregator = aggregators.get(aggregatorKey);
+const removeBatcher = (win, collectionUid) => {
+  const batcherKey = getBatcherKey(win, collectionUid);
+  const batcher = batchers.get(batcherKey);
 
-  if (aggregator) {
-    aggregator.destroy();
-    aggregators.delete(aggregatorKey);
+  if (batcher) {
+    batcher.destroy();
+    batchers.delete(batcherKey);
   }
 };
 
+// Export with backward-compatible aliases
 module.exports = {
-  BatchAggregator,
-  getAggregator,
-  removeAggregator
+  CollectionTreeBatcher,
+  getBatcher,
+  removeBatcher,
+  // Backward-compatible aliases
+  BatchAggregator: CollectionTreeBatcher,
+  getAggregator: getBatcher,
+  removeAggregator: removeBatcher
 };
