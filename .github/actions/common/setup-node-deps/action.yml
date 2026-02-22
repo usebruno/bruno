@@ -1,5 +1,10 @@
 name: 'Setup Node Dependencies'
 description: 'Install Node.js and npm dependencies'
+inputs:
+  skip-build:
+    description: 'Skip building libraries'
+    required: false
+    default: 'false'
 runs:
   using: 'composite'
   steps:
@@ -9,12 +14,13 @@ runs:
         node-version: v22.17.0
         cache: 'npm'
         cache-dependency-path: './package-lock.json'
-    
+
     - name: Install node dependencies
       shell: bash
       run: npm ci --legacy-peer-deps
-    
+
     - name: Build libraries
+      if: inputs.skip-build != 'true'
       shell: bash
       run: |
         npm run build:graphql-docs
