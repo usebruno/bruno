@@ -19,6 +19,7 @@ const StyledWrapper = styled.div`
 
   .markdown-body {
     height: auto !important;
+    overflow-y: visible !important;
   }
 `;
 
