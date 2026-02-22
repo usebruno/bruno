@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-position: relative;
+  position: relative;
 
   .editing-mode {
     cursor: pointer;
