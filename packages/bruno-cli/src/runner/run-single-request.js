@@ -23,7 +23,8 @@ const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2 } = require('@usebruno/requests');
 const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
-const { getOAuth2Token } = require('../utils/oauth2');
+const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
+const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
@@ -206,27 +207,81 @@ const runSingleRequest = async function (
     const collectionName = collection?.brunoConfig?.name;
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
-      const result = await scriptRuntime.runRequestScript(
-        decomment(requestScriptFile),
-        request,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        onConsoleLog,
-        processEnvVars,
-        scriptingConfig,
-        runSingleRequestByPathname,
-        collectionName
-      );
-      if (result?.nextRequestName !== undefined) {
-        nextRequestName = result.nextRequestName;
-      }
+      try {
+        const result = await scriptRuntime.runRequestScript(decomment(requestScriptFile),
+          request,
+          envVariables,
+          runtimeVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig,
+          runSingleRequestByPathname,
+          collectionName);
+        if (result?.nextRequestName !== undefined) {
+          nextRequestName = result.nextRequestName;
+        }
 
-      if (result?.stopExecution) {
-        shouldStopRunnerExecution = true;
-      }
+        if (result?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
 
-      if (result?.skipRequest) {
+        if (result?.oauth2CredentialsToReset?.length) {
+          for (const credentialId of result.oauth2CredentialsToReset) {
+            tokenStore.deleteCredentialById(credentialId);
+          }
+        }
+
+        if (result?.skipRequest) {
+          return {
+            test: {
+              filename: relativeItemPathname
+            },
+            request: {
+              method: request.method,
+              url: request.url,
+              headers: request.headers,
+              data: request.data
+            },
+            response: {
+              status: 'skipped',
+              statusText: 'request skipped via pre-request script',
+              data: null,
+              responseTime: 0
+            },
+            error: null,
+            status: 'skipped',
+            skipped: true,
+            assertionResults: [],
+            testResults: [],
+            preRequestTestResults: result?.results || [],
+            postResponseTestResults: [],
+            shouldStopRunnerExecution
+          };
+        }
+
+        preRequestTestResults = result?.results || [];
+      } catch (error) {
+        // Pre-request errors are treated as request errors (we return early with status: 'error'), not as failures. Unlike post-response and test script errors, we do not add a synthetic fail and continue.
+        console.error('Pre-request script execution error:', error);
+        console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${error.message})`));
+
+        // Extract partial results from the error (tests that passed before the error)
+        preRequestTestResults = error?.partialResults?.results || [];
+
+        // Preserve nextRequestName if it was set before the error
+        if (error?.partialResults?.nextRequestName !== undefined) {
+          nextRequestName = error.partialResults.nextRequestName;
+        }
+
+        // Preserve stopExecution if it was set before the error
+        if (error?.partialResults?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        logResults(preRequestTestResults, 'Pre-Request Tests');
+
+        // Pre-request script error: execution didn't complete (request never sent). Return early so we don't run the HTTP request, post-response script, assertions, or tests.
         return {
           test: {
             filename: relativeItemPathname
@@ -238,27 +293,37 @@ const runSingleRequest = async function (
             data: request.data
           },
           response: {
-            status: 'skipped',
-            statusText: 'request skipped via pre-request script',
+            status: 'error',
+            statusText: null,
+            headers: null,
             data: null,
+            url: null,
             responseTime: 0
           },
-          error: null,
-          status: 'skipped',
-          skipped: true,
+          error: error?.message || 'An error occurred while executing the pre-request script.',
+          status: 'error',
           assertionResults: [],
           testResults: [],
-          preRequestTestResults: result?.results || [],
+          preRequestTestResults,
           postResponseTestResults: [],
+          nextRequestName: nextRequestName,
           shouldStopRunnerExecution
         };
       }
-
-      preRequestTestResults = result?.results || [];
     }
 
     // interpolate variables inside request
     interpolateVars(request, envVariables, runtimeVariables, processEnvVars);
+
+    // if this is a graphql request, parse the variables, only after interpolation
+    // https://github.com/usebruno/bruno/issues/884
+    if (request.mode === 'graphql' && typeof request.data?.variables === 'string') {
+      try {
+        request.data.variables = JSON.parse(request.data.variables);
+      } catch (err) {
+        throw new Error(`Failed to parse GraphQL variables: ${err.message}`);
+      }
+    }
 
     if (request.settings?.encodeUrl) {
       request.url = encodeUrl(request.url);
@@ -575,6 +640,8 @@ const runSingleRequest = async function (
         console.error('OAuth2 token fetch error:', error.message);
       }
 
+      request.oauth2CredentialVariables = getFormattedOauth2Credentials();
+
       // Remove oauth2 config from request to prevent it from being sent
       delete request.oauth2;
     }
@@ -589,7 +656,8 @@ const runSingleRequest = async function (
 
       let axiosInstance = makeAxiosInstance({
         requestMaxRedirects: requestMaxRedirects,
-        disableCookies: options.disableCookies
+        disableCookies: options.disableCookies,
+        followRedirects: followRedirects
       });
 
       if (request.ntlmConfig) {
@@ -728,10 +796,37 @@ const runSingleRequest = async function (
           shouldStopRunnerExecution = true;
         }
 
+        if (result?.oauth2CredentialsToReset?.length) {
+          for (const credentialId of result.oauth2CredentialsToReset) {
+            tokenStore.deleteCredentialById(credentialId);
+          }
+        }
+
         postResponseTestResults = result?.results || [];
         logResults(postResponseTestResults, 'Post-Response Tests');
       } catch (error) {
         console.error('Post-response script execution error:', error);
+
+        const partialResults = error?.partialResults?.results || [];
+        postResponseTestResults = [
+          ...partialResults,
+          {
+            status: 'fail',
+            description: 'Post-Response Script Error',
+            error: error.message || 'An error occurred while executing the post-response script.',
+            isScriptError: true
+          }
+        ];
+
+        if (error?.partialResults?.nextRequestName !== undefined) {
+          nextRequestName = error.partialResults.nextRequestName;
+        }
+
+        if (error?.partialResults?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        logResults(postResponseTestResults, 'Post-Response Tests');
       }
     }
 
@@ -778,9 +873,36 @@ const runSingleRequest = async function (
           shouldStopRunnerExecution = true;
         }
 
+        if (result?.oauth2CredentialsToReset?.length) {
+          for (const credentialId of result.oauth2CredentialsToReset) {
+            tokenStore.deleteCredentialById(credentialId);
+          }
+        }
+
         logResults(testResults, 'Tests');
       } catch (error) {
         console.error('Test script execution error:', error);
+
+        const partialResults = error?.partialResults?.results || [];
+        testResults = [
+          ...partialResults,
+          {
+            status: 'fail',
+            description: 'Test Script Error',
+            error: error.message || 'An error occurred while executing the test script.',
+            isScriptError: true
+          }
+        ];
+
+        if (error?.partialResults?.nextRequestName !== undefined) {
+          nextRequestName = error.partialResults.nextRequestName;
+        }
+
+        if (error?.partialResults?.stopExecution) {
+          shouldStopRunnerExecution = true;
+        }
+
+        logResults(testResults, 'Tests');
       }
     }
 

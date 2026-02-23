@@ -49,6 +49,7 @@ bruno.iml
 .idea
 .vscode
 .cursor
+.claude
 
 # Playwright
 /blob-report/

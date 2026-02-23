@@ -46,8 +46,8 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
       let importedCount = 0;
       for (const environment of validEnvironments) {
         const action = isGlobal
-          ? addGlobalEnvironment({ name: environment.name, variables: environment.variables })
-          : importEnvironment({ name: environment.name, variables: environment.variables, collectionUid: collection?.uid });
+          ? addGlobalEnvironment({ name: environment.name, variables: environment.variables, color: environment.color })
+          : importEnvironment({ name: environment.name, variables: environment.variables, color: environment.color, collectionUid: collection?.uid });
 
         await dispatch(action);
         importedCount++;

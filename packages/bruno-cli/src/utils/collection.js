@@ -11,6 +11,7 @@ const FORMAT_CONFIG = {
   yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
   bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
 };
+const REQUEST_ITEM_TYPES = ['http-request', 'graphql-request'];
 
 const getCollectionFormat = (collectionPath) => {
   if (fs.existsSync(path.join(collectionPath, 'opencollection.yml'))) return 'yml';
@@ -457,7 +458,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
 
   // Create collection.bru if root exists
   if (collection.root) {
-    const collectionContent = await stringifyCollection(collection.root);
+    const collectionContent = await stringifyCollection(collection.root, {}, { format: 'bru' });
     fs.writeFileSync(path.join(dirPath, 'collection.bru'), collectionContent);
   }
 
@@ -467,7 +468,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
     fs.mkdirSync(envDirPath, { recursive: true });
 
     for (const env of collection.environments) {
-      const content = await stringifyEnvironment(env);
+      const content = await stringifyEnvironment(env, { format: 'bru' });
       const filename = sanitizeName(`${env.name}.bru`);
       fs.writeFileSync(path.join(envDirPath, filename), content);
     }
@@ -499,7 +500,7 @@ const processCollectionItems = async (items = [], currentPath) => {
         if (item.seq) {
           item.root.meta.seq = item.seq;
         }
-        const folderContent = await stringifyFolder(item.root);
+        const folderContent = stringifyFolder(item.root, { format: 'bru' });
         safeWriteFileSync(folderBruFilePath, folderContent);
       }
 
@@ -507,17 +508,16 @@ const processCollectionItems = async (items = [], currentPath) => {
       if (item.items && item.items.length) {
         await processCollectionItems(item.items, folderPath);
       }
-    } else if (['http-request', 'graphql-request'].includes(item.type)) {
+    } else if (REQUEST_ITEM_TYPES.includes(item.type)) {
       // Create request file
       let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
       if (!sanitizedFilename.endsWith('.bru')) {
         sanitizedFilename += '.bru';
       }
 
-      // Convert JSON to BRU format based on the item type
-      let type = item.type === 'http-request' ? 'http' : 'graphql';
       const bruJson = {
-        type: type,
+        // Keep schema item type so filestore can stringify request correctly
+        type: item.type,
         name: item.name,
         seq: typeof item.seq === 'number' ? item.seq : 1,
         tags: item.tags || [],
@@ -538,8 +538,10 @@ const processCollectionItems = async (items = [], currentPath) => {
       };
 
       // Convert to BRU format and write to file
-      const content = await stringifyRequest(bruJson);
+      const content = stringifyRequest(bruJson, { format: 'bru' });
       safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
+    } else {
+      throw new Error(`Unsupported item type: ${item.type}`);
     }
   }
 };

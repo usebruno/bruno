@@ -57,7 +57,7 @@ test.describe('Global Environment Import Tests', () => {
     await expect(variablesTable.locator('input[name="5.name"]')).toHaveValue('secretApiToken');
     await expect(variablesTable.locator('input[name="5.secret"]')).toBeChecked();
     await envTab.hover();
-    await envTab.getByTestId('request-tab-close-icon').click();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
 
     await page.locator('#collection-environment-test-collection .collection-item-name').first().click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts/{{userId}}');

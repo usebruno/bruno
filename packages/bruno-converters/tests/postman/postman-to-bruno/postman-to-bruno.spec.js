@@ -665,6 +665,215 @@ const postmanCollection = {
 // │   └── request (GET)
 // └── request (GET)
 
+describe('postman-collection formdata import', () => {
+  it('should import formdata with type: file correctly', async () => {
+    const collectionWithFileFormdata = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with file formdata',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with file',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                {
+                  key: 'myFile',
+                  type: 'file',
+                  src: ['/path/to/file1.txt', '/path/to/file2.txt'],
+                  disabled: false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithFileFormdata);
+    const multipartForm = brunoCollection.items[0].request.body.multipartForm;
+
+    expect(multipartForm).toHaveLength(1);
+    expect(multipartForm[0].type).toBe('file');
+    expect(multipartForm[0].name).toBe('myFile');
+    expect(multipartForm[0].value).toEqual(['/path/to/file1.txt', '/path/to/file2.txt']);
+    expect(multipartForm[0].enabled).toBe(true);
+  });
+
+  it('should import formdata with type: default and src field as file', async () => {
+    const collectionWithDefaultTypeAndSrc = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with default type formdata',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with default type',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                {
+                  key: 'myFile',
+                  type: 'default',
+                  src: '/path/to/file.txt',
+                  disabled: false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithDefaultTypeAndSrc);
+    const multipartForm = brunoCollection.items[0].request.body.multipartForm;
+
+    expect(multipartForm).toHaveLength(1);
+    expect(multipartForm[0].type).toBe('file');
+    expect(multipartForm[0].name).toBe('myFile');
+    expect(multipartForm[0].value).toEqual(['/path/to/file.txt']);
+    expect(multipartForm[0].enabled).toBe(true);
+  });
+
+  it('should import formdata with type: default and value array as text', async () => {
+    const collectionWithDefaultTypeAndValueArray = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with default type and value array',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with default type',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                {
+                  key: 'myField',
+                  type: 'default',
+                  value: ['some', 'text'],
+                  disabled: false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithDefaultTypeAndValueArray);
+    const multipartForm = brunoCollection.items[0].request.body.multipartForm;
+
+    expect(multipartForm).toHaveLength(1);
+    expect(multipartForm[0].type).toBe('text');
+    expect(multipartForm[0].name).toBe('myField');
+    expect(multipartForm[0].value).toBe('sometext');
+    expect(multipartForm[0].enabled).toBe(true);
+  });
+
+  it('should preserve contentType when importing formdata', async () => {
+    const collectionWithContentType = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with contentType',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with contentType',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                {
+                  key: 'myFile',
+                  type: 'file',
+                  src: '/path/to/file.json',
+                  contentType: 'application/json',
+                  disabled: false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithContentType);
+    const multipartForm = brunoCollection.items[0].request.body.multipartForm;
+
+    expect(multipartForm).toHaveLength(1);
+    expect(multipartForm[0].type).toBe('file');
+    expect(multipartForm[0].contentType).toBe('application/json');
+  });
+
+  it('should handle mixed file and text fields in formdata', async () => {
+    const collectionWithMixedFormdata = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with mixed formdata',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with mixed fields',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                {
+                  key: 'textField',
+                  type: 'text',
+                  value: 'hello world',
+                  disabled: false
+                },
+                {
+                  key: 'fileField',
+                  type: 'file',
+                  src: '/path/to/file.txt',
+                  disabled: true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithMixedFormdata);
+    const multipartForm = brunoCollection.items[0].request.body.multipartForm;
+
+    expect(multipartForm).toHaveLength(2);
+    expect(multipartForm[0].type).toBe('text');
+    expect(multipartForm[0].value).toBe('hello world');
+    expect(multipartForm[0].enabled).toBe(true);
+    expect(multipartForm[1].type).toBe('file');
+    expect(multipartForm[1].value).toEqual(['/path/to/file.txt']);
+    expect(multipartForm[1].enabled).toBe(false);
+  });
+});
+
 const expectedOutput = {
   name: 'simple collection',
   uid: 'mockeduuidvalue123456',

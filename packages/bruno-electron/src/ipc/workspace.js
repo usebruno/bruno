@@ -20,6 +20,7 @@ const {
   updateWorkspaceDocs,
   addCollectionToWorkspace,
   removeCollectionFromWorkspace,
+  reorderWorkspaceCollections,
   getWorkspaceCollections,
   normalizeCollectionEntry,
   validateWorkspacePath,
@@ -190,6 +191,18 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
+  ipcMain.handle('renderer:reorder-workspace-collections', async (event, workspacePath, collectionPaths) => {
+    try {
+      if (!workspacePath) {
+        throw new Error('Workspace path is undefined');
+      }
+      validateWorkspacePath(workspacePath);
+      await reorderWorkspaceCollections(workspacePath, collectionPaths);
+    } catch (error) {
+      throw error;
+    }
+  });
+
   ipcMain.handle('renderer:load-workspace-apispecs', async (event, workspacePath) => {
     try {
       if (!workspacePath) {
@@ -211,15 +224,17 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       const specs = workspaceConfig.specs || [];
 
-      const resolvedSpecs = specs.map((spec) => {
-        if (spec.path && !path.isAbsolute(spec.path)) {
-          return {
-            ...spec,
-            path: path.join(workspacePath, spec.path)
-          };
-        }
-        return spec;
-      });
+      const resolvedSpecs = specs
+        .map((spec) => {
+          if (spec.path && !path.isAbsolute(spec.path)) {
+            return {
+              ...spec,
+              path: path.join(workspacePath, spec.path)
+            };
+          }
+          return spec;
+        })
+        .filter((spec) => spec.path && fs.existsSync(spec.path));
 
       return resolvedSpecs;
     } catch (error) {

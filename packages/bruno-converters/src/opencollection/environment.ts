@@ -42,7 +42,8 @@ export const fromOpenCollectionEnvironments = (environments: Environment[] | und
         enabled: variable.disabled !== true,
         secret: isSecret
       };
-    })
+    }),
+    color: env.color || null
   }));
 };
 
@@ -54,6 +55,7 @@ export const toOpenCollectionEnvironments = (environments: BrunoEnvironment[] | 
   return environments.map((env): Environment => {
     const ocEnv: Environment = {
       name: env.name || 'Untitled Environment',
+      color: env.color ?? undefined,
       variables: (env.variables || []).map((v): OCVariable => {
         const ocVar: OCVariable = {
           name: v.name || '',

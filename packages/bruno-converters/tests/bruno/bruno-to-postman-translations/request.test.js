@@ -73,10 +73,22 @@ describe('Bruno to Postman Request Translation', () => {
     expect(translatedCode).toBe('const contentType = pm.request.headers.get("Content-Type");');
   });
 
-  it('should translate req.setHeader() to pm.request.headers.set()', () => {
+  it('should translate req.setHeader() to pm.request.headers.upsert() with object arg', () => {
     const code = 'req.setHeader("Authorization", "Bearer token123");';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('pm.request.headers.set("Authorization", "Bearer token123");');
+    expect(translatedCode).toContain('pm.request.headers.upsert({\n  key: "Authorization",\n  value: "Bearer token123"\n})');
+  });
+
+  it('should translate req.deleteHeader() to pm.request.headers.remove()', () => {
+    const code = 'req.deleteHeader("Authorization");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.request.headers.remove("Authorization");');
+  });
+
+  it('should handle req.deleteHeader() with a variable argument', () => {
+    const code = 'const headerName = "X-Custom"; req.deleteHeader(headerName);';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const headerName = "X-Custom"; pm.request.headers.remove(headerName);');
   });
 
   it('should handle all request properties together', () => {
@@ -177,5 +189,44 @@ console.log("Headers:", JSON.stringify(pm.request.headers));
     const code = 'const body = {id: 1}; req.setBody(body);';
     const translatedCode = translateBruToPostman(code);
     expect(translatedCode).toBe('const body = {id: 1}; pm.request.body.update({\n  mode: "raw",\n  raw: JSON.stringify(body)\n});');
+  });
+
+  // URL helper methods tests
+  it('should translate req.getHost() to pm.request.url.getHost()', () => {
+    const code = 'const host = req.getHost();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const host = pm.request.url.getHost();');
+  });
+
+  it('should translate req.getPath() to pm.request.url.getPath()', () => {
+    const code = 'const path = req.getPath();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const path = pm.request.url.getPath();');
+  });
+
+  it('should translate req.getQueryString() to pm.request.url.getQueryString()', () => {
+    const code = 'const queryString = req.getQueryString();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const queryString = pm.request.url.getQueryString();');
+  });
+
+  it('should translate req.getPathParams() to pm.request.url.variables (function to property)', () => {
+    const code = 'const pathParams = req.getPathParams();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const pathParams = pm.request.url.variables;');
+  });
+
+  it('should handle URL methods in complex expressions', () => {
+    const code = 'const fullUrl = req.getHost() + req.getPath() + "?" + req.getQueryString();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toContain('pm.request.url.getHost()');
+    expect(translatedCode).toContain('pm.request.url.getPath()');
+    expect(translatedCode).toContain('pm.request.url.getQueryString()');
+  });
+
+  it('should handle req.getPathParams() in conditional', () => {
+    const code = 'if (req.getPathParams().id) { console.log("Has ID"); }';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toContain('pm.request.url.variables.id');
   });
 });

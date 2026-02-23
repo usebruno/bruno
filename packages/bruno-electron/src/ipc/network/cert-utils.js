@@ -207,6 +207,9 @@ const buildCertsAndProxyConfig = async ({
   const collectionProxyConfig = get(brunoConfig, 'proxy', {});
   const collectionLevelProxy = interpolateObject(collectionProxyConfig, interpolationOptions);
 
+  // Get app-level proxy config from global preferences
+  const appLevelProxyConfig = preferencesUtil.getGlobalProxyConfig();
+
   // Get system proxy config
   const systemProxyConfig = getCachedSystemProxy();
 
@@ -215,6 +218,7 @@ const buildCertsAndProxyConfig = async ({
     options,
     clientCertificates,
     collectionLevelProxy,
+    appLevelProxyConfig,
     systemProxyConfig
   };
 };

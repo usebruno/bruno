@@ -25,6 +25,10 @@ const clearOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
   oauth2Store.clearCredentialsForCollection({ collectionUid, url, credentialsId });
 };
 
+const clearOauth2CredentialsByCredentialsId = ({ collectionUid, credentialsId }) => {
+  oauth2Store.clearCredentialsByCredentialsId({ collectionUid, credentialsId });
+};
+
 const getStoredOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
   try {
     const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
@@ -941,6 +945,7 @@ const updateCollectionOauth2Credentials = ({ collectionUid, itemUid, collectionO
 module.exports = {
   persistOauth2Credentials,
   clearOauth2Credentials,
+  clearOauth2CredentialsByCredentialsId,
   getStoredOauth2Credentials,
   getOAuth2TokenUsingAuthorizationCode,
   getOAuth2TokenUsingClientCredentials,

@@ -2,8 +2,6 @@ import { test, expect } from '../../../playwright';
 
 test.describe('Multiline Variables - Write Test', () => {
   test('should create and use multiline environment variable dynamically', async ({ pageWithUserData: page }) => {
-    test.setTimeout(60 * 1000);
-
     // open the collection
     const collection = page.getByTestId('collections').locator('#sidebar-collection-name').filter({ hasText: 'multiline-variables' });
     await expect(collection).toBeVisible();
@@ -35,6 +33,12 @@ test.describe('Multiline Variables - Write Test', () => {
     await expect(emptyRowNameInput).toBeVisible();
     await emptyRowNameInput.fill('multiline_data_json');
 
+    // After filling the name, the table appends a new empty row causing persistent layout shifts.
+    // Use force:true to bypass Playwright's stability check on the CodeMirror click.
+    const variableRow = page.locator('tbody tr').filter({ has: page.locator('input[value="multiline_data_json"]') });
+    await expect(variableRow).toBeVisible();
+    const codeMirror = variableRow.locator('.CodeMirror');
+
     const jsonValue = `{
   "user": {
     "name": "John Doe",
@@ -50,15 +54,13 @@ test.describe('Multiline Variables - Write Test', () => {
   }
 }`;
 
-    const variableRow = page.locator('tbody tr').filter({ has: page.locator('input[value="multiline_data_json"]') });
-    const codeMirror = variableRow.locator('.CodeMirror');
-    await codeMirror.click();
+    await codeMirror.click({ force: true });
     await page.keyboard.insertText(jsonValue);
 
     await page.getByTestId('save-env').click();
 
     await envTab.hover();
-    await envTab.getByTestId('request-tab-close-icon').click();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
 
     await page.getByTestId('send-arrow-icon').click();
 
@@ -70,19 +72,5 @@ test.describe('Multiline Variables - Write Test', () => {
     const expectedBody
       = '{\n  "user": {\n    "name": "John Doe",\n    "email": "john@example.com",\n    "preferences": {\n      "theme": "dark",\n      "notifications": true\n    }\n  },\n  "metadata": {\n    "created": "2025-09-03",\n    "version": "1.0"\n  }\n}';
     await expect(page.locator('.response-pane')).toContainText(`"body": ${JSON.stringify(expectedBody)}`);
-  });
-
-  // clean up created variable after test
-  test.afterEach(async () => {
-    const fs = require('fs');
-    const path = require('path');
-
-    const testBruPath = path.join(__dirname, 'collection/environments/Test.bru');
-    let content = fs.readFileSync(testBruPath, 'utf8');
-
-    // remove the multiline_data_json variable and its content
-    content = content.replace(/\s*multiline_data_json:\s*'''\s*[\s\S]*?\s*'''/g, '');
-
-    fs.writeFileSync(testBruPath, content);
   });
 });

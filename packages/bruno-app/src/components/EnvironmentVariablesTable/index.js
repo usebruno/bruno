@@ -13,6 +13,7 @@ import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
+import { stripEnvVarUid } from 'utils/environments';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
@@ -92,6 +93,7 @@ const EnvironmentVariablesTable = ({
   }, []);
 
   const prevEnvUidRef = useRef(null);
+  const prevEnvVariablesRef = useRef(environment.variables);
   const mountedRef = useRef(false);
 
   let _collection = collection ? cloneDeep(collection) : {};
@@ -167,11 +169,13 @@ const EnvironmentVariablesTable = ({
   useEffect(() => {
     const isMount = !mountedRef.current;
     const envChanged = prevEnvUidRef.current !== null && prevEnvUidRef.current !== environment.uid;
+    const variablesReloaded = !isMount && !envChanged && prevEnvVariablesRef.current !== environment.variables;
 
     prevEnvUidRef.current = environment.uid;
+    prevEnvVariablesRef.current = environment.variables;
     mountedRef.current = true;
 
-    if ((isMount || envChanged) && hasDraftForThisEnv && draft?.variables) {
+    if ((isMount || envChanged || variablesReloaded) && hasDraftForThisEnv && draft?.variables) {
       formik.setValues([
         ...draft.variables,
         {
@@ -184,16 +188,16 @@ const EnvironmentVariablesTable = ({
         }
       ]);
     }
-  }, [environment.uid, hasDraftForThisEnv, draft?.variables]);
+  }, [environment.uid, environment.variables, hasDraftForThisEnv, draft?.variables]);
 
   const savedValuesJson = useMemo(() => {
-    return JSON.stringify(environment.variables || []);
+    return JSON.stringify((environment.variables || []).map(stripEnvVarUid));
   }, [environment.variables]);
 
   // Sync modified state
   useEffect(() => {
     const currentValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
-    const currentValuesJson = JSON.stringify(currentValues);
+    const currentValuesJson = JSON.stringify(currentValues.map(stripEnvVarUid));
     const hasActualChanges = currentValuesJson !== savedValuesJson;
     setIsModified(hasActualChanges);
   }, [formik.values, savedValuesJson, setIsModified]);
@@ -202,11 +206,11 @@ const EnvironmentVariablesTable = ({
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       const currentValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
-      const currentValuesJson = JSON.stringify(currentValues);
+      const currentValuesJson = JSON.stringify(currentValues.map(stripEnvVarUid));
       const hasActualChanges = currentValuesJson !== savedValuesJson;
 
       const existingDraftVariables = hasDraftForThisEnv ? draft?.variables : null;
-      const existingDraftJson = existingDraftVariables ? JSON.stringify(existingDraftVariables) : null;
+      const existingDraftJson = existingDraftVariables ? JSON.stringify(existingDraftVariables.map(stripEnvVarUid)) : null;
 
       if (hasActualChanges) {
         if (currentValuesJson !== existingDraftJson) {
@@ -318,7 +322,8 @@ const EnvironmentVariablesTable = ({
     const variablesToSave = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
     const savedValues = environment.variables || [];
 
-    const hasChanges = JSON.stringify(variablesToSave) !== JSON.stringify(savedValues);
+    // Compare without UIDs since they can be different but the actual data is the same
+    const hasChanges = JSON.stringify(variablesToSave.map(stripEnvVarUid)) !== JSON.stringify(savedValues.map(stripEnvVarUid));
     if (!hasChanges) {
       toast.error('No changes to save');
       return;
@@ -441,8 +446,8 @@ const EnvironmentVariablesTable = ({
           </tr>
         )}
         fixedItemHeight={35}
-        computeItemKey={(index, item) => item.variable.uid}
-        itemContent={(index, { variable, index: actualIndex }) => {
+        computeItemKey={(virtualIndex, item) => `${environment.uid}-${item.index}`}
+        itemContent={(virtualIndex, { variable, index: actualIndex }) => {
           const isLastRow = actualIndex === formik.values.length - 1;
           const isEmptyRow = !variable.name || variable.name.trim() === '';
           const isLastEmptyRow = isLastRow && isEmptyRow;
@@ -472,7 +477,7 @@ const EnvironmentVariablesTable = ({
                     id={`${actualIndex}.name`}
                     name={`${actualIndex}.name`}
                     value={variable.name}
-                    placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
+                    placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Name' : ''}
                     onChange={(e) => handleNameChange(actualIndex, e)}
                     onBlur={() => handleNameBlur(actualIndex)}
                     onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
@@ -490,7 +495,14 @@ const EnvironmentVariablesTable = ({
                     placeholder={isLastEmptyRow ? 'Value' : ''}
                     isSecret={variable.secret}
                     readOnly={typeof variable.value !== 'string'}
-                    onChange={(newValue) => formik.setFieldValue(`${actualIndex}.value`, newValue, true)}
+                    onChange={(newValue) => {
+                      formik.setFieldValue(`${actualIndex}.value`, newValue, true);
+                      // Clear ephemeral metadata when user manually edits the value
+                      if (variable.ephemeral) {
+                        formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
+                        formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
+                      }
+                    }}
                     onSave={handleSave}
                   />
                 </div>

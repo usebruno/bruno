@@ -1,5 +1,5 @@
 import path from 'path';
-import { test, expect, errors } from '../../playwright';
+import { test, expect, errors, closeElectronApp } from '../../playwright';
 
 const env = {
   DISABLE_SAMPLE_COLLECTION_IMPORT: 'false'
@@ -28,7 +28,7 @@ test.describe('Onboarding', () => {
     await expect(page.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
 
     // Clean up
-    await app.close();
+    await closeElectronApp(app);
   });
 
   test('should not create duplicate collections on subsequent launches', async ({ launchElectronApp, createTmpDir }) => {
@@ -51,7 +51,7 @@ test.describe('Onboarding', () => {
     await expect(page.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
 
     // Close the first app instance
-    await app.close();
+    await closeElectronApp(app);
 
     // Restart app - should not create sample collection again
     const newApp = await launchElectronApp({ userDataPath, dotEnv: env });
@@ -71,7 +71,7 @@ test.describe('Onboarding', () => {
     await expect(newPage.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
 
     // Clean up
-    await newApp.close();
+    await closeElectronApp(newApp);
   });
 
   test('should not recreate sample collection after user deletes it', async ({ launchElectronApp, reuseOrLaunchElectronApp, createTmpDir }) => {

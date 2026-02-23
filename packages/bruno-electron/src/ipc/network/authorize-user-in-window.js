@@ -128,15 +128,31 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
 
     function onWindowRedirect(url) {
       // Handle redirects as needed
+      let urlObj;
+      let callbackUrlObj;
+
+      try {
+        urlObj = new URL(url);
+      } catch (e) {
+        // Invalid redirect URL, skip processing
+        return;
+      }
+
+      try {
+        callbackUrlObj = new URL(callbackUrl);
+      } catch (e) {
+        // Invalid callback URL, skip matching but still check for errors below
+        callbackUrlObj = null;
+      }
 
       // Check if redirect is to the callback URL and contains an authorization code
-      if (matchesCallbackUrl(new URL(url), new URL(callbackUrl))) {
+      if (callbackUrlObj && matchesCallbackUrl(urlObj, callbackUrlObj)) {
         finalUrl = url;
         window.close();
+        return;
       }
 
       // Handle OAuth error responses
-      const urlObj = new URL(url);
       if (urlObj.searchParams.has('error')) {
         const error = urlObj.searchParams.get('error');
         const errorDescription = urlObj.searchParams.get('error_description');

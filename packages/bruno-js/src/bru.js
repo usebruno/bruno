@@ -81,12 +81,19 @@ class Bru {
           deleteCookie: (url, cookieName, callback) => {
             const interpolatedUrl = this.interpolate(url);
             return cookieJar.deleteCookie(interpolatedUrl, cookieName, callback);
+          },
+
+          hasCookie: (url, cookieName, callback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.hasCookie(interpolatedUrl, cookieName, callback);
           }
         };
       }
     };
     // Holds variables that are marked as persistent by scripts
     this.persistentEnvVariables = {};
+    // Holds credential IDs to be reset after script execution
+    this.oauth2CredentialsToReset = [];
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
@@ -220,6 +227,24 @@ class Bru {
     delete this.envVariables[key];
   }
 
+  getAllEnvVars() {
+    const vars = Object.assign({}, this.envVariables);
+    delete vars.__name__;
+    return vars;
+  }
+
+  deleteAllEnvVars() {
+    const envName = this.envVariables.__name__;
+    for (let key in this.envVariables) {
+      if (this.envVariables.hasOwnProperty(key)) {
+        delete this.envVariables[key];
+      }
+    }
+    if (envName !== undefined) {
+      this.envVariables.__name__ = envName;
+    }
+  }
+
   getGlobalEnvVar(key) {
     return this.interpolate(this.globalEnvironmentVariables[key]);
   }
@@ -232,8 +257,42 @@ class Bru {
     this.globalEnvironmentVariables[key] = value;
   }
 
+  deleteGlobalEnvVar(key) {
+    delete this.globalEnvironmentVariables[key];
+  }
+
+  getAllGlobalEnvVars() {
+    return Object.assign({}, this.globalEnvironmentVariables);
+  }
+
+  deleteAllGlobalEnvVars() {
+    for (let key in this.globalEnvironmentVariables) {
+      if (this.globalEnvironmentVariables.hasOwnProperty(key)) {
+        delete this.globalEnvironmentVariables[key];
+      }
+    }
+  }
+
   getOauth2CredentialVar(key) {
     return this.interpolate(this.oauth2CredentialVariables[key]);
+  }
+
+  resetOauth2Credential(credentialId) {
+    if (!credentialId || typeof credentialId !== 'string') {
+      throw new Error('credentialId must be a non-empty string');
+    }
+
+    if (!this.oauth2CredentialsToReset.includes(credentialId)) {
+      this.oauth2CredentialsToReset.push(credentialId);
+    }
+
+    // Remove matching credential variables so subsequent getOauth2CredentialVar() calls return undefined
+    const prefix = `$oauth2.${credentialId}.`;
+    for (const key of Object.keys(this.oauth2CredentialVariables)) {
+      if (key.startsWith(prefix)) {
+        delete this.oauth2CredentialVariables[key];
+      }
+    }
   }
 
   hasVar(key) {
@@ -278,8 +337,47 @@ class Bru {
     }
   }
 
+  getAllVars() {
+    return Object.assign({}, this.runtimeVariables);
+  }
+
   getCollectionVar(key) {
     return this.interpolate(this.collectionVariables[key]);
+  }
+
+  setCollectionVar(key, value) {
+    if (!key) {
+      throw new Error('Creating a variable without specifying a name is not allowed.');
+    }
+
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters!`
+        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
+      );
+    }
+
+    this.collectionVariables[key] = value;
+  }
+
+  hasCollectionVar(key) {
+    return Object.hasOwn(this.collectionVariables, key);
+  }
+
+  deleteCollectionVar(key) {
+    delete this.collectionVariables[key];
+  }
+
+  deleteAllCollectionVars() {
+    for (let key in this.collectionVariables) {
+      if (this.collectionVariables.hasOwnProperty(key)) {
+        delete this.collectionVariables[key];
+      }
+    }
+  }
+
+  getAllCollectionVars() {
+    return Object.assign({}, this.collectionVariables);
   }
 
   getFolderVar(key) {
