@@ -93,22 +93,29 @@ const isLinux = process.platform === 'linux';
 let mainWindow;
 let appProtocolUrl;
 
-// Helper function to save zoom to preferences and notify renderer
-const saveZoomAndNotify = (zoomLevel) => {
+// Helper function to convert percentage to Electron zoom level
+// Formula: percentage = 100 * 1.2^level, so level = log(percentage/100) / log(1.2)
+const percentageToZoomLevel = (percentage) => {
+  return Math.log(percentage / 100) / Math.log(1.2);
+};
+
+// Helper function to save zoom percentage to preferences and notify renderer
+const saveZoom = async (percentage) => {
   if (!mainWindow) return;
 
-  const percentage = Math.round(100 * Math.pow(1.2, zoomLevel));
   const clampedPercentage = Math.max(10, Math.min(200, percentage));
 
   const prefs = getPreferences();
   prefs.display = prefs.display || {};
   prefs.display.zoomPercentage = clampedPercentage;
-  savePreferences(prefs).catch((err) => {
-    console.error('Failed to save zoom preference:', err);
-  });
 
-  // Notify renderer to update Redux state
-  mainWindow.webContents.send('main:load-preferences', prefs);
+  try {
+    await savePreferences(prefs);
+    // Notify renderer to update Redux state only after successful save
+    mainWindow.webContents.send('main:load-preferences', prefs);
+  } catch (err) {
+    console.error('Failed to save zoom preference:', err);
+  }
 };
 
 // Helper function to focus and restore the main window
@@ -265,22 +272,48 @@ app.on('ready', async () => {
   });
 
   ipcMain.handle('renderer:reset-zoom', () => {
-    mainWindow.webContents.setZoomLevel(0);
-    saveZoomAndNotify(0);
+    const zoomLevel = percentageToZoomLevel(100);
+    mainWindow.webContents.setZoomLevel(zoomLevel);
+    saveZoom(100);
   });
 
   ipcMain.handle('renderer:zoom-in', () => {
-    const currentZoom = mainWindow.webContents.getZoomLevel();
-    const newZoom = Math.min(currentZoom + 0.5, 5);
-    mainWindow.webContents.setZoomLevel(newZoom);
-    saveZoomAndNotify(newZoom);
+    const currentPercentage = preferencesUtil.getZoomPercentage();
+    const newPercentage = Math.min(currentPercentage + 10, 200);
+    const zoomLevel = percentageToZoomLevel(newPercentage);
+    mainWindow.webContents.setZoomLevel(zoomLevel);
+    saveZoom(newPercentage);
   });
 
   ipcMain.handle('renderer:zoom-out', () => {
-    const currentZoom = mainWindow.webContents.getZoomLevel();
-    const newZoom = Math.max(currentZoom - 0.5, -5);
-    mainWindow.webContents.setZoomLevel(newZoom);
-    saveZoomAndNotify(newZoom);
+    const currentPercentage = preferencesUtil.getZoomPercentage();
+    const newPercentage = Math.max(currentPercentage - 10, 10);
+    const zoomLevel = percentageToZoomLevel(newPercentage);
+    mainWindow.webContents.setZoomLevel(zoomLevel);
+    saveZoom(newPercentage);
+  });
+
+  // Menu event handlers for zoom (from menu-template.js)
+  ipcMain.on('menu:reset-zoom', () => {
+    const zoomLevel = percentageToZoomLevel(100);
+    mainWindow.webContents.setZoomLevel(zoomLevel);
+    saveZoom(100);
+  });
+
+  ipcMain.on('menu:zoom-in', () => {
+    const currentPercentage = preferencesUtil.getZoomPercentage();
+    const newPercentage = Math.min(currentPercentage + 10, 200);
+    const zoomLevel = percentageToZoomLevel(newPercentage);
+    mainWindow.webContents.setZoomLevel(zoomLevel);
+    saveZoom(newPercentage);
+  });
+
+  ipcMain.on('menu:zoom-out', () => {
+    const currentPercentage = preferencesUtil.getZoomPercentage();
+    const newPercentage = Math.max(currentPercentage - 10, 10);
+    const zoomLevel = percentageToZoomLevel(newPercentage);
+    mainWindow.webContents.setZoomLevel(zoomLevel);
+    saveZoom(newPercentage);
   });
 
   ipcMain.handle('renderer:set-zoom-level', (event, zoomLevel) => {
@@ -479,10 +512,11 @@ app.on('open-file', (event, path) => {
 app.on('browser-window-focus', () => {
   // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
   globalShortcut.register('Ctrl+=', () => {
-    const currentZoom = mainWindow.webContents.getZoomLevel();
-    const newZoom = Math.min(currentZoom + 0.5, 5);
-    mainWindow.webContents.setZoomLevel(newZoom);
-    saveZoomAndNotify(newZoom);
+    const currentPercentage = preferencesUtil.getZoomPercentage();
+    const newPercentage = Math.min(currentPercentage + 10, 200);
+    const zoomLevel = percentageToZoomLevel(newPercentage);
+    mainWindow.webContents.setZoomLevel(zoomLevel);
+    saveZoom(newPercentage);
   });
 });
 
