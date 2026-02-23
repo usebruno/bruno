@@ -89,8 +89,11 @@ const createCollection = async (page, collectionName: string, collectionLocation
   });
 };
 
+const STANDARD_HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE', 'CONNECT'];
+
 type CreateRequestOptions = {
   url?: string;
+  method?: string;
   inFolder?: boolean;
 };
 
@@ -241,7 +244,7 @@ const createRequest = async (
   parentName: string,
   options: CreateRequestOptions = {}
 ) => {
-  const { url, inFolder = false } = options;
+  const { url, method, inFolder = false } = options;
   const parentType = inFolder ? 'folder' : 'collection';
 
   await test.step(`Create request "${requestName}" in ${parentType} "${parentName}"`, async () => {
@@ -257,6 +260,19 @@ const createRequest = async (
 
     await locators.dropdown.item('New Request').click();
     await page.getByPlaceholder('Request Name').fill(requestName);
+
+    if (method) {
+      await page.locator('.bruno-modal .method-selector').click();
+      const isStandardMethod = STANDARD_HTTP_METHODS.includes(method.toUpperCase());
+      if (isStandardMethod) {
+        await locators.modal.newRequestMethodOption(method).click();
+      } else {
+        await locators.modal.newRequestMethodOption('add-custom').click();
+        await page.locator('.bruno-modal .method-selector input').fill(method);
+        await page.keyboard.press('Enter');
+      }
+      await page.waitForTimeout(200);
+    }
 
     if (url) {
       await page.locator('#new-request-url .CodeMirror').click();
