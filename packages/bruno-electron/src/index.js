@@ -47,6 +47,7 @@ const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
+const { preferencesUtil } = require('./store/preferences');
 const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
@@ -259,6 +260,10 @@ app.on('ready', async () => {
     mainWindow.webContents.setZoomLevel(currentZoom - 0.5);
   });
 
+  ipcMain.handle('renderer:set-zoom-level', (event, zoomLevel) => {
+    mainWindow.webContents.setZoomLevel(zoomLevel);
+  });
+
   ipcMain.handle('renderer:toggle-fullscreen', () => {
     mainWindow.setFullScreen(!mainWindow.isFullScreen());
   });
@@ -282,6 +287,12 @@ app.on('ready', async () => {
   });
 
   mainWindow.once('ready-to-show', () => {
+    // Apply saved zoom level from preferences before showing window
+    const zoomPercentage = preferencesUtil.getZoomPercentage();
+    if (zoomPercentage && zoomPercentage !== 100) {
+      const zoomLevel = Math.log(zoomPercentage / 100) / Math.log(1.2);
+      mainWindow.webContents.setZoomLevel(zoomLevel);
+    }
     mainWindow.show();
   });
   const devPort = process.env.BRUNO_DEV_PORT || 3000;
