@@ -50,7 +50,7 @@ export const parsedFileCacheStore = {
     return null;
   },
 
-  async setEntry(collectionPath, filePath, entry) {
+  async setEntry(collectionPath, filePath, entry, retryAfterEviction = true) {
     try {
       const db = await getDB();
       const key = generateKey(collectionPath, filePath);
@@ -64,7 +64,23 @@ export const parsedFileCacheStore = {
       };
       await db.put(STORE_NAME, cacheEntry);
     } catch (error) {
-      console.error('ParsedFileCacheStore: Error writing cache entry:', error);
+      // Handle QuotaExceededError by evicting old entries and retrying
+      const isQuotaError
+        = error.name === 'QuotaExceededError'
+          || error.code === 22 // Legacy Safari
+          || (error.code === 1014 && error.name === 'NS_ERROR_DOM_QUOTA_REACHED'); // Firefox
+
+      if (isQuotaError && retryAfterEviction) {
+        console.warn('ParsedFileCacheStore: Quota exceeded, evicting old entries...');
+        const evicted = await this.evictLRU();
+        if (evicted > 0) {
+          // Retry the write after eviction
+          return this.setEntry(collectionPath, filePath, entry, false);
+        }
+        console.warn('ParsedFileCacheStore: No entries to evict, cache write skipped');
+      } else {
+        console.error('ParsedFileCacheStore: Error writing cache entry:', error);
+      }
     }
   },
 
@@ -145,6 +161,43 @@ export const parsedFileCacheStore = {
       await tx.done;
     } catch (error) {
       console.error('ParsedFileCacheStore: Error pruning cache:', error);
+    }
+  },
+
+  /**
+   * Evict least recently used entries when quota is exceeded.
+   * Removes approximately 20% of the oldest entries to free up space.
+   * @returns {Promise<number>} Number of entries evicted
+   */
+  async evictLRU(percentageToEvict = 0.2) {
+    try {
+      const db = await getDB();
+      const totalCount = await db.count(STORE_NAME);
+
+      if (totalCount === 0) {
+        return 0;
+      }
+
+      const countToEvict = Math.max(1, Math.floor(totalCount * percentageToEvict));
+
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const index = tx.store.index('parsedAt');
+
+      let cursor = await index.openCursor();
+      let evicted = 0;
+
+      while (cursor && evicted < countToEvict) {
+        await cursor.delete();
+        evicted++;
+        cursor = await cursor.continue();
+      }
+
+      await tx.done;
+      console.log(`ParsedFileCacheStore: Evicted ${evicted} LRU entries to free up space`);
+      return evicted;
+    } catch (error) {
+      console.error('ParsedFileCacheStore: Error during LRU eviction:', error);
+      return 0;
     }
   },
 
