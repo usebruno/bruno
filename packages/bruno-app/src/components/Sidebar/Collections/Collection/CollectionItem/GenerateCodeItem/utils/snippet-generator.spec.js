@@ -1147,4 +1147,25 @@ describe('generateSnippet – encodeUrl setting', () => {
     // %3D = encoded '='
     expect(result).not.toContain('%3D');
   });
+
+  it('should preserve URL fragment (#) in snippet when encodeUrl is false', () => {
+    const rawUrl = 'https://example.com/api?token=abc==#section';
+    const item = makeItem(rawUrl, { encodeUrl: false });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('#section');
+    expect(result).toContain('token=abc==');
+    expect(result).not.toContain('%3D');
+  });
+
+  it('should not include URL fragment (#) in snippet when encodeUrl is true', () => {
+    const rawUrl = 'https://example.com/api?token=abc==#section';
+    const item = makeItem(rawUrl, { encodeUrl: true });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    // Fragment is stripped — correct, fragments are not sent in HTTP requests
+    // (RFC 3986 §3.5: fragments are client-side only, https://datatracker.ietf.org/doc/html/rfc3986#section-3.5)
+    expect(result).not.toContain('#section');
+    expect(result).toContain('%3D%3D');
+  });
 });
