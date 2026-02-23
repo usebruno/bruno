@@ -115,7 +115,7 @@ const preferencesSchema = Yup.object().shape({
     interval: Yup.number().min(100)
   }),
   display: Yup.object({
-    zoomPercentage: Yup.number().min(10).max(200)
+    zoomPercentage: Yup.number().min(50).max(150)
   })
 });
 

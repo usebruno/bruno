@@ -5,12 +5,8 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import { IconChevronDown, IconCheck } from '@tabler/icons';
 
-// Zoom options for dropdown (10% to 200%)
+// Zoom options for dropdown (50% to 150%)
 const ZOOM_OPTIONS = [
-  { label: '10%', value: 10 },
-  { label: '20%', value: 20 },
-  { label: '30%', value: 30 },
-  { label: '40%', value: 40 },
   { label: '50%', value: 50 },
   { label: '60%', value: 60 },
   { label: '70%', value: 70 },
@@ -21,12 +17,7 @@ const ZOOM_OPTIONS = [
   { label: '120%', value: 120 },
   { label: '130%', value: 130 },
   { label: '140%', value: 140 },
-  { label: '150%', value: 150 },
-  { label: '160%', value: 160 },
-  { label: '170%', value: 170 },
-  { label: '180%', value: 180 },
-  { label: '190%', value: 190 },
-  { label: '200%', value: 200 }
+  { label: '150%', value: 150 }
 ];
 
 const DEFAULT_ZOOM = 100;
