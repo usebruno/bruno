@@ -1,4 +1,4 @@
-const { ipcMain } = require('electron');
+const { ipcMain, shell } = require('electron');
 const os = require('os');
 const { BrowserWindow } = require('electron');
 const { version } = require('../../package.json');
@@ -90,7 +90,7 @@ const template = [
             try {
               const { protocol } = new URL(url);
               if (['https:', 'http:'].includes(protocol)) {
-                require('electron').shell.openExternal(url);
+                shell.openExternal(url);
               }
             } catch (e) {
               console.error(e);
