@@ -1,0 +1,8 @@
+version = 1
+
+[merge]
+do_not_merge = true 
+
+[update]
+always = false
+autoupdate_label = 'autoupdate'
