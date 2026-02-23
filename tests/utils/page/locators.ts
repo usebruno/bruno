@@ -73,7 +73,9 @@ export const buildCommonLocators = (page: Page) => ({
     methodDropdown: () => page.getByTestId('request-method-selector'),
     newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
     requestNameInput: () => page.getByPlaceholder('Request Name'),
-    requestTestId: () => page.getByTestId('request-name')
+    requestTestId: () => page.getByTestId('request-name'),
+    bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
+    bodyEditor: () => page.getByTestId('request-body-editor')
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
@@ -88,6 +90,7 @@ export const buildCommonLocators = (page: Page) => ({
     formatTab: () => page.getByTestId('format-response-tab'),
     formatTabDropdown: () => page.getByTestId('format-response-tab-dropdown'),
     previewContainer: () => page.getByTestId('response-preview-container'),
+    previewContainerCodeMirror: () => page.getByTestId('response-preview-container').locator('.CodeMirror').first(),
     codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
     jsonTreeLine: () => page.locator('.response-pane .object-content')
   },

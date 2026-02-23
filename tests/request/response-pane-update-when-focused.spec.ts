@@ -10,6 +10,7 @@ import {
 import { buildCommonLocators } from '../utils/page/locators';
 
 const runShortcut = process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter';
+const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 const echoUrl = 'https://echo.usebruno.com';
 
 test.describe.serial('Response pane updates when focused and request is re-sent', () => {
@@ -35,47 +36,45 @@ test.describe.serial('Response pane updates when focused and request is re-sent'
       await openRequest(page, collectionName, requestName);
 
       await selectRequestPaneTab(page, 'Body');
-      await page.locator('.body-mode-selector').click();
-      await page.locator('.dropdown-item').filter({ hasText: 'JSON' }).click();
-      await page.waitForTimeout(200);
+      await locators.request.bodyModeSelector().click();
+      await locators.dropdown.item('JSON').click();
 
-      const bodyEditor = page.locator('.request-pane .CodeMirror').last();
-      await bodyEditor.click();
-      await page.locator('.request-pane textarea').last().fill('{"run": 1}');
-      await page.waitForTimeout(300);
+      const bodyCodeMirror = locators.request.bodyEditor().locator('.CodeMirror');
+      await bodyCodeMirror.click();
+      await page.keyboard.press(selectAllShortcut);
+      await page.keyboard.type('{"run": 1}');
     });
 
     await test.step('Send first request and verify response contains run: 1', async () => {
       await sendRequest(page, 200, 15000);
-      const responsePane = locators.response.pane();
-      await expect(responsePane).toContainText('run');
-      await expect(responsePane).toContainText('1');
+      const runEquals1 = /"run":\s*1/; // "run" with value 1, optional space after colon
+      await expect(locators.response.previewContainer()).toContainText(runEquals1);
     });
 
     await test.step('Change body to {"run": 2}', async () => {
       await selectRequestPaneTab(page, 'Body');
-      const bodyEditor = page.locator('.request-pane .CodeMirror').last();
-      await bodyEditor.click();
-      await page.locator('.request-pane textarea').last().fill('{"run": 2}');
-      await page.waitForTimeout(300);
+      const bodyCodeMirror = locators.request.bodyEditor().locator('.CodeMirror');
+      await bodyCodeMirror.click();
+      await page.keyboard.press(selectAllShortcut);
+      await page.keyboard.type('{"run": 2}');
     });
 
     await test.step('Click inside response pane (Raw/JSON editor) to give it focus', async () => {
-      const responseEditor = page.locator('[data-testid="response-preview-container"] .CodeMirror').first();
+      const responseEditor = locators.response.previewContainerCodeMirror();
       await responseEditor.waitFor({ state: 'visible', timeout: 5000 });
       await responseEditor.click();
-      await page.waitForTimeout(200);
     });
 
     await test.step('Press Cmd+Enter / Ctrl+Enter to re-send request', async () => {
       await page.keyboard.press(runShortcut);
-      await page.getByTestId('response-status-code').waitFor({ state: 'visible', timeout: 15000 });
+      await locators.response.statusCode().waitFor({ state: 'visible', timeout: 15000 });
     });
 
     await test.step('Response pane must show new response (run: 2)', async () => {
-      const responsePane = locators.response.pane();
-      await expect(responsePane).toContainText('run');
-      await expect(responsePane).toContainText('2', { timeout: 5000 });
+      const responseBody = locators.response.previewContainer();
+      // Must show the new response body: single JSON object with "run": 2
+      const runEquals2 = /"run":\s*2/;
+      await expect(responseBody).toContainText(runEquals2, { timeout: 5000 });
     });
   });
 });
