@@ -179,6 +179,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret
           items={menuItems}
           placement="bottom-start"
           selectedItemId={selectedItemId}
+          data-testid="method-selector"
         >
           <TriggerButton method={method} showCaret={showCaret} methodSpanRef={methodSpanRef} />
         </MenuDropdown>

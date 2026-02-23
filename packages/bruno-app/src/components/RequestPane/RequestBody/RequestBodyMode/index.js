@@ -103,7 +103,7 @@ const RequestBodyMode = ({ item, collection }) => {
 
   return (
     <StyledWrapper>
-      <div className="inline-flex items-center cursor-pointer body-mode-selector">
+      <div className="inline-flex items-center cursor-pointer body-mode-selector" data-testid="request-body-mode-selector">
         <MenuDropdown
           items={menuItems}
           placement="bottom-end"

@@ -1,5 +1,6 @@
 const yargs = require('yargs');
 const chalk = require('chalk');
+const { initializeShellEnv } = require('@usebruno/requests');
 
 const { CLI_EPILOGUE, CLI_VERSION } = require('./constants');
 
@@ -8,6 +9,9 @@ const printBanner = () => {
 };
 
 const run = async () => {
+  // Fetch shell environment (useful when CLI is run as subprocess from GUI app or cron)
+  await initializeShellEnv();
+
   const argLength = process.argv.length;
   const commandsToPrintBanner = ['--help', '-h'];
 
