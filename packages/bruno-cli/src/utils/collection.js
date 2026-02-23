@@ -452,6 +452,10 @@ const createCollectionFromBrunoObject = async (collection, dirPath, options = {}
     ignore: ['node_modules', '.git']
   };
 
+  if (format === 'yml') {
+    brunoConfig.opencollection = '1.0.0';
+  }
+
   const collectionContent = await stringifyCollection(collection.root || {}, brunoConfig, {
     format
   });
