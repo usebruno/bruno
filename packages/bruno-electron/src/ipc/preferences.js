@@ -3,7 +3,7 @@ const { getPreferences, savePreferences } = require('../store/preferences');
 const { getGitVersion } = require('../utils/git');
 const { globalEnvironmentsStore } = require('../store/global-environments');
 const { parsedFileCacheStore } = require('../store/parsed-file-cache-idb');
-const { getCachedSystemProxy, refreshSystemProxy } = require('../store/system-proxy');
+const { getCachedSystemProxy, fetchSystemProxy } = require('../store/system-proxy');
 const { resolveDefaultLocation } = require('../utils/default-location');
 
 const registerPreferencesIpc = (mainWindow) => {
@@ -78,17 +78,11 @@ const registerPreferencesIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:get-system-proxy-variables', async () => {
-    // Return cached value (initialized at app startup)
-    const cachedProxy = getCachedSystemProxy();
-    if (cachedProxy) {
-      return cachedProxy;
-    }
-    // Fallback: refresh if cache is empty (shouldn't happen normally)
-    return await refreshSystemProxy();
+    return await getCachedSystemProxy();
   });
 
   ipcMain.handle('renderer:refresh-system-proxy', async () => {
-    return await refreshSystemProxy();
+    return await fetchSystemProxy({ refresh: true });
   });
 };
 
