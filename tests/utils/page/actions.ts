@@ -265,9 +265,9 @@ const createRequest = async (
       await page.locator('.bruno-modal .method-selector').click();
       const isStandardMethod = STANDARD_HTTP_METHODS.includes(method.toUpperCase());
       if (isStandardMethod) {
-        await page.locator('.dropdown-item').filter({ hasText: method }).click();
+        await locators.modal.newRequestMethodOption(method).click();
       } else {
-        await page.locator('.dropdown-item').filter({ hasText: '+ Add Custom' }).click();
+        await locators.modal.newRequestMethodOption('add-custom').click();
         await page.locator('.bruno-modal .method-selector input').fill(method);
         await page.keyboard.press('Enter');
       }

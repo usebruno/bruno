@@ -51,7 +51,8 @@ export const buildCommonLocators = (page: Page) => ({
     closeButton: () => page.locator('.bruno-modal').getByTestId('modal-close-button'),
     card: () => page.locator('.bruno-modal-card'),
     footer: () => page.locator('.bruno-modal-footer'),
-    submitButton: () => page.locator('.bruno-modal-footer .submit')
+    submitButton: () => page.locator('.bruno-modal-footer .submit'),
+    newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`)
   },
   environment: {
     selector: () => page.getByTestId('environment-selector-trigger'),
