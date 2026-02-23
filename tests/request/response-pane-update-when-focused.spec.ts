@@ -43,6 +43,7 @@ test.describe.serial('Response pane updates when focused and request is re-sent'
       await bodyCodeMirror.click();
       await page.keyboard.press(selectAllShortcut);
       await page.keyboard.type('{"run": 1}');
+      await expect(locators.request.bodyEditor()).toContainText('"run": 1', { timeout: 5000 });
     });
 
     await test.step('Send first request and verify response contains run: 1', async () => {
@@ -57,6 +58,7 @@ test.describe.serial('Response pane updates when focused and request is re-sent'
       await bodyCodeMirror.click();
       await page.keyboard.press(selectAllShortcut);
       await page.keyboard.type('{"run": 2}');
+      await expect(locators.request.bodyEditor()).toContainText('"run": 2', { timeout: 5000 });
     });
 
     await test.step('Click inside response pane (Raw/JSON editor) to give it focus', async () => {
@@ -67,8 +69,7 @@ test.describe.serial('Response pane updates when focused and request is re-sent'
 
     await test.step('Press Cmd+Enter / Ctrl+Enter to re-send request', async () => {
       await page.keyboard.press(runShortcut);
-      await locators.response.statusCode().waitFor({ state: 'visible', timeout: 15000 });
-      await expect(locators.response.statusCode()).toContainText('200');
+      await expect(locators.response.statusCode()).toContainText('200', { timeout: 15000 });
     });
 
     await test.step('Response pane must show new response (run: 2)', async () => {
