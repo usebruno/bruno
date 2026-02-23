@@ -4,6 +4,7 @@ const { execSync } = require('node:child_process');
 const isDev = require('electron-is-dev');
 const os = require('os');
 const { initializeShellEnv } = require('@usebruno/requests');
+const { percentageToZoomLevel } = require('@usebruno/common');
 
 if (isDev) {
   if (!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
@@ -92,12 +93,6 @@ const isLinux = process.platform === 'linux';
 
 let mainWindow;
 let appProtocolUrl;
-
-// Helper function to convert percentage to Electron zoom level
-// Formula: percentage = 100 * 1.2^level, so level = log(percentage/100) / log(1.2)
-const percentageToZoomLevel = (percentage) => {
-  return Math.log(percentage / 100) / Math.log(1.2);
-};
 
 // Helper function to save zoom percentage to preferences and notify renderer
 const saveZoom = async (percentage) => {

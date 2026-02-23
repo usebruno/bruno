@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import { IconChevronDown, IconCheck } from '@tabler/icons';
+const { percentageToZoomLevel } = require('@usebruno/common');
 
 // Zoom options for dropdown (50% to 150%)
 const ZOOM_OPTIONS = [
@@ -21,12 +22,6 @@ const ZOOM_OPTIONS = [
 ];
 
 const DEFAULT_ZOOM = 100;
-
-// Convert percentage to zoom level (Electron uses logarithmic scale)
-// Formula: percentage = 100 * 1.2^level
-const percentageToZoomLevel = (percentage) => {
-  return Math.log(percentage / 100) / Math.log(1.2);
-};
 
 const Zoom = () => {
   const dispatch = useDispatch();
