@@ -62,9 +62,27 @@ const template = [
     submenu: [
       { role: 'toggledevtools' },
       { type: 'separator' },
-      { role: 'resetzoom' },
-      { role: 'zoomin' },
-      { role: 'zoomout' },
+      {
+        label: 'Actual Size',
+        accelerator: 'CommandOrControl+0',
+        click() {
+          ipcMain.emit('menu:reset-zoom');
+        }
+      },
+      {
+        label: 'Zoom In',
+        accelerator: 'CommandOrControl+Plus',
+        click() {
+          ipcMain.emit('menu:zoom-in');
+        }
+      },
+      {
+        label: 'Zoom Out',
+        accelerator: 'CommandOrControl+-',
+        click() {
+          ipcMain.emit('menu:zoom-out');
+        }
+      },
       { type: 'separator' },
       { role: 'togglefullscreen' }
     ]
