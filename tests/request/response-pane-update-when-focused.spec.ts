@@ -68,6 +68,7 @@ test.describe.serial('Response pane updates when focused and request is re-sent'
     await test.step('Press Cmd+Enter / Ctrl+Enter to re-send request', async () => {
       await page.keyboard.press(runShortcut);
       await locators.response.statusCode().waitFor({ state: 'visible', timeout: 15000 });
+      await expect(locators.response.statusCode()).toContainText('200');
     });
 
     await test.step('Response pane must show new response (run: 2)', async () => {
