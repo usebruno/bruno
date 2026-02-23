@@ -99,6 +99,50 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
     variables
   );
 
+  // Compute raw URL: the user's original URL (with variables resolved) but WITHOUT the
+  // encoding that new URL() adds inside interpolateUrlPathParams.
+  // Using interpolatedUrl (pre-new URL()) preserves the user's encoding choices exactly:
+  // if they typed %20, it stays %20; if they typed a literal space, it stays a space.
+  // Path params (:name) are resolved via simple string replacement to avoid new URL() encoding.
+  const rawUrl = (() => {
+    try {
+      const enabledPathParams = (requestData.params || [])
+        .filter((p) => p.enabled !== false && p.type === 'path');
+
+      if (enabledPathParams.length === 0) {
+        return interpolatedUrl;
+      }
+
+      // Split URL into path and query/fragment to only replace :params in the pathname
+      const qIdx = interpolatedUrl.search(/[?#]/);
+      const pathPart = qIdx >= 0 ? interpolatedUrl.substring(0, qIdx) : interpolatedUrl;
+      const rest = qIdx >= 0 ? interpolatedUrl.substring(qIdx) : '';
+
+      const resolvedPath = pathPart
+        .split('/')
+        .map((segment) => {
+          if (segment.startsWith(':')) {
+            const param = enabledPathParams.find((p) => p.name === segment.slice(1));
+            return param ? param.value : segment;
+          }
+          // OData-style: Entity(:paramName)
+          if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
+            let result = segment;
+            for (const param of enabledPathParams) {
+              result = result.replace(`:${param.name}`, param.value);
+            }
+            return result;
+          }
+          return segment;
+        })
+        .join('/');
+
+      return `${resolvedPath}${rest}`;
+    } catch {
+      return finalUrl;
+    }
+  })();
+
   // Get the full language object based on current preferences
   const selectedLanguage = useMemo(() => {
     const fullName = generateCodePrefs.library === 'default'
@@ -120,7 +164,8 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
       ...requestData.request,
       auth: resolvedRequest.auth,
       url: finalUrl
-    }
+    },
+    rawUrl
   };
 
   // Update modal title based on mode

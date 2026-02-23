@@ -7,19 +7,6 @@ import { interpolateAuth, interpolateHeaders, interpolateBody, interpolateParams
 import { parse, format } from 'url';
 import { stringify } from 'querystring';
 
-// Replicates HTTPSnippet's internal URL encoding to compute the encoded path+query.
-// Replacing the path portion covers all targets: full-URL targets (curl, fetch) contain
-// the path as a substring, and path-only targets (http.client, raw HTTP) use it directly.
-const getEncodedPath = (rawUrl) => {
-  const parsed = parse(rawUrl, true, true);
-  if (!parsed.query || Object.keys(parsed.query).length === 0) {
-    return null;
-  }
-  const search = stringify(parsed.query);
-  const encodedPath = search ? `${parsed.pathname}?${search}` : parsed.pathname;
-  return { encodedPath, rawPath: parsed.path };
-};
-
 const addCurlAuthFlags = (curlCommand, auth) => {
   if (!auth || !curlCommand) return curlCommand;
 
@@ -99,9 +86,22 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     // encodeUrl defaults to false in the UI when undefined/null
     const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
     if (settings?.encodeUrl !== true) {
-      const parts = getEncodedPath(request.url);
-      if (parts && parts.encodedPath !== parts.rawPath) {
-        result = result.replaceAll(parts.encodedPath, parts.rawPath);
+      const rawUrl = item.rawUrl || request.url;
+      const parsed = parse(request.url, true, true);
+      const search = stringify(parsed.query);
+      const httpSnippetPath = search ? `${parsed.pathname}?${search}` : parsed.pathname;
+      let rawPath = rawUrl.replace(/^https?:\/\/[^/?#]*/, '') || '/';
+      // The HTTP raw target (http/http1.1) uses the request line format:
+      //   METHOD <request-target> HTTP-version
+      // Spaces delimit these fields, so a literal space in the request-target
+      // would be parsed as the end of the URI (RFC 7230 §3.1.1).
+      // Other decoded chars (=, :, /, etc.) are safe in the request line.
+      // https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.1
+      if (language.target === 'http') {
+        rawPath = rawPath.replace(/ /g, '%20');
+      }
+      if (httpSnippetPath !== rawPath) {
+        result = result.replaceAll(httpSnippetPath, rawPath);
       }
     }
 

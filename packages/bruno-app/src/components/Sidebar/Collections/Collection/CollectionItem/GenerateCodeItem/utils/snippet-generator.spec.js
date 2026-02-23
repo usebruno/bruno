@@ -1015,12 +1015,116 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).not.toContain('%3A');
   });
 
-  it('should be a no-op for URLs without query params', () => {
+  it('should be a no-op for URLs without query params and no encoding needed', () => {
     const rawUrl = 'https://example.com/api/users';
     const item = makeItem(rawUrl, { encodeUrl: false });
 
     const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
     expect(result).toBe(`curl -X GET '${rawUrl}'`);
+  });
+
+  it('should preserve spaces in pathname when encodeUrl is false and rawUrl is provided', () => {
+    const encodedUrl = 'https://example.com/my%20path/hello%20world?token=abc123==';
+    const item = {
+      ...makeItem(encodedUrl, { encodeUrl: false }),
+      rawUrl: 'https://example.com/my path/hello world?token=abc123=='
+    };
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('/my path/hello world?token=abc123==');
+    expect(result).not.toContain('%20');
+    expect(result).not.toContain('%3D');
+  });
+
+  it('should preserve spaces in pathname without query params when encodeUrl is false', () => {
+    const encodedUrl = 'https://example.com/my%20path/hello%20world';
+    const item = {
+      ...makeItem(encodedUrl, { encodeUrl: false }),
+      rawUrl: 'https://example.com/my path/hello world'
+    };
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('/my path/hello world');
+    expect(result).not.toContain('%20');
+  });
+
+  it('should preserve spaces in path-only targets (e.g., python) when encodeUrl is false', () => {
+    const pythonLanguage = { target: 'python', client: 'python3' };
+    const encodedUrl = 'https://example.com/my%20path/hello%20world?q=test';
+    const item = {
+      ...makeItem(encodedUrl, { encodeUrl: false }),
+      rawUrl: 'https://example.com/my path/hello world?q=test'
+    };
+
+    const result = generateSnippet({ language: pythonLanguage, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('/my path/hello world?q=test');
+    expect(result).not.toContain('%20');
+  });
+
+  it('should preserve spaces in query values when encodeUrl is false and rawUrl is provided', () => {
+    const encodedUrl = 'https://example.com/api?token=abc%20123==&type=test';
+    const item = {
+      ...makeItem(encodedUrl, { encodeUrl: false }),
+      rawUrl: 'https://example.com/api?token=abc 123==&type=test'
+    };
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('token=abc 123==');
+    expect(result).not.toContain('%20');
+    expect(result).not.toContain('%3D');
+  });
+
+  it('should still work when rawUrl is not provided (backward compatibility)', () => {
+    const rawUrl = 'https://example.com/api?token=abc123==&type=test';
+    const item = makeItem(rawUrl, { encodeUrl: false });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('token=abc123==');
+    expect(result).not.toContain('%3D');
+  });
+
+  it('should keep spaces as %20 for http target when encodeUrl is false (HTTP spec compliance)', () => {
+    const httpLanguage = { target: 'http', client: 'http1.1' };
+    const encodedUrl = 'https://example.com/api?token=abc%20123==&type=test';
+    const item = {
+      ...makeItem(encodedUrl, { encodeUrl: false }),
+      rawUrl: 'https://example.com/api?token=abc 123==&type=test'
+    };
+    const result = generateSnippet({ language: httpLanguage, item, collection: baseCollection, shouldInterpolate: false });
+    // Spaces must remain encoded for valid HTTP request line
+    expect(result).toContain('%20');
+    // But other chars like = should still be decoded
+    expect(result).not.toContain('%3D');
+  });
+
+  it('should preserve user-typed %20 when encodeUrl is false (not decode to space)', () => {
+    const preEncodedUrl = 'https://example.com/api?token=abc%20123%3D%3D&type=test';
+    const item = {
+      ...makeItem(preEncodedUrl, { encodeUrl: false }),
+      rawUrl: preEncodedUrl // rawUrl has %20 intact (no decodeURI applied)
+    };
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    // %20 should be preserved, not decoded to a literal space
+    expect(result).toContain('%20');
+    // %3D should also be preserved
+    expect(result).toContain('%3D%3D');
+    // No double-encoding
+    expect(result).not.toContain('%2520');
+    expect(result).not.toContain('%253D');
+  });
+
+  it('should preserve OData-style paths with parenthesized params when encodeUrl is false', () => {
+    const rawUrl = 'https://example.com/odata/Products(123)/Categories(456)?$expand=Items&$filter=Price gt 10';
+    const item = {
+      ...makeItem(rawUrl, { encodeUrl: false }),
+      rawUrl
+    };
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('Products(123)/Categories(456)');
+    expect(result).toContain('$expand=Items');
+    expect(result).toContain('$filter=Price gt 10');
+    // $ should not be encoded
+    expect(result).not.toContain('%24');
   });
 
   it('should use draft settings when draft exists', () => {
