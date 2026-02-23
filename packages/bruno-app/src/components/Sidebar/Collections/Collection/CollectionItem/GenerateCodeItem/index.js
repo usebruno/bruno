@@ -123,13 +123,15 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
         .map((segment) => {
           if (segment.startsWith(':')) {
             const param = enabledPathParams.find((p) => p.name === segment.slice(1));
-            return param ? param.value : segment;
+            return param && param.value != null ? param.value : segment;
           }
           // OData-style: Entity(:paramName)
           if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
             let result = segment;
             for (const param of enabledPathParams) {
-              result = result.replace(`:${param.name}`, param.value);
+              if (param.value != null) {
+                result = result.replace(`:${param.name}`, param.value);
+              }
             }
             return result;
           }

@@ -917,7 +917,7 @@ describe('generateSnippet – encodeUrl setting', () => {
     const { stringify } = require('querystring');
     const parsed = parse(url, true, true);
     if (!parsed.query || Object.keys(parsed.query).length === 0) {
-      return parsed.path;
+      return parsed.pathname;
     }
     const search = stringify(parsed.query);
     return search ? `${parsed.pathname}?${search}` : parsed.pathname;
@@ -1149,6 +1149,13 @@ describe('generateSnippet – encodeUrl setting', () => {
   });
 
   it('should preserve URL fragment (#) in snippet when encodeUrl is false', () => {
+    // Intentional asymmetry: when encodeUrl is false (raw mode), generateSnippet preserves the
+    // user-supplied URL as-is, including any fragment. This contrasts with encodeUrl: true,
+    // which strips fragments per RFC 3986 §3.5. The rawUrl is preserved through the makeItem
+    // call with { encodeUrl: false } and passed to generateSnippet, which intentionally treats
+    // it as a user-specified string not subject to RFC-compliant stripping. This is a designed
+    // behavior to honor user intent in raw mode, not a bug. This behavior can be revisited in
+    // the future if requirements or RFC interpretations change.
     const rawUrl = 'https://example.com/api?token=abc==#section';
     const item = makeItem(rawUrl, { encodeUrl: false });
 
@@ -1163,8 +1170,11 @@ describe('generateSnippet – encodeUrl setting', () => {
     const item = makeItem(rawUrl, { encodeUrl: true });
 
     const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
-    // Fragment is stripped — correct, fragments are not sent in HTTP requests
-    // (RFC 3986 §3.5: fragments are client-side only, https://datatracker.ietf.org/doc/html/rfc3986#section-3.5)
+    // Fragment is stripped — correct per RFC 3986 §3.5: user agents MUST NOT include the fragment
+    // in the HTTP request target sent to the origin server (though fragments can still appear in
+    // user-facing URLs, SPA routing, and are inherited across redirects per RFC 9110 §10.2.2).
+    // https://datatracker.ietf.org/doc/html/rfc3986#section-3.5
+    // https://datatracker.ietf.org/doc/html/rfc9110#section-10.2.2
     expect(result).not.toContain('#section');
     expect(result).toContain('%3D%3D');
   });
