@@ -47,7 +47,7 @@ const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
-const { preferencesUtil } = require('./store/preferences');
+const { preferencesUtil, getPreferences, savePreferences } = require('./store/preferences');
 const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
@@ -92,6 +92,24 @@ const isLinux = process.platform === 'linux';
 
 let mainWindow;
 let appProtocolUrl;
+
+// Helper function to save zoom to preferences and notify renderer
+const saveZoomAndNotify = (zoomLevel) => {
+  if (!mainWindow) return;
+
+  const percentage = Math.round(100 * Math.pow(1.2, zoomLevel));
+  const clampedPercentage = Math.max(10, Math.min(200, percentage));
+
+  const prefs = getPreferences();
+  prefs.display = prefs.display || {};
+  prefs.display.zoomPercentage = clampedPercentage;
+  savePreferences(prefs).catch((err) => {
+    console.error('Failed to save zoom preference:', err);
+  });
+
+  // Notify renderer to update Redux state
+  mainWindow.webContents.send('main:load-preferences', prefs);
+};
 
 // Helper function to focus and restore the main window
 const focusMainWindow = () => {
@@ -248,16 +266,21 @@ app.on('ready', async () => {
 
   ipcMain.handle('renderer:reset-zoom', () => {
     mainWindow.webContents.setZoomLevel(0);
+    saveZoomAndNotify(0);
   });
 
   ipcMain.handle('renderer:zoom-in', () => {
     const currentZoom = mainWindow.webContents.getZoomLevel();
-    mainWindow.webContents.setZoomLevel(currentZoom + 0.5);
+    const newZoom = Math.min(currentZoom + 0.5, 5);
+    mainWindow.webContents.setZoomLevel(newZoom);
+    saveZoomAndNotify(newZoom);
   });
 
   ipcMain.handle('renderer:zoom-out', () => {
     const currentZoom = mainWindow.webContents.getZoomLevel();
-    mainWindow.webContents.setZoomLevel(currentZoom - 0.5);
+    const newZoom = Math.max(currentZoom - 0.5, -5);
+    mainWindow.webContents.setZoomLevel(newZoom);
+    saveZoomAndNotify(newZoom);
   });
 
   ipcMain.handle('renderer:set-zoom-level', (event, zoomLevel) => {
@@ -456,7 +479,10 @@ app.on('open-file', (event, path) => {
 app.on('browser-window-focus', () => {
   // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
   globalShortcut.register('Ctrl+=', () => {
-    mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
+    const currentZoom = mainWindow.webContents.getZoomLevel();
+    const newZoom = Math.min(currentZoom + 0.5, 5);
+    mainWindow.webContents.setZoomLevel(newZoom);
+    saveZoomAndNotify(newZoom);
   });
 });
 

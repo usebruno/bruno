@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import get from 'lodash/get';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
@@ -40,24 +40,26 @@ const percentageToZoomLevel = (percentage) => {
 const Zoom = () => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
-  const isInitialMount = useRef(true);
+  const dropdownRef = useRef(null);
   const { ipcRenderer } = window;
 
-  // Get saved zoom percentage from Redux preferences
+  // Get saved zoom percentage from Redux preferences (single source of truth)
   const savedZoom = get(preferences, 'display.zoomPercentage', DEFAULT_ZOOM);
-  const [zoomPercentage, setZoomPercentage] = useState(savedZoom);
+  const [isOpen, setIsOpen] = useState(false);
 
-  const handleZoomChange = (event) => {
-    const newZoom = parseInt(event.target.value, 10);
-    setZoomPercentage(newZoom);
-  };
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
 
-  const handleResetToDefault = () => {
-    setZoomPercentage(DEFAULT_ZOOM);
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-  // Save zoom to preferences and apply to window
-  const handleSave = useCallback((zoom) => {
+  const handleSelect = (zoom) => {
     // Apply zoom level to Electron window immediately
     if (ipcRenderer) {
       const zoomLevel = percentageToZoomLevel(zoom);
@@ -73,34 +75,39 @@ const Zoom = () => {
       }
     };
     dispatch(savePreferences(updatedPreferences));
-  }, [dispatch, preferences, ipcRenderer]);
+    setIsOpen(false);
+  };
 
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    handleSave(zoomPercentage);
-  }, [zoomPercentage, handleSave]);
+  const handleResetToDefault = () => {
+    handleSelect(DEFAULT_ZOOM);
+  };
 
-  const isDefault = zoomPercentage === DEFAULT_ZOOM;
+  const selectedOption = ZOOM_OPTIONS.find((opt) => opt.value === savedZoom);
+  const isDefault = savedZoom === DEFAULT_ZOOM;
 
   return (
     <StyledWrapper>
       <div className="flex flex-row gap-4 items-end">
-        <div className="zoom-field">
+        <div className="zoom-field" ref={dropdownRef}>
           <label className="block">Interface Zoom</label>
-          <select
-            className="block textbox mt-2"
-            value={zoomPercentage}
-            onChange={handleZoomChange}
-          >
-            {ZOOM_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="custom-select mt-2" onClick={() => setIsOpen(!isOpen)}>
+            <span className="selected-value">{selectedOption?.label}</span>
+            <IconChevronDown size={14} className="chevron-icon" />
+          </div>
+          {isOpen && (
+            <div className="dropdown-menu">
+              {ZOOM_OPTIONS.map((option) => (
+                <div
+                  key={option.value}
+                  className={`dropdown-option ${option.value === savedZoom ? 'selected' : ''}`}
+                  onClick={() => handleSelect(option.value)}
+                >
+                  <span className="option-label">{option.label}</span>
+                  {option.value === savedZoom && <IconCheck size={14} className="check-icon" />}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         {!isDefault && (
           <button
