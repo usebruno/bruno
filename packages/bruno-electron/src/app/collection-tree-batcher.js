@@ -155,7 +155,7 @@ const getBatcher = (win, collectionUid) => {
     const batcher = new CollectionTreeBatcher(win, collectionUid);
 
     // Clean up when window is closed
-    win.on('closed', () => {
+    win.once('closed', () => {
       const b = batchers.get(batcherKey);
       if (b) {
         b.destroy();

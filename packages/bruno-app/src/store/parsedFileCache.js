@@ -19,6 +19,9 @@ const getDB = () => {
           store.createIndex('parsedAt', 'parsedAt');
         }
       }
+    }).catch((err) => {
+      dbPromise = null;
+      throw err;
     });
   }
   return dbPromise;
@@ -113,13 +116,17 @@ export const parsedFileCacheStore = {
   },
 
   async moveEntry(collectionPath, oldFilePath, newFilePath) {
-    const entry = await this.getEntry(collectionPath, oldFilePath);
-    if (entry) {
-      await this.invalidate(collectionPath, oldFilePath);
-      await this.setEntry(collectionPath, newFilePath, {
-        mtimeMs: entry.mtimeMs,
-        parsedData: entry.parsedData
-      });
+    try {
+      const entry = await this.getEntry(collectionPath, oldFilePath);
+      if (entry) {
+        await this.invalidate(collectionPath, oldFilePath);
+        await this.setEntry(collectionPath, newFilePath, {
+          mtimeMs: entry.mtimeMs,
+          parsedData: entry.parsedData
+        });
+      }
+    } catch (error) {
+      console.error('ParsedFileCacheStore: Error moving cache entry:', error);
     }
   },
 
