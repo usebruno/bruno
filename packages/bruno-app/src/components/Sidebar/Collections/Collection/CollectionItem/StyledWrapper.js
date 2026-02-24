@@ -157,6 +157,18 @@ const Wrapper = styled.div`
     }
   }
 
+  .empty-folder-message {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.sidebar.muted};
+
+    .add-request-link {
+      color: ${(props) => props.theme.textLink};
+      cursor: pointer;
+    }
+  }
+
   &.is-sidebar-dragging .collection-item-name {
     cursor: inherit;
   }

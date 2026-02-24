@@ -48,6 +48,7 @@ import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
+import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 
 const Collection = ({ collection, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
@@ -277,6 +278,11 @@ const Collection = ({ collection, searchText }) => {
 
   const requestItems = sortItemsBySequence(filter(collection.items, (i) => isItemARequest(i) && !i.isTransient));
   const folderItems = sortByNameThenSequence(filter(collection.items, (i) => isItemAFolder(i) && !i.isTransient));
+  const isCollectionReady = collection.mountStatus === 'mounted' && collection.isLoading === false;
+  const isCollectionEmpty = !folderItems?.length && !requestItems?.length;
+  const showEmptyCollectionMessage = isCollectionReady && isCollectionEmpty && !hasSearchText;
+
+  const emptyStateMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: null });
 
   const menuItems = [
     {
@@ -471,6 +477,18 @@ const Collection = ({ collection, searchText }) => {
             {requestItems?.map?.((i) => {
               return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
             })}
+            {showEmptyCollectionMessage ? (
+              <div className="empty-collection-message">
+                <MenuDropdown
+                  items={emptyStateMenuItems}
+                  placement="bottom-start"
+                  appendTo={dropdownContainerRef?.current || document.body}
+                  popperOptions={{ strategy: 'fixed' }}
+                >
+                  <span className="add-request-link">+ Add request</span>
+                </MenuDropdown>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>

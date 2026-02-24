@@ -48,6 +48,7 @@ import ExampleIcon from 'components/Icons/ExampleIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
+import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
@@ -505,6 +506,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i) && !i.isTransient));
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
+  const showEmptyFolderMessage = isFolder && !hasSearchText && !folderItems?.length && !requestItems?.length;
+
+  const emptyFolderMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: item.uid });
 
   const handleGenerateCode = () => {
     if (
@@ -716,6 +720,21 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                 return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
               })
             : null}
+          {showEmptyFolderMessage ? (
+            <div
+              className="empty-folder-message"
+              style={{ paddingLeft: `${(item.depth + 1) * 16 + 12}px` }}
+            >
+              <MenuDropdown
+                items={emptyFolderMenuItems}
+                placement="bottom-start"
+                appendTo={dropdownContainerRef?.current || document.body}
+                popperOptions={{ strategy: 'fixed' }}
+              >
+                <span className="add-request-link">+ Add request</span>
+              </MenuDropdown>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

@@ -95,6 +95,17 @@ const Wrapper = styled.div`
     text-overflow: ellipsis;
     overflow: hidden;
   }
+
+  .empty-collection-message {
+    padding: 6px 0 6px 28px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.sidebar.muted};
+
+    .add-request-link {
+      color: ${(props) => props.theme.textLink};
+      cursor: pointer;
+    }
+  }
 `;
 
 export default Wrapper;
