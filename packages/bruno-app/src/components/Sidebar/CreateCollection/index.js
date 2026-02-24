@@ -161,11 +161,12 @@ const CreateCollection = ({
                 className="block textbox mt-2 w-full"
                 onChange={(e) => {
                   formik.handleChange(e);
-                  const formattedFileName = e.target.value.replace(/\s+/g, '-');
+                  const formattedFolderName = e.target.value.trim().replace(/\s+/g, '-');
+                  const sanitizedFolderName = sanitizeName(formattedFolderName).replace(/-+/g, '-');
                   !isEditing
                   && formik.setFieldValue(
                     'collectionFolderName',
-                    sanitizeName(formattedFileName)
+                    sanitizedFolderName
                   );
                 }}
                 autoComplete="off"
