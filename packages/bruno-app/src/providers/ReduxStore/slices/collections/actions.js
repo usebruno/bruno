@@ -3157,7 +3157,7 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
   // Close the tabs first
   await dispatch(_closeTabs({ tabUids }));
 
-  // After close, active tab may be from another workspace; switch to this workspace's overview if so.
+  // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: prefer any open in-workspace tab, then workspace overview if none.
   await dispatch(ensureActiveTabInCurrentWorkspace());
 
   // Delete transient files after tabs are closed

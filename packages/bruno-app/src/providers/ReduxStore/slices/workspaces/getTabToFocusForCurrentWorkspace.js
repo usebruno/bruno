@@ -16,9 +16,12 @@ export function getWorkspaceCollectionUids(state, workspace) {
     uids.add(workspace.scratchCollectionUid);
   }
   const workspacePaths = new Set(
-    (workspace.collections || []).map((wc) => normalizePath(wc.path))
+    (workspace.collections || [])
+      .filter((wc) => wc.path)
+      .map((wc) => normalizePath(wc.path))
   );
   state.collections?.collections?.forEach((c) => {
+    if (!c.pathname) return;
     if (workspacePaths.has(normalizePath(c.pathname))) {
       uids.add(c.uid);
     }
