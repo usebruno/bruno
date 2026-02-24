@@ -434,7 +434,7 @@ const populateRequestBody = ({ body, bodySchema, contentType }) => {
  * @param {*} params.exampleValue - The example value (object, array, or primitive)
  * @param {string} params.exampleName - Name of the example
  * @param {string} params.exampleDescription - Description of the example
- * @param {string|number} params.statusCode - HTTP status code (for response examples)
+ * @param {number} params.statusCode - HTTP status code (for response examples)
  * @param {string} params.contentType - Content type (e.g., 'application/json')
  * @param {Object} [params.requestBodySchema] - Optional request body schema to populate in the example
  * @param {string} [params.requestBodyContentType] - Optional request body content type
@@ -806,7 +806,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
      * @param {*} params.responseExampleValue - The response example value
      * @param {string} params.exampleName - Name of the example
      * @param {string} params.exampleDescription - Description of the example
-     * @param {string|number} params.statusCode - HTTP status code
+     * @param {number} params.statusCode - HTTP status code
      * @param {string} params.responseContentType - Response content type
      * @param {string} [params.responseExampleKey] - Optional response example key for matching
      */

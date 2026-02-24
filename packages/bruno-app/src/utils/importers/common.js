@@ -87,6 +87,35 @@ export const filterItemsInCollection = (collection) => {
   return collection;
 };
 
+/**
+ * Backward compatibility: Convert string status to number in examples
+ * Old collections exported before the fix had status as string
+ */
+export const transformExampleStatusInCollection = (collection) => {
+  const transformItems = (items = []) => {
+    each(items, (item) => {
+      each(get(item, 'examples'), (example) => {
+        if (example.response && typeof example.response.status === 'string') {
+          const statusValue = example.response.status;
+          example.response.status = statusValue ? Number(statusValue) : null;
+        }
+      });
+
+      if (item.items && item.items.length) {
+        transformItems(item.items);
+      }
+    });
+  };
+
+  if (Array.isArray(collection)) {
+    collection.forEach((col) => transformItems(col.items));
+  } else {
+    transformItems(collection.items);
+  }
+
+  return collection;
+};
+
 // todo
 // need to eventually get rid of supporting old collection app models
 // 1. start with making request type a constant fetched from a single place
