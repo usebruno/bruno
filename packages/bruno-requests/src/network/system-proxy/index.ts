@@ -48,7 +48,6 @@ export class SystemProxyResolver {
 
       return result;
     } catch (error) {
-      console.warn(`System proxy detection failed after ${Date.now() - startTime}ms:`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -75,7 +74,7 @@ export class SystemProxyResolver {
 
     return {
       http_proxy: httpProxy ? normalizeProxyUrl(httpProxy) : null,
-      https_proxy: httpsProxy ? normalizeProxyUrl(httpsProxy, 'https') : null,
+      https_proxy: httpsProxy ? normalizeProxyUrl(httpsProxy) : null,
       no_proxy: noProxy ? normalizeNoProxy(noProxy) : null,
       source: 'environment'
     };
@@ -99,7 +98,6 @@ export async function getSystemProxy(): Promise<ProxyConfiguration> {
       source: hasEnvironmentProxy ? `${systemProxyEnvironmentVariables?.source} + environment` : systemProxyEnvironmentVariables?.source
     };
   } catch (error) {
-    console.error('Error getting system proxy:', error);
     return proxyEnvironmentVariables;
   }
 }
