@@ -464,8 +464,6 @@ const registerNetworkIpc = (mainWindow) => {
     }
   };
 
-
-
   const appendScriptErrorResult = (scriptType, scriptResult, error) => {
     if (!error) {
       return scriptResult;
@@ -538,7 +536,6 @@ const registerNetworkIpc = (mainWindow) => {
     if (scriptResult.globalEnvironmentVariables) {
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
     }
-    
 
     if (updateCookies) {
       const domainsWithCookies = await getDomainsWithCookies();
@@ -674,7 +671,6 @@ const registerNetworkIpc = (mainWindow) => {
       });
       resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
     }
-
 
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars, promptVariables);
@@ -1784,11 +1780,11 @@ const registerNetworkIpc = (mainWindow) => {
                   debugInfo: request?.oauth2Credentials?.debugInfo
                 });
 
-              const { credentialsId, credentials } = request.oauth2Credentials;
-              request.oauth2CredentialVariables = request.oauth2CredentialVariables || {};
-              Object.entries(credentials).forEach(([key, value]) => {
-                request.oauth2CredentialVariables[`$oauth2.${credentialsId}.${key}`] = value;
-              });
+                const { credentialsId, credentials } = request.oauth2Credentials;
+                request.oauth2CredentialVariables = request.oauth2CredentialVariables || {};
+                Object.entries(credentials).forEach(([key, value]) => {
+                  request.oauth2CredentialVariables[`$oauth2.${credentialsId}.${key}`] = value;
+                });
 
                 collection.oauth2Credentials = updateCollectionOauth2Credentials({
                   itemUid: item.uid,
@@ -2050,7 +2046,7 @@ const registerNetworkIpc = (mainWindow) => {
                   updateCookies: true
                 });
 
-              resetOauth2Credentials({ oauth2CredentialsToReset: testResults.oauth2CredentialsToReset, request, collectionUid });
+                resetOauth2Credentials({ oauth2CredentialsToReset: testResults.oauth2CredentialsToReset, request, collectionUid });
 
                 notifyScriptExecution({
                   channel: 'main:run-folder-event',
