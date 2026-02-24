@@ -2,7 +2,7 @@ const _ = require('lodash');
 const Store = require('electron-store');
 const { encryptStringSafe } = require('../utils/encryption');
 
-const posixifyPath = (p) => p.replace(/\\/g, '/');
+const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : '');
 
 /**
  * Sample secrets store file
