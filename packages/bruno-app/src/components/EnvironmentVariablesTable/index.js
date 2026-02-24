@@ -5,6 +5,7 @@ import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useSelector } from 'react-redux';
 import MultiLineEditor from 'components/MultiLineEditor/index';
+import CollapsibleSection from 'components/Environments/CollapsibleSection';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
@@ -17,6 +18,8 @@ import { stripEnvVarUid } from 'utils/environments';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
+
+const SECRET_TRAILING_INDEX = -1;
 
 const TableRow = React.memo(
   ({ children, item }) => (
@@ -47,9 +50,22 @@ const EnvironmentVariablesTable = ({
 
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
-  const [tableHeight, setTableHeight] = useState(MIN_H);
+  const [varsTableHeight, setVarsTableHeight] = useState(MIN_H);
+  const [secretsTableHeight, setSecretsTableHeight] = useState(MIN_H);
   const [columnWidths, setColumnWidths] = useState({ name: '30%', value: 'auto' });
   const [resizing, setResizing] = useState(null);
+  const [variablesExpanded, setVariablesExpanded] = useState(true);
+  const [secretsExpanded, setSecretsExpanded] = useState(true);
+
+  const varsScrollerRef = useRef(null);
+  const secretsScrollerRef = useRef(null);
+  const varsVirtuosoRef = useRef(null);
+  const secretsVirtuosoRef = useRef(null);
+
+  const pendingSecretFocusRef = useRef(null);
+  const pendingVarsScrollRef = useRef(false);
+  const secretCreationPendingRef = useRef(false);
+  const [secretTrailingKey, setSecretTrailingKey] = useState(0);
 
   const handleResizeStart = useCallback((e, columnKey) => {
     e.preventDefault();
@@ -88,8 +104,18 @@ const EnvironmentVariablesTable = ({
     document.addEventListener('mouseup', handleMouseUp);
   }, []);
 
-  const handleTotalHeightChanged = useCallback((h) => {
-    setTableHeight(h);
+  const handleVarsHeightChanged = useCallback(() => {
+    requestAnimationFrame(() => {
+      const table = varsScrollerRef.current?.querySelector('table');
+      if (table) setVarsTableHeight(table.offsetHeight);
+    });
+  }, []);
+
+  const handleSecretsHeightChanged = useCallback(() => {
+    requestAnimationFrame(() => {
+      const table = secretsScrollerRef.current?.querySelector('table');
+      if (table) setSecretsTableHeight(table.offsetHeight);
+    });
   }, []);
 
   const prevEnvUidRef = useRef(null);
@@ -302,6 +328,7 @@ const EnvironmentVariablesTable = ({
         enabled: true
       };
       setTimeout(() => {
+        pendingVarsScrollRef.current = true;
         formik.setFieldValue(formik.values.length, newVariable, false);
       }, 0);
     }
@@ -317,6 +344,34 @@ const EnvironmentVariablesTable = ({
       formik.setFieldTouched(`${index}.name`, true, true);
     }
   };
+
+  const handleSecretTrailingNameChange = useCallback(
+    (e) => {
+      const name = e.target.value;
+      if (!name || secretCreationPendingRef.current) return;
+
+      secretCreationPendingRef.current = true;
+      const newSecret = {
+        uid: uuid(),
+        name: name,
+        value: '',
+        type: 'text',
+        secret: true,
+        enabled: true
+      };
+      const values = [...formik.values];
+      const insertIdx = values.length - 1;
+      values.splice(insertIdx, 0, newSecret);
+      formik.setValues(values);
+
+      // Schedule focus on the newly created formik row
+      pendingSecretFocusRef.current = insertIdx;
+      // Reset the synthetic trailing row
+      setSecretTrailingKey((k) => k + 1);
+      setSecretsExpanded(true);
+    },
+    [formik]
+  );
 
   const handleSave = useCallback(() => {
     const variablesToSave = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
@@ -421,125 +476,276 @@ const EnvironmentVariablesTable = ({
     });
   }, [formik.values, searchQuery]);
 
+  const regularVariables = useMemo(() => {
+    return filteredVariables.filter(({ variable, index }) => {
+      const isLastRow = index === formik.values.length - 1;
+      const isEmptyRow = !variable.name || variable.name.trim() === '';
+      if (isLastRow && isEmptyRow) return true;
+      return !variable.secret;
+    });
+  }, [filteredVariables, formik.values.length]);
+
+  const secretVariables = useMemo(() => {
+    return filteredVariables.filter(({ variable, index }) => {
+      const isLastRow = index === formik.values.length - 1;
+      const isEmptyRow = !variable.name || variable.name.trim() === '';
+      if (isLastRow && isEmptyRow) return false;
+      return variable.secret;
+    });
+  }, [filteredVariables, formik.values.length]);
+
+  const secretTrailingRow = useMemo(
+    () => ({
+      variable: {
+        uid: `secret-trailing-${secretTrailingKey}`,
+        name: '',
+        value: '',
+        type: 'text',
+        secret: true,
+        enabled: true
+      },
+      index: SECRET_TRAILING_INDEX
+    }),
+    [secretTrailingKey]
+  );
+
+  const secretVariablesWithTrailing = useMemo(() => {
+    return [...secretVariables, secretTrailingRow];
+  }, [secretVariables, secretTrailingRow]);
+
+  const varsBadgeCount = useMemo(() => {
+    const count = formik.values.filter((v) => !v.secret && v.name && v.name.trim() !== '').length;
+    return count || null;
+  }, [formik.values]);
+
+  const secretsBadgeCount = useMemo(() => {
+    const count = formik.values.filter((v) => v.secret && v.name && v.name.trim() !== '').length;
+    return count || null;
+  }, [formik.values]);
+
+  // Focus the newly created secret row and scroll to show the trailing row
+  useEffect(() => {
+    if (pendingSecretFocusRef.current !== null) {
+      const index = pendingSecretFocusRef.current;
+      pendingSecretFocusRef.current = null;
+      secretCreationPendingRef.current = false;
+      requestAnimationFrame(() => {
+        const input = document.getElementById(`${index}.name`);
+        if (input) {
+          input.focus();
+          const len = input.value.length;
+          input.setSelectionRange(len, len);
+        }
+        secretsVirtuosoRef.current?.scrollToIndex({
+          index: secretVariablesWithTrailing.length - 1,
+          align: 'end',
+          behavior: 'smooth'
+        });
+      });
+    }
+  }, [formik.values, secretVariablesWithTrailing.length]);
+
+  useEffect(() => {
+    if (pendingVarsScrollRef.current) {
+      pendingVarsScrollRef.current = false;
+      requestAnimationFrame(() => {
+        varsVirtuosoRef.current?.scrollToIndex({
+          index: regularVariables.length - 1,
+          align: 'end',
+          behavior: 'smooth'
+        });
+      });
+    }
+  }, [formik.values, regularVariables.length]);
+
+  const renderTableHeader = (tableHeight) => (
+    <tr>
+      <td className="text-center"></td>
+      <td style={{ width: columnWidths.name }}>
+        Name
+        <div
+          className={`resize-handle ${resizing === 'name' ? 'resizing' : ''}`}
+          style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
+          onMouseDown={(e) => handleResizeStart(e, 'name')}
+        />
+      </td>
+      <td style={{ width: columnWidths.value }}>Value</td>
+      <td></td>
+    </tr>
+  );
+
+  const renderRowContent = (virtualIndex, { variable, index: actualIndex }) => {
+    const isSyntheticTrailing = actualIndex === SECRET_TRAILING_INDEX;
+    const isLastRow = !isSyntheticTrailing && actualIndex === formik.values.length - 1;
+    const isEmptyRow = !variable.name || variable.name.trim() === '';
+    const isTrailingRow = isSyntheticTrailing || (isLastRow && isEmptyRow);
+
+    if (isSyntheticTrailing) {
+      return (
+        <>
+          <td className="text-center"></td>
+          <td style={{ width: columnWidths.name }}>
+            <div className="flex items-center">
+              <input
+                key={secretTrailingKey}
+                type="text"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                className="mousetrap"
+                data-testid="add-secret-name"
+                placeholder="Name"
+                defaultValue=""
+                onChange={handleSecretTrailingNameChange}
+              />
+            </div>
+          </td>
+          <td className="flex flex-row flex-nowrap items-center" style={{ width: columnWidths.value }}>
+            <div className="overflow-hidden grow w-full relative">
+              <MultiLineEditor
+                key={`secret-trailing-value-${secretTrailingKey}`}
+                theme={storedTheme}
+                collection={_collection}
+                value=""
+                placeholder="Value"
+                isSecret={true}
+                readOnly={true}
+                onChange={() => {}}
+              />
+            </div>
+          </td>
+          <td></td>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <td className="text-center">
+          {!isTrailingRow && (
+            <input
+              type="checkbox"
+              className="mousetrap"
+              name={`${actualIndex}.enabled`}
+              checked={variable.enabled}
+              onChange={formik.handleChange}
+            />
+          )}
+        </td>
+        <td style={{ width: columnWidths.name }}>
+          <div className="flex items-center">
+            <input
+              type="text"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              className="mousetrap"
+              id={`${actualIndex}.name`}
+              name={`${actualIndex}.name`}
+              value={variable.name}
+              placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Name' : ''}
+              onChange={(e) => handleNameChange(actualIndex, e)}
+              onBlur={() => handleNameBlur(actualIndex)}
+              onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
+            />
+            <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
+          </div>
+        </td>
+        <td className="flex flex-row flex-nowrap items-center" style={{ width: columnWidths.value }}>
+          <div className="overflow-hidden grow w-full relative">
+            <MultiLineEditor
+              theme={storedTheme}
+              collection={_collection}
+              name={`${actualIndex}.value`}
+              value={variable.value}
+              placeholder={isTrailingRow ? 'Value' : ''}
+              isSecret={variable.secret}
+              readOnly={typeof variable.value !== 'string'}
+              onChange={(newValue) => {
+                formik.setFieldValue(`${actualIndex}.value`, newValue, true);
+                // Clear ephemeral metadata when user manually edits the value
+                if (variable.ephemeral) {
+                  formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
+                  formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
+                }
+              }}
+              onSave={handleSave}
+            />
+          </div>
+          {typeof variable.value !== 'string' && (
+            <span className="ml-2 flex items-center">
+              <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
+              <Tooltip
+                anchorId={`${variable.uid}-disabled-info-icon`}
+                content="Non-string values set via scripts are read-only and can only be updated through scripts."
+                place="top"
+              />
+            </span>
+          )}
+          {renderExtraValueContent && renderExtraValueContent(variable)}
+        </td>
+        <td>
+          {!isTrailingRow && (
+            <button onClick={() => handleRemoveVar(variable.uid)}>
+              <IconTrash strokeWidth={1.5} size={18} />
+            </button>
+          )}
+        </td>
+      </>
+    );
+  };
+
   return (
     <StyledWrapper className={resizing ? 'is-resizing' : ''}>
-      <TableVirtuoso
-        className="table-container"
-        style={{ height: tableHeight }}
-        components={{ TableRow }}
-        data={filteredVariables}
-        totalListHeightChanged={handleTotalHeightChanged}
-        fixedHeaderContent={() => (
-          <tr>
-            <td className="text-center"></td>
-            <td style={{ width: columnWidths.name }}>
-              Name
-              <div
-                className={`resize-handle ${resizing === 'name' ? 'resizing' : ''}`}
-                style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
-                onMouseDown={(e) => handleResizeStart(e, 'name')}
-              />
-            </td>
-            <td style={{ width: columnWidths.value }}>Value</td>
-            <td className="text-center">Secret</td>
-            <td></td>
-          </tr>
-        )}
-        fixedItemHeight={35}
-        computeItemKey={(virtualIndex, item) => `${environment.uid}-${item.index}`}
-        itemContent={(virtualIndex, { variable, index: actualIndex }) => {
-          const isLastRow = actualIndex === formik.values.length - 1;
-          const isEmptyRow = !variable.name || variable.name.trim() === '';
-          const isLastEmptyRow = isLastRow && isEmptyRow;
+      <CollapsibleSection
+        className="variables-section"
+        title="Variables"
+        expanded={variablesExpanded}
+        onToggle={() => setVariablesExpanded(!variablesExpanded)}
+        badge={varsBadgeCount}
+      >
+        <div className="table-sizer" style={{ height: varsTableHeight }}>
+          <TableVirtuoso
+            ref={varsVirtuosoRef}
+            className="table-container"
+            style={{ height: '100%' }}
+            scrollerRef={(ref) => { varsScrollerRef.current = ref; }}
+            components={{ TableRow }}
+            data={regularVariables}
+            totalListHeightChanged={handleVarsHeightChanged}
+            fixedHeaderContent={() => renderTableHeader(varsTableHeight)}
+            fixedItemHeight={35}
+            computeItemKey={(virtualIndex, item) => `${environment.uid}-var-${item.index}`}
+            itemContent={renderRowContent}
+          />
+        </div>
+      </CollapsibleSection>
 
-          return (
-            <>
-              <td className="text-center">
-                {!isLastEmptyRow && (
-                  <input
-                    type="checkbox"
-                    className="mousetrap"
-                    name={`${actualIndex}.enabled`}
-                    checked={variable.enabled}
-                    onChange={formik.handleChange}
-                  />
-                )}
-              </td>
-              <td style={{ width: columnWidths.name }}>
-                <div className="flex items-center">
-                  <input
-                    type="text"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    className="mousetrap"
-                    id={`${actualIndex}.name`}
-                    name={`${actualIndex}.name`}
-                    value={variable.name}
-                    placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Name' : ''}
-                    onChange={(e) => handleNameChange(actualIndex, e)}
-                    onBlur={() => handleNameBlur(actualIndex)}
-                    onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
-                  />
-                  <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
-                </div>
-              </td>
-              <td className="flex flex-row flex-nowrap items-center" style={{ width: columnWidths.value }}>
-                <div className="overflow-hidden grow w-full relative">
-                  <MultiLineEditor
-                    theme={storedTheme}
-                    collection={_collection}
-                    name={`${actualIndex}.value`}
-                    value={variable.value}
-                    placeholder={isLastEmptyRow ? 'Value' : ''}
-                    isSecret={variable.secret}
-                    readOnly={typeof variable.value !== 'string'}
-                    onChange={(newValue) => {
-                      formik.setFieldValue(`${actualIndex}.value`, newValue, true);
-                      // Clear ephemeral metadata when user manually edits the value
-                      if (variable.ephemeral) {
-                        formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
-                        formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
-                      }
-                    }}
-                    onSave={handleSave}
-                  />
-                </div>
-                {typeof variable.value !== 'string' && (
-                  <span className="ml-2 flex items-center">
-                    <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
-                    <Tooltip
-                      anchorId={`${variable.uid}-disabled-info-icon`}
-                      content="Non-string values set via scripts are read-only and can only be updated through scripts."
-                      place="top"
-                    />
-                  </span>
-                )}
-                {renderExtraValueContent && renderExtraValueContent(variable)}
-              </td>
-              <td className="text-center">
-                {!isLastEmptyRow && (
-                  <input
-                    type="checkbox"
-                    className="mousetrap"
-                    name={`${actualIndex}.secret`}
-                    checked={variable.secret}
-                    onChange={formik.handleChange}
-                  />
-                )}
-              </td>
-              <td>
-                {!isLastEmptyRow && (
-                  <button onClick={() => handleRemoveVar(variable.uid)}>
-                    <IconTrash strokeWidth={1.5} size={18} />
-                  </button>
-                )}
-              </td>
-            </>
-          );
-        }}
-      />
+      <CollapsibleSection
+        className="secrets-section"
+        title="Secrets"
+        expanded={secretsExpanded}
+        onToggle={() => setSecretsExpanded(!secretsExpanded)}
+        badge={secretsBadgeCount}
+      >
+        <div className="table-sizer" style={{ height: secretsTableHeight }}>
+          <TableVirtuoso
+            ref={secretsVirtuosoRef}
+            className="table-container"
+            style={{ height: '100%' }}
+            scrollerRef={(ref) => { secretsScrollerRef.current = ref; }}
+            components={{ TableRow }}
+            data={secretVariablesWithTrailing}
+            totalListHeightChanged={handleSecretsHeightChanged}
+            fixedHeaderContent={() => renderTableHeader(secretsTableHeight)}
+            fixedItemHeight={35}
+            computeItemKey={(virtualIndex, item) => `${environment.uid}-secret-${item.index}-${item.variable.uid}`}
+            itemContent={renderRowContent}
+          />
+        </div>
+      </CollapsibleSection>
 
       <div className="button-container">
         <div className="flex items-center">

@@ -514,21 +514,27 @@ const addEnvironmentVariable = async (
   index: number
 ) => {
   await test.step(`Add environment variable "${variable.name}"`, async () => {
-    const nameInput = page.locator(`input[name="${index}.name"]`);
-    await nameInput.waitFor({ state: 'visible' });
-    await nameInput.fill(variable.name);
-
-    // Wait for the CodeMirror editor in the row to be ready
-    const variableRow = page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) });
-    const codeMirror = variableRow.locator('.CodeMirror');
-    await codeMirror.waitFor({ state: 'visible' });
-    await codeMirror.click();
-    await page.keyboard.type(variable.value);
-
     if (variable.isSecret) {
-      const secretCheckbox = page.locator(`input[name="${index}.secret"]`);
-      await secretCheckbox.waitFor({ state: 'visible' });
-      await secretCheckbox.check();
+      const addSecretInput = page.getByTestId('add-secret-name');
+      await addSecretInput.waitFor({ state: 'visible' });
+      await addSecretInput.fill(variable.name);
+
+      const variableRow = page.locator('tr').filter({ has: page.locator(`input[value="${variable.name}"]`) });
+      const codeMirror = variableRow.locator('.CodeMirror');
+      await codeMirror.waitFor({ state: 'visible' });
+      await codeMirror.click();
+      await page.keyboard.type(variable.value);
+    } else {
+      const nameInput = page.locator(`input[name="${index}.name"]`);
+      await nameInput.waitFor({ state: 'visible' });
+      await nameInput.fill(variable.name);
+
+      // Wait for the CodeMirror editor in the row to be ready
+      const variableRow = page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) });
+      const codeMirror = variableRow.locator('.CodeMirror');
+      await codeMirror.waitFor({ state: 'visible' });
+      await codeMirror.click();
+      await page.keyboard.type(variable.value);
     }
   });
 };
