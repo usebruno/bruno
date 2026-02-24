@@ -1,6 +1,7 @@
+import { REQUEST_TYPES } from 'utils/common/constants';
 export const sendNetworkRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
-    if (['http-request', 'graphql-request'].includes(item.type)) {
+    if ([REQUEST_TYPES.HTTP_REQUEST, REQUEST_TYPES.GRAPHQL_REQUEST].includes(item.type)) {
       sendHttpRequest(item, collection, environment, runtimeVariables)
         .then((response) => {
           // if there is an error, we return the response object as is

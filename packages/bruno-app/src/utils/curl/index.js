@@ -2,6 +2,7 @@ import { forOwn } from 'lodash';
 import curlToJson from './curl-to-json';
 import { prettifyJsonString } from 'utils/common/index';
 import { isJsonLikeContentType, isPlainTextContentType, isXmlLikeContentType } from './content-type';
+import { REQUEST_TYPES } from 'utils/common/constants';
 
 export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-request') => {
   const parseFormData = (parsedBody) => {
@@ -62,13 +63,13 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
     if (parsedBody && contentType && typeof contentType === 'string') {
       const normalizedContentType = contentType.toLowerCase();
 
-      if (requestType === 'graphql-request' && (isJsonLikeContentType(contentType) || normalizedContentType.includes('application/graphql'))) {
+      if (requestType === REQUEST_TYPES.GRAPHQL_REQUEST && (isJsonLikeContentType(contentType) || normalizedContentType.includes('application/graphql'))) {
         body.mode = 'graphql';
         body.graphql = parseGraphQL(parsedBody);
       } else if (normalizedContentType.includes('application/x-ndjson') || normalizedContentType.includes('application/ndjson')) {
         body.mode = 'text';
         body.text = parsedBody;
-      } else if (requestType === 'http-request' && request.isDataBinary) {
+      } else if (requestType === REQUEST_TYPES.HTTP_REQUEST && request.isDataBinary) {
         body.mode = 'file';
         body.file = parsedBody;
       } else if (isJsonLikeContentType(contentType)) {

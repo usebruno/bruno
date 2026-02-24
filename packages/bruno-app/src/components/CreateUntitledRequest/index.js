@@ -7,6 +7,7 @@ import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode, IconPlus } from '@tabler/icons';
 import ActionIcon from 'ui/ActionIcon';
+import { REQUEST_TYPES } from 'utils/common/constants';
 
 const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated, placement = 'bottom' }) => {
   const dispatch = useDispatch();
@@ -21,7 +22,7 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
       newHttpRequest({
         requestName: uniqueName,
         filename: filename,
-        requestType: 'http-request',
+        requestType: REQUEST_TYPES.HTTP_REQUEST,
         requestUrl: '',
         requestMethod: 'GET',
         collectionUid: collection.uid,

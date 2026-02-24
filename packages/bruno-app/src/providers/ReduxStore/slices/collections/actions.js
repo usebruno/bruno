@@ -89,7 +89,6 @@ import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
-
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
   // Extract base name by removing any existing " (number)" suffix
@@ -1060,7 +1059,7 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
         .then(async () => {
           // Reorder items in parent directory after deletion
           if (parentDirectoryItem.items) {
-            const requestAndFolderTypes = [...REQUEST_TYPES, 'folder'];
+            const requestAndFolderTypes = [...Object.values(REQUEST_TYPES), 'folder'];
             const directoryItemsWithOnlyRequestAndFolders = parentDirectoryItem.items.filter((i) => requestAndFolderTypes.includes(i.type));
             const directoryItemsWithoutDeletedItem = directoryItemsWithOnlyRequestAndFolders.filter((i) => i.uid !== itemUid);
             const reorderedSourceItems = getReorderedItemsInSourceDirectory({
