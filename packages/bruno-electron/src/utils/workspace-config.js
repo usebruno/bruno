@@ -6,7 +6,7 @@ const { generateUidBasedOnHash } = require('./common');
 const { withLock, getWorkspaceLockKey } = require('./workspace-lock');
 
 // Normalize Windows backslash paths to forward slashes for cross-platform compatibility.
-const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : '');
+const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
 
 const WORKSPACE_TYPE = 'workspace';
 const OPENCOLLECTION_VERSION = '1.0.0';
