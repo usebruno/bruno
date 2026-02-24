@@ -71,6 +71,37 @@ describe('getTabToFocusForCurrentWorkspace', () => {
     expect(result.addOverviewFirst).toBeUndefined();
   });
 
+  it('returns last in-workspace tab when multiple request tabs exist in current workspace', () => {
+    const state = buildState({
+      tabs: {
+        activeTabUid: 'req-a',
+        tabs: [
+          { uid: 'req-a', collectionUid: 'col-a' },
+          { uid: 'req-b1', collectionUid: 'col-b' },
+          { uid: 'req-b2', collectionUid: 'col-b' }
+        ]
+      }
+    });
+    const result = getTabToFocusForCurrentWorkspace(state);
+    expect(result).not.toBeNull();
+    expect(result.uid).toBe('req-b2');
+  });
+
+  it('treats active tab with no collectionUid as not in workspace and returns in-workspace tab', () => {
+    const state = buildState({
+      tabs: {
+        activeTabUid: 'malformed',
+        tabs: [
+          { uid: 'malformed' },
+          { uid: 'req-b', collectionUid: 'col-b' }
+        ]
+      }
+    });
+    const result = getTabToFocusForCurrentWorkspace(state);
+    expect(result).not.toBeNull();
+    expect(result.uid).toBe('req-b');
+  });
+
   it('returns overview with addOverviewFirst when no in-workspace tabs and overview missing', () => {
     const state = buildState({
       tabs: {

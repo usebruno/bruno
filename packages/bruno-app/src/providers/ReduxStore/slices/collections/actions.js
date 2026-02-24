@@ -2354,7 +2354,6 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
       .then((remainingWorkspaces) => {
         // Close tabs for this collection
         dispatch(closeAllCollectionTabs({ collectionUid }));
-        dispatch(ensureActiveTabInCurrentWorkspace());
 
         // Remove collection from workspace in Redux state
         if (activeWorkspace) {
@@ -2363,6 +2362,8 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
             collectionLocation: collection.pathname
           }));
         }
+
+        dispatch(ensureActiveTabInCurrentWorkspace());
 
         // Only remove from Redux if no workspaces remain
         if (!remainingWorkspaces || remainingWorkspaces.length === 0) {
@@ -3158,6 +3159,7 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
   await dispatch(_closeTabs({ tabUids }));
 
   // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: prefer any open in-workspace tab, then workspace overview if none.
+  // Dispatch is synchronous; state is already updated by _closeTabs above.
   await dispatch(ensureActiveTabInCurrentWorkspace());
 
   // Delete transient files after tabs are closed
