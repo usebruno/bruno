@@ -543,6 +543,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
       }).filter((tag) => tag.trim())
     )],
     request: {
+      docs: _operationObject.description,
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {

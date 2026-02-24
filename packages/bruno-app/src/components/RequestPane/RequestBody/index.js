@@ -46,7 +46,7 @@ const RequestBody = ({ item, collection }) => {
     };
 
     return (
-      <StyledWrapper className="w-full">
+      <StyledWrapper className="w-full" data-testid="request-body-editor">
         <CodeEditor
           collection={collection}
           item={item}

@@ -89,8 +89,11 @@ const createCollection = async (page, collectionName: string, collectionLocation
   });
 };
 
+const STANDARD_HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE', 'CONNECT'];
+
 type CreateRequestOptions = {
   url?: string;
+  method?: string;
   inFolder?: boolean;
 };
 
@@ -241,7 +244,7 @@ const createRequest = async (
   parentName: string,
   options: CreateRequestOptions = {}
 ) => {
-  const { url, inFolder = false } = options;
+  const { url, method, inFolder = false } = options;
   const parentType = inFolder ? 'folder' : 'collection';
 
   await test.step(`Create request "${requestName}" in ${parentType} "${parentName}"`, async () => {
@@ -257,6 +260,19 @@ const createRequest = async (
 
     await locators.dropdown.item('New Request').click();
     await page.getByPlaceholder('Request Name').fill(requestName);
+
+    if (method) {
+      await page.locator('.bruno-modal .method-selector').click();
+      const isStandardMethod = STANDARD_HTTP_METHODS.includes(method.toUpperCase());
+      if (isStandardMethod) {
+        await locators.modal.newRequestMethodOption(method).click();
+      } else {
+        await locators.modal.newRequestMethodOption('add-custom').click();
+        await page.locator('.bruno-modal .method-selector input').fill(method);
+        await page.keyboard.press('Enter');
+      }
+      await page.waitForTimeout(200);
+    }
 
     if (url) {
       await page.locator('#new-request-url .CodeMirror').click();
@@ -569,7 +585,7 @@ const closeEnvironmentPanel = async (page: Page, type: EnvironmentType = 'collec
     const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
     const envTab = page.locator('.request-tab').filter({ hasText: tabLabel });
     await envTab.hover();
-    await envTab.getByTestId('request-tab-close-icon').click();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
   });
 };
 
@@ -958,6 +974,37 @@ const saveRequest = async (page: Page) => {
   });
 };
 
+/**
+ * Close all open request tabs using the right-click context menu
+ * @param page - The page object
+ * @returns void
+ */
+const closeAllTabs = async (page: Page) => {
+  await test.step('Close all tabs', async () => {
+    // Find actual request tabs (those with .tab-method, not Overview/Environments)
+    const requestTabLabel = page.locator('.request-tab').filter({ has: page.locator('.tab-method') }).locator('.tab-label').first();
+    if (!(await requestTabLabel.isVisible().catch(() => false))) {
+      return; // No request tabs to close
+    }
+
+    // Right-click on the tab label to open context menu
+    await requestTabLabel.click({ button: 'right' });
+
+    // Wait for the dropdown menu to appear
+    const dropdown = page.locator('.tippy-box.dropdown');
+    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Click "Close All" menu item
+    await dropdown.locator('[role="menuitem"][data-item-id="close-all"]').click();
+
+    // Handle "Unsaved Transient Requests" modal if it appears
+    const discardAllButton = page.getByRole('button', { name: 'Discard All' });
+    if (await discardAllButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await discardAllButton.click();
+    }
+  });
+};
+
 export {
   closeAllCollections,
   openCollection,
@@ -991,7 +1038,8 @@ export {
   addAssertion,
   editAssertion,
   deleteAssertion,
-  saveRequest
+  saveRequest,
+  closeAllTabs
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

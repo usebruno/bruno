@@ -36,14 +36,14 @@ const isBrunoConfigFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
-  return dirname === collectionPath && basename === 'bruno.json';
+  return path.normalize(dirname) === path.normalize(collectionPath) && basename === 'bruno.json';
 };
 
 const isEnvironmentsFolder = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const envDirectory = path.join(collectionPath, 'environments');
 
-  return dirname === envDirectory;
+  return path.normalize(dirname) === path.normalize(envDirectory);
 };
 
 const isFolderRootFile = (pathname, collectionPath) => {
@@ -64,7 +64,7 @@ const isCollectionRootFile = (pathname, collectionPath) => {
   const basename = path.basename(pathname);
 
   // return if we are not at the root of the collection
-  if (dirname !== collectionPath) {
+  if (path.normalize(dirname) !== path.normalize(collectionPath)) {
     return false;
   }
 
@@ -385,7 +385,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
 const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
-  if (pathname === envDirectory) {
+  if (path.normalize(pathname) === path.normalize(envDirectory)) {
     return;
   }
 
@@ -563,7 +563,7 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
     const basename = path.basename(pathname);
     const dirname = path.dirname(pathname);
 
-    if (basename === 'opencollection.yml' && dirname === collectionPath) {
+    if (basename === 'opencollection.yml' && path.normalize(dirname) === path.normalize(collectionPath)) {
       return;
     }
 
@@ -581,7 +581,7 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
 const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
-  if (pathname === envDirectory) {
+  if (path.normalize(pathname) === path.normalize(envDirectory)) {
     return;
   }
 

@@ -24,6 +24,7 @@ const STATIC_API_HINTS = {
     'req.setHeader(name, value)',
     'req.setHeaders(data)',
     'req.deleteHeader(name)',
+    'req.deleteHeaders(data)',
     'req.getBody()',
     'req.setBody(data)',
     'req.setMaxRedirects(maxRedirects)',
@@ -115,7 +116,8 @@ const STATIC_API_HINTS = {
     'bru.cookies.jar().deleteCookie(url, name, callback)',
     'bru.utils',
     'bru.utils.minifyJson(json)',
-    'bru.utils.minifyXml(xml)'
+    'bru.utils.minifyXml(xml)',
+    'bru.resetOauth2Credential(credentialId)'
   ]
 };
 

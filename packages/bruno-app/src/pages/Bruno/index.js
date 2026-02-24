@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import classnames from 'classnames';
-import WorkspaceHome from 'components/WorkspaceHome';
 import ManageWorkspace from 'components/ManageWorkspace';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
@@ -77,7 +76,6 @@ export default function Main() {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
   const isDragging = useSelector((state) => state.app.isDragging);
-  const showHomePage = useSelector((state) => state.app.showHomePage);
   const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
   const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
@@ -144,8 +142,6 @@ export default function Main() {
               <ApiSpecPanel key={activeApiSpecUid} />
             ) : showManageWorkspacePage ? (
               <ManageWorkspace />
-            ) : showHomePage || !activeTabUid ? (
-              <WorkspaceHome />
             ) : (
               <>
                 <RequestTabs />

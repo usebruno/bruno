@@ -1,7 +1,7 @@
 {
   "collections": [
     {
-      "path": "{{projectRoot}}/tests/scripting/bru-api/isSafeMode/fixtures/collections/is-safe-mode-test",
+      "path": "{{collectionPath}}/is-safe-mode-test",
       "securityConfig": {
         "jsSandboxMode": "developer"
       }

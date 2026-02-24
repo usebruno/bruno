@@ -35,7 +35,7 @@ test.describe('Global Environment Variables - Non-string Values', () => {
       await page.getByTestId('save-env').click();
 
       await envTab.hover();
-      await envTab.getByTestId('request-tab-close-icon').click();
+      await envTab.getByTestId('request-tab-close-icon').click({ force: true });
     });
 
     // Request contains a script that sets the non-string global variables.
@@ -124,7 +124,7 @@ test.describe('Global Environment Variables - Non-string Values', () => {
 
       const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
       await envTab.hover();
-      await envTab.getByTestId('request-tab-close-icon').click();
+      await envTab.getByTestId('request-tab-close-icon').click({ force: true });
     });
   });
 });

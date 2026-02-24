@@ -1,7 +1,7 @@
 {
   "collections": [
     {
-      "path": "{{projectRoot}}/tests/environments/multiline-variables/collection",
+      "path": "{{collectionPath}}",
       "securityConfig": {
         "jsSandboxMode": "developer"
       }
