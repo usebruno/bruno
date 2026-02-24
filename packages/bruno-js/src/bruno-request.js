@@ -52,31 +52,47 @@ class BrunoRequest {
   }
 
   getPath() {
+    let pathname;
     try {
       const url = new URL(this.req.url);
-      let pathname = url.pathname;
-
-      // If path params exist, interpolate them into the pathname
-      if (this.req.pathParams && Array.isArray(this.req.pathParams)) {
-        pathname = pathname
-          .split('/')
-          .map((segment) => {
-            if (segment.startsWith(':')) {
-              const paramName = segment.slice(1);
-              const pathParam = this.req.pathParams.find((param) => param.name === paramName);
-              if (pathParam && pathParam.value) {
-                return pathParam.value;
-              }
-            }
-            return segment;
-          })
-          .join('/');
-      }
-
-      return pathname;
+      pathname = url.pathname;
     } catch (e) {
-      return '';
+      if (typeof this.req.url !== 'string') {
+        return '';
+      }
+      const withoutQuery = this.req.url.split('?')[0];
+      if (withoutQuery.startsWith('/')) {
+        pathname = withoutQuery;
+      } else {
+        let searchIn = withoutQuery;
+        const protoEnd = searchIn.indexOf('://');
+        if (protoEnd >= 0) {
+          searchIn = searchIn.substring(protoEnd + 3);
+        }
+        const firstSlash = searchIn.indexOf('/');
+        pathname = firstSlash >= 0 ? searchIn.substring(firstSlash) : '';
+      }
     }
+    return this._interpolatePathParams(pathname) || '';
+  }
+
+  _interpolatePathParams(pathname) {
+    if (!pathname || !this.req.pathParams || !Array.isArray(this.req.pathParams)) {
+      return pathname;
+    }
+    return pathname
+      .split('/')
+      .map((segment) => {
+        if (segment.startsWith(':')) {
+          const paramName = segment.slice(1);
+          const pathParam = this.req.pathParams.find((param) => param.name === paramName);
+          if (pathParam != null && pathParam.value != null) {
+            return pathParam.value;
+          }
+        }
+        return segment;
+      })
+      .join('/');
   }
 
   getQueryString() {
