@@ -6,7 +6,7 @@ const createMockWindow = (id = 1) => {
   return {
     id,
     isDestroyed: jest.fn(() => false),
-    on: jest.fn((event, callback) => {
+    once: jest.fn((event, callback) => {
       listeners[event] = callback;
     }),
     emit: (event) => {
