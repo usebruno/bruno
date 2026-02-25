@@ -1,0 +1,192 @@
+import path from 'utils/common/path';
+import { flattenItems, findCollectionByPathname } from 'utils/collections';
+
+/**
+ * Tab type mapping from schema to Redux format
+ */
+const SCHEMA_TYPE_TO_TAB = {
+  'preferences': 'preferences',
+  'runner': 'collection-runner',
+  'variables': 'variables',
+  'collection': 'collection-settings',
+  'environment': 'environment-settings',
+  'global-environment': 'global-environment-settings',
+  'item': 'request'
+};
+
+const TAB_UID_SUFFIXES = {
+  'environment-settings': '-environment-settings',
+  'global-environment-settings': '-global-environment-settings',
+  'preferences': '-preferences',
+  'variables': '-variables',
+  'collection-runner': '-runner',
+  'collection-settings': '-collection-settings'
+};
+
+/**
+ * Find an item in a collection by its relative path
+ * e.g., "requests/users/get.bru" -> item object
+ */
+export const findItemByRelativePath = (collection, relativePath) => {
+  if (!collection || !relativePath) {
+    return null;
+  }
+
+  // Build the full pathname
+  const fullPathname = path.join(collection.pathname, relativePath);
+  const normalizedFullPath = path.normalize(fullPathname);
+
+  // Flatten items and search
+  const flatItems = flattenItems(collection.items || []);
+
+  return flatItems.find((item) => {
+    const normalizedItemPath = path.normalize(item.pathname);
+    return normalizedItemPath === normalizedFullPath;
+  });
+};
+
+/**
+ * Deserialize a tab from schema format to Redux format
+ */
+export const deserializeTab = (tabSchema, collection) => {
+  const { type, itemPath, permanent, request, response } = tabSchema;
+
+  if (type !== 'item') {
+    const tabType = SCHEMA_TYPE_TO_TAB[type] || type;
+    const suffix = TAB_UID_SUFFIXES[tabType];
+    const uid = suffix ? `${collection.uid}${suffix}` : collection.uid;
+
+    return {
+      type: tabType,
+      collectionUid: collection.uid,
+      uid,
+      preview: !permanent
+    };
+  }
+
+  // For item tabs, find the item by relative path
+  if (!itemPath) {
+    console.warn('[app-snapshot] Item tab missing itemPath, skipping');
+    return null;
+  }
+
+  const item = findItemByRelativePath(collection, itemPath);
+  if (!item) {
+    // Item not found - might still be loading
+    return null;
+  }
+
+  // Folders use 'folder-settings' tab type, not 'folder'
+  const isFolder = item.type === 'folder';
+  const tabType = isFolder ? 'folder-settings' : (item.type || 'request');
+
+  const tab = {
+    type: tabType,
+    collectionUid: collection.uid,
+    uid: item.uid,
+    preview: !permanent,
+    // folder-settings tabs need folderUid for the UI to find the folder
+    ...(isFolder ? { folderUid: item.uid } : {})
+  };
+
+  // Restore request pane state
+  if (request) {
+    if (request.tab !== undefined) tab.requestPaneTab = request.tab;
+    if (request.width !== undefined) tab.requestPaneWidth = request.width;
+    if (request.height !== undefined) tab.requestPaneHeight = request.height;
+  }
+
+  // Restore response pane state
+  if (response) {
+    if (response.tab !== undefined) tab.responsePaneTab = response.tab;
+    if (response.format !== undefined) tab.responseFormat = response.format;
+    if (response.preview !== undefined) {
+      tab.responseViewTab = response.preview ? 'preview' : 'editor';
+    }
+  }
+
+  return tab;
+};
+
+/**
+ * Deserialize DevTools state
+ */
+export const deserializeDevTools = (devToolsSchema) => {
+  if (!devToolsSchema) {
+    return {
+      isConsoleOpen: false,
+      activeTab: 'console',
+      devtoolsHeight: 300
+    };
+  }
+
+  return {
+    isConsoleOpen: devToolsSchema.open || false,
+    activeTab: devToolsSchema.tab || 'console',
+    devtoolsHeight: devToolsSchema.height || 300
+  };
+};
+
+/**
+ * Build a restore sequence from a snapshot
+ * Returns an object with actions to be dispatched
+ */
+export const buildRestoreSequence = (snapshot, currentState) => {
+  if (!snapshot || snapshot.version !== 1) {
+    console.warn('[app-snapshot] Invalid or missing snapshot');
+    return null;
+  }
+
+  const { collections: currentCollections } = currentState.collections;
+
+  const restoreActions = {
+    collectionsToMount: [],
+    tabsToRestore: {},
+    activeTabIndices: {},
+    environmentsToSelect: {},
+    devTools: deserializeDevTools(snapshot.extras?.devTools),
+    activeWorkspacePathname: snapshot.activeWorkspacePathname
+  };
+
+  // Process collections from snapshot
+  const snapshotCollections = snapshot.collections || [];
+
+  snapshotCollections.forEach((collectionSchema) => {
+    const { pathname, environment, tabs, activeTabIndex } = collectionSchema;
+
+    // Check if collection is already mounted
+    const existingCollection = findCollectionByPathname(currentCollections, pathname);
+
+    if (!existingCollection) {
+      // Collection needs to be mounted
+      restoreActions.collectionsToMount.push(pathname);
+    }
+
+    // Store tabs to restore (will be processed after collections are mounted)
+    if (tabs && tabs.length > 0) {
+      restoreActions.tabsToRestore[pathname] = tabs;
+      restoreActions.activeTabIndices[pathname] = activeTabIndex || 0;
+    }
+
+    // Store environment to select
+    if (environment) {
+      restoreActions.environmentsToSelect[pathname] = environment;
+    }
+  });
+
+  return restoreActions;
+};
+
+/**
+ * Restore tabs for a single collection
+ * Call this after the collection has been mounted
+ */
+export const restoreTabsForCollection = (collection, tabSchemas) => {
+  if (!collection || !tabSchemas || !tabSchemas.length) {
+    return [];
+  }
+
+  return tabSchemas
+    .map((tabSchema) => deserializeTab(tabSchema, collection))
+    .filter(Boolean);
+};

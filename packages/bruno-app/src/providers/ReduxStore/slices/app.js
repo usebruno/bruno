@@ -15,6 +15,11 @@ const initialState = {
   isEnvironmentSettingsModalOpen: false,
   isGlobalEnvironmentSettingsModalOpen: false,
   activePreferencesTab: 'general',
+  isInitialLoadComplete: false,
+  isRestoringSnapshot: false,
+  snapshotRestoreMessage: null,
+  snapshotSaveEnabled: false,
+  pendingWorkspaceRestores: {},
   preferences: {
     request: {
       sslVerification: true,
@@ -51,7 +56,7 @@ const initialState = {
   gitOperationProgress: {},
   gitVersion: null,
   clipboard: {
-    hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
+    hasCopiedItems: false
   },
   systemProxyVariables: {}
 };
@@ -139,8 +144,30 @@ export const appSlice = createSlice({
       state.gitVersion = action.payload;
     },
     setClipboard: (state, action) => {
-      // Update clipboard UI state
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
+    },
+    setRestoringSnapshot: (state, action) => {
+      state.isRestoringSnapshot = action.payload;
+      if (!action.payload) {
+        state.snapshotRestoreMessage = null;
+      }
+    },
+    setSnapshotRestoreMessage: (state, action) => {
+      state.snapshotRestoreMessage = action.payload;
+    },
+    enableSnapshotSave: (state) => {
+      state.snapshotSaveEnabled = true;
+    },
+    markInitialLoadComplete: (state) => {
+      state.isInitialLoadComplete = true;
+    },
+    setPendingWorkspaceRestore: (state, action) => {
+      const { workspacePathname, restoreData } = action.payload;
+      state.pendingWorkspaceRestores[workspacePathname] = restoreData;
+    },
+    clearPendingWorkspaceRestore: (state, action) => {
+      const { workspacePathname } = action.payload;
+      delete state.pendingWorkspaceRestores[workspacePathname];
     }
   },
   extraReducers: (builder) => {
@@ -182,7 +209,13 @@ export const {
   updateGitOperationProgress,
   removeGitOperationProgress,
   setGitVersion,
-  setClipboard
+  setClipboard,
+  setRestoringSnapshot,
+  setSnapshotRestoreMessage,
+  enableSnapshotSave,
+  markInitialLoadComplete,
+  setPendingWorkspaceRestore,
+  clearPendingWorkspaceRestore
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
