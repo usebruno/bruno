@@ -98,7 +98,7 @@ export const interpolateUrl = ({ url, variables }) => {
   return interpolate(url, variables);
 };
 
-export const interpolateUrlPathParams = (url, params, variables = {}) => {
+export const interpolateUrlPathParams = (url, params, variables = {}, options = {}) => {
   const getInterpolatedBasePath = (pathname, params) => {
     let replacedPathname = pathname
       .split('/')
@@ -140,6 +140,21 @@ export const interpolateUrlPathParams = (url, params, variables = {}) => {
 
     return interpolate(replacedPathname, variables);
   };
+
+  // When raw is true, resolve :params via pure string manipulation without
+  // passing through new URL(), which would percent-encode characters like spaces.
+  // This preserves the user's original encoding choices for snippet generation.
+  if (options.raw) {
+    const enabledPathParams = (params || []).filter((p) => p.enabled !== false && p.type === 'path');
+    if (enabledPathParams.length === 0) return url;
+
+    const separatorIdx = url.search(/[?#]/);
+    const pathPart = separatorIdx >= 0 ? url.substring(0, separatorIdx) : url;
+    const rest = separatorIdx >= 0 ? url.substring(separatorIdx) : '';
+
+    const resolvedPath = getInterpolatedBasePath(pathPart, enabledPathParams);
+    return `${resolvedPath}${rest}`;
+  }
 
   let uri;
 

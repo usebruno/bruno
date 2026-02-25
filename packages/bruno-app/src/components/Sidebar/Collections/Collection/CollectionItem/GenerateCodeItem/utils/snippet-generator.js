@@ -4,8 +4,9 @@ import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from '
 import { resolveInheritedAuth } from 'utils/auth';
 import { get } from 'lodash';
 import { interpolateAuth, interpolateHeaders, interpolateBody, interpolateParams } from './interpolation';
-import { parse, format } from 'url';
-import { stringify } from 'querystring';
+import { encodeUrl as encodeUrlCommon } from '@usebruno/common/utils';
+import { parse } from 'url';
+import { stringify } from 'query-string';
 
 const addCurlAuthFlags = (curlCommand, auth) => {
   if (!auth || !curlCommand) return curlCommand;
@@ -102,6 +103,21 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       }
       if (httpSnippetPath !== rawPath) {
         result = result.replaceAll(httpSnippetPath, rawPath);
+      }
+    } else {
+      // When encodeUrl is true, apply the same encodeUrl() transform used by the
+      // actual request execution path (packages/bruno-electron/src/ipc/network/index.js)
+      // so the snippet matches what's sent on the wire.
+      const rawUrl = item.rawUrl || request.url;
+      const encodedUrl = encodeUrlCommon(rawUrl);
+      const parsed = parse(request.url, true, true);
+      const search = stringify(parsed.query);
+      const httpSnippetPath = search ? `${parsed.pathname}?${search}` : parsed.pathname;
+      // Extract the encoded path+query, stripping fragment per RFC 3986 §3.5
+      let encodedPath = encodedUrl.replace(/^https?:\/\/[^/?#]*/, '') || '/';
+      encodedPath = encodedPath.replace(/#.*$/, '');
+      if (httpSnippetPath !== encodedPath) {
+        result = result.replaceAll(httpSnippetPath, encodedPath);
       }
     }
 

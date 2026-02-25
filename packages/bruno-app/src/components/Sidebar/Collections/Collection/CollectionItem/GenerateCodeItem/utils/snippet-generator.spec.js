@@ -1,5 +1,13 @@
 import { getAuthHeaders } from 'utils/codegenerator/auth';
 
+jest.mock('@usebruno/common/utils', () => {
+  const actual = jest.requireActual('@usebruno/common/utils');
+  return {
+    ...actual,
+    encodeUrl: actual.encodeUrl
+  };
+});
+
 jest.mock('httpsnippet', () => {
   return {
     HTTPSnippet: jest.fn().mockImplementation((harRequest) => ({
@@ -914,7 +922,7 @@ describe('generateSnippet – encodeUrl setting', () => {
   // Replicate HTTPSnippet's internal encoding to get encoded path+query
   const getEncodedPath = (url) => {
     const { parse } = require('url');
-    const { stringify } = require('querystring');
+    const { stringify } = require('query-string');
     const parsed = parse(url, true, true);
     if (!parsed.query || Object.keys(parsed.query).length === 0) {
       return parsed.pathname;
@@ -1177,5 +1185,54 @@ describe('generateSnippet – encodeUrl setting', () => {
     // https://datatracker.ietf.org/doc/html/rfc9110#section-10.2.2
     expect(result).not.toContain('#section');
     expect(result).toContain('%3D%3D');
+  });
+
+  it('should single-encode spaces and special chars when encodeUrl is true and rawUrl is provided', () => {
+    // The raw URL (before new URL() encoding) contains literal spaces and @.
+    // encodeUrl() should encode them once: space → %20, @ → %40.
+    // Previously this double-encoded because request.url was already encoded by new URL().
+    const encodedUrl = 'https://example.com/api?name=abc%20os&email=user%40test.com';
+    const item = {
+      ...makeItem(encodedUrl, { encodeUrl: true }),
+      rawUrl: 'https://example.com/api?name=abc os&email=user@test.com'
+    };
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    // space → %20 (single encoding, not %2520)
+    expect(result).toContain('%20');
+    expect(result).not.toContain('%2520');
+    // @ → %40 (single encoding, not %2540)
+    expect(result).toContain('%40');
+    expect(result).not.toContain('%2540');
+  });
+
+  it('should encode special chars in query values when encodeUrl is true (e.g., redirect URLs)', () => {
+    const rawUrl = 'https://example.com/auth?redirect=https://other.com/callback&scope=read';
+    const item = makeItem(rawUrl, { encodeUrl: true });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    // : → %3A, / → %2F when encodeURIComponent is applied to query values
+    expect(result).toContain('%3A');
+    expect(result).toContain('%2F');
+  });
+
+  it('should strip fragment and apply encodeUrl when both are present and encodeUrl is true', () => {
+    const rawUrl = 'https://example.com/api?redirect=https://other.com/cb#section';
+    const item = makeItem(rawUrl, { encodeUrl: true });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    // Fragment stripped per RFC 3986
+    expect(result).not.toContain('#section');
+    // Query value should be encoded
+    expect(result).toContain('%3A');
+    expect(result).toContain('%2F');
+  });
+
+  it('should be a no-op for path-only URLs when encodeUrl is true (no query params to encode)', () => {
+    const rawUrl = 'https://example.com/api/users';
+    const item = makeItem(rawUrl, { encodeUrl: true });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toBe(`curl -X GET '${rawUrl}'`);
   });
 });
