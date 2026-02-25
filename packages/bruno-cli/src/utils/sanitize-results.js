@@ -9,8 +9,8 @@ const deleteHeaderIfExists = (headers, header) => {
 const sanitizeResultsForReporter = (results, { skipAllHeaders = false, skipHeaders = [], skipRequestBody = false, skipResponseBody = false } = {}) => {
   if (skipAllHeaders) {
     results.forEach((result) => {
-      result.request?.headers = {};
-      result.response?.headers = {};
+      result.request.headers = {};
+      result.response.headers = {};
     });
   }
 
