@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import usePrevious from 'hooks/usePrevious';
 import useOnClickOutside from 'hooks/useOnClickOutside';
+import useDebounce from 'hooks/useDebounce';
 import EnvironmentDetails from './EnvironmentDetails';
 import { IconDownload, IconUpload, IconSearch, IconPlus, IconCheck, IconX, IconFileAlert } from '@tabler/icons';
 import Button from 'ui/Button';
@@ -23,6 +24,7 @@ import {
   deleteDotEnvFile
 } from 'providers/ReduxStore/slices/collections/actions';
 import { setEnvironmentsDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
+import { setEnvVarSearchQuery, setEnvVarSearchExpanded } from 'providers/ReduxStore/slices/app';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import classnames from 'classnames';
@@ -40,6 +42,10 @@ const EnvironmentList = ({
   setShowExportModal
 }) => {
   const dispatch = useDispatch();
+  const envSearchQuery = useSelector((state) => state.app.envVarSearch?.collection?.query ?? '');
+  const isEnvSearchExpanded = useSelector((state) => state.app.envVarSearch?.collection?.expanded ?? false);
+  const setEnvSearchQuery = (q) => dispatch(setEnvVarSearchQuery({ context: 'collection', query: q }));
+  const setIsEnvSearchExpanded = (v) => dispatch(setEnvVarSearchExpanded({ context: 'collection', expanded: v }));
 
   const [openImportModal, setOpenImportModal] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -64,6 +70,9 @@ const EnvironmentList = ({
   const [dotEnvNameError, setDotEnvNameError] = useState('');
   const dotEnvInputRef = useRef(null);
   const dotEnvCreateContainerRef = useRef(null);
+
+  const debouncedEnvSearchQuery = useDebounce(envSearchQuery, 300);
+  const envSearchInputRef = useRef(null);
 
   const dotEnvFiles = useSelector((state) => {
     const coll = state.collections.collections.find((c) => c.uid === collection?.uid);
@@ -497,6 +506,12 @@ const EnvironmentList = ({
           setIsModified={setIsModified}
           originalEnvironmentVariables={originalEnvironmentVariables}
           collection={collection}
+          searchQuery={envSearchQuery}
+          setSearchQuery={setEnvSearchQuery}
+          isSearchExpanded={isEnvSearchExpanded}
+          setIsSearchExpanded={setIsEnvSearchExpanded}
+          debouncedSearchQuery={debouncedEnvSearchQuery}
+          searchInputRef={envSearchInputRef}
         />
       );
     }
