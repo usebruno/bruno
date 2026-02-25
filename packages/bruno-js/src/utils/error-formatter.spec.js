@@ -182,10 +182,16 @@ describe('Error Formatter', () => {
       expect(adjustLineNumber(bruFilePath, 14, true, 'post-response', null, metadata)).toBe(18);
     });
 
-    it('should return raw relative line for collection/folder segment errors', () => {
-      // scriptLine 3 is before requestStartLine(10) → returns raw 3
+    it('should return null for collection/folder segment errors', () => {
+      // scriptLine 3 is before requestStartLine(10) → cannot map to request file
       const metadata = { requestStartLine: 10, requestEndLine: 15 };
-      expect(adjustLineNumber(bruFilePath, 12, true, 'post-response', null, metadata)).toBe(3);
+      expect(adjustLineNumber(bruFilePath, 12, true, 'post-response', null, metadata)).toBeNull();
+    });
+
+    it('should return null when request segment is empty', () => {
+      // requestStartLine: 0 indicates the request segment was empty
+      const metadata = { requestStartLine: 0, requestEndLine: 0 };
+      expect(adjustLineNumber(bruFilePath, 12, true, 'post-response', null, metadata)).toBeNull();
     });
   });
 
@@ -248,6 +254,22 @@ describe('Error Formatter', () => {
 
       const arrowLine = formatted.split('\n').find((l) => l.startsWith('>'));
       expect(arrowLine).toContain('bru.setVar');
+    });
+
+    it('should show message-only output for collection/folder script errors', () => {
+      const error = new Error('x is not defined');
+      error.name = 'ReferenceError';
+      // scriptLine 3 (VM 12 - offset 9) is before requestStartLine(10)
+      error.stack = `ReferenceError: x is not defined\n    at (${bruFilePath}:12)`;
+
+      const metadata = { requestStartLine: 10, requestEndLine: 15 };
+      const formatted = formatErrorWithContext(error, 'test.bru', 'post-response', 5, metadata);
+
+      expect(formatted).toContain('ReferenceError: x is not defined');
+      // Should NOT show source context from the request file
+      expect(formatted).not.toContain('File:');
+      expect(formatted).not.toContain('meta {');
+      expect(formatted).not.toContain('>');
     });
 
     it('should handle edge cases gracefully', () => {

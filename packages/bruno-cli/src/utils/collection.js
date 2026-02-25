@@ -253,6 +253,13 @@ const wrapAndJoinScripts = (scripts, requestIndex) => {
     }
     offset += lineCount + 1;
   }
+
+  // Request-level script was empty, but collection/folder scripts produced code.
+  // Use a zero line range to prevent stack traces from mapping to the request file.
+  if (!metadata && code) {
+    metadata = { requestStartLine: 0, requestEndLine: 0 };
+  }
+
   return { code, metadata };
 };
 

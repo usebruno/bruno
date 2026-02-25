@@ -125,11 +125,10 @@ const adjustLineNumber = (filePath, reportedLine, isQuickJS, scriptType = null, 
       if (blockStartLine) {
         return blockStartLine + (scriptRelativeLine - requestStartLine) - 1;
       }
-    } else if (requestStartLine) {
-      // Error is in a collection/folder-level script outside the request's range.
-      // Combined scripts lack file paths for collection/folder scripts,
-      // so return the raw script line offset.
-      return scriptRelativeLine;
+    } else {
+      // Error is in a collection/folder-level script
+      // Cannot map to the request .bru/.yml file, return null to skip source context.
+      return null;
     }
   }
 
@@ -226,7 +225,8 @@ const getSourceContext = (filePath, errorLine, contextLines = DEFAULT_CONTEXT_LI
 const buildStackFromCallSites = (callSites, scriptType = null, cache = null, scriptMetadata = null) => {
   return callSites.map((site) => {
     const adjusted = adjustLineNumber(site.filePath, site.line, false, scriptType, cache, scriptMetadata);
-    const loc = site.column ? `${site.filePath}:${adjusted}:${site.column}` : `${site.filePath}:${adjusted}`;
+    const lineToUse = adjusted !== null ? adjusted : site.line;
+    const loc = site.column ? `${site.filePath}:${lineToUse}:${site.column}` : `${site.filePath}:${lineToUse}`;
     const name = site.functionName ? `${site.functionName} (${loc})` : loc;
     return `    at ${name}`;
   }).join('\n');
@@ -241,7 +241,7 @@ const adjustStackTrace = (stack, scriptType = null, cache = null, scriptMetadata
     if (!match) return line;
 
     const adjusted = adjustLineNumber(match.filePath, match.line, match.isQuickJS, scriptType, cache, scriptMetadata);
-    if (adjusted === match.line) return line;
+    if (adjusted === null || adjusted === match.line) return line;
 
     const suffix = match.isQuickJS ? ')' : '';
     return match.column !== null
@@ -270,6 +270,23 @@ const formatErrorWithContext = (error, relativeFilePath = null, scriptType = nul
 
   const { filePath } = parsed;
   const adjustedLine = adjustLineNumber(filePath, parsed.line, parsed.isQuickJS, scriptType, cache, metadata);
+
+  // adjustedLine === null means the error is in a collection/folder script
+  // Show just the error message and stack without source context.
+  if (adjustedLine === null) {
+    const errorType = getErrorTypeName(error);
+    const parts = [`${errorType}: ${error.message}`];
+    if (error.__callSites?.length > 0) {
+      parts.push(buildStackFromCallSites(error.__callSites, scriptType, cache, metadata));
+    } else if (error.stack) {
+      const stackLines = error.stack.split('\n').slice(1);
+      for (const stackLine of stackLines) {
+        parts.push(`    ${stackLine.trim()}`);
+      }
+    }
+    return parts.join('\n');
+  }
+
   const context = getSourceContext(filePath, adjustedLine, contextLines, cache);
 
   if (!context) {
