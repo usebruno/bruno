@@ -76,7 +76,8 @@ export const buildCommonLocators = (page: Page) => ({
     requestNameInput: () => page.getByPlaceholder('Request Name'),
     requestTestId: () => page.getByTestId('request-name'),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
-    bodyEditor: () => page.getByTestId('request-body-editor')
+    bodyEditor: () => page.getByTestId('request-body-editor'),
+    generateCodeButton: () => page.locator('#send-request .infotip').first()
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
