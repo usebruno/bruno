@@ -10,6 +10,7 @@ const TAB_TYPE_TO_SCHEMA = {
   'variables': 'variables',
   'collection-settings': 'collection',
   'environment-settings': 'environment',
+  'global-environment-settings': 'global-environment',
   'request': 'item',
   'http-request': 'item',
   'graphql-request': 'item',

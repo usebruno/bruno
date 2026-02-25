@@ -5,12 +5,13 @@ import { flattenItems, findCollectionByPathname } from 'utils/collections';
  * Tab type mapping from schema to Redux format
  */
 const SCHEMA_TYPE_TO_TAB = {
-  preferences: 'preferences',
-  runner: 'collection-runner',
-  variables: 'variables',
-  collection: 'collection-settings',
-  environment: 'environment-settings',
-  item: 'request'
+  'preferences': 'preferences',
+  'runner': 'collection-runner',
+  'variables': 'variables',
+  'collection': 'collection-settings',
+  'environment': 'environment-settings',
+  'global-environment': 'global-environment-settings',
+  'item': 'request'
 };
 
 /**
@@ -43,10 +44,35 @@ export const deserializeTab = (tabSchema, collection) => {
   // For non-item tabs, return the basic structure
   if (type !== 'item') {
     const tabType = SCHEMA_TYPE_TO_TAB[type] || type;
+
+    // Generate the correct UID based on tab type (must match how tabs are created)
+    let uid;
+    switch (tabType) {
+      case 'environment-settings':
+        uid = `${collection.uid}-environment-settings`;
+        break;
+      case 'global-environment-settings':
+        uid = `${collection.uid}-global-environment-settings`;
+        break;
+      case 'preferences':
+        uid = `${collection.uid}-preferences`;
+        break;
+      case 'variables':
+        uid = `${collection.uid}-variables`;
+        break;
+      case 'collection-runner':
+        uid = `${collection.uid}-runner`;
+        break;
+      case 'collection-settings':
+      default:
+        uid = collection.uid;
+        break;
+    }
+
     return {
       type: tabType,
       collectionUid: collection.uid,
-      uid: collection.uid,
+      uid,
       preview: !permanent
     };
   }

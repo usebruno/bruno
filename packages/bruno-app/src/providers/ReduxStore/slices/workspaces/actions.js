@@ -300,6 +300,27 @@ export const switchWorkspace = (workspaceUid) => {
       dispatch(focusTab({
         uid: overviewTabUid
       }));
+    } else if (scratchCollection?.uid) {
+      // Workspace was previously visited - focus an existing tab from this workspace
+      const workspaceCollectionPaths = (workspace.collections || []).map((wc) => wc.path);
+      const state = getState();
+      const workspaceCollectionUids = state.collections.collections
+        .filter((c) => workspaceCollectionPaths.includes(c.pathname))
+        .map((c) => c.uid);
+
+      // Include scratch collection
+      workspaceCollectionUids.push(scratchCollection.uid);
+
+      // Find an existing tab from this workspace's collections
+      const existingTab = state.tabs.tabs.find((t) => workspaceCollectionUids.includes(t.collectionUid));
+
+      if (existingTab) {
+        dispatch(focusTab({ uid: existingTab.uid }));
+      } else {
+        // No existing tabs, focus the overview tab
+        const overviewTabUid = `${scratchCollection.uid}-overview`;
+        dispatch(focusTab({ uid: overviewTabUid }));
+      }
     }
 
     markWorkspaceHydrated(workspaceUid);
