@@ -9,8 +9,8 @@ const deleteHeaderIfExists = (headers, header) => {
 const sanitizeResultsForReporter = (results, { skipAllHeaders = false, skipHeaders = [], skipRequestBody = false, skipResponseBody = false } = {}) => {
   if (skipAllHeaders) {
     results.forEach((result) => {
-      result.request.headers = {};
-      result.response.headers = {};
+      result.request?.headers = {};
+      result.response?.headers = {};
     });
   }
 
@@ -31,13 +31,13 @@ const sanitizeResultsForReporter = (results, { skipAllHeaders = false, skipHeade
 
   if (skipRequestBody) {
     results.forEach((result) => {
-      delete result.request.data;
+      delete result.request?.data;
     });
   }
 
   if (skipResponseBody) {
     results.forEach((result) => {
-      delete result.response.data;
+      delete result.response?.data;
     });
   }
 };
