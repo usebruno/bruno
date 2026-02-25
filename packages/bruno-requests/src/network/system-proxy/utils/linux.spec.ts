@@ -58,7 +58,7 @@ describe('LinuxProxyResolver', () => {
 
       expect(result).toEqual({
         http_proxy: 'http://proxy.usebruno.com:8080',
-        https_proxy: 'https://secure-proxy.usebruno.com:8443',
+        https_proxy: 'http://secure-proxy.usebruno.com:8443',
         no_proxy: 'localhost,127.0.0.1',
         source: 'linux-system'
       });
@@ -84,7 +84,7 @@ describe('LinuxProxyResolver', () => {
 
       expect(result).toEqual({
         http_proxy: 'http://proxy.usebruno.com:8080',
-        https_proxy: 'https://proxy.usebruno.com:8080',
+        https_proxy: 'http://proxy.usebruno.com:8080',
         no_proxy: null,
         source: 'linux-system'
       });
