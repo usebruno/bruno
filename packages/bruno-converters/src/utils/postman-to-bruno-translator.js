@@ -561,6 +561,23 @@ const complexTransformations = [
     }
   },
 
+  // pm.response.to.have.jsonSchema(schema, options?) -> expect(res.getBody()).to.have.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.to.have.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('to.have.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
   // Legacy postman.getResponseHeader(name) -> res.getHeader(name)
   {
     pattern: 'pm.getResponseHeader',

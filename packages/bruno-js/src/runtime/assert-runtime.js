@@ -24,6 +24,23 @@ chai.use(function (chai, utils) {
   });
 });
 
+// Custom assertion for JSON Schema validation
+chai.use(function (chai) {
+  chai.Assertion.addMethod('jsonSchema', function (schema, ajvOptions) {
+    const Ajv = require('ajv');
+    const ajv = new Ajv(ajvOptions || { allErrors: true });
+    const validate = ajv.compile(schema);
+    const data = this._obj;
+    const isValid = validate(data);
+
+    this.assert(
+      isValid,
+      'expected #{this} to match JSON schema, validation errors: ' + (validate.errors ? JSON.stringify(validate.errors) : 'none'),
+      'expected #{this} to not match JSON schema'
+    );
+  });
+});
+
 // Custom assertion for matching regex
 chai.use(function (chai, utils) {
   chai.Assertion.addMethod('match', function (regex) {
