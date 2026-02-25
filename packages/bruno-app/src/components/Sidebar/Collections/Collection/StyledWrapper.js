@@ -96,8 +96,14 @@ const Wrapper = styled.div`
     overflow: hidden;
   }
 
+  .indent-block {
+    border-right: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder};
+  }
+
   .empty-collection-message {
-    padding: 6px 0 6px 28px;
+    display: flex;
+    align-items: center;
+    height: 1.6rem;
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.sidebar.muted};
 

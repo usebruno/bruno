@@ -479,14 +479,19 @@ const Collection = ({ collection, searchText }) => {
             })}
             {showEmptyCollectionMessage ? (
               <div className="empty-collection-message">
-                <MenuDropdown
-                  items={emptyStateMenuItems}
-                  placement="bottom-start"
-                  appendTo={dropdownContainerRef?.current || document.body}
-                  popperOptions={{ strategy: 'fixed' }}
-                >
-                  <span className="add-request-link">+ Add request</span>
-                </MenuDropdown>
+                <div className="indent-block" style={{ width: 16, minWidth: 16, height: '100%' }}>
+                  &nbsp;
+                </div>
+                <div style={{ paddingLeft: 8 }}>
+                  <MenuDropdown
+                    items={emptyStateMenuItems}
+                    placement="bottom-start"
+                    appendTo={dropdownContainerRef?.current || document.body}
+                    popperOptions={{ strategy: 'fixed' }}
+                  >
+                    <button className="ml-1 add-request-link">+ Add request</button>
+                  </MenuDropdown>
+                </div>
               </div>
             ) : null}
           </div>

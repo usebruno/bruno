@@ -158,8 +158,9 @@ const Wrapper = styled.div`
   }
 
   .empty-folder-message {
-    padding-top: 6px;
-    padding-bottom: 6px;
+    display: flex;
+    align-items: center;
+    height: 1.6rem;
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.sidebar.muted};
 

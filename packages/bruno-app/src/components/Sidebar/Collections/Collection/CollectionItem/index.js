@@ -721,18 +721,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               })
             : null}
           {showEmptyFolderMessage ? (
-            <div
-              className="empty-folder-message"
-              style={{ paddingLeft: `${(item.depth + 1) * 16 + 12}px` }}
-            >
-              <MenuDropdown
-                items={emptyFolderMenuItems}
-                placement="bottom-start"
-                appendTo={dropdownContainerRef?.current || document.body}
-                popperOptions={{ strategy: 'fixed' }}
-              >
-                <span className="add-request-link">+ Add request</span>
-              </MenuDropdown>
+            <div className="empty-folder-message">
+              {range(item.depth + 1).map((i) => (
+                <div className="indent-block" key={i} style={{ width: 16, minWidth: 16, height: '100%' }}>
+                  &nbsp;
+                </div>
+              ))}
+              <div style={{ paddingLeft: 8 }}>
+                <MenuDropdown
+                  items={emptyFolderMenuItems}
+                  placement="bottom-start"
+                  appendTo={dropdownContainerRef?.current || document.body}
+                  popperOptions={{ strategy: 'fixed' }}
+                >
+                  <button className="ml-1 add-request-link">+ Add request</button>
+                </MenuDropdown>
+              </div>
             </div>
           ) : null}
         </div>
