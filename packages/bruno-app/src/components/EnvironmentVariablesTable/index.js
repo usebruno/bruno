@@ -407,16 +407,9 @@ const EnvironmentVariablesTable = ({
 
     const query = searchQuery.toLowerCase().trim();
 
-    return allVariables.filter(({ variable, index }) => {
-      const isLastRow = index === formik.values.length - 1;
-      const isEmptyRow = !variable.name || variable.name.trim() === '';
-      if (isLastRow && isEmptyRow) {
-        return true;
-      }
-
+    return allVariables.filter(({ variable }) => {
       const nameMatch = variable.name ? variable.name.toLowerCase().includes(query) : false;
       const valueMatch = typeof variable.value === 'string' ? variable.value.toLowerCase().includes(query) : false;
-
       return !!(nameMatch || valueMatch);
     });
   }, [formik.values, searchQuery]);
