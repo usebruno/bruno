@@ -4,7 +4,7 @@ import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from '
 import { resolveInheritedAuth } from 'utils/auth';
 import { get } from 'lodash';
 import { interpolateAuth, interpolateHeaders, interpolateBody, interpolateParams } from './interpolation';
-import { encodeUrl as encodeUrlCommon } from '@usebruno/common/utils';
+import { encodeUrl as encodeUrlCommon, stripOrigin } from '@usebruno/common/utils';
 import { parse } from 'url';
 import { stringify } from 'query-string';
 
@@ -96,11 +96,11 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       // Apply the same encodeUrl() transform used by the actual request execution path
       // so the snippet matches what's sent on the wire.
       const encodedUrl = encodeUrlCommon(rawUrl);
-      desiredPath = encodedUrl.replace(/^https?:\/\/[^/?#]*/, '') || '/';
+      desiredPath = stripOrigin(encodedUrl);
       // Strip fragment per RFC 3986 §3.5
       desiredPath = desiredPath.replace(/#.*$/, '');
     } else {
-      desiredPath = rawUrl.replace(/^https?:\/\/[^/?#]*/, '') || '/';
+      desiredPath = stripOrigin(rawUrl);
       // The HTTP raw target (http/http1.1) uses the request line format:
       //   METHOD <request-target> HTTP-version
       // Spaces delimit these fields, so a literal space in the request-target
