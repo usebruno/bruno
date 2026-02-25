@@ -1,0 +1,48 @@
+meta {
+  name: json-schema-assertion
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "John",
+    "age": 30
+  }
+}
+
+tests {
+  const schema = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      age: { type: 'number' }
+    },
+    required: ['name', 'age']
+  };
+
+  test("Response matches JSON schema via chai extension", function () {
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("jsonSchema with ajvOptions", function () {
+    expect(res.getBody()).to.have.jsonSchema(schema, { allErrors: true });
+  });
+
+  test("jsonSchema fails on invalid data", function () {
+    const badSchema = { type: 'array' };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.have.jsonSchema(badSchema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+}
