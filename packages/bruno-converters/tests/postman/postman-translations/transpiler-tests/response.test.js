@@ -649,7 +649,29 @@ describe('Response Translation', () => {
   it('should translate pm.response.to.have.jsonBody without arguments', () => {
     const code = 'pm.response.to.have.jsonBody();';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('expect(res.getBody()).to.exist');
+    expect(translatedCode).toContain('expect(res.getBody()).to.satisfy');
+    expect(translatedCode).toContain('Array.isArray(u)');
+    expect(translatedCode).toContain('u !== null');
+    expect(translatedCode).toContain('typeof u === "object"');
+  });
+
+  it('should translate pm.response.to.have.jsonBody with object argument', () => {
+    const code = 'pm.response.to.have.jsonBody({ success: true, data: { id: 1 } });';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.deep.equal');
+    expect(translatedCode).toContain('success: true');
+  });
+
+  it('should translate pm.response.to.have.jsonBody with path and numeric value', () => {
+    const code = 'pm.response.to.have.jsonBody("data.count", 42);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("data.count", 42)');
+  });
+
+  it('should translate pm.response.to.have.jsonBody with array argument as nested property', () => {
+    const code = 'pm.response.to.have.jsonBody(["a", "b"]);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property(["a", "b"])');
   });
 
   it('should handle pm.response.to.have.jsonBody inside test blocks', () => {
