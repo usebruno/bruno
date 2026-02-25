@@ -1008,16 +1008,15 @@ const restoreWorkspaceState = async (dispatch, getState, collectionsToRestore) =
         if (!wasMounted) return;
 
         if (collection.mountStatus !== 'mounted') {
-          await Promise.all([
-            dispatch(mountCollection({
-              collectionUid: collection.uid,
-              collectionPathname: collection.pathname,
-              brunoConfig: collection.brunoConfig
-            })),
-            waitForMountComplete(collection.uid)
-          ]);
-          collection = findCollectionByPathname(getState().collections.collections, pathname);
+          dispatch(mountCollection({
+            collectionUid: collection.uid,
+            collectionPathname: collection.pathname,
+            brunoConfig: collection.brunoConfig
+          }));
         }
+
+        await waitForMountComplete(collection.uid, getState);
+        collection = findCollectionByPathname(getState().collections.collections, pathname);
 
         if (!collection || collection.mountStatus !== 'mounted') {
           console.warn(`[restore] Collection not mounted: ${pathname}`);
@@ -1033,9 +1032,12 @@ const restoreWorkspaceState = async (dispatch, getState, collectionsToRestore) =
 
         if (tabs?.length && !getState().tabs.tabs.some((t) => t.collectionUid === collection.uid)) {
           const restoredTabs = restoreTabsForCollection(collection, tabs);
-          if (restoredTabs.length) {
+          if (restoredTabs.length > 0) {
             const activeTabIdx = activeTabIndex < restoredTabs.length ? activeTabIndex : 0;
             dispatch(restoreTabs({ tabs: restoredTabs, activeTabUid: restoredTabs[activeTabIdx]?.uid }));
+          }
+          if (restoredTabs.length < tabs.length) {
+            console.warn(`[restore] Could not restore ${tabs.length - restoredTabs.length} of ${tabs.length} tabs for ${pathname}`);
           }
         }
       } catch (error) {

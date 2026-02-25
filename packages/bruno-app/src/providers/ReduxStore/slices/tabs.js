@@ -287,7 +287,8 @@ export const tabsSlice = createSlice({
             responseViewTab: tab.responseViewTab !== undefined ? tab.responseViewTab : null,
             scriptPaneTab: null,
             type: tab.type || 'request',
-            preview: tab.preview !== undefined ? tab.preview : true
+            preview: tab.preview !== undefined ? tab.preview : true,
+            ...(tab.folderUid ? { folderUid: tab.folderUid } : {})
           });
         }
       });

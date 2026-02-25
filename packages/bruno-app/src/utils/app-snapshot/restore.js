@@ -19,7 +19,8 @@ const TAB_UID_SUFFIXES = {
   'global-environment-settings': '-global-environment-settings',
   'preferences': '-preferences',
   'variables': '-variables',
-  'collection-runner': '-runner'
+  'collection-runner': '-runner',
+  'collection-settings': '-collection-settings'
 };
 
 /**
@@ -33,12 +34,13 @@ export const findItemByRelativePath = (collection, relativePath) => {
 
   // Build the full pathname
   const fullPathname = path.join(collection.pathname, relativePath);
+  const normalizedFullPath = path.normalize(fullPathname);
 
   // Flatten items and search
   const flatItems = flattenItems(collection.items || []);
+
   return flatItems.find((item) => {
     const normalizedItemPath = path.normalize(item.pathname);
-    const normalizedFullPath = path.normalize(fullPathname);
     return normalizedItemPath === normalizedFullPath;
   });
 };
@@ -70,17 +72,21 @@ export const deserializeTab = (tabSchema, collection) => {
 
   const item = findItemByRelativePath(collection, itemPath);
   if (!item) {
-    console.warn(`[app-snapshot] Item not found at path: ${itemPath}, skipping tab`);
+    // Item not found - might still be loading
     return null;
   }
 
-  const tabType = item.type || 'request';
+  // Folders use 'folder-settings' tab type, not 'folder'
+  const isFolder = item.type === 'folder';
+  const tabType = isFolder ? 'folder-settings' : (item.type || 'request');
 
   const tab = {
     type: tabType,
     collectionUid: collection.uid,
     uid: item.uid,
-    preview: !permanent
+    preview: !permanent,
+    // folder-settings tabs need folderUid for the UI to find the folder
+    ...(isFolder ? { folderUid: item.uid } : {})
   };
 
   // Restore request pane state

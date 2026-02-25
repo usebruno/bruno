@@ -11,6 +11,7 @@ const TAB_TYPE_TO_SCHEMA = {
   'collection-settings': 'collection',
   'environment-settings': 'environment',
   'global-environment-settings': 'global-environment',
+  'folder-settings': 'item',
   'request': 'item',
   'http-request': 'item',
   'graphql-request': 'item',
