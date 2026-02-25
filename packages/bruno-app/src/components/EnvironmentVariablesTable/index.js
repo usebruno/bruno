@@ -51,7 +51,8 @@ const EnvironmentVariablesTable = ({
   renderExtraValueContent,
   searchQuery = ''
 }) => {
-  const { storedTheme } = useTheme();
+  const { storedTheme, theme } = useTheme();
+  const valueMatchBg = theme?.colors?.accent ? `${theme.colors.accent}1a` : undefined;
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
 
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
@@ -513,7 +514,7 @@ const EnvironmentVariablesTable = ({
                 </td>
                 <td
                   className="flex flex-row flex-nowrap items-center"
-                  style={{ width: columnWidths.value, ...(valueMatchesOnly ? { background: 'var(--env-value-match-bg)' } : {}) }}
+                  style={{ width: columnWidths.value, ...(valueMatchesOnly && valueMatchBg ? { background: valueMatchBg } : {}) }}
                 >
                   <div className="overflow-hidden grow w-full relative">
                     <MultiLineEditor

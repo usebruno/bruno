@@ -147,9 +147,11 @@ export const appSlice = createSlice({
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
     },
     setEnvVarSearchQuery: (state, { payload: { context, query } }) => {
+      if (!state.envVarSearch[context]) return;
       state.envVarSearch[context].query = query;
     },
     setEnvVarSearchExpanded: (state, { payload: { context, expanded } }) => {
+      if (!state.envVarSearch[context]) return;
       state.envVarSearch[context].expanded = expanded;
     }
   },

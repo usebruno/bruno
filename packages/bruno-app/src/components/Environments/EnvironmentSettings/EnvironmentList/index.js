@@ -597,7 +597,7 @@ const EnvironmentList = ({
                     spellCheck="false"
                   />
                   {searchText && (
-                    <button className="env-list-search-clear" onClick={() => setSearchText('')} onMouseDown={(e) => e.preventDefault()}>
+                    <button className="env-list-search-clear" title="Clear search" onClick={() => setSearchText('')} onMouseDown={(e) => e.preventDefault()}>
                       <IconX size={12} strokeWidth={1.5} />
                     </button>
                   )}

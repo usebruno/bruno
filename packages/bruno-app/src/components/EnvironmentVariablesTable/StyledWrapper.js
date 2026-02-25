@@ -96,8 +96,6 @@ const Wrapper = styled.div`
     max-width: 200px !important;
   }
 
-  --env-value-match-bg: ${(props) => props.theme.colors.accent}1a;
-
   .name-cell-wrapper {
     position: relative;
     width: 100%;
