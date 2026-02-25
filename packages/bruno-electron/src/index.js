@@ -198,8 +198,8 @@ app.on('ready', async () => {
   }
 
   // Initialize system proxy cache early (non-blocking)
-  const { initializeSystemProxy } = require('./store/system-proxy');
-  initializeSystemProxy().catch((err) => {
+  const { fetchSystemProxy } = require('./store/system-proxy');
+  fetchSystemProxy().catch((err) => {
     console.warn('Failed to initialize system proxy cache:', err);
   });
 
