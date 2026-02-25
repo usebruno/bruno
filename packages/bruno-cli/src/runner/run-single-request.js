@@ -6,7 +6,7 @@ const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lod
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString, interpolateObject } = require('./interpolate-string');
-const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, formatErrorWithContext } = require('@usebruno/js');
+const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, formatErrorWithContext, SCRIPT_TYPES } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const https = require('https');
@@ -119,9 +119,9 @@ const runSingleRequest = async function (
               stack: r.stack,
               name: r.errorName || 'Error'
             };
-            const metadata = scriptType === 'pre-request' ? request?.script?.reqMetadata
-              : scriptType === 'post-response' ? request?.script?.resMetadata
-                : scriptType === 'test' ? request?.testsMetadata
+            const metadata = scriptType === SCRIPT_TYPES.PRE_REQUEST ? request?.script?.reqMetadata
+              : scriptType === SCRIPT_TYPES.POST_RESPONSE ? request?.script?.resMetadata
+                : scriptType === SCRIPT_TYPES.TEST ? request?.testsMetadata
                   : null;
             console.log('\n' + formatErrorWithContext(errorObj, relativeItemPathname, scriptType, 5, metadata) + '\n');
           } else if (r.error) {
@@ -228,8 +228,7 @@ const runSingleRequest = async function (
           processEnvVars,
           scriptingConfig,
           runSingleRequestByPathname,
-          collectionName,
-          itemPathname);
+          collectionName);
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
@@ -276,7 +275,7 @@ const runSingleRequest = async function (
       } catch (error) {
         // Pre-request errors are treated as request errors (we return early with status: 'error'), not as failures. Unlike post-response and test script errors, we do not add a synthetic fail and continue.
         console.error(chalk.red(`[${relativeItemPathname}] Pre-request script error:`));
-        console.log('\n' + formatErrorWithContext(error, relativeItemPathname, 'pre-request', 5, request.script?.reqMetadata) + '\n');
+        console.log('\n' + formatErrorWithContext(error, relativeItemPathname, SCRIPT_TYPES.PRE_REQUEST, 5, request.script?.reqMetadata) + '\n');
 
         // Extract partial results from the error (tests that passed before the error)
         preRequestTestResults = error?.partialResults?.results || [];
@@ -291,7 +290,7 @@ const runSingleRequest = async function (
           shouldStopRunnerExecution = true;
         }
 
-        logResults(preRequestTestResults, 'Pre-Request Tests', 'pre-request', request);
+        logResults(preRequestTestResults, 'Pre-Request Tests', SCRIPT_TYPES.PRE_REQUEST, request);
 
         // Pre-request script error: execution didn't complete (request never sent). Return early so we don't run the HTTP request, post-response script, assertions, or tests.
         return {
@@ -765,7 +764,7 @@ const runSingleRequest = async function (
     );
 
     // Log pre-request test results
-    logResults(preRequestTestResults, 'Pre-Request Tests', 'pre-request', request);
+    logResults(preRequestTestResults, 'Pre-Request Tests', SCRIPT_TYPES.PRE_REQUEST, request);
 
     // run post-response vars
     const postResponseVars = get(item, 'request.vars.res');
@@ -798,8 +797,7 @@ const runSingleRequest = async function (
           processEnvVars,
           scriptingConfig,
           runSingleRequestByPathname,
-          collectionName,
-          itemPathname
+          collectionName
         );
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
@@ -816,10 +814,10 @@ const runSingleRequest = async function (
         }
 
         postResponseTestResults = result?.results || [];
-        logResults(postResponseTestResults, 'Post-Response Tests', 'post-response', request);
+        logResults(postResponseTestResults, 'Post-Response Tests', SCRIPT_TYPES.POST_RESPONSE, request);
       } catch (error) {
         console.error(chalk.red(`[${relativeItemPathname}] Post-response script error:`));
-        console.log('\n' + formatErrorWithContext(error, relativeItemPathname, 'post-response', 5, request.script?.resMetadata) + '\n');
+        console.log('\n' + formatErrorWithContext(error, relativeItemPathname, SCRIPT_TYPES.POST_RESPONSE, 5, request.script?.resMetadata) + '\n');
 
         const partialResults = error?.partialResults?.results || [];
         postResponseTestResults = [
@@ -840,7 +838,7 @@ const runSingleRequest = async function (
           shouldStopRunnerExecution = true;
         }
 
-        logResults(postResponseTestResults, 'Post-Response Tests', 'post-response', request);
+        logResults(postResponseTestResults, 'Post-Response Tests', SCRIPT_TYPES.POST_RESPONSE, request);
       }
     }
 
@@ -875,8 +873,7 @@ const runSingleRequest = async function (
           processEnvVars,
           scriptingConfig,
           runSingleRequestByPathname,
-          collectionName,
-          itemPathname
+          collectionName
         );
         testResults = get(result, 'results', []);
 
@@ -894,10 +891,10 @@ const runSingleRequest = async function (
           }
         }
 
-        logResults(testResults, 'Tests', 'test', request);
+        logResults(testResults, 'Tests', SCRIPT_TYPES.TEST, request);
       } catch (error) {
         console.error(chalk.red(`[${relativeItemPathname}] Test script error:`));
-        console.log('\n' + formatErrorWithContext(error, relativeItemPathname, 'test', 5, request.testsMetadata) + '\n');
+        console.log('\n' + formatErrorWithContext(error, relativeItemPathname, SCRIPT_TYPES.TEST, 5, request.testsMetadata) + '\n');
 
         const partialResults = error?.partialResults?.results || [];
         testResults = [
@@ -918,7 +915,7 @@ const runSingleRequest = async function (
           shouldStopRunnerExecution = true;
         }
 
-        logResults(testResults, 'Tests', 'test', request);
+        logResults(testResults, 'Tests', SCRIPT_TYPES.TEST, request);
       }
     }
 

@@ -24,8 +24,7 @@ class TestRuntime {
     processEnvVars,
     scriptingConfig,
     runRequestByItemPathname,
-    collectionName,
-    scriptPath
+    collectionName
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
@@ -35,6 +34,7 @@ class TestRuntime {
     const promptVariables = request?.promptVariables || {};
     const assertionResults = request?.assertionResults || [];
     const certsAndProxyConfig = request?.certsAndProxyConfig;
+    const scriptPath = request?.pathname;
     const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);

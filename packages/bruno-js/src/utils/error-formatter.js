@@ -4,11 +4,17 @@ const { NODEVM_WRAPPER_OFFSET, QUICKJS_WRAPPER_OFFSET } = require('../sandbox/wr
 
 const DEFAULT_CONTEXT_LINES = 5;
 
+const SCRIPT_TYPES = Object.freeze({
+  PRE_REQUEST: 'pre-request',
+  POST_RESPONSE: 'post-response',
+  TEST: 'test'
+});
+
 // Bruno script types → OpenCollection YAML script types
 const SCRIPT_TYPE_TO_YML = {
-  'pre-request': 'before-request',
-  'post-response': 'after-response',
-  'test': 'tests'
+  [SCRIPT_TYPES.PRE_REQUEST]: 'before-request',
+  [SCRIPT_TYPES.POST_RESPONSE]: 'after-response',
+  [SCRIPT_TYPES.TEST]: 'tests'
 };
 
 const readFile = (filePath, cache = null) => {
@@ -23,9 +29,9 @@ const readFile = (filePath, cache = null) => {
 };
 
 const BLOCK_PATTERNS = {
-  'pre-request': /^script:pre-request\s*\{/,
-  'post-response': /^script:post-response\s*\{/,
-  'test': /^tests\s*\{/
+  [SCRIPT_TYPES.PRE_REQUEST]: /^script:pre-request\s*\{/,
+  [SCRIPT_TYPES.POST_RESPONSE]: /^script:post-response\s*\{/,
+  [SCRIPT_TYPES.TEST]: /^tests\s*\{/
 };
 
 /** Find the 1-indexed line where a script block's content starts in a .bru file */
@@ -111,6 +117,7 @@ const adjustLineNumber = (filePath, reportedLine, isQuickJS, scriptType = null, 
   if (scriptType && scriptMetadata) {
     const { requestStartLine, requestEndLine } = scriptMetadata;
     if (requestStartLine && scriptRelativeLine >= requestStartLine && scriptRelativeLine <= requestEndLine) {
+      // Error is within the request script segment
       const blockStartLine = isBruFile
         ? findScriptBlockStartLine(filePath, scriptType, cache)
         : findYmlScriptBlockStartLine(filePath, scriptType, cache);
@@ -119,7 +126,9 @@ const adjustLineNumber = (filePath, reportedLine, isQuickJS, scriptType = null, 
         return blockStartLine + (scriptRelativeLine - requestStartLine) - 1;
       }
     } else if (requestStartLine) {
-      // Error is in a collection/folder segment — return raw relative line
+      // Error is in a collection/folder-level script outside the request's range.
+      // Combined scripts lack file paths for collection/folder scripts,
+      // so return the raw script line offset.
       return scriptRelativeLine;
     }
   }
@@ -302,6 +311,7 @@ const formatErrorWithContext = (error, relativeFilePath = null, scriptType = nul
 };
 
 module.exports = {
+  SCRIPT_TYPES,
   DEFAULT_CONTEXT_LINES,
   parseStackTrace,
   parseErrorLocation,

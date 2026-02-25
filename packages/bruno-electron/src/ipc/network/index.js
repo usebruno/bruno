@@ -506,8 +506,7 @@ const registerNetworkIpc = (mainWindow) => {
     runtimeVariables,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname,
-    itemPathname
+    runRequestByItemPathname
   ) => {
     // run pre-request script
     let scriptResult;
@@ -526,8 +525,7 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars,
         scriptingConfig,
         runRequestByItemPathname,
-        collectionName,
-        itemPathname
+        collectionName
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -608,8 +606,7 @@ const registerNetworkIpc = (mainWindow) => {
     runtimeVariables,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname,
-    itemPathname
+    runRequestByItemPathname
   ) => {
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
@@ -668,8 +665,7 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars,
         scriptingConfig,
         runRequestByItemPathname,
-        collectionName,
-        itemPathname
+        collectionName
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -772,8 +768,7 @@ const registerNetworkIpc = (mainWindow) => {
           runtimeVariables,
           processEnvVars,
           scriptingConfig,
-          runRequestByItemPathname,
-          item.pathname
+          runRequestByItemPathname
         );
       } catch (error) {
         preRequestError = error;
@@ -950,8 +945,7 @@ const registerNetworkIpc = (mainWindow) => {
             runtimeVariables,
             processEnvVars,
             scriptingConfig,
-            runRequestByItemPathname,
-            item.pathname);
+            runRequestByItemPathname);
         } catch (error) {
           console.error('Post-response script error:', error);
           postResponseError = error;
@@ -1021,8 +1015,7 @@ const registerNetworkIpc = (mainWindow) => {
               processEnvVars,
               scriptingConfig,
               runRequestByItemPathname,
-              collectionName,
-              item.pathname);
+              collectionName);
           } catch (error) {
             testError = error;
 
@@ -1423,8 +1416,7 @@ const registerNetworkIpc = (mainWindow) => {
                 runtimeVariables,
                 processEnvVars,
                 scriptingConfig,
-                runRequestByItemPathname,
-                item.pathname
+                runRequestByItemPathname
               );
             } catch (error) {
               console.error('Pre-request script error:', error);
@@ -1658,8 +1650,7 @@ const registerNetworkIpc = (mainWindow) => {
                 runtimeVariables,
                 processEnvVars,
                 scriptingConfig,
-                runRequestByItemPathname,
-                item.pathname
+                runRequestByItemPathname
               );
             } catch (error) {
               console.error('Post-response script error:', error);
@@ -1741,8 +1732,7 @@ const registerNetworkIpc = (mainWindow) => {
                   processEnvVars,
                   scriptingConfig,
                   runRequestByItemPathname,
-                  collectionName,
-                  item.pathname
+                  collectionName
                 );
               } catch (error) {
                 testError = error;

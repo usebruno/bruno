@@ -241,7 +241,7 @@ ${script}
  */
 const wrapAndJoinScripts = (scripts, requestIndex) => {
   const wrapped = scripts.map((s) => wrapScriptInClosure(s));
-  const code = wrapped.filter(Boolean).join(os.EOL + os.EOL);
+  const code = wrapped.filter(Boolean).join('\n\n');
 
   let offset = 0;
   let metadata = null;
