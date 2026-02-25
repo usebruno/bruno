@@ -40,6 +40,7 @@ const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
+const { parsedFileCacheStore } = require('./store/parsed-file-cache-idb');
 const registerSystemMonitorIpc = require('./ipc/system-monitor');
 const registerWorkspaceIpc = require('./ipc/workspace');
 const registerApiSpecIpc = require('./ipc/apiSpec');
@@ -439,6 +440,9 @@ app.on('ready', async () => {
       isRunningInRosetta: getIsRunningInRosetta()
     });
   });
+
+  // Initialize the parsed file cache IPC handlers
+  parsedFileCacheStore.initialize(mainWindow);
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
