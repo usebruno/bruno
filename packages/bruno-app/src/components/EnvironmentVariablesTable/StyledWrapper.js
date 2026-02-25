@@ -121,6 +121,13 @@ const Wrapper = styled.div`
     padding: 0 1px;
   }
 
+  .no-results {
+    padding: 24px;
+    text-align: center;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
   input[type='text'] {
     width: 100%;
     border: 1px solid transparent;
