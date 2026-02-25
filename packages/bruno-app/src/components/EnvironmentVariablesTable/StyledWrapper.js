@@ -5,14 +5,62 @@ const Wrapper = styled.div`
   flex-direction: column;
   flex: 1;
   overflow: hidden;
+  min-height: 0;
 
   &.is-resizing {
     cursor: col-resize !important;
     user-select: none;
   }
 
+  > .variables-section {
+    &.expanded {
+      flex: 0 1 auto;
+      min-height: 0;
+      max-height: 45%;
+      overflow: hidden;
+
+      > .section-content {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+      }
+    }
+
+    &.collapsed {
+      flex-shrink: 0;
+    }
+  }
+
+  > .secrets-section {
+    &.expanded {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+
+      > .section-content {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+      }
+    }
+
+    &.collapsed {
+      flex-shrink: 0;
+    }
+  }
+
+  .table-sizer {
+    flex: 0 1 auto;
+    min-height: 0;
+  }
+
   .table-container {
-    overflow-y: auto;
     border-radius: 8px;
     border: solid 1px ${(props) => props.theme.border.border0};
   }
@@ -32,9 +80,6 @@ const Wrapper = styled.div`
         border-right: none;
       }
       &:nth-child(4) {
-        width: 80px;
-      }
-      &:nth-child(5) {
         width: 60px;
       }
     }
@@ -137,6 +182,7 @@ const Wrapper = styled.div`
     padding: 12px 2px;
     background: ${(props) => props.theme.bg};
     flex-shrink: 0;
+    margin-top: auto;
     display: flex;
     gap: 8px;
   }

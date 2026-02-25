@@ -8,10 +8,11 @@ const CollapsibleSection = ({
   onToggle,
   badge,
   actions,
+  className,
   children
 }) => {
   return (
-    <StyledWrapper className={expanded ? 'expanded' : 'collapsed'}>
+    <StyledWrapper className={`${expanded ? 'expanded' : 'collapsed'}${className ? ` ${className}` : ''}`}>
       <div className="section-header" onClick={onToggle}>
         <div className="section-title-wrapper">
           <IconChevronRight
