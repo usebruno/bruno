@@ -96,24 +96,12 @@ export const serializeDevTools = (logsState, devtoolsHeight) => {
   };
 };
 
-/**
- * Check if a collection is a scratch/transient collection that should not be persisted
- */
 const isScratchCollection = (collection, workspaces) => {
-  // Check if this collection is a scratch collection for any workspace
-  for (const workspace of workspaces) {
-    if (workspace.scratchCollectionUid === collection.uid) {
-      return true;
-    }
-  }
-
-  // Also check if pathname contains transient/scratch paths
-  const pathname = collection.pathname || '';
-  if (pathname.includes('/tmp/transient/') || pathname.includes('bruno-scratch')) {
+  if (workspaces.some((w) => w.scratchCollectionUid === collection.uid)) {
     return true;
   }
-
-  return false;
+  const pathname = collection.pathname || '';
+  return pathname.includes('/tmp/transient/') || pathname.includes('bruno-scratch');
 };
 
 /**

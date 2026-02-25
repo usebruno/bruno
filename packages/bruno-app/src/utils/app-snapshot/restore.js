@@ -14,6 +14,14 @@ const SCHEMA_TYPE_TO_TAB = {
   'item': 'request'
 };
 
+const TAB_UID_SUFFIXES = {
+  'environment-settings': '-environment-settings',
+  'global-environment-settings': '-global-environment-settings',
+  'preferences': '-preferences',
+  'variables': '-variables',
+  'collection-runner': '-runner'
+};
+
 /**
  * Find an item in a collection by its relative path
  * e.g., "requests/users/get.bru" -> item object
@@ -41,33 +49,10 @@ export const findItemByRelativePath = (collection, relativePath) => {
 export const deserializeTab = (tabSchema, collection) => {
   const { type, itemPath, permanent, request, response } = tabSchema;
 
-  // For non-item tabs, return the basic structure
   if (type !== 'item') {
     const tabType = SCHEMA_TYPE_TO_TAB[type] || type;
-
-    // Generate the correct UID based on tab type (must match how tabs are created)
-    let uid;
-    switch (tabType) {
-      case 'environment-settings':
-        uid = `${collection.uid}-environment-settings`;
-        break;
-      case 'global-environment-settings':
-        uid = `${collection.uid}-global-environment-settings`;
-        break;
-      case 'preferences':
-        uid = `${collection.uid}-preferences`;
-        break;
-      case 'variables':
-        uid = `${collection.uid}-variables`;
-        break;
-      case 'collection-runner':
-        uid = `${collection.uid}-runner`;
-        break;
-      case 'collection-settings':
-      default:
-        uid = collection.uid;
-        break;
-    }
+    const suffix = TAB_UID_SUFFIXES[tabType];
+    const uid = suffix ? `${collection.uid}${suffix}` : collection.uid;
 
     return {
       type: tabType,
@@ -89,12 +74,7 @@ export const deserializeTab = (tabSchema, collection) => {
     return null;
   }
 
-  // Determine the tab type based on the item type
-  let tabType = 'request';
-  if (item.type === 'http-request') tabType = 'http-request';
-  else if (item.type === 'graphql-request') tabType = 'graphql-request';
-  else if (item.type === 'grpc-request') tabType = 'grpc-request';
-  else if (item.type === 'ws-request') tabType = 'ws-request';
+  const tabType = item.type || 'request';
 
   const tab = {
     type: tabType,

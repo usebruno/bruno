@@ -979,19 +979,8 @@ export const mountScratchCollection = (workspaceUid) => {
   };
 };
 
-/**
- * Restores workspace state from snapshot data.
- * Used by both initial app restore and workspace switching.
- * Uses controlled concurrency for mounting collections.
- *
- * @param {Function} dispatch - Redux dispatch
- * @param {Function} getState - Redux getState
- * @param {Array} collectionsToRestore - Collection schemas from snapshot
- */
 const restoreWorkspaceState = async (dispatch, getState, collectionsToRestore) => {
-  if (!collectionsToRestore || collectionsToRestore.length === 0) {
-    return;
-  }
+  if (!collectionsToRestore?.length) return;
 
   const limit = pLimit(4);
 
@@ -1000,7 +989,6 @@ const restoreWorkspaceState = async (dispatch, getState, collectionsToRestore) =
       const { pathname, isMounted: wasMounted, isOpen, environment, tabs, activeTabIndex } = collectionSchema;
 
       try {
-        // 1. Open collection if not in Redux (makes it visible in sidebar)
         let collection = findCollectionByPathname(getState().collections.collections, pathname);
         if (!collection) {
           await dispatch(openMultipleCollections([pathname]));
@@ -1013,33 +1001,21 @@ const restoreWorkspaceState = async (dispatch, getState, collectionsToRestore) =
           return;
         }
 
-        // 2. Restore collapsed state (isOpen = !collapsed)
         if (typeof isOpen === 'boolean') {
           dispatch(setCollectionCollapsed({ collectionUid: collection.uid, collapsed: !isOpen }));
         }
 
-        // 3. Only mount if it was mounted before (wasMounted from snapshot)
-        if (!wasMounted) {
-          return;
-        }
+        if (!wasMounted) return;
 
-        // 3. Mount and wait for completion if not already mounted
         if (collection.mountStatus !== 'mounted') {
-          // IMPORTANT: Set up listener FIRST to avoid race condition
-          // We wait for the IPC event, not mountStatus, because mountStatus is set
-          // before files are actually loaded
-          const mountCompletePromise = waitForMountComplete(collection.uid);
-          const mountPromise = dispatch(mountCollection({
-            collectionUid: collection.uid,
-            collectionPathname: collection.pathname,
-            brunoConfig: collection.brunoConfig
-          }));
-
           await Promise.all([
-            mountPromise,
-            mountCompletePromise
+            dispatch(mountCollection({
+              collectionUid: collection.uid,
+              collectionPathname: collection.pathname,
+              brunoConfig: collection.brunoConfig
+            })),
+            waitForMountComplete(collection.uid)
           ]);
-
           collection = findCollectionByPathname(getState().collections.collections, pathname);
         }
 
@@ -1048,7 +1024,6 @@ const restoreWorkspaceState = async (dispatch, getState, collectionsToRestore) =
           return;
         }
 
-        // 4. Restore environment selection (only for mounted collections)
         if (environment) {
           const env = findEnvironmentInCollectionByName(collection, environment);
           if (env) {
@@ -1056,16 +1031,11 @@ const restoreWorkspaceState = async (dispatch, getState, collectionsToRestore) =
           }
         }
 
-        // 5. Restore tabs (only for mounted collections - need items loaded)
-        if (tabs && tabs.length > 0) {
-          const existingTabs = getState().tabs.tabs.filter((t) => t.collectionUid === collection.uid);
-          if (existingTabs.length === 0) {
-            const restoredTabs = restoreTabsForCollection(collection, tabs);
-            if (restoredTabs.length > 0) {
-              const activeTabIdx = activeTabIndex < restoredTabs.length ? activeTabIndex : 0;
-              const activeTabUid = restoredTabs[activeTabIdx]?.uid || null;
-              dispatch(restoreTabs({ tabs: restoredTabs, activeTabUid }));
-            }
+        if (tabs?.length && !getState().tabs.tabs.some((t) => t.collectionUid === collection.uid)) {
+          const restoredTabs = restoreTabsForCollection(collection, tabs);
+          if (restoredTabs.length) {
+            const activeTabIdx = activeTabIndex < restoredTabs.length ? activeTabIndex : 0;
+            dispatch(restoreTabs({ tabs: restoredTabs, activeTabUid: restoredTabs[activeTabIdx]?.uid }));
           }
         }
       } catch (error) {
@@ -1075,93 +1045,73 @@ const restoreWorkspaceState = async (dispatch, getState, collectionsToRestore) =
   ));
 };
 
-/**
- * Restore app snapshot from persisted state
- * Waits for app to be fully initialized before restoring
- * Uses lazy loading: only mounts collections for active workspace immediately
- */
+const waitForInitialLoad = (getState) => {
+  return new Promise((resolve) => {
+    const check = () => {
+      if (getState().app.isInitialLoadComplete) {
+        resolve();
+      } else {
+        setTimeout(check, 50);
+      }
+    };
+    check();
+  });
+};
+
+const restoreDevTools = (dispatch, devTools) => {
+  if (!devTools) return;
+  const { isConsoleOpen, activeTab, devtoolsHeight } = devTools;
+  dispatch(isConsoleOpen ? openConsole() : closeConsole());
+  if (activeTab) dispatch(setActiveTab(activeTab));
+  if (devtoolsHeight) dispatch(setDevtoolsHeight(devtoolsHeight));
+};
+
 export const restoreAppSnapshot = () => {
   return async (dispatch, getState) => {
+    const finalize = () => {
+      dispatch(setRestoringSnapshot(false));
+      dispatch(enableSnapshotSave());
+    };
+
     try {
       dispatch(setRestoringSnapshot(true));
       dispatch(setSnapshotRestoreMessage('Initializing...'));
 
-      const waitForInitialLoad = () => {
-        return new Promise((resolve) => {
-          const checkReady = () => {
-            const state = getState();
-            if (state.app.isInitialLoadComplete) {
-              resolve();
-            } else {
-              setTimeout(checkReady, 50);
-            }
-          };
-          checkReady();
-        });
-      };
-
-      await waitForInitialLoad();
+      await waitForInitialLoad(getState);
 
       const snapshot = await ipcRenderer.invoke('renderer:get-app-snapshot');
-
-      if (!snapshot) {
-        dispatch(setRestoringSnapshot(false));
-        dispatch(enableSnapshotSave());
-        return;
-      }
+      if (!snapshot) return finalize();
 
       const restoreActions = buildRestoreSequence(snapshot, getState());
-
       if (!restoreActions) {
         console.warn('[app-snapshot] Failed to build restore sequence');
-        dispatch(setRestoringSnapshot(false));
-        dispatch(enableSnapshotSave());
-        return;
+        return finalize();
       }
 
-      if (restoreActions.devTools) {
-        const { isConsoleOpen, activeTab, devtoolsHeight } = restoreActions.devTools;
-        if (isConsoleOpen) {
-          dispatch(openConsole());
-        } else {
-          dispatch(closeConsole());
-        }
-        if (activeTab) {
-          dispatch(setActiveTab(activeTab));
-        }
-        if (devtoolsHeight) {
-          dispatch(setDevtoolsHeight(devtoolsHeight));
-        }
-      }
+      restoreDevTools(dispatch, restoreActions.devTools);
 
-      const targetWorkspacePathname = snapshot.activeWorkspacePathname;
-      const workspaces = getState().workspaces.workspaces;
       const snapshotWorkspaces = snapshot.workspaces || [];
       const snapshotCollections = snapshot.collections || [];
 
       for (const snapshotWorkspace of snapshotWorkspaces) {
-        const workspaceCollections = snapshotCollections.filter((c) => {
-          const wsCollections = snapshotWorkspace.collections || [];
-          return wsCollections.some((wc) => wc.pathname === c.pathname);
-        });
+        const workspaceCollections = snapshotCollections.filter((c) =>
+          (snapshotWorkspace.collections || []).some((wc) => wc.pathname === c.pathname)
+        );
 
-        if (workspaceCollections.length > 0) {
+        if (workspaceCollections.length) {
           dispatch(setPendingWorkspaceRestore({
             workspacePathname: snapshotWorkspace.pathname,
-            restoreData: {
-              collections: workspaceCollections
-            }
+            restoreData: { collections: workspaceCollections }
           }));
         }
       }
 
+      const targetWorkspacePathname = snapshot.activeWorkspacePathname;
       if (targetWorkspacePathname) {
-        const targetWorkspace = workspaces.find((w) => w.pathname === targetWorkspacePathname);
+        const targetWorkspace = getState().workspaces.workspaces.find((w) => w.pathname === targetWorkspacePathname);
 
         if (targetWorkspace) {
-          const currentActiveWorkspaceUid = getState().workspaces.activeWorkspaceUid;
-
-          if (currentActiveWorkspaceUid !== targetWorkspace.uid) {
+          if (getState().workspaces.activeWorkspaceUid !== targetWorkspace.uid) {
             dispatch(setSnapshotRestoreMessage('Switching workspace...'));
             await dispatch(switchWorkspace(targetWorkspace.uid));
           } else {
@@ -1176,12 +1126,10 @@ export const restoreAppSnapshot = () => {
         }
       }
 
-      dispatch(setRestoringSnapshot(false));
-      dispatch(enableSnapshotSave());
+      finalize();
     } catch (error) {
       console.error('[app-snapshot] Error restoring snapshot:', error);
-      dispatch(setRestoringSnapshot(false));
-      dispatch(enableSnapshotSave());
+      finalize();
     }
   };
 };
