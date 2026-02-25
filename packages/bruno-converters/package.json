@@ -12,6 +12,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "test": "node --experimental-vm-modules $(npx which jest) --colors --collectCoverage",
+    "test:ci": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --colors --collectCoverage",
     "prebuild": "npm run clean",
     "build": "rollup -c",
     "watch": "rollup -c -w",

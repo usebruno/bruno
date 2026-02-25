@@ -1,0 +1,101 @@
+name: Windows Tests
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'release/v*']
+  pull_request:
+    branches: [main, 'release/v*']
+
+jobs:
+  unit-test:
+    name: Unit Tests (Windows)
+    timeout-minutes: 60
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+        with:
+          shell: pwsh
+
+      - name: Run Unit Tests
+        uses: ./.github/actions/tests/run-unit-tests
+        with:
+          shell: pwsh
+
+  cli-test:
+    name: CLI Tests (Windows)
+    runs-on: windows-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+        with:
+          shell: pwsh
+
+      - name: Run CLI Tests
+        uses: ./.github/actions/tests/run-cli-tests
+        with:
+          shell: pwsh
+
+  e2e-test:
+    name: Playwright E2E Tests (Windows)
+    timeout-minutes: 90
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+        with:
+          shell: pwsh
+
+      - name: Run E2E Tests
+        uses: ./.github/actions/tests/run-e2e-tests
+        with:
+          os: windows
+          shell: pwsh
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-windows
+          path: playwright-report/
+          retention-days: 30
+
+  ssl-test:
+    name: SSL Tests (Windows)
+    timeout-minutes: 60
+    runs-on: windows-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+        with:
+          shell: pwsh
+
+      - name: Setup CA Certificates
+        uses: ./.github/actions/ssl/windows/setup-ca-certs
+
+      - name: Run Basic SSL CLI Tests
+        uses: ./.github/actions/ssl/windows/run-basic-ssl-cli-tests
+
+      - name: Run Custom CA Certs CLI Tests
+        uses: ./.github/actions/ssl/windows/run-custom-ca-certs-cli-tests
+
+      - name: Run Custom CA Certs E2E Tests
+        uses: ./.github/actions/ssl/windows/run-ssl-e2e-tests
