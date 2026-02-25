@@ -42,6 +42,65 @@ export const uuid = () => {
   return customNanoId();
 };
 
+/**
+ * Sanitizes a tag name for BRU format compatibility.
+ * BRU format only supports tag names containing alphanumeric characters,
+ * hyphens (-), and underscores (_). Spaces are replaced with underscores.
+ *
+ * @param {string} tag - The tag to sanitize
+ * @param {Object} options - Sanitization options
+ * @param {string} options.collectionFormat - The collection format ('yml' for OpenCollection YAML)
+ * @returns {string|null} - The sanitized tag, or null if the result is empty
+ */
+export const sanitizeTag = (tag, options = {}) => {
+  if (!tag || typeof tag !== 'string') {
+    return null;
+  }
+
+  let sanitized = tag.trim();
+
+  // BRU format only supports alphanumeric, hyphens, and underscores in tags
+  // The BRU grammar defines listitem as: (alnum | "_" | "-")+
+  // Spaces are NOT allowed, so we replace them with underscores
+
+  // Replace spaces with underscores first
+  sanitized = sanitized.replace(/\s+/g, '_');
+
+  // Replace any character that's NOT alphanumeric, hyphen, or underscore with underscore
+  sanitized = sanitized.replace(/[^a-zA-Z0-9\-_]/g, '_');
+
+  // Collapse multiple consecutive underscores into one
+  sanitized = sanitized.replace(/_+/g, '_');
+
+  // Remove leading characters that aren't alphanumeric
+  sanitized = sanitized.replace(/^[^a-zA-Z0-9]+/, '');
+
+  // Remove trailing characters that aren't alphanumeric
+  sanitized = sanitized.replace(/[^a-zA-Z0-9]+$/, '');
+
+  // Return null if the result is empty
+  return sanitized || null;
+};
+
+/**
+ * Sanitizes an array of tags, removing duplicates and null values.
+ *
+ * @param {string[]} tags - Array of tags to sanitize
+ * @param {Object} options - Sanitization options
+ * @returns {string[]} - Array of unique sanitized tags
+ */
+export const sanitizeTags = (tags, options = {}) => {
+  if (!Array.isArray(tags)) {
+    return [];
+  }
+
+  return [...new Set(
+    tags
+      .map((tag) => sanitizeTag(tag, options))
+      .filter((tag) => tag !== null)
+  )];
+};
+
 export const validateSchema = (collection = {}) => {
   try {
     collectionSchema.validateSync(collection);
