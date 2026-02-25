@@ -621,6 +621,7 @@ class CollectionWatcher {
     this.watchers = {};
     this.loadingStates = {};
     this.tempDirectoryMap = {};
+    this.completedMounts = new Set();
   }
 
   // Initialize loading state tracking for a collection
@@ -662,6 +663,7 @@ class CollectionWatcher {
     // If discovery is complete and no pending files, mark as not loading
     if (!state.isDiscovering && state.pendingFiles.size === 0 && state.isProcessing) {
       state.isProcessing = false;
+      this.completedMounts.add(collectionUid);
       win.webContents.send('main:collection-loading-state-updated', {
         collectionUid,
         isLoading: false
@@ -680,6 +682,7 @@ class CollectionWatcher {
       state.isProcessing = true;
     } else {
       // No pending files, collection is fully loaded
+      this.completedMounts.add(collectionUid);
       win.webContents.send('main:collection-loading-state-updated', {
         collectionUid,
         isLoading: false
@@ -689,6 +692,27 @@ class CollectionWatcher {
 
   cleanupLoadingState(collectionUid) {
     delete this.loadingStates[collectionUid];
+    this.completedMounts.delete(collectionUid);
+  }
+
+  /**
+   * Check if a collection's mount is complete.
+   * Returns true if the collection has finished loading all files.
+   */
+  isCollectionMountComplete(collectionUid) {
+    // If marked as completed, return true
+    if (this.completedMounts.has(collectionUid)) {
+      return true;
+    }
+
+    // If there's an active loading state, check if it's done
+    const state = this.loadingStates[collectionUid];
+    if (state) {
+      return !state.isDiscovering && !state.isProcessing && state.pendingFiles.size === 0;
+    }
+
+    // No loading state and not in completedMounts means not mounted
+    return false;
   }
 
   addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false, useWorkerThread) {

@@ -1,4 +1,5 @@
 import path from 'path';
+import pLimit from 'p-limit';
 import {
   createWorkspace,
   removeWorkspace,
@@ -9,13 +10,18 @@ import {
   updateWorkspaceLoadingState,
   setWorkspaceScratchCollection
 } from '../workspaces';
-import { showHomePage } from '../app';
-import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent } from '../collections/actions';
-import { removeCollection, addTransientDirectory, updateCollectionMountStatus } from '../collections';
+import { showHomePage, setRestoringSnapshot, setSnapshotRestoreMessage, enableSnapshotSave, markInitialLoadComplete, setPendingWorkspaceRestore, clearPendingWorkspaceRestore } from '../app';
+import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent, selectEnvironment, mountCollection } from '../collections/actions';
+import { removeCollection, addTransientDirectory, updateCollectionMountStatus, setCollectionCollapsed } from '../collections';
 import { updateGlobalEnvironments } from '../global-environments';
-import { addTab, focusTab } from '../tabs';
+import { addTab, focusTab, restoreTabs } from '../tabs';
+import { openConsole, closeConsole, setActiveTab, setDevtoolsHeight } from '../logs';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
+import { buildRestoreSequence, restoreTabsForCollection } from 'utils/app-snapshot/restore';
+import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections';
+import { waitForMountComplete } from 'utils/collection-mount';
+import { isWorkspaceHydrated, markWorkspaceHydrated } from 'utils/workspace-hydration';
 
 const { ipcRenderer } = window;
 
@@ -266,7 +272,16 @@ export const switchWorkspace = (workspaceUid) => {
     const scratchCollection = await dispatch(mountScratchCollection(workspaceUid));
     await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
 
-    if (scratchCollection?.uid) {
+    const pendingRestore = getState().app.pendingWorkspaceRestores[workspace.pathname];
+    const isRestoring = getState().app.isRestoringSnapshot;
+
+    if (pendingRestore) {
+      if (isRestoring) {
+        dispatch(setSnapshotRestoreMessage('Loading collections...'));
+      }
+      await restoreWorkspaceState(dispatch, getState, pendingRestore.collections);
+      dispatch(clearPendingWorkspaceRestore({ workspacePathname: workspace.pathname }));
+    } else if (!isWorkspaceHydrated(workspaceUid) && scratchCollection?.uid) {
       const overviewTabUid = `${scratchCollection.uid}-overview`;
       const environmentsTabUid = `${scratchCollection.uid}-environments`;
 
@@ -286,6 +301,8 @@ export const switchWorkspace = (workspaceUid) => {
         uid: overviewTabUid
       }));
     }
+
+    markWorkspaceHydrated(workspaceUid);
   };
 };
 
@@ -390,12 +407,12 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
     } catch (error) {
     }
 
-    // If this is the default workspace or no workspace is active yet, switch to it
     const state = getState();
     const activeWorkspaceUid = state.workspaces.activeWorkspaceUid;
 
     if (!activeWorkspaceUid || workspaceConfig.type === 'default') {
-      dispatch(switchWorkspace(workspaceUid));
+      await dispatch(switchWorkspace(workspaceUid));
+      dispatch(markInitialLoadComplete());
     }
   };
 };
@@ -937,6 +954,213 @@ export const mountScratchCollection = (workspaceUid) => {
         dispatch(updateCollectionMountStatus({ collectionUid: workspace.scratchCollectionUid, mountStatus: 'unmounted' }));
       }
       return null;
+    }
+  };
+};
+
+/**
+ * Restores workspace state from snapshot data.
+ * Used by both initial app restore and workspace switching.
+ * Uses controlled concurrency for mounting collections.
+ *
+ * @param {Function} dispatch - Redux dispatch
+ * @param {Function} getState - Redux getState
+ * @param {Array} collectionsToRestore - Collection schemas from snapshot
+ */
+const restoreWorkspaceState = async (dispatch, getState, collectionsToRestore) => {
+  if (!collectionsToRestore || collectionsToRestore.length === 0) {
+    return;
+  }
+
+  const limit = pLimit(4);
+
+  await Promise.all(collectionsToRestore.map((collectionSchema) =>
+    limit(async () => {
+      const { pathname, isMounted: wasMounted, isOpen, environment, tabs, activeTabIndex } = collectionSchema;
+
+      try {
+        // 1. Open collection if not in Redux (makes it visible in sidebar)
+        let collection = findCollectionByPathname(getState().collections.collections, pathname);
+        if (!collection) {
+          await dispatch(openMultipleCollections([pathname]));
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          collection = findCollectionByPathname(getState().collections.collections, pathname);
+        }
+
+        if (!collection) {
+          console.warn(`[restore] Could not open collection: ${pathname}`);
+          return;
+        }
+
+        // 2. Restore collapsed state (isOpen = !collapsed)
+        if (typeof isOpen === 'boolean') {
+          dispatch(setCollectionCollapsed({ collectionUid: collection.uid, collapsed: !isOpen }));
+        }
+
+        // 3. Only mount if it was mounted before (wasMounted from snapshot)
+        if (!wasMounted) {
+          return;
+        }
+
+        // 3. Mount and wait for completion if not already mounted
+        if (collection.mountStatus !== 'mounted') {
+          // IMPORTANT: Set up listener FIRST to avoid race condition
+          // We wait for the IPC event, not mountStatus, because mountStatus is set
+          // before files are actually loaded
+          const mountCompletePromise = waitForMountComplete(collection.uid);
+          const mountPromise = dispatch(mountCollection({
+            collectionUid: collection.uid,
+            collectionPathname: collection.pathname,
+            brunoConfig: collection.brunoConfig
+          }));
+
+          await Promise.all([
+            mountPromise,
+            mountCompletePromise
+          ]);
+
+          collection = findCollectionByPathname(getState().collections.collections, pathname);
+        }
+
+        if (!collection || collection.mountStatus !== 'mounted') {
+          console.warn(`[restore] Collection not mounted: ${pathname}`);
+          return;
+        }
+
+        // 4. Restore environment selection (only for mounted collections)
+        if (environment) {
+          const env = findEnvironmentInCollectionByName(collection, environment);
+          if (env) {
+            dispatch(selectEnvironment(env.uid, collection.uid));
+          }
+        }
+
+        // 5. Restore tabs (only for mounted collections - need items loaded)
+        if (tabs && tabs.length > 0) {
+          const existingTabs = getState().tabs.tabs.filter((t) => t.collectionUid === collection.uid);
+          if (existingTabs.length === 0) {
+            const restoredTabs = restoreTabsForCollection(collection, tabs);
+            if (restoredTabs.length > 0) {
+              const activeTabIdx = activeTabIndex < restoredTabs.length ? activeTabIndex : 0;
+              const activeTabUid = restoredTabs[activeTabIdx]?.uid || null;
+              dispatch(restoreTabs({ tabs: restoredTabs, activeTabUid }));
+            }
+          }
+        }
+      } catch (error) {
+        console.warn(`[restore] Failed to restore collection ${pathname}:`, error);
+      }
+    })
+  ));
+};
+
+/**
+ * Restore app snapshot from persisted state
+ * Waits for app to be fully initialized before restoring
+ * Uses lazy loading: only mounts collections for active workspace immediately
+ */
+export const restoreAppSnapshot = () => {
+  return async (dispatch, getState) => {
+    try {
+      dispatch(setRestoringSnapshot(true));
+      dispatch(setSnapshotRestoreMessage('Initializing...'));
+
+      const waitForInitialLoad = () => {
+        return new Promise((resolve) => {
+          const checkReady = () => {
+            const state = getState();
+            if (state.app.isInitialLoadComplete) {
+              resolve();
+            } else {
+              setTimeout(checkReady, 50);
+            }
+          };
+          checkReady();
+        });
+      };
+
+      await waitForInitialLoad();
+
+      const snapshot = await ipcRenderer.invoke('renderer:get-app-snapshot');
+
+      if (!snapshot) {
+        dispatch(setRestoringSnapshot(false));
+        dispatch(enableSnapshotSave());
+        return;
+      }
+
+      const restoreActions = buildRestoreSequence(snapshot, getState());
+
+      if (!restoreActions) {
+        console.warn('[app-snapshot] Failed to build restore sequence');
+        dispatch(setRestoringSnapshot(false));
+        dispatch(enableSnapshotSave());
+        return;
+      }
+
+      if (restoreActions.devTools) {
+        const { isConsoleOpen, activeTab, devtoolsHeight } = restoreActions.devTools;
+        if (isConsoleOpen) {
+          dispatch(openConsole());
+        } else {
+          dispatch(closeConsole());
+        }
+        if (activeTab) {
+          dispatch(setActiveTab(activeTab));
+        }
+        if (devtoolsHeight) {
+          dispatch(setDevtoolsHeight(devtoolsHeight));
+        }
+      }
+
+      const targetWorkspacePathname = snapshot.activeWorkspacePathname;
+      const workspaces = getState().workspaces.workspaces;
+      const snapshotWorkspaces = snapshot.workspaces || [];
+      const snapshotCollections = snapshot.collections || [];
+
+      for (const snapshotWorkspace of snapshotWorkspaces) {
+        const workspaceCollections = snapshotCollections.filter((c) => {
+          const wsCollections = snapshotWorkspace.collections || [];
+          return wsCollections.some((wc) => wc.pathname === c.pathname);
+        });
+
+        if (workspaceCollections.length > 0) {
+          dispatch(setPendingWorkspaceRestore({
+            workspacePathname: snapshotWorkspace.pathname,
+            restoreData: {
+              collections: workspaceCollections
+            }
+          }));
+        }
+      }
+
+      if (targetWorkspacePathname) {
+        const targetWorkspace = workspaces.find((w) => w.pathname === targetWorkspacePathname);
+
+        if (targetWorkspace) {
+          const currentActiveWorkspaceUid = getState().workspaces.activeWorkspaceUid;
+
+          if (currentActiveWorkspaceUid !== targetWorkspace.uid) {
+            dispatch(setSnapshotRestoreMessage('Switching workspace...'));
+            await dispatch(switchWorkspace(targetWorkspace.uid));
+          } else {
+            const pendingRestore = getState().app.pendingWorkspaceRestores[targetWorkspacePathname];
+            if (pendingRestore) {
+              dispatch(setSnapshotRestoreMessage('Loading collections...'));
+              await restoreWorkspaceState(dispatch, getState, pendingRestore.collections);
+              dispatch(clearPendingWorkspaceRestore({ workspacePathname: targetWorkspacePathname }));
+            }
+            markWorkspaceHydrated(targetWorkspace.uid);
+          }
+        }
+      }
+
+      dispatch(setRestoringSnapshot(false));
+      dispatch(enableSnapshotSave());
+    } catch (error) {
+      console.error('[app-snapshot] Error restoring snapshot:', error);
+      dispatch(setRestoringSnapshot(false));
+      dispatch(enableSnapshotSave());
     }
   };
 };

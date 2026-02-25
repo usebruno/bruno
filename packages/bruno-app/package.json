@@ -61,6 +61,7 @@
     "moment-timezone": "^0.5.47",
     "mousetrap": "^1.6.5",
     "nanoid": "3.3.8",
+    "p-limit": "^5.0.0",
     "path": "^0.12.7",
     "pdfjs-dist": "4.4.168",
     "platform": "^1.3.6",

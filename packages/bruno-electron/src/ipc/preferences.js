@@ -3,6 +3,8 @@ const { getPreferences, savePreferences } = require('../store/preferences');
 const { getGitVersion } = require('../utils/git');
 const { globalEnvironmentsStore } = require('../store/global-environments');
 const { getCachedSystemProxy, refreshSystemProxy } = require('../store/system-proxy');
+const { getAppSnapshot, saveAppSnapshot } = require('../store/app-snapshot');
+const collectionWatcher = require('../app/collection-watcher');
 
 const registerPreferencesIpc = (mainWindow) => {
   ipcMain.handle('renderer:ready', async (event) => {
@@ -55,6 +57,28 @@ const registerPreferencesIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:refresh-system-proxy', async () => {
     return await refreshSystemProxy();
+  });
+
+  ipcMain.handle('renderer:get-app-snapshot', async () => {
+    try {
+      return getAppSnapshot();
+    } catch (error) {
+      console.error('Error getting app snapshot:', error);
+      return null;
+    }
+  });
+
+  ipcMain.handle('renderer:save-app-snapshot', async (event, snapshot) => {
+    try {
+      saveAppSnapshot(snapshot);
+    } catch (error) {
+      console.error('Error saving app snapshot:', error);
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:is-collection-mount-complete', async (event, collectionUid) => {
+    return collectionWatcher.isCollectionMountComplete(collectionUid);
   });
 };
 

@@ -7,9 +7,11 @@ import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
 import ApiSpecPanel from 'components/ApiSpecPanel';
+import AppLoader from 'components/AppLoader';
 // import ErrorCapture from 'components/ErrorCapture';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
+import { restoreAppSnapshot } from 'providers/ReduxStore/slices/workspaces/actions';
 import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
@@ -73,12 +75,14 @@ const TransientRequestModalsRenderer = ({ modals }) => {
 };
 
 export default function Main() {
+  const dispatch = useDispatch();
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
   const isDragging = useSelector((state) => state.app.isDragging);
   const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
   const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
+  const isRestoringSnapshot = useSelector((state) => state.app.isRestoringSnapshot);
   const saveTransientRequestModals = useSelector((state) => state.collections.saveTransientRequestModals);
   const mainSectionRef = useRef(null);
   const [showRosettaBanner, setShowRosettaBanner] = useState(false);
@@ -99,20 +103,26 @@ export default function Main() {
     const { ipcRenderer } = window;
 
     const removeAppLoadedListener = ipcRenderer.on('main:app-loaded', (init) => {
-      if (mainSectionRef.current) {
-        mainSectionRef.current.setAttribute('data-app-state', 'loaded');
-      }
       setShowRosettaBanner(init.isRunningInRosetta);
+      dispatch(restoreAppSnapshot());
     });
 
     return () => {
       removeAppLoadedListener();
     };
-  }, []);
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (mainSectionRef.current) {
+      const appState = isRestoringSnapshot ? 'loading' : 'loaded';
+      mainSectionRef.current.setAttribute('data-app-state', appState);
+    }
+  }, [isRestoringSnapshot]);
 
   return (
     // <ErrorCapture>
     <div id="main-container" className="flex flex-col h-screen max-h-screen overflow-hidden">
+      {isRestoringSnapshot && <AppLoader />}
       <AppTitleBar />
       {showRosettaBanner ? (
         <Portal>
