@@ -86,39 +86,32 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     // Replacing the path portion works for all targets since it's a substring of the full URL.
     // encodeUrl defaults to false in the UI when undefined/null
     const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
-    if (settings?.encodeUrl !== true) {
-      const rawUrl = item.rawUrl || request.url;
-      const parsed = parse(request.url, true, true);
-      const search = stringify(parsed.query);
-      const httpSnippetPath = search ? `${parsed.pathname}?${search}` : parsed.pathname;
-      let rawPath = rawUrl.replace(/^https?:\/\/[^/?#]*/, '') || '/';
+    const rawUrl = item.rawUrl || request.url;
+    const parsed = parse(request.url, true, true);
+    const search = stringify(parsed.query);
+    const httpSnippetPath = search ? `${parsed.pathname}?${search}` : parsed.pathname;
+
+    let desiredPath;
+    if (settings?.encodeUrl === true) {
+      // Apply the same encodeUrl() transform used by the actual request execution path
+      // so the snippet matches what's sent on the wire.
+      const encodedUrl = encodeUrlCommon(rawUrl);
+      desiredPath = encodedUrl.replace(/^https?:\/\/[^/?#]*/, '') || '/';
+      // Strip fragment per RFC 3986 §3.5
+      desiredPath = desiredPath.replace(/#.*$/, '');
+    } else {
+      desiredPath = rawUrl.replace(/^https?:\/\/[^/?#]*/, '') || '/';
       // The HTTP raw target (http/http1.1) uses the request line format:
       //   METHOD <request-target> HTTP-version
       // Spaces delimit these fields, so a literal space in the request-target
       // would be parsed as the end of the URI (RFC 7230 §3.1.1).
-      // Other decoded chars (=, :, /, etc.) are safe in the request line.
-      // https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.1
       if (language.target === 'http') {
-        rawPath = rawPath.replace(/ /g, '%20');
+        desiredPath = desiredPath.replace(/ /g, '%20');
       }
-      if (httpSnippetPath !== rawPath) {
-        result = result.replaceAll(httpSnippetPath, rawPath);
-      }
-    } else {
-      // When encodeUrl is true, apply the same encodeUrl() transform used by the
-      // actual request execution path (packages/bruno-electron/src/ipc/network/index.js)
-      // so the snippet matches what's sent on the wire.
-      const rawUrl = item.rawUrl || request.url;
-      const encodedUrl = encodeUrlCommon(rawUrl);
-      const parsed = parse(request.url, true, true);
-      const search = stringify(parsed.query);
-      const httpSnippetPath = search ? `${parsed.pathname}?${search}` : parsed.pathname;
-      // Extract the encoded path+query, stripping fragment per RFC 3986 §3.5
-      let encodedPath = encodedUrl.replace(/^https?:\/\/[^/?#]*/, '') || '/';
-      encodedPath = encodedPath.replace(/#.*$/, '');
-      if (httpSnippetPath !== encodedPath) {
-        result = result.replaceAll(httpSnippetPath, encodedPath);
-      }
+    }
+
+    if (httpSnippetPath !== desiredPath) {
+      result = result.replaceAll(httpSnippetPath, desiredPath);
     }
 
     return result;
