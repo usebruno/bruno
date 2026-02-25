@@ -141,6 +141,10 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
     return interpolate(replacedPathname, variables);
   };
 
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `http://${url}`;
+  }
+
   // When raw is true, resolve :params via pure string manipulation without
   // passing through new URL(), which would percent-encode characters like spaces.
   // This preserves the user's original encoding choices for snippet generation.
@@ -152,15 +156,12 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
     const pathPart = separatorIdx >= 0 ? url.substring(0, separatorIdx) : url;
     const rest = separatorIdx >= 0 ? url.substring(separatorIdx) : '';
 
+    // resolvedPath includes the origin (scheme + host) since pathPart is the full URL before ?/#
     const resolvedPath = getInterpolatedBasePath(pathPart, enabledPathParams);
     return `${resolvedPath}${rest}`;
   }
 
   let uri;
-
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    url = `http://${url}`;
-  }
 
   try {
     uri = new URL(url);
