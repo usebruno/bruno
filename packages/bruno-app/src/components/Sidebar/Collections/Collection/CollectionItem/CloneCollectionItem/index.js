@@ -169,7 +169,7 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
                       onChange={formik.handleChange}
                       value={formik.values.filename || ''}
                     />
-                    {itemType !== 'folder' && <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.{collection?.format}</span>}
+                    {itemType !== 'folder' && <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.{collection?.format || 'bru'}</span>}
                   </div>
                 ) : (
                   <div className="relative flex flex-row gap-1 items-center justify-between">
