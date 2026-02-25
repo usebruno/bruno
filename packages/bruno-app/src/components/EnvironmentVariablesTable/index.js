@@ -31,6 +31,15 @@ const TableRow = React.memo(
   }
 );
 
+const highlightText = (text, query) => {
+  if (!query?.trim() || !text) return text;
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const parts = text.split(regex);
+  return parts.map((part, i) =>
+    regex.test(part) ? <mark key={i} className="search-highlight">{part}</mark> : part
+  );
+};
+
 const EnvironmentVariablesTable = ({
   environment,
   collection,
@@ -50,6 +59,7 @@ const EnvironmentVariablesTable = ({
   const [tableHeight, setTableHeight] = useState(MIN_H);
   const [columnWidths, setColumnWidths] = useState({ name: '30%', value: 'auto' });
   const [resizing, setResizing] = useState(null);
+  const [focusedNameIndex, setFocusedNameIndex] = useState(null);
 
   const handleResizeStart = useCallback((e, columnKey) => {
     e.preventDefault();
@@ -444,6 +454,11 @@ const EnvironmentVariablesTable = ({
           const isLastRow = actualIndex === formik.values.length - 1;
           const isEmptyRow = !variable.name || variable.name.trim() === '';
           const isLastEmptyRow = isLastRow && isEmptyRow;
+          const activeQuery = searchQuery?.trim().toLowerCase();
+          const valueMatchesOnly = activeQuery
+            && !(variable.name?.toLowerCase().includes(activeQuery))
+            && typeof variable.value === 'string'
+            && variable.value.toLowerCase().includes(activeQuery);
 
           return (
             <>
@@ -460,25 +475,39 @@ const EnvironmentVariablesTable = ({
               </td>
               <td style={{ width: columnWidths.name }}>
                 <div className="flex items-center">
-                  <input
-                    type="text"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    className="mousetrap"
-                    id={`${actualIndex}.name`}
-                    name={`${actualIndex}.name`}
-                    value={variable.name}
-                    placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Name' : ''}
-                    onChange={(e) => handleNameChange(actualIndex, e)}
-                    onBlur={() => handleNameBlur(actualIndex)}
-                    onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
-                  />
+                  <div className="name-cell-wrapper">
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      className="mousetrap"
+                      id={`${actualIndex}.name`}
+                      name={`${actualIndex}.name`}
+                      value={variable.name}
+                      placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Name' : ''}
+                      onChange={(e) => handleNameChange(actualIndex, e)}
+                      onFocus={() => setFocusedNameIndex(actualIndex)}
+                      onBlur={() => {
+                        setFocusedNameIndex(null); handleNameBlur(actualIndex);
+                      }}
+                      onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
+                      style={searchQuery?.trim() && focusedNameIndex !== actualIndex ? { color: 'transparent' } : undefined}
+                    />
+                    {searchQuery?.trim() && focusedNameIndex !== actualIndex && (
+                      <div className="name-highlight-overlay">
+                        {highlightText(variable.name || '', searchQuery)}
+                      </div>
+                    )}
+                  </div>
                   <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
                 </div>
               </td>
-              <td className="flex flex-row flex-nowrap items-center" style={{ width: columnWidths.value }}>
+              <td
+                className="flex flex-row flex-nowrap items-center"
+                style={{ width: columnWidths.value, ...(valueMatchesOnly ? { background: 'var(--env-value-match-bg)' } : {}) }}
+              >
                 <div className="overflow-hidden grow w-full relative">
                   <MultiLineEditor
                     theme={storedTheme}

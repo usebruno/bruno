@@ -96,6 +96,31 @@ const Wrapper = styled.div`
     max-width: 200px !important;
   }
 
+  --env-value-match-bg: ${(props) => props.theme.colors.accent}1a;
+
+  .name-cell-wrapper {
+    position: relative;
+    width: 100%;
+
+    .name-highlight-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      white-space: pre;
+      overflow: hidden;
+      font-size: inherit;
+      line-height: inherit;
+      color: ${(props) => props.theme.text};
+    }
+  }
+
+  .search-highlight {
+    background: ${(props) => props.theme.colors.accent}55;
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
   input[type='text'] {
     width: 100%;
     border: 1px solid transparent;
