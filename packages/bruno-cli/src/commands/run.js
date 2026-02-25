@@ -213,7 +213,7 @@ const builder = async (yargs) => {
     })
     .option('reporter-skip-body', {
       type: 'boolean',
-      description: 'Omit both request and response bodies from the reporter output (shorthand for --reporter-skip-request-body --reporter-skip-response-body)',
+      description: 'Omit both request and response bodies from the reporter output',
       default: false
     })
     .option('client-cert-config', {
@@ -251,7 +251,6 @@ const builder = async (yargs) => {
     .example('$0 run --reporter-skip-request-body', 'Run all requests with request bodies omitted from the reporter output')
     .example('$0 run --reporter-skip-response-body', 'Run all requests with response bodies omitted from the reporter output')
     .example('$0 run --reporter-skip-body', 'Run all requests with both request and response bodies omitted from the reporter output')
-    .example('$0 run --reporter-skip-request-body --reporter-skip-response-body', 'Run all requests with both request and response bodies omitted from the reporter output')
     .example(
       '$0 run --reporter-skip-headers "Authorization"',
       'Run all requests in a folder recursively with skipped headers from the reporter output'
