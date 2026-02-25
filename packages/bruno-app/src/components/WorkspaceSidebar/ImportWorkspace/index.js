@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import get from 'lodash/get';
 import { IconFileZip } from '@tabler/icons';
 import Modal from 'components/Modal';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
@@ -13,16 +14,19 @@ import Help from 'components/Help';
 
 const ImportWorkspace = ({ onClose }) => {
   const dispatch = useDispatch();
+  const preferences = useSelector((state) => state.app.preferences);
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null);
   const locationInputRef = useRef(null);
 
+  const defaultLocation = get(preferences, 'general.defaultCollectionLocation', '');
+
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      workspaceLocation: ''
+      workspaceLocation: defaultLocation
     },
     validationSchema: Yup.object({
       workspaceLocation: Yup.string().min(1, 'location is required').required('location is required')

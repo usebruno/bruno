@@ -356,14 +356,17 @@ const General = () => {
           <div className="text-red-500">{formik.errors.autoSave.interval}</div>
         )}
         <div className="flex flex-col mt-6">
-          <label className="block select-none default-collection-location-label" htmlFor="defaultCollectionLocation">
-            Default Collection Location
+          <label className="block select-none default-location-label" htmlFor="defaultCollectionLocation">
+            Default Location
           </label>
+          <p className="text-muted mt-1 text-xs">
+            Used as the default location for new workspaces and collections
+          </p>
           <input
             type="text"
             name="defaultCollectionLocation"
             id="defaultCollectionLocation"
-            className="block textbox mt-2 w-full cursor-pointer default-collection-location-input"
+            className="block textbox mt-2 w-full cursor-pointer default-location-input"
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
@@ -376,7 +379,7 @@ const General = () => {
           />
           <div className="mt-1">
             <span
-              className="text-link cursor-pointer hover:underline default-collection-location-browse"
+              className="text-link cursor-pointer hover:underline default-location-browse"
               onClick={browseDefaultLocation}
             >
               Browse
