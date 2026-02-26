@@ -87,7 +87,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
 
     // When not interpolating, replace the interpolated URL with the raw URL in the output
     if (!shouldInterpolate && rawUrl !== harUrl) {
-      result = result.replaceAll(harUrl, rawUrl);
+      result = result.replace(harUrl, rawUrl);
     }
 
     return result;
