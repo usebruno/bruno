@@ -573,7 +573,12 @@ const registerNetworkIpc = (mainWindow) => {
     // stringify the request url encoded params
     const contentTypeHeader = Object.keys(request.headers).find((name) => name.toLowerCase() === 'content-type');
 
-    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
+    let mediaType;
+    if (contentTypeHeader && request.headers[contentTypeHeader]) {
+      mediaType = request.headers[contentTypeHeader].split(';')[0].trim();
+    }
+
+    if (mediaType === 'application/x-www-form-urlencoded') {
       if (Array.isArray(request.data)) {
         request.data = buildFormUrlEncodedPayload(request.data);
       } else if (typeof request.data !== 'string') {
@@ -582,7 +587,7 @@ const registerNetworkIpc = (mainWindow) => {
       // if `data` is of string type - return as-is (assumes already encoded)
     }
 
-    if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
+    if (mediaType === 'multipart/form-data') {
       if (!isFormData(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
