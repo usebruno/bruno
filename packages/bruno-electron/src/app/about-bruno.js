@@ -1,4 +1,5 @@
 module.exports = function aboutBruno({ version }) {
+  const currentYear = new Date().getFullYear();
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -168,7 +169,7 @@ module.exports = function aboutBruno({ version }) {
         </svg>
       <h2 class="title">Bruno ${version}</h2>
       <footer class="footer">
-          ©2026 Bruno Software Inc
+          ©${currentYear} Bruno Software Inc
       </footer>
     </body>
     </html>
