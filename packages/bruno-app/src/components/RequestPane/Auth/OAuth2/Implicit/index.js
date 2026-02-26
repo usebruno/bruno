@@ -34,7 +34,8 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
     tokenPlacement,
     tokenHeaderPrefix,
     tokenQueryKey,
-    autoFetchToken
+    autoFetchToken,
+    tokenType
   } = oAuth;
 
   const interpolatedAuthUrl = useMemo(() => {
@@ -42,14 +43,23 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
     return interpolate(authorizationUrl, variables);
   }, [collection, item, authorizationUrl]);
 
-  const TokenPlacementIcon = forwardRef((props, ref) => {
+  const TokenTypeIcon = useMemo(() => forwardRef((props, ref) => {
+    return (
+      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
+        {tokenType === 'id_token' ? 'ID Token' : 'Access Token'}
+        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+      </div>
+    );
+  }), [tokenType]);
+
+  const TokenPlacementIcon = useMemo(() => forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
         {tokenPlacement == 'url' ? 'URL' : 'Headers'}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
-  });
+  }), [tokenPlacement]);
 
   const handleSave = () => { save(); };
 
@@ -71,6 +81,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           tokenHeaderPrefix,
           tokenQueryKey,
           autoFetchToken,
+          tokenType,
           [key]: value
         }
       })
@@ -182,6 +193,32 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         <span className="oauth2-section-label">
           Token
         </span>
+      </div>
+
+      <div className="flex items-center gap-4 w-full" key="input-token-type">
+        <label className="block min-w-[140px]">Token Type</label>
+        <div className="inline-flex items-center cursor-pointer token-placement-selector">
+          <Dropdown onCreate={onDropdownCreate} icon={<TokenTypeIcon />} placement="bottom-end">
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                handleChange('tokenType', 'access_token');
+              }}
+            >
+              Access Token
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                handleChange('tokenType', 'id_token');
+              }}
+            >
+              ID Token
+            </div>
+          </Dropdown>
+        </div>
       </div>
 
       <div className="flex items-center gap-4 w-full" key="input-token-name">

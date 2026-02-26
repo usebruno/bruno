@@ -1,4 +1,4 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { useRef, forwardRef, useMemo } from 'react';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
@@ -36,6 +36,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
     refreshTokenUrl,
     autoRefreshToken,
     autoFetchToken,
+    tokenType,
     additionalParameters
   } = oAuth;
 
@@ -44,23 +45,32 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
 
   const handleSave = () => { save(); };
 
-  const TokenPlacementIcon = forwardRef((props, ref) => {
+  const TokenTypeIcon = useMemo(() => forwardRef((props, ref) => {
+    return (
+      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
+        {tokenType === 'id_token' ? 'ID Token' : 'Access Token'}
+        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+      </div>
+    );
+  }), [tokenType]);
+
+  const TokenPlacementIcon = useMemo(() => forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
         {tokenPlacement == 'url' ? 'URL' : 'Headers'}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
-  });
+  }), [tokenPlacement]);
 
-  const CredentialsPlacementIcon = forwardRef((props, ref) => {
+  const CredentialsPlacementIcon = useMemo(() => forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
         {credentialsPlacement == 'body' ? 'Request Body' : 'Basic Auth Header'}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
-  });
+  }), [credentialsPlacement]);
 
   const handleChange = (key, value) => {
     dispatch(
@@ -84,6 +94,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           refreshTokenUrl,
           autoRefreshToken,
           autoFetchToken,
+          tokenType,
           additionalParameters,
           [key]: value
         }
@@ -159,6 +170,31 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         <span className="oauth2-section-label">
           Token
         </span>
+      </div>
+      <div className="flex items-center gap-4 w-full" key="input-token-type">
+        <label className="block min-w-[140px]">Token Type</label>
+        <div className="inline-flex items-center cursor-pointer token-placement-selector">
+          <Dropdown onCreate={onDropdownCreate} icon={<TokenTypeIcon />} placement="bottom-end">
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                handleChange('tokenType', 'access_token');
+              }}
+            >
+              Access Token
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                handleChange('tokenType', 'id_token');
+              }}
+            >
+              ID Token
+            </div>
+          </Dropdown>
+        </div>
       </div>
       <div className="flex items-center gap-4 w-full" key="input-token-name">
         <label className="block min-w-[140px]">Token ID</label>
