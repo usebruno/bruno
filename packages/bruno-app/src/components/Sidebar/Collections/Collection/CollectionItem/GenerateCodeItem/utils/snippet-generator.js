@@ -3,6 +3,7 @@ import { getAuthHeaders } from 'utils/codegenerator/auth';
 import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { get } from 'lodash';
+import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { interpolateAuth, interpolateHeaders, interpolateBody, interpolateParams } from './interpolation';
 
 const addCurlAuthFlags = (curlCommand, auth) => {
@@ -64,9 +65,14 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       request.params = interpolateParams(request.params, variables);
     }
 
-    // Build HAR request
+    // Always interpolate the URL for HAR generation (HTTPSnippet requires a valid URL)
+    const rawUrl = request.url;
+    const interpolatedUrl = interpolateUrl({ url: rawUrl, variables });
+    const harUrl = interpolateUrlPathParams(interpolatedUrl, request.params);
+
+    // Build HAR request with the interpolated URL without mutating the original request
     const harRequest = buildHarRequest({
-      request,
+      request: { ...request, url: harUrl },
       headers
     });
 
@@ -77,6 +83,11 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     // For curl target, add special auth flags for digest/ntlm
     if (language.target === 'shell' && language.client === 'curl') {
       result = addCurlAuthFlags(result, effectiveAuth);
+    }
+
+    // When not interpolating, replace the interpolated URL with the raw URL in the output
+    if (!shouldInterpolate && rawUrl !== harUrl) {
+      result = result.replaceAll(harUrl, rawUrl);
     }
 
     return result;

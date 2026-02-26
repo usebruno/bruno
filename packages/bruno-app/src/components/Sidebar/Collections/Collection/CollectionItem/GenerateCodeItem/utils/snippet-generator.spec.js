@@ -154,7 +154,7 @@ describe('Snippet Generator - Simple Tests', () => {
   "message": "Hello World",
   "count": 42
 }`;
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle GET requests', () => {
@@ -211,7 +211,7 @@ describe('Snippet Generator - Simple Tests', () => {
   "message": "Hello World",
   "count": 42
 }`;
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle complex nested JSON body', () => {
@@ -273,7 +273,7 @@ describe('Snippet Generator - Simple Tests', () => {
       }
     }, null, 2);
 
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
   });
 
   it('should handle errors gracefully', () => {
@@ -302,7 +302,7 @@ describe('Snippet Generator - Simple Tests', () => {
   it('should work with JavaScript language', () => {
     const javascriptLanguage = { target: 'javascript', client: 'fetch' };
 
-    const expectedJavaScriptCode = `fetch("https://api.example.com/data", {
+    const mockSnippetOutput = `fetch("https://api.example.com/data", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ "message": "Hello World", "count": 42 })
@@ -310,7 +310,7 @@ describe('Snippet Generator - Simple Tests', () => {
 
     const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
     require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation(() => ({
-      convert: jest.fn(() => expectedJavaScriptCode)
+      convert: jest.fn(() => mockSnippetOutput)
     }));
 
     const result = generateSnippet({
@@ -320,6 +320,12 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: false
     });
 
+    // URL should be replaced back to raw (un-interpolated) form
+    const expectedJavaScriptCode = `fetch("https://api.example.com/{{endpoint}}", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ "message": "Hello World", "count": 42 })
+})`;
     expect(result).toBe(expectedJavaScriptCode);
 
     // Restore the original mock
@@ -379,7 +385,7 @@ describe('Snippet Generator - Simple Tests', () => {
   "age": 30
 }`;
 
-    expect(result).toBe(`curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedInterpolatedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.test.com/users -H "Content-Type: application/json" -d '${expectedInterpolatedBody}'`);
   });
 
   it('should NOT interpolate when shouldInterpolate is false', () => {
@@ -904,5 +910,118 @@ describe('generateSnippet – digest and NTLM auth curl export', () => {
 
     const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
     expect(result).toMatch(/^curl --digest --user 'myuser'/);
+  });
+});
+
+describe('generateSnippet – URL interpolation behavior', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const baseCollection = {
+    root: { request: { auth: { mode: 'none' }, headers: [] } },
+    globalEnvironmentVariables: {
+      host: 'https://api.example.com'
+    },
+    runtimeVariables: {},
+    processEnvVariables: {}
+  };
+
+  it('should NOT interpolate URL variables when shouldInterpolate is false', () => {
+    const item = {
+      uid: 'url-test-1',
+      request: {
+        method: 'GET',
+        url: '{{host}}/ping',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      }
+    };
+
+    const result = generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('{{host}}/ping');
+    expect(result).not.toContain('https://api.example.com/ping');
+  });
+
+  it('should interpolate URL variables when shouldInterpolate is true', () => {
+    const item = {
+      uid: 'url-test-2',
+      request: {
+        method: 'GET',
+        url: '{{host}}/ping',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      }
+    };
+
+    const result = generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    expect(result).toContain('https://api.example.com/ping');
+    expect(result).not.toContain('{{host}}');
+  });
+
+  it('should NOT interpolate URL path params when shouldInterpolate is false', () => {
+    const item = {
+      uid: 'url-test-3',
+      request: {
+        method: 'GET',
+        url: 'https://api.example.com/users/:userId',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: [
+          { name: 'userId', value: '123', type: 'path', enabled: true }
+        ]
+      }
+    };
+
+    const result = generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('/users/:userId');
+    expect(result).not.toContain('/users/123');
+  });
+
+  it('should interpolate both URL variables and path params when shouldInterpolate is true', () => {
+    const item = {
+      uid: 'url-test-4',
+      request: {
+        method: 'GET',
+        url: '{{host}}/users/:userId',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: [
+          { name: 'userId', value: '123', type: 'path', enabled: true }
+        ]
+      }
+    };
+
+    const result = generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    expect(result).toContain('https://api.example.com/users/123');
+    expect(result).not.toContain('{{host}}');
+    expect(result).not.toContain(':userId');
   });
 });
