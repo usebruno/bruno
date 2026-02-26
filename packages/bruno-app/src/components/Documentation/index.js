@@ -24,6 +24,7 @@ const Documentation = ({ item, collection }) => {
       const variables = getAllVariables(collection, item);
       return interpolate(docs, variables);
     } catch (e) {
+      console.warn('Failed to interpolate documentation variables:', e);
       return docs;
     }
   }, [docs, collection, item]);
