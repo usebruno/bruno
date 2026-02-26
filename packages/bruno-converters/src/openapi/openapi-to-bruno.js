@@ -434,15 +434,18 @@ const populateRequestBody = ({ body, bodySchema, contentType }) => {
  * @param {*} params.exampleValue - The example value (object, array, or primitive)
  * @param {string} params.exampleName - Name of the example
  * @param {string} params.exampleDescription - Description of the example
- * @param {string|number} params.statusCode - HTTP status code (for response examples)
+ * @param {number} params.statusCode - HTTP status code (for response examples)
  * @param {string} params.contentType - Content type (e.g., 'application/json')
  * @param {Object} [params.requestBodySchema] - Optional request body schema to populate in the example
  * @param {string} [params.requestBodyContentType] - Optional request body content type
  * @returns {Object} Bruno example object
  */
+
 const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType, requestBodySchema = null, requestBodyContentType = null }) => {
   const sanitized = String(exampleName ?? '').replace(/\r?\n/g, ' ').trim();
   const name = sanitized || `${statusCode} Response`;
+  const numericStatus = Number(statusCode);
+  const safeStatus = Number.isFinite(numericStatus) ? numericStatus : null;
   // Deep copy the body to avoid shared references
   const bodyCopy = {
     mode: brunoRequestItem.request.body.mode,
@@ -468,8 +471,8 @@ const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, examp
       body: bodyCopy
     },
     response: {
-      status: String(statusCode),
-      statusText: getStatusText(statusCode),
+      status: safeStatus,
+      statusText: safeStatus ? getStatusText(safeStatus) : null,
       headers: contentType ? [
         {
           uid: uuid(),
@@ -803,7 +806,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
      * @param {*} params.responseExampleValue - The response example value
      * @param {string} params.exampleName - Name of the example
      * @param {string} params.exampleDescription - Description of the example
-     * @param {string|number} params.statusCode - HTTP status code
+     * @param {number} params.statusCode - HTTP status code
      * @param {string} params.responseContentType - Response content type
      * @param {string} [params.responseExampleKey] - Optional response example key for matching
      */
@@ -1413,9 +1416,12 @@ export const openApiToBruno = (openApiSpecification, options = {}) => {
     }
 
     const collection = parseOpenApiCollection(openApiSpecification, options);
+
     const transformedCollection = transformItemsInCollection(collection);
+
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
     const validatedCollection = validateSchema(hydratedCollection);
+
     return validatedCollection;
   } catch (err) {
     console.error('Error converting OpenAPI to Bruno:', err);

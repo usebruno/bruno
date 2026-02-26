@@ -375,7 +375,7 @@ const exampleSchema = Yup.object({
     .strict()
     .nullable(),
   response: Yup.object({
-    status: Yup.string().nullable(),
+    status: Yup.number().nullable(),
     statusText: Yup.string().nullable(),
     headers: Yup.array().of(keyValueSchema).nullable(),
     body: Yup.object({
