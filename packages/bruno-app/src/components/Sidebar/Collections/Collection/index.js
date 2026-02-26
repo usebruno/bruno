@@ -48,6 +48,7 @@ import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
+import { areItemsLoading } from 'utils/collections';
 
 const Collection = ({ collection, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
@@ -61,7 +62,7 @@ const Collection = ({ collection, searchText }) => {
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const dispatch = useDispatch();
-  const isLoading = collection.isLoading;
+  const isLoading = areItemsLoading(collection);
   const collectionRef = useRef(null);
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));

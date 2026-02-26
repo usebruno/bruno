@@ -12,7 +12,7 @@
  */
 
 const DISPATCH_INTERVAL_MS = 200;
-const MAX_BATCH_SIZE = 300;
+const MAX_BATCH_SIZE = 200;
 
 class CollectionTreeBatcher {
   constructor(win, collectionUid) {
@@ -97,6 +97,7 @@ class CollectionTreeBatcher {
       this.win.webContents.send('main:collection-tree-batch-updated', batch);
     } catch (error) {
       console.error('CollectionTreeBatcher: Error sending batch:', error);
+      this.queue.push(...batch);
     }
   }
 
@@ -115,6 +116,9 @@ class CollectionTreeBatcher {
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
+    }
+    if (this.queue.length) {
+      this.flush();
     }
     this.queue = [];
   }
