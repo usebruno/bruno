@@ -91,7 +91,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const isFolder = isItemAFolder(item);
 
   // Check if request has examples (only for HTTP requests)
-  const hasExamples = isItemARequest(item) && item.type === REQUEST_TYPES.GRAPHQL_REQUEST && item.examples && item.examples.length > 0;
+  const hasExamples = isItemARequest(item) && item.type === REQUEST_TYPES.HTTP_REQUEST && item.examples && item.examples.length > 0;
 
   const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
 

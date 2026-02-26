@@ -4,7 +4,7 @@ import { prettifyJsonString } from 'utils/common/index';
 import { isJsonLikeContentType, isPlainTextContentType, isXmlLikeContentType } from './content-type';
 import { REQUEST_TYPES } from 'utils/common/constants';
 
-export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-request') => {
+export const getRequestFromCurlCommand = (curlCommand, requestType = REQUEST_TYPES.HTTP_REQUEST) => {
   const parseFormData = (parsedBody) => {
     const formData = [];
     forOwn(parsedBody, (value, key) => {
