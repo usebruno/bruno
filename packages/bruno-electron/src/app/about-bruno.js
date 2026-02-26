@@ -168,7 +168,7 @@ module.exports = function aboutBruno({ version }) {
         </svg>
       <h2 class="title">Bruno ${version}</h2>
       <footer class="footer">
-          ©2025 Bruno Software Inc
+          ©2026 Bruno Software Inc
       </footer>
     </body>
     </html>
