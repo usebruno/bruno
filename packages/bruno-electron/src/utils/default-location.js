@@ -9,17 +9,17 @@ const BRUNO_DIR_NAME = 'bruno';
  * Checks ~/Documents/bruno if available, otherwise falls back to the app's data directory
  */
 function resolveDefaultLocation() {
-  const paths = [
+  const defaultPaths = [
     path.join(app.getPath('documents'), BRUNO_DIR_NAME),
     app.getPath('userData')
   ];
 
-  for (const path of paths) {
+  for (const dirPath of defaultPaths) {
     try {
-      fs.mkdirSync(path, { recursive: true });
-      return path;
+      fs.mkdirSync(dirPath, { recursive: true });
+      return dirPath;
     } catch (error) {
-      console.warn(`Failed to create directory at ${path}:`, error.message);
+      console.warn(`Failed to create directory at ${dirPath}:`, error.message);
     }
   }
 
