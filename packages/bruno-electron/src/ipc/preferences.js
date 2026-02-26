@@ -11,9 +11,9 @@ const registerPreferencesIpc = (mainWindow) => {
     const preferences = getPreferences();
 
     // Set the default location if it hasn't been set by the user
-    if (!preferences.general?.defaultCollectionLocation) {
+    if (!preferences.general?.defaultLocation) {
       preferences.general ??= {};
-      preferences.general.defaultCollectionLocation = resolveDefaultLocation();
+      preferences.general.defaultLocation = resolveDefaultLocation();
       await savePreferences(preferences);
     }
 

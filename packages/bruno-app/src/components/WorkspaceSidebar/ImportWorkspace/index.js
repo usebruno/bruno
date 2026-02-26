@@ -21,7 +21,7 @@ const ImportWorkspace = ({ onClose }) => {
   const fileInputRef = useRef(null);
   const locationInputRef = useRef(null);
 
-  const defaultLocation = get(preferences, 'general.defaultCollectionLocation', '');
+  const defaultLocation = get(preferences, 'general.defaultLocation', '');
 
   const formik = useFormik({
     enableReinitialize: true,

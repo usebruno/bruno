@@ -22,7 +22,7 @@ const CreateWorkspace = ({ onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  const defaultLocation = get(preferences, 'general.defaultCollectionLocation', '');
+  const defaultLocation = get(preferences, 'general.defaultLocation', '');
 
   const formik = useFormik({
     enableReinitialize: true,
