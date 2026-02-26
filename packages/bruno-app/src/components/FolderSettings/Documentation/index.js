@@ -22,12 +22,12 @@ const Documentation = ({ collection, folder }) => {
   const interpolatedDocs = useMemo(() => {
     if (!docs) return docs;
     try {
-      const variables = getAllVariables(collection);
+      const variables = getAllVariables(collection, folder);
       return interpolate(docs, variables);
     } catch (e) {
       return docs;
     }
-  }, [docs, collection]);
+  }, [docs, collection, folder]);
 
   const toggleViewMode = () => {
     setIsEditing((prev) => !prev);
