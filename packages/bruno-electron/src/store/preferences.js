@@ -50,7 +50,7 @@ const defaultPreferences = {
     hasLaunchedBefore: false
   },
   general: {
-    defaultCollectionLocation: '',
+    defaultLocation: '',
     defaultWorkspacePath: ''
   },
   autoSave: {
@@ -107,7 +107,7 @@ const preferencesSchema = Yup.object().shape({
     hasLaunchedBefore: Yup.boolean()
   }),
   general: Yup.object({
-    defaultCollectionLocation: Yup.string().max(1024).nullable(),
+    defaultLocation: Yup.string().max(1024).nullable(),
     defaultWorkspacePath: Yup.string().max(1024).nullable()
   }),
   autoSave: Yup.object({
@@ -228,6 +228,14 @@ class PreferencesStore {
         // Save the migrated preferences back to the store
         this.store.set('preferences', preferences);
       }
+    }
+
+    // Migrate from defaultCollectionLocation to defaultLocation
+    if (preferences.general?.defaultCollectionLocation !== undefined
+      && preferences.general?.defaultLocation === undefined) {
+      preferences.general.defaultLocation = preferences.general.defaultCollectionLocation;
+      delete preferences.general.defaultCollectionLocation;
+      this.store.set('preferences', preferences);
     }
 
     return merge({}, defaultPreferences, preferences);

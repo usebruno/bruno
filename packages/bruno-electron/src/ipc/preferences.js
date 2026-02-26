@@ -4,11 +4,20 @@ const { getGitVersion } = require('../utils/git');
 const { globalEnvironmentsStore } = require('../store/global-environments');
 const { parsedFileCacheStore } = require('../store/parsed-file-cache-idb');
 const { getCachedSystemProxy, refreshSystemProxy } = require('../store/system-proxy');
+const { resolveDefaultLocation } = require('../utils/default-location');
 
 const registerPreferencesIpc = (mainWindow) => {
   ipcMain.handle('renderer:ready', async (event) => {
     // load preferences
     const preferences = getPreferences();
+
+    // Set the default location if it hasn't been set by the user
+    if (!preferences.general?.defaultLocation) {
+      preferences.general ??= {};
+      preferences.general.defaultLocation = resolveDefaultLocation();
+      await savePreferences(preferences);
+    }
+
     mainWindow.webContents.send('main:load-preferences', preferences);
 
     try {

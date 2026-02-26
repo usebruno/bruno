@@ -34,7 +34,7 @@ const initialState = {
       codeFont: 'default'
     },
     general: {
-      defaultCollectionLocation: ''
+      defaultLocation: ''
     },
     autoSave: {
       enabled: false,
