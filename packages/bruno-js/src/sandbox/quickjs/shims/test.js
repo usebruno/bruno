@@ -91,11 +91,11 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
           var data = this._obj;
           var isValid = validate(data);
 
-          if (!isValid) {
-            throw new DummyChaiAssertionError(
-              'expected value to match JSON schema, validation errors: ' + JSON.stringify(validate.errors)
-            );
-          }
+          this.assert(
+            isValid,
+            'expected value to match JSON schema, validation errors: ' + (validate.errors ? JSON.stringify(validate.errors) : 'none'),
+            'expected value to not match JSON schema'
+          );
           return this;
         };
       })();
