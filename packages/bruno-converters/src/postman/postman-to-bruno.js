@@ -1,5 +1,6 @@
 import get from 'lodash/get';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
+import { transformExampleStatusInCollection } from '@usebruno/common';
 import each from 'lodash/each';
 import postmanTranslation from './postman-translations';
 import { invalidVariableCharacterRegex } from '../constants/index';
@@ -891,7 +892,9 @@ const postmanToBruno = async (postmanCollection, { useWorkers = false } = {}) =>
     const parsedPostmanCollection = await parsePostmanCollection(postmanCollection, { useWorkers });
     const transformedCollection = transformItemsInCollection(parsedPostmanCollection);
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
-    const validatedCollection = validateSchema(hydratedCollection);
+    // Apply backward compatibility transformation for string status to number
+    const statusTransformedCollection = transformExampleStatusInCollection(hydratedCollection);
+    const validatedCollection = validateSchema(statusTransformedCollection);
     return validatedCollection;
   } catch (err) {
     console.log(err);
