@@ -35,7 +35,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
     tokenHeaderPrefix,
     tokenQueryKey,
     autoFetchToken,
-    tokenType
+    tokenSource
   } = oAuth;
 
   const interpolatedAuthUrl = useMemo(() => {
@@ -43,14 +43,14 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
     return interpolate(authorizationUrl, variables);
   }, [collection, item, authorizationUrl]);
 
-  const TokenTypeIcon = useMemo(() => forwardRef((props, ref) => {
+  const TokenSourceIcon = useMemo(() => forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {tokenType === 'id_token' ? 'ID Token' : 'Access Token'}
+        {tokenSource === 'id_token' ? 'ID Token' : 'Access Token'}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
-  }), [tokenType]);
+  }), [tokenSource]);
 
   const TokenPlacementIcon = useMemo(() => forwardRef((props, ref) => {
     return (
@@ -81,7 +81,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           tokenHeaderPrefix,
           tokenQueryKey,
           autoFetchToken,
-          tokenType,
+          tokenSource,
           [key]: value
         }
       })
@@ -196,14 +196,14 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
       </div>
 
       <div className="flex items-center gap-4 w-full" key="input-token-type">
-        <label className="block min-w-[140px]">Token Type</label>
+        <label className="block min-w-[140px]">Token Source</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
-          <Dropdown onCreate={onDropdownCreate} icon={<TokenTypeIcon />} placement="bottom-end">
+          <Dropdown onCreate={onDropdownCreate} icon={<TokenSourceIcon />} placement="bottom-end">
             <div
               className="dropdown-item"
               onClick={() => {
                 dropdownTippyRef.current.hide();
-                handleChange('tokenType', 'access_token');
+                handleChange('tokenSource', 'access_token');
               }}
             >
               Access Token
@@ -212,7 +212,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
               className="dropdown-item"
               onClick={() => {
                 dropdownTippyRef.current.hide();
-                handleChange('tokenType', 'id_token');
+                handleChange('tokenSource', 'id_token');
               }}
             >
               ID Token

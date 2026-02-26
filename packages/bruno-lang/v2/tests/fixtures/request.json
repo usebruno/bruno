@@ -141,7 +141,7 @@
       "clientId": "client_id_1",
       "clientSecret": "client_secret_1",
       "credentialsId": "credentials",
-      "tokenType": "access_token",
+      "tokenSource": "access_token",
       "credentialsPlacement": "body",
       "grantType": "authorization_code",
       "pkce": false,

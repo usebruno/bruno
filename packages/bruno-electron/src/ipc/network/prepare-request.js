@@ -89,7 +89,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-              tokenType: get(collectionAuth, 'oauth2.tokenType'),
+              tokenSource: get(collectionAuth, 'oauth2.tokenSource'),
               autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
               autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
               additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
@@ -112,7 +112,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-              tokenType: get(collectionAuth, 'oauth2.tokenType'),
+              tokenSource: get(collectionAuth, 'oauth2.tokenSource'),
               autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
               autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
               additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
@@ -130,7 +130,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-              tokenType: get(collectionAuth, 'oauth2.tokenType'),
+              tokenSource: get(collectionAuth, 'oauth2.tokenSource'),
               autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
               additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
             };
@@ -148,7 +148,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
-              tokenType: get(collectionAuth, 'oauth2.tokenType'),
+              tokenSource: get(collectionAuth, 'oauth2.tokenSource'),
               autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
               autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
               additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
@@ -210,7 +210,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
-              tokenType: get(request, 'auth.oauth2.tokenType'),
+              tokenSource: get(request, 'auth.oauth2.tokenSource'),
               autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
               autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken'),
               additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
@@ -233,7 +233,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
-              tokenType: get(request, 'auth.oauth2.tokenType'),
+              tokenSource: get(request, 'auth.oauth2.tokenSource'),
               autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
               autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken'),
               additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
@@ -251,7 +251,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
-              tokenType: get(request, 'auth.oauth2.tokenType'),
+              tokenSource: get(request, 'auth.oauth2.tokenSource'),
               autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
               additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
             };
@@ -269,7 +269,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
               tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
               tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
-              tokenType: get(request, 'auth.oauth2.tokenType'),
+              tokenSource: get(request, 'auth.oauth2.tokenSource'),
               autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
               autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken'),
               additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })

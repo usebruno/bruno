@@ -731,7 +731,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const tokenQueryKeyKey = _.find(auth, { name: 'token_query_key' });
     const autoFetchTokenKey = _.find(auth, { name: 'auto_fetch_token' });
     const autoRefreshTokenKey = _.find(auth, { name: 'auto_refresh_token' });
-    const tokenTypeKey = _.find(auth, { name: 'token_type' });
+    const tokenSourceKey = _.find(auth, { name: 'token_source' });
     return {
       auth: {
         oauth2:
@@ -747,7 +747,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 scope: scopeKey ? scopeKey.value : '',
                 credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
                 credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
-                tokenType: tokenTypeKey?.value ? tokenTypeKey.value : 'access_token',
+                tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
                 tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
@@ -768,7 +768,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                   pkce: pkceKey ? safeParseJson(pkceKey?.value) ?? false : false,
                   credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
                   credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
-                  tokenType: tokenTypeKey?.value ? tokenTypeKey.value : 'access_token',
+                  tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
                   tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                   tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
                   tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
@@ -785,7 +785,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                     scope: scopeKey ? scopeKey.value : '',
                     credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
                     credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
-                    tokenType: tokenTypeKey?.value ? tokenTypeKey.value : 'access_token',
+                    tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
                     tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                     tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
                     tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
@@ -801,7 +801,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                       scope: scopeKey ? scopeKey.value : '',
                       state: stateKey ? stateKey.value : '',
                       credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
-                      tokenType: tokenTypeKey?.value ? tokenTypeKey.value : 'access_token',
+                      tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
                       tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                       tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
                       tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',

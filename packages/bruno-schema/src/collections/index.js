@@ -285,7 +285,7 @@ const oauth2Schema = Yup.object({
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
-  tokenType: Yup.string().when('grantType', {
+  tokenSource: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
     then: Yup.string().oneOf(['access_token', 'id_token']).optional(),
     otherwise: Yup.string().optional().strip()

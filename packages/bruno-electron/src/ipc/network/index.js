@@ -160,7 +160,7 @@ const configureRequest = async (
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
-    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenType, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
+    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
 
     // Get cert/proxy configs for token and refresh URLs
     let certsAndProxyConfigForTokenUrl = certsAndProxyConfig;
@@ -222,7 +222,7 @@ const configureRequest = async (
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         {
-          const tokenValue = tokenType === 'id_token' ? credentials?.id_token : credentials?.access_token;
+          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
             request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
           } else if (tokenValue) {
@@ -239,7 +239,7 @@ const configureRequest = async (
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingImplicitGrant({ request: requestCopy, collectionUid }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         {
-          const tokenValue = tokenType === 'id_token' ? credentials?.id_token : credentials?.access_token;
+          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
             request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
           } else if (tokenValue) {
@@ -256,7 +256,7 @@ const configureRequest = async (
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         {
-          const tokenValue = tokenType === 'id_token' ? credentials?.id_token : credentials?.access_token;
+          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
             request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
           } else if (tokenValue) {
@@ -273,7 +273,7 @@ const configureRequest = async (
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
         {
-          const tokenValue = tokenType === 'id_token' ? credentials?.id_token : credentials?.access_token;
+          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
             request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
           } else if (tokenValue) {
