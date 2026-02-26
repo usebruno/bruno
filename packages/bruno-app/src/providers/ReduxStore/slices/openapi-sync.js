@@ -124,14 +124,15 @@ export const {
 
 // Lightweight thunk for polling — only checks hash, no deep comparison
 export const checkCollectionForUpdates = (collection) => async (dispatch) => {
-  if (!collection?.brunoConfig?.openapi?.sync?.sourceUrl) {
+  if (!collection?.brunoConfig?.openapi?.[0]?.sourceUrl) {
     return null;
   }
 
   try {
     const { ipcRenderer } = window;
-    const syncConfig = collection.brunoConfig.openapi.sync;
+    const syncConfig = collection.brunoConfig.openapi[0];
     const result = await ipcRenderer.invoke('renderer:check-openapi-updates', {
+      collectionPath: collection.pathname,
       sourceUrl: syncConfig.sourceUrl,
       storedSpecHash: syncConfig.specHash || null
     });
@@ -156,18 +157,29 @@ export const checkCollectionForUpdates = (collection) => async (dispatch) => {
   }
 };
 
-// Thunk to check all collections for updates
+// Thunk to check all collections for updates (respects per-collection autoCheck and autoCheckInterval)
 export const checkAllCollectionsForUpdates = () => async (dispatch, getState) => {
   const state = getState();
   const collections = state.collections?.collections || [];
+  const now = Date.now();
 
-  // Filter collections that have OpenAPI sync configured
-  const syncableCollections = collections.filter(
-    (c) => c.brunoConfig?.openapi?.sync?.sourceUrl
-  );
+  // Filter collections that have OpenAPI sync configured and auto-check enabled
+  const syncableCollections = collections.filter((c) => {
+    const syncConfig = c.brunoConfig?.openapi?.[0];
+    if (!syncConfig?.sourceUrl) return false;
+    if (syncConfig.autoCheck === false) return false;
+    return true;
+  });
 
   for (const collection of syncableCollections) {
-    await dispatch(checkCollectionForUpdates(collection));
+    const syncConfig = collection.brunoConfig.openapi[0];
+    const intervalMs = (syncConfig.autoCheckInterval || 5) * 60 * 1000;
+    const lastChecked = state.openapiSync?.collectionUpdates?.[collection.uid]?.lastChecked || 0;
+
+    // Only check if enough time has elapsed since last check for this collection
+    if (now - lastChecked >= intervalMs) {
+      await dispatch(checkCollectionForUpdates(collection));
+    }
   }
 
   dispatch(setLastPollTime(Date.now()));

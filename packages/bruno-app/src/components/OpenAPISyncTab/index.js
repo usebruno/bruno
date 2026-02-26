@@ -3,37 +3,65 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   IconLoader2,
   IconCheck,
-  IconAlertTriangle,
   IconPlus,
-  IconPencil,
   IconTrash,
   IconArrowBackUp,
-  IconInfoCircle
+  IconExternalLink,
+  IconClock,
+  IconAlertTriangle
 } from '@tabler/icons';
+import { v4 as uuid } from 'uuid';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
 import Modal from 'components/Modal';
-import ResponsiveTabs from 'ui/ResponsiveTabs';
-import { clearCollectionUpdate, setCollectionUpdate, setTabUiState, selectTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
+import { addTab, focusTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { getDefaultRequestPaneTab } from 'utils/collections';
+import { clearCollectionUpdate, clearCollectionState, setCollectionUpdate, setTabUiState, selectTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
 import { flattenItems } from 'utils/collections/index';
+import { formatIpcError } from 'utils/common/error';
+import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSyncModal from './ConfirmSyncModal';
 import SyncReviewPage from './SyncReviewPage';
 import SpecInfoCard from './SpecInfoCard';
-import SpecReviewPage from './SpecReviewPage';
+import SpecStatusSection from './SpecStatusSection';
 import ChangeSection, { EndpointItem } from './ChangeSection';
+
+const formatRelativeTime = (timestamp) => {
+  if (!timestamp) return null;
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins} mins ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+};
 
 const OpenAPISyncTab = ({ collection }) => {
   const dispatch = useDispatch();
-  const openApiSyncConfig = collection?.brunoConfig?.openapi?.sync;
+  const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
 
   // Core state
   const [sourceUrl, setSourceUrl] = useState(openApiSyncConfig?.sourceUrl || '');
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState(null);
+  const [fileNotFound, setFileNotFound] = useState(false);
   const [diffResult, setDiffResult] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // Setup form state
+  const [setupMode, setSetupMode] = useState('url'); // 'url' | 'file'
+  const setupFileInputRef = useRef(null);
+
+  // For file-not-found banner actions
+  const browseForFileRef = useRef(null);
+  const [triggerOpenSettings, setTriggerOpenSettings] = useState(false);
 
   // Collection drift state
   const [collectionDrift, setCollectionDrift] = useState(null);
@@ -47,27 +75,76 @@ const OpenAPISyncTab = ({ collection }) => {
 
   // Redux-persisted UI state
   const tabUiState = useSelector(selectTabUiState(collection.uid));
-  const activeTab = tabUiState.activeTab || 'overview';
   const viewMode = tabUiState.viewMode || 'tabs';
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const lastCheckedAt = useSelector((state) => state.openapiSync?.collectionUpdates?.[collection.uid]?.lastChecked);
 
-  const setActiveTab = (tab) => dispatch(setTabUiState({ collectionUid: collection.uid, activeTab: tab }));
   const setViewMode = (mode) => dispatch(setTabUiState({ collectionUid: collection.uid, viewMode: mode }));
 
   const isConfigured = !!openApiSyncConfig?.sourceUrl;
-  const groupBy = openApiSyncConfig?.groupBy || 'tags';
+
+  // Clear Redux state when the sync tab is closed (unmount)
+  useEffect(() => {
+    return () => {
+      dispatch(clearCollectionState({ collectionUid: collection.uid }));
+    };
+  }, [collection.uid]);
 
   // Derived sync status
-  const hasError = error || diffResult?.isValid === false;
   const hasLocalDrift = collectionDrift && (
     (collectionDrift.modified?.length > 0)
     || (collectionDrift.missing?.length > 0)
   );
   // Create a fingerprint of collection items to detect changes (including nested items in folders)
-  const collectionFingerprint = useMemo(() => {
-    const allItems = flattenItems(collection?.items || []);
-    return String(allItems.filter((item) => item.type === 'http-request').length);
+  const allHttpItems = useMemo(() => {
+    return flattenItems(collection?.items || []).filter((item) => item.type === 'http-request');
   }, [collection?.items]);
+
+  const collectionFingerprint = useMemo(() => {
+    return String(allHttpItems.filter((item) => !item.partial && !item.loading).length);
+  }, [allHttpItems]);
+
+  // Map endpoint drift id (METHOD:path) → collection item uid
+  const endpointUidMap = useMemo(() => {
+    const normalize = (url) => (url || '')
+      .replace(/\{\{[^}]+\}\}/g, '')
+      .replace(/^https?:\/\/[^/]+/, '')
+      .replace(/\?.*$/, '')
+      .replace(/{([^}]+)}/g, ':$1')
+      .replace(/\/+/g, '/')
+      .replace(/\/$/, '');
+    const map = {};
+    allHttpItems.forEach((item) => {
+      if (item.request?.method && item.request?.url) {
+        const key = `${item.request.method.toUpperCase()}:${normalize(item.request.url)}`;
+        map[key] = item.uid;
+      }
+    });
+    return map;
+  }, [allHttpItems]);
+
+  // Open an endpoint in a tab (focus existing or add new), same as sidebar click
+  const openEndpointInTab = (endpointId) => {
+    const itemUid = endpointUidMap[endpointId];
+    if (!itemUid) return;
+    const existingTab = tabs.find((t) => t.uid === itemUid);
+    if (existingTab) {
+      dispatch(focusTab({ uid: itemUid }));
+    } else {
+      const item = allHttpItems.find((i) => i.uid === itemUid);
+      dispatch(addTab({
+        uid: itemUid,
+        collectionUid: collection.uid,
+        requestPaneTab: item ? getDefaultRequestPaneTab(item) : undefined,
+        type: 'request'
+      }));
+    }
+  };
+
   const prevFingerprintRef = useRef(collectionFingerprint);
+  // Tracks when the last disk-read drift check happened, so fingerprint-triggered
+  // reloads don't overwrite fresh results with stale Redux data.
+  const lastDiskReadRef = useRef(0);
 
   useEffect(() => {
     if (sourceUrl && isConfigured) {
@@ -80,14 +157,19 @@ const OpenAPISyncTab = ({ collection }) => {
   useEffect(() => {
     if (prevFingerprintRef.current !== collectionFingerprint && isConfigured) {
       prevFingerprintRef.current = collectionFingerprint;
-      loadCollectionDrift();
+      // After sync/actions, file watcher events update Redux incrementally.
+      // Skip reload if a disk-read check was done recently to avoid stale overwrites.
+      const timeSinceLastDiskRead = Date.now() - lastDiskReadRef.current;
+      if (timeSinceLastDiskRead > 3000) {
+        loadCollectionDrift();
+      }
     }
   }, [collectionFingerprint, isConfigured]);
 
   const getCollectionItemsForDrift = () => {
     const allItems = flattenItems(collection.items || []);
     return allItems
-      .filter((item) => item.type === 'http-request' && !item.partial && !item.loading && item.request)
+      .filter((item) => item.type === 'http-request' && !item.partial && !item.loading && !item.isTransient && item.request)
       .map((item) => ({
         pathname: item.pathname,
         name: item.name,
@@ -109,6 +191,11 @@ const OpenAPISyncTab = ({ collection }) => {
   };
 
   const loadCollectionDrift = async ({ readFromDisk = false } = {}) => {
+    if (readFromDisk) {
+      lastDiskReadRef.current = Date.now();
+      // Clear stale data so the loading spinner shows instead of outdated results
+      setCollectionDrift(null);
+    }
     setIsDriftLoading(true);
     try {
       const { ipcRenderer } = window;
@@ -137,12 +224,13 @@ const OpenAPISyncTab = ({ collection }) => {
 
   const checkForUpdates = async ({ readFromDisk = false } = {}) => {
     if (!sourceUrl.trim()) {
-      setError('Please enter a valid URL');
+      setError('Please enter a URL or select a file');
       return;
     }
 
     setIsLoading(true);
     setError(null);
+    setFileNotFound(false);
     setDiffResult(null);
     setRemoteDrift(null);
 
@@ -153,9 +241,17 @@ const OpenAPISyncTab = ({ collection }) => {
         sourceUrl: sourceUrl.trim()
       });
 
+      if (result.errorCode === 'LOCAL_FILE_NOT_FOUND') {
+        setFileNotFound(true);
+        setError(result.error);
+        return;
+      }
+
       setDiffResult(result);
       if (result.newSpec) {
         setStoredSpec(result.newSpec);
+      } else if (result.storedSpec) {
+        setStoredSpec(result.storedSpec);
       }
 
       // Update Redux store so toolbar status stays in sync
@@ -188,12 +284,12 @@ const OpenAPISyncTab = ({ collection }) => {
       }
     } catch (err) {
       console.error('Error checking for updates:', err);
-      setError(err.message || 'Failed to check for updates');
+      setError(formatIpcError(err) || 'Failed to check for updates');
       dispatch(setCollectionUpdate({
         collectionUid: collection.uid,
         hasUpdates: false,
         diff: null,
-        error: err.message || 'Failed to check for updates'
+        error: formatIpcError(err) || 'Failed to check for updates'
       }));
     } finally {
       setIsLoading(false);
@@ -202,12 +298,13 @@ const OpenAPISyncTab = ({ collection }) => {
 
   const handleConnect = async () => {
     if (!sourceUrl.trim()) {
-      setError('Please enter a valid URL');
+      setError('Please enter a URL or select a file');
       return;
     }
 
     setIsLoading(true);
     setError(null);
+    setFileNotFound(false);
 
     try {
       const { ipcRenderer } = window;
@@ -230,7 +327,8 @@ const OpenAPISyncTab = ({ collection }) => {
         config: {
           sourceUrl: sourceUrl.trim(),
           groupBy: 'tags',
-          specFilename: result.specFilename || 'openapi.json'
+          autoCheck: true,
+          autoCheckInterval: 5
         }
       });
 
@@ -254,7 +352,7 @@ const OpenAPISyncTab = ({ collection }) => {
           await ipcRenderer.invoke('renderer:save-openapi-spec', {
             collectionPath: collection.pathname,
             specContent: result.newSpecContent || JSON.stringify(result.newSpec, null, 2),
-            specFilename: result.specFilename
+            sourceUrl: sourceUrl.trim()
           });
         }
       }
@@ -262,7 +360,7 @@ const OpenAPISyncTab = ({ collection }) => {
       toast.success('OpenAPI sync connected');
     } catch (err) {
       console.error('Error connecting OpenAPI sync:', err);
-      setError(err.message || 'Failed to connect');
+      setError(formatIpcError(err) || 'Failed to connect');
     } finally {
       setIsLoading(false);
     }
@@ -274,22 +372,30 @@ const OpenAPISyncTab = ({ collection }) => {
     setShowDisconnectModal(true);
   };
 
-  const [deleteSpecFile, setDeleteSpecFile] = useState(false);
-
   const confirmDisconnect = async () => {
     setShowDisconnectModal(false);
     try {
       const { ipcRenderer } = window;
       await ipcRenderer.invoke('renderer:remove-openapi-sync-config', {
         collectionPath: collection.pathname,
-        deleteSpecFile
+        sourceUrl: openApiSyncConfig?.sourceUrl || sourceUrl,
+        deleteSpecFile: true
       });
-      setDeleteSpecFile(false);
       setSourceUrl('');
       setDiffResult(null);
       setCollectionDrift(null);
       setRemoteDrift(null);
       setStoredSpec(null);
+
+      // Clear Redux state for this collection
+      dispatch(clearCollectionState({ collectionUid: collection.uid }));
+
+      // Close the openapi-spec tab if open (spec file no longer exists)
+      const specTab = tabs.find((t) => t.collectionUid === collection.uid && t.type === 'openapi-spec');
+      if (specTab) {
+        dispatch(closeTabs({ tabUids: [specTab.uid] }));
+      }
+
       toast.success('OpenAPI sync disconnected');
     } catch (err) {
       console.error('Error disconnecting sync:', err);
@@ -419,7 +525,7 @@ const OpenAPISyncTab = ({ collection }) => {
       await checkForUpdates({ readFromDisk: true });
     } catch (err) {
       console.error('Error syncing collection:', err);
-      setError(err.message || 'Failed to sync collection');
+      setError(formatIpcError(err) || 'Failed to sync collection');
     } finally {
       setIsSyncing(false);
     }
@@ -614,6 +720,9 @@ const OpenAPISyncTab = ({ collection }) => {
       case 'restore-all-missing':
         await executeAddAllMissing();
         break;
+      case 'discard-all':
+        await executeRevertAllChanges();
+        break;
     }
   };
 
@@ -669,245 +778,46 @@ const OpenAPISyncTab = ({ collection }) => {
     });
   };
 
-  const handleSpecReviewSync = async (mode) => {
-    setViewMode('tabs');
-    await handleSyncWithMode(mode);
+  // Open the OpenAPI spec in a dedicated tab
+  const handleViewSpec = () => {
+    dispatch(addTab({
+      uid: uuid(),
+      collectionUid: collection.uid,
+      type: 'openapi-spec'
+    }));
   };
 
-  const renderCollectionDrift = () => {
-    if (!collectionDrift) {
-      if (isDriftLoading) {
-        return (
-          <div className="state-message">
-            <IconLoader2 size={24} className="animate-spin" />
-            <span>Checking collection drift...</span>
-          </div>
-        );
-      }
-      return (
-        <div className="state-message">
-          <IconInfoCircle size={24} />
-          <span>Collection drift not checked yet</span>
-        </div>
-      );
+  // Save connection settings from the modal
+  const handleSaveSettings = async ({ sourceUrl: newUrl, autoCheck, autoCheckInterval }) => {
+    try {
+      const { ipcRenderer } = window;
+      await ipcRenderer.invoke('renderer:update-openapi-sync-config', {
+        collectionPath: collection.pathname,
+        oldSourceUrl: openApiSyncConfig?.sourceUrl,
+        config: {
+          sourceUrl: newUrl,
+          autoCheck,
+          autoCheckInterval
+        }
+      });
+      setSourceUrl(newUrl);
+      setFileNotFound(false);
+      toast.success('Settings saved');
+      // Re-check with new settings
+      await checkForUpdates();
+    } catch (err) {
+      console.error('Error saving settings:', err);
+      toast.error('Failed to save settings');
     }
-
-    if (collectionDrift.noStoredSpec) {
-      return (
-        <div className="state-message">
-          <IconInfoCircle size={24} />
-          <span>No local spec found for this collection</span>
-        </div>
-      );
-    }
-
-    const localOnlyCount = collectionDrift?.localOnly?.length || 0;
-
-    return (
-      <div className="collection-status-section">
-        <p className="section-description">Comparison of your collection endpoints against the last synced OpenAPI spec.</p>
-
-        {hasLocalDrift ? (
-          <div className="sync-alert-banner">
-            <div className="alert-content">
-              <IconAlertTriangle size={16} />
-              <span>Your collection has local changes that are not present in the OpenAPI spec</span>
-            </div>
-            <Button
-              size="xs"
-              onClick={handleRevertAllChanges}
-            >
-              Discard All Changes
-            </Button>
-          </div>
-        ) : (null
-        // <div className="sync-success-banner">
-        //   <div className="alert-content">
-        //     <IconCheck size={16} />
-        //     <span>
-        //       Your collection has no local changes.
-        //       {localOnlyCount > 0 && `. You have ${localOnlyCount} local-only endpoint${localOnlyCount > 1 ? 's' : ''}.`}
-        //     </span>
-        //   </div>
-        // </div>
-        )}
-
-        {/* Summary Section */}
-        <div className="drift-summary">
-          <h4 className="drift-summary-title">Summary</h4>
-          <div className="drift-summary-grid">
-            <div className="drift-summary-item">
-              <span className="drift-summary-count">{collectionDrift?.inSync?.length || 0}</span>
-              <span className="drift-summary-label">In Sync</span>
-            </div>
-            <div className="drift-summary-item">
-              <span className="drift-summary-count modified">{collectionDrift?.modified?.length || 0}</span>
-              <span className="drift-summary-label">Modified</span>
-            </div>
-            <div className="drift-summary-item">
-              <span className="drift-summary-count missing">{collectionDrift?.missing?.length || 0}</span>
-              <span className="drift-summary-label">Missing <span className="drift-summary-sublabel">(Not in collection)</span></span>
-            </div>
-            <div className="drift-summary-item">
-              <span className="drift-summary-count local-only">{collectionDrift?.localOnly?.length || 0}</span>
-              <span className="drift-summary-label">Local only <span className="drift-summary-sublabel">(Not in spec)</span></span>
-            </div>
-          </div>
-        </div>
-
-        {/* Modified Endpoints */}
-        {collectionDrift?.modified?.length > 0 && (
-          <ChangeSection
-            title="Modified Endpoints"
-            // icon={IconPencil}
-            count={collectionDrift.modified.length}
-            type="modified"
-            endpoints={collectionDrift.modified}
-            defaultExpanded={false}
-            expandable={true}
-            collectionPath={collection.pathname}
-            newSpec={storedSpec || diffResult?.newSpec}
-            diffLeftLabel="Last Synced Spec"
-            diffRightLabel="Current (in collection)"
-            swapDiffSides={true}
-            collectionUid={collection.uid}
-            sectionKey="drift-modified"
-            renderItemActions={(endpoint) => (
-              <Button size="xs" variant="ghost" onClick={() => handleResetEndpoint(endpoint)} title="Reset to spec" icon={<IconArrowBackUp size={14} />}>
-                Reset
-              </Button>
-            )}
-            actions={(
-              <Button
-                size="xs"
-                variant="outline"
-                onClick={handleResetAllModified}
-                title="Reset all modified endpoints to match the spec"
-                icon={<IconArrowBackUp size={14} />}
-              >
-                Reset All
-              </Button>
-            )}
-          />
-        )}
-
-        {/* Deleted Endpoints (in spec but missing from collection) */}
-        {collectionDrift?.missing?.length > 0 && (
-          <ChangeSection
-            title="Missing Endpoints"
-            // icon={IconTrash}
-            count={collectionDrift.missing.length}
-            type="missing"
-            endpoints={collectionDrift.missing}
-            defaultExpanded={false}
-            expandable={true}
-            collectionPath={collection.pathname}
-            newSpec={storedSpec || diffResult?.newSpec}
-            diffLeftLabel="Last Synced Spec"
-            diffRightLabel="Current (in collection)"
-            swapDiffSides={true}
-            collectionUid={collection.uid}
-            sectionKey="drift-missing"
-            renderItemActions={(endpoint) => (
-              <Button size="xs" variant="ghost" color="success" onClick={() => handleAddMissingEndpoint(endpoint)} title="Restore to collection" icon={<IconPlus size={14} />}>
-                Restore
-              </Button>
-            )}
-            actions={(
-              <Button
-                size="xs"
-                variant="outline"
-                color="success"
-                onClick={() => handleAddAllMissing()}
-                title="Add all deleted endpoints back to collection"
-                icon={<IconPlus size={14} />}
-              >
-                Restore All
-              </Button>
-            )}
-          />
-        )}
-
-        {/* Added Endpoints (in collection but not in spec) */}
-        {collectionDrift?.localOnly?.length > 0 && (
-          <ChangeSection
-            title="Local only Endpoints"
-            // icon={IconPlus}
-            count={collectionDrift.localOnly.length}
-            type="local-only"
-            endpoints={collectionDrift.localOnly}
-            defaultExpanded={false}
-            expandable={true}
-            collectionPath={collection.pathname}
-            newSpec={storedSpec || diffResult?.newSpec}
-            diffLeftLabel="Last Synced Spec"
-            diffRightLabel="Current (in collection)"
-            swapDiffSides={true}
-            collectionUid={collection.uid}
-            sectionKey="drift-local-only"
-            renderItemActions={(endpoint) => (
-              <Button size="xs" variant="ghost" color="danger" onClick={() => handleDeleteEndpoint(endpoint)} title="Delete endpoint" icon={<IconTrash size={14} />}>
-                Delete
-              </Button>
-            )}
-            actions={(
-              <Button
-                size="xs"
-                variant="outline"
-                color="danger"
-                onClick={handleDeleteAllLocalOnly}
-                title="Delete all locally added endpoints"
-                icon={<IconTrash size={14} />}
-              >
-                Delete All
-              </Button>
-            )}
-          />
-        )}
-
-        {/* In Sync Endpoints */}
-        {collectionDrift?.inSync?.length > 0 && (
-          <ChangeSection
-            title="In Sync Endpoints"
-            // icon={IconCheck}
-            count={collectionDrift.inSync.length}
-            type="in-sync"
-            endpoints={collectionDrift.inSync}
-            defaultExpanded={false}
-            collectionUid={collection.uid}
-            sectionKey="drift-in-sync"
-            renderItem={(endpoint, idx) => (
-              <EndpointItem
-                key={endpoint.id || idx}
-                endpoint={endpoint}
-                type="in-sync"
-              />
-            )}
-          />
-        )}
-      </div>
-    );
   };
 
-  // Calculate change count for the badge
-  const localChangesCount = (collectionDrift?.modified?.length || 0)
-    + (collectionDrift?.missing?.length || 0)
-    + (collectionDrift?.localOnly?.length || 0);
-
-  // Tabs configuration for ResponsiveTabs
-  const syncTabs = useMemo(() => [
-    { key: 'overview', label: 'Overview' },
-    {
-      key: 'local-changes',
-      label: 'Local Changes',
-      indicator: localChangesCount > 0 ? (
-        <sup className="content-indicator ml-1">{localChangesCount}</sup>
-      ) : null
-    }
-  ], [localChangesCount]);
+  // Spec update counts for summary card sub-lines
+  const specAdded = diffResult?.added?.length || 0;
+  const specModified = diffResult?.modified?.length || 0;
+  const specRemoved = diffResult?.removed?.length || 0;
 
   return (
-    <StyledWrapper className={`flex flex-col h-full relative px-4 py-4 overflow-auto ${viewMode === 'review' || viewMode === 'spec-review' ? ' review-active' : ''}`}>
+    <StyledWrapper className={`flex flex-col h-full relative px-4 py-4 overflow-auto ${viewMode === 'review' ? ' review-active' : ''}`}>
       <div className="sync-page max-w-screen-xl">
 
         {/* Setup UI (only when not configured) */}
@@ -926,15 +836,62 @@ const OpenAPISyncTab = ({ collection }) => {
                 e.preventDefault(); handleConnect();
               }}
             >
-              <label className="url-label">OpenAPI Specification URL</label>
+              <label className="url-label">OpenAPI Specification</label>
               <div className="url-row">
-                <input
-                  type="text"
-                  className="url-input"
-                  value={sourceUrl}
-                  onChange={(e) => setSourceUrl(e.target.value)}
-                  placeholder="https://api.example.com/openapi.json"
-                />
+                <div className="setup-mode-toggle">
+                  <button
+                    type="button"
+                    className={`setup-mode-btn ${setupMode === 'url' ? 'active' : ''}`}
+                    onClick={() => {
+                      setSetupMode('url'); setSourceUrl('');
+                    }}
+                  >
+                    URL
+                  </button>
+                  <button
+                    type="button"
+                    className={`setup-mode-btn ${setupMode === 'file' ? 'active' : ''}`}
+                    onClick={() => {
+                      setSetupMode('file'); setSourceUrl('');
+                    }}
+                  >
+                    File
+                  </button>
+                </div>
+
+                {setupMode === 'url' ? (
+                  <input
+                    type="text"
+                    className="url-input"
+                    value={sourceUrl}
+                    onChange={(e) => setSourceUrl(e.target.value)}
+                    placeholder="https://api.example.com/openapi.json"
+                  />
+                ) : (
+                  <>
+                    <input
+                      ref={setupFileInputRef}
+                      type="file"
+                      accept=".json,.yaml,.yml"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const filePath = window.ipcRenderer.getFilePath(file);
+                          setSourceUrl(filePath);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="url-input file-pick-btn"
+                      onClick={() => setupFileInputRef.current?.click()}
+                    >
+                      {sourceUrl ? sourceUrl.split(/[\\/]/).pop() : 'Choose file...'}
+                    </button>
+                  </>
+                )}
+
                 <Button
                   type="submit"
                   size="sm"
@@ -944,7 +901,11 @@ const OpenAPISyncTab = ({ collection }) => {
                   Connect
                 </Button>
               </div>
-              <p className="setup-hint">Supports OpenAPI 3.x specifications in JSON or YAML format</p>
+              <p className="setup-hint">
+                {setupMode === 'url'
+                  ? 'Supports OpenAPI 3.x specifications in JSON or YAML format'
+                  : 'Select a local OpenAPI/Swagger JSON or YAML file'}
+              </p>
             </form>
 
             <div className="setup-features">
@@ -968,84 +929,322 @@ const OpenAPISyncTab = ({ collection }) => {
           </div>
         )}
 
-        {/* Tabs - always visible when configured */}
+        {/* Unified view — no tabs */}
         {isConfigured && (
           <>
-            <ResponsiveTabs
-              tabs={syncTabs}
-              activeTab={activeTab}
-              onTabSelect={(tab) => { setActiveTab(tab); }}
-            />
+            {viewMode === 'tabs' && (
+              <>
+                {/* Spec Header */}
+                <SpecInfoCard
+                  collection={collection}
+                  spec={storedSpec || diffResult?.newSpec}
+                  sourceUrl={sourceUrl}
+                  onDisconnect={handleDisconnect}
+                  onViewSpec={handleViewSpec}
+                  onSaveSettings={handleSaveSettings}
+                  triggerOpenSettings={triggerOpenSettings}
+                  onTriggerOpenSettingsHandled={() => setTriggerOpenSettings(false)}
+                />
 
-            <div className="sync-tab-content">
-              {activeTab === 'overview' && (
-                <>
-                  {viewMode === 'tabs' && (
-                    <>
-                      <div className="section-description">Keep your collection synchronized with OpenAPI specification.</div>
-
-                      {/* Spec Overview Card with Sync Status Footer */}
-                      <SpecInfoCard
-                        collection={collection}
-                        spec={storedSpec || diffResult?.newSpec}
-                        sourceUrl={sourceUrl}
-                        onCheck={checkForUpdates}
-                        isChecking={isLoading}
-                        canCheck={!!sourceUrl.trim()}
-                        groupBy={groupBy}
-                        diffResult={diffResult}
-                        remoteDrift={remoteDrift}
-                        onShowDiff={() => setViewMode('spec-review')}
-                        onDisconnect={handleDisconnect}
-                        error={error}
-                        hasLocalDrift={hasLocalDrift}
-                        onPreviewAndSync={() => {
-                          setPendingSyncMode('sync'); setViewMode('review');
+                {/* File not found banner */}
+                {fileNotFound && (
+                  <div className="file-not-found-banner">
+                    <div className="file-not-found-content">
+                      <IconAlertTriangle size={16} className="file-not-found-icon" />
+                      <div>
+                        <div className="file-not-found-title">Spec file not found</div>
+                        <div className="file-not-found-desc">
+                          The file at <code>{sourceUrl}</code> could not be found — it may have been moved or deleted.
+                        </div>
+                      </div>
+                    </div>
+                    <div className="file-not-found-actions">
+                      <input
+                        ref={browseForFileRef}
+                        type="file"
+                        accept=".json,.yaml,.yml"
+                        style={{ display: 'none' }}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const filePath = window.ipcRenderer.getFilePath(file);
+                            await handleSaveSettings({
+                              sourceUrl: filePath,
+                              autoCheck: openApiSyncConfig?.autoCheck !== false,
+                              autoCheckInterval: openApiSyncConfig?.autoCheckInterval || 5
+                            });
+                          }
                         }}
-                        onSyncNow={handleSyncNow}
-                        onReviewAndSync={() => {
-                          setPendingSyncMode('sync'); setViewMode('review');
-                        }}
-                        onDiscardAndSync={() => handleSyncWithMode('reset')}
-                        onViewLocalChanges={() => setActiveTab('local-changes')}
-                        onResetAllModified={handleRevertAllChanges}
                       />
-                    </>
-                  )}
+                      <Button variant="ghost" size="sm" onClick={() => setTriggerOpenSettings(true)}>
+                        Update connection settings
+                      </Button>
+                      <Button size="sm" onClick={() => browseForFileRef.current?.click()}>
+                        Browse for file
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
-                  {viewMode === 'review' && (
-                    <SyncReviewPage
-                      diffResult={diffResult}
-                      remoteDrift={remoteDrift}
-                      collectionDrift={collectionDrift}
-                      collectionPath={collection.pathname}
-                      collectionUid={collection.uid}
-                      newSpec={diffResult?.newSpec}
-                      isSyncing={isSyncing}
-                      onGoBack={() => {
-                        setViewMode('tabs'); setPendingSyncMode(null);
-                      }}
-                      onApplySync={handleApplySync}
-                    />
-                  )}
+                {/* Spec Status — always-visible banner with check for updates */}
+                <SpecStatusSection
+                  diffResult={diffResult}
+                  storedSpec={storedSpec}
+                  openApiSyncConfig={openApiSyncConfig}
+                  lastCheckedAt={lastCheckedAt}
+                  error={error}
+                  isLoading={isLoading}
+                  hasLocalDrift={hasLocalDrift}
+                  specAdded={specAdded}
+                  specModified={specModified}
+                  specRemoved={specRemoved}
+                  sourceUrl={sourceUrl}
+                  onCheck={checkForUpdates}
+                  onDismissError={() => setError(null)}
+                  onPreviewAndSync={() => {
+                    setPendingSyncMode('sync'); setViewMode('review');
+                  }}
+                  onSyncNow={handleSyncNow}
+                  onReviewAndSync={() => {
+                    setPendingSyncMode('sync'); setViewMode('review');
+                  }}
+                />
 
-                  {viewMode === 'spec-review' && diffResult?.hasRemoteChanges && (
-                    <SpecReviewPage
-                      diffResult={diffResult}
-                      onSync={handleSpecReviewSync}
-                      onGoBack={() => setViewMode('tabs')}
-                      isSyncing={isSyncing}
-                    />
-                  )}
-                </>
-              )}
+                {/* Loading state */}
+                {isDriftLoading && !collectionDrift && (
+                  <div className="state-message">
+                    <IconLoader2 size={24} className="animate-spin" />
+                    <span>Checking collection status...</span>
+                  </div>
+                )}
 
-              {activeTab === 'local-changes' && (
-                <div className="main-content-section">
-                  {renderCollectionDrift()}
-                </div>
-              )}
-            </div>
+                {/* Collection Status — summary cards + change sections */}
+                {collectionDrift && !collectionDrift.noStoredSpec && (
+                  <div className="collection-status-section">
+                    <div className="sync-summary-title-row">
+                      <div>
+                        <div className="sync-summary-title">Collection Status</div>
+                        <div className="sync-summary-subtitle">Changes made to the collection since the last sync</div>
+                      </div>
+                      {openApiSyncConfig?.lastSyncDate && (
+                        <div className="last-synced-pill">
+                          <IconClock size={13} />
+                          <span>Last synced</span>
+                          <strong>v{diffResult?.storedVersion || storedSpec?.info?.version || '?'}</strong>
+                          <span className="last-synced-sep">&middot;</span>
+                          <span>{formatRelativeTime(openApiSyncConfig.lastSyncDate)}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="sync-summary-cards">
+                      <div className="summary-card">
+                        <span className="card-info-icon"><Help icon="info" size={12} placement="top" width={220}>Endpoints that match the last synced spec exactly</Help></span>
+                        <div className="summary-count-row">
+                          <span className="summary-count green">{collectionDrift.inSync?.length || 0}</span>
+                          <span className="summary-count-unit">{collectionDrift.inSync?.length > 1 ? 'endpoints' : 'endpoint'}</span>
+                        </div>
+                        <div className="summary-label">In Sync with Spec</div>
+                      </div>
+                      <div className="summary-card">
+                        <span className="card-info-icon"><Help icon="info" size={12} placement="top" width={220}>Endpoints that have been edited in your collection and now differ from the spec</Help></span>
+                        <div className="summary-count-row">
+                          <span className="summary-count amber">{collectionDrift.modified?.length || 0}</span>
+                          <span className="summary-count-unit">{collectionDrift.modified?.length > 1 ? 'endpoints' : 'endpoint'}</span>
+                        </div>
+                        <div className="summary-label">Modified in Collection</div>
+                      </div>
+                      <div className="summary-card">
+                        <span className="card-info-icon"><Help icon="info" size={12} placement="top" width={220}>Endpoints from the spec that were removed from your collection</Help></span>
+                        <div className="summary-count-row">
+                          <span className="summary-count red">{collectionDrift.missing?.length || 0}</span>
+                          <span className="summary-count-unit">{collectionDrift.missing?.length > 1 ? 'endpoints' : 'endpoint'}</span>
+                        </div>
+                        <div className="summary-label">Deleted from Collection</div>
+                      </div>
+                      <div className="summary-card">
+                        <span className="card-info-icon"><Help icon="info" size={12} placement="top" width={220}>Endpoints in your collection that don't exist in the spec</Help></span>
+                        <div className="summary-count-row">
+                          <span className="summary-count muted">{collectionDrift.localOnly?.length || 0}</span>
+                          <span className="summary-count-unit">{collectionDrift.localOnly?.length > 1 ? 'endpoints' : 'endpoint'}</span>
+                        </div>
+                        <div className="summary-label">Added to Collection</div>
+                      </div>
+                    </div>
+                    {(collectionDrift.modified?.length > 0 || collectionDrift.missing?.length > 0 || collectionDrift.localOnly?.length > 0) && (
+                      <div className="discard-all-row">
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          color="danger"
+                          onClick={() => setPendingAction({
+                            type: 'discard-all',
+                            message: 'Are you sure you want to discard all local changes? This will reset modified endpoints, restore deleted endpoints, and remove locally created endpoints.'
+                          })}
+                        >
+                          Discard All Changes
+                        </Button>
+                      </div>
+                    )}
+                    {/* Modified in Collection */}
+                    {collectionDrift.modified?.length > 0 && (
+                      <ChangeSection
+                        title="Modified in Collection"
+                        count={collectionDrift.modified.length}
+                        type="modified"
+                        endpoints={collectionDrift.modified}
+                        defaultExpanded={false}
+                        expandable={true}
+                        collectionPath={collection.pathname}
+                        newSpec={storedSpec || diffResult?.newSpec}
+                        diffLeftLabel="Last Synced Spec"
+                        diffRightLabel="Current (in collection)"
+                        swapDiffSides={true}
+                        collectionUid={collection.uid}
+                        sectionKey="drift-modified"
+                        renderItemActions={(endpoint) => (
+                          <>
+                            <Button size="xs" variant="ghost" onClick={() => openEndpointInTab(endpoint.id)} title="Open in tab" icon={<IconExternalLink size={14} />}>
+                              Open
+                            </Button>
+                            <Button size="xs" variant="ghost" onClick={() => handleResetEndpoint(endpoint)} title="Reset to spec" icon={<IconArrowBackUp size={14} />}>
+                              Reset
+                            </Button>
+                          </>
+                        )}
+                        actions={(
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            onClick={handleResetAllModified}
+                            title="Reset all modified endpoints to match the spec"
+                            icon={<IconArrowBackUp size={14} />}
+                          >
+                            Reset All
+                          </Button>
+                        )}
+                      />
+                    )}
+
+                    {/* Deleted from Collection */}
+                    {collectionDrift.missing?.length > 0 && (
+                      <ChangeSection
+                        title="Deleted from Collection"
+                        count={collectionDrift.missing.length}
+                        type="missing"
+                        endpoints={collectionDrift.missing}
+                        defaultExpanded={false}
+                        expandable={true}
+                        collectionPath={collection.pathname}
+                        newSpec={storedSpec || diffResult?.newSpec}
+                        diffLeftLabel="Last Synced Spec"
+                        diffRightLabel="Current (in collection)"
+                        swapDiffSides={true}
+                        collectionUid={collection.uid}
+                        sectionKey="drift-missing"
+                        renderItemActions={(endpoint) => (
+                          <Button size="xs" variant="ghost" onClick={() => handleAddMissingEndpoint(endpoint)} title="Restore to collection" icon={<IconPlus size={14} />}>
+                            Restore
+                          </Button>
+                        )}
+                        actions={(
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            onClick={() => handleAddAllMissing()}
+                            title="Add all deleted endpoints back to collection"
+                            icon={<IconPlus size={14} />}
+                          >
+                            Restore All
+                          </Button>
+                        )}
+                      />
+                    )}
+
+                    {/* Added to Collection */}
+                    {collectionDrift.localOnly?.length > 0 && (
+                      <ChangeSection
+                        title="Added to Collection"
+                        count={collectionDrift.localOnly.length}
+                        type="local-only"
+                        endpoints={collectionDrift.localOnly}
+                        defaultExpanded={false}
+                        expandable={true}
+                        collectionPath={collection.pathname}
+                        newSpec={storedSpec || diffResult?.newSpec}
+                        diffLeftLabel="Last Synced Spec"
+                        diffRightLabel="Current (in collection)"
+                        swapDiffSides={true}
+                        collectionUid={collection.uid}
+                        sectionKey="drift-local-only"
+                        renderItemActions={(endpoint) => (
+                          <>
+                            <Button size="xs" variant="ghost" onClick={() => openEndpointInTab(endpoint.id)} title="Open in tab" icon={<IconExternalLink size={14} />}>
+                              Open
+                            </Button>
+                            <Button size="xs" variant="ghost" color="danger" onClick={() => handleDeleteEndpoint(endpoint)} title="Delete endpoint" icon={<IconTrash size={14} />}>
+                              Delete
+                            </Button>
+                          </>
+                        )}
+                        actions={(
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            color="danger"
+                            onClick={handleDeleteAllLocalOnly}
+                            title="Delete all locally added endpoints"
+                            icon={<IconTrash size={14} />}
+                          >
+                            Delete All
+                          </Button>
+                        )}
+                      />
+                    )}
+
+                    {/* In Sync */}
+                    {collectionDrift.inSync?.length > 0 && (
+                      <ChangeSection
+                        title="In Sync with Spec"
+                        count={collectionDrift.inSync.length}
+                        type="in-sync"
+                        endpoints={collectionDrift.inSync}
+                        defaultExpanded={false}
+                        collectionUid={collection.uid}
+                        sectionKey="drift-in-sync"
+                        renderItem={(endpoint, idx) => (
+                          <EndpointItem
+                            key={endpoint.id || idx}
+                            endpoint={endpoint}
+                            type="in-sync"
+                            actions={(
+                              <Button size="xs" variant="ghost" onClick={() => openEndpointInTab(endpoint.id)} title="Open in tab" icon={<IconExternalLink size={14} />}>
+                                Open
+                              </Button>
+                            )}
+                          />
+                        )}
+                      />
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {viewMode === 'review' && (
+              <SyncReviewPage
+                diffResult={diffResult}
+                remoteDrift={remoteDrift}
+                collectionDrift={collectionDrift}
+                collectionPath={collection.pathname}
+                collectionUid={collection.uid}
+                newSpec={diffResult?.newSpec}
+                isSyncing={isSyncing}
+                onGoBack={() => {
+                  setViewMode('tabs'); setPendingSyncMode(null);
+                }}
+                onApplySync={handleApplySync}
+              />
+            )}
           </>
         )}
       </div>
@@ -1069,28 +1268,17 @@ const OpenAPISyncTab = ({ collection }) => {
           size="sm"
           title="Disconnect Sync"
           hideFooter={true}
-          handleCancel={() => {
-            setShowDisconnectModal(false); setDeleteSpecFile(false);
-          }}
+          handleCancel={() => setShowDisconnectModal(false)}
         >
           <div className="disconnect-modal">
             <p className="disconnect-message">
-              Are you sure you want to disconnect OpenAPI sync? This will remove the sync configuration but keep your collection intact.
+              <>Are you sure you want to disconnect OpenAPI sync? </> <br /> <br />
+              <>This will only disconnect the sync configuration. Your collection will remain intact.</>
             </p>
-            <label className="disconnect-checkbox">
-              <input
-                type="checkbox"
-                checked={deleteSpecFile}
-                onChange={(e) => setDeleteSpecFile(e.target.checked)}
-              />
-              <span>Also delete the local spec file</span>
-            </label>
             <div className="disconnect-actions">
               <Button
                 variant="ghost"
-                onClick={() => {
-                  setShowDisconnectModal(false); setDeleteSpecFile(false);
-                }}
+                onClick={() => setShowDisconnectModal(false)}
               >
                 Cancel
               </Button>

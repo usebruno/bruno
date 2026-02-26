@@ -10,6 +10,8 @@ import {
 import { VisualDiffContent, getOpenAPIDiffSections } from 'components/Git/VisualDiffViewer';
 import { toggleSectionExpanded, toggleRowExpanded } from 'providers/ReduxStore/slices/openapi-sync';
 import MethodBadge from 'ui/MethodBadge';
+import { formatIpcError } from 'utils/common/error';
+import { IconInfoCircle } from '@tabler/icons';
 
 /**
  * EndpointVisualDiff - Wrapper around VisualDiffContent for OpenAPI sync
@@ -61,8 +63,50 @@ const EndpointItem = ({ endpoint, type, actions }) => {
   );
 };
 
+// Conflict badge with tooltip
+const ConflictBadge = () => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  return (
+    <span
+      className="conflict-badge-wrapper"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <span className="conflict-badge">Conflict <IconInfoCircle size={11} /></span>
+      {showTooltip && (
+        <span className="conflict-tooltip">
+          This endpoint was modified in both the spec and your collection. Choose which version to keep.
+        </span>
+      )}
+    </span>
+  );
+};
+
+// Conflict badge for collapsed section header
+const SectionConflictBadge = ({ count }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  return (
+    <span
+      className="section-conflict-badge-wrapper"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <span className="section-conflict-badge">
+        {count} {count === 1 ? 'Conflict' : 'Conflicts'} <IconInfoCircle size={11} />
+      </span>
+      {showTooltip && (
+        <span className="section-conflict-tooltip">
+          {count === 1
+            ? 'This section has 1 endpoint modified in both the spec and your collection. Expand to review and resolve.'
+            : `This section has ${count} endpoints modified in both the spec and your collection. Expand to review and resolve.`}
+        </span>
+      )}
+    </span>
+  );
+};
+
 // Expandable row - can be used with or without decision buttons
-const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectionPath, newSpec, showDecisions = true, showSourceBadges = false, decisionLabels, diffLeftLabel, diffRightLabel, swapDiffSides, collectionUid, actions }) => {
+const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectionPath, newSpec, showDecisions = true, decisionLabels, diffLeftLabel, diffRightLabel, swapDiffSides, collectionUid, actions }) => {
   const dispatch = useDispatch();
   const rowKey = endpoint.id || `${endpoint.method}-${endpoint.path}`;
   const isExpanded = useSelector((state) => {
@@ -92,7 +136,7 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
         setDiffData(result);
       }
     } catch (err) {
-      setError(err.message || 'Failed to load diff data');
+      setError(formatIpcError(err) || 'Failed to load diff data');
     } finally {
       setIsLoading(false);
     }
@@ -125,16 +169,7 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
         <span className="endpoint-path">{endpoint.path}</span>
         {endpoint.summary && <span className="endpoint-name">{endpoint.summary}</span>}
         {endpoint.name && !endpoint.summary && <span className="endpoint-name">{endpoint.name}</span>}
-        {showSourceBadges && endpoint.localAction && (
-          <span className={`source-tag local-${endpoint.localAction}`}>
-            {endpoint.localAction === 'modified' ? 'Modified locally' : endpoint.localAction === 'deleted' ? 'Deleted locally' : `${endpoint.localAction} locally`}
-          </span>
-        )}
-        {showSourceBadges && endpoint.specAction && (
-          <span className={`source-tag spec-${endpoint.specAction}`}>
-            {endpoint.specAction === 'modified' ? 'Updated in spec' : endpoint.specAction === 'removed' ? 'Removed from spec' : `${endpoint.specAction} in spec`}
-          </span>
-        )}
+        {endpoint.conflict && <ConflictBadge />}
 
         {actions && <div className="endpoint-actions" onClick={(e) => e.stopPropagation()}>{actions}</div>}
 
@@ -234,10 +269,10 @@ const ChangeSection = ({
   diffLeftLabel,
   diffRightLabel,
   swapDiffSides,
-  // Badge props
-  showSourceBadges = false,
   // Per-item actions callback: (endpoint) => ReactNode
   renderItemActions,
+  // Conflict count to show in collapsed header
+  conflictCount = 0,
   // Redux state props
   collectionUid,
   sectionKey
@@ -269,7 +304,7 @@ const ChangeSection = ({
           collectionPath={collectionPath}
           newSpec={newSpec}
           showDecisions={true}
-          showSourceBadges={showSourceBadges}
+
           decisionLabels={decisionLabels}
           diffLeftLabel={diffLeftLabel}
           diffRightLabel={diffRightLabel}
@@ -288,7 +323,7 @@ const ChangeSection = ({
           collectionPath={collectionPath}
           newSpec={newSpec}
           showDecisions={false}
-          showSourceBadges={showSourceBadges}
+
           diffLeftLabel={diffLeftLabel}
           diffRightLabel={diffRightLabel}
           swapDiffSides={swapDiffSides}
@@ -305,7 +340,7 @@ const ChangeSection = ({
   };
 
   return (
-    <div className={`change-section type-${type}`}>
+    <div className={`change-section type-${type}${isExpanded ? ' expanded' : ''}`}>
       <div
         className="section-header"
         onClick={() => {
@@ -315,10 +350,13 @@ const ChangeSection = ({
         }}
       >
         <IconChevronRight size={16} className={`chevron ${isExpanded ? 'expanded' : ''}`} />
-        {Icon && <Icon size={16} className="section-icon" />}
-        <span className={`section-title type-${type}`}>{title}</span>
+        <span className={`section-dot type-${type}`} />
+        <span className="section-title">{title}</span>
         <span className="section-count">{count}</span>
         {subtitle && <span className="section-subtitle">{subtitle}</span>}
+        {!isExpanded && conflictCount > 0 && (
+          <SectionConflictBadge count={conflictCount} />
+        )}
         {actions && <div className="section-actions" onClick={(e) => e.stopPropagation()}>{actions}</div>}
       </div>
       {isExpanded && (

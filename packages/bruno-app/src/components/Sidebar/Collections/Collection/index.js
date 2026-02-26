@@ -20,9 +20,9 @@ import {
   IconSettings,
   IconTerminal2,
   IconFolder,
-  IconBook,
-  IconRefresh
+  IconBook
 } from '@tabler/icons';
+import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
@@ -330,8 +330,8 @@ const Collection = ({ collection, searchText }) => {
     },
     {
       id: 'sync-openapi',
-      leftSection: IconRefresh,
-      label: 'OpenAPI Sync',
+      leftSection: OpenAPISyncIcon,
+      label: 'OpenAPI',
       onClick: openOpenAPISyncTab
     },
     ...(hasCopiedItems

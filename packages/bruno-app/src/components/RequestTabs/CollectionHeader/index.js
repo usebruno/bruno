@@ -12,9 +12,9 @@ import {
   IconX,
   IconCheck,
   IconFolder,
-  IconUpload,
-  IconRefresh
+  IconUpload
 } from '@tabler/icons';
+import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
@@ -83,7 +83,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     return null;
   }
 
-  const hasOpenApiSync = collection?.brunoConfig?.openapi?.sync?.sourceUrl;
+  const hasOpenApiSync = collection?.brunoConfig?.openapi?.[0]?.sourceUrl;
   const hasOpenApiUpdates = hasOpenApiSync && collectionUpdates[collection.uid]?.hasUpdates;
   const hasOpenApiError = hasOpenApiSync && collectionUpdates[collection.uid]?.error;
 
@@ -441,12 +441,12 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         {!isScratchCollection && (
           <div className="flex flex-grow gap-1 items-center justify-end">
             <ToolHint
-              text={hasOpenApiError ? 'OpenAPI Sync Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI Sync'}
+              text={hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Spec Updates Available' : 'OpenAPI'}
               toolhintId="OpenApiSyncToolhintId"
               place="bottom"
             >
               <ActionIcon onClick={viewOpenApiSync} aria-label="OpenAPI Sync" size="sm" className="relative">
-                <IconRefresh size={16} strokeWidth={1.5} />
+                <OpenAPISyncIcon size={16} />
                 {(hasOpenApiUpdates || hasOpenApiError) && (
                   <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: hasOpenApiError ? theme.status.danger.text : theme.status.warning.text }} />
                 )}

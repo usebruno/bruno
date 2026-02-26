@@ -12,7 +12,7 @@ const useOpenAPISyncPolling = () => {
 
   // Derive a stable boolean so polling doesn't restart on every collection mutation
   const hasSyncableCollections = useMemo(
-    () => collections.some((c) => c.brunoConfig?.openapi?.sync?.sourceUrl),
+    () => collections.some((c) => c.brunoConfig?.openapi?.[0]?.sourceUrl),
     [collections]
   );
 

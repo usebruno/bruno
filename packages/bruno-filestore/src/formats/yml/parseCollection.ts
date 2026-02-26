@@ -54,16 +54,15 @@ const parseCollection = (ymlString: string): ParsedCollection => {
         };
       }
     }
-    if (brunoExtensions?.openapi?.sync) {
-      brunoConfig.openapi = {
-        sync: {
-          sourceUrl: brunoExtensions.openapi.sync.sourceUrl,
-          groupBy: brunoExtensions.openapi.sync.groupBy,
-          specFilename: brunoExtensions.openapi.sync.specFilename,
-          ...(brunoExtensions.openapi.sync.lastSyncDate && { lastSyncDate: brunoExtensions.openapi.sync.lastSyncDate }),
-          ...(brunoExtensions.openapi.sync.specHash && { specHash: brunoExtensions.openapi.sync.specHash })
-        }
-      };
+    if (Array.isArray(brunoExtensions?.openapi) && brunoExtensions.openapi.length > 0) {
+      brunoConfig.openapi = brunoExtensions.openapi.map((entry: any) => ({
+        sourceUrl: entry.sourceUrl,
+        groupBy: entry.groupBy,
+        ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),
+        ...(entry.specHash && { specHash: entry.specHash }),
+        autoCheck: entry.autoCheck !== false,
+        autoCheckInterval: entry.autoCheckInterval || 5
+      }));
     }
 
     // protobuf

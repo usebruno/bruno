@@ -95,7 +95,7 @@ const groupingOptions = [
   { value: 'path', label: 'Paths', description: 'Group requests by URL path structure', testId: 'grouping-option-path' }
 ];
 
-const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sourceUrl, rawContent }) => {
+const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sourceUrl, filePath, rawContent }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [groupingType, setGroupingType] = useState('tags');
@@ -104,7 +104,9 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const dropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
   const isZipImport = format === 'bruno-zip';
-  const isOpenApiFromUrl = isOpenApi && sourceUrl;
+  const isOpenApiFromUrl = isOpenApi && !!sourceUrl;
+  const isOpenApiFromFile = isOpenApi && !!filePath && !sourceUrl;
+  const showSyncOption = isOpenApiFromUrl || isOpenApiFromFile;
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const preferences = useSelector((state) => state.app.preferences);
@@ -132,11 +134,8 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
       const convertedCollection = await convertCollection(format, rawData, groupingType, collectionFormat);
       const options = { format: collectionFormat };
 
-      if (isOpenApiFromUrl && enableSync) {
-        const specFilename = sourceUrl.endsWith('.yaml') || sourceUrl.endsWith('.yml')
-          ? 'openapi.yaml'
-          : 'openapi.json';
-
+      if (showSyncOption && enableSync) {
+        const syncSourceUrl = sourceUrl || filePath; // URL or absolute path (backend converts to relative)
         const baseBrunoConfig = {
           version: convertedCollection.version || '1',
           name: convertedCollection.name || 'Untitled Collection',
@@ -147,13 +146,14 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         convertedCollection.brunoConfig = {
           ...baseBrunoConfig,
           ...convertedCollection.brunoConfig,
-          openapi: {
-            sync: {
-              sourceUrl,
+          openapi: [
+            {
+              sourceUrl: syncSourceUrl,
               groupBy: groupingType,
-              specFilename
+              autoCheck: true,
+              autoCheckInterval: 5
             }
-          }
+          ]
         };
 
         options.rawOpenAPISpec = rawContent || rawData;
@@ -320,7 +320,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
             </div>
           )}
 
-          {isOpenApiFromUrl && (
+          {showSyncOption && (
             <div className="mt-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -329,10 +329,10 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                   onChange={(e) => setEnableSync(e.target.checked)}
                   className="cursor-pointer checkbox"
                 />
-                <span className="font-medium">Enable OpenAPI Sync</span>
+                <span className="font-medium">Check for Spec Updates</span>
               </label>
               <p className="text-muted text-xs mt-1">
-                Keep this collection in sync with the OpenAPI spec URL you have provided.
+                Stay notified of spec changes and sync your collection with the spec.
               </p>
             </div>
           )}

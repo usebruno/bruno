@@ -39,7 +39,7 @@ const StyledWrapper = styled.button`
   `}
 
   svg {
-    stroke: currentColor;
+    /* stroke: currentColor; */
   }
 
   &:disabled {

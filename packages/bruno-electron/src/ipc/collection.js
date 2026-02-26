@@ -158,12 +158,50 @@ const isValidHttpUrl = (urlString) => {
   }
 };
 
+const isLocalFilePath = (str) => !isValidHttpUrl(str) && typeof str === 'string' && str.length > 0;
+
 /**
- * Validate that a spec filename is a simple filename with no path traversal.
+ * Get the directory where OpenAPI spec files are stored in AppData.
  */
-const isValidSpecFilename = (filename) => {
-  if (!filename || typeof filename !== 'string') return false;
-  return !filename.includes(path.sep) && !filename.includes('/') && !filename.includes('..') && !filename.includes('\0');
+const getSpecsDir = () => path.join(app.getPath('userData'), 'specs');
+
+/**
+ * Load the spec metadata file from AppData.
+ * Returns an object mapping collectionPath → array of { filename, sourceUrl } entries.
+ */
+const loadSpecMetadata = () => {
+  const metadataPath = path.join(getSpecsDir(), 'metadata.json');
+  try {
+    if (fs.existsSync(metadataPath)) {
+      return JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    }
+  } catch {
+    // ignore parse errors, return empty
+  }
+  return {};
+};
+
+/**
+ * Save the spec metadata file to AppData.
+ */
+const saveSpecMetadata = (metadata) => {
+  const specsDir = getSpecsDir();
+  fsExtra.ensureDirSync(specsDir);
+  fs.writeFileSync(path.join(specsDir, 'metadata.json'), JSON.stringify(metadata, null, 2), 'utf8');
+};
+
+/**
+ * Get all spec entries for a collection.
+ */
+const getSpecEntriesForCollection = (collectionPath) => {
+  return loadSpecMetadata()[collectionPath] || [];
+};
+
+/**
+ * Get the spec entry for a specific sourceUrl within a collection.
+ */
+const getSpecEntryForUrl = (collectionPath, sourceUrl) => {
+  return getSpecEntriesForCollection(collectionPath).find((e) => e.sourceUrl === sourceUrl) || null;
 };
 
 /**
@@ -291,54 +329,47 @@ const findRequestFileOnDisk = (dirPath, method, urlPath) => {
 };
 
 /**
- * Save an OpenAPI spec file to the collection's resources/specs directory.
+ * Save an OpenAPI spec file to AppData specs directory.
  * - Detects format (JSON/YAML) from the content and uses the correct file extension.
- * - Cleans up old spec file if the filename changes (e.g. openapi.json → openapi.yaml).
- * - Updates brunoConfig.openapi.sync.specFilename to match.
+ * - Reuses an existing UUID filename if one exists for this sourceUrl, otherwise creates a new one.
+ * - Updates metadata.json with the filename → sourceUrl mapping.
  *
  * @param {Object} params
  * @param {string} params.collectionPath - Path to the collection directory.
  * @param {string} params.content - The spec content string to save (JSON or YAML).
- * @param {Object} params.brunoConfig - The bruno config object (will be mutated).
- * @param {string} [params.specFilename] - Override filename. If not provided, detected from content.
+ * @param {string} params.sourceUrl - The source URL identifying which spec entry to update.
  */
-const saveOpenApiSpecFile = async ({ collectionPath, content, brunoConfig, specFilename }) => {
-  const specsDir = path.join(collectionPath, 'resources', 'specs');
+const saveOpenApiSpecFile = async ({ collectionPath, content, sourceUrl }) => {
+  const specsDir = getSpecsDir();
   await fsExtra.ensureDir(specsDir);
 
-  const correctFilename = specFilename || (isYamlContent(content) ? 'openapi.yaml' : 'openapi.json');
+  const meta = loadSpecMetadata();
+  const entries = meta[collectionPath] || [];
+  const existingEntry = entries.find((e) => e.sourceUrl === sourceUrl);
 
-  // Validate filenames to prevent path traversal
-  if (!isValidSpecFilename(correctFilename)) {
-    throw new Error(`Invalid spec filename: ${correctFilename}`);
+  let filename;
+  if (existingEntry) {
+    // Reuse existing UUID filename
+    filename = existingEntry.filename;
+  } else {
+    // Generate a new UUID filename based on content type
+    const ext = isYamlContent(content) ? 'yaml' : 'json';
+    filename = `${crypto.randomUUID()}.${ext}`;
+    meta[collectionPath] = [...entries, { filename, sourceUrl }];
+    saveSpecMetadata(meta);
   }
 
-  const currentFilename = brunoConfig?.openapi?.sync?.specFilename;
-
-  // Remove old file if filename changed (e.g. openapi.json → openapi.yaml)
-  if (currentFilename && correctFilename !== currentFilename && isValidSpecFilename(currentFilename)) {
-    const oldPath = path.join(specsDir, currentFilename);
-    if (fs.existsSync(oldPath)) {
-      fs.unlinkSync(oldPath);
-    }
-  }
-
-  await writeFile(path.join(specsDir, correctFilename), content);
-
-  // Update config to reflect the correct filename
-  if (!brunoConfig.openapi) brunoConfig.openapi = {};
-  if (!brunoConfig.openapi.sync) brunoConfig.openapi.sync = {};
-  brunoConfig.openapi.sync.specFilename = correctFilename;
+  await writeFile(path.join(specsDir, filename), content);
 };
 
 /**
  * Save an OpenAPI spec file and update sync metadata (lastSyncDate, specHash) in brunoConfig.
  * Shared by both the IPC handler (connect flow) and the import flow.
  */
-const saveSpecAndUpdateMetadata = async ({ collectionPath, specContent, specFilename }) => {
+const saveSpecAndUpdateMetadata = async ({ collectionPath, specContent, sourceUrl }) => {
   const { format, brunoConfig, collectionRoot } = loadBrunoConfig(collectionPath);
 
-  await saveOpenApiSpecFile({ collectionPath, content: specContent, brunoConfig, specFilename });
+  await saveOpenApiSpecFile({ collectionPath, content: specContent, sourceUrl });
 
   let parsedSpec;
   try {
@@ -347,16 +378,16 @@ const saveSpecAndUpdateMetadata = async ({ collectionPath, specContent, specFile
     parsedSpec = jsyaml.load(specContent);
   }
 
-  brunoConfig.openapi = {
-    ...brunoConfig.openapi,
-    sync: {
-      ...brunoConfig.openapi?.sync,
-      lastSyncDate: new Date().toISOString(),
-      specHash: generateSpecHash(parsedSpec)
-    }
-  };
+  const specHash = generateSpecHash(parsedSpec);
+  const lastSyncDate = new Date().toISOString();
+  const openapi = brunoConfig.openapi || [];
+  const idx = openapi.findIndex((e) => e.sourceUrl === sourceUrl);
+  if (idx !== -1) {
+    openapi[idx] = { ...openapi[idx], lastSyncDate, specHash };
+  }
+  brunoConfig.openapi = openapi;
 
->>>>>>> 7427bb983 (Implement OpenAPI Sync feature)
+  await saveBrunoConfig(collectionPath, format, brunoConfig, collectionRoot);
 };
 
 const envHasSecrets = (environment = {}) => {
@@ -1383,6 +1414,22 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         console.error('Error removing collection from workspace.yml:', error);
       }
     }
+
+    // Clean up AppData spec files for this collection
+    try {
+      const meta = loadSpecMetadata();
+      const entries = meta[collectionPath] || [];
+      for (const entry of entries) {
+        const specPath = path.join(getSpecsDir(), entry.filename);
+        if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
+      }
+      if (entries.length > 0) {
+        delete meta[collectionPath];
+        saveSpecMetadata(meta);
+      }
+    } catch (error) {
+      console.error('Error cleaning up spec files for removed collection:', error);
+    }
   });
 
   ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, options = {}) => {
@@ -1488,6 +1535,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const uid = generateUidBasedOnHash(collectionPath);
         const brunoConfig = getBrunoJsonConfig(coll);
 
+        // Convert absolute local file paths to collection-relative (git-shareable)
+        if (Array.isArray(brunoConfig.openapi)) {
+          for (const entry of brunoConfig.openapi) {
+            if (entry.sourceUrl && path.isAbsolute(entry.sourceUrl)) {
+              entry.sourceUrl = path.relative(collectionPath, entry.sourceUrl);
+            }
+          }
+        }
+
         if (format === 'yml') {
           brunoConfig.opencollection = '1.0.0';
           const collectionContent = await stringifyCollection(coll.root, brunoConfig, { format });
@@ -1507,11 +1563,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         await parseEnvironments(coll.environments, collectionPath);
 
         // Save OpenAPI spec file for sync support
-        if (rawOpenAPISpec && brunoConfig.openapi?.sync) {
+        if (rawOpenAPISpec && brunoConfig.openapi?.length) {
+          const importSourceUrl = brunoConfig.openapi[0].sourceUrl;
           const specContent = typeof rawOpenAPISpec === 'string'
             ? rawOpenAPISpec
             : JSON.stringify(rawOpenAPISpec, null, 2);
-          await saveSpecAndUpdateMetadata({ collectionPath, specContent });
+          await saveSpecAndUpdateMetadata({ collectionPath, specContent, sourceUrl: importSourceUrl });
         }
 
         const { size, filesCount } = await getCollectionStats(collectionPath);
@@ -2321,8 +2378,17 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:show-in-folder', async (event, filePath) => {
+  ipcMain.handle('renderer:show-in-folder', async (event, arg) => {
     try {
+      let filePath;
+      if (typeof arg === 'string') {
+        filePath = arg;
+      } else if (arg && typeof arg === 'object') {
+        // Support { filePath, collectionPath } to resolve relative paths on disk
+        filePath = arg.collectionPath
+          ? path.resolve(arg.collectionPath, arg.filePath)
+          : arg.filePath;
+      }
       if (!filePath) {
         throw new Error('File path is required');
       }
@@ -2331,6 +2397,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       console.error('Error in show-in-folder: ', error);
       throw error;
     }
+  });
+
+  // Resolve a relative path to absolute given a base directory
+  ipcMain.handle('renderer:resolve-path', async (event, { basePath, relativePath }) => {
+    return path.resolve(basePath, relativePath);
   });
 
   // Implement the Postman to Bruno conversion handler
@@ -2653,8 +2724,18 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // Lightweight check for polling — only fetches and hashes, no endpoint extraction or diff
-  ipcMain.handle('renderer:check-openapi-updates', async (event, { sourceUrl, storedSpecHash }) => {
+  ipcMain.handle('renderer:check-openapi-updates', async (event, { collectionPath, sourceUrl, storedSpecHash }) => {
     try {
+      if (isLocalFilePath(sourceUrl)) {
+        const resolvedPath = collectionPath ? path.resolve(collectionPath, sourceUrl) : sourceUrl;
+        if (!fs.existsSync(resolvedPath)) {
+          return { hasUpdates: false, error: `Spec file not found at: ${sourceUrl}`, errorCode: 'LOCAL_FILE_NOT_FOUND' };
+        }
+        const content = fs.readFileSync(resolvedPath, 'utf8');
+        const remoteSpecHash = generateSpecHash(parseSpec(content));
+        return { hasUpdates: !storedSpecHash || storedSpecHash !== remoteSpecHash, remoteSpecHash };
+      }
+
       if (!isValidHttpUrl(sourceUrl)) {
         return { hasUpdates: false, error: 'Invalid URL: only http and https are allowed' };
       }
@@ -2693,8 +2774,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:compare-openapi-specs', async (event, { collectionPath, sourceUrl }) => {
     try {
-      if (!isValidHttpUrl(sourceUrl)) {
-        throw new Error('Invalid URL: only http and https are allowed');
+      if (!isValidHttpUrl(sourceUrl) && !isLocalFilePath(sourceUrl)) {
+        throw new Error('Invalid source: only http/https URLs and local file paths are allowed');
       }
 
       // Validate that the spec is a valid OpenAPI document
@@ -2871,55 +2952,91 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         };
       };
 
-      const { brunoConfig } = loadBrunoConfig(collectionPath);
-      const specFilename = brunoConfig?.openapi?.sync?.specFilename || 'openapi.json';
-      const storedSpecPath = path.join(collectionPath, 'resources', 'specs', specFilename);
+      const specEntry = getSpecEntryForUrl(collectionPath, sourceUrl);
+      const storedSpecPath = specEntry ? path.join(getSpecsDir(), specEntry.filename) : null;
 
       let storedSpec = null;
       let storedContent = '';
-      const storedSpecMissing = !fs.existsSync(storedSpecPath);
+      const storedSpecMissing = !storedSpecPath || !fs.existsSync(storedSpecPath);
       if (!storedSpecMissing) {
         storedContent = fs.readFileSync(storedSpecPath, 'utf8');
         storedSpec = parseSpec(storedContent);
       }
 
-      // Add cache-busting and no-cache headers to bypass GitHub CDN caching
-      const cacheBustUrl = sourceUrl.includes('?')
-        ? `${sourceUrl}&_=${Date.now()}`
-        : `${sourceUrl}?_=${Date.now()}`;
+      let newSpecContent, newSpec;
 
-      let response;
-      try {
-        response = await fetch(cacheBustUrl, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          signal: AbortSignal.timeout(30000)
-        });
-      } catch (fetchErr) {
-        const reason = fetchErr.cause?.code || fetchErr.name || 'unknown';
-        throw new Error(`Could not reach ${sourceUrl} (${reason})`);
-      }
+      if (isLocalFilePath(sourceUrl)) {
+        const resolvedPath = collectionPath ? path.resolve(collectionPath, sourceUrl) : sourceUrl;
+        if (!fs.existsSync(resolvedPath)) {
+          return {
+            isValid: false,
+            error: `Spec file not found at: ${sourceUrl}`,
+            errorCode: 'LOCAL_FILE_NOT_FOUND',
+            storedSpec,
+            storedSpecMissing
+          };
+        }
+        newSpecContent = fs.readFileSync(resolvedPath, 'utf8');
+        newSpec = parseSpec(newSpecContent);
+        if (!isValidOpenApiSpec(newSpec)) {
+          return {
+            isValid: false,
+            error: 'The file does not contain a valid OpenAPI/Swagger specification',
+            added: [],
+            removed: [],
+            unchanged: [],
+            hasChanges: false
+          };
+        }
+      } else {
+        // Add cache-busting and no-cache headers to bypass GitHub CDN caching
+        const cacheBustUrl = sourceUrl.includes('?')
+          ? `${sourceUrl}&_=${Date.now()}`
+          : `${sourceUrl}?_=${Date.now()}`;
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch spec: ${response.status} ${response.statusText}`);
-      }
+        let response;
+        try {
+          response = await fetch(cacheBustUrl, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            },
+            signal: AbortSignal.timeout(30000)
+          });
+        } catch (fetchErr) {
+          const reason = fetchErr.cause?.code || fetchErr.name || 'unknown';
+          return {
+            isValid: false,
+            error: `Could not reach ${sourceUrl} (${reason})`,
+            storedSpec,
+            storedSpecMissing
+          };
+        }
 
-      const newSpecContent = await response.text();
-      const newSpec = parseSpec(newSpecContent);
+        if (!response.ok) {
+          return {
+            isValid: false,
+            error: `Failed to fetch spec: ${response.status} ${response.statusText}`,
+            storedSpec,
+            storedSpecMissing
+          };
+        }
 
-      // Validate that the fetched content is a valid OpenAPI spec
-      if (!isValidOpenApiSpec(newSpec)) {
-        return {
-          isValid: false,
-          error: 'The URL does not point to a valid OpenAPI/Swagger specification',
-          added: [],
-          removed: [],
-          unchanged: [],
-          hasChanges: false
-        };
+        newSpecContent = await response.text();
+        newSpec = parseSpec(newSpecContent);
+
+        // Validate that the fetched content is a valid OpenAPI spec
+        if (!isValidOpenApiSpec(newSpec)) {
+          return {
+            isValid: false,
+            error: 'The URL does not point to a valid OpenAPI/Swagger specification',
+            added: [],
+            removed: [],
+            unchanged: [],
+            hasChanges: false
+          };
+        }
       }
 
       // Check for title/name changes
@@ -2947,7 +3064,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const unifiedDiff = createTwoFilesPatch(
         correctSpecFilename, correctSpecFilename,
         storedContent || '', newSpecContent,
-        'Local Spec', 'Remote Spec',
+        'Current Spec', 'New Spec',
         { context: totalLines }
       );
 
@@ -2992,15 +3109,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       // Load spec to compare against — use compareSpec if provided, otherwise read stored spec from disk
       let specToCompare;
-      const groupBy = brunoConfig?.openapi?.sync?.groupBy || 'tags';
+      const groupBy = brunoConfig?.openapi?.[0]?.groupBy || 'tags';
 
       if (compareSpec) {
         specToCompare = compareSpec;
       } else {
-        const specFilename = brunoConfig?.openapi?.sync?.specFilename || 'openapi.json';
-        const storedSpecPath = path.join(collectionPath, 'resources', 'specs', specFilename);
+        const driftSourceUrl = brunoConfig?.openapi?.[0]?.sourceUrl;
+        const driftSpecEntry = driftSourceUrl ? getSpecEntryForUrl(collectionPath, driftSourceUrl) : null;
+        const storedSpecPath = driftSpecEntry ? path.join(getSpecsDir(), driftSpecEntry.filename) : null;
 
-        if (!fs.existsSync(storedSpecPath)) {
+        if (!storedSpecPath || !fs.existsSync(storedSpecPath)) {
           return {
             error: null,
             noStoredSpec: true,
@@ -3245,9 +3363,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // Get spec to use (new spec if provided, otherwise stored spec)
       let specToUse = newSpec;
       if (!specToUse) {
-        const specFilename = brunoConfig?.openapi?.sync?.specFilename || 'openapi.json';
-        const storedSpecPath = path.join(collectionPath, 'resources', 'specs', specFilename);
-        if (fs.existsSync(storedSpecPath)) {
+        const diffSourceUrl = brunoConfig?.openapi?.[0]?.sourceUrl;
+        const diffSpecEntry = diffSourceUrl ? getSpecEntryForUrl(collectionPath, diffSourceUrl) : null;
+        const storedSpecPath = diffSpecEntry ? path.join(getSpecsDir(), diffSpecEntry.filename) : null;
+        if (storedSpecPath && fs.existsSync(storedSpecPath)) {
           const content = fs.readFileSync(storedSpecPath, 'utf8');
           specToUse = parseSpec(content);
         }
@@ -3258,7 +3377,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       // Convert spec to Bruno collection format
-      const groupBy = brunoConfig?.openapi?.sync?.groupBy || 'tags';
+      const groupBy = brunoConfig?.openapi?.[0]?.groupBy || 'tags';
       const specAsCollection = openApiToBruno(specToUse, { groupBy });
 
       // Find the spec item for this endpoint
@@ -3381,19 +3500,20 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (mode === 'spec-only') {
         if (diff.newSpec && typeof diff.newSpec === 'object') {
           const specContent = diff.newSpecContent || JSON.stringify(diff.newSpec, null, 2);
-          await saveOpenApiSpecFile({ collectionPath, content: specContent, brunoConfig, specFilename: diff.specFilename });
+          await saveOpenApiSpecFile({ collectionPath, content: specContent, sourceUrl });
         }
 
         // Update sync metadata
-        brunoConfig.openapi = {
-          ...brunoConfig.openapi,
-          sync: {
-            ...brunoConfig.openapi?.sync,
-            sourceUrl,
+        const openapi = brunoConfig.openapi || [];
+        const specOnlyIdx = openapi.findIndex((e) => e.sourceUrl === sourceUrl);
+        if (specOnlyIdx !== -1) {
+          openapi[specOnlyIdx] = {
+            ...openapi[specOnlyIdx],
             lastSyncDate: new Date().toISOString(),
             specHash: generateSpecHash(diff.newSpec)
-          }
-        };
+          };
+        }
+        brunoConfig.openapi = openapi;
 
         await saveBrunoConfig(collectionPath, format, brunoConfig, collectionRoot);
 
@@ -3402,7 +3522,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       // Mode: reset - Save spec and reset all endpoints to spec (preserve tests/scripts)
       if (mode === 'reset' && diff.newSpec) {
-        const groupBy = brunoConfig?.openapi?.sync?.groupBy || 'tags';
+        const openapiEntryReset = (brunoConfig.openapi || []).find((e) => e.sourceUrl === sourceUrl);
+        const groupBy = openapiEntryReset?.groupBy || 'tags';
         const newCollection = openApiToBruno(diff.newSpec, { groupBy });
 
         // Build map of spec items by endpoint ID
@@ -3503,18 +3624,19 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         // Save spec in original format
         const specContent = diff.newSpecContent || JSON.stringify(diff.newSpec, null, 2);
-        await saveOpenApiSpecFile({ collectionPath, content: specContent, brunoConfig, specFilename: diff.specFilename });
+        await saveOpenApiSpecFile({ collectionPath, content: specContent, sourceUrl });
 
         // Update sync metadata
-        brunoConfig.openapi = {
-          ...brunoConfig.openapi,
-          sync: {
-            ...brunoConfig.openapi?.sync,
-            sourceUrl,
+        const openapiReset = brunoConfig.openapi || [];
+        const resetIdx = openapiReset.findIndex((e) => e.sourceUrl === sourceUrl);
+        if (resetIdx !== -1) {
+          openapiReset[resetIdx] = {
+            ...openapiReset[resetIdx],
             lastSyncDate: new Date().toISOString(),
             specHash: generateSpecHash(diff.newSpec)
-          }
-        };
+          };
+        }
+        brunoConfig.openapi = openapiReset;
 
         await saveBrunoConfig(collectionPath, format, brunoConfig, collectionRoot);
 
@@ -3523,7 +3645,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       // Mode: sync (default) - Existing behavior
       if (addNewRequests && diff.added?.length > 0 && diff.newSpec) {
-        const groupBy = brunoConfig?.openapi?.sync?.groupBy || 'tags';
+        const openapiEntrySyncAdded = (brunoConfig.openapi || []).find((e) => e.sourceUrl === sourceUrl);
+        const groupBy = openapiEntrySyncAdded?.groupBy || 'tags';
         const newCollection = openApiToBruno(diff.newSpec, { groupBy });
 
         for (const endpoint of diff.added) {
@@ -3544,6 +3667,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
                   ...existingRequest.request,
                   url: newItem.request.url,
                   body: newItem.request.body,
+                  auth: newItem.request.auth,
                   params: newItem.request.params?.map((newParam) => {
                     const existing = existingRequest.request.params?.find((p) => p.name === newParam.name);
                     return existing ? { ...newParam, value: existing.value, enabled: existing.enabled } : newParam;
@@ -3639,7 +3763,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // endpointDecisions: { endpointId: 'keep-mine' | 'accept-incoming' }
       // Only apply changes for endpoints marked as 'accept-incoming' or not in decisions (default: apply)
       if (diff.modified?.length > 0 && diff.newSpec && diff.newSpec.paths) {
-        const groupBy = brunoConfig?.openapi?.sync?.groupBy || 'tags';
+        const openapiEntryModified = (brunoConfig.openapi || []).find((e) => e.sourceUrl === sourceUrl);
+        const groupBy = openapiEntryModified?.groupBy || 'tags';
         let newCollection;
         try {
           newCollection = openApiToBruno(diff.newSpec, { groupBy });
@@ -3675,6 +3800,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
                   ...existingRequest.request,
                   url: newItem.request.url,
                   body: newItem.request.body, // Use incoming body from spec
+                  auth: newItem.request.auth, // Use incoming auth from spec
                   // Update params from new spec while preserving enabled state
                   params: newItem.request.params?.map((newParam) => {
                     const existing = existingRequest.request.params?.find((p) => p.name === newParam.name);
@@ -3699,9 +3825,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (driftedToReset?.length > 0) {
         // Load stored spec for reset (or use newSpec if available)
         const specToUse = diff.newSpec || (await (async () => {
-          const specFilename = brunoConfig?.openapi?.sync?.specFilename || 'openapi.json';
-          const storedSpecPath = path.join(collectionPath, 'resources', 'specs', specFilename);
-          if (fs.existsSync(storedSpecPath)) {
+          const applySpecEntry = getSpecEntryForUrl(collectionPath, sourceUrl);
+          const storedSpecPath = applySpecEntry ? path.join(getSpecsDir(), applySpecEntry.filename) : null;
+          if (storedSpecPath && fs.existsSync(storedSpecPath)) {
             const content = fs.readFileSync(storedSpecPath, 'utf8');
             return parseSpec(content);
           }
@@ -3709,7 +3835,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         })());
 
         if (specToUse) {
-          const groupBy = brunoConfig?.openapi?.sync?.groupBy || 'tags';
+          const openapiEntryDrift = (brunoConfig.openapi || []).find((e) => e.sourceUrl === sourceUrl);
+          const groupBy = openapiEntryDrift?.groupBy || 'tags';
           let specCollection;
           try {
             specCollection = openApiToBruno(specToUse, { groupBy });
@@ -3784,23 +3911,23 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // Save spec only if we have a valid spec
       if (diff.newSpec && typeof diff.newSpec === 'object') {
         const specContent = diff.newSpecContent || JSON.stringify(diff.newSpec, null, 2);
-        await saveOpenApiSpecFile({ collectionPath, content: specContent, brunoConfig, specFilename: diff.specFilename });
+        await saveOpenApiSpecFile({ collectionPath, content: specContent, sourceUrl });
       }
 
-      const syncUpdate = {
-        ...brunoConfig.openapi?.sync,
-        sourceUrl,
-        lastSyncDate: new Date().toISOString()
-      };
-      // Only update specHash when we have a valid newSpec, otherwise preserve existing hash
-      if (diff.newSpec) {
-        syncUpdate.specHash = generateSpecHash(diff.newSpec);
+      const openapiSync = brunoConfig.openapi || [];
+      const syncIdx = openapiSync.findIndex((e) => e.sourceUrl === sourceUrl);
+      if (syncIdx !== -1) {
+        const updated = {
+          ...openapiSync[syncIdx],
+          lastSyncDate: new Date().toISOString()
+        };
+        // Only update specHash when we have a valid newSpec, otherwise preserve existing hash
+        if (diff.newSpec) {
+          updated.specHash = generateSpecHash(diff.newSpec);
+        }
+        openapiSync[syncIdx] = updated;
       }
-
-      brunoConfig.openapi = {
-        ...brunoConfig.openapi,
-        sync: syncUpdate
-      };
+      brunoConfig.openapi = openapiSync;
 
       await saveBrunoConfig(collectionPath, format, brunoConfig, collectionRoot);
 
@@ -3812,12 +3939,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // Update OpenAPI sync configuration (e.g., source URL)
-  ipcMain.handle('renderer:update-openapi-sync-config', async (event, { collectionPath, config }) => {
+  ipcMain.handle('renderer:update-openapi-sync-config', async (event, { collectionPath, oldSourceUrl, config }) => {
     try {
       const { format, brunoConfig, collectionRoot } = loadBrunoConfig(collectionPath);
 
-      // Merge new config into existing sync config (allowlist keys only)
-      const allowedKeys = ['sourceUrl', 'groupBy', 'specFilename', 'lastSyncDate', 'specHash'];
+      // Merge new config into existing entry (allowlist keys only)
+      const allowedKeys = ['sourceUrl', 'groupBy', 'lastSyncDate', 'specHash', 'autoCheck', 'autoCheckInterval'];
       const sanitizedConfig = {};
       for (const key of allowedKeys) {
         if (key in config) {
@@ -3825,23 +3952,47 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
       }
 
-      // Validate sourceUrl if provided
-      if (sanitizedConfig.sourceUrl && !isValidHttpUrl(sanitizedConfig.sourceUrl)) {
-        throw new Error('Invalid sourceUrl: only http and https URLs are allowed');
+      // sourceUrl is required — it identifies which entry to create/update
+      if (!sanitizedConfig.sourceUrl) {
+        throw new Error('sourceUrl is required to update openapi sync config');
       }
 
-      // Validate specFilename if provided
-      if (sanitizedConfig.specFilename && !isValidSpecFilename(sanitizedConfig.specFilename)) {
-        throw new Error('Invalid specFilename: must be a simple filename without path separators');
+      // Validate sourceUrl — reject protocol-based non-http(s) URLs (e.g. ftp://, file://)
+      if (sanitizedConfig.sourceUrl.includes('://') && !isValidHttpUrl(sanitizedConfig.sourceUrl)) {
+        throw new Error('Invalid URL: only http and https URLs are allowed');
       }
 
-      brunoConfig.openapi = {
-        ...brunoConfig.openapi,
-        sync: {
-          ...brunoConfig.openapi?.sync,
-          ...sanitizedConfig
+      // Convert absolute local file paths to collection-relative (git-shareable)
+      if (path.isAbsolute(sanitizedConfig.sourceUrl)) {
+        sanitizedConfig.sourceUrl = path.relative(collectionPath, sanitizedConfig.sourceUrl);
+      }
+
+      // If sourceUrl is changing, remove the old entry and its metadata
+      const openapi = brunoConfig.openapi || [];
+      if (oldSourceUrl && oldSourceUrl !== sanitizedConfig.sourceUrl) {
+        const filteredOpenapi = openapi.filter((e) => e.sourceUrl !== oldSourceUrl);
+        brunoConfig.openapi = filteredOpenapi;
+        // Clean up metadata entry for old sourceUrl (keep spec file for potential re-use)
+        const meta = loadSpecMetadata();
+        if (meta[collectionPath]) {
+          meta[collectionPath] = meta[collectionPath].filter((e) => e.sourceUrl !== oldSourceUrl);
+          if (meta[collectionPath].length === 0) delete meta[collectionPath];
+          saveSpecMetadata(meta);
         }
-      };
+      }
+
+      // Apply defaults for new entries
+      const updatedOpenapi = brunoConfig.openapi || [];
+      const idx = updatedOpenapi.findIndex((e) => e.sourceUrl === sanitizedConfig.sourceUrl);
+      const isNewEntry = idx === -1;
+      if (isNewEntry) {
+        if (!('autoCheck' in sanitizedConfig)) sanitizedConfig.autoCheck = true;
+        if (!('autoCheckInterval' in sanitizedConfig)) sanitizedConfig.autoCheckInterval = 5;
+        updatedOpenapi.push(sanitizedConfig);
+      } else {
+        updatedOpenapi[idx] = { ...updatedOpenapi[idx], ...sanitizedConfig };
+      }
+      brunoConfig.openapi = updatedOpenapi;
 
       // Save updated config
       await saveBrunoConfig(collectionPath, format, brunoConfig, collectionRoot);
@@ -3854,9 +4005,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // Save OpenAPI spec file and update sync metadata (used by both connect and import flows)
-  ipcMain.handle('renderer:save-openapi-spec', async (event, { collectionPath, specContent, specFilename }) => {
+  ipcMain.handle('renderer:save-openapi-spec', async (event, { collectionPath, specContent, sourceUrl }) => {
     try {
-      await saveSpecAndUpdateMetadata({ collectionPath, specContent, specFilename });
+      await saveSpecAndUpdateMetadata({ collectionPath, specContent, sourceUrl });
       return { success: true };
     } catch (error) {
       console.error('Error saving OpenAPI spec file:', error);
@@ -3864,16 +4015,42 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  // Read stored OpenAPI spec file from AppData
+  ipcMain.handle('renderer:read-openapi-spec', async (event, { collectionPath, sourceUrl }) => {
+    try {
+      const entry = getSpecEntryForUrl(collectionPath, sourceUrl);
+      if (!entry) return { error: 'Spec file not found' };
+      const specPath = path.join(getSpecsDir(), entry.filename);
+      if (!fs.existsSync(specPath)) return { error: 'Spec file not found' };
+      return { content: fs.readFileSync(specPath, 'utf8') };
+    } catch (error) {
+      return { error: error.message || 'Failed to read spec file' };
+    }
+  });
+
+  // Read stored OpenAPI spec file content
+  ipcMain.handle('renderer:read-collection-file', async (event, { collectionPath, relativePath }) => {
+    try {
+      const filePath = path.join(collectionPath, relativePath);
+      if (!fs.existsSync(filePath)) {
+        return { error: 'File not found' };
+      }
+      const content = fs.readFileSync(filePath, 'utf8');
+      return { content };
+    } catch (error) {
+      return { error: error.message || 'Failed to read file' };
+    }
+  });
+
   // Remove OpenAPI sync configuration (disconnect sync)
-  ipcMain.handle('renderer:remove-openapi-sync-config', async (event, { collectionPath, deleteSpecFile = false }) => {
+  ipcMain.handle('renderer:remove-openapi-sync-config', async (event, { collectionPath, sourceUrl, deleteSpecFile = false }) => {
     try {
       const { format, brunoConfig, collectionRoot } = loadBrunoConfig(collectionPath);
 
-      // Remove sync config
-      if (brunoConfig.openapi) {
-        delete brunoConfig.openapi.sync;
-        // Remove openapi object entirely if it's now empty
-        if (Object.keys(brunoConfig.openapi).length === 0) {
+      // Remove matching openapi entry from config array
+      if (brunoConfig.openapi?.length) {
+        brunoConfig.openapi = brunoConfig.openapi.filter((e) => e.sourceUrl !== sourceUrl);
+        if (brunoConfig.openapi.length === 0) {
           delete brunoConfig.openapi;
         }
       }
@@ -3881,13 +4058,17 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // Save updated config
       await saveBrunoConfig(collectionPath, format, brunoConfig, collectionRoot);
 
-      // Delete stored spec files only if the user opted in
-      if (deleteSpecFile) {
-        const specsDir = path.join(collectionPath, 'resources', 'specs');
-        if (fs.existsSync(specsDir)) {
-          await fsExtra.remove(specsDir);
-        }
+      // Remove spec file from AppData if user opted in
+      const meta = loadSpecMetadata();
+      const entries = meta[collectionPath] || [];
+      const entry = entries.find((e) => e.sourceUrl === sourceUrl);
+      if (entry && deleteSpecFile) {
+        const specPath = path.join(getSpecsDir(), entry.filename);
+        if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
       }
+      meta[collectionPath] = entries.filter((e) => e.sourceUrl !== sourceUrl);
+      if (meta[collectionPath].length === 0) delete meta[collectionPath];
+      saveSpecMetadata(meta);
 
       return { success: true };
     } catch (error) {
@@ -3902,16 +4083,17 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const { format, brunoConfig } = loadBrunoConfig(collectionPath);
 
       // Read stored spec (supports both JSON and YAML)
-      const specFilename = brunoConfig?.openapi?.sync?.specFilename || 'openapi.json';
-      const specPath = path.join(collectionPath, 'resources', 'specs', specFilename);
+      const addMissingSourceUrl = brunoConfig?.openapi?.[0]?.sourceUrl;
+      const addMissingEntry = addMissingSourceUrl ? getSpecEntryForUrl(collectionPath, addMissingSourceUrl) : null;
+      const specPath = addMissingEntry ? path.join(getSpecsDir(), addMissingEntry.filename) : null;
 
-      if (!fs.existsSync(specPath)) {
+      if (!specPath || !fs.existsSync(specPath)) {
         throw new Error('No stored spec file found. Please sync with remote spec first.');
       }
 
       const specRaw = fs.readFileSync(specPath, 'utf8');
       const storedSpec = parseSpec(specRaw);
-      const groupBy = brunoConfig?.openapi?.sync?.groupBy || 'tags';
+      const groupBy = brunoConfig?.openapi?.[0]?.groupBy || 'tags';
       const specCollection = openApiToBruno(storedSpec, { groupBy });
 
       let addedCount = 0;
@@ -3957,16 +4139,17 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const { format, brunoConfig } = loadBrunoConfig(collectionPath);
 
       // Read stored spec (supports both JSON and YAML)
-      const specFilename = brunoConfig?.openapi?.sync?.specFilename || 'openapi.json';
-      const specPath = path.join(collectionPath, 'resources', 'specs', specFilename);
+      const resetSourceUrl = brunoConfig?.openapi?.[0]?.sourceUrl;
+      const resetSpecEntry = resetSourceUrl ? getSpecEntryForUrl(collectionPath, resetSourceUrl) : null;
+      const specPath = resetSpecEntry ? path.join(getSpecsDir(), resetSpecEntry.filename) : null;
 
-      if (!fs.existsSync(specPath)) {
+      if (!specPath || !fs.existsSync(specPath)) {
         throw new Error('No stored spec file found. Please sync with remote spec first.');
       }
 
       const specRaw = fs.readFileSync(specPath, 'utf8');
       const storedSpec = parseSpec(specRaw);
-      const groupBy = brunoConfig?.openapi?.sync?.groupBy || 'tags';
+      const groupBy = brunoConfig?.openapi?.[0]?.groupBy || 'tags';
       const specCollection = openApiToBruno(storedSpec, { groupBy });
 
       let resetCount = 0;

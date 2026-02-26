@@ -263,19 +263,18 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
     }
 
     // bruno-specific extensions
-    if (brunoConfig.openapi?.sync) {
+    if (Array.isArray(brunoConfig.openapi) && brunoConfig.openapi.length > 0) {
       if (!oc.extensions.bruno) {
         oc.extensions.bruno = {};
       }
-      (oc.extensions.bruno as any).openapi = {
-        sync: {
-          sourceUrl: brunoConfig.openapi.sync.sourceUrl,
-          groupBy: brunoConfig.openapi.sync.groupBy,
-          specFilename: brunoConfig.openapi.sync.specFilename,
-          ...(brunoConfig.openapi.sync.lastSyncDate && { lastSyncDate: brunoConfig.openapi.sync.lastSyncDate }),
-          ...(brunoConfig.openapi.sync.specHash && { specHash: brunoConfig.openapi.sync.specHash })
-        }
-      };
+      (oc.extensions.bruno as any).openapi = brunoConfig.openapi.map((entry: any) => ({
+        sourceUrl: entry.sourceUrl,
+        groupBy: entry.groupBy,
+        ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),
+        ...(entry.specHash && { specHash: entry.specHash }),
+        autoCheck: entry.autoCheck !== false,
+        autoCheckInterval: entry.autoCheckInterval || 5
+      }));
     }
 
     return stringifyYml(oc);
