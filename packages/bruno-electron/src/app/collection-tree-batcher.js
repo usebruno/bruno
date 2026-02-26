@@ -117,9 +117,6 @@ class CollectionTreeBatcher {
       clearTimeout(this.timer);
       this.timer = null;
     }
-    if (this.queue.length) {
-      this.flush();
-    }
     this.queue = [];
   }
 
@@ -196,5 +193,9 @@ module.exports = {
   // Backward-compatible aliases
   BatchAggregator: CollectionTreeBatcher,
   getAggregator: getBatcher,
-  removeAggregator: removeBatcher
+  removeAggregator: removeBatcher,
+  constants: {
+    MAX_BATCH_SIZE,
+    DISPATCH_INTERVAL_MS
+  }
 };

@@ -1,4 +1,4 @@
-const { CollectionTreeBatcher, getBatcher, removeBatcher } = require('../../src/app/collection-tree-batcher');
+const { CollectionTreeBatcher, getBatcher, removeBatcher, constants } = require('../../src/app/collection-tree-batcher');
 
 // Mock BrowserWindow
 const createMockWindow = (id = 1) => {
@@ -164,16 +164,16 @@ describe('CollectionTreeBatcher', () => {
   });
 
   describe('size-based flush', () => {
-    it('should auto-flush when reaching MAX_BATCH_SIZE (300)', () => {
+    it('should auto-flush when reaching MAX_BATCH_SIZE', () => {
       const win = createMockWindow();
       const batcher = new CollectionTreeBatcher(win, 'collection-1');
-
-      // Add 299 events - should not flush
-      for (let i = 0; i < 299; i++) {
+      const eventCount = constants.MAX_BATCH_SIZE - 1;
+      // Add events - should not flush
+      for (let i = 0; i < eventCount; i++) {
         batcher.add('addFile', { path: `/test/file${i}.bru` });
       }
       expect(win.webContents.send).not.toHaveBeenCalled();
-      expect(batcher.queue).toHaveLength(299);
+      expect(batcher.queue).toHaveLength(eventCount);
 
       // Add 300th event - should trigger flush
       batcher.add('addFile', { path: '/test/file299.bru' });
