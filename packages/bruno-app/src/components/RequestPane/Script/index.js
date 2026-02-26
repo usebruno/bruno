@@ -22,10 +22,11 @@ const Script = ({ item, collection }) => {
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const scriptPaneTab = focusedTab?.scriptPaneTab;
 
+  const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
+  const hasPostResponseScript = responseScript && responseScript.trim().length > 0;
+
   // Default to pre-request if both scripts are empty, otherwise default to whichever has content
   const getDefaultTab = () => {
-    const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
-    const hasPostResponseScript = responseScript && responseScript.trim().length > 0;
     if (hasPreRequestScript) return 'pre-request';
     if (hasPostResponseScript) return 'post-response';
     return 'pre-request';
@@ -72,9 +73,6 @@ const Script = ({ item, collection }) => {
 
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
-
-  const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
-  const hasPostResponseScript = responseScript && responseScript.trim().length > 0;
 
   const onScriptTabChange = (tab) => {
     dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: tab }));
