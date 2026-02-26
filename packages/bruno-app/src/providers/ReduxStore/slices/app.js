@@ -53,7 +53,11 @@ const initialState = {
   clipboard: {
     hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
   },
-  systemProxyVariables: {}
+  systemProxyVariables: {},
+  envVarSearch: {
+    collection: { query: '', expanded: false },
+    global: { query: '', expanded: false }
+  }
 };
 
 export const appSlice = createSlice({
@@ -141,6 +145,14 @@ export const appSlice = createSlice({
     setClipboard: (state, action) => {
       // Update clipboard UI state
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
+    },
+    setEnvVarSearchQuery: (state, { payload: { context, query } }) => {
+      if (!state.envVarSearch[context]) return;
+      state.envVarSearch[context].query = query;
+    },
+    setEnvVarSearchExpanded: (state, { payload: { context, expanded } }) => {
+      if (!state.envVarSearch[context]) return;
+      state.envVarSearch[context].expanded = expanded;
     }
   },
   extraReducers: (builder) => {
@@ -182,7 +194,9 @@ export const {
   updateGitOperationProgress,
   removeGitOperationProgress,
   setGitVersion,
-  setClipboard
+  setClipboard,
+  setEnvVarSearchQuery,
+  setEnvVarSearchExpanded
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
