@@ -2,29 +2,28 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { app } = require('electron');
 
+const BRUNO_DIR_NAME = 'bruno';
+
 /**
  * Returns the default location where new workspaces and collections are stored.
- * Uses ~/Documents/bruno if available, otherwise falls back to the app's data directory
+ * Checks ~/Documents/bruno if available, otherwise falls back to the app's data directory
  */
 function resolveDefaultLocation() {
-  let resolvedPath;
+  const paths = [
+    path.join(app.getPath('documents'), BRUNO_DIR_NAME),
+    app.getPath('userData')
+  ];
 
-  try {
-    const documentsPath = app.getPath('documents');
-    fs.accessSync(documentsPath, fs.constants.W_OK);
-    resolvedPath = path.join(documentsPath, 'bruno');
-  } catch (error) {
-    // Documents not available or not writable, fall back to userData
-    resolvedPath = app.getPath('userData');
+  for (const path of paths) {
+    try {
+      fs.mkdirSync(path, { recursive: true });
+      return path;
+    } catch (error) {
+      console.warn(`Failed to create directory at ${path}:`, error.message);
+    }
   }
 
-  try {
-    fs.mkdirSync(resolvedPath, { recursive: true });
-  } catch (error) {
-    console.error('Failed to create default location directory:', error.message);
-  }
-
-  return resolvedPath;
+  throw new Error('Failed to create default location');
 }
 
 module.exports = { resolveDefaultLocation };
