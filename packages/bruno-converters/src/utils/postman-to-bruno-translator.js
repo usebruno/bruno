@@ -526,55 +526,30 @@ const complexTransformations = [
     }
   },
 
-  // pm.response.to.have.jsonBody(...) translations
+  // pm.response.to.have.jsonBody(...) -> expect(res.getBody()).to.have.jsonBody(...)
   {
     pattern: 'pm.response.to.have.jsonBody',
     transform: (path, j) => {
       const callExpr = path.parent.value;
       const args = callExpr.arguments;
       const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
-
-      // pm.response.to.have.jsonBody({...}) -> expect(res.getBody()).to.deep.equal({...})
-      if (args.length === 1 && args[0].type === 'ObjectExpression') {
-        return j.callExpression(
-          j.memberExpression(expectGetBody, j.identifier('to.deep.equal')),
-          [args[0]]
-        );
-      }
-
-      // pm.response.to.have.jsonBody("path") -> expect(res.getBody()).to.have.nested.property("path")
-      // pm.response.to.have.jsonBody("path", val) -> expect(res.getBody()).to.have.nested.property("path", val)
-      if (args.length >= 1) {
-        return j.callExpression(
-          j.memberExpression(expectGetBody, j.identifier('to.have.nested.property')),
-          args
-        );
-      }
-
-      // pm.response.to.have.jsonBody() -> expect(res.getBody()).to.satisfy(u => Array.isArray(u) || (u !== null && typeof u === "object"))
       return j.callExpression(
-        j.memberExpression(expectGetBody, j.identifier('to.satisfy')),
-        [
-          j.arrowFunctionExpression(
-            [j.identifier('u')],
-            j.logicalExpression(
-              '||',
-              j.callExpression(
-                j.memberExpression(j.identifier('Array'), j.identifier('isArray')),
-                [j.identifier('u')]
-              ),
-              j.logicalExpression(
-                '&&',
-                j.binaryExpression('!==', j.identifier('u'), j.literal(null)),
-                j.binaryExpression(
-                  '===',
-                  j.unaryExpression('typeof', j.identifier('u'), true),
-                  j.literal('object')
-                )
-              )
-            )
-          )
-        ]
+        j.memberExpression(expectGetBody, j.identifier('to.have.jsonBody')),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.not.have.jsonBody(...) -> expect(res.getBody()).to.not.have.jsonBody(...)
+  {
+    pattern: 'pm.response.to.not.have.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('to.not.have.jsonBody')),
+        args
       );
     }
   },

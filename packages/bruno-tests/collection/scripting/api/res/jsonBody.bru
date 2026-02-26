@@ -1,0 +1,76 @@
+meta {
+  name: jsonBody
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno",
+    "data": {
+      "items": [
+        { "name": "first" }
+      ]
+    }
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("jsonBody() - no args validates JSON body", function() {
+    const body = res.getBody();
+    expect(body).to.have.jsonBody();
+  });
+
+  test("jsonBody(object) - deep equality", function() {
+    const body = res.getBody();
+    expect(body).to.have.jsonBody({
+      "hello": "bruno",
+      "data": {
+        "items": [
+          { "name": "first" }
+        ]
+      }
+    });
+  });
+
+  test("jsonBody(path) - nested property exists", function() {
+    const body = res.getBody();
+    expect(body).to.have.jsonBody("hello");
+    expect(body).to.have.jsonBody("data.items");
+  });
+
+  test("jsonBody(path, value) - nested property equals value", function() {
+    const body = res.getBody();
+    expect(body).to.have.jsonBody("hello", "bruno");
+  });
+
+  test("jsonBody with bracket notation", function() {
+    const body = res.getBody();
+    expect(body).to.have.jsonBody("data.items[0].name", "first");
+  });
+
+  test("to.not.have.jsonBody(path) - negation for missing property", function() {
+    const body = res.getBody();
+    expect(body).to.not.have.jsonBody("nonexistent");
+  });
+
+  test("to.not.have.jsonBody(path, value) - negation for wrong value", function() {
+    const body = res.getBody();
+    expect(body).to.not.have.jsonBody("hello", "wrong");
+  });
+
+  test("to.not.have.jsonBody(object) - negation for deep inequality", function() {
+    const body = res.getBody();
+    expect(body).to.not.have.jsonBody({ "wrong": "data" });
+  });
+}
