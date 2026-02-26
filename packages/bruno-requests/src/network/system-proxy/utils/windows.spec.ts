@@ -55,7 +55,7 @@ HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settin
 
       expect(result).toEqual({
         http_proxy: 'http://proxy.usebruno.com:8080',
-        https_proxy: 'https://proxy.usebruno.com:8443',
+        https_proxy: 'http://proxy.usebruno.com:8443',
         no_proxy: null,
         source: 'windows-system'
       });
@@ -128,7 +128,7 @@ Current WinHTTP proxy settings:
 
       expect(result).toEqual({
         http_proxy: 'http://proxy.usebruno.com:8080',
-        https_proxy: 'https://proxy.usebruno.com:8443',
+        https_proxy: 'http://proxy.usebruno.com:8443',
         no_proxy: 'localhost',
         source: 'windows-system'
       });

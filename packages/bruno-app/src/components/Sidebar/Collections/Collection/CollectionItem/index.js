@@ -464,7 +464,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     const exampleData = {
       name: name,
       description: description,
-      status: '200',
+      status: 200,
       statusText: 'OK',
       headers: [],
       body: {
