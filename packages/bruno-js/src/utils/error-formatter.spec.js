@@ -4,7 +4,8 @@ const {
   findScriptBlockStartLine,
   findYmlScriptBlockStartLine,
   adjustLineNumber,
-  parseStackTrace
+  parseStackTrace,
+  parseErrorLocation
 } = require('./error-formatter');
 const fs = require('fs');
 const path = require('path');
@@ -270,6 +271,62 @@ describe('Error Formatter', () => {
       expect(formatted).not.toContain('File:');
       expect(formatted).not.toContain('meta {');
       expect(formatted).not.toContain('>');
+    });
+
+    it('should show source context from collection.bru when segments are provided', () => {
+      const collectionBruPath = path.join(testDir, 'collection.bru');
+      fs.writeFileSync(collectionBruPath, 'meta {\n  name: My Collection\n}\n\nscript:pre-request {\n  const x = undefined;\n  x.foo();\n}');
+
+      const error = new Error('Cannot read properties of undefined');
+      error.name = 'TypeError';
+      // NodeVM offset=2, scriptRelativeLine = 5-2 = 3 → line 3 of wrapped segment = x.foo()
+      error.stack = `TypeError: Cannot read properties of undefined\n    at ${bruFilePath}:5:5`;
+
+      // Collection segment is lines 1-4 in combined script (3-line wrap of 2-line script)
+      const metadata = {
+        requestStartLine: 0,
+        requestEndLine: 0,
+        segments: [
+          { startLine: 1, endLine: 4, filePath: collectionBruPath, displayPath: 'collection.bru' }
+        ]
+      };
+
+      const formatted = formatErrorWithContext(error, 'test.bru', 'pre-request', 5, metadata);
+      expect(formatted).toContain('File: collection.bru');
+      expect(formatted).toContain('x.foo()');
+      expect(formatted).toContain('TypeError: Cannot read properties of undefined');
+      const arrowLine = formatted.split('\n').find((l) => l.startsWith('>'));
+      expect(arrowLine).toContain('x.foo()');
+    });
+
+    it('should resolve error to correct folder when multiple segments exist', () => {
+      const folder1Dir = path.join(testDir, 'folder1');
+      const folder2Dir = path.join(testDir, 'folder2');
+      fs.mkdirSync(folder1Dir);
+      fs.mkdirSync(folder2Dir);
+
+      const folder1Bru = path.join(folder1Dir, 'folder.bru');
+      const folder2Bru = path.join(folder2Dir, 'folder.bru');
+      fs.writeFileSync(folder1Bru, 'meta {\n  name: Folder1\n}\n\nscript:pre-request {\n  let a = 1;\n}');
+      fs.writeFileSync(folder2Bru, 'meta {\n  name: Folder2\n}\n\nscript:pre-request {\n  let b = undefined;\n  b.pop();\n}');
+
+      const error = new Error('Cannot read properties of undefined');
+      error.name = 'TypeError';
+      // NodeVM offset=2, scriptRelativeLine = 9-2 = 7, falls in folder2 segment [5,7]
+      error.stack = `TypeError: Cannot read properties of undefined\n    at ${bruFilePath}:9:5`;
+
+      const metadata = {
+        requestStartLine: 0,
+        requestEndLine: 0,
+        segments: [
+          { startLine: 1, endLine: 3, filePath: folder1Bru, displayPath: 'folder1/folder.bru' },
+          { startLine: 5, endLine: 7, filePath: folder2Bru, displayPath: 'folder2/folder.bru' }
+        ]
+      };
+
+      const formatted = formatErrorWithContext(error, 'test.bru', 'pre-request', 5, metadata);
+      expect(formatted).toContain('File: folder2/folder.bru');
+      expect(formatted).toContain('b.pop()');
     });
 
     it('should handle edge cases gracefully', () => {

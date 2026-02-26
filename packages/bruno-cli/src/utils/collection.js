@@ -239,18 +239,28 @@ ${script}
  * @param {number} requestIndex - Index in scripts of the request-level segment.
  * @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number } | null }}
  */
-const wrapAndJoinScripts = (scripts, requestIndex) => {
+const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null) => {
   const wrapped = scripts.map((s) => wrapScriptInClosure(s));
   const code = wrapped.filter(Boolean).join('\n\n');
 
   let offset = 0;
   let metadata = null;
+  const segments = [];
+
   for (let i = 0; i < scripts.length; i++) {
     if (!wrapped[i]) continue;
     const lineCount = wrapped[i].split('\n').length;
+    const startLine = offset + 1;
+    const endLine = offset + lineCount;
+
     if (i === requestIndex) {
-      metadata = { requestStartLine: offset + 1, requestEndLine: offset + lineCount };
+      metadata = { requestStartLine: startLine, requestEndLine: endLine };
     }
+
+    if (segmentSources?.[i]) {
+      segments.push({ startLine, endLine, ...segmentSources[i] });
+    }
+
     offset += lineCount + 1;
   }
 
@@ -258,6 +268,10 @@ const wrapAndJoinScripts = (scripts, requestIndex) => {
   // Use a zero line range to prevent stack traces from mapping to the request file.
   if (!metadata && code) {
     metadata = { requestStartLine: 0, requestEndLine: 0 };
+  }
+
+  if (metadata && segments.length > 0) {
+    metadata.segments = segments;
   }
 
   return { code, metadata };
@@ -269,25 +283,45 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   let collectionPostResScript = get(collectionRoot, 'request.script.res', '');
   let collectionTests = get(collectionRoot, 'request.tests', '');
 
+  // Build source file info for error trace mapping
+  const format = collection.format || 'bru';
+  const config = FORMAT_CONFIG[format];
+  const collectionSource = {
+    filePath: path.join(collection.pathname, config.collectionFile),
+    displayPath: config.collectionFile
+  };
+
   let combinedPreReqScript = [];
+  let combinedPreReqSources = [];
   let combinedPostResScript = [];
+  let combinedPostResSources = [];
   let combinedTests = [];
+  let combinedTestsSources = [];
+
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
+      const folderSource = {
+        filePath: path.join(i.pathname, config.folderFile),
+        displayPath: path.relative(collection.pathname, path.join(i.pathname, config.folderFile))
+      };
+
       let preReqScript = get(folderRoot, 'request.script.req', '');
       if (preReqScript && preReqScript.trim() !== '') {
         combinedPreReqScript.push(preReqScript);
+        combinedPreReqSources.push(folderSource);
       }
 
       let postResScript = get(folderRoot, 'request.script.res', '');
       if (postResScript && postResScript.trim() !== '') {
         combinedPostResScript.push(postResScript);
+        combinedPostResSources.push(folderSource);
       }
 
       let tests = get(folderRoot, 'request.tests', '');
       if (tests && tests?.trim?.() !== '') {
         combinedTests.push(tests);
+        combinedTestsSources.push(folderSource);
       }
     }
   }
@@ -301,7 +335,8 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     ...combinedPreReqScript,
     request?.script?.req || ''
   ];
-  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1);
+  const preReqSources = [collectionSource, ...combinedPreReqSources, null];
+  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1, preReqSources);
   request.script.req = preReq.code;
   request.script.reqMetadata = preReq.metadata;
 
@@ -312,7 +347,8 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       ...combinedPostResScript,
       request?.script?.res || ''
     ];
-    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1);
+    const postResSources = [collectionSource, ...combinedPostResSources, null];
+    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1, postResSources);
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   } else {
@@ -322,7 +358,8 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       ...[...combinedPostResScript].reverse(),
       collectionPostResScript
     ];
-    const postRes = wrapAndJoinScripts(postResScripts, 0);
+    const postResSources = [null, ...[...combinedPostResSources].reverse(), collectionSource];
+    const postRes = wrapAndJoinScripts(postResScripts, 0, postResSources);
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   }
@@ -334,7 +371,8 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       ...combinedTests,
       request?.tests || ''
     ];
-    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1);
+    const testSources = [collectionSource, ...combinedTestsSources, null];
+    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1, testSources);
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   } else {
@@ -344,7 +382,8 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       ...[...combinedTests].reverse(),
       collectionTests
     ];
-    const tests = wrapAndJoinScripts(testScripts, 0);
+    const testSources = [null, ...[...combinedTestsSources].reverse(), collectionSource];
+    const tests = wrapAndJoinScripts(testScripts, 0, testSources);
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   }

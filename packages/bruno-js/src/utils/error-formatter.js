@@ -146,6 +146,39 @@ const adjustLineNumber = (filePath, reportedLine, isQuickJS, scriptType = null, 
   return scriptRelativeLine;
 };
 
+/**
+ * Resolve an error in a collection/folder script segment to its source file and line.
+ * Uses the segments array in metadata to find which segment the error falls in,
+ * then maps to the actual line in that segment's source file.
+ */
+const resolveSegmentError = (parsed, metadata, scriptType, cache) => {
+  if (!metadata?.segments?.length || !parsed) return null;
+
+  const wrapperOffset = parsed.isQuickJS ? QUICKJS_WRAPPER_OFFSET : NODEVM_WRAPPER_OFFSET;
+  const scriptRelativeLine = parsed.line - wrapperOffset;
+  if (scriptRelativeLine < 1) return null;
+
+  for (const segment of metadata.segments) {
+    if (scriptRelativeLine >= segment.startLine && scriptRelativeLine <= segment.endLine) {
+      const isBru = segment.filePath.endsWith('.bru');
+      const isYml = segment.filePath.endsWith('.yml') || segment.filePath.endsWith('.yaml');
+      if (!isBru && !isYml) return null;
+
+      const blockStartLine = isBru
+        ? findScriptBlockStartLine(segment.filePath, scriptType, cache)
+        : findYmlScriptBlockStartLine(segment.filePath, scriptType, cache);
+      if (!blockStartLine) return null;
+
+      return {
+        line: blockStartLine + (scriptRelativeLine - segment.startLine) - 1,
+        filePath: segment.filePath,
+        displayPath: segment.displayPath
+      };
+    }
+  }
+  return null;
+};
+
 /** Extract file path, line, column, and runtime type from a single stack trace line */
 const matchStackFrame = (line) => {
   // QuickJS: "at (/path/to/file.bru:11)" or "at <anonymous> (/path/to/file.bru:11)"
@@ -197,7 +230,11 @@ const parseErrorLocation = (error) => {
   }
 
   /* falls back to string parsing */
-  return parseStackTrace(error.stack);
+  const parsed = parseStackTrace(error.stack);
+  if (parsed && error.__isQuickJS) {
+    parsed.isQuickJS = true;
+  }
+  return parsed;
 };
 
 /** Read source file and extract context lines around the error location */
@@ -225,22 +262,49 @@ const getSourceContext = (filePath, errorLine, contextLines = DEFAULT_CONTEXT_LI
 const buildStackFromCallSites = (callSites, scriptType = null, cache = null, scriptMetadata = null) => {
   return callSites.map((site) => {
     const adjusted = adjustLineNumber(site.filePath, site.line, false, scriptType, cache, scriptMetadata);
-    const lineToUse = adjusted !== null ? adjusted : site.line;
-    const loc = site.column ? `${site.filePath}:${lineToUse}:${site.column}` : `${site.filePath}:${lineToUse}`;
+    let fileToUse = site.filePath;
+    let lineToUse = adjusted !== null ? adjusted : site.line;
+
+    // Try segment resolution for collection/folder frames
+    if (adjusted === null && scriptMetadata?.segments) {
+      const parsed = { line: site.line, isQuickJS: false };
+      const resolved = resolveSegmentError(parsed, scriptMetadata, scriptType, cache);
+      if (resolved) {
+        fileToUse = resolved.filePath;
+        lineToUse = resolved.line;
+      }
+    }
+
+    const loc = site.column ? `${fileToUse}:${lineToUse}:${site.column}` : `${fileToUse}:${lineToUse}`;
     const name = site.functionName ? `${site.functionName} (${loc})` : loc;
     return `    at ${name}`;
   }).join('\n');
 };
 
 /** Adjust all line numbers in a stack trace string */
-const adjustStackTrace = (stack, scriptType = null, cache = null, scriptMetadata = null) => {
+const adjustStackTrace = (stack, scriptType = null, cache = null, scriptMetadata = null, forceQuickJS = false) => {
   if (!stack) return stack;
 
   return stack.split('\n').map((line) => {
     const match = matchStackFrame(line);
     if (!match) return line;
 
-    const adjusted = adjustLineNumber(match.filePath, match.line, match.isQuickJS, scriptType, cache, scriptMetadata);
+    const isQuickJS = forceQuickJS || match.isQuickJS;
+    const adjusted = adjustLineNumber(match.filePath, match.line, isQuickJS, scriptType, cache, scriptMetadata);
+
+    // Try segment resolution for collection/folder frames
+    if (adjusted === null && scriptMetadata?.segments) {
+      const parsed = { line: match.line, isQuickJS };
+      const resolved = resolveSegmentError(parsed, scriptMetadata, scriptType, cache);
+      if (resolved) {
+        const suffix = match.isQuickJS ? ')' : '';
+        return match.column !== null
+          ? line.replace(`${match.filePath}:${match.line}:${match.column}${suffix}`, `${resolved.filePath}:${resolved.line}:${match.column}${suffix}`)
+          : line.replace(`${match.filePath}:${match.line}${suffix}`, `${resolved.filePath}:${resolved.line}${suffix}`);
+      }
+      return line;
+    }
+
     if (adjusted === null || adjusted === match.line) return line;
 
     const suffix = match.isQuickJS ? ')' : '';
@@ -272,28 +336,35 @@ const formatErrorWithContext = (error, relativeFilePath = null, scriptType = nul
   const adjustedLine = adjustLineNumber(filePath, parsed.line, parsed.isQuickJS, scriptType, cache, metadata);
 
   // adjustedLine === null means the error is in a collection/folder script
-  // Show just the error message and stack without source context.
+  // resolve to the collection/folder source file using segment metadata
+  let segmentResult = null;
   if (adjustedLine === null) {
-    const errorType = getErrorTypeName(error);
-    const parts = [`${errorType}: ${error.message}`];
-    if (error.__callSites?.length > 0) {
-      parts.push(buildStackFromCallSites(error.__callSites, scriptType, cache, metadata));
-    } else if (error.stack) {
-      const stackLines = error.stack.split('\n').slice(1);
-      for (const stackLine of stackLines) {
-        parts.push(`    ${stackLine.trim()}`);
+    segmentResult = resolveSegmentError(parsed, metadata, scriptType, cache);
+    if (!segmentResult) {
+      // Fallback: no segment resolution possible, show message + stack only
+      const errorType = getErrorTypeName(error);
+      const parts = [`${errorType}: ${error.message}`];
+      if (error.__callSites?.length > 0) {
+        parts.push(buildStackFromCallSites(error.__callSites, scriptType, cache, metadata));
+      } else if (error.stack) {
+        const stackLines = error.stack.split('\n').slice(1);
+        for (const stackLine of stackLines) {
+          parts.push(`    ${stackLine.trim()}`);
+        }
       }
+      return parts.join('\n');
     }
-    return parts.join('\n');
   }
 
-  const context = getSourceContext(filePath, adjustedLine, contextLines, cache);
+  const sourceFile = segmentResult ? segmentResult.filePath : filePath;
+  const sourceLine = segmentResult ? segmentResult.line : adjustedLine;
+  const context = getSourceContext(sourceFile, sourceLine, contextLines, cache);
 
   if (!context) {
     return `${error.message}\n${error.stack || ''}`;
   }
 
-  const displayPath = relativeFilePath || filePath;
+  const displayPath = segmentResult ? segmentResult.displayPath : (relativeFilePath || filePath);
   const lines = [];
 
   lines.push(`File: ${displayPath}`);
@@ -317,7 +388,7 @@ const formatErrorWithContext = (error, relativeFilePath = null, scriptType = nul
   if (error.__callSites?.length > 0) {
     lines.push(buildStackFromCallSites(error.__callSites, scriptType, cache, metadata));
   } else {
-    const stackToDisplay = adjustStackTrace(error.stack, scriptType, cache, metadata);
+    const stackToDisplay = adjustStackTrace(error.stack, scriptType, cache, metadata, parsed.isQuickJS);
     const userStackLines = stackToDisplay.split('\n').slice(1);
     for (const stackLine of userStackLines) {
       lines.push(`    ${stackLine.trim()}`);
@@ -336,6 +407,7 @@ module.exports = {
   getSourceContext,
   formatErrorWithContext,
   adjustLineNumber,
+  resolveSegmentError,
   findScriptBlockStartLine,
   findYmlScriptBlockStartLine,
   adjustStackTrace,

@@ -70,9 +70,26 @@ async function runScriptInNodeVm({
 
     // Execute the script in the isolated context
     const wrappedScript = NODEVM_SCRIPT_PREFIX + script + NODEVM_SCRIPT_SUFFIX;
-    const compiledScript = new vm.Script(wrappedScript, {
-      filename: vmFilename
-    });
+    let compiledScript;
+    try {
+      compiledScript = new vm.Script(wrappedScript, {
+        filename: vmFilename
+      });
+    } catch (error) {
+      // V8 puts "filename:line" as the first line of syntax error stacks.
+      // Parse it so the error formatter can map to the correct source location.
+      const firstLine = error.stack?.split('\n')[0];
+      const match = firstLine?.match(/^(.+):(\d+)$/);
+      if (match && match[1] === vmFilename) {
+        error.__callSites = [{
+          filePath: vmFilename,
+          line: parseInt(match[2], 10),
+          column: null,
+          functionName: null
+        }];
+      }
+      throw error;
+    }
 
     // Capture structured call sites for error-formatter line mapping
     const originalPrepareStackTrace = Error.prepareStackTrace;

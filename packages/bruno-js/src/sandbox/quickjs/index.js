@@ -169,6 +169,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     // vm.dispose();
     return;
   } catch (error) {
+    error.__isQuickJS = true;
     throw error;
   }
 };
