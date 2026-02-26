@@ -2,9 +2,11 @@ import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
 import { updateFolderDocs } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { getAllVariables } from 'utils/collections/index';
+import { interpolate } from '@usebruno/common';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import Button from 'ui/Button';
@@ -16,6 +18,16 @@ const Documentation = ({ collection, folder }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const [isEditing, setIsEditing] = useState(false);
   const docs = folder.draft ? get(folder, 'draft.docs', '') : get(folder, 'root.docs', '');
+
+  const interpolatedDocs = useMemo(() => {
+    if (!docs) return docs;
+    try {
+      const variables = getAllVariables(collection);
+      return interpolate(docs, variables);
+    } catch (e) {
+      return docs;
+    }
+  }, [docs, collection]);
 
   const toggleViewMode = () => {
     setIsEditing((prev) => !prev);
@@ -65,7 +77,7 @@ const Documentation = ({ collection, folder }) => {
         </div>
       ) : (
         <div className="h-full">
-          <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
+          <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={interpolatedDocs} />
         </div>
       )}
     </StyledWrapper>
