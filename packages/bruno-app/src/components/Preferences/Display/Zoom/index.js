@@ -44,7 +44,7 @@ const Zoom = () => {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [DEFAULT_ZOOM]);
+  }, []);
 
   // Callback ref to scroll to selected option when dropdown renders
   const setDropdownMenuRef = (node) => {
