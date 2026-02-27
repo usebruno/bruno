@@ -60,18 +60,14 @@ class BrunoRequest {
       if (typeof this.req.url !== 'string') {
         return '';
       }
-      const withoutQuery = this.req.url.split('?')[0];
-      if (withoutQuery.startsWith('/')) {
-        pathname = withoutQuery;
-      } else {
-        let searchIn = withoutQuery;
-        const protoEnd = searchIn.indexOf('://');
-        if (protoEnd >= 0) {
-          searchIn = searchIn.substring(protoEnd + 3);
-        }
-        const firstSlash = searchIn.indexOf('/');
-        pathname = firstSlash >= 0 ? searchIn.substring(firstSlash) : '';
+      const urlWithoutQuery = this.req.url.split('?')[0];
+      let urlWithoutProtocol = urlWithoutQuery;
+      const protoEnd = urlWithoutProtocol.indexOf('://');
+      if (protoEnd >= 0) {
+        urlWithoutProtocol = urlWithoutProtocol.substring(protoEnd + 3);
       }
+      const firstSlash = urlWithoutProtocol.indexOf('/');
+      pathname = firstSlash >= 0 ? urlWithoutProtocol.substring(firstSlash) : '';
     }
     return this._interpolatePathParams(pathname) || '';
   }
