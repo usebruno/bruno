@@ -62,14 +62,13 @@ class BrunoRequest {
       if (typeof this.req.url !== 'string') {
         return '';
       }
-      const urlWithoutQuery = this.req.url.split('?')[0];
-      let urlWithoutProtocol = urlWithoutQuery;
-      const protoEnd = urlWithoutProtocol.indexOf('://');
+      let urlWithoutQuery = this.req.url.split('?')[0];
+      const protoEnd = urlWithoutQuery.indexOf('://');
       if (protoEnd >= 0) {
-        urlWithoutProtocol = urlWithoutProtocol.substring(protoEnd + 3);
+        urlWithoutQuery = urlWithoutQuery.substring(protoEnd + 3);
       }
-      const firstSlash = urlWithoutProtocol.indexOf('/');
-      pathname = firstSlash >= 0 ? urlWithoutProtocol.substring(firstSlash) : '';
+      const firstSlash = urlWithoutQuery.indexOf('/');
+      pathname = firstSlash >= 0 ? urlWithoutQuery.substring(firstSlash) : '';
     }
     return interpolatePathParams(pathname, this.req.pathParams) || '';
   }
