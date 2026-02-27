@@ -53,11 +53,14 @@ export const uuid = () => {
  * @returns {string|null} - The sanitized tag, or null if the result is empty
  */
 export const sanitizeTag = (tag, options = {}) => {
-  if (!tag || typeof tag !== 'string') {
+  const typeofTag = typeof tag;
+  if (!tag || !['string', 'object'].includes(typeofTag)) {
     return null;
   }
 
-  let sanitized = tag.trim();
+  let usableTagString = typeof tag == 'string' ? tag : 'name' in tag ? tag.name : '';
+
+  let sanitized = usableTagString.trim();
 
   // BRU format only supports alphanumeric, hyphens, and underscores in tags
   // The BRU grammar defines listitem as: (alnum | "_" | "-")+
@@ -67,16 +70,16 @@ export const sanitizeTag = (tag, options = {}) => {
   sanitized = sanitized.replace(/\s+/g, '_');
 
   // Replace any character that's NOT alphanumeric, hyphen, or underscore with underscore
-  sanitized = sanitized.replace(/[^a-zA-Z0-9\-_]/g, '_');
+  sanitized = sanitized.replace(/[^\p{L}\p{N}\-_]/gu, '_');
 
   // Collapse multiple consecutive underscores into one
   sanitized = sanitized.replace(/_+/g, '_');
 
   // Remove leading characters that aren't alphanumeric
-  sanitized = sanitized.replace(/^[^a-zA-Z0-9]+/, '');
+  sanitized = sanitized.replace(/^[^\p{L}\p{N}]+/gu, '');
 
   // Remove trailing characters that aren't alphanumeric
-  sanitized = sanitized.replace(/[^a-zA-Z0-9]+$/, '');
+  sanitized = sanitized.replace(/[^\p{L}\p{N}]+$/gu, '');
 
   // Return null if the result is empty
   return sanitized || null;

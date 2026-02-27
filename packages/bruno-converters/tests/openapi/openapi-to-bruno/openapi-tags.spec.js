@@ -344,4 +344,52 @@ describe('OpenAPI Import - Tag Sanitization', () => {
     expect(folder).toBeDefined();
     expect(folder.name).toBe('api_v1');
   });
+
+  it('should handle utf characters as well', () => {
+    const openApiSpec = {
+      openapi: '3.0.1',
+      info: {
+        title: 'CBC-MODEL3D-API',
+        description: 'POWER BY WARE4U',
+        termsOfService: 'http://swagger.io/terms/',
+        contact: {
+          name: '陈洪',
+          email: 'sendreams@hotmail.com'
+        },
+        license: {
+          name: 'Apache 2.0',
+          url: 'http://springdoc.org'
+        },
+        version: '1.0.0'
+      },
+      tags: [
+        {
+          name: '模型管理',
+          description: '发布和管理3d模型'
+        },
+        {
+          name: '模型集市',
+          description: '模型查询、评价、下单等'
+        }
+      ],
+      paths: {
+        '/users': {
+          get: {
+            operationId: 'getUsers',
+            summary: 'Get users',
+            tags: ['模型管理'],
+            responses: {
+              200: {
+                description: 'Success'
+              }
+            }
+          }
+        }
+      }
+    };
+
+    const result = openApiToBruno(JSON.stringify(openApiSpec));
+    const folder = findFolderByName(result.items, '模型管理');
+    expect(folder).toBeDefined();
+  });
 });
