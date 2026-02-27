@@ -319,6 +319,29 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     expect(result).toEqual(expectedUrl);
   });
 
+  it('should interpolate path params correctly', () => {
+    const url = 'https://example.com/api/:id/path/:user';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }, { name: 'user', type: 'path', enabled: true, value: '{{user}}' }];
+    const variables = { user: 'John' };
+    const expectedUrl = 'https://example.com/api/123/path/John';
+
+    const result = interpolateUrlPathParams(url, params, variables);
+
+    expect(result).toEqual(expectedUrl);
+  });
+
+  it('should interpolate url and path params correctly', () => {
+    const url = '{{host}}/api/:id/path/:user?foo={{foo}}&bar={{bar}}&baz={{process.env.baz}}';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }, { name: 'user', type: 'path', enabled: true, value: '{{user}}' }];
+    const variables = { 'host': 'https://example.com', 'foo': 'foo_value', 'bar': 'bar_value', 'process.env.baz': 'baz_value', 'user': 'John' };
+    const expectedUrl = 'https://example.com/api/123/path/John?foo=foo_value&bar=bar_value&baz=baz_value';
+
+    const intermediateResult = interpolateUrl({ url, variables });
+    const result = interpolateUrlPathParams(intermediateResult, params, variables);
+
+    expect(result).toEqual(expectedUrl);
+  });
+
   it('should handle empty params', () => {
     const url = 'https://example.com/api';
     const params = [];
