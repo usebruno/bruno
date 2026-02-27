@@ -58,7 +58,6 @@ const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
 const { cookiesStore } = require('./store/cookies');
 const onboardUser = require('./app/onboarding');
-const { resolveOnboarding } = require('./app/onboarding-state');
 const SystemMonitor = require('./app/system-monitor');
 const { getIsRunningInRosetta } = require('./utils/arch');
 const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/deeplink');
@@ -420,7 +419,7 @@ app.on('ready', async () => {
     try {
       let ogSend = mainWindow.webContents.send;
       mainWindow.webContents.send = function (channel, ...args) {
-        return ogSend.apply(this, [channel, ...args?.map((_) => {
+        return ogSend.apply(this, [channel, ...args.map((_) => {
           // todo: replace this with @msgpack/msgpack encode/decode
           return safeParseJSON(safeStringifyJSON(_));
         })]);
@@ -428,7 +427,7 @@ app.on('ready', async () => {
     } catch (err) {
       console.error('Error wrapping webContents.send:', err);
       // Ensure onboarding gate is unblocked so renderer:ready doesn't hang
-      resolveOnboarding();
+      ipcMain.emit('main:onboarding-complete');
     }
 
     // Handle onboarding

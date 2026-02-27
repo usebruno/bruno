@@ -50,8 +50,10 @@ const StyledWrapper = styled.div`
     padding: 0.5rem 0.375rem;
     border-radius: ${(props) => props.theme.border.radius.base};
     border: 1.5px solid ${(props) => props.theme.border.border0};
+    background: transparent;
     cursor: pointer;
     transition: all 0.15s ease;
+    font-family: inherit;
 
     &:hover {
       border-color: ${(props) => props.theme.border.border2};

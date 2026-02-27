@@ -2,6 +2,10 @@
   "maximized": false,
   "lastOpenedCollections": ["{{projectRoot}}/tests/ssl/custom-ca-certs/collection"],
   "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
 		"request": {
 			"sslVerification": true,
 			"customCaCertificate": {

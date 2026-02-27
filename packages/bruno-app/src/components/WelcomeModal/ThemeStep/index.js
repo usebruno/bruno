@@ -62,14 +62,16 @@ const ThemeStep = ({ storedTheme, setStoredTheme, themeVariantLight, setThemeVar
       {showLight && (
         <div className="theme-variants-grid" style={{ marginBottom: showDark ? '1rem' : 0 }}>
           {lightThemeList.map((t) => (
-            <div
+            <button
+              type="button"
               key={t.id}
               className={`theme-variant-option ${themeVariantLight === t.id ? 'selected' : ''}`}
               onClick={() => setThemeVariantLight(t.id)}
+              aria-pressed={themeVariantLight === t.id}
             >
               <ThemePreviewBox themeId={t.id} isDark={false} />
               <span className="variant-name">{t.name}</span>
-            </div>
+            </button>
           ))}
         </div>
       )}
@@ -77,14 +79,16 @@ const ThemeStep = ({ storedTheme, setStoredTheme, themeVariantLight, setThemeVar
       {showDark && (
         <div className="theme-variants-grid">
           {darkThemeList.map((t) => (
-            <div
+            <button
+              type="button"
               key={t.id}
               className={`theme-variant-option ${themeVariantDark === t.id ? 'selected' : ''}`}
               onClick={() => setThemeVariantDark(t.id)}
+              aria-pressed={themeVariantDark === t.id}
             >
               <ThemePreviewBox themeId={t.id} isDark={true} />
               <span className="variant-name">{t.name}</span>
-            </div>
+            </button>
           ))}
         </div>
       )}

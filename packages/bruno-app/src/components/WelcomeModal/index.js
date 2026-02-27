@@ -41,7 +41,7 @@ const WelcomeModal = ({ onDismiss, onImportCollection, onCreateCollection, onOpe
       .catch(() => {});
   };
 
-  const handleSaveAndDismiss = () => {
+  const persistPreferences = () => {
     if (collectionLocation && collectionLocation !== defaultLocation) {
       const updatedPreferences = {
         ...preferences,
@@ -50,15 +50,24 @@ const WelcomeModal = ({ onDismiss, onImportCollection, onCreateCollection, onOpe
           defaultLocation: collectionLocation
         }
       };
-      dispatch(savePreferences(updatedPreferences))
-        .then(() => onDismiss())
-        .catch(() => {
-          toast.error('Failed to save preferences');
-          onDismiss();
-        });
-    } else {
-      onDismiss();
+      return dispatch(savePreferences(updatedPreferences)).catch(() => {
+        toast.error('Failed to save preferences');
+      });
     }
+    return Promise.resolve();
+  };
+
+  const handleSaveAndDismiss = () => {
+    persistPreferences().finally(() => {
+      onDismiss();
+    });
+  };
+
+  const handleActionAndDismiss = (action) => () => {
+    persistPreferences().finally(() => {
+      onDismiss();
+      action();
+    });
   };
 
   const goTo = (s) => setStep(s);
@@ -81,9 +90,9 @@ const WelcomeModal = ({ onDismiss, onImportCollection, onCreateCollection, onOpe
     />,
     <GetStartedStep
       key="getstarted"
-      onCreateCollection={onCreateCollection}
-      onImportCollection={onImportCollection}
-      onOpenCollection={onOpenCollection}
+      onCreateCollection={handleActionAndDismiss(onCreateCollection)}
+      onImportCollection={handleActionAndDismiss(onImportCollection)}
+      onOpenCollection={handleActionAndDismiss(onOpenCollection)}
     />
   ];
 
@@ -111,10 +120,13 @@ const WelcomeModal = ({ onDismiss, onImportCollection, onCreateCollection, onOpe
         <div className="welcome-footer">
           <div className="progress-dots">
             {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-              <div
+              <button
+                type="button"
                 key={i}
                 className={`dot ${i + 1 === step ? 'active' : ''} ${i + 1 < step ? 'completed' : ''}`}
                 onClick={() => goTo(i + 1)}
+                aria-label={`Go to step ${i + 1}`}
+                aria-current={i + 1 === step ? 'step' : undefined}
               />
             ))}
           </div>

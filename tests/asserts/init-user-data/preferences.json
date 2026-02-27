@@ -1,5 +1,11 @@
 {
   "lastOpenedCollections": [
     "{{projectRoot}}/tests/asserts/fixtures/collection"
-  ]
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
 }

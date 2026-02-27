@@ -47,7 +47,8 @@ const defaultPreferences = {
   },
   beta: {},
   onboarding: {
-    hasLaunchedBefore: false
+    hasLaunchedBefore: false,
+    hasSeenWelcomeModal: true
   },
   general: {
     defaultLocation: '',

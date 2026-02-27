@@ -102,6 +102,8 @@ const StyledWrapper = styled.div`
     .dot {
       width: 8px;
       height: 8px;
+      padding: 0;
+      border: none;
       border-radius: 50%;
       background: ${(props) => props.theme.border.border2};
       transition: all 0.25s ease;

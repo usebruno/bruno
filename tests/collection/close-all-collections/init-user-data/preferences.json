@@ -2,6 +2,12 @@
   "lastOpenedCollections": [
     "{{projectRoot}}/tests/collection/close-all-collections/fixtures/collections/collection 1",
     "{{projectRoot}}/tests/collection/close-all-collections/fixtures/collections/collection 2"
-  ]
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
 }
 

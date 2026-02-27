@@ -1,10 +1,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { app } = require('electron');
+const { app, ipcMain } = require('electron');
 const { preferencesUtil, getPreferences, savePreferences } = require('../store/preferences');
 const { importCollection, findUniqueFolderName } = require('../utils/collection-import');
 const { resolveDefaultLocation } = require('../utils/default-location');
-const { resolveOnboarding } = require('./onboarding-state');
 
 /**
  * Import sample collection for new users
@@ -55,7 +54,7 @@ async function importSampleCollection(collectionLocation, mainWindow) {
  * - Genuinely new users (no collections, no previous launch) → show welcome modal
  * - Existing users upgrading (have collections but no hasLaunchedBefore flag) → skip welcome modal
  *
- * The resolveOnboarding() call in finally unblocks the renderer:ready IPC handler,
+ * The 'main:onboarding-complete' event in finally unblocks the renderer:ready IPC handler,
  * ensuring the renderer always gets the correct preference values.
  */
 async function onboardUser(mainWindow, lastOpenedCollections) {
@@ -97,7 +96,7 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
     await preferencesUtil.markAsLaunched();
   } finally {
     // Always unblock the renderer:ready handler so the app can proceed
-    resolveOnboarding();
+    ipcMain.emit('main:onboarding-complete');
   }
 }
 

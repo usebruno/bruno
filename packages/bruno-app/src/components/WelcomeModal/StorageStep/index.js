@@ -10,7 +10,18 @@ const StorageStep = ({ collectionLocation, onBrowse }) => (
     </div>
 
     <div className="location-input-group">
-      <div className="location-path-display" onClick={onBrowse} role="button" tabIndex={0}>
+      <div
+        className="location-path-display"
+        onClick={onBrowse}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onBrowse();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      >
         {collectionLocation ? (
           <span className="path-text">{collectionLocation}</span>
         ) : (

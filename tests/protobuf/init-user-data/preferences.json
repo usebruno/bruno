@@ -4,6 +4,10 @@
         "{{collectionPath}}"
     ],
     "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
         "beta": {
             "grpc": true,
             "nodevm": false

@@ -2,5 +2,11 @@
   "maximized": false,
   "lastOpenedCollections": [
       "{{projectRoot}}/tests/grpc/method-search/fixtures/grpc-collection"
-  ]
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
 }
