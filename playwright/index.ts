@@ -170,6 +170,22 @@ export const test = baseTest.extend<
             });
             await fs.promises.writeFile(path.join(userDataPath, file), content, 'utf-8');
           }
+        } else if (!providedUserDataPath) {
+          // No initUserDataPath and no explicit userDataPath: create default preferences to skip welcome modal
+          // This prevents the welcome modal from blocking tests that don't need user data setup
+          const defaultPreferences = {
+            preferences: {
+              onboarding: {
+                hasLaunchedBefore: true,
+                hasSeenWelcomeModal: true
+              }
+            }
+          };
+          await fs.promises.writeFile(
+            path.join(userDataPath, 'preferences.json'),
+            JSON.stringify(defaultPreferences, null, 2),
+            'utf-8'
+          );
         }
 
         const app = await playwright._electron.launch({
