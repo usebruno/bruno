@@ -48,6 +48,7 @@ const CollectionsSection = () => {
   const [collectionsToClose, setCollectionsToClose] = useState([]);
 
   const [importData, setImportData] = useState(null);
+  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
@@ -179,13 +180,18 @@ const CollectionsSection = () => {
     });
   };
 
+  const handleOpenAdvancedCreate = () => {
+    setIsCreatingCollection(false);
+    setCreateCollectionModalOpen(true);
+  };
+
   const addDropdownItems = [
     {
       id: 'create',
       leftSection: IconPlus,
       label: 'Create collection',
       onClick: () => {
-        setCreateCollectionModalOpen(true);
+        setIsCreatingCollection(true);
       }
     },
     {
@@ -330,7 +336,13 @@ const CollectionsSection = () => {
         icon={IconBox}
         actions={sectionActions}
       >
-        <Collections showSearch={showSearch} />
+        <Collections
+          showSearch={showSearch}
+          isCreatingCollection={isCreatingCollection}
+          onCreateClick={() => setIsCreatingCollection(true)}
+          onDismissCreate={() => setIsCreatingCollection(false)}
+          onOpenAdvancedCreate={handleOpenAdvancedCreate}
+        />
       </SidebarSection>
     </>
   );

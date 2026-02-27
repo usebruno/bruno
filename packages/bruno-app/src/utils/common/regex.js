@@ -33,6 +33,27 @@ export const validateName = (name) => {
   );
 };
 
+/**
+ * Function to generate a unique name
+ */
+export const generateUntitledName = (baseName, existingNames = [], existingFolders = []) => {
+  const lowerNames = existingNames.map((n) => n?.toLowerCase());
+  const lowerFolders = existingFolders.map((f) => f?.toLowerCase());
+
+  let name = baseName;
+  let counter = 2;
+
+  while (
+    lowerNames.includes(name.toLowerCase())
+    || lowerFolders.includes(sanitizeName(name).toLowerCase())
+  ) {
+    name = `${baseName} ${counter}`;
+    counter++;
+  }
+
+  return name;
+};
+
 export const validateNameError = (name) => {
   if (!name) return 'Name cannot be empty.';
 
