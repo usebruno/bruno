@@ -46,20 +46,15 @@ const Zoom = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [DEFAULT_ZOOM]);
 
-  // Scroll to selected option when dropdown opens
-  const handleDropdownToggle = () => {
-    if (!isOpen) {
-      // Delay scrolling until after the dropdown is rendered
-      requestAnimationFrame(() => {
-        if (dropdownMenuRef.current) {
-          const selectedOption = dropdownMenuRef.current.querySelector('.dropdown-option.selected');
-          if (selectedOption) {
-            selectedOption.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-          }
-        }
-      });
+  // Callback ref to scroll to selected option when dropdown renders
+  const setDropdownMenuRef = (node) => {
+    dropdownMenuRef.current = node;
+    if (node) {
+      const selectedOption = node.querySelector('.dropdown-option.selected');
+      if (selectedOption) {
+        selectedOption.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
     }
-    setIsOpen(!isOpen);
   };
 
   const handleSelect = (zoom) => {
@@ -93,12 +88,12 @@ const Zoom = () => {
       <div className="flex flex-row gap-1 items-end">
         <div className="zoom-field" ref={dropdownRef}>
           <label className="block">Interface Zoom</label>
-          <div className="custom-select mt-2" onClick={handleDropdownToggle}>
+          <div className="custom-select mt-2" onClick={() => setIsOpen(!isOpen)}>
             <span className="selected-value">{selectedOption?.label}</span>
             <IconChevronDown size={14} className="chevron-icon" />
           </div>
           {isOpen && (
-            <div className="dropdown-menu" ref={dropdownMenuRef}>
+            <div className="dropdown-menu" ref={setDropdownMenuRef}>
               {ZOOM_OPTIONS.map((option) => (
                 <div
                   key={option.value}
