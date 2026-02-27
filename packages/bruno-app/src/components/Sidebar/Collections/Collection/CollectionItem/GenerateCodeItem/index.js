@@ -91,9 +91,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
     url: requestData.url,
     variables
   });
-
-  // interpolate the path params
-  const finalUrl = interpolateUrlPathParams(
+  const validationUrl = interpolateUrlPathParams(
     interpolatedUrl,
     requestData.params,
     variables
@@ -119,7 +117,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
     request: {
       ...requestData.request,
       auth: resolvedRequest.auth,
-      url: finalUrl
+      url: requestData.url
     }
   };
 
@@ -133,14 +131,14 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
           <CodeViewToolbar />
 
           <div className="editor-container">
-            {validateURLWithVars(finalUrl) ? (
+            {validateURLWithVars(validationUrl) ? (
               <CodeView
                 language={selectedLanguage}
                 item={finalItem}
               />
             ) : (
               <div className="error-message">
-                <h1>Invalid URL: {finalUrl}</h1>
+                <h1>Invalid URL: {validationUrl}</h1>
                 <p>Please check the URL and try again</p>
               </div>
             )}
