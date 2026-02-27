@@ -1,7 +1,7 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
 import jsyaml from 'js-yaml';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTag, sanitizeTags } from '../common';
 
 // Content type patterns for matching MIME type variants
 // These patterns handle structured types with many variants (e.g., application/ld+json, application/vnd.api+json)
@@ -533,15 +533,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
-    tags: [...new Set(
-      (request.operationObject.tags || []).map((tag) => {
-        let sanitized = tag.trim();
-        if (options.collectionFormat !== 'yml') {
-          sanitized = sanitized.replace(/\s+/g, '_');
-        }
-        return sanitized;
-      }).filter((tag) => tag.trim())
-    )],
+    tags: sanitizeTags(request.operationObject.tags || [], options),
     request: {
       docs: _operationObject.description,
       url: ensureUrl(request.global.server + path),
@@ -1032,13 +1024,13 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
   return resolved;
 };
 
-const groupRequestsByTags = (requests) => {
+const groupRequestsByTags = (requests, options = {}) => {
   let _groups = {};
   let ungrouped = [];
   each(requests, (request) => {
     let tags = request.operationObject.tags || [];
     if (tags.length > 0) {
-      let tag = tags[0].trim(); // take first tag and trim whitespace
+      let tag = sanitizeTag(tags[0].trim()); // take first tag, trim whitespace, and sanitize
 
       if (tag) {
         if (!_groups[tag]) {
@@ -1274,7 +1266,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
       brunoCollection.items = groupRequestsByPath(allRequests, options);
     } else {
       // Default tag-based grouping
-      let [groups, ungroupedRequests] = groupRequestsByTags(allRequests);
+      let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
       let brunoFolders = groups.map((group) => {
         return {
           uid: uuid(),
