@@ -1,7 +1,7 @@
 import path from 'path';
 import { test, expect, errors, closeElectronApp } from '../../playwright';
 
-const initUserDataPathFresh = path.join(__dirname, 'init-user-data-fresh');
+const initUserDataPath = path.join(__dirname, 'init-user-data-fresh');
 
 const env = {
   DISABLE_SAMPLE_COLLECTION_IMPORT: 'false'
@@ -18,10 +18,8 @@ async function dismissWelcomeModalIfVisible(page: any) {
 }
 
 test.describe('Onboarding', () => {
-  test('should create sample collection on first launch', async ({ launchElectronApp, createTmpDir }) => {
-    // Use a fresh app instance to avoid contamination from previous tests
-    const userDataPath = await createTmpDir('onboarding-fresh');
-    const app = await launchElectronApp({ userDataPath, initUserDataPath: initUserDataPathFresh, dotEnv: env });
+  test('should create sample collection on first launch', async ({ launchElectronApp }) => {
+    const app = await launchElectronApp({ initUserDataPath, dotEnv: env });
     const page = await app.firstWindow();
 
     // Wait for app to load and dismiss welcome modal
@@ -50,7 +48,7 @@ test.describe('Onboarding', () => {
   test('should not create duplicate collections on subsequent launches', async ({ launchElectronApp, createTmpDir }) => {
     // Use a fresh app instance to avoid contamination from previous tests
     const userDataPath = await createTmpDir('duplicate-collections');
-    const app = await launchElectronApp({ userDataPath, initUserDataPath: initUserDataPathFresh, dotEnv: env });
+    const app = await launchElectronApp({ userDataPath, initUserDataPath, dotEnv: env });
     const page = await app.firstWindow();
 
     // Wait for app to load and dismiss welcome modal
@@ -96,7 +94,7 @@ test.describe('Onboarding', () => {
 
   test('should not recreate sample collection after user deletes it', async ({ launchElectronApp, reuseOrLaunchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('first-launch');
-    const app = await launchElectronApp({ userDataPath, initUserDataPath: initUserDataPathFresh, dotEnv: env });
+    const app = await launchElectronApp({ userDataPath, initUserDataPath, dotEnv: env });
     const page = await app.firstWindow();
 
     // Wait for app to load and dismiss welcome modal

@@ -2,15 +2,14 @@ import path from 'path';
 import { ElectronApplication } from '@playwright/test';
 import { test, expect, closeElectronApp } from '../../playwright';
 
-const initUserDataPathFresh = path.join(__dirname, 'init-user-data-fresh');
+const initUserDataPath = path.join(__dirname, 'init-user-data-fresh');
 
 test.describe('Welcome Modal', () => {
-  test('should show welcome modal for new users on first launch', async ({ launchElectronApp, createTmpDir }) => {
-    const userDataPath = await createTmpDir('welcome-modal-new-user');
+  test('should show welcome modal for new users on first launch', async ({ launchElectronApp }) => {
     let app: ElectronApplication | undefined;
 
     try {
-      app = await launchElectronApp({ userDataPath, initUserDataPath: initUserDataPathFresh });
+      app = await launchElectronApp({ initUserDataPath });
       const page = await app.firstWindow();
 
       // Wait for the app to fully initialize before interacting
@@ -43,7 +42,7 @@ test.describe('Welcome Modal', () => {
 
     try {
       // Launch app for a new user - welcome modal should appear
-      app = await launchElectronApp({ userDataPath, initUserDataPath: initUserDataPathFresh });
+      app = await launchElectronApp({ userDataPath, initUserDataPath });
       let page = await app.firstWindow();
       await page.locator('[data-app-state="loaded"]').waitFor();
 
@@ -73,12 +72,11 @@ test.describe('Welcome Modal', () => {
     }
   });
 
-  test('should navigate through welcome modal steps', async ({ launchElectronApp, createTmpDir }) => {
-    const userDataPath = await createTmpDir('welcome-modal-steps');
+  test('should navigate through welcome modal steps', async ({ launchElectronApp }) => {
     let app: ElectronApplication | undefined;
 
     try {
-      app = await launchElectronApp({ userDataPath, initUserDataPath: initUserDataPathFresh });
+      app = await launchElectronApp({ initUserDataPath });
       const page = await app.firstWindow();
 
       // Wait for the app to fully initialize before interacting
@@ -107,12 +105,11 @@ test.describe('Welcome Modal', () => {
     }
   });
 
-  test('should open create collection modal from welcome modal', async ({ launchElectronApp, createTmpDir }) => {
-    const userDataPath = await createTmpDir('welcome-modal-create');
+  test('should open create collection modal from welcome modal', async ({ launchElectronApp }) => {
     let app: ElectronApplication | undefined;
 
     try {
-      app = await launchElectronApp({ userDataPath, initUserDataPath: initUserDataPathFresh });
+      app = await launchElectronApp({ initUserDataPath });
       const page = await app.firstWindow();
 
       // Wait for the app to fully initialize before interacting

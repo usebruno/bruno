@@ -1,13 +1,10 @@
-import path from 'path';
 import { test, expect, closeElectronApp } from '../../playwright';
-
-const initUserDataPath = path.join(__dirname, 'init-user-data');
 
 test('should persist cookies across app restarts', async ({ createTmpDir, launchElectronApp }) => {
   // Create a temporary user-data directory so we control where the cookies store file is written.
   const userDataPath = await createTmpDir('cookie-persistence');
 
-  const app1 = await launchElectronApp({ userDataPath, initUserDataPath });
+  const app1 = await launchElectronApp({ userDataPath });
   const page1 = await app1.firstWindow();
   await page1.waitForSelector('[data-trigger="cookies"]');
 
@@ -32,7 +29,7 @@ test('should persist cookies across app restarts', async ({ createTmpDir, launch
   await closeElectronApp(app1);
 
   // Second launch – verify the cookie was persisted and re-loaded
-  const app2 = await launchElectronApp({ userDataPath, initUserDataPath });
+  const app2 = await launchElectronApp({ userDataPath });
   const page2 = await app2.firstWindow();
 
   // Open the Cookies modal again.
