@@ -160,7 +160,7 @@ const configureRequest = async (
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
-    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
+    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
 
     // Get cert/proxy configs for token and refresh URLs
     let certsAndProxyConfigForTokenUrl = certsAndProxyConfig;
@@ -221,56 +221,68 @@ const configureRequest = async (
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header' && credentials?.access_token) {
-          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
-        } else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          } catch (error) {}
+        {
+          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
+          if (tokenPlacement == 'header' && tokenValue) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+          } else if (tokenValue) {
+            try {
+              const url = new URL(request.url);
+              url.searchParams.set(tokenQueryKey, tokenValue);
+              request.url = url.toString();
+            } catch (error) {}
+          }
         }
         break;
       case 'implicit':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingImplicitGrant({ request: requestCopy, collectionUid }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        } else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          } catch (error) {}
+        {
+          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
+          if (tokenPlacement == 'header' && tokenValue) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+          } else if (tokenValue) {
+            try {
+              const url = new URL(request.url);
+              url.searchParams.set(tokenQueryKey, tokenValue);
+              request.url = url.toString();
+            } catch (error) {}
+          }
         }
         break;
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header' && credentials?.access_token) {
-          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
-        } else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          } catch (error) {}
+        {
+          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
+          if (tokenPlacement == 'header' && tokenValue) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+          } else if (tokenValue) {
+            try {
+              const url = new URL(request.url);
+              url.searchParams.set(tokenQueryKey, tokenValue);
+              request.url = url.toString();
+            } catch (error) {}
+          }
         }
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header' && credentials?.access_token) {
-          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
-        } else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          } catch (error) {}
+        {
+          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
+          if (tokenPlacement == 'header' && tokenValue) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+          } else if (tokenValue) {
+            try {
+              const url = new URL(request.url);
+              url.searchParams.set(tokenQueryKey, tokenValue);
+              request.url = url.toString();
+            } catch (error) {}
+          }
         }
         break;
     }

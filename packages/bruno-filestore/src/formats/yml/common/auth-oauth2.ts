@@ -114,6 +114,8 @@ const buildTokenConfig = (oauth: BrunoOAuth2): OAuth2TokenConfig | undefined => 
     };
   }
 
+  tokenConfig.source = oauth.tokenSource || 'access_token';
+
   return Object.keys(tokenConfig).length > 0 ? tokenConfig : undefined;
 };
 
@@ -345,6 +347,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
     tokenPlacement: null,
     tokenHeaderPrefix: null,
     tokenQueryKey: null,
+    tokenSource: 'access_token',
     refreshTokenUrl: null,
     autoRefreshToken: false, // Default to false
     autoFetchToken: true, // Default to true
@@ -363,6 +366,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
+      if (oauth.tokenConfig?.source) brunoOAuth.tokenSource = oauth.tokenConfig.source || 'access_token';
       if (oauth.tokenConfig?.placement) {
         if ('header' in oauth.tokenConfig.placement) {
           brunoOAuth.tokenPlacement = 'header';
@@ -408,6 +412,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
+      if (oauth.tokenConfig?.source) brunoOAuth.tokenSource = oauth.tokenConfig.source || 'access_token';
       if (oauth.tokenConfig?.placement) {
         if ('header' in oauth.tokenConfig.placement) {
           brunoOAuth.tokenPlacement = 'header';
@@ -454,6 +459,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
+      if (oauth.tokenConfig?.source) brunoOAuth.tokenSource = oauth.tokenConfig.source || 'access_token';
       if (oauth.tokenConfig?.placement) {
         if ('header' in oauth.tokenConfig.placement) {
           brunoOAuth.tokenPlacement = 'header';
@@ -502,6 +508,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
+      if (oauth.tokenConfig?.source) brunoOAuth.tokenSource = oauth.tokenConfig.source || 'access_token';
       if (oauth.tokenConfig?.placement) {
         if ('header' in oauth.tokenConfig.placement) {
           brunoOAuth.tokenPlacement = 'header';
