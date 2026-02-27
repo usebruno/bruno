@@ -81,7 +81,7 @@ function makeAxiosInstance({
 } = {}) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
-    transformRequest: function transformRequest(data, headers) {
+    transformRequest: function (data, headers) {
       const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
       const hasJSONContentType = contentType.includes('json');
       if (typeof data === 'string' && hasJSONContentType) {
@@ -95,10 +95,13 @@ function makeAxiosInstance({
     },
     proxy: false,
     maxRedirects: 0,
-    headers: {
-      'User-Agent': `bruno-runtime/${version}`
-    }
+    headers: {}
   });
+
+  // Set User-Agent manually (using transformRequest to delete headers instead)
+  instance.defaults.headers.common = {
+    'User-Agent': `bruno-runtime/${version}`
+  };
 
   instance.interceptors.request.use(async (config) => {
     const url = URL.parse(config.url);
@@ -121,27 +124,11 @@ function makeAxiosInstance({
       message: `Current time is ${new Date().toISOString()}`
     });
 
-    // Add request method and headers
+    // Add request method line
     timeline.push({
       timestamp: new Date(),
       type: 'request',
       message: `${config.method.toUpperCase()} ${config.url}`
-    });
-
-    Object.entries(config.headers).forEach(([key, value]) => {
-      // See https://github.com/usebruno/bruno/issues/1693
-      // Axios adds 'Content-Type': 'application/x-www-form-urlencoded for requests with no body
-      // Bruno sets content-type: false for no body requests so that axios doesn't add the default content-type header
-      // Hence we skip content-type if it's false
-      if (key.toLowerCase() === 'content-type' && value === false) {
-        return;
-      }
-
-      timeline.push({
-        timestamp: new Date(),
-        type: 'requestHeader',
-        message: `${key}: ${value}`
-      });
     });
 
     // Add request data if available
@@ -170,6 +157,43 @@ function makeAxiosInstance({
 
     config.headers['request-start-time'] = Date.now();
 
+    /**
+      Apply header deletions requested via req.deleteHeader() in pre-request scripts.
+      Using set(name, null) rather than delete(): the axios http adapter guards its
+      own defaults (User-Agent, Accept-Encoding) with set(..., false) which only
+      skips writing when the key already exists. delete() removes the key entirely,
+      so the guard misses and the adapter re-adds the default. null keeps the key
+      present (blocking the guard) while toJSON() omits null values from the wire.
+     */
+    const headersToDelete = config.__headersToDelete;
+    let deleteConnection = false;
+
+    if (headersToDelete && Array.isArray(headersToDelete)) {
+      headersToDelete.forEach((headerName) => {
+        const lower = headerName.toLowerCase();
+        if (lower === 'host') return;
+        if (lower === 'connection') {
+          // Handled after setupProxyAgents to avoid being overwritten by keepAlive:true.
+          deleteConnection = true;
+          return;
+        }
+        config.headers.set(headerName, null);
+      });
+      delete config.__headersToDelete;
+    }
+
+    // Log request headers AFTER deletion so the timeline reflects what is actually sent.
+    // Skip null values (headers marked for deletion) and false values (e.g. content-type
+    // suppressed for no-body requests — see https://github.com/usebruno/bruno/issues/1693).
+    Object.entries(config.headers).forEach(([key, value]) => {
+      if (value === null || value === false) return;
+      timeline.push({
+        timestamp: new Date(),
+        type: 'requestHeader',
+        message: `${key}: ${value}`
+      });
+    });
+
     const agentOptions = {
       ...httpsAgentRequestFields,
       keepAlive: true
@@ -195,6 +219,16 @@ function makeAxiosInstance({
         message: `Error setting up proxy agents: ${err?.message}`
       });
     }
+
+    // Override the agent AFTER setupProxyAgents so keepAlive:true doesn't win.
+    // With keepAlive:false Node.js does not inject Connection:keep-alive at all.
+    if (deleteConnection) {
+      const http = require('http');
+      const https = require('https');
+      config.httpAgent = new http.Agent({ keepAlive: false });
+      config.httpsAgent = new https.Agent({ keepAlive: false });
+    }
+
     config.metadata.timeline = timeline;
     return config;
   });
