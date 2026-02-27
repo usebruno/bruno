@@ -371,5 +371,4 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
 
     expect(result).toEqual(expectedUrl);
   });
-
 });
