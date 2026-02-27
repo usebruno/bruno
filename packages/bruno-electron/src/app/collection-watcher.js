@@ -226,6 +226,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     return addEnvironmentFile(win, pathname, collectionUid, collectionPath);
   }
 
+  const batcher = getBatcher(win, collectionUid);
+
   if (isCollectionRootFile(pathname, collectionPath)) {
     const format = getCollectionFormat(collectionPath);
     const file = {
@@ -292,7 +294,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.data = await parseFolder(content, { format });
 
       hydrateCollectionRootWithUuid(file.data);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      // win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      batcher.add('addFile', file);
       return;
     } catch (err) {
       console.error(err);
@@ -311,8 +314,6 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         name: path.basename(pathname)
       }
     };
-
-    const batcher = getBatcher(win, collectionUid);
 
     try {
       const fileStats = await fsPromises.stat(pathname);

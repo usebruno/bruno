@@ -471,20 +471,26 @@ const addBruShimToContext = (vm, bru) => {
   bruObject.dispose();
 
   vm.evalCode(`
+    // sendRequest with callback: normalize error.status (axios uses error.response.status) so
+    // tests like expect(error.status).to.eql(404) pass in safe sandbox; return response after
+    // success callback for consistent promise resolution.
     globalThis.bru.sendRequest = async (requestConfig, callback) => {
       if (!callback) return await globalThis.bru._sendRequest(requestConfig);
       try {
         const response = await globalThis.bru._sendRequest(requestConfig);
         try {
           await callback(null, response);
+          return response;
         }
         catch(error) {
           return Promise.reject(error);
         }
       }
       catch(error) {
+        const errObj = JSON.parse(JSON.stringify(error));
+        if (errObj && errObj.response && typeof errObj.response.status === 'number') errObj.status = errObj.response.status;
         try {
-          await callback(JSON.parse(JSON.stringify(error)), null);
+          await callback(errObj, null);
         }
         catch(err) {
           return Promise.reject(err);

@@ -34,7 +34,11 @@ const initialState = {
       codeFont: 'default'
     },
     general: {
-      defaultCollectionLocation: ''
+      defaultLocation: ''
+    },
+    onboarding: {
+      hasLaunchedBefore: false,
+      hasSeenWelcomeModal: true
     },
     autoSave: {
       enabled: false,

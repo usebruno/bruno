@@ -95,8 +95,13 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
   // interpolate the path params
   const finalUrl = interpolateUrlPathParams(
     interpolatedUrl,
-    requestData.params
+    requestData.params,
+    variables
   );
+
+  // Raw URL: path params resolved via string replacement (no new URL() encoding),
+  // preserving the user's original encoding choices for snippet generation.
+  const rawUrl = interpolateUrlPathParams(interpolatedUrl, requestData.params, variables, { raw: true });
 
   // Get the full language object based on current preferences
   const selectedLanguage = useMemo(() => {
@@ -119,7 +124,8 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
       ...requestData.request,
       auth: resolvedRequest.auth,
       url: finalUrl
-    }
+    },
+    rawUrl
   };
 
   // Update modal title based on mode
