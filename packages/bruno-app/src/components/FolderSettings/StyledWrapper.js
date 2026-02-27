@@ -2,6 +2,12 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   max-width: 800px;
+  position: relative;
+
+  .markdown-body {
+    height: auto !important;
+    overflow-y: visible !important;
+  }
 
   div.tabs {
     div.tab {
