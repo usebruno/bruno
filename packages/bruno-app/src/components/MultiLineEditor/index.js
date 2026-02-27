@@ -105,6 +105,7 @@ class MultiLineEditor extends Component {
       if (this.props.onChange) {
         this.props.onChange(this.cachedValue);
       }
+      requestAnimationFrame(() => this.editor?.refresh());
     }
   };
 
@@ -165,6 +166,7 @@ class MultiLineEditor extends Component {
         this.editor.setValue(nextValue);
         this.editor.setCursor(cursor);
       }
+      requestAnimationFrame(() => this.editor?.refresh());
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
       // If the secret flag has changed, update the editor to reflect the change

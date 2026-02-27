@@ -1,10 +1,11 @@
-import React, { useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { moveAssertion, setRequestAssertions } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import AssertionOperator from './AssertionOperator';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
@@ -54,6 +55,7 @@ const isUnaryOperator = (operator) => unaryOperators.includes(operator);
 const Assertions = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const [showDescriptionColumn, setShowDescriptionColumn] = useState(false);
   const assertions = item.draft ? get(item, 'draft.request.assertions') : get(item, 'request.assertions');
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -74,6 +76,26 @@ const Assertions = ({ item, collection }) => {
       updateReorderedItem
     }));
   }, [dispatch, collection.uid, item.uid]);
+
+  const descriptionColumn = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ value, onChange }) => (
+      <MultiLineEditor
+        value={value || ''}
+        theme={storedTheme}
+        onSave={onSave}
+        onChange={onChange}
+        allowNewlines={true}
+        onRun={handleRun}
+        collection={collection}
+        item={item}
+        placeholder={!value ? 'Description' : ''}
+      />
+    )
+  };
 
   const columns = [
     {
@@ -145,17 +167,28 @@ const Assertions = ({ item, collection }) => {
           />
         );
       }
-    }
+    },
+    ...(showDescriptionColumn ? [descriptionColumn] : [])
   ];
 
   const defaultRow = {
     name: '',
     value: 'eq ',
-    operator: 'eq'
+    operator: 'eq',
+    description: ''
   };
 
   return (
     <StyledWrapper className="w-full">
+      <div className="flex justify-end mt-2 mb-2 gap-2">
+        <button
+          type="button"
+          className="btn-action text-link select-none"
+          onClick={() => setShowDescriptionColumn((v) => !v)}
+        >
+          {showDescriptionColumn ? 'Hide Description' : 'Description'}
+        </button>
+      </div>
       <EditableTable
         columns={columns}
         rows={assertions || []}

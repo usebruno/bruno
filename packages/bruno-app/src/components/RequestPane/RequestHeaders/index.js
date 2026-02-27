@@ -5,6 +5,7 @@ import { useTheme } from 'providers/Theme';
 import { moveRequestHeader, setRequestHeaders } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
@@ -19,6 +20,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const { storedTheme } = useTheme();
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const [showDescriptionColumn, setShowDescriptionColumn] = useState(false);
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
@@ -59,6 +61,26 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     setIsBulkEditMode(!isBulkEditMode);
   };
 
+  const descriptionColumn = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ value, onChange }) => (
+      <MultiLineEditor
+        value={value || ''}
+        theme={storedTheme}
+        onSave={onSave}
+        onChange={onChange}
+        allowNewlines={true}
+        onRun={handleRun}
+        collection={collection}
+        item={item}
+        placeholder={!value ? 'Description' : ''}
+      />
+    )
+  };
+
   const columns = [
     {
       key: 'name',
@@ -97,7 +119,8 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
           placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    ...(showDescriptionColumn ? [descriptionColumn] : [])
   ];
 
   const defaultRow = {
@@ -131,7 +154,14 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         reorderable={true}
         onReorder={handleHeaderDrag}
       />
-      <div className="flex justify-end mt-2">
+      <div className="flex justify-end mt-2 gap-2">
+        <button
+          type="button"
+          className="btn-action text-link select-none"
+          onClick={() => setShowDescriptionColumn((v) => !v)}
+        >
+          {showDescriptionColumn ? 'Hide Description' : 'Description'}
+        </button>
         <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
           Bulk Edit
         </button>

@@ -11,7 +11,8 @@ function escapeRegExp(string) {
 const MAX_MATCHES = 99_999;
 function findSearchMatches(editor, searchText, regex, caseSensitive, wholeWord) {
   try {
-    let query, options = {};
+    let query;
+    let caseFold = false;
     if (regex) {
       try {
         query = new RegExp(searchText, caseSensitive ? 'g' : 'gi');
@@ -24,10 +25,10 @@ function findSearchMatches(editor, searchText, regex, caseSensitive, wholeWord) 
       query = new RegExp(`\\b${escaped}\\b`, caseSensitive ? 'g' : 'gi');
     } else {
       query = searchText;
-      options = { caseFold: !caseSensitive };
+      caseFold = !caseSensitive;
     }
 
-    const cursor = editor.getSearchCursor(query, { line: 0, ch: 0 }, options);
+    const cursor = editor.getSearchCursor(query, { line: 0, ch: 0 }, caseFold);
     const out = [];
     while (cursor.findNext()) {
       out.push({ from: cursor.from(), to: cursor.to() });

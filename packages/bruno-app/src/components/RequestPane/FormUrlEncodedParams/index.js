@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -15,6 +15,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.body.formUrlEncoded') : get(item, 'request.body.formUrlEncoded');
+  const [showDescriptionColumn, setShowDescriptionColumn] = useState(false);
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
@@ -34,6 +35,26 @@ const FormUrlEncodedParams = ({ item, collection }) => {
       updateReorderedItem
     }));
   }, [dispatch, collection.uid, item.uid]);
+
+  const descriptionColumn = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ value, onChange }) => (
+      <MultiLineEditor
+        value={value || ''}
+        theme={storedTheme}
+        onSave={onSave}
+        onChange={onChange}
+        allowNewlines={true}
+        onRun={handleRun}
+        collection={collection}
+        item={item}
+        placeholder={!value ? 'Description' : ''}
+      />
+    )
+  };
 
   const columns = [
     {
@@ -60,7 +81,8 @@ const FormUrlEncodedParams = ({ item, collection }) => {
           placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    ...(showDescriptionColumn ? [descriptionColumn] : [])
   ];
 
   const defaultRow = {
@@ -71,6 +93,15 @@ const FormUrlEncodedParams = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full">
+      <div className="flex justify-end mt-2 mb-2">
+        <button
+          type="button"
+          className="btn-action text-link select-none"
+          onClick={() => setShowDescriptionColumn((v) => !v)}
+        >
+          {showDescriptionColumn ? 'Hide Description' : 'Description'}
+        </button>
+      </div>
       <EditableTable
         columns={columns}
         rows={params || []}

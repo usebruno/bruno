@@ -58,9 +58,10 @@ const EnvironmentVariablesTable = ({
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
   const [tableHeight, setTableHeight] = useState(MIN_H);
-  const [columnWidths, setColumnWidths] = useState({ name: '30%', value: 'auto' });
+  const [columnWidths, setColumnWidths] = useState({ name: '30%', value: 'auto', description: '25%' });
   const [resizing, setResizing] = useState(null);
   const [focusedNameIndex, setFocusedNameIndex] = useState(null);
+  const [showDescriptionColumn, setShowDescriptionColumn] = useState(false);
 
   const handleResizeStart = useCallback((e, columnKey) => {
     e.preventDefault();
@@ -83,10 +84,11 @@ const EnvironmentVariablesTable = ({
       const maxShrink = startWidth - MIN_COLUMN_WIDTH;
       const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
 
-      setColumnWidths({
+      setColumnWidths((prev) => ({
+        ...prev,
         [columnKey]: `${startWidth + clampedDiff}px`,
         [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
-      });
+      }));
     };
 
     const handleMouseUp = () => {
@@ -116,14 +118,15 @@ const EnvironmentVariablesTable = ({
   const initialValues = useMemo(() => {
     const vars = environment.variables || [];
     return [
-      ...vars,
+      ...vars.map((v) => ({ ...v, description: v.description ?? '' })),
       {
         uid: uuid(),
         name: '',
         value: '',
         type: 'text',
         secret: false,
-        enabled: true
+        enabled: true,
+        description: ''
       }
     ];
   }, [environment.uid, environment.variables]);
@@ -149,7 +152,8 @@ const EnvironmentVariablesTable = ({
         secret: Yup.boolean(),
         type: Yup.string(),
         uid: Yup.string(),
-        value: Yup.mixed().nullable()
+        value: Yup.mixed().nullable(),
+        description: Yup.string().nullable()
       })
     ),
     validate: (values) => {
@@ -188,14 +192,15 @@ const EnvironmentVariablesTable = ({
 
     if ((isMount || envChanged || variablesReloaded) && hasDraftForThisEnv && draft?.variables) {
       formik.setValues([
-        ...draft.variables,
+        ...draft.variables.map((v) => ({ ...v, description: v.description ?? '' })),
         {
           uid: uuid(),
           name: '',
           value: '',
           type: 'text',
           secret: false,
-          enabled: true
+          enabled: true,
+          description: ''
         }
       ]);
     }
@@ -290,7 +295,8 @@ const EnvironmentVariablesTable = ({
               value: '',
               type: 'text',
               secret: false,
-              enabled: true
+              enabled: true,
+              description: ''
             }
           ];
 
@@ -310,7 +316,8 @@ const EnvironmentVariablesTable = ({
         value: '',
         type: 'text',
         secret: false,
-        enabled: true
+        enabled: true,
+        description: ''
       };
       setTimeout(() => {
         formik.setFieldValue(formik.values.length, newVariable, false);
@@ -366,7 +373,8 @@ const EnvironmentVariablesTable = ({
             value: '',
             type: 'text',
             secret: false,
-            enabled: true
+            enabled: true,
+            description: ''
           }
         ];
         formik.resetForm({ values: newValues });
@@ -381,14 +389,15 @@ const EnvironmentVariablesTable = ({
   const handleReset = useCallback(() => {
     const originalVars = environment.variables || [];
     const resetValues = [
-      ...originalVars,
+      ...originalVars.map((v) => ({ ...v, description: v.description ?? '' })),
       {
         uid: uuid(),
         name: '',
         value: '',
         type: 'text',
         secret: false,
-        enabled: true
+        enabled: true,
+        description: ''
       }
     ];
     formik.resetForm({ values: resetValues });
@@ -421,14 +430,18 @@ const EnvironmentVariablesTable = ({
     return allVariables.filter(({ variable }) => {
       const nameMatch = variable.name ? variable.name.toLowerCase().includes(query) : false;
       const valueMatch = typeof variable.value === 'string' ? variable.value.toLowerCase().includes(query) : false;
-      return !!(nameMatch || valueMatch);
+      const descriptionMatch = variable.description && typeof variable.description === 'string'
+        ? variable.description.toLowerCase().includes(query)
+        : false;
+
+      return !!(nameMatch || valueMatch || descriptionMatch);
     });
   }, [formik.values, searchQuery]);
 
   const isSearchActive = !!searchQuery?.trim();
 
   return (
-    <StyledWrapper className={resizing ? 'is-resizing' : ''}>
+    <StyledWrapper className={`${resizing ? 'is-resizing' : ''} ${showDescriptionColumn ? 'has-description-column' : ''}`.trim()}>
       {isSearchActive && filteredVariables.length === 0 ? (
         <div className="no-results">No results found for &ldquo;{searchQuery.trim()}&rdquo;</div>
       ) : (
@@ -450,8 +463,9 @@ const EnvironmentVariablesTable = ({
                 />
               </td>
               <td style={{ width: columnWidths.value }}>Value</td>
-              <td className="text-center">Secret</td>
-              <td></td>
+              {showDescriptionColumn && <td style={{ width: columnWidths.description }}>Description</td>}
+              <td className="text-center secret-column">Secret</td>
+              <td className="actions-column"></td>
             </tr>
           )}
           fixedItemHeight={35}
@@ -537,7 +551,7 @@ const EnvironmentVariablesTable = ({
                     />
                   </div>
                   {typeof variable.value !== 'string' && (
-                    <span className="ml-2 flex items-center">
+                    <span className="ml-2 flex items-center flex-shrink-0">
                       <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
                       <Tooltip
                         anchorId={`${variable.uid}-disabled-info-icon`}
@@ -548,6 +562,21 @@ const EnvironmentVariablesTable = ({
                   )}
                   {renderExtraValueContent && renderExtraValueContent(variable)}
                 </td>
+                {showDescriptionColumn && (
+                  <td style={{ width: columnWidths.description }}>
+                    <MultiLineEditor
+                      theme={storedTheme}
+                      collection={_collection}
+                      name={`${actualIndex}.description`}
+                      value={variable.description ?? ''}
+                      placeholder={isLastEmptyRow ? '' : 'Description'}
+                      readOnly={false}
+                      onChange={(newValue) => formik.setFieldValue(`${actualIndex}.description`, newValue, true)}
+                      onSave={handleSave}
+                      allowNewlines={true}
+                    />
+                  </td>
+                )}
                 <td className="text-center">
                   {!isLastEmptyRow && (
                     <input
@@ -574,13 +603,22 @@ const EnvironmentVariablesTable = ({
       )}
 
       <div className="button-container">
-        <div className="flex items-center">
-          <button type="button" className="submit" onClick={handleSave} data-testid="save-env">
-            Save
+        <div className="flex items-center justify-between w-full">
+          <button
+            type="button"
+            className="btn-action text-link select-none ml-2"
+            onClick={() => setShowDescriptionColumn((v) => !v)}
+          >
+            {showDescriptionColumn ? 'Hide Description' : 'Description'}
           </button>
-          <button type="button" className="submit reset ml-2" onClick={handleReset} data-testid="reset-env">
-            Reset
-          </button>
+          <div className="flex items-center">
+            <button type="button" className="submit" onClick={handleSave} data-testid="save-env">
+              Save
+            </button>
+            <button type="button" className="submit reset ml-2" onClick={handleReset} data-testid="reset-env">
+              Reset
+            </button>
+          </div>
         </div>
       </div>
     </StyledWrapper>

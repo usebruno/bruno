@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { moveVar, setRequestVars } from 'providers/ReduxStore/slices/collections';
@@ -13,6 +13,7 @@ import { variableNameRegex } from 'utils/common/regex';
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const [showDescriptionColumn, setShowDescriptionColumn] = useState(false);
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
@@ -44,6 +45,26 @@ const VarsTable = ({ item, collection, vars, varType }) => {
     return null;
   }, []);
 
+  const descriptionColumn = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ value, onChange }) => (
+      <MultiLineEditor
+        value={value || ''}
+        theme={storedTheme}
+        onSave={onSave}
+        onChange={onChange}
+        allowNewlines={true}
+        onRun={handleRun}
+        collection={collection}
+        item={item}
+        placeholder={!value ? 'Description' : ''}
+      />
+    )
+  };
+
   const columns = [
     {
       key: 'name',
@@ -73,17 +94,28 @@ const VarsTable = ({ item, collection, vars, varType }) => {
           placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
         />
       )
-    }
+    },
+    ...(showDescriptionColumn ? [descriptionColumn] : [])
   ];
 
   const defaultRow = {
     name: '',
     value: '',
+    description: '',
     ...(varType === 'response' ? { local: false } : {})
   };
 
   return (
     <StyledWrapper className="w-full">
+      <div className="flex justify-end mt-2 mb-2">
+        <button
+          type="button"
+          className="btn-action text-link select-none"
+          onClick={() => setShowDescriptionColumn((v) => !v)}
+        >
+          {showDescriptionColumn ? 'Hide Description' : 'Description'}
+        </button>
+      </div>
       <EditableTable
         columns={columns}
         rows={vars || []}

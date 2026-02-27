@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -20,6 +20,7 @@ const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.body.multipartForm') : get(item, 'request.body.multipartForm');
+  const [showDescriptionColumn, setShowDescriptionColumn] = useState(false);
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
@@ -189,18 +190,51 @@ const MultipartFormParams = ({ item, collection }) => {
           collection={collection}
         />
       )
-    }
+    },
+    ...(showDescriptionColumn
+      ? [
+          {
+            key: 'description',
+            name: 'Description',
+            placeholder: 'Description',
+            width: '25%',
+            render: ({ value, onChange }) => (
+              <MultiLineEditor
+                value={value || ''}
+                theme={storedTheme}
+                onSave={onSave}
+                onChange={onChange}
+                allowNewlines={true}
+                onRun={handleRun}
+                collection={collection}
+                item={item}
+                placeholder={!value ? 'Description' : ''}
+              />
+            )
+          }
+        ]
+      : [])
   ];
 
   const defaultRow = {
     name: '',
     value: '',
     contentType: '',
-    type: 'text'
+    type: 'text',
+    description: ''
   };
 
   return (
     <StyledWrapper className="w-full">
+      <div className="flex justify-end mt-2 mb-2">
+        <button
+          type="button"
+          className="btn-action text-link select-none"
+          onClick={() => setShowDescriptionColumn((v) => !v)}
+        >
+          {showDescriptionColumn ? 'Hide Description' : 'Description'}
+        </button>
+      </div>
       <EditableTable
         columns={columns}
         rows={params || []}

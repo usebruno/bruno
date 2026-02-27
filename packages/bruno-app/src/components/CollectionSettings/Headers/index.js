@@ -5,6 +5,7 @@ import { useTheme } from 'providers/Theme';
 import { setCollectionHeaders } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
@@ -22,6 +23,7 @@ const Headers = ({ collection }) => {
     ? get(collection, 'draft.root.request.headers', [])
     : get(collection, 'root.request.headers', []);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const [showDescriptionColumn, setShowDescriptionColumn] = useState(false);
 
   const toggleBulkEditMode = () => {
     setIsBulkEditMode(!isBulkEditMode);
@@ -48,6 +50,24 @@ const Headers = ({ collection }) => {
     }
     return null;
   }, []);
+
+  const descriptionColumn = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ value, onChange }) => (
+      <MultiLineEditor
+        value={value || ''}
+        theme={storedTheme}
+        onSave={handleSave}
+        onChange={onChange}
+        allowNewlines={true}
+        collection={collection}
+        placeholder={!value ? 'Description' : ''}
+      />
+    )
+  };
 
   const columns = [
     {
@@ -83,7 +103,8 @@ const Headers = ({ collection }) => {
           placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    ...(showDescriptionColumn ? [descriptionColumn] : [])
   ];
 
   const defaultRow = {
@@ -120,7 +141,14 @@ const Headers = ({ collection }) => {
         defaultRow={defaultRow}
         getRowError={getRowError}
       />
-      <div className="flex justify-end mt-2">
+      <div className="flex justify-end mt-2 gap-2">
+        <button
+          type="button"
+          className="btn-action text-link select-none"
+          onClick={() => setShowDescriptionColumn((v) => !v)}
+        >
+          {showDescriptionColumn ? 'Hide Description' : 'Description'}
+        </button>
         <button className="text-link select-none" onClick={toggleBulkEditMode}>
           Bulk Edit
         </button>
