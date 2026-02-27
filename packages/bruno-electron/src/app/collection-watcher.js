@@ -731,9 +731,10 @@ class CollectionWatcher {
 
     this.startCollectionDiscovery(win, collectionUid);
 
-    // Always ignore node_modules and .git, regardless of user config
+    // Always ignore node_modules, .git, and resources regardless of user config
     // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
-    const defaultIgnores = ['node_modules', '.git'];
+    // resources folder contains internal files like OpenAPI specs for sync - not user-facing
+    const defaultIgnores = ['node_modules', '.git', 'resources'];
     const userIgnores = brunoConfig?.ignore || [];
     const ignores = [...new Set([...defaultIgnores, ...userIgnores])];
 

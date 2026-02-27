@@ -22,7 +22,18 @@ const configSchema = Yup.object({
   // For BRU format collections
   version: Yup.string().oneOf(['1']).notRequired(),
   // For YAML format collections (opencollection)
-  opencollection: Yup.string().notRequired()
+  opencollection: Yup.string().notRequired(),
+  // OpenAPI sync configuration (array, one entry per synced spec)
+  openapi: Yup.array().of(
+    Yup.object({
+      sourceUrl: Yup.string().notRequired(),
+      lastSyncDate: Yup.string().notRequired(),
+      specHash: Yup.string().notRequired(),
+      groupBy: Yup.string().oneOf(['tags', 'path']).notRequired(),
+      autoCheck: Yup.boolean().notRequired(),
+      autoCheckInterval: Yup.number().notRequired()
+    })
+  ).notRequired()
 });
 
 const readConfigFile = async (pathname) => {

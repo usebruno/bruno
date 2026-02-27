@@ -95,14 +95,18 @@ const groupingOptions = [
   { value: 'path', label: 'Paths', description: 'Group requests by URL path structure', testId: 'grouping-option-path' }
 ];
 
-const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) => {
+const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sourceUrl, filePath, rawContent }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [groupingType, setGroupingType] = useState('tags');
   const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
+  const [enableSync, setEnableSync] = useState(true);
   const dropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
   const isZipImport = format === 'bruno-zip';
+  const isOpenApiFromUrl = isOpenApi && !!sourceUrl;
+  const isOpenApiFromFile = isOpenApi && !!filePath && !sourceUrl;
+  const showSyncOption = isOpenApiFromUrl || isOpenApiFromFile;
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const preferences = useSelector((state) => state.app.preferences);
@@ -128,7 +132,34 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
     }),
     onSubmit: async (values) => {
       const convertedCollection = await convertCollection(format, rawData, groupingType, collectionFormat);
-      handleSubmit(convertedCollection, values.collectionLocation, { format: collectionFormat });
+      const options = { format: collectionFormat };
+
+      if (showSyncOption && enableSync) {
+        const syncSourceUrl = sourceUrl || filePath; // URL or absolute path (backend converts to relative)
+        const baseBrunoConfig = {
+          version: convertedCollection.version || '1',
+          name: convertedCollection.name || 'Untitled Collection',
+          type: 'collection',
+          ignore: ['node_modules', '.git']
+        };
+
+        convertedCollection.brunoConfig = {
+          ...baseBrunoConfig,
+          ...convertedCollection.brunoConfig,
+          openapi: [
+            {
+              sourceUrl: syncSourceUrl,
+              groupBy: groupingType,
+              autoCheck: true,
+              autoCheckInterval: 5
+            }
+          ]
+        };
+
+        options.rawOpenAPISpec = rawContent || rawData;
+      }
+
+      handleSubmit(convertedCollection, values.collectionLocation, options);
     }
   });
 
@@ -260,12 +291,12 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
           </div>
 
           {isOpenApi && (
-            <div className="mt-4 flex gap-4 items-center">
+            <div className="mt-4 flex gap-4 items-center justify-between">
               <div>
-                <label htmlFor="groupingType" className="block font-medium mt-4">
+                <label htmlFor="groupingType" className="block font-medium">
                   Folder arrangement
                 </label>
-                <p className="text-gray-600 dark:text-gray-400 mt-1 mb-2">
+                <p className="text-muted text-xs mt-1 mb-2">
                   Select whether to create folders according to the spec's paths or tags.
                 </p>
               </div>
@@ -286,6 +317,23 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
                   ))}
                 </Dropdown>
               </div>
+            </div>
+          )}
+
+          {showSyncOption && (
+            <div className="mt-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={enableSync}
+                  onChange={(e) => setEnableSync(e.target.checked)}
+                  className="cursor-pointer checkbox"
+                />
+                <span className="font-medium">Check for Spec Updates</span>
+              </label>
+              <p className="text-muted text-xs mt-1">
+                Stay notified of spec changes and sync your collection with the spec.
+              </p>
             </div>
           )}
         </form>

@@ -2,10 +2,11 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   div.CodeMirror {
-    height: calc(100vh - 4rem);
+    height: calc(100vh - 9rem);
     background: ${(props) => props.theme.codemirror.bg};
     border: solid 1px ${(props) => props.theme.codemirror.border};
     font-family: ${(props) => (props.font ? props.font : 'default')};
+    font-size: ${(props) => props.theme.font.size.base};
     line-break: anywhere;
   }
 

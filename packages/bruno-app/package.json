@@ -27,6 +27,7 @@
     "codemirror": "5.65.2",
     "codemirror-graphql": "2.1.1",
     "cookie": "0.7.1",
+    "diff2html": "^3.4.47",
     "dompurify": "^3.2.4",
     "escape-html": "^1.0.3",
     "fast-fuzzy": "^1.12.0",

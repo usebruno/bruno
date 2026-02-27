@@ -38,7 +38,7 @@ const getPlacementStyles = (placement) => {
   }
 };
 
-const Help = ({ children, width = 200, placement = 'right' }) => {
+const Help = ({ children, width = 200, placement = 'right', icon = 'question', size = 14 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
@@ -48,7 +48,7 @@ const Help = ({ children, width = 200, placement = 'right' }) => {
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
-        <HelpIcon size={14} />
+        <HelpIcon size={size} icon={icon} />
       </span>
       {showTooltip && (
         <StyledWrapper
