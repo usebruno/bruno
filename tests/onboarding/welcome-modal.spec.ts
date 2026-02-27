@@ -7,7 +7,7 @@ test.describe('Welcome Modal', () => {
     let app: ElectronApplication | undefined;
 
     try {
-      app = await launchElectronApp({ userDataPath });
+      app = await launchElectronApp({ userDataPath, skipWelcomeModal: false });
       const page = await app.firstWindow();
 
       // Wait for the app to fully initialize before interacting
@@ -40,7 +40,7 @@ test.describe('Welcome Modal', () => {
 
     try {
       // Launch app for a new user - welcome modal should appear
-      app = await launchElectronApp({ userDataPath });
+      app = await launchElectronApp({ userDataPath, skipWelcomeModal: false });
       let page = await app.firstWindow();
       await page.locator('[data-app-state="loaded"]').waitFor();
 
@@ -57,7 +57,8 @@ test.describe('Welcome Modal', () => {
       app = undefined;
 
       // Restart the app with the same userDataPath
-      app = await launchElectronApp({ userDataPath });
+      // skipWelcomeModal: false to test that the modal is NOT shown after dismissal
+      app = await launchElectronApp({ userDataPath, skipWelcomeModal: false });
       page = await app.firstWindow();
       await page.locator('[data-app-state="loaded"]').waitFor();
 
@@ -75,7 +76,7 @@ test.describe('Welcome Modal', () => {
     let app: ElectronApplication | undefined;
 
     try {
-      app = await launchElectronApp({ userDataPath });
+      app = await launchElectronApp({ userDataPath, skipWelcomeModal: false });
       const page = await app.firstWindow();
 
       // Wait for the app to fully initialize before interacting
@@ -109,7 +110,7 @@ test.describe('Welcome Modal', () => {
     let app: ElectronApplication | undefined;
 
     try {
-      app = await launchElectronApp({ userDataPath });
+      app = await launchElectronApp({ userDataPath, skipWelcomeModal: false });
       const page = await app.firstWindow();
 
       // Wait for the app to fully initialize before interacting

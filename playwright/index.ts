@@ -105,7 +105,7 @@ export const test = baseTest.extend<
   },
   {
     createTmpDir: (tag?: string) => Promise<string>;
-    launchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string; dotEnv?: Record<string, string>; templateVars?: Record<string, string> }) => Promise<ElectronApplication>;
+    launchElectronApp: (options?: { initUserDataPath?: string; userDataPath?: string; dotEnv?: Record<string, string>; templateVars?: Record<string, string>; skipWelcomeModal?: boolean }) => Promise<ElectronApplication>;
     electronApp: ElectronApplication;
     reuseOrLaunchElectronApp: (options?: { initUserDataPath?: string; testFile?: string; userDataPath?: string; dotEnv?: Record<string, string>; templateVars?: Record<string, string>; closePrevious?: boolean }) => Promise<ElectronApplication>;
   }
@@ -145,7 +145,7 @@ export const test = baseTest.extend<
   launchElectronApp: [
     async ({ playwright, createTmpDir }, use, workerInfo) => {
       const apps: ElectronApplication[] = [];
-      await use(async ({ initUserDataPath, userDataPath: providedUserDataPath, dotEnv = {}, templateVars = {} } = {}) => {
+      await use(async ({ initUserDataPath, userDataPath: providedUserDataPath, dotEnv = {}, templateVars = {}, skipWelcomeModal = true } = {}) => {
         const userDataPath = providedUserDataPath || (await createTmpDir('electron-userdata'));
 
         // Ensure dir exists when caller supplies their own path
@@ -170,13 +170,12 @@ export const test = baseTest.extend<
             });
             await fs.promises.writeFile(path.join(userDataPath, file), content, 'utf-8');
           }
-        } else if (!providedUserDataPath) {
-          // No initUserDataPath and no explicit userDataPath: create default preferences to skip welcome modal
+        } else if (skipWelcomeModal) {
+          // Create default preferences to skip welcome modal
           // This prevents the welcome modal from blocking tests that don't need user data setup
           const defaultPreferences = {
             preferences: {
               onboarding: {
-                hasLaunchedBefore: true,
                 hasSeenWelcomeModal: true
               }
             }
