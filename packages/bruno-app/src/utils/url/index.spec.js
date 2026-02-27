@@ -378,7 +378,7 @@ describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {
     const url = 'https://example.com/api/:id/path';
     const params = [{ name: 'id', type: 'path', enabled: true, value: 'hello world' }];
 
-    const result = interpolateUrlPathParams(url, params, { raw: true });
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
 
     expect(result).toEqual('https://example.com/api/hello world/path');
   });
@@ -387,7 +387,7 @@ describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {
     const url = 'https://example.com/api/:id?foo=bar&baz=qux#section';
     const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }];
 
-    const result = interpolateUrlPathParams(url, params, { raw: true });
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
 
     expect(result).toEqual('https://example.com/api/123?foo=bar&baz=qux#section');
   });
@@ -396,7 +396,7 @@ describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {
     const url = 'https://example.com/api/path?q=1';
     const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }];
 
-    const result = interpolateUrlPathParams(url, params, { raw: true });
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
 
     expect(result).toEqual('https://example.com/api/path?q=1');
   });
@@ -405,7 +405,7 @@ describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {
     const url = 'https://example.com/api/:id';
     const params = [];
 
-    const result = interpolateUrlPathParams(url, params, { raw: true });
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
 
     expect(result).toEqual('https://example.com/api/:id');
   });
@@ -414,7 +414,7 @@ describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {
     const url = 'https://example.com/odata/Products(\':productId\')';
     const params = [{ name: 'productId', type: 'path', enabled: true, value: 'ABC 123' }];
 
-    const result = interpolateUrlPathParams(url, params, { raw: true });
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
 
     expect(result).toEqual('https://example.com/odata/Products(\'ABC 123\')');
   });
@@ -423,7 +423,7 @@ describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {
     const url = 'https://example.com/api/:id/already%20encoded';
     const params = [{ name: 'id', type: 'path', enabled: true, value: '456' }];
 
-    const result = interpolateUrlPathParams(url, params, { raw: true });
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
 
     expect(result).toEqual('https://example.com/api/456/already%20encoded');
   });
@@ -432,7 +432,7 @@ describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {
     const url = 'https://example.com/api/:id';
     const params = [{ name: 'id', type: 'path', enabled: false, value: '123' }];
 
-    const result = interpolateUrlPathParams(url, params, { raw: true });
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
 
     expect(result).toEqual('https://example.com/api/:id');
   });
