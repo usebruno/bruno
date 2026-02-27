@@ -3,6 +3,10 @@ const YAML = require('yaml');
 const { NODEVM_WRAPPER_OFFSET, QUICKJS_WRAPPER_OFFSET } = require('../sandbox/wrapper-constants');
 
 const DEFAULT_CONTEXT_LINES = 5;
+const ALLOWED_SOURCE_EXTENSIONS = ['.bru', '.yml', '.yaml'];
+
+const isAllowedSourceFile = (filePath) =>
+  typeof filePath === 'string' && ALLOWED_SOURCE_EXTENSIONS.some((ext) => filePath.endsWith(ext));
 
 const SCRIPT_TYPES = Object.freeze({
   PRE_REQUEST: 'pre-request',
@@ -116,23 +120,25 @@ const adjustLineNumber = (filePath, reportedLine, isQuickJS, scriptType = null, 
   // Use metadata if available to correctly map line numbers in combined scripts
   if (scriptType && scriptMetadata) {
     const { requestStartLine, requestEndLine } = scriptMetadata;
-    if (requestStartLine && scriptRelativeLine >= requestStartLine && scriptRelativeLine <= requestEndLine) {
-      // Error is within the request script segment
-      const blockStartLine = isBruFile
-        ? findScriptBlockStartLine(filePath, scriptType, cache)
-        : findYmlScriptBlockStartLine(filePath, scriptType, cache);
+    if (requestStartLine != null && requestEndLine != null) {
+      if (scriptRelativeLine >= requestStartLine && scriptRelativeLine <= requestEndLine) {
+        // Error is within the request script segment
+        const blockStartLine = isBruFile
+          ? findScriptBlockStartLine(filePath, scriptType, cache)
+          : findYmlScriptBlockStartLine(filePath, scriptType, cache);
 
-      if (blockStartLine) {
-        return blockStartLine + (scriptRelativeLine - requestStartLine) - 1;
+        if (blockStartLine) {
+          return blockStartLine + (scriptRelativeLine - requestStartLine) - 1;
+        }
+      } else {
+        // Error is in a collection/folder-level script
+        // Cannot map to the request .bru/.yml file, return null to skip source context.
+        return null;
       }
-    } else {
-      // Error is in a collection/folder-level script
-      // Cannot map to the request .bru/.yml file, return null to skip source context.
-      return null;
     }
   }
 
-  // Fallback to old behavior if no metadata
+  // No segment metadata, map script-relative line to file line via block start.
   if (scriptType) {
     const blockStartLine = isBruFile
       ? findScriptBlockStartLine(filePath, scriptType, cache)
@@ -358,7 +364,7 @@ const formatErrorWithContext = (error, relativeFilePath = null, scriptType = nul
 
   const sourceFile = segmentResult ? segmentResult.filePath : filePath;
   const sourceLine = segmentResult ? segmentResult.line : adjustedLine;
-  const context = getSourceContext(sourceFile, sourceLine, contextLines, cache);
+  const context = isAllowedSourceFile(sourceFile) ? getSourceContext(sourceFile, sourceLine, contextLines, cache) : null;
 
   if (!context) {
     return `${error.message}\n${error.stack || ''}`;

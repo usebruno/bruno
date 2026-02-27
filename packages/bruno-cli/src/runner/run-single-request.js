@@ -115,7 +115,7 @@ const runSingleRequest = async function (
           console.log(chalk.red(`   ✕ `) + chalk.red(message));
           if (r.stack && scriptType) {
             const errorObj = {
-              message: r.error,
+              message: r.error || message,
               stack: r.stack,
               name: r.errorName || 'Error'
             };
