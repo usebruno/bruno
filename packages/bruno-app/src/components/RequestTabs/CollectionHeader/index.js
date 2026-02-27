@@ -15,6 +15,7 @@ import {
   IconUpload
 } from '@tabler/icons';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
+import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
@@ -52,6 +53,20 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
 
   const onSwitcherCreate = (ref) => (switcherRef.current = ref);
   const onWorkspaceActionsCreate = (ref) => (workspaceActionsRef.current = ref);
+
+  // Auto-enter rename mode when workspace is newly created
+  useEffect(() => {
+    if (isScratchCollection && currentWorkspace?.isNewlyCreated) {
+      dispatch(updateWorkspace({ uid: currentWorkspace.uid, isNewlyCreated: false }));
+      setIsRenamingWorkspace(true);
+      setWorkspaceNameInput(currentWorkspace.name || '');
+      setWorkspaceNameError('');
+      setTimeout(() => {
+        workspaceNameInputRef.current?.focus();
+        workspaceNameInputRef.current?.select();
+      }, 50);
+    }
+  }, [isScratchCollection, currentWorkspace?.isNewlyCreated, currentWorkspace?.uid, currentWorkspace?.name, dispatch]);
 
   const handleCancelWorkspaceRename = useCallback(() => {
     setIsRenamingWorkspace(false);
