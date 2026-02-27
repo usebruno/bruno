@@ -3,6 +3,9 @@ import { mockDataFunctions } from '@usebruno/common';
 const CodeMirror = require('codemirror');
 
 // Static API hints - Bruno JavaScript API (subgrouped by category)
+// TODO: Restore the commented-out APIs once the UI update fixes are live.
+// Currently these APIs only work within the request lifecycle but fail to update the UI tables.
+// e.g., setCollectionVar only sets the variable in the request lifecycle, fails to update the table in the UI.
 const STATIC_API_HINTS = {
   req: [
     'req',
@@ -67,11 +70,11 @@ const STATIC_API_HINTS = {
     'bru.getEnvVar(key)',
     'bru.getFolderVar(key)',
     'bru.getCollectionVar(key)',
-    'bru.setCollectionVar(key, value)',
+    // 'bru.setCollectionVar(key, value)',
     'bru.hasCollectionVar(key)',
-    'bru.deleteCollectionVar(key)',
-    'bru.deleteAllCollectionVars()',
-    'bru.getAllCollectionVars()',
+    // 'bru.deleteCollectionVar(key)',
+    // 'bru.deleteAllCollectionVars()',
+    // 'bru.getAllCollectionVars()',
     'bru.setEnvVar(key, value)',
     'bru.setEnvVar(key, value, options)',
     'bru.deleteEnvVar(key)',
@@ -96,9 +99,9 @@ const STATIC_API_HINTS = {
     'bru.getOauth2CredentialVar(key)',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
-    'bru.deleteGlobalEnvVar(key)',
+    // 'bru.deleteGlobalEnvVar(key)',
     'bru.getAllGlobalEnvVars()',
-    'bru.deleteAllGlobalEnvVars()',
+    // 'bru.deleteAllGlobalEnvVars()',
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
