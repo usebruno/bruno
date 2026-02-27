@@ -45,7 +45,7 @@ describe('Examples Export/Import', () => {
                   }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [
                     { uid: 'res-header-1', name: 'Content-Type', value: 'application/json', enabled: true }
@@ -67,7 +67,7 @@ describe('Examples Export/Import', () => {
       expect(httpRequest.examples[0].type).toBe('http-request');
       expect(httpRequest.examples[0].request.url).toBe('https://api.example.com/test');
       expect(httpRequest.examples[0].request.method).toBe('POST');
-      expect(httpRequest.examples[0].response.status).toBe('200');
+      expect(httpRequest.examples[0].response.status).toEqual(200);
       expect(httpRequest.examples[0].response.statusText).toBe('OK');
       expect(httpRequest.examples[0].response.body).toBe('{"success": true, "data": "test"}');
     });
@@ -103,7 +103,7 @@ describe('Examples Export/Import', () => {
                   body: { mode: 'none' }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [],
                   body: '{"success": true}'
@@ -123,7 +123,7 @@ describe('Examples Export/Import', () => {
                   body: { mode: 'none' }
                 },
                 response: {
-                  status: '400',
+                  status: 400,
                   statusText: 'Bad Request',
                   headers: [],
                   body: '{"error": "Invalid request"}'
@@ -140,8 +140,8 @@ describe('Examples Export/Import', () => {
       expect(httpRequest.examples).toHaveLength(2);
       expect(httpRequest.examples[0].name).toBe('Success Example');
       expect(httpRequest.examples[1].name).toBe('Error Example');
-      expect(httpRequest.examples[0].response.status).toBe('200');
-      expect(httpRequest.examples[1].response.status).toBe('400');
+      expect(httpRequest.examples[0].response.status).toEqual(200);
+      expect(httpRequest.examples[1].response.status).toEqual(400);
     });
 
     it('should handle examples with GraphQL requests', () => {
@@ -191,7 +191,7 @@ describe('Examples Export/Import', () => {
                   }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [
                     { uid: 'res-header-1', name: 'Content-Type', value: 'application/json', enabled: true }
@@ -268,7 +268,7 @@ describe('Examples Export/Import', () => {
               body: { mode: 'json', json: '{}' }
             },
             response: {
-              status: '200',
+              status: 200,
               statusText: 'OK',
               headers: [],
               body: '{"success": true}'
@@ -281,7 +281,7 @@ describe('Examples Export/Import', () => {
 
       expect(result.examples).toHaveLength(1);
       expect(result.examples[0].name).toBe('Test Example');
-      expect(result.examples[0].response.status).toBe('200');
+      expect(result.examples[0].response.status).toEqual(200);
     });
   });
 
@@ -378,7 +378,7 @@ describe('Examples Export/Import', () => {
                   body: { mode: 'json', json: '{}' }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [],
                   body: '{"success": true}'
@@ -430,7 +430,7 @@ describe('Examples Export/Import', () => {
                   body: { mode: 'json', json: '{}' }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [],
                   body: '{"success": true}'
@@ -476,7 +476,7 @@ describe('Examples Export/Import', () => {
                   body: { mode: 'json', json: '{}' }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [],
                   body: '{"success": true}'
@@ -536,7 +536,7 @@ describe('Examples Export/Import', () => {
                   }
                 },
                 response: {
-                  status: '200',
+                  status: 200,
                   statusText: 'OK',
                   headers: [
                     { uid: 'res-header-1', name: 'Content-Type', value: 'application/json', enabled: true }

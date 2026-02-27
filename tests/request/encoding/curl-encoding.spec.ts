@@ -1,78 +1,85 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest } from '../../utils/page';
+import { openCollection } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Code Generation URL Encoding', () => {
-  test.afterEach(async ({ page }) => {
-    try {
-      const modalCloseButton = page.getByTestId('modal-close-button');
-      if (await modalCloseButton.isVisible()) {
-        await modalCloseButton.click();
-        await modalCloseButton.waitFor({ state: 'hidden' });
-      }
-    } catch (e) {}
+  test.describe('when encodeUrl is true', () => {
+    test('should encode unencoded URL (spaces to %20)', async ({ pageWithUserData: page }) => {
+      const { sidebar, request, modal } = buildCommonLocators(page);
 
-    await closeAllCollections(page);
+      await openCollection(page, 'encoding-test');
+      await sidebar.request('encode-url-unencoded').click();
+
+      await request.generateCodeButton().click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+
+      const codeEditor = page.locator('.editor-content .CodeMirror').first();
+      await expect(codeEditor).toBeVisible();
+
+      const generatedCode = await codeEditor.textContent();
+      expect(generatedCode).toContain('http://base.source?name=John%20Doe');
+
+      await modal.closeButton().click();
+      await modal.closeButton().waitFor({ state: 'hidden' });
+    });
+
+    test('should double-encode pre-encoded URL (%20 to %2520)', async ({ pageWithUserData: page }) => {
+      const { sidebar, request, modal } = buildCommonLocators(page);
+
+      await openCollection(page, 'encoding-test');
+      await sidebar.request('encode-url-preencoded').click();
+
+      await request.generateCodeButton().click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+
+      const codeEditor = page.locator('.editor-content .CodeMirror').first();
+      await expect(codeEditor).toBeVisible();
+
+      const generatedCode = await codeEditor.textContent();
+      expect(generatedCode).toContain('http://base.source?name=John%2520Doe');
+
+      await modal.closeButton().click();
+      await modal.closeButton().waitFor({ state: 'hidden' });
+    });
   });
 
-  test('Should generate code with proper URL encoding for unencoded input', async ({
-    page,
-    createTmpDir
-  }) => {
-    const collectionName = 'unencoded-test-collection';
-    const requestName = 'curl-encoding-unencoded';
+  test.describe('when encodeUrl is false', () => {
+    test('should preserve unencoded URL as-is (spaces kept)', async ({ pageWithUserData: page }) => {
+      const { sidebar, request, modal } = buildCommonLocators(page);
 
-    // Create collection and request
-    await createCollection(page, collectionName, await createTmpDir(collectionName));
-    await createRequest(page, requestName, collectionName, { url: 'http://base.source?name=John Doe' });
+      await openCollection(page, 'encoding-test');
+      await sidebar.request('raw-url-unencoded').click();
 
-    // Click the request in the sidebar
-    await page.locator('.collection-item-name').filter({ hasText: requestName }).first().click();
+      await request.generateCodeButton().click();
+      await expect(page.getByRole('dialog')).toBeVisible();
 
-    await page.locator('#send-request .infotip').first().click();
+      const codeEditor = page.locator('.editor-content .CodeMirror').first();
+      await expect(codeEditor).toBeVisible();
 
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.getByRole('dialog').locator('.bruno-modal-header-title')).toContainText('Generate Code');
+      const generatedCode = await codeEditor.textContent();
+      expect(generatedCode).toContain('http://base.source?name=John Doe');
 
-    const codeEditor = page.locator('.editor-content .CodeMirror').first();
-    await expect(codeEditor).toBeVisible();
+      await modal.closeButton().click();
+      await modal.closeButton().waitFor({ state: 'hidden' });
+    });
 
-    const generatedCode = await codeEditor.textContent();
+    test('should preserve pre-encoded URL as-is', async ({ pageWithUserData: page }) => {
+      const { sidebar, request, modal } = buildCommonLocators(page);
 
-    expect(generatedCode).toContain('http://base.source/?name=John%20Doe');
+      await openCollection(page, 'encoding-test');
+      await sidebar.request('raw-url-preencoded').click();
 
-    await page.getByTestId('modal-close-button').click();
+      await request.generateCodeButton().click();
+      await expect(page.getByRole('dialog')).toBeVisible();
 
-    await page.getByTestId('modal-close-button').waitFor({ state: 'hidden' });
-  });
+      const codeEditor = page.locator('.editor-content .CodeMirror').first();
+      await expect(codeEditor).toBeVisible();
 
-  test('Should generate code with proper URL encoding for encoded input', async ({
-    page,
-    createTmpDir
-  }) => {
-    const collectionName = 'encoded-test-collection';
-    const requestName = 'curl-encoding-encoded';
+      const generatedCode = await codeEditor.textContent();
+      expect(generatedCode).toContain('http://base.source?name=John%20Doe');
 
-    // Create collection and request
-    await createCollection(page, collectionName, await createTmpDir(collectionName));
-    await createRequest(page, requestName, collectionName, { url: 'http://base.source?name=John%20Doe' });
-
-    // Click the request in the sidebar
-    await page.locator('.collection-item-name').filter({ hasText: requestName }).first().click();
-
-    await page.locator('#send-request .infotip').first().click();
-
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.getByRole('dialog').locator('.bruno-modal-header-title')).toContainText('Generate Code');
-
-    const codeEditor = page.locator('.editor-content .CodeMirror').first();
-    await expect(codeEditor).toBeVisible();
-
-    const generatedCode = await codeEditor.textContent();
-
-    expect(generatedCode).toContain('http://base.source/?name=John%20Doe');
-
-    await page.getByTestId('modal-close-button').click();
-
-    await page.getByTestId('modal-close-button').waitFor({ state: 'hidden' });
+      await modal.closeButton().click();
+      await modal.closeButton().waitFor({ state: 'hidden' });
+    });
   });
 });

@@ -44,7 +44,7 @@ describe('Digest Auth with query params', () => {
     addDigestInterceptor(axiosInstance, request);
 
     const res = await axiosInstance(request);
-    expect(res.status).toBe(200);
+    expect(res.status).toEqual(200);
 
     expect(capturedAuthorization).toBeTruthy();
     // Extract uri="..." from the header
