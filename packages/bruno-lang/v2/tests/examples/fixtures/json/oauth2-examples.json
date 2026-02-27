@@ -31,6 +31,7 @@
       "pkce": true,
       "credentialsPlacement": "header",
       "credentialsId": "authorization",
+      "tokenSource": "access_token",
       "tokenPlacement": "header",
       "tokenHeaderPrefix": "Bearer",
       "tokenQueryKey": "access_token",
