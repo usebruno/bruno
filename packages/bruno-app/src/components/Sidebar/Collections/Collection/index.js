@@ -32,7 +32,7 @@ import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest } from 'utils/collections';
+import { isItemAFolder, isItemARequest, areItemsLoading } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
@@ -48,7 +48,7 @@ import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
-import { areItemsLoading } from 'utils/collections';
+import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 
 const Collection = ({ collection, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
@@ -278,6 +278,11 @@ const Collection = ({ collection, searchText }) => {
 
   const requestItems = sortItemsBySequence(filter(collection.items, (i) => isItemARequest(i) && !i.isTransient));
   const folderItems = sortByNameThenSequence(filter(collection.items, (i) => isItemAFolder(i) && !i.isTransient));
+  const isCollectionReady = collection.mountStatus === 'mounted' && collection.isLoading === false;
+  const isCollectionEmpty = !folderItems?.length && !requestItems?.length;
+  const showEmptyCollectionMessage = isCollectionReady && isCollectionEmpty && !hasSearchText;
+
+  const emptyStateMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: null });
 
   const menuItems = [
     {
@@ -472,6 +477,23 @@ const Collection = ({ collection, searchText }) => {
             {requestItems?.map?.((i) => {
               return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
             })}
+            {showEmptyCollectionMessage ? (
+              <div className="empty-collection-message">
+                <div className="indent-block" style={{ width: 16, minWidth: 16, height: '100%' }}>
+                  &nbsp;
+                </div>
+                <div style={{ paddingLeft: 8 }}>
+                  <MenuDropdown
+                    items={emptyStateMenuItems}
+                    placement="bottom-start"
+                    appendTo={dropdownContainerRef?.current || document.body}
+                    popperOptions={{ strategy: 'fixed' }}
+                  >
+                    <button className="ml-1 add-request-link">+ Add request</button>
+                  </MenuDropdown>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
