@@ -5,6 +5,19 @@ const { preferencesUtil, getPreferences, savePreferences } = require('../store/p
 const { importCollection, findUniqueFolderName } = require('../utils/collection-import');
 const { resolveDefaultLocation } = require('../utils/default-location');
 
+let pendingSampleCollection = null;
+
+// When renderer is ready, send any pending collection-opened event
+// This ensures the sample collection appears in the sidebar after onboarding
+ipcMain.on('main:renderer-ready', (mainWindow) => {
+  if (pendingSampleCollection) {
+    const { mainWindow: win, collectionPath, uid, brunoConfig } = pendingSampleCollection;
+    win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+    ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
+    pendingSampleCollection = null;
+  }
+});
+
 /**
  * Import sample collection for new users
  */
@@ -37,7 +50,9 @@ async function importSampleCollection(collectionLocation, mainWindow) {
       collectionToImport,
       collectionLocation,
       mainWindow,
-      collectionName
+      collectionName,
+      undefined, // format - use default
+      { skipOpenEvent: true } // Don't send event yet - renderer isn't ready
     );
 
     return { collectionPath: createdPath, uid, brunoConfig };
@@ -79,7 +94,12 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
     // Genuinely new user
     if (process.env.DISABLE_SAMPLE_COLLECTION_IMPORT !== 'true') {
       const collectionLocation = resolveDefaultLocation();
-      await importSampleCollection(collectionLocation, mainWindow);
+      const collectionInfo = await importSampleCollection(collectionLocation, mainWindow);
+
+      // Store collection info to open after renderer is ready
+      // The main:collection-opened event is deferred because the renderer
+      // is still waiting for main:onboarding-complete at this point
+      pendingSampleCollection = { mainWindow, ...collectionInfo };
     }
 
     // Mark as launched and explicitly enable the welcome modal for new users

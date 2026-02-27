@@ -170,8 +170,8 @@ export const test = baseTest.extend<
             });
             await fs.promises.writeFile(path.join(userDataPath, file), content, 'utf-8');
           }
-        } else if (!providedUserDataPath) {
-          // No initUserDataPath and no explicit userDataPath: create default preferences to skip welcome modal
+        } else {
+          // No initUserDataPath provided: create default preferences to skip onboarding
           // This prevents the welcome modal from blocking tests that don't need user data setup
           const defaultPreferences = {
             preferences: {
