@@ -272,6 +272,101 @@ describe('parseCurlCommand', () => {
         urlWithoutQuery: 'https://api.example.com'
       });
     });
+
+    it('should parse digest authentication', () => {
+      const result = parseCurlCommand(`
+        curl --digest -u "myuser:mypass" https://api.example.com/digest
+      `);
+
+      expect(result).toEqual({
+        method: 'get',
+        auth: {
+          mode: 'digest',
+          digest: {
+            username: 'myuser',
+            password: 'mypass'
+          }
+        },
+        url: 'https://api.example.com/digest',
+        urlWithoutQuery: 'https://api.example.com/digest'
+      });
+    });
+
+    it('should parse digest authentication with --user flag', () => {
+      const result = parseCurlCommand(`
+        curl --digest --user "admin:secret" https://api.example.com/secure
+      `);
+
+      expect(result).toEqual({
+        method: 'get',
+        auth: {
+          mode: 'digest',
+          digest: {
+            username: 'admin',
+            password: 'secret'
+          }
+        },
+        url: 'https://api.example.com/secure',
+        urlWithoutQuery: 'https://api.example.com/secure'
+      });
+    });
+
+    it('should parse NTLM authentication', () => {
+      const result = parseCurlCommand(`
+        curl --ntlm -u "myuser:mypass" https://api.example.com/ntlm
+      `);
+
+      expect(result).toEqual({
+        method: 'get',
+        auth: {
+          mode: 'ntlm',
+          ntlm: {
+            username: 'myuser',
+            password: 'mypass'
+          }
+        },
+        url: 'https://api.example.com/ntlm',
+        urlWithoutQuery: 'https://api.example.com/ntlm'
+      });
+    });
+
+    it('should parse NTLM authentication with --user flag', () => {
+      const result = parseCurlCommand(`
+        curl --ntlm --user "domain\\username:password" https://api.example.com/ntlm
+      `);
+
+      expect(result).toEqual({
+        method: 'get',
+        auth: {
+          mode: 'ntlm',
+          ntlm: {
+            username: 'domain\\username',
+            password: 'password'
+          }
+        },
+        url: 'https://api.example.com/ntlm',
+        urlWithoutQuery: 'https://api.example.com/ntlm'
+      });
+    });
+
+    it('should handle digest auth flag before -u flag', () => {
+      const result = parseCurlCommand(`
+        curl -u "user:pass" --digest https://api.example.com
+      `);
+
+      expect(result).toEqual({
+        method: 'get',
+        auth: {
+          mode: 'digest',
+          digest: {
+            username: 'user',
+            password: 'pass'
+          }
+        },
+        url: 'https://api.example.com',
+        urlWithoutQuery: 'https://api.example.com'
+      });
+    });
   });
 
   describe('Form Data', () => {
@@ -318,9 +413,9 @@ describe('parseCurlCommand', () => {
       expect(result).toEqual({
         method: 'get',
         headers: {
-          'Cookie': 'session=abc123'
+          Cookie: 'session=abc123'
         },
-        cookieString: "session=abc123",
+        cookieString: 'session=abc123',
         cookies: {
           session: 'abc123'
         },
@@ -337,9 +432,9 @@ describe('parseCurlCommand', () => {
       expect(result).toEqual({
         method: 'get',
         headers: {
-          'Cookie': 'session=abc123; user=john'
+          Cookie: 'session=abc123; user=john'
         },
-        cookieString: "session=abc123; user=john",
+        cookieString: 'session=abc123; user=john',
         cookies: {
           session: 'abc123',
           user: 'john'
@@ -357,9 +452,9 @@ describe('parseCurlCommand', () => {
       expect(result).toEqual({
         method: 'get',
         headers: {
-          'Cookie': 'session=abc123; user=john'
+          Cookie: 'session=abc123; user=john'
         },
-        cookieString: "session=abc123; user=john",
+        cookieString: 'session=abc123; user=john',
         cookies: {
           session: 'abc123',
           user: 'john'
@@ -378,15 +473,15 @@ describe('parseCurlCommand', () => {
       expect(result).toEqual({
         method: 'get',
         headers: {
-          'Cookie': 'session=abc123; user=john; path=/; domain=example.com; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; HttpOnly'
+          Cookie: 'session=abc123; user=john; path=/; domain=example.com; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; HttpOnly'
         },
-        cookieString: "session=abc123; user=john; path=/; domain=example.com; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; HttpOnly",
+        cookieString: 'session=abc123; user=john; path=/; domain=example.com; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; HttpOnly',
         cookies: {
           session: 'abc123',
           user: 'john',
           path: '/',
           domain: 'example.com',
-          expires: 'Thu, 01 Jan 1970 00:00:00 GMT',
+          expires: 'Thu, 01 Jan 1970 00:00:00 GMT'
         },
         url: 'https://api.example.com',
         urlWithoutQuery: 'https://api.example.com'

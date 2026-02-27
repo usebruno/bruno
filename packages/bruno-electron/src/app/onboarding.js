@@ -3,31 +3,12 @@ const path = require('node:path');
 const { app } = require('electron');
 const { preferencesUtil } = require('../store/preferences');
 const { importCollection, findUniqueFolderName } = require('../utils/collection-import');
-
-/**
- * Get the default location for collections
- * Tries documents first, then desktop, then userData as fallback
- */
-function getDefaultCollectionLocation() {
-  const preferredPaths = ['documents', 'desktop', 'userData'];
-
-  for (const pathType of preferredPaths) {
-    try {
-      return app.getPath(pathType);
-    } catch (error) {
-      console.warn(`Failed to get ${pathType} path:`, error.message);
-      // Continue to next path
-    }
-  }
-
-  // This should never happen since userData should always be available
-  throw new Error('No valid collection location found');
-}
+const { resolveDefaultLocation } = require('../utils/default-location');
 
 /**
  * Import sample collection for new users
  */
-async function importSampleCollection(collectionLocation, mainWindow, lastOpenedCollections) {
+async function importSampleCollection(collectionLocation, mainWindow) {
   // Handle both development and production paths
   const sampleCollectionPath = app.isPackaged
     ? path.join(process.resourcesPath, 'data', 'sample-collection.json')
@@ -56,7 +37,6 @@ async function importSampleCollection(collectionLocation, mainWindow, lastOpened
       collectionToImport,
       collectionLocation,
       mainWindow,
-      lastOpenedCollections,
       collectionName
     );
 
@@ -80,14 +60,15 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
       // Check if user already has collections (indicates they're an existing user)
       // Onboarding was added in a later version, so for existing users we should skip it
       // to avoid creating sample collections
-      const collections = await lastOpenedCollections.getAll();
+      // lastOpenedCollections is still used here to check for existing collections during migration
+      const collections = lastOpenedCollections ? lastOpenedCollections.getAll() : [];
       if (collections.length > 0) {
         await preferencesUtil.markAsLaunched();
         return;
       }
 
-      const collectionLocation = getDefaultCollectionLocation();
-      await importSampleCollection(collectionLocation, mainWindow, lastOpenedCollections);
+      const collectionLocation = resolveDefaultLocation();
+      await importSampleCollection(collectionLocation, mainWindow);
     }
 
     await preferencesUtil.markAsLaunched();

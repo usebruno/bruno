@@ -32,12 +32,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .network-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
   .network-content {
     flex: 1;
     overflow: hidden;
@@ -81,11 +75,10 @@ const StyledWrapper = styled.div`
     display: grid;
     grid-template-columns: 80px 80px 150px 1fr 100px 80px 80px;
     gap: 12px;
-    padding: 8px 16px;
+    padding: 4px 16px;
     background: ${(props) => props.theme.console.headerBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
-    font-size: ${(props) => props.theme.font.size.xs};
-    font-weight: 500;
+    font-size: 10px;
     color: ${(props) => props.theme.console.titleColor};
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -103,8 +96,7 @@ const StyledWrapper = styled.div`
     display: grid;
     grid-template-columns: 80px 80px 150px 1fr 100px 80px 80px;
     gap: 12px;
-    padding: 6px 16px;
-    border-bottom: 1px solid ${(props) => props.theme.console.border};
+    padding: 2px 16px;
     cursor: pointer;
     transition: background-color 0.1s ease;
     font-size: ${(props) => props.theme.font.size.sm};
@@ -115,7 +107,8 @@ const StyledWrapper = styled.div`
     }
 
     &.selected {
-      background: ${(props) => props.theme.console.buttonHoverBg};
+      padding-left: 13px;
+      background: ${(props) => props.theme.console.logHoverBg};
       border-left: 3px solid ${(props) => props.theme.console.checkboxColor};
     }
   }
@@ -123,25 +116,19 @@ const StyledWrapper = styled.div`
   .method-badge {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    padding: 2px 6px;
-    border-radius: 4px;
+    justify-content: start;
     font-size: 10px;
-    font-weight: 500;
-    color: white;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     min-width: 45px;
   }
 
   .status-badge {
-    font-weight: 500;
     font-size: ${(props) => props.theme.font.size.sm};
   }
 
   .request-domain {
     color: ${(props) => props.theme.console.messageColor};
-    font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -174,120 +161,6 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.xs};
     text-align: right;
   }
-
-  .filter-dropdown {
-    position: relative;
-  }
-
-  .filter-dropdown-trigger {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
-    background: transparent;
-    border: 1px solid ${(props) => props.theme.console.border};
-    border-radius: 4px;
-    color: ${(props) => props.theme.console.buttonColor};
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: ${(props) => props.theme.font.size.sm};
-
-    &:hover {
-      background: ${(props) => props.theme.console.buttonHoverBg};
-      color: ${(props) => props.theme.console.buttonHoverColor};
-    }
-
-    .filter-summary {
-      font-weight: 500;
-      min-width: 24px;
-      text-align: center;
-    }
-  }
-
-  .filter-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    min-width: 200px;
-    max-width: 250px;
-    background: ${(props) => props.theme.console.dropdownBg};
-    border: 1px solid ${(props) => props.theme.console.border};
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
-    overflow: hidden;
-  }
-
-  .filter-dropdown-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: ${(props) => props.theme.console.dropdownHeaderBg};
-    border-bottom: 1px solid ${(props) => props.theme.console.border};
-    font-size: ${(props) => props.theme.font.size.sm};
-    font-weight: 500;
-    color: ${(props) => props.theme.console.titleColor};
-  }
-
-  .filter-toggle-all {
-    background: transparent;
-    border: none;
-    color: ${(props) => props.theme.console.buttonColor};
-    cursor: pointer;
-    font-size: ${(props) => props.theme.font.size.xs};
-    font-weight: 500;
-    padding: 2px 4px;
-    border-radius: 2px;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: ${(props) => props.theme.console.buttonHoverBg};
-    }
-  }
-
-  .filter-dropdown-options {
-    padding: 4px 0;
-  }
-
-  .filter-option {
-    display: flex;
-    align-items: center;
-    padding: 6px 12px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background: ${(props) => props.theme.console.optionHoverBg};
-    }
-
-    input[type="checkbox"] {
-      margin: 0 8px 0 0;
-      width: 14px;
-      height: 14px;
-      accent-color: ${(props) => props.theme.console.checkboxColor};
-    }
-  }
-
-  .filter-option-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-  }
-
-  .filter-option-label {
-    color: ${(props) => props.theme.console.optionLabelColor};
-    font-size: ${(props) => props.theme.font.size.sm};
-    font-weight: 400;
-  }
-
-  .filter-option-count {
-    color: ${(props) => props.theme.console.optionCountColor};
-    font-size: ${(props) => props.theme.font.size.xs};
-    font-weight: 400;
-    margin-left: auto;
-  }
 `;
 
-export default StyledWrapper; 
+export default StyledWrapper;

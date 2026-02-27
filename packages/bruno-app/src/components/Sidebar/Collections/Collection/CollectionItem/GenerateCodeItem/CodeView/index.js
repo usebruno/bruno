@@ -47,7 +47,7 @@ const CodeView = ({ language, item }) => {
         onCopy={() => toast.success('Copied to clipboard!')}
       >
         <button className="copy-to-clipboard">
-          <IconCopy size={25} strokeWidth={1.5} />
+          <IconCopy size={20} strokeWidth={1.5} />
         </button>
       </CopyToClipboard>
       <div className="editor-content">

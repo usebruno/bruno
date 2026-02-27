@@ -1,10 +1,10 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import type { WebSocketRequest as BrunoWebSocketRequest } from '@usebruno/schema-types/requests/websocket';
-import type { WebSocketRequest, WebSocketMessage, WebSocketMessageVariant } from '@opencollection/types/requests/websocket';
+import type { WebSocketRequest, WebSocketMessage, WebSocketRequestInfo, WebSocketRequestDetails, WebSocketRequestRuntime } from '@opencollection/types/requests/websocket';
 import type { Auth } from '@opencollection/types/common/auth';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import type { Variable } from '@opencollection/types/common/variables';
-import type { HttpHeader } from '@opencollection/types/requests/http';
+import type { HttpRequestHeader } from '@opencollection/types/requests/http';
 import { stringifyYml } from '../utils';
 import { isNonEmptyString } from '../../../utils';
 import { toOpenCollectionAuth } from '../common/auth';
@@ -14,25 +14,31 @@ import { toOpenCollectionScripts } from '../common/scripts';
 
 const stringifyWebsocketRequest = (item: BrunoItem): string => {
   try {
-    const ocRequest: WebSocketRequest = {
+    const ocRequest: WebSocketRequest = {};
+    const brunoRequest = item.request as BrunoWebSocketRequest;
+
+    // info block
+    const info: WebSocketRequestInfo = {
+      name: isNonEmptyString(item.name) ? item.name : 'Untitled Request',
       type: 'websocket'
     };
-
-    ocRequest.name = isNonEmptyString(item.name) ? item.name : 'Untitled Request';
-
-    // sequence
     if (item.seq) {
-      ocRequest.seq = item.seq;
+      info.seq = item.seq;
     }
+    if (item.tags?.length) {
+      info.tags = item.tags;
+    }
+    ocRequest.info = info;
 
-    const brunoRequest = item.request as BrunoWebSocketRequest;
-    // url
-    ocRequest.url = isNonEmptyString(brunoRequest.url) ? brunoRequest.url : '';
+    // websocket block
+    const websocket: WebSocketRequestDetails = {
+      url: isNonEmptyString(brunoRequest.url) ? brunoRequest.url : ''
+    };
 
     // headers
-    const headers: HttpHeader[] | undefined = toOpenCollectionHttpHeaders(brunoRequest.headers);
+    const headers: HttpRequestHeader[] | undefined = toOpenCollectionHttpHeaders(brunoRequest.headers);
     if (headers) {
-      ocRequest.headers = headers;
+      websocket.headers = headers;
     }
 
     // message
@@ -48,7 +54,7 @@ const stringifyWebsocketRequest = (item: BrunoItem): string => {
           data: msg.content || ''
         };
         if (message.data.trim().length) {
-          ocRequest.message = message;
+          websocket.message = message;
         }
       }
     }
@@ -56,29 +62,46 @@ const stringifyWebsocketRequest = (item: BrunoItem): string => {
     // auth
     const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
     if (auth) {
-      ocRequest.auth = auth;
+      websocket.auth = auth;
+    }
+
+    ocRequest.websocket = websocket;
+
+    // runtime block
+    const runtime: WebSocketRequestRuntime = {};
+    let hasRuntime = false;
+
+    // variables
+    const variables: Variable[] | undefined = toOpenCollectionVariables(brunoRequest.vars);
+    if (variables) {
+      runtime.variables = variables;
+      hasRuntime = true;
     }
 
     // scripts
     const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest);
     if (scripts) {
-      ocRequest.scripts = scripts;
+      runtime.scripts = scripts;
+      hasRuntime = true;
     }
 
-    // variables
-    const variables: Variable[] | undefined = toOpenCollectionVariables(brunoRequest.vars);
-    if (variables) {
-      ocRequest.variables = variables;
+    if (hasRuntime) {
+      ocRequest.runtime = runtime;
+    }
+
+    // settings
+    const wsSettings = item.settings as Record<string, number | string | undefined> | undefined;
+    if (wsSettings) {
+      ocRequest.settings = {};
+      const timeout = Number(wsSettings.timeout);
+      ocRequest.settings.timeout = !isNaN(timeout) ? timeout : 0;
+      const keepAliveInterval = Number(wsSettings.keepAliveInterval);
+      ocRequest.settings.keepAliveInterval = !isNaN(keepAliveInterval) ? keepAliveInterval : 0;
     }
 
     // docs
     if (isNonEmptyString(brunoRequest.docs)) {
       ocRequest.docs = brunoRequest.docs;
-    }
-
-    // tags
-    if (item.tags?.length) {
-      ocRequest.tags = item.tags;
     }
 
     return stringifyYml(ocRequest);

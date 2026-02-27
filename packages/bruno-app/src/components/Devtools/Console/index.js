@@ -2,12 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ReactJson from 'react-json-view';
 import { useTheme } from 'providers/Theme';
-import { 
-  IconX, 
-  IconTrash, 
+import {
+  IconX,
+  IconTrash,
   IconFilter,
-  IconAlertTriangle, 
-  IconAlertCircle, 
+  IconAlertTriangle,
+  IconAlertCircle,
   IconBug,
   IconCode,
   IconChevronDown,
@@ -15,10 +15,10 @@ import {
   IconNetwork,
   IconDashboard
 } from '@tabler/icons';
-import { 
-  closeConsole, 
-  clearLogs, 
-  updateFilter, 
+import {
+  closeConsole,
+  clearLogs,
+  updateFilter,
   toggleAllFilters,
   setActiveTab,
   clearDebugErrors,
@@ -27,6 +27,7 @@ import {
 } from 'providers/ReduxStore/slices/logs';
 
 import NetworkTab from './NetworkTab';
+import TerminalTab from './TerminalTab';
 import RequestDetailsPanel from './RequestDetailsPanel';
 // import DebugTab from './DebugTab';
 import ErrorDetailsPanel from './ErrorDetailsPanel';
@@ -35,7 +36,7 @@ import StyledWrapper from './StyledWrapper';
 
 const LogIcon = ({ type }) => {
   const iconProps = { size: 16, strokeWidth: 1.5 };
-  
+
   switch (type) {
     case 'error':
       return <IconAlertCircle className="log-icon error" {...iconProps} />;
@@ -52,36 +53,131 @@ const LogIcon = ({ type }) => {
 
 const LogTimestamp = ({ timestamp }) => {
   const date = new Date(timestamp);
-  const time = date.toLocaleTimeString('en-US', { 
-    hour12: false, 
-    hour: '2-digit', 
-    minute: '2-digit', 
+  const time = date.toLocaleTimeString('en-US', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
     second: '2-digit',
     fractionalSecondDigits: 3
   });
-  
+
   return <span className="log-timestamp">{time}</span>;
+};
+
+// Helper function to check if an object is a plain object (not a class instance)
+const isPlainObject = (obj) => {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const proto = Object.getPrototypeOf(obj);
+  return proto === null || proto === Object.prototype;
+};
+
+// Helper function to transform Bruno special types back to readable format
+// Extracted outside component to avoid recreation on every render
+const transformBrunoTypes = (obj, seen = new WeakSet()) => {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
+  }
+
+  // Guard against circular references
+  if (seen.has(obj)) {
+    return '[Circular]';
+  }
+  seen.add(obj);
+
+  // Handle Bruno special types
+  if (obj.__brunoType) {
+    switch (obj.__brunoType) {
+      case 'Set':
+        // Transform Set to display values at top level with numeric indices
+        if (Array.isArray(obj.__brunoValue)) {
+          return Object.fromEntries(
+            obj.__brunoValue.map((value, index) => [index, transformBrunoTypes(value, seen)])
+          );
+        }
+        return {};
+      case 'Map':
+        // Transform Map to display entries at top level with => notation
+        if (Array.isArray(obj.__brunoValue)) {
+          const mapEntries = {};
+          for (const entry of obj.__brunoValue) {
+            // Defensive check: ensure entry is a valid [key, value] pair
+            if (Array.isArray(entry) && entry.length >= 2) {
+              const [key, value] = entry;
+              mapEntries[`${String(key)} =>`] = transformBrunoTypes(value, seen);
+            }
+          }
+          return mapEntries;
+        }
+        return {};
+      case 'Function':
+        return `[Function: ${obj.__brunoValue?.split?.('\n')?.[0]?.substring(0, 50) ?? 'anonymous'}...]`;
+      case 'undefined':
+        return 'undefined';
+      default:
+        return obj;
+    }
+  }
+
+  // Handle arrays - recurse into elements
+  if (Array.isArray(obj)) {
+    return obj.map((item) => transformBrunoTypes(item, seen));
+  }
+
+  // Preserve non-plain objects (Date, Error, RegExp, class instances, etc.)
+  if (!isPlainObject(obj)) {
+    return obj;
+  }
+
+  // Only deep-clone plain objects
+  const transformed = {};
+  for (const [key, value] of Object.entries(obj)) {
+    transformed[key] = transformBrunoTypes(value, seen);
+  }
+  return transformed;
+};
+
+// Helper to get metadata about Bruno types for display purposes
+const getBrunoTypeMetadata = (obj) => {
+  if (typeof obj !== 'object' || obj === null) {
+    return {};
+  }
+  if (obj.__brunoType === 'Set' || obj.__brunoType === 'Map') {
+    return { type: obj.__brunoType };
+  }
+  return {};
 };
 
 const LogMessage = ({ message, args }) => {
   const { displayedTheme } = useTheme();
-  
+
   const formatMessage = (msg, originalArgs) => {
     if (originalArgs && originalArgs.length > 0) {
       return originalArgs.map((arg, index) => {
         if (typeof arg === 'object' && arg !== null) {
+          const metadata = getBrunoTypeMetadata(arg);
+          const transformedArg = transformBrunoTypes(arg);
+
+          // Determine the name to display based on the type
+          let displayName = false;
+          let shouldCollapse = 1; // Default: collapse at depth 1 for regular objects
+
+          if (metadata.type === 'Map' || metadata.type === 'Set') {
+            displayName = metadata.type;
+            shouldCollapse = true; // Fully collapse Maps/Sets by default
+          }
+
           return (
             <div key={index} className="log-object">
               <ReactJson
-                src={arg}
+                src={transformedArg}
                 theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
                 iconStyle="triangle"
                 indentWidth={2}
-                collapsed={1}
+                collapsed={shouldCollapse}
                 displayDataTypes={false}
                 displayObjectSize={false}
                 enableClipboard={false}
-                name={false}
+                name={displayName}
                 style={{
                   backgroundColor: 'transparent',
                   fontSize: '${(props) => props.theme.font.size.sm}',
@@ -98,7 +194,7 @@ const LogMessage = ({ message, args }) => {
   };
 
   const formattedMessage = formatMessage(message, args);
-  
+
   return (
     <span className="log-message">
       {Array.isArray(formattedMessage) ? formattedMessage.map((item, index) => (
@@ -112,7 +208,7 @@ const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => 
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const allFiltersEnabled = Object.values(filters).every(f => f);
+  const allFiltersEnabled = Object.values(filters).every((f) => f);
   const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
 
   useEffect(() => {
@@ -128,7 +224,7 @@ const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => 
 
   return (
     <div className="filter-dropdown" ref={dropdownRef}>
-      <button 
+      <button
         className="filter-dropdown-trigger"
         onClick={() => setIsOpen(!isOpen)}
         title="Filter logs by type"
@@ -139,19 +235,19 @@ const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => 
         </span>
         <IconChevronDown size={14} strokeWidth={1.5} />
       </button>
-      
+
       {isOpen && (
-        <div className={`filter-dropdown-menu right`}>
+        <div className="filter-dropdown-menu right">
           <div className="filter-dropdown-header">
             <span>Filter by Type</span>
-            <button 
+            <button
               className="filter-toggle-all"
               onClick={() => onToggleAll(!allFiltersEnabled)}
             >
               {allFiltersEnabled ? 'Hide All' : 'Show All'}
             </button>
           </div>
-          
+
           <div className="filter-dropdown-options">
             {Object.entries(filters).map(([filterType, enabled]) => (
               <label key={filterType} className="filter-option">
@@ -178,21 +274,8 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const allFiltersEnabled = Object.values(filters).every(f => f);
+  const allFiltersEnabled = Object.values(filters).every((f) => f);
   const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
-
-  const getMethodColor = (method) => {
-    switch (method?.toUpperCase()) {
-      case 'GET': return '#10b981';
-      case 'POST': return '#8b5cf6';
-      case 'PUT': return '#f59e0b';
-      case 'DELETE': return '#ef4444';
-      case 'PATCH': return '#06b6d4';
-      case 'HEAD': return '#6b7280';
-      case 'OPTIONS': return '#84cc16';
-      default: return '#6b7280';
-    }
-  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -207,7 +290,7 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
 
   return (
     <div className="filter-dropdown" ref={dropdownRef}>
-      <button 
+      <button
         className="filter-dropdown-trigger"
         onClick={() => setIsOpen(!isOpen)}
         title="Filter requests by method"
@@ -218,19 +301,19 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
         </span>
         <IconChevronDown size={14} strokeWidth={1.5} />
       </button>
-      
+
       {isOpen && (
-        <div className={`filter-dropdown-menu right`}>
+        <div className="filter-dropdown-menu right">
           <div className="filter-dropdown-header">
             <span>Filter by Method</span>
-            <button 
+            <button
               className="filter-toggle-all"
               onClick={() => onToggleAll(!allFiltersEnabled)}
             >
               {allFiltersEnabled ? 'Hide All' : 'Show All'}
             </button>
           </div>
-          
+
           <div className="filter-dropdown-options">
             {Object.entries(filters).map(([method, enabled]) => (
               <label key={method} className="filter-option">
@@ -240,9 +323,6 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
                   onChange={(e) => onFilterToggle(method, e.target.checked)}
                 />
                 <div className="filter-option-content">
-                  <span className="method-badge" style={{ backgroundColor: getMethodColor(method) }}>
-                    {method}
-                  </span>
                   <span className="filter-option-label">{method}</span>
                   <span className="filter-option-count">({requestCounts[method] || 0})</span>
                 </div>
@@ -258,7 +338,7 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
 const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onClearLogs }) => {
   const logsEndRef = useRef(null);
   const prevLogsCountRef = useRef(0);
-  
+
   useEffect(() => {
     // Only scroll when new logs are added, not when switching tabs
     if (logsEndRef.current && logs.length > prevLogsCountRef.current) {
@@ -267,7 +347,7 @@ const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onC
     prevLogsCountRef.current = logs.length;
   }, [logs]);
 
-  const filteredLogs = logs.filter(log => filters[log.type]);
+  const filteredLogs = logs.filter((log) => filters[log.type]);
 
   return (
     <div className="tab-content">
@@ -299,8 +379,8 @@ const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onC
 
 const Console = () => {
   const dispatch = useDispatch();
-  const { logs, filters, activeTab, selectedRequest, selectedError, networkFilters, debugErrors } = useSelector(state => state.logs);
-  const collections = useSelector(state => state.collections.collections);
+  const { logs, filters, activeTab, selectedRequest, selectedError, networkFilters, debugErrors } = useSelector((state) => state.logs);
+  const collections = useSelector((state) => state.collections.collections);
   const consoleRef = useRef(null);
 
   const logCounts = logs.reduce((counts, log) => {
@@ -310,12 +390,12 @@ const Console = () => {
 
   const allRequests = React.useMemo(() => {
     const requests = [];
-    
-    collections.forEach(collection => {
+
+    collections.forEach((collection) => {
       if (collection.timeline) {
         collection.timeline
-          .filter(entry => entry.type === 'request')
-          .forEach(entry => {
+          .filter((entry) => entry.type === 'request')
+          .forEach((entry) => {
             requests.push({
               ...entry,
               collectionName: collection.name,
@@ -324,12 +404,12 @@ const Console = () => {
           });
       }
     });
-    
+
     return requests.sort((a, b) => a.timestamp - b.timestamp);
   }, [collections]);
 
-  const filteredLogs = logs.filter(log => filters[log.type]);
-  const filteredRequests = allRequests.filter(request => {
+  const filteredLogs = logs.filter((log) => filters[log.type]);
+  const filteredRequests = allRequests.filter((request) => {
     const method = request.data?.request?.method?.toUpperCase() || 'GET';
     return networkFilters[method];
   });
@@ -389,6 +469,8 @@ const Console = () => {
         return <NetworkTab />;
       case 'performance':
         return <Performance />;
+      case 'terminal':
+        return <TerminalTab />;
       // case 'debug':
       //   return <DebugTab />;
       default:
@@ -419,7 +501,7 @@ const Console = () => {
               />
             </div>
             <div className="action-controls">
-              <button 
+              <button
                 className="control-button"
                 onClick={handleClearLogs}
                 title="Clear all logs"
@@ -442,12 +524,14 @@ const Console = () => {
             </div>
           </div>
         );
+      case 'terminal':
+        return null; // No controls needed for terminal
       // case 'debug':
       //   return (
       //     <div className="tab-controls">
       //       <div className="action-controls">
       //         {debugErrors.length > 0 && (
-      //           <button 
+      //           <button
       //             className="control-button"
       //             onClick={handleClearDebugErrors}
       //             title="Clear all errors"
@@ -463,32 +547,30 @@ const Console = () => {
     }
   };
 
-
-
   return (
     <StyledWrapper ref={consoleRef}>
-      <div 
+      <div
         className="console-resize-handle"
       />
-      
+
       <div className="console-header">
         <div className="console-tabs">
-          <button 
+          <button
             className={`console-tab ${activeTab === 'console' ? 'active' : ''}`}
             onClick={() => handleTabChange('console')}
           >
             <IconTerminal2 size={16} strokeWidth={1.5} />
             <span>Console</span>
           </button>
-          
-          <button 
+
+          <button
             className={`console-tab ${activeTab === 'network' ? 'active' : ''}`}
             onClick={() => handleTabChange('network')}
           >
             <IconNetwork size={16} strokeWidth={1.5} />
             <span>Network</span>
           </button>
-          
+
           <button
             className={`console-tab ${activeTab === 'performance' ? 'active' : ''}`}
             onClick={() => handleTabChange('performance')}
@@ -497,7 +579,15 @@ const Console = () => {
             <span>Performance</span>
           </button>
 
-          {/* <button 
+          <button
+            className={`console-tab ${activeTab === 'terminal' ? 'active' : ''}`}
+            onClick={() => handleTabChange('terminal')}
+          >
+            <IconTerminal2 size={16} strokeWidth={1.5} />
+            <span>Terminal</span>
+          </button>
+
+          {/* <button
             className={`console-tab ${activeTab === 'debug' ? 'active' : ''}`}
             onClick={() => handleTabChange('debug')}
           >
@@ -508,7 +598,7 @@ const Console = () => {
 
         <div className="console-controls">
           {renderTabControls()}
-          <button 
+          <button
             className="control-button close-button"
             onClick={handlecloseConsole}
             title="Close console"
@@ -541,4 +631,4 @@ const Console = () => {
   );
 };
 
-export default Console; 
+export default Console;

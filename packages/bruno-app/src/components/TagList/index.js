@@ -4,9 +4,10 @@ import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useTheme } from 'providers/Theme/index';
 
-const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSave, handleValidation }) => {
+const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSave, handleValidation, collectionFormat }) => {
   const { displayedTheme } = useTheme();
-  const tagNameRegex = /^[\w-]+$/;
+  const isBruFormat = collectionFormat === 'bru';
+  const tagNameRegex = isBruFormat ? /^[\p{L}\p{N}_-]+$/u : /^[\p{L}\p{N}_-](?:[\p{L}\p{N}_\s-]*[\p{L}\p{N}_-])?$/u;
   const [text, setText] = useState('');
   const [error, setError] = useState('');
 
@@ -16,8 +17,14 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
   };
 
   const handleKeyDown = (e) => {
+    if (!text.trim()) {
+      return;
+    }
     if (!tagNameRegex.test(text)) {
-      setError('Tags must only contain alpha-numeric characters, "-", "_"');
+      setError(isBruFormat
+        ? 'Tags in BRU format must only contain letters, numbers, "-", "_".'
+        : 'Tags must only contain letters, numbers, spaces, "-", "_"'
+      );
       return;
     }
     if (tags.includes(text)) {
@@ -28,7 +35,6 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
       const error = handleValidation(text);
       if (error) {
         setError(error);
-        setText('');
         return;
       }
     }
@@ -51,7 +57,7 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
         onSave={onSave}
         data-testid="tag-input"
       />
-      {error && <span className='text-xs text-red-500'>{error}</span>}
+      {error && <span className="text-xs text-red-500">{error}</span>}
       <ul className="flex flex-wrap gap-1">
         {tags && tags.length
           ? tags.map((_tag) => (

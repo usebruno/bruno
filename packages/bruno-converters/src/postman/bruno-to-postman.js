@@ -1,5 +1,6 @@
 import map from 'lodash/map';
 import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems, isItemARequest } from '../common';
+import translateBruToPostman from '../utils/bruno-to-postman-translator';
 
 /**
  * Transforms a given URL string into an object representing the protocol, host, path, query, and variables.
@@ -10,8 +11,8 @@ import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems, isItemAReques
  */
 export const transformUrl = (url, params) => {
   if (typeof url !== 'string' || !url.trim()) {
-    url = "";
-    console.error("Invalid URL input:", url);
+    url = '';
+    console.error('Invalid URL input:', url);
   }
 
   const urlRegexPatterns = {
@@ -118,7 +119,7 @@ export const brunoToPostman = (collection) => {
 
   const generateCollectionVars = (collection) => {
     const pattern = /{{[^{}]+}}/g;
-    let listOfVars = [];
+    let collectionVars = [];
 
     const findOccurrences = (obj, results) => {
       if (typeof obj === 'object') {
@@ -131,21 +132,51 @@ export const brunoToPostman = (collection) => {
         }
       } else if (typeof obj === 'string') {
         obj.replace(pattern, (match) => {
-          results.push(match.replace(/{{|}}/g, ''));
+          const varKey = match.replace(/{{|}}/g, '');
+          results.push({
+            key: varKey,
+            value: '',
+            type: 'default'
+          });
         });
       }
     };
 
-    findOccurrences(collection, listOfVars);
+    findOccurrences(collection, collectionVars);
 
-    const finalArrayOfVars = [...new Set(listOfVars)];
-
-    return finalArrayOfVars.map((variable) => ({
-      key: variable,
-      value: '',
+    // Add request and response vars
+    let reqVars = (collection.root?.request?.vars?.req || []).map((v) => ({
+      key: v.name,
+      value: v.value,
       type: 'default'
     }));
+
+    let resVars = (collection.root?.request?.vars?.res || []).map((v) => ({
+      key: v.name,
+      value: v.value,
+      type: 'default'
+    }));
+
+    // Merge and deduplicate final result
+    const allVars = [...reqVars, ...resVars, ...collectionVars];
+    const finalVarsMap = new Map();
+    allVars.forEach((v) => {
+      if (!finalVarsMap.has(v.key)) {
+        finalVarsMap.set(v.key, v);
+      }
+    });
+
+    return Array.from(finalVarsMap.values());
   };
+  const translateScriptSafely = (script = '') => {
+    try {
+      return translateBruToPostman(script);
+    } catch (err) {
+      console.warn('Bru→Postman script translation failed, leaving script as-is', err);
+      return script;
+    }
+  };
+
   const generateEventSection = (item) => {
     const eventArray = [];
     // Request: item.script, Folder: item.root.request.script, Collection: item.request.script
@@ -154,13 +185,14 @@ export const brunoToPostman = (collection) => {
     const testsBlock = item?.tests || item?.root?.request?.tests || item?.request?.tests;
 
     if (scriptBlock.req && typeof scriptBlock.req === 'string') {
+      const translated = translateScriptSafely(scriptBlock.req);
       eventArray.push({
         listen: 'prerequest',
         script: {
           type: 'text/javascript',
           packages: {},
           requests: {},
-          exec: scriptBlock.req.split('\n')
+          exec: translated.split('\n')
         }
       });
     }
@@ -168,14 +200,16 @@ export const brunoToPostman = (collection) => {
     if (scriptBlock.res || testsBlock) {
       const exec = [];
       if (scriptBlock.res && typeof scriptBlock.res === 'string') {
-        exec.push(...scriptBlock.res.split('\n'));
+        const translated = translateScriptSafely(scriptBlock.res);
+        exec.push(...translated.split('\n'));
       }
       if (testsBlock && typeof testsBlock === 'string') {
+        const translatedTests = translateScriptSafely(testsBlock);
         if (exec.length > 0) {
           exec.push('');
         }
         exec.push('// Tests');
-        exec.push(...testsBlock.split('\n'));
+        exec.push(...translatedTests.split('\n'));
       }
 
       // Only push the event if exec has content
@@ -233,11 +267,15 @@ export const brunoToPostman = (collection) => {
         return {
           mode: 'formdata',
           formdata: map(body.multipartForm || [], (bodyItem) => {
+            const isFile = bodyItem.type === 'file';
             return {
               key: bodyItem.name || '',
-              value: bodyItem.value || '',
               disabled: !bodyItem.enabled,
-              type: 'default'
+              type: isFile ? 'file' : 'text',
+              ...(isFile
+                ? { src: Array.isArray(bodyItem.value) ? bodyItem.value : bodyItem.value ? [bodyItem.value] : [] }
+                : { value: bodyItem.value || '' }),
+              ...(bodyItem.contentType && { contentType: bodyItem.contentType })
             };
           })
         };

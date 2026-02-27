@@ -22,6 +22,63 @@ const safeParseJSON = (jsonString, context = 'JSON string') => {
   }
 };
 
+const normalizeMessageByFormat = (message, format) => {
+  if (!message) {
+    return '';
+  }
+  switch (format) {
+    case 'json':
+      // If it was already stringified, do not double encode
+      if (typeof message === 'string') {
+        return message;
+      }
+      return JSON.stringify(message);
+    case 'raw':
+    case 'xml':
+      return message;
+    default: {
+      if (typeof message === 'string') {
+        return message;
+      }
+      if (typeof message === 'object') {
+        return JSON.stringify(message);
+      }
+      console.warn('Received message of unhandled type.', { type: typeof message });
+      return '';
+    }
+  }
+};
+
+const createSequencer = () => {
+  const seq = {};
+
+  const nextSeq = (requestId, collectionId) => {
+    seq[requestId] ||= {};
+    seq[requestId][collectionId] ||= 0;
+    return ++seq[requestId][collectionId];
+  };
+
+  /**
+   * @param {string} requestId
+   * @param {string} [collectionId]
+   */
+  const clean = (requestId, collectionId = undefined) => {
+    if (collectionId) {
+      delete seq[requestId][collectionId];
+    }
+    if (!Object.keys(seq[requestId]).length) {
+      delete seq[requestId];
+    }
+  };
+
+  return {
+    next: nextSeq,
+    clean
+  };
+};
+
+const seq = createSequencer();
+
 class WsClient {
   messageQueues = {};
   activeConnections = new Map();
@@ -40,7 +97,7 @@ class WsClient {
    */
   async startConnection({ request, collection, options = {} }) {
     const { url, headers } = request;
-    const { timeout = 30000, keepAlive = false, keepAliveInterval = 10_000 } = options;
+    const { timeout = 30000, keepAlive = false, keepAliveInterval = 10_000, sslOptions = {} } = options;
 
     const parsedUrl = getParsedWsUrlObject(url);
     const timeoutAsNumber = Number(timeout);
@@ -53,17 +110,25 @@ class WsClient {
       // Create WebSocket connection
       // Note: unlike the standard Websocket constructor the `ws` library doesn't support adding Protocols as a single string
       // and instead needs it broken down manually, make sure this tested with multiple protocols again.
-      const protocols = [].concat([headers['Sec-WebSocket-Protocol'], headers['sec-websocket-protocol']])
+      const protocols = []
+        .concat([headers['Sec-WebSocket-Protocol'], headers['sec-websocket-protocol']])
         .filter(Boolean)
         .map((d) => d.split(','))
-        .flat().map((d) => d.trim());
+        .flat()
+        .map((d) => d.trim());
 
       const protocolVersion = headers['Sec-WebSocket-Version'] || headers['sec-websocket-version'];
 
       const wsOptions = {
         headers,
         handshakeTimeout: validTimeout,
-        followRedirects: true
+        followRedirects: true,
+        rejectUnauthorized: sslOptions.rejectUnauthorized,
+        ca: sslOptions.ca,
+        cert: sslOptions.cert,
+        key: sslOptions.key,
+        pfx: sslOptions.pfx,
+        passphrase: sslOptions.passphrase
       };
 
       if (protocolVersion) {
@@ -99,12 +164,15 @@ class WsClient {
     return `${requestId}`;
   }
 
-  queueMessage(requestId, collectionUid, message) {
+  queueMessage(requestId, collectionUid, message, format = 'raw') {
     const connectionMeta = this.activeConnections.get(requestId);
 
     const mqKey = this.#getMessageQueueId(requestId);
     this.messageQueues[mqKey] ||= [];
-    this.messageQueues[mqKey].push(message);
+    this.messageQueues[mqKey].push({
+      message,
+      format
+    });
 
     if (connectionMeta && connectionMeta.connection && connectionMeta.connection.readyState === WebSocket.OPEN) {
       this.#flushQueue(requestId, collectionUid);
@@ -116,7 +184,8 @@ class WsClient {
     const mqKey = this.#getMessageQueueId(requestId);
     if (!(mqKey in this.messageQueues)) return;
     while (this.messageQueues[mqKey].length > 0) {
-      this.sendMessage(requestId, collectionUid, this.messageQueues[mqKey].shift());
+      const { message, format } = this.messageQueues[mqKey].shift();
+      this.sendMessage(requestId, collectionUid, message, format);
     }
   }
 
@@ -126,34 +195,23 @@ class WsClient {
    * @param {string} collectionUid - The collection UID for the request
    * @param {Object|string} message - The message to send
    */
-  sendMessage(requestId, collectionUid, message) {
+  sendMessage(requestId, collectionUid, message, format = 'raw') {
     const connectionMeta = this.activeConnections.get(requestId);
 
     if (connectionMeta.connection && connectionMeta.connection.readyState === WebSocket.OPEN) {
-      let messageToSend;
-
-      // Parse the message if it's a string
-      if (typeof message === 'string') {
-        try {
-          messageToSend = safeParseJSON(message, 'message content');
-        } catch (parseError) {
-          // If parsing fails, send as string
-          messageToSend = message;
-        }
-      } else {
-        messageToSend = message;
-      }
+      const payload = normalizeMessageByFormat(message, format);
 
       // Send the message
-      connectionMeta.connection.send(JSON.stringify(messageToSend), (error) => {
+      connectionMeta.connection.send(payload, (error) => {
         if (error) {
           this.eventCallback('main:ws:error', requestId, collectionUid, { error });
         } else {
           // Emit message sent event
           this.eventCallback('main:ws:message', requestId, collectionUid, {
-            message: messageToSend,
-            messageHexdump: hexdump(JSON.stringify(messageToSend)),
+            message: payload,
+            messageHexdump: hexdump(payload),
             type: 'outgoing',
+            seq: seq.next(requestId, collectionUid),
             timestamp: Date.now()
           });
         }
@@ -177,6 +235,7 @@ class WsClient {
     if (connectionMeta?.connection) {
       connectionMeta.connection.close(code, reason);
       this.#removeConnection(requestId);
+      seq.clean(requestId);
     }
   }
 
@@ -256,7 +315,8 @@ class WsClient {
 
       this.eventCallback('main:ws:open', requestId, collectionUid, {
         timestamp: Date.now(),
-        url: ws.url
+        url: ws.url,
+        seq: seq.next(requestId, collectionUid)
       });
     });
 
@@ -267,7 +327,8 @@ class WsClient {
         message: `Redirected to ${url}`,
         type: 'info',
         timestamp: Date.now(),
-        headers: headers
+        headers: headers,
+        seq: seq.next(requestId, collectionUid)
       });
     });
 
@@ -275,6 +336,7 @@ class WsClient {
       this.eventCallback('main:ws:upgrade', requestId, collectionUid, {
         type: 'info',
         timestamp: Date.now(),
+        seq: seq.next(requestId, collectionUid),
         headers: { ...response.headers }
       });
     });
@@ -286,6 +348,7 @@ class WsClient {
           message,
           messageHexdump: hexdump(Buffer.from(data)),
           type: 'incoming',
+          seq: seq.next(requestId, collectionUid),
           timestamp: Date.now()
         });
       } catch (error) {
@@ -294,6 +357,7 @@ class WsClient {
           message: data.toString(),
           messageHexdump: hexdump(data),
           type: 'incoming',
+          seq: seq.next(requestId, collectionUid),
           timestamp: Date.now()
         });
       }
@@ -303,14 +367,17 @@ class WsClient {
       this.eventCallback('main:ws:close', requestId, collectionUid, {
         code,
         reason: Buffer.from(reason).toString(),
+        seq: seq.next(requestId, collectionUid),
         timestamp: Date.now()
       });
+      seq.clean(requestId, collectionUid);
       this.#removeConnection(requestId);
     });
 
     ws.on('error', (error) => {
       this.eventCallback('main:ws:error', requestId, collectionUid, {
         error: error.message,
+        seq: seq.next(requestId, collectionUid),
         timestamp: Date.now()
       });
     });
@@ -329,6 +396,7 @@ class WsClient {
     this.eventCallback('main:ws:connections-changed', {
       type: 'added',
       requestId,
+      seq: seq.next(requestId, collectionUid),
       activeConnectionIds: this.getActiveConnectionIds()
     });
   }
@@ -359,6 +427,19 @@ class WsClient {
         activeConnectionIds: this.getActiveConnectionIds()
       });
     }
+  }
+
+  /**
+   * Get the connection status of a connection
+   * @param {string} requestId - The request ID to get the connection status of
+   * @returns {string} - The connection status
+   */
+  // Returns "disconnected", "connecting", "connected"
+  connectionStatus(requestId) {
+    const connectionMeta = this.activeConnections.get(requestId);
+    if (connectionMeta?.connection?.readyState === ws.WebSocket.CONNECTING) return 'connecting';
+    if (connectionMeta?.connection?.readyState === ws.WebSocket.OPEN) return 'connected';
+    return 'disconnected';
   }
 }
 

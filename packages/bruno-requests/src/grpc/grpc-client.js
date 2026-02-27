@@ -66,7 +66,7 @@ const safeJsonParse = (jsonString, context = 'JSON string') => {
     console.error(errorMessage, { originalString: jsonString, parseError: error });
     throw new Error(errorMessage);
   }
-}
+};
 
 const processGrpcMetadata = (metadata) => {
   return Object.entries(metadata).map(([name, value]) => {
@@ -90,33 +90,56 @@ const processGrpcMetadata = (metadata) => {
   });
 };
 
+// Unix socket: unix:/path, unix:///path, unix-abstract:name
+const isUnixSocket = (str) => {
+  if (!str) return false;
+  return str.startsWith('unix:') || str.startsWith('unix-abstract:');
+};
+
+// Windows named pipe: \\.\pipe\name or //./pipe/name
+const isWindowsNamedPipe = (str) => {
+  if (!str) return false;
+  return str.startsWith('\\\\.\\pipe\\')
+    || str.startsWith('//./pipe/')
+    || str.toLowerCase().startsWith('\\\\.\\pipe\\')
+    || str.toLowerCase().startsWith('//./pipe/');
+};
+
+const normalizeWindowsNamedPipe = (pipePath) => {
+  if (pipePath.startsWith('//./pipe/')) {
+    return pipePath.replace('//./pipe/', '\\\\.\\pipe\\');
+  }
+  return pipePath;
+};
+
+// Parse gRPC URL into components, handling TCP, Unix sockets, and Windows named pipes
 const getParsedGrpcUrlObject = (url) => {
-  const isUnixSocket = (str) => str.startsWith('unix:');
-  //const isXdsUrl = str => str.startsWith('xds:');
-  // By default, secure protocol grpcs is set if not specified, localhost is set to insecure (grpc://)
   const addProtocolIfMissing = (str) => {
     if (str.includes('://')) return str;
-    
-    // For localhost, default to insecure (grpc://) for local development
     if (str.includes('localhost') || str.includes('127.0.0.1')) {
       return `grpc://${str}`;
     }
-    
-    // For other hosts, default to secure
     return `grpcs://${str}`;
   };
   const removeTrailingSlash = (str) => (str.endsWith('/') ? str.slice(0, -1) : str);
 
-  if (!url) return { host: '', path: '' };
-  if (isUnixSocket(url)) return { host: url, path: '' };
-  // if (isXdsUrl(url)) return { host: url, path: '' }; /* TODO: add xds support, https://www.npmjs.com/package/@grpc/grpc-js-xds */
+  if (!url) return { host: '', path: '', protocol: '', isLocalTransport: false };
+
+  if (isUnixSocket(url)) {
+    return { host: url, path: '', protocol: 'unix', isLocalTransport: true };
+  }
+
+  if (isWindowsNamedPipe(url)) {
+    return { host: normalizeWindowsNamedPipe(url), path: '', protocol: 'pipe', isLocalTransport: true };
+  }
 
   const urlObj = new URL(addProtocolIfMissing(url.toLowerCase()));
 
   return {
     host: urlObj.host,
     protocol: urlObj.protocol.replace(':', ''),
-    path: removeTrailingSlash(urlObj.pathname)
+    path: removeTrailingSlash(urlObj.pathname),
+    isLocalTransport: false
   };
 };
 
@@ -257,7 +280,12 @@ class GrpcClient {
   #getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, passphrase, pfx, verifyOptions }) {
     const securedProtocols = ['grpcs', 'https'];
     try {
-      const { protocol } = getParsedGrpcUrlObject(url);
+      const { protocol, isLocalTransport } = getParsedGrpcUrlObject(url);
+
+      if (isLocalTransport) {
+        return ChannelCredentials.createInsecure();
+      }
+
       const isSecureConnection = securedProtocols.some((sp) => protocol === sp);
       if (!isSecureConnection) {
         return ChannelCredentials.createInsecure();
@@ -316,10 +344,11 @@ class GrpcClient {
    * @param {string} [options.collectionUid] - Collection UID
    * @param {Object} [options.certificates] - Certificate configuration
    * @param {Object} [options.verifyOptions] - Additional options for verifying the server certificate
+   * @param {string[]} [options.includeDirs] - Include directories for proto file resolution
    * @returns {Promise<boolean>} Whether methods were successfully refreshed
    * @private
    */
-  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions }) {
+  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions, includeDirs = [] }) {
     try {
       // Try reflection first if no proto path is specified
       if (!protoPath) {
@@ -339,8 +368,8 @@ class GrpcClient {
 
       // Try proto file if available
       if (protoPath) {
-        const absoluteProtoPath = nodePath.join(collectionPath, protoPath);
-        await this.loadMethodsFromProtoFile(absoluteProtoPath, []);
+        const absoluteProtoPath = nodePath.resolve(collectionPath, protoPath);
+        await this.loadMethodsFromProtoFile(absoluteProtoPath, includeDirs);
         return true;
       }
 
@@ -463,6 +492,7 @@ class GrpcClient {
    * @param {string} [params.pfx] - The PFX/P12 certificate data
    * @param {Object} [params.verifyOptions] - Additional options for verifying the server certificate
    * @param {import('@grpc/grpc-js').ChannelOptions} [params.channelOptions] - Additional options for the gRPC channel
+   * @param {string[]} [params.includeDirs] - Include directories for proto file resolution
    */
   async startConnection({
     request,
@@ -473,7 +503,8 @@ class GrpcClient {
     passphrase,
     pfx,
     verifyOptions,
-    channelOptions = {}
+    channelOptions = {},
+    includeDirs = []
   }) {
     const credentials = this.#getChannelCredentials({
       url: request.url,
@@ -491,9 +522,8 @@ class GrpcClient {
     try {
       method = this.#getMethodFromPath(methodPath);
     } catch (error) {
-
       /* Attempt to refresh methods as fallback
-      * In an ideal case, the stored metadata from local storage should be received from the client side, 
+      * In an ideal case, the stored metadata from local storage should be received from the client side,
       * however, this approach causes serialization failure as the method definition loses its requestSerialize function while saving to local storage
       * so we are using reflection as a fallback
       */
@@ -510,7 +540,8 @@ class GrpcClient {
           passphrase,
           pfx
         },
-        verifyOptions
+        verifyOptions,
+        includeDirs
       });
 
       if (!refreshSuccess) {
@@ -525,8 +556,19 @@ class GrpcClient {
       }
     }
 
+    // Extract user-agent from headers if provided (case-insensitive)
+    // Set it as grpc.primary_user_agent channel option to prepend to the default user-agent
+    const userAgentKey = Object.keys(request.headers).find(
+      (key) => key.toLowerCase() === 'user-agent'
+    );
+    const userAgentValue = userAgentKey ? request.headers[userAgentKey] : null;
+
+    const mergedChannelOptions = userAgentValue
+      ? { 'grpc.primary_user_agent': userAgentValue, ...channelOptions }
+      : channelOptions;
+
     const Client = makeGenericClientConstructor({});
-    const client = new Client(host, credentials, channelOptions);
+    const client = new Client(host, credentials, mergedChannelOptions);
     if (!client) {
       throw new Error('Failed to create client');
     }
@@ -536,8 +578,8 @@ class GrpcClient {
       messages = messages.map(({ content }) => safeJsonParse(content, 'message content'));
     } catch (parseError) {
       console.error('Failed to parse gRPC message content:', parseError);
-      this.eventCallback('grpc:error', request.uid, collection.uid, { 
-        error: parseError 
+      this.eventCallback('grpc:error', request.uid, collection.uid, {
+        error: parseError
       });
       return; // Exit early to prevent sending invalid data
     }
@@ -572,7 +614,7 @@ class GrpcClient {
 
     if (connection) {
       let parsedBody;
-      
+
       // Parse the body if it's a string, with error handling
       if (typeof body === 'string') {
         try {
@@ -580,8 +622,8 @@ class GrpcClient {
         } catch (parseError) {
           // Log the error and notify the client
           console.error('Failed to parse message body:', parseError);
-          this.eventCallback('grpc:error', requestId, collectionUid, { 
-            error: parseError 
+          this.eventCallback('grpc:error', requestId, collectionUid, {
+            error: parseError
           });
           return; // Exit early to prevent sending invalid data
         }
@@ -609,9 +651,19 @@ class GrpcClient {
     passphrase,
     pfx,
     verifyOptions,
-    sendEvent
+    sendEvent,
+    channelOptions = {}
   }) {
     const { host, path } = getParsedGrpcUrlObject(request.url);
+
+    // Extract user-agent from headers if provided (case-insensitive)
+    // Set it as grpc.primary_user_agent channel option to prepend to the default user-agent
+    const userAgentKey = Object.keys(request.headers).find(
+      (key) => key.toLowerCase() === 'user-agent'
+    );
+    const userAgentValue = userAgentKey ? request.headers[userAgentKey] : null;
+    const mergedChannelOptions = userAgentValue ? { 'grpc.primary_user_agent': userAgentValue, ...channelOptions } : channelOptions;
+
     const metadata = new Metadata();
     Object.entries(request.headers).forEach(([name, value]) => {
       metadata.add(name, value);
@@ -627,7 +679,7 @@ class GrpcClient {
     });
 
     try {
-      const { client, services, callOptions } = await this.#getReflectionClient(host, credentials, metadata, {});
+      const { client, services, callOptions } = await this.#getReflectionClient(host, credentials, metadata, mergedChannelOptions);
 
       const methods = [];
       for (const service of services) {
@@ -730,7 +782,7 @@ class GrpcClient {
   generateSampleMessage(methodPath, options = {}) {
     try {
       let method;
-      
+
       // First, try to use the methodMetadata from options if provided
       if (options.methodMetadata) {
         method = options.methodMetadata;
@@ -742,7 +794,7 @@ class GrpcClient {
             error: `Method ${methodPath} not found in cache, please refresh the methods`
           };
         }
-        
+
         // Get the method definition from cache
         method = this.methods.get(methodPath);
       }
@@ -816,12 +868,19 @@ class GrpcClient {
     const { url, method, methodType = 'unary', body, headers, protoPath } = request;
     const useReflection = !protoPath;
     const parts = [];
-    const { host, path } = getParsedGrpcUrlObject(url);
+    const { host, path, protocol } = getParsedGrpcUrlObject(url);
     const { ca, cert, key } = certificates;
 
     parts.push('grpcurl');
 
-    if (url.startsWith('grpcs://') || url.startsWith('https://')) {
+    if (protocol === 'unix') {
+      parts.push('-plaintext');
+      parts.push('-unix');
+      parts.push('-authority localhost');
+    } else if (protocol === 'pipe') {
+      console.warn('Windows named pipes are not directly supported by grpcurl');
+      parts.push('-plaintext');
+    } else if (url.startsWith('grpcs://') || url.startsWith('https://')) {
       if (ca) {
         /**
          * Instead of using certificate that relies on CN, use SANs
@@ -868,7 +927,17 @@ class GrpcClient {
       }
     }
 
-    parts.push(host);
+    if (protocol === 'unix') {
+      let socketPath = url;
+      if (url.startsWith('unix:///')) {
+        socketPath = url.slice(7);
+      } else if (url.startsWith('unix:')) {
+        socketPath = url.slice(5);
+      }
+      parts.push(socketPath);
+    } else {
+      parts.push(host);
+    }
 
     parts.push(path.slice(1) + (path ? '/' : '') + (method.startsWith('/') ? method.slice(1) : method));
 

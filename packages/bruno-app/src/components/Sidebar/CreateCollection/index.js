@@ -1,41 +1,46 @@
-import React, { useRef, useEffect, forwardRef } from 'react';
+import React, { useRef, useEffect, useState, forwardRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
-import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { browseDirectory, createCollection } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import PathDisplay from 'components/PathDisplay/index';
-import { useState } from 'react';
 import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
 import Help from 'components/Help';
-import { multiLineMsg } from "utils/common";
-import { formatIpcError } from "utils/common/error";
-import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import Dropdown from 'components/Dropdown';
+import { multiLineMsg } from 'utils/common';
+import { formatIpcError } from 'utils/common/error';
+import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
+import Button from 'ui/Button';
 
-const CreateCollection = ({ onClose }) => {
+const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
+  const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
+  const workspaceUid = useSelector((state) => state.workspaces?.activeWorkspaceUid);
   const [isEditing, toggleEditing] = useState(false);
+  const [showFileFormat, setShowFileFormat] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
-  const defaultLocation = get(preferences, 'general.defaultCollectionLocation', '');
-  const [showAdvanced, setShowAdvanced] = useState(false);
+
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+  const activeWorkspace = workspaces.find((w) => w.uid === workspaceUid);
+  const isDefaultWorkspace = activeWorkspace?.type === 'default';
+
+  const defaultLocation = isDefaultWorkspace ? get(preferences, 'general.defaultLocation', '') : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       collectionName: '',
       collectionFolderName: '',
-      collectionLocation: defaultLocation,
-      format: 'yml'
+      collectionLocation: defaultLocation || '',
+      format: DEFAULT_COLLECTION_FORMAT
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
@@ -53,28 +58,30 @@ const CreateCollection = ({ onClose }) => {
       collectionLocation: Yup.string().min(1, 'location is required').required('location is required'),
       format: Yup.string().oneOf(['bru', 'yml'], 'invalid format').required('format is required')
     }),
-    onSubmit: (values) => {
-      dispatch(createCollection(values.collectionName, values.collectionFolderName, values.collectionLocation, values.format))
-        .then(() => {
-          toast.success('Collection created!');
-          dispatch(toggleSidebarCollapse());
-          onClose();
-        })
-        .catch((e) => toast.error(multiLineMsg('An error occurred while creating the collection', formatIpcError(e))));
+    onSubmit: async (values) => {
+      try {
+        await dispatch(createCollection(values.collectionName,
+          values.collectionFolderName,
+          values.collectionLocation,
+          { format: values.format }));
+
+        toast.success('Collection created!');
+        onClose();
+      } catch (e) {
+        toast.error(multiLineMsg('An error occurred while creating the collection', formatIpcError(e)));
+      }
     }
   });
 
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
-        // When the user closes the dialog without selecting anything dirPath will be false
         if (typeof dirPath === 'string') {
           formik.setFieldValue('collectionLocation', dirPath);
         }
       })
-      .catch((error) => {
+      .catch(() => {
         formik.setFieldValue('collectionLocation', '');
-        console.error(error);
       });
   };
 
@@ -83,8 +90,6 @@ const CreateCollection = ({ onClose }) => {
       inputRef.current.focus();
     }
   }, [inputRef]);
-
-  const onSubmit = () => formik.handleSubmit();
 
   const AdvancedOptions = forwardRef((props, ref) => {
     return (
@@ -103,7 +108,7 @@ const CreateCollection = ({ onClose }) => {
   return (
     <Portal>
       <StyledWrapper>
-        <Modal size="sm" title="Create Collection" hideFooter={true} handleCancel={onClose}>
+        <Modal size="md" title="Create Collection" hideFooter={true} handleCancel={onClose}>
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
             <div>
               <label htmlFor="collection-name" className="flex items-center font-medium">
@@ -149,6 +154,7 @@ const CreateCollection = ({ onClose }) => {
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
+                readOnly={true}
                 value={formik.values.collectionLocation || ''}
                 onClick={browse}
                 onChange={(e) => {
@@ -222,7 +228,7 @@ const CreateCollection = ({ onClose }) => {
                 </div>
               )}
 
-              {showAdvanced && (
+              {showFileFormat && (
                 <div className="mt-4">
                   <label htmlFor="format" className="flex items-center font-medium">
                     File Format
@@ -262,27 +268,20 @@ const CreateCollection = ({ onClose }) => {
                     key="show-file-format"
                     onClick={(e) => {
                       dropdownTippyRef.current.hide();
-                      setShowAdvanced(!showAdvanced);
+                      setShowFileFormat(!showFileFormat);
                     }}
                   >
-                    {showAdvanced ? 'Hide File Format' : 'Show File Format'}
+                    {showFileFormat ? 'Hide File Format' : 'Show File Format'}
                   </div>
                 </Dropdown>
               </div>
               <div className="flex justify-end">
-                <span className="mr-2">
-                  <button type="button" onClick={onClose} className="btn btn-md btn-close">
-                    Cancel
-                  </button>
-                </span>
-                <span>
-                  <button
-                    type="submit"
-                    className="submit btn btn-md btn-secondary"
-                  >
-                    Create
-                  </button>
-                </span>
+                <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Create
+                </Button>
               </div>
             </div>
           </form>

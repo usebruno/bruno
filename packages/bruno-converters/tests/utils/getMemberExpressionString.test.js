@@ -1,5 +1,5 @@
-import { describe, it, expect } from '@jest/globals';
-import { getMemberExpressionString } from '../../src/utils/jscode-shift-translator';
+const { describe, it, expect } = require('@jest/globals');
+const { getMemberExpressionString } = require('../../src/utils/ast-utils');
 const j = require('jscodeshift');
 
 describe('getMemberExpressionString', () => {
@@ -12,7 +12,7 @@ describe('getMemberExpressionString', () => {
       ),
       j.identifier('get')
     );
-    
+
     const result = getMemberExpressionString(memberExpr);
     expect(result).toBe('pm.environment.get');
   });
@@ -28,7 +28,7 @@ describe('getMemberExpressionString', () => {
       j.literal('get'),
       true // computed
     );
-    
+
     const result = getMemberExpressionString(memberExpr);
     expect(result).toBe('pm.environment.get');
   });
@@ -40,7 +40,7 @@ describe('getMemberExpressionString', () => {
       j.identifier('varName'),
       true // computed
     );
-    
+
     const result = getMemberExpressionString(memberExpr);
     expect(result).toBe('obj.[computed]');
   });
@@ -50,4 +50,4 @@ describe('getMemberExpressionString', () => {
     const result = getMemberExpressionString(identifier);
     expect(result).toBe('pm');
   });
-}); 
+});

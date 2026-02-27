@@ -117,7 +117,7 @@ class Oauth2Store {
   getCredentialsForCollection({ collectionUid, url, credentialsId }) {
     try {
       let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
-      let credentials = oauth2DataForCollection?.credentials?.find(c => (c?.url == url) && (c?.credentialsId == credentialsId));
+      let credentials = oauth2DataForCollection?.credentials?.find((c) => (c?.url == url) && (c?.credentialsId == credentialsId));
       if (!credentials?.data) return null;
       const decryptionResult = decryptStringSafe(credentials?.data);
       const decryptedCredentialsData = safeParseJSON(decryptionResult.value);
@@ -132,7 +132,7 @@ class Oauth2Store {
       const encryptionResult = encryptStringSafe(safeStringifyJSON(credentials));
       const encryptedCredentialsData = encryptionResult.value;
       let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
-      let filteredCredentials = oauth2DataForCollection?.credentials?.filter(c => (c?.url !== url) || (c?.credentialsId !== credentialsId));
+      let filteredCredentials = oauth2DataForCollection?.credentials?.filter((c) => (c?.url !== url) || (c?.credentialsId !== credentialsId));
       if (!filteredCredentials) filteredCredentials = [];
       filteredCredentials.push({
         url,
@@ -150,10 +150,27 @@ class Oauth2Store {
     }
   }
 
+  clearCredentialsByCredentialsId({ collectionUid, credentialsId }) {
+    try {
+      let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid });
+      let filteredCredentials = oauth2DataForCollection?.credentials?.filter(
+        (c) => c?.credentialsId !== credentialsId
+      );
+      let newOauth2DataForCollection = {
+        ...oauth2DataForCollection,
+        credentials: filteredCredentials
+      };
+      this.updateOauth2DataOfCollection({ collectionUid, data: newOauth2DataForCollection });
+      return newOauth2DataForCollection;
+    } catch (err) {
+      console.log('error clearing oauth2 credentials by credentialsId from cache', err);
+    }
+  }
+
   clearCredentialsForCollection({ collectionUid, url, credentialsId }) {
     try {
       let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
-      let filteredCredentials = oauth2DataForCollection?.credentials?.filter(c => (c?.url !== url) || (c?.credentialsId !== credentialsId));
+      let filteredCredentials = oauth2DataForCollection?.credentials?.filter((c) => (c?.url !== url) || (c?.credentialsId !== credentialsId));
       let newOauth2DataForCollection = {
         ...oauth2DataForCollection,
         credentials: filteredCredentials

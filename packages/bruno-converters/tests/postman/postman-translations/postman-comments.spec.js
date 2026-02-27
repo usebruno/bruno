@@ -1,4 +1,4 @@
-const { default: postmanTranslation } = require("../../../src/postman/postman-translations");
+import postmanTranslation from '../../../src/postman/postman-translations';
 
 describe('postmanTranslations - comment handling', () => {
   test('should not translate non-pm commands', () => {
@@ -10,21 +10,21 @@ describe('postmanTranslations - comment handling', () => {
     const expectedOutput = `
       console.log('This script does not contain pm commands.');
       const data = bru.getEnvVar('key');
-      bru.setVar('key', data);
+      bru.setCollectionVar('key', data);
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
   test('should comment non-translated pm commands', () => {
-    const inputScript = "pm.test('random test', () => pm.globals.clear());";
-    const expectedOutput = "// test('random test', () => pm.globals.clear());";
+    const inputScript = 'pm.test(\'random test\', () => pm.vault.get(secretPath));';
+    const expectedOutput = '// test(\'random test\', () => pm.vault.get(secretPath));';
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
   test('should handle multiple pm commands on the same line', () => {
-    const inputScript = "pm.environment.get('key'); pm.environment.set('key', 'value');";
-    const expectedOutput = "bru.getEnvVar('key'); bru.setEnvVar('key', 'value');";
-    expect(postmanTranslation(inputScript)).toBe(expectedOutput); 
+    const inputScript = 'pm.environment.get(\'key\'); pm.environment.set(\'key\', \'value\');';
+    const expectedOutput = 'bru.getEnvVar(\'key\'); bru.setEnvVar(\'key\', \'value\');';
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
   test('should handle comments and other JavaScript code', () => {
@@ -50,4 +50,4 @@ describe('postmanTranslations - comment handling', () => {
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
-}); 
+});

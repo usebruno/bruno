@@ -1,4 +1,4 @@
-import { test, expect } from '../../playwright';
+import { test, expect, closeElectronApp } from '../../playwright';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
@@ -23,8 +23,8 @@ test('should handle corrupted passkey and still display saved cookie list', asyn
   await page1.getByRole('button', { name: 'Save' }).click();
 
   await expect(page1.getByText('example.com')).toBeVisible();
-  
-  await app1.close();
+
+  await closeElectronApp(app1);
 
   // 2. Corrupt the encryptedPasskey in cookies.json
   const cookiesFilePath = path.join(userDataPath, 'cookies.json');
@@ -43,5 +43,5 @@ test('should handle corrupted passkey and still display saved cookie list', asyn
   // The domain row should still be visible (even if cookie values are blank).
   await expect(page2.getByText('example.com')).toBeVisible();
 
-  await app2.close();
+  await closeElectronApp(app2);
 });

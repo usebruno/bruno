@@ -1,4 +1,5 @@
-import { test, expect } from '../../../playwright';
+import { test, expect, closeElectronApp } from '../../../playwright';
+import { sendRequest } from '../../utils/page';
 
 test.describe.serial('bru.setEnvVar(name, value)', () => {
   test('set env var using script', async ({ pageWithUserData: page, restartApp }) => {
@@ -15,16 +16,19 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     await expect(page.locator('.current-environment', { hasText: 'Stage' })).toBeVisible();
 
     // Send the request
-    await page.getByTestId('send-arrow-icon').click();
-    await page.getByTestId('response-status-code').getByText(/200/).waitFor({ state: 'visible' });
-    await page.waitForTimeout(100);
+    await sendRequest(page, 200);
 
     // confirm that the environment variable is set
     await page.getByTestId('environment-selector-trigger').click();
     await page.locator('#configure-env').click();
+
+    const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+    await expect(envTab).toBeVisible();
+
     await expect(page.getByRole('row', { name: 'token' }).getByRole('cell').nth(1)).toBeVisible();
     await expect(page.getByRole('row', { name: 'secret' }).getByRole('cell').nth(2)).toBeVisible();
-    await page.getByTestId('modal-close-button').click();
+    await envTab.hover();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
 
     // we restart the app to confirm that the environment variable is not persisted
     const newApp = await restartApp();
@@ -38,11 +42,13 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     await newPage.getByTestId('environment-selector-trigger').click();
     await newPage.locator('#configure-env').click();
 
-    // ensure that the environment variable is not persisted
-    await expect(newPage.locator('table.environment-variables tbody')).not.toContainText('token');
+    const newEnvTab = newPage.locator('.request-tab').filter({ hasText: 'Environments' });
+    await expect(newEnvTab).toBeVisible();
 
-    // close the environment variable modal
-    await newPage.getByTestId('modal-close-button').click();
-    await newPage.close();
+    await expect(newPage.locator('.table-container tbody')).not.toContainText('token');
+
+    await newEnvTab.hover();
+    await newEnvTab.getByTestId('request-tab-close-icon').click({ force: true });
+    await closeElectronApp(newApp);
   });
 });

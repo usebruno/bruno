@@ -120,8 +120,8 @@ describe('Postman to Bruno Converter with Examples', () => {
     expect(successExample.itemUid).toBe(request.uid);
     expect(successExample.request.url).toBe('https://testbench-sanity.usebruno.com/ping');
     expect(successExample.request.method).toBe('GET');
-    expect(successExample.response.status).toBe('OK');
-    expect(successExample.response.statusText).toBe('200');
+    expect(successExample.response.status).toEqual(200);
+    expect(successExample.response.statusText).toBe('OK');
     expect(successExample.response.body.content).toBe('{\n    "ping": "pong"\n}');
     expect(successExample.response.body.type).toBe('json');
     expect(successExample.response.headers).toHaveLength(2);
@@ -137,8 +137,8 @@ describe('Postman to Bruno Converter with Examples', () => {
     expect(errorExample.itemUid).toBe(request.uid);
     expect(errorExample.request.url).toBe('https://testbench-sanity.usebruno.com/ping');
     expect(errorExample.request.method).toBe('GET');
-    expect(errorExample.response.status).toBe('Internal Server Error');
-    expect(errorExample.response.statusText).toBe('500');
+    expect(errorExample.response.status).toEqual(500);
+    expect(errorExample.response.statusText).toBe('Internal Server Error');
     expect(errorExample.response.body.content).toBe('{\n    "error": "Internal Server Error"\n}');
     expect(errorExample.response.body.type).toBe('json');
     expect(errorExample.response.headers).toHaveLength(1);

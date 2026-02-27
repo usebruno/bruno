@@ -2916,10 +2916,7 @@
         "crypto",
         "buffer",
         "form-data"
-      ],
-      "filesystemAccess": {
-        "allow": true
-      }
+      ]
     },
     "clientCertificates": {
       "enabled": true,

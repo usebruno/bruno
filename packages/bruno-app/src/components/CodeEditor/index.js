@@ -5,10 +5,10 @@
  *  LICENSE file in the root directory of this source tree.
  */
 
-import React from 'react';
+import React, { createRef } from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
-import { setupAutoComplete } from 'utils/codemirror/autocomplete';
+import { setupAutoComplete, showRootHints } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
@@ -16,7 +16,7 @@ import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
-import CodeMirrorSearch from 'components/CodeMirrorSearch';
+import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
@@ -34,6 +34,7 @@ export default class CodeEditor extends React.Component {
     this.cachedValue = props.value || '';
     this.variables = {};
     this.searchResultsCountElementId = 'search-results-count';
+    this.searchBarRef = createRef();
 
     this.lintOptions = {
       esversion: 11,
@@ -94,25 +95,29 @@ export default class CodeEditor extends React.Component {
           }
         },
         'Cmd-F': (cm) => {
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+          });
         },
         'Ctrl-F': (cm) => {
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+          });
         },
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
-        Tab: function (cm) {
+        'Tab': function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')
             : cm.replaceSelection('  ', 'end');
         },
         'Shift-Tab': 'indentLess',
-        'Ctrl-Space': 'autocomplete',
-        'Cmd-Space': 'autocomplete',
+        'Ctrl-Space': (cm) => {
+          showRootHints(cm, this.props.showHintsFor);
+        },
+        'Cmd-Space': (cm) => {
+          showRootHints(cm, this.props.showHintsFor);
+        },
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
@@ -151,7 +156,7 @@ export default class CodeEditor extends React.Component {
           } else if (this.props.mode == 'application/xml') {
             var doc = new DOMParser();
             try {
-              //add header element and remove prefix namespaces for DOMParser
+              // add header element and remove prefix namespaces for DOMParser
               var dcm = doc.parseFromString(
                 '<a> ' + internal.replace(/(?<=\<|<\/)\w+:/g, '') + '</a>',
                 'application/xml'
@@ -188,16 +193,15 @@ export default class CodeEditor extends React.Component {
       }
       return found;
     });
-    
+
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
-      editor.on('scroll', this.onScroll);
       editor.scrollTo(null, this.props.initialScroll);
       this.addOverlay();
 
       const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
-      
+
       // Setup AutoComplete Helper for all modes
       const autoCompleteOptions = {
         showHintsFor: this.props.showHintsFor,
@@ -229,8 +233,18 @@ export default class CodeEditor extends React.Component {
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      this.cachedValue = this.props.value;
-      this.editor.setValue(this.props.value);
+      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
+      const nextValue = this.props.value ?? '';
+      const currentValue = this.editor.getValue();
+      // Skip updating only when focused and editable; read-only editors (e.g. response viewer) must always show new value
+      if (this.editor.hasFocus?.() && currentValue !== nextValue && !this.props.readOnly) {
+        this.cachedValue = currentValue;
+      } else {
+        const cursor = this.editor.getCursor();
+        this.cachedValue = nextValue;
+        this.editor.setValue(nextValue);
+        this.editor.setCursor(cursor);
+      }
     }
 
     if (this.editor) {
@@ -275,12 +289,18 @@ export default class CodeEditor extends React.Component {
 
   componentWillUnmount() {
     if (this.editor) {
+      if (this.props.onScroll) {
+        this.props.onScroll(this.editor);
+      }
+
       this.editor?._destroyLinkAware?.();
       this.editor.off('change', this._onEdit);
-      this.editor.off('scroll', this.onScroll);
 
       // Clean up lint error tooltip
       this.cleanupLintErrorTooltip?.();
+
+      const wrapper = this.editor.getWrapperElement();
+      wrapper?.parentNode?.removeChild(wrapper);
 
       this.editor = null;
     }
@@ -298,6 +318,10 @@ export default class CodeEditor extends React.Component {
         fontSize={this.props.fontSize}
       >
         <CodeMirrorSearch
+          ref={(node) => {
+            if (!node) return;
+            this.searchBarRef.current = node;
+          }}
           visible={this.state.searchBarVisible}
           editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}
@@ -324,8 +348,6 @@ export default class CodeEditor extends React.Component {
     defineCodeMirrorBrunoVariablesMode(variables, mode, false, this.props.enableVariableHighlighting);
     this.editor.setOption('mode', 'brunovariables');
   };
-
-  onScroll = (event) => this.props.onScroll?.(event);
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {

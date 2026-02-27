@@ -1,4 +1,4 @@
-import { T_RunnerRequestExecutionResult, T_RunSummary } from "./types";
+import { T_RunnerRequestExecutionResult, T_RunSummary } from './types';
 
 // todo: this is generic, not specific to html, can be moved out of the report/html sub-package
 export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_RunSummary => {
@@ -23,10 +23,10 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
   for (const result of results || []) {
     const { status, testResults, assertionResults, preRequestTestResults, postResponseTestResults } = result;
     totalRequests += 1;
-    totalTests += Number(testResults?.length) || 0;
+    totalTests += Number(testResults?.filter((r) => !r.isScriptError).length) || 0;
     totalAssertions += Number(assertionResults?.length) || 0;
-    totalPreRequestTests += Number(preRequestTestResults?.length) || 0;
-    totalPostResponseTests += Number(postResponseTestResults?.length) || 0;
+    totalPreRequestTests += Number(preRequestTestResults?.filter((r) => !r.isScriptError).length) || 0;
+    totalPostResponseTests += Number(postResponseTestResults?.filter((r) => !r.isScriptError).length) || 0;
 
     if (status === 'skipped') {
       skippedRequests += 1;
@@ -35,7 +35,11 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
 
     let anyFailed = false;
     for (const testResult of testResults || []) {
-      if (testResult.status === "pass") {
+      if (testResult.isScriptError) {
+        anyFailed = true;
+        continue;
+      }
+      if (testResult.status === 'pass') {
         passedTests += 1;
       } else {
         anyFailed = true;
@@ -43,7 +47,7 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
       }
     }
     for (const assertionResult of assertionResults || []) {
-      if (assertionResult.status === "pass") {
+      if (assertionResult.status === 'pass') {
         passedAssertions += 1;
       } else {
         anyFailed = true;
@@ -51,7 +55,11 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
       }
     }
     for (const preRequestTestResult of preRequestTestResults || []) {
-      if (preRequestTestResult.status === "pass") {
+      if (preRequestTestResult.isScriptError) {
+        anyFailed = true;
+        continue;
+      }
+      if (preRequestTestResult.status === 'pass') {
         passedPreRequestTests += 1;
       } else {
         anyFailed = true;
@@ -59,7 +67,11 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
       }
     }
     for (const postResponseTestResult of postResponseTestResults || []) {
-      if (postResponseTestResult.status === "pass") {
+      if (postResponseTestResult.isScriptError) {
+        anyFailed = true;
+        continue;
+      }
+      if (postResponseTestResult.status === 'pass') {
         passedPostResponseTests += 1;
       } else {
         anyFailed = true;
@@ -67,7 +79,7 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
       }
     }
 
-    if (!anyFailed && status !== "error") {
+    if (!anyFailed && status !== 'error') {
       passedRequests += 1;
     } else if (anyFailed) {
       failedRequests += 1;
@@ -93,6 +105,6 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
     failedPreRequestTests,
     totalPostResponseTests,
     passedPostResponseTests,
-    failedPostResponseTests,
+    failedPostResponseTests
   };
 };

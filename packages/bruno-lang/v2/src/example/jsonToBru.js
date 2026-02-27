@@ -1,4 +1,4 @@
-const { indentString } = require('../utils');
+const { indentString, getValueString } = require('../utils');
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
@@ -38,7 +38,8 @@ const jsonToExampleBru = (json) => {
   }
 
   if (description) {
-    bru += `description: ${description}\n`;
+    const descriptionValue = getValueString(description);
+    bru += `description: ${descriptionValue}\n`;
   }
 
   // Request block
@@ -138,7 +139,9 @@ const jsonToExampleBru = (json) => {
             = item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
 
           if (item.type === 'text') {
-            return `${enabled}${quoteKey(item.name)}: ${item.value}${contentType}`;
+            // Use getValueString to wrap multiline values with triple quotes
+            const valueString = getValueString(item.value);
+            return `${enabled}${quoteKey(item.name)}: ${valueString}${contentType}`;
           }
 
           if (item.type === 'file') {

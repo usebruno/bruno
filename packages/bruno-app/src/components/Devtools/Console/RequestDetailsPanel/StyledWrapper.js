@@ -15,7 +15,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 16px;
+    padding: 2px 8px;
     background: ${(props) => props.theme.console.headerBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
     flex-shrink: 0;
@@ -27,7 +27,6 @@ const StyledWrapper = styled.div`
     gap: 8px;
     color: ${(props) => props.theme.console.titleColor};
     font-size: ${(props) => props.theme.font.size.base};
-    font-weight: 500;
 
     .request-time {
       color: ${(props) => props.theme.console.countColor};
@@ -66,7 +65,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 16px;
+    padding: 4px 8px;
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
@@ -92,7 +91,7 @@ const StyledWrapper = styled.div`
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 16px;
+    padding: 8px;
     min-height: 0;
     height: 0;
   }
@@ -168,10 +167,9 @@ const StyledWrapper = styled.div`
         position: sticky;
         top: 0;
         z-index: 10;
-        
+
         td {
-          padding: 8px 12px;
-          font-weight: 500;
+          padding: 4px 8px;
           color: ${(props) => props.theme.console.titleColor};
           text-transform: uppercase;
           font-size: ${(props) => props.theme.font.size.xs};
@@ -198,7 +196,7 @@ const StyledWrapper = styled.div`
         }
 
         td {
-          padding: 8px 12px;
+          padding: 2px 8px;
           vertical-align: top;
           word-break: break-word;
         }
@@ -256,10 +254,8 @@ const StyledWrapper = styled.div`
   }
 
   .response-body-container {
-    border: 1px solid ${(props) => props.theme.console.border};
-    border-radius: 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     overflow: hidden;
-    background: ${(props) => props.theme.console.headerBg};
     height: 400px;
     display: flex;
     flex-direction: column;
@@ -267,14 +263,12 @@ const StyledWrapper = styled.div`
     .w-full.h-full.relative.flex {
       height: 100% !important;
       width: 100% !important;
-      background: ${(props) => props.theme.console.headerBg} !important;
       display: flex !important;
       flex-direction: column !important;
     }
 
     div[role="tablist"] {
-      background: ${(props) => props.theme.console.dropdownHeaderBg};
-      padding: 8px 12px;
+      padding: 4px 8px;
       border-bottom: 1px solid ${(props) => props.theme.console.border};
       display: flex !important;
       gap: 8px !important;
@@ -282,27 +276,16 @@ const StyledWrapper = styled.div`
       align-items: center !important;
       min-height: 40px !important;
       flex-shrink: 0 !important;
-      
+
       > div {
         color: ${(props) => props.theme.console.buttonColor};
         font-size: ${(props) => props.theme.font.size.sm} !important;
-        padding: 6px 12px !important;
-        border-radius: 4px;
-        transition: all 0.2s ease;
         cursor: pointer;
-        border: 1px solid ${(props) => props.theme.console.border};
-        background: ${(props) => props.theme.console.contentBg};
         white-space: nowrap !important;
         min-width: auto !important;
         height: auto !important;
         line-height: 1.2 !important;
         font-weight: 500 !important;
-
-        &:hover {
-          background: ${(props) => props.theme.console.buttonHoverBg};
-          color: ${(props) => props.theme.console.buttonHoverColor};
-          border-color: ${(props) => props.theme.console.buttonHoverBg};
-        }
 
         &.active {
           background: ${(props) => props.theme.console.checkboxColor};
@@ -320,7 +303,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .network-logs-container {
+  .network-logs-wrapper {
     border: 1px solid ${(props) => props.theme.console.border};
     border-radius: 4px;
     overflow: hidden;
@@ -328,20 +311,20 @@ const StyledWrapper = styled.div`
     min-height: 200px;
     max-height: 400px;
 
-    .network-logs {
+    .network-logs-container {
       background: ${(props) => props.theme.console.contentBg} !important;
       color: ${(props) => props.theme.console.messageColor} !important;
       height: 100% !important;
       max-height: 400px !important;
-      
-      pre {
+      padding: 0.5rem !important;
+
+      .network-logs-pre {
         color: ${(props) => props.theme.console.messageColor} !important;
         font-size: ${(props) => props.theme.font.size.xs} !important;
         line-height: 1.4 !important;
-        padding: 12px !important;
       }
     }
   }
 `;
 
-export default StyledWrapper; 
+export default StyledWrapper;

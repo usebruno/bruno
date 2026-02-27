@@ -5,8 +5,8 @@ const dts = require('rollup-plugin-dts');
 const { terser } = require('rollup-plugin-terser');
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
 const json = require('@rollup/plugin-json');
+const { isBuiltin } = require('module');
 const packageJson = require('./package.json');
-
 
 module.exports = [
   {
@@ -30,15 +30,15 @@ module.exports = [
       nodeResolve({
         extensions: ['.js', '.ts', '.tsx', '.json', '.css'],
         dedupe: ['@grpc/grpc-js'],
-        preferBuiltins: true 
+        preferBuiltins: true
       }),
       json(),
       commonjs({
         transformMixedEsModules: true
       }),
       typescript({ tsconfig: './tsconfig.json' }),
-      terser(),
+      terser()
     ],
-    external: ['axios', 'qs', 'ws', 'debug']
+    external: (id) => isBuiltin(id) || ['axios', 'qs', 'ws', 'debug', 'shell-env'].includes(id)
   }
 ];

@@ -66,7 +66,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
           },
           fromCache: false,
           completed: true,
-          requests: [], // No sub-requests in this context
+          requests: [] // No sub-requests in this context
         };
         // Add to mainRequests
 
@@ -80,14 +80,14 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
 
     webSession.webRequest.onBeforeSendHeaders((details, callback) => {
       const { id: requestId, requestHeaders, method, url } = details;
-      
+
       if (details.resourceType === 'mainFrame' && Object.keys(additionalHeaders).length > 0) {
         // Add our custom headers
         for (const [name, value] of Object.entries(additionalHeaders)) {
           requestHeaders[name] = value;
         }
       }
-      
+
       if (currentMainRequest?.requestId === requestId) {
         currentMainRequest.request = {
           url,
@@ -128,15 +128,31 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
 
     function onWindowRedirect(url) {
       // Handle redirects as needed
+      let urlObj;
+      let callbackUrlObj;
+
+      try {
+        urlObj = new URL(url);
+      } catch (e) {
+        // Invalid redirect URL, skip processing
+        return;
+      }
+
+      try {
+        callbackUrlObj = new URL(callbackUrl);
+      } catch (e) {
+        // Invalid callback URL, skip matching but still check for errors below
+        callbackUrlObj = null;
+      }
 
       // Check if redirect is to the callback URL and contains an authorization code
-      if (matchesCallbackUrl(new URL(url), new URL(callbackUrl))) {
+      if (callbackUrlObj && matchesCallbackUrl(urlObj, callbackUrlObj)) {
         finalUrl = url;
         window.close();
+        return;
       }
 
       // Handle OAuth error responses
-      const urlObj = new URL(url);
       if (urlObj.searchParams.has('error')) {
         const error = urlObj.searchParams.get('error');
         const errorDescription = urlObj.searchParams.get('error_description');
@@ -185,7 +201,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
             const urlWithHash = new URL(finalUrl);
             const hash = urlWithHash.hash.substring(1); // Remove the leading #
             const hashParams = new URLSearchParams(hash);
-            
+
             // Extract tokens from hash fragment
             const implicitTokens = {
               access_token: hashParams.get('access_token'),
@@ -194,7 +210,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
               state: hashParams.get('state'),
               scope: hashParams.get('scope')
             };
-            
+
             return resolve({ implicitTokens, debugInfo });
           } else {
             // Default case - authorization code flow

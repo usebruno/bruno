@@ -69,7 +69,7 @@ describe('Bruno Cookie Jar Wrapper - API Examples', () => {
       // Verify all cookies were set
       const retrievedCookies = (await jar.getCookies(testUrl)) as Cookie[];
       expect(retrievedCookies).toHaveLength(3);
-      
+
       const cookieNames = retrievedCookies.map((c: Cookie) => c.key);
       expect(cookieNames).toContain('cookie1');
       expect(cookieNames).toContain('cookie2');
@@ -81,15 +81,15 @@ describe('Bruno Cookie Jar Wrapper - API Examples', () => {
       await jar.setCookie(testUrl, 'auth', 'token123');
       await jar.setCookie(testUrl, 'session', 'sess456');
       await jar.setCookie(testUrl, 'prefs', 'theme=dark');
-      
+
       const cookies = (await jar.getCookies(testUrl)) as Cookie[];
       expect(cookies).toHaveLength(3);
-      
+
       const cookieMap = (cookies as Cookie[]).reduce<Record<string, string>>((map, cookie: Cookie) => {
         map[cookie.key] = cookie.value;
         return map;
       }, {} as Record<string, string>);
-      
+
       expect(cookieMap.auth).toBe('token123');
       expect(cookieMap.session).toBe('sess456');
       expect(cookieMap.prefs).toBe('theme=dark');
@@ -101,10 +101,10 @@ describe('Bruno Cookie Jar Wrapper - API Examples', () => {
       // Set two cookies
       await jar.setCookie(testUrl, 'keep', 'keepValue');
       await jar.setCookie(testUrl, 'remove', 'removeValue');
-      
+
       // Delete one cookie
       await jar.deleteCookie(testUrl, 'remove');
-      
+
       // Verify only one cookie remains
       const cookies = (await jar.getCookies(testUrl)) as Cookie[];
       expect(cookies).toHaveLength(1);
@@ -116,10 +116,10 @@ describe('Bruno Cookie Jar Wrapper - API Examples', () => {
       // Set multiple cookies
       await jar.setCookie(testUrl, 'cookie1', 'value1');
       await jar.setCookie(testUrl, 'cookie2', 'value2');
-      
+
       // Delete all cookies for the URL
       await jar.deleteCookies(testUrl);
-      
+
       // Verify no cookies remain
       const cookies = (await jar.getCookies(testUrl)) as Cookie[];
       expect(cookies).toHaveLength(0);
@@ -129,16 +129,29 @@ describe('Bruno Cookie Jar Wrapper - API Examples', () => {
       // Set cookies for multiple URLs
       await jar.setCookie('https://site1.com', 'cookie1', 'value1');
       await jar.setCookie('https://site2.com', 'cookie2', 'value2');
-      
+
       // Clear entire jar
       await jar.clear();
-      
+
       // Verify no cookies remain for any URL
       const cookies1 = (await jar.getCookies('https://site1.com')) as Cookie[];
       const cookies2 = (await jar.getCookies('https://site2.com')) as Cookie[];
-      
+
       expect(cookies1).toHaveLength(0);
       expect(cookies2).toHaveLength(0);
+    });
+  });
+
+  describe('hasCookie', () => {
+    test('hasCookie returns true for existing cookie', async () => {
+      await jar.setCookie(testUrl, 'authToken', 'jwt123');
+      const exists = await jar.hasCookie(testUrl, 'authToken');
+      expect(exists).toBe(true);
+    });
+
+    test('hasCookie returns false for non-existent cookie', async () => {
+      const exists = await jar.hasCookie(testUrl, 'nonexistent');
+      expect(exists).toBe(false);
     });
   });
 
@@ -164,17 +177,17 @@ describe('Bruno Cookie Jar Wrapper - API Examples', () => {
     test('Authentication workflow example', async () => {
       const apiUrl = 'https://api.example.com';
       const authToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
-      
+
       // Simulate login - set auth cookie
       await jar.setCookie(apiUrl, 'authToken', authToken);
-      
+
       // Later in the session - retrieve auth token
       const cookie = (await jar.getCookie(apiUrl, 'authToken'))!;
       expect(cookie.value).toBe(authToken);
-      
+
       // Simulate logout - remove auth cookie
       await jar.deleteCookie(apiUrl, 'authToken');
-      
+
       // Verify cookie is gone
       const deletedCookie = await jar.getCookie(apiUrl, 'authToken');
       expect(deletedCookie).toBeNull();
@@ -182,29 +195,29 @@ describe('Bruno Cookie Jar Wrapper - API Examples', () => {
 
     test('Session management with multiple cookies', async () => {
       const sessionUrl = 'https://app.example.com';
-      
+
       // Set session cookies
       const sessionCookies = [
         { key: 'sessionId', value: 'sess_123', httpOnly: true },
         { key: 'csrfToken', value: 'csrf_456' },
         { key: 'userPrefs', value: JSON.stringify({ theme: 'dark', lang: 'en' }) }
       ];
-      
+
       await jar.setCookies(sessionUrl, sessionCookies);
-      
+
       // Retrieve all session cookies
       const cookies = (await jar.getCookies(sessionUrl)) as Cookie[];
       expect(cookies).toHaveLength(3);
-      
+
       // Find specific cookies
       const sessionCookie = cookies.find((c: Cookie) => c.key === 'sessionId')!;
       const csrfCookie = cookies.find((c: Cookie) => c.key === 'csrfToken')!;
       const prefsCookie = cookies.find((c: Cookie) => c.key === 'userPrefs')!;
-      
+
       expect(sessionCookie.value).toBe('sess_123');
       expect(sessionCookie.httpOnly).toBe(true);
       expect(csrfCookie.value).toBe('csrf_456');
-      
+
       const prefs = JSON.parse(prefsCookie.value);
       expect(prefs.theme).toBe('dark');
       expect(prefs.lang).toBe('en');
@@ -212,23 +225,23 @@ describe('Bruno Cookie Jar Wrapper - API Examples', () => {
 
     test('Cookie path handling', async () => {
       const baseUrl = 'https://example.com';
-      
+
       // Set cookies with different paths
       await jar.setCookie(baseUrl, { key: 'global', value: 'global_val', path: '/' });
       await jar.setCookie(baseUrl, { key: 'api', value: 'api_val', path: '/api' });
       await jar.setCookie(baseUrl, { key: 'admin', value: 'admin_val', path: '/admin' });
-      
+
       const rootCookies = (await jar.getCookies(baseUrl + '/')) as Cookie[];
       const globalCookie = rootCookies.find((c: Cookie) => c.key === 'global')!;
       expect(globalCookie).toBeTruthy();
       expect(globalCookie.value).toBe('global_val');
-      
+
       const apiCookies = (await jar.getCookies(baseUrl + '/api/users')) as Cookie[];
       expect(apiCookies.length).toBeGreaterThanOrEqual(2);
-      
+
       const apiCookieNames = apiCookies.map((c: Cookie) => c.key);
       expect(apiCookieNames).toContain('global');
       expect(apiCookieNames).toContain('api');
     });
   });
-}); 
+});

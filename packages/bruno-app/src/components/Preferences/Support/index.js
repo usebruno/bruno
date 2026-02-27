@@ -8,8 +8,9 @@ const Support = () => {
 
   return (
     <StyledWrapper>
+      <div className="section-header">Support</div>
       <div className="rows">
-        <div className="mt-2">
+        <div className="mb-2">
           <a href="https://docs.usebruno.com" target="_blank" className="flex items-end">
             <IconBook size={18} strokeWidth={2} />
             <span className="label ml-2">{t('COMMON.DOCUMENTATION')}</span>

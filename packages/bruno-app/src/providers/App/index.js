@@ -5,6 +5,7 @@ import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
 import ConfirmAppClose from './ConfirmAppClose';
 import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
+import useParsedFileCacheIpc from './useParsedFileCacheIpc';
 import StyledWrapper from './StyledWrapper';
 import { version } from '../../../package.json';
 
@@ -13,6 +14,7 @@ export const AppContext = React.createContext();
 export const AppProvider = (props) => {
   useTelemetry({ version });
   useIpcEvents();
+  useParsedFileCacheIpc();
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -20,9 +22,24 @@ export const AppProvider = (props) => {
   }, []);
 
   useEffect(() => {
-    const platform = get(navigator, 'platform', '');
-    if(platform && platform.toLowerCase().indexOf('mac') > -1) {
+    const platform = get(navigator, 'platform', '').toLowerCase();
+
+    if (!platform) {
+      return;
+    }
+
+    if (platform.includes('mac')) {
       document.body.classList.add('os-mac');
+      return;
+    }
+
+    if (platform.includes('win')) {
+      document.body.classList.add('os-windows');
+      return;
+    }
+
+    if (platform.includes('linux')) {
+      document.body.classList.add('os-linux');
     }
   }, []);
 

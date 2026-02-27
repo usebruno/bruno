@@ -15,7 +15,7 @@ const addCookieToJar = (setCookieHeader: string, requestUrl: string): void => {
 
 const getCookiesForUrl = (url: string) => {
   return cookieJar.getCookiesSync(url, {
-    secure: isPotentiallyTrustworthyOrigin(url),
+    secure: isPotentiallyTrustworthyOrigin(url)
   } as any);
 };
 
@@ -37,7 +37,7 @@ const getDomainsWithCookies = (): Promise<Array<{ domain: string; cookies: Cooki
       cookies.forEach((cookie) => {
         // Handle null domain by skipping the cookie
         if (!cookie.domain) return;
-        
+
         if (!domainCookieMap[cookie.domain]) {
           domainCookieMap[cookie.domain] = [cookie];
         } else {
@@ -163,7 +163,7 @@ const createCookieString = (cookieObj: any): string => {
     cookieString += `; Domain=${cookieObj.domain}`;
   }
   return cookieString;
-}
+};
 
 const saveCookies = (url: string, headers: any) => {
   if (headers['set-cookie']) {
@@ -180,7 +180,7 @@ const saveCookies = (url: string, headers: any) => {
 
 const cookieJarWrapper = () => {
   return {
-  
+
     // Get the full cookie object for the given URL & name.
     getCookie: function (
       url: string,
@@ -213,7 +213,36 @@ const cookieJarWrapper = () => {
         });
       });
     },
-   
+
+    // Check whether a cookie with the given name exists for the URL.
+    hasCookie: function (
+      url: string,
+      cookieName: string,
+      callback?: (err: Error | null | undefined, exists?: boolean) => void
+    ) {
+      if (!url || !cookieName) {
+        const error = new Error('URL and cookie name are required');
+        if (callback) return callback(error);
+        return Promise.reject(error);
+      }
+
+      if (callback) {
+        return cookieJar.getCookies(url, (err: Error | null, cookies?: Cookie[]) => {
+          if (err) return callback(err);
+          const cookieList = cookies || [];
+          callback(null, cookieList.some((c) => c.key === cookieName));
+        });
+      }
+
+      return new Promise<boolean>((resolve, reject) => {
+        cookieJar.getCookies(url, (err: Error | null, cookies?: Cookie[]) => {
+          if (err) return reject(err);
+          const cookieList = cookies || [];
+          resolve(cookieList.some((c) => c.key === cookieName));
+        });
+      });
+    },
+
     // Get all cookies that would be sent to the given URL.
     getCookies: function (url: string, callback?: (err: Error | null | undefined, cookies?: Cookie[]) => void) {
       if (!url) {
@@ -263,7 +292,7 @@ const cookieJarWrapper = () => {
           const cookie = new Cookie({
             key: cookieName,
             value: cookieValue,
-            domain: new URL(url).hostname,
+            domain: new URL(url).hostname
           });
 
           cookieJar.setCookieSync(cookie, url, { ignoreError: true });
@@ -279,7 +308,7 @@ const cookieJarWrapper = () => {
 
           const base = {
             domain: new URL(url).hostname,
-            ...obj,
+            ...obj
           } as any;
 
           const processedCookie = createCookieObj(base);
@@ -313,7 +342,6 @@ const cookieJarWrapper = () => {
         }
       });
     },
-
 
     setCookies: function (
       url: string,
@@ -364,7 +392,6 @@ const cookieJarWrapper = () => {
         }
       });
     },
-
 
     clear: function (callback?: (err?: Error | undefined) => void) {
       if (callback) {
@@ -483,7 +510,6 @@ const cookieJarWrapper = () => {
   } as const;
 };
 
-
 const cookiesModule = {
   cookieJar,
   addCookieToJar,
@@ -502,4 +528,4 @@ const cookiesModule = {
   saveCookies
 };
 
-export default cookiesModule; 
+export default cookiesModule;

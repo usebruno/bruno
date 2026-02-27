@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import StyledWrapper from './StyledWrapper';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import OAuth2AuthorizationCode from 'components/RequestPane/Auth/OAuth2/AuthorizationCode/index';
-import { updateFolderAuth } from 'providers/ReduxStore/slices/collections';
+import { updateFolderAuth as _updateFolderAuth } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
 import OAuth2PasswordCredentials from 'components/RequestPane/Auth/OAuth2/PasswordCredentials/index';
 import OAuth2ClientCredentials from 'components/RequestPane/Auth/OAuth2/ClientCredentials/index';
@@ -18,8 +18,9 @@ import WsseAuth from 'components/RequestPane/Auth/WsseAuth';
 import ApiKeyAuth from 'components/RequestPane/Auth/ApiKeyAuth';
 import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
 import { humanizeRequestAuthMode, getTreePathFromCollectionToItem } from 'utils/collections/index';
+import Button from 'ui/Button';
 
-const GrantTypeComponentMap = ({ collection, folder }) => {
+const GrantTypeComponentMap = ({ collection, folder, updateFolderAuth }) => {
   const dispatch = useDispatch();
 
   const save = () => {
@@ -63,7 +64,7 @@ const Auth = ({ collection, folder }) => {
 
     // Get path from collection to current folder
     const folderTreePath = getTreePathFromCollectionToItem(collection, folder);
-    
+
     // Check parent folders to find closest auth configuration
     // Skip the last item which is the current folder
     for (let i = 0; i < folderTreePath.length - 1; i++) {
@@ -87,6 +88,13 @@ const Auth = ({ collection, folder }) => {
 
   const handleSave = () => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
+  };
+
+  const updateFolderAuth = ({ itemUid, ...rest }) => {
+    return _updateFolderAuth({
+      ...rest,
+      folderUid: folder.uid
+    });
   };
 
   const getAuthView = () => {
@@ -172,12 +180,12 @@ const Auth = ({ collection, folder }) => {
         return (
           <>
             <GrantTypeSelector
-              request={request} 
-              updateAuth={updateFolderAuth} 
+              request={request}
+              updateAuth={updateFolderAuth}
               collection={collection}
               item={folder}
             />
-            <GrantTypeComponentMap collection={collection} folder={folder} />
+            <GrantTypeComponentMap collection={collection} folder={folder} updateFolderAuth={updateFolderAuth} />
           </>
         );
       }
@@ -200,24 +208,23 @@ const Auth = ({ collection, folder }) => {
     }
   };
 
-
   return (
     <StyledWrapper className="w-full">
       <div className="text-xs mb-4 text-muted">
         Configures authentication for the entire folder. This applies to all requests using the{' '}
         <span className="font-medium">Inherit</span> option in the <span className="font-medium">Auth</span> tab.
       </div>
-      <div className="flex flex-grow justify-start items-center mb-4">
+      <div className="flex flex-grow justify-start items-center">
         <AuthMode collection={collection} folder={folder} />
       </div>
       {getAuthView()}
       <div className="mt-6">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );
 };
 
-export default Auth; 
+export default Auth;

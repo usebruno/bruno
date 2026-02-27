@@ -7,117 +7,91 @@ const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringi
 const constants = require('../constants');
 const chalk = require('chalk');
 
-const createCollectionJsonFromPathname = (collectionPath) => {
-  const environmentsPath = path.join(collectionPath, `environments`);
-    
-  // get the collection bruno json config [<collection-path>/bruno.json]
-  const brunoConfig = getCollectionBrunoJsonConfig(collectionPath);
+const FORMAT_CONFIG = {
+  yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
+  bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
+};
+const REQUEST_ITEM_TYPES = ['http-request', 'graphql-request'];
 
-  // get the collection root [<collection-path>/collection.bru]
-  const collectionRoot = getCollectionRoot(collectionPath);
-
-  // get the collection items recursively
-  const traverse = (currentPath) => {
-    const filesInCurrentDir = fs.readdirSync(currentPath);
-    if (currentPath.includes('node_modules')) {
-      return;
-    }
-    const currentDirItems = [];
-    for (const file of filesInCurrentDir) {
-      const filePath = path.join(currentPath, file);
-      const stats = fs.lstatSync(filePath);
-      if (stats.isDirectory()) {
-        if (filePath === environmentsPath) continue;
-        if (filePath.startsWith('.git') || filePath.startsWith('node_modules')) continue;
-        
-        // get the folder root
-        let folderItem = { name: file, pathname: filePath, type: 'folder', items: traverse(filePath) }
-        const folderBruJson = getFolderRoot(filePath);
-        if (folderBruJson) {
-          folderItem.root = folderBruJson;
-          folderItem.seq = folderBruJson.meta.seq;
-        }
-        currentDirItems.push(folderItem);
-      }
-      else {
-        if (['collection.bru', 'folder.bru'].includes(file)) continue;
-        if (path.extname(filePath) !== '.bru') continue;
-
-        // get the request item
-        try {
-          const bruContent = fs.readFileSync(filePath, 'utf8');
-          const requestItem = parseRequest(bruContent);
-          currentDirItems.push({
-            name: file,
-            pathname: filePath,
-            ...requestItem
-          });
-        } catch (err) {
-          // Log warning for invalid .bru file but continue processing
-          console.warn(chalk.yellow(`Warning: Skipping invalid file ${filePath}\nError: ${err.message}`));
-          // Track skipped files for later reporting
-          if (!global.brunoSkippedFiles) {
-            global.brunoSkippedFiles = [];
-          }
-          global.brunoSkippedFiles.push({ path: filePath, error: err.message });
-        }
-      }
-    }
-    let currentDirFolderItems = currentDirItems?.filter((iter) => iter.type === 'folder');
-    let sortedFolderItems = sortByNameThenSequence(currentDirFolderItems);
-
-    let currentDirRequestItems = currentDirItems?.filter((iter) => iter.type !== 'folder');
-    let sortedRequestItems = currentDirRequestItems?.sort((a, b) => a.seq - b.seq);
-
-    return sortedFolderItems?.concat(sortedRequestItems);
-  };
-  let collectionItems = traverse(collectionPath);
-
-  let collection = {
-    brunoConfig,
-    root: collectionRoot,
-    pathname: collectionPath,
-    items: collectionItems
-  }
-
-  return collection;
+const getCollectionFormat = (collectionPath) => {
+  if (fs.existsSync(path.join(collectionPath, 'opencollection.yml'))) return 'yml';
+  if (fs.existsSync(path.join(collectionPath, 'bruno.json'))) return 'bru';
+  return null;
 };
 
-const getCollectionBrunoJsonConfig = (dir) => {
-  // right now, bru must be run from the root of the collection
-  // will add support in the future to run it from anywhere inside the collection
-  const brunoJsonPath = path.join(dir, 'bruno.json');
-  const brunoJsonExists = fs.existsSync(brunoJsonPath);
-  if (!brunoJsonExists) {
+const getCollectionConfig = (collectionPath, format) => {
+  if (format === 'yml') {
+    const content = fs.readFileSync(path.join(collectionPath, 'opencollection.yml'), 'utf8');
+    const parsed = parseCollection(content, { format: 'yml' });
+    return { brunoConfig: parsed.brunoConfig, collectionRoot: parsed.collectionRoot || {} };
+  }
+  const brunoConfig = JSON.parse(fs.readFileSync(path.join(collectionPath, 'bruno.json'), 'utf8'));
+  const collectionBruPath = path.join(collectionPath, 'collection.bru');
+  const collectionRoot = fs.existsSync(collectionBruPath)
+    ? parseCollection(fs.readFileSync(collectionBruPath, 'utf8'), { format: 'bru' })
+    : {};
+  return { brunoConfig, collectionRoot };
+};
+
+const getFolderRoot = (dir, format) => {
+  const folderPath = path.join(dir, FORMAT_CONFIG[format].folderFile);
+  if (!fs.existsSync(folderPath)) return null;
+  return parseFolder(fs.readFileSync(folderPath, 'utf8'), { format });
+};
+
+const createCollectionJsonFromPathname = (collectionPath) => {
+  const format = getCollectionFormat(collectionPath);
+  if (!format) {
     console.error(chalk.red(`You can run only at the root of a collection`));
     process.exit(constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
   }
 
-  const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
-  const brunoConfig = JSON.parse(brunoConfigFile);
-  return brunoConfig;
-}
+  const { brunoConfig, collectionRoot } = getCollectionConfig(collectionPath, format);
+  const { ext, collectionFile, folderFile } = FORMAT_CONFIG[format];
+  const environmentsPath = path.join(collectionPath, 'environments');
 
-const getCollectionRoot = (dir) => {
-  const collectionRootPath = path.join(dir, 'collection.bru');
-  const exists = fs.existsSync(collectionRootPath);
-  if (!exists) {
-    return {};
-  }
+  const traverse = (currentPath) => {
+    if (currentPath.includes('node_modules')) return [];
+    const currentDirItems = [];
 
-  const content = fs.readFileSync(collectionRootPath, 'utf8');
-  return parseCollection(content);
-};
+    for (const file of fs.readdirSync(currentPath)) {
+      const filePath = path.join(currentPath, file);
+      const stats = fs.lstatSync(filePath);
 
-const getFolderRoot = (dir) => {
-  const folderRootPath = path.join(dir, 'folder.bru');
-  const exists = fs.existsSync(folderRootPath);
-  if (!exists) {
-    return null;
-  }
+      if (stats.isDirectory()) {
+        if (filePath === environmentsPath || file === '.git' || file === 'node_modules') continue;
+        const folderItem = { name: file, pathname: filePath, type: 'folder', items: traverse(filePath) };
+        const folderRoot = getFolderRoot(filePath, format);
+        if (folderRoot) {
+          folderItem.root = folderRoot;
+          folderItem.seq = folderRoot.meta?.seq;
+        }
+        currentDirItems.push(folderItem);
+      } else {
+        if (file === collectionFile || file === folderFile || path.extname(filePath) !== ext) continue;
+        try {
+          const requestItem = parseRequest(fs.readFileSync(filePath, 'utf8'), { format });
+          currentDirItems.push({ name: file, ...requestItem, pathname: filePath });
+        } catch (err) {
+          console.warn(chalk.yellow(`Warning: Skipping invalid file ${filePath}\nError: ${err.message}`));
+          global.brunoSkippedFiles = global.brunoSkippedFiles || [];
+          global.brunoSkippedFiles.push({ path: filePath, error: err.message });
+        }
+      }
+    }
 
-  const content = fs.readFileSync(folderRootPath, 'utf8');
-  return parseFolder(content);
+    const folders = sortByNameThenSequence(currentDirItems.filter((i) => i.type === 'folder'));
+    const requests = currentDirItems.filter((i) => i.type !== 'folder').sort((a, b) => a.seq - b.seq);
+    return folders.concat(requests);
+  };
+
+  return {
+    brunoConfig,
+    format,
+    root: collectionRoot,
+    pathname: collectionPath,
+    items: traverse(collectionPath)
+  };
 };
 
 const mergeHeaders = (collection, request, requestTreePath) => {
@@ -191,7 +165,7 @@ const mergeVars = (collection, request, requestTreePath) => {
   request.folderVariables = folderVariables;
   request.requestVariables = requestVariables;
 
-  if(request?.vars) {
+  if (request?.vars) {
     request.vars.req = Array.from(reqVars, ([name, value]) => ({
       name,
       value,
@@ -226,7 +200,7 @@ const mergeVars = (collection, request, requestTreePath) => {
     }
   }
 
-  if(request?.vars) {
+  if (request?.vars) {
     request.vars.res = Array.from(resVars, ([name, value]) => ({
       name,
       value,
@@ -234,6 +208,23 @@ const mergeVars = (collection, request, requestTreePath) => {
       type: 'response'
     }));
   }
+};
+
+/**
+ * Wraps a script in an IIFE closure to isolate its scope
+ * @param {string} script - The script code to wrap
+ * @returns {string} The wrapped script
+ */
+const wrapScriptInClosure = (script) => {
+  if (!script || script.trim() === '') {
+    return '';
+  }
+  // Wrap script in async IIFE to create isolated scope
+  // This prevents variable re-declaration errors and allows early returns
+  // to only affect the current script segment
+  return `await (async () => {
+${script}
+})();`;
 };
 
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
@@ -265,18 +256,51 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     }
   }
 
-  request.script.req = compact([collectionPreReqScript, ...combinedPreReqScript, request?.script?.req || '']).join(os.EOL);
+  // Wrap each script segment in its own closure and join them
+  // This allows each script to run separately with its own scope,
+  // preventing variable re-declaration errors and allowing early returns
+  // to only affect that specific script segment
+  const preReqScripts = [
+    collectionPreReqScript,
+    ...combinedPreReqScript,
+    request?.script?.req || ''
+  ];
+  request.script.req = compact(preReqScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
 
+  // Handle post-response scripts based on scriptFlow
   if (scriptFlow === 'sequential') {
-    request.script.res = compact([collectionPostResScript, ...combinedPostResScript, request?.script?.res || '']).join(os.EOL);
+    const postResScripts = [
+      collectionPostResScript,
+      ...combinedPostResScript,
+      request?.script?.res || ''
+    ];
+    request.script.res = compact(postResScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   } else {
-    request.script.res = compact([request?.script?.res || '', ...combinedPostResScript.reverse(), collectionPostResScript]).join(os.EOL);
+    // Reverse order for non-sequential flow
+    const postResScripts = [
+      request?.script?.res || '',
+      ...[...combinedPostResScript].reverse(),
+      collectionPostResScript
+    ];
+    request.script.res = compact(postResScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   }
 
+  // Handle tests based on scriptFlow
   if (scriptFlow === 'sequential') {
-    request.tests = compact([collectionTests, ...combinedTests, request?.tests || '']).join(os.EOL);
+    const testScripts = [
+      collectionTests,
+      ...combinedTests,
+      request?.tests || ''
+    ];
+    request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   } else {
-    request.tests = compact([request?.tests || '', ...combinedTests.reverse(), collectionTests]).join(os.EOL);
+    // Reverse order for non-sequential flow
+    const testScripts = [
+      request?.tests || '',
+      ...[...combinedTests].reverse(),
+      collectionTests
+    ];
+    request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
   }
 };
 
@@ -344,7 +368,7 @@ const mergeAuth = (collection, request, requestTreePath) => {
   if (request.auth && request.auth.mode === 'inherit') {
     request.auth = effectiveAuth;
   }
-}
+};
 
 const getAllRequestsInFolder = (folderItems = [], recursive = true) => {
   let requests = [];
@@ -365,11 +389,10 @@ const getAllRequestsInFolder = (folderItems = [], recursive = true) => {
 
 const getAllRequestsAtFolderRoot = (folderItems = []) => {
   return getAllRequestsInFolder(folderItems, false);
-}
+};
 
-const getCallStack = (resolvedPaths = [], collection, {recursive}) => {
+const getCallStack = (resolvedPaths = [], collection, { recursive }) => {
   let requestItems = [];
-
 
   if (!resolvedPaths || !resolvedPaths.length) {
     return requestItems;
@@ -415,28 +438,38 @@ const safeWriteFileSync = (filePath, content) => {
 
 /**
  * Creates a Bruno collection directory structure from a Bruno collection object
- * 
+ *
  * @param {Object} collection - The Bruno collection object
  * @param {string} dirPath - The output directory path
  */
-const createCollectionFromBrunoObject = async (collection, dirPath) => {
-  // Create bruno.json
+const createCollectionFromBrunoObject = async (collection, dirPath, options = {}) => {
+  const { format = 'bru' } = options;
+  // Create brunoConfig for yml format
   const brunoConfig = {
     version: '1',
     name: collection.name,
     type: 'collection',
     ignore: ['node_modules', '.git']
   };
-  
-  fs.writeFileSync(
-    path.join(dirPath, 'bruno.json'), 
-    JSON.stringify(brunoConfig, null, 2)
-  );
 
-  // Create collection.bru if root exists
+  if (format === 'yml') {
+    brunoConfig.opencollection = '1.0.0';
+  }
+
+  const collectionContent = await stringifyCollection(collection.root || {}, brunoConfig, {
+    format
+  });
+  const collectionRootFilePath = format == 'bru' ? path.join(dirPath, 'collection.bru') : path.join(dirPath, 'opencollection.yml');
+
+  if (format === 'bru') {
+    fs.writeFileSync(
+      path.join(dirPath, 'bruno.json'),
+      JSON.stringify(brunoConfig, null, 2)
+    );
+  }
+
   if (collection.root) {
-    const collectionContent = await stringifyCollection(collection.root);
-    fs.writeFileSync(path.join(dirPath, 'collection.bru'), collectionContent);
+    fs.writeFileSync(collectionRootFilePath, collectionContent);
   }
 
   // Process environments
@@ -445,25 +478,28 @@ const createCollectionFromBrunoObject = async (collection, dirPath) => {
     fs.mkdirSync(envDirPath, { recursive: true });
 
     for (const env of collection.environments) {
-      const content = await stringifyEnvironment(env);
-      const filename = sanitizeName(`${env.name}.bru`);
+      const content = stringifyEnvironment(env, { format });
+      const filename = format === 'bru' ? sanitizeName(`${env.name}.bru`) : sanitizeName(`${env.name}.yml`);
       fs.writeFileSync(path.join(envDirPath, filename), content);
     }
   }
 
   // Process collection items
-  await processCollectionItems(collection.items, dirPath);
+  await processCollectionItems(collection.items, dirPath, { format });
 
   return dirPath;
 };
 
 /**
  * Recursively processes collection items to create files and folders
- * 
+ *
  * @param {Array} items - Collection items
  * @param {string} currentPath - Current directory path
+ * @param {object} [options] - Current directory path
+ * @param {"bru"|"yml"} options.format - Current directory path
  */
-const processCollectionItems = async (items = [], currentPath) => {
+const processCollectionItems = async (items = [], currentPath, options = {}) => {
+  const { format = 'bru' } = options;
   for (const item of items) {
     if (item.type === 'folder') {
       // Create folder
@@ -471,31 +507,39 @@ const processCollectionItems = async (items = [], currentPath) => {
       const folderPath = path.join(currentPath, sanitizedFolderName);
       fs.mkdirSync(folderPath, { recursive: true });
 
-      // Create folder.bru file if root exists
+      // Create folder.yml file if root exists
       if (item?.root?.meta?.name) {
-        const folderBruFilePath = path.join(folderPath, 'folder.bru');
+        const folderFileName = format === 'bru' ? 'folder.bru' : 'folder.yml';
+        const folderFilePath = path.join(folderPath, folderFileName);
         if (item.seq) {
           item.root.meta.seq = item.seq;
         }
-        const folderContent = await stringifyFolder(item.root);
-        safeWriteFileSync(folderBruFilePath, folderContent);
+        const folderContent = stringifyFolder(item.root, { format });
+        safeWriteFileSync(folderFilePath, folderContent);
       }
 
       // Process folder items recursively
       if (item.items && item.items.length) {
-        await processCollectionItems(item.items, folderPath);
+        await processCollectionItems(item.items, folderPath, options);
       }
-    } else if (['http-request', 'graphql-request'].includes(item.type)) {
+    } else if (REQUEST_ITEM_TYPES.includes(item.type)) {
       // Create request file
-      let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
-      if (!sanitizedFilename.endsWith('.bru')) {
-        sanitizedFilename += '.bru';
+      let sanitizedFilename;
+      if (format == 'yml') {
+        sanitizedFilename = sanitizeName(item?.filename || `${item.name}.yml`);
+        if (!sanitizedFilename.endsWith('.yml')) {
+          sanitizedFilename += '.yml';
+        }
+      } else {
+        sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
+        if (!sanitizedFilename.endsWith('.bru')) {
+          sanitizedFilename += '.bru';
+        }
       }
 
-      // Convert JSON to BRU format based on the item type
-      let type = item.type === 'http-request' ? 'http' : 'graphql';
-      const bruJson = {
-        type: type,
+      // Convert to YML format
+      const itemJson = {
+        type: item.type,
         name: item.name,
         seq: typeof item.seq === 'number' ? item.seq : 1,
         tags: item.tags || [],
@@ -515,24 +559,26 @@ const processCollectionItems = async (items = [], currentPath) => {
         }
       };
 
-      // Convert to BRU format and write to file
-      const content = await stringifyRequest(bruJson);
+      // Convert to YML format and write to file
+      const content = stringifyRequest(itemJson, { format });
       safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
+    } else {
+      throw new Error(`Unsupported item type: ${item.type}`);
     }
   }
 };
 
-const sortByNameThenSequence = items => {
-  const isSeqValid = seq => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
+const sortByNameThenSequence = (items) => {
+  const isSeqValid = (seq) => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
 
   // Sort folders alphabetically by name
   const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
 
   // Extract folders without 'seq'
-  const withoutSeq = alphabeticallySorted.filter(f => !isSeqValid(f['seq']));
+  const withoutSeq = alphabeticallySorted.filter((f) => !isSeqValid(f['seq']));
 
   // Extract folders with 'seq' and sort them by 'seq'
-  const withSeq = alphabeticallySorted.filter(f => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
+  const withSeq = alphabeticallySorted.filter((f) => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
 
   const sortedItems = withoutSeq;
 
@@ -551,7 +597,7 @@ const sortByNameThenSequence = items => {
       const newGroup = Array.isArray(existingItem)
         ? [...existingItem, item]
         : [existingItem, item];
-      
+
       withoutSeq.splice(position, 1, newGroup);
     } else {
       // Insert item at the specified position
@@ -563,8 +609,9 @@ const sortByNameThenSequence = items => {
   return sortedItems.flat();
 };
 
-
 module.exports = {
+  FORMAT_CONFIG,
+  getCollectionFormat,
   createCollectionJsonFromPathname,
   mergeHeaders,
   mergeVars,
@@ -576,4 +623,4 @@ module.exports = {
   getAllRequestsInFolder,
   getAllRequestsAtFolderRoot,
   getCallStack
-}
+};

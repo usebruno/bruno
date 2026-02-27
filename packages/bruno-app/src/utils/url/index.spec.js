@@ -293,7 +293,7 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     const url = '{{host}}/api/:id/path?foo={{foo}}&bar={{bar}}&baz={{process.env.baz}}';
     const expectedUrl = 'https://example.com/api/:id/path?foo=foo_value&bar=bar_value&baz=baz_value';
 
-    const result = interpolateUrl({ url, variables: { host: 'https://example.com', foo: 'foo_value', bar: 'bar_value', 'process.env.baz': 'baz_value' } });
+    const result = interpolateUrl({ url, variables: { 'host': 'https://example.com', 'foo': 'foo_value', 'bar': 'bar_value', 'process.env.baz': 'baz_value' } });
 
     expect(result).toEqual(expectedUrl);
   });

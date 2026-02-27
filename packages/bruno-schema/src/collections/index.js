@@ -16,7 +16,8 @@ const environmentVariablesSchema = Yup.object({
 const environmentSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().min(1).required('name is required'),
-  variables: Yup.array().of(environmentVariablesSchema).required('variables are required')
+  variables: Yup.array().of(environmentVariablesSchema).required('variables are required'),
+  color: Yup.string().nullable().optional()
 })
   .noUnknown(true)
   .strict();
@@ -29,6 +30,46 @@ const keyValueSchema = Yup.object({
   value: Yup.string().nullable(),
   description: Yup.string().nullable(),
   enabled: Yup.boolean()
+})
+  .noUnknown(true)
+  .strict();
+
+const assertionOperators = [
+  'eq',
+  'neq',
+  'gt',
+  'gte',
+  'lt',
+  'lte',
+  'in',
+  'notIn',
+  'contains',
+  'notContains',
+  'length',
+  'matches',
+  'notMatches',
+  'startsWith',
+  'endsWith',
+  'between',
+  'isEmpty',
+  'isNotEmpty',
+  'isNull',
+  'isUndefined',
+  'isDefined',
+  'isTruthy',
+  'isFalsy',
+  'isJson',
+  'isNumber',
+  'isString',
+  'isBoolean',
+  'isArray'
+];
+
+const assertionSchema = keyValueSchema.shape({
+  operator: Yup.string()
+    .oneOf(assertionOperators)
+    .nullable()
+    .optional()
 })
   .noUnknown(true)
   .strict();
@@ -334,7 +375,7 @@ const exampleSchema = Yup.object({
     .strict()
     .nullable(),
   response: Yup.object({
-    status: Yup.string().nullable(),
+    status: Yup.number().nullable(),
     statusText: Yup.string().nullable(),
     headers: Yup.array().of(keyValueSchema).nullable(),
     body: Yup.object({
@@ -372,7 +413,7 @@ const requestSchema = Yup.object({
     .noUnknown(true)
     .strict()
     .nullable(),
-  assertions: Yup.array().of(keyValueSchema).nullable(),
+  assertions: Yup.array().of(assertionSchema).nullable(),
   tests: Yup.string().nullable(),
   docs: Yup.string().nullable()
 })
@@ -408,7 +449,7 @@ const grpcRequestSchema = Yup.object({
     .noUnknown(true)
     .strict()
     .nullable(),
-  assertions: Yup.array().of(keyValueSchema).nullable(),
+  assertions: Yup.array().of(assertionSchema).nullable(),
   tests: Yup.string().nullable(),
   docs: Yup.string().nullable(),
 })
@@ -446,7 +487,7 @@ const wsRequestSchema = Yup.object({
     .noUnknown(true)
     .strict()
     .nullable(),
-  assertions: Yup.array().of(keyValueSchema).nullable(),
+  assertions: Yup.array().of(assertionSchema).nullable(),
   tests: Yup.string().nullable(),
   docs: Yup.string().nullable()
 })
@@ -504,7 +545,7 @@ const itemSchema = Yup.object({
   type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request', 'ws-request']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
-  tags: Yup.array().of(Yup.string().matches(/^[\w-]+$/, 'tag must be alphanumeric')),
+  tags: Yup.array().of(Yup.string().matches(/^[\p{L}\p{N}_-](?:[\p{L}\p{N}_\s-]*[\p{L}\p{N}_-])?$/u, 'tag must contain only letters, numbers, spaces, hyphens, or underscores')),
   request: Yup.mixed().when('type', {
     is: (type) => type === 'grpc-request',
     then: grpcRequestSchema.required('request is required when item-type is grpc-request'),
@@ -570,6 +611,7 @@ const collectionSchema = Yup.object({
     items: Yup.array()
   }),
   runtimeVariables: Yup.object(),
+  workspaceProcessEnvVariables: Yup.object().default({}),
   brunoConfig: Yup.object(),
   root: folderRootSchema
 })

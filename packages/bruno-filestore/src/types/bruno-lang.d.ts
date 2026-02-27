@@ -6,4 +6,4 @@ declare module '@usebruno/lang' {
   export function collectionBruToJson(bruContent: string): any;
   export function jsonToCollectionBru(jsonData: any): string;
   export function dotenvToJson(envContent: string): Record<string, string>;
-} 
+}

@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection } from '../../utils/page';
+import { closeAllCollections, createCollection, createRequest } from '../../utils/page';
 
 test.describe('Cross-Collection Drag and Drop', () => {
   test.afterEach(async ({ page }) => {
@@ -8,26 +8,26 @@ test.describe('Cross-Collection Drag and Drop', () => {
   });
 
   test('Verify request drag and drop', async ({ page, createTmpDir }) => {
+    const requestName = 'drag-drop-request';
+
     // Create first collection - open with sandbox mode
-    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
 
-    // Create a request in the first collection
-    await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByPlaceholder('Request Name').fill('test-request');
-    await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://echo.usebruno.com');
-    await page.getByRole('button', { name: 'Create' }).click();
-
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toBeVisible();
+    // Create a request in the first collection using the dialog/modal flow
+    await createRequest(page, requestName, 'source-collection', { url: 'https://echo.usebruno.com' });
 
     // Create second collection - open with sandbox mode
-    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
 
     // Locate the request in source collection
-    const sourceRequest = page.locator('.collection-item-name').filter({ hasText: 'test-request' });
+    const sourceCollectionContainer = page
+      .locator('.collection-name')
+      .filter({ hasText: 'source-collection' })
+      .locator('..');
+    const sourceRequest = sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first();
     await expect(sourceRequest).toBeVisible();
 
     // Locate the target collection area (the collection name element)
@@ -38,58 +38,49 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await sourceRequest.dragTo(targetCollection);
 
     // Verify the request has been moved to the target collection
-    // Click on target collection to expand it if needed
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-
     // Check that the request now appears under target collection
     const targetCollectionContainer = page
       .locator('.collection-name')
       .filter({ hasText: 'target-collection' })
       .locator('..');
-    await expect(
-      targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request' })
-    ).toBeVisible();
+    await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toBeVisible();
 
     // Verify the request is no longer in the source collection
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
-    await expect(
-      sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request' })
-    ).not.toBeVisible();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
+    await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toHaveCount(0);
   });
 
   test('Expected to show error toast message, when duplicate request found in drop location', async ({
     page,
     createTmpDir
   }) => {
+    const requestName = 'duplicate-request';
+
     // Create first collection (source-collection)
-    await createCollection(page, 'source-collection', await createTmpDir('source-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
 
-    // Create a request in the first collection (request-1)
-    await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByPlaceholder('Request Name').fill('request-1');
-    await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://echo.usebruno.com');
-    await page.getByRole('button', { name: 'Create' }).click();
-
-    // check if request-1 is created and visible in sidebar
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'request-1' })).toBeVisible();
+    // Create a request in the first collection using the dialog/modal flow
+    await createRequest(page, requestName, 'source-collection', { url: 'https://echo.usebruno.com' });
 
     // Create second collection (target-collection)
-    await createCollection(page, 'target-collection', await createTmpDir('target-collection'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
-    // Create a request in the target collection with the same name (request-1)
-    await page.locator('#create-new-tab').getByRole('img').click();
-    await page.getByPlaceholder('Request Name').fill('request-1');
-    await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://echo.usebruno.com');
-    await page.getByRole('button', { name: 'Create' }).click();
+    // Create a request with the same name in the target collection using the dialog/modal flow
+    await createRequest(page, requestName, 'target-collection', { url: 'https://echo.usebruno.com' });
 
     // Go back to source collection to drag the request
     await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
-    const sourceRequest = page.locator('.collection-item-name').filter({ hasText: 'request-1' }).first();
+
+    const sourceCollectionContainer = page
+      .locator('.collection-name')
+      .filter({ hasText: 'source-collection' })
+      .locator('..');
+    const targetCollectionContainer = page
+      .locator('.collection-name')
+      .filter({ hasText: 'target-collection' })
+      .locator('..');
+
+    const sourceRequest = sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first();
     await expect(sourceRequest).toBeVisible();
 
     // Locate the target collection area
@@ -103,20 +94,8 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await expect(page.getByText(/Error: Cannot copy.*already exists/i)).toBeVisible();
 
     // source and target collection request should remain unchanged
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
-    await expect(
-      targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'request-1' })
-    ).toBeVisible();
-
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
-    await expect(
-      sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'request-1' })
-    ).toBeVisible();
+    await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first()).toBeVisible();
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
+    await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first()).toBeVisible();
   });
 });

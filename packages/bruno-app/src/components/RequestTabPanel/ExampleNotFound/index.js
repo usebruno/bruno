@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
+import ErrorBanner from 'ui/ErrorBanner';
+import Button from 'ui/Button';
 
 const ExampleNotFound = ({ exampleUid }) => {
   const dispatch = useDispatch();
@@ -22,17 +24,19 @@ const ExampleNotFound = ({ exampleUid }) => {
     return null;
   }
 
+  const errors = [
+    {
+      title: 'Response example no longer exists',
+      message: 'This can occur when the example definition in your local file has been deleted or updated.'
+    }
+  ];
+
   return (
     <div className="mt-6 px-6">
-      <div className="p-4 bg-orange-100 border-l-4 border-yellow-500 text-yellow-700">
-        <div>Response example no longer exists.</div>
-        <div className="mt-2">
-          This can occur when the example definition in your local file has been deleted or updated.
-        </div>
-      </div>
-      <button className="btn btn-md btn-secondary mt-6" onClick={closeTab}>
+      <ErrorBanner errors={errors} className="mb-4" />
+      <Button size="md" color="secondary" variant="ghost" onClick={closeTab}>
         Close Tab
-      </button>
+      </Button>
     </div>
   );
 };

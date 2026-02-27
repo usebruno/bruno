@@ -101,7 +101,7 @@ const FolderSettings = ({ collection, folder }) => {
             Docs
           </div>
         </div>
-        <section className={`flex mt-4 h-full overflow-auto`}>{getTabPanel(tab)}</section>
+        <section className="flex mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
       </div>
     </StyledWrapper>
   );

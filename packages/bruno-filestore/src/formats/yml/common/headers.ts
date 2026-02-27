@@ -1,15 +1,15 @@
 import type { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
-import type { HttpHeader } from '@opencollection/types/requests/http';
-import { uuid } from '../../../utils';
+import type { HttpRequestHeader, HttpResponseHeader } from '@opencollection/types/requests/http';
+import { uuid, ensureString } from '../../../utils';
 
-export const toOpenCollectionHttpHeaders = (headers: BrunoFolderRequest['headers']): HttpHeader[] | undefined => {
+export const toOpenCollectionHttpHeaders = (headers: BrunoFolderRequest['headers']): HttpRequestHeader[] | undefined => {
   if (!headers?.length) {
     return undefined;
   }
 
-  const ocHeaders = headers.map((header: BrunoKeyValue): HttpHeader => {
-    const httpHeader: HttpHeader = {
+  const ocHeaders = headers.map((header: BrunoKeyValue): HttpRequestHeader => {
+    const httpHeader: HttpRequestHeader = {
       name: header.name || '',
       value: header.value || ''
     };
@@ -25,17 +25,30 @@ export const toOpenCollectionHttpHeaders = (headers: BrunoFolderRequest['headers
   return ocHeaders.length ? ocHeaders : undefined;
 };
 
-export const toBrunoHttpHeaders = (headers: HttpHeader[] | null | undefined): BrunoKeyValue[] | undefined => {
+export const toOpenCollectionResponseHeaders = (headers: BrunoFolderRequest['headers']): HttpResponseHeader[] | undefined => {
   if (!headers?.length) {
     return undefined;
   }
 
-  const brunoHeaders = headers.map((header: HttpHeader): BrunoKeyValue => {
+  const ocHeaders = headers.map((header: BrunoKeyValue): HttpResponseHeader => ({
+    name: header.name || '',
+    value: header.value || ''
+  }));
+
+  return ocHeaders.length ? ocHeaders : undefined;
+};
+
+export const toBrunoHttpHeaders = (headers: HttpRequestHeader[] | HttpResponseHeader[] | null | undefined): BrunoKeyValue[] | undefined => {
+  if (!headers?.length) {
+    return undefined;
+  }
+
+  const brunoHeaders = headers.map((header): BrunoKeyValue => {
     const brunoHeader: BrunoKeyValue = {
       uid: uuid(),
-      name: header.name || '',
-      value: header.value || '',
-      enabled: header.disabled !== true
+      name: ensureString(header.name),
+      value: ensureString(header.value),
+      enabled: ('disabled' in header) ? header.disabled !== true : true
     };
 
     return brunoHeader;

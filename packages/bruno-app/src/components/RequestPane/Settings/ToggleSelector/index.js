@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from 'providers/Theme';
 
 const ToggleSelector = ({
   checked,
@@ -9,6 +10,8 @@ const ToggleSelector = ({
   size = 'small', // 'small', 'medium', 'large'
   'data-testid': dataTestId
 }) => {
+  const { theme } = useTheme();
+
   const sizeClasses = {
     small: {
       container: 'h-4 w-8',
@@ -46,17 +49,13 @@ const ToggleSelector = ({
         onClick={onChange}
         disabled={disabled}
         data-testid={dataTestId}
+        style={{
+          backgroundColor: checked ? theme.primary.solid : theme.background.surface2
+        }}
         className={`
           relative inline-flex ${currentSize.container} flex-shrink-0 items-center rounded-full transition-colors
           focus:outline-none focus:ring-1 focus:ring-offset-1
-          ${disabled
-            ? 'opacity-50 cursor-not-allowed'
-            : 'cursor-pointer'
-          }
-          ${checked
-            ? 'bg-blue-600 dark:bg-blue-500'
-            : 'bg-gray-200 dark:bg-gray-700'
-          }
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
         role="switch"
         aria-checked={checked}

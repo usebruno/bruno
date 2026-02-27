@@ -26,6 +26,8 @@ const FLAG_CATEGORIES = {
   'head': ['-I', '--head'],
   'compressed': ['--compressed'],
   'insecure': ['-k', '--insecure'],
+  'digest': ['--digest'],
+  'ntlm': ['--ntlm'],
   /**
    * Query flags: mark data for conversion to query parameters.
    * While this is an immediate action flag, the actual conversion to a query string occurs later during post-build request processing.
@@ -149,6 +151,14 @@ const handleFlagCategory = (category, arg, request) => {
       request.insecure = true;
       return null;
 
+    case 'digest':
+      request.isDigestAuth = true;
+      return null;
+
+    case 'ntlm':
+      request.isNtlmAuth = true;
+      return null;
+
     case 'query':
       // set temporary property isQuery to true to indicate that the data should be converted to query string
       // this is processed later at post build request processing
@@ -198,7 +208,8 @@ const setUserAgent = (request, value) => {
 };
 
 /**
- * Set authentication
+ * Set authentication credentials
+ * Stores credentials temporarily for finalization in post-processing
  */
 const setAuth = (request, value) => {
   if (typeof value !== 'string') {
@@ -206,13 +217,43 @@ const setAuth = (request, value) => {
   }
 
   const [username, password] = value.split(':');
-  request.auth = {
-    mode: 'basic',
-    basic: {
-      username: username || '',
-      password: password || ''
-    }
+
+  // Store credentials temporarily for finalization in post-processing
+  request.authCredentials = {
+    username: username || '',
+    password: password || ''
   };
+};
+
+/**
+ * Finalize authentication object based on credentials and auth type flags
+ */
+const normalizeAuthProperties = (request) => {
+  if (!request.authCredentials) {
+    delete request.isDigestAuth;
+    delete request.isNtlmAuth;
+    return;
+  }
+
+  const { username, password } = request.authCredentials;
+
+  // Determine auth mode based on flags
+  let mode = 'basic';
+  if (request.isDigestAuth) {
+    mode = 'digest';
+  } else if (request.isNtlmAuth) {
+    mode = 'ntlm';
+  }
+
+  request.auth = {
+    mode: mode,
+    [mode]: { username, password }
+  };
+
+  // Clean up temporary properties
+  delete request.authCredentials;
+  delete request.isDigestAuth;
+  delete request.isNtlmAuth;
 };
 
 /**
@@ -433,7 +474,7 @@ const convertDataToQueryString = (request) => {
 
 /**
  * Post-build processing of request
- * Handles method conversion and query parameter processing
+ * Handles method conversion, query parameter processing, and auth finalization
  */
 const postBuildProcessRequest = (request) => {
   if (request.isQuery && request.data) {
@@ -441,13 +482,14 @@ const postBuildProcessRequest = (request) => {
     // remove data and isQuery from request as they are no longer needed
     delete request.data;
     delete request.isQuery;
-
   } else if (request.data) {
     // if data is present, set method to POST unless the method is explicitly set
     if (!request.method || request.method === 'HEAD') {
       request.method = 'POST';
     }
   }
+
+  normalizeAuthProperties(request);
 
   // if method is not set, set it to GET
   if (!request.method) {
@@ -480,10 +522,10 @@ const cleanRequest = (request) => {
  * Handles escape sequences, line continuations, and method concatenation
  */
 const cleanCurlCommand = (curlCommand) => {
-  // Handle escape sequences
-  curlCommand = curlCommand.replace(/\$('.*')/g, (match, group) => group);
+  // Handle bash ANSI $'..' escapes by decoding common sequences
+  curlCommand = curlCommand.replace(/\$'((?:\\.|[^'])*)'/g, (match, group) => quoteForShell(decodeAnsiEscapes(group)));
   // Convert escaped single quotes to shell quote pattern
-  curlCommand = curlCommand.replace(/\\'(?!')/g, "'\\''");
+  curlCommand = curlCommand.replace(/\\'(?!')/g, '\'\\\'\'');
   // Fix concatenated HTTP methods
   curlCommand = fixConcatenatedMethods(curlCommand);
 
@@ -511,6 +553,35 @@ const fixConcatenatedMethods = (command) => {
   });
 
   return command;
+};
+
+/**
+ * Decode bash ANSI $'..' escape sequences
+ */
+const decodeAnsiEscapes = (value) => {
+  return value.replace(/\\(\\|'|n|r|t|v|f|a|b|x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4})/g, (match, seq) => {
+    switch (seq[0]) {
+      case '\\': return '\\';
+      case '\'': return '\'';
+      case 'n': return '\n';
+      case 'r': return '\r';
+      case 't': return '\t';
+      case 'v': return '\v';
+      case 'f': return '\f';
+      case 'a': return '\x07';
+      case 'b': return '\b';
+      case 'x': return String.fromCharCode(parseInt(seq.slice(1), 16));
+      case 'u': return String.fromCharCode(parseInt(seq.slice(1), 16));
+      default: return match;
+    }
+  });
+};
+
+/**
+ * Wrap value in single quotes while preserving embedded single quotes
+ */
+const quoteForShell = (value) => {
+  return `'${value.replace(/'/g, '\'\\\'\'')}'`;
 };
 
 export default parseCurlCommand;

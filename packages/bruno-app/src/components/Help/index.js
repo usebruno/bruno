@@ -8,7 +8,37 @@ import React, { useState } from 'react';
 import HelpIcon from 'components/Icons/Help';
 import StyledWrapper from './StyledWrapper';
 
-const Help = ({ children, width = 200 }) => {
+const getPlacementStyles = (placement) => {
+  switch (placement) {
+    case 'top':
+      return {
+        bottom: 'calc(100% + 8px)',
+        left: '50%',
+        transform: 'translateX(-50%)'
+      };
+    case 'bottom':
+      return {
+        top: 'calc(100% + 8px)',
+        left: '50%',
+        transform: 'translateX(-50%)'
+      };
+    case 'left':
+      return {
+        top: '50%',
+        right: 'calc(100% + 8px)',
+        transform: 'translateY(-50%)'
+      };
+    case 'right':
+    default:
+      return {
+        top: '50%',
+        left: 'calc(100% + 8px)',
+        transform: 'translateY(-50%)'
+      };
+  }
+};
+
+const Help = ({ children, width = 200, placement = 'right' }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
@@ -18,15 +48,13 @@ const Help = ({ children, width = 200 }) => {
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
-        <HelpIcon size={14}/>
+        <HelpIcon size={14} />
       </span>
       {showTooltip && (
         <StyledWrapper
           className="absolute z-50 rounded-md p-3"
-          style={{ 
-            top: '50%',
-            left: 'calc(100% + 8px)',
-            transform: 'translateY(-50%)',
+          style={{
+            ...getPlacementStyles(placement),
             width: `${width}px`
           }}
         >
@@ -37,4 +65,4 @@ const Help = ({ children, width = 200 }) => {
   );
 };
 
-export default Help; 
+export default Help;

@@ -24,6 +24,25 @@ const CodeMirror = require('codemirror');
 const md = new MD();
 const AUTO_COMPLETE_AFTER_KEY = /^[a-zA-Z0-9_@(]$/;
 
+const createSafeGraphQLLinter = () => {
+  // Get the original GraphQL lint helper registered by codemirror-graphql
+  const originalLinter = CodeMirror.helpers?.lint?.graphql?.[0];
+
+  return (text, options) => {
+    try {
+      if (originalLinter) {
+        return originalLinter(text, options);
+      }
+      return [];
+    } catch (error) {
+      // Log the error but don't crash - return empty lint results
+      // This can happen if the schema has validation issues
+      console.warn('GraphQL lint error (schema may be invalid):', error.message);
+      return [];
+    }
+  };
+};
+
 export default class QueryEditor extends React.Component {
   constructor(props) {
     super(props);
@@ -57,6 +76,7 @@ export default class QueryEditor extends React.Component {
         minFoldSize: 4
       },
       lint: {
+        getAnnotations: createSafeGraphQLLinter(),
         schema: this.props.schema,
         validationRules: this.props.validationRules ?? null,
         // linting accepts string or FragmentDefinitionNode[]
@@ -156,8 +176,15 @@ export default class QueryEditor extends React.Component {
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      this.cachedValue = this.props.value;
-      this.editor.setValue(this.props.value);
+      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
+      const nextValue = this.props.value ?? '';
+      const currentValue = this.editor.getValue();
+      if (this.editor.hasFocus?.() && currentValue !== nextValue) {
+        this.cachedValue = currentValue;
+      } else {
+        this.cachedValue = nextValue;
+        this.editor.setValue(nextValue);
+      }
     }
 
     if (this.props.theme !== prevProps.theme && this.editor) {

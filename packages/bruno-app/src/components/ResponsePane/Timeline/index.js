@@ -47,9 +47,9 @@ const Timeline = ({ collection, item }) => {
   // Get the effective auth source if auth mode is inherit
   const authSource = getEffectiveAuthSource(collection, item);
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
-  
+
   // Filter timeline entries based on new rules
-  const  combinedTimeline = ([...(collection?.timeline || [])]).filter(obj => {
+  const combinedTimeline = ([...(collection?.timeline || [])]).filter((obj) => {
     // Always show entries for this item
     if (obj.itemUid === item.uid) return true;
 
@@ -60,28 +60,27 @@ const Timeline = ({ collection, item }) => {
     }
 
     return false;
-  }).sort((a, b) => b.timestamp - a.timestamp)
+  }).sort((a, b) => b.timestamp - a.timestamp);
 
   return (
     <StyledWrapper
       className="pb-4 w-full flex flex-grow flex-col"
     >
       {/* Timeline container with scrollbar */}
-      <div 
+      <div
         className="timeline-container"
       >
         {combinedTimeline.map((event, index) => {
           // Handle regular requests
           if (event.type === 'request') {
-
             const { data, timestamp, eventType } = event;
-            const { request, response,  eventData = {}, timestamp: eventTimestamp = timestamp } = data;
-            
+            const { request, response, eventData = {}, timestamp: eventTimestamp = timestamp } = data;
+
             if (isGrpcRequest) {
               return (
-                <div key={index} className="timeline-event mb-2">
+                <div key={index} className="timeline-event">
                   <GrpcTimelineItem
-                    timestamp={eventTimestamp} 
+                    timestamp={eventTimestamp}
                     request={request}
                     response={response}
                     eventType={eventType}
@@ -92,10 +91,10 @@ const Timeline = ({ collection, item }) => {
                 </div>
               );
             }
-            
+
             // Regular HTTP request
             return (
-              <div key={index} className="timeline-event mb-2">
+              <div key={index} className="timeline-event">
                 <TimelineItem
                   timestamp={timestamp}
                   request={request}
@@ -105,9 +104,7 @@ const Timeline = ({ collection, item }) => {
                 />
               </div>
             );
-          }
-          // Handle OAuth2 events
-          else if (event.type === 'oauth2') {
+          } else if (event.type === 'oauth2') { // Handle OAuth2 events
             const { data, timestamp } = event;
             const { debugInfo } = data;
             return (
@@ -120,7 +117,7 @@ const Timeline = ({ collection, item }) => {
                 <div className="mt-2">
                   {debugInfo && debugInfo.length > 0 ? (
                     debugInfo.map((data, idx) => (
-                      <div className='ml-4' key={idx}>
+                      <div className="ml-4" key={idx}>
                         <TimelineItem
                           timestamp={timestamp}
                           request={data?.request}
@@ -138,7 +135,7 @@ const Timeline = ({ collection, item }) => {
               </div>
             );
           }
-          
+
           return null;
         })}
       </div>

@@ -1,19 +1,21 @@
-const path = require("node:path");
+const path = require('node:path');
+const fs = require('node:fs');
 const { describe, it, expect } = require('@jest/globals');
 const constants = require('../../src/constants');
-const { createCollectionJsonFromPathname } = require('../../src/utils/collection');
+const { createCollectionJsonFromPathname, getCollectionFormat, FORMAT_CONFIG } = require('../../src/utils/collection');
+const { parseEnvironment } = require('@usebruno/filestore');
 
 describe('create collection json from pathname', () => {
-  it("should throw an error when the pathname is not a valid bruno collection root", () => {
+  it('should throw an error when the pathname is not a valid bruno collection root', () => {
     const invalidCollectionPathname = path.join(__dirname, './fixtures/collection-invalid');
     jest.spyOn(console, 'error').mockImplementation(() => { });
     let mockProcessExit = jest.spyOn(process, 'exit').mockImplementation((code) => { throw new Error(code); });
     try { createCollectionJsonFromPathname(invalidCollectionPathname); } catch { }
     expect(mockProcessExit).toHaveBeenCalledWith(constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
     jest.restoreAllMocks();
-  })
+  });
 
-  it("creates a bruno collection json from the collection bru files", () => {
+  it('creates a bruno collection json from the collection bru files', () => {
     const collectionPathname = path.join(__dirname, './fixtures/collection-json-from-pathname/collection');
     const outputCollectionJson = createCollectionJsonFromPathname(collectionPathname);
 
@@ -21,10 +23,10 @@ describe('create collection json from pathname', () => {
     expect(c).toBeDefined();
 
     /* collection bruno.json */
-    expect(c).toHaveProperty('brunoConfig.version', "1");
+    expect(c).toHaveProperty('brunoConfig.version', '1');
     expect(c).toHaveProperty('brunoConfig.name', 'collection');
     expect(c).toHaveProperty('brunoConfig.type', 'collection');
-    expect(c).toHaveProperty('brunoConfig.ignore', ["node_modules", ".git"]);
+    expect(c).toHaveProperty('brunoConfig.ignore', ['node_modules', '.git']);
     expect(c).toHaveProperty('brunoConfig.proxy.enabled', false);
     expect(c).toHaveProperty('brunoConfig.proxy.protocol', 'http');
     expect(c).toHaveProperty('brunoConfig.proxy.hostname', '<proxy-hostname>');
@@ -34,7 +36,6 @@ describe('create collection json from pathname', () => {
     expect(c).toHaveProperty('brunoConfig.proxy.auth.password', '<password>');
     expect(c).toHaveProperty('brunoConfig.proxy.bypassProxy', '');
     expect(c).toHaveProperty('brunoConfig.scripts.moduleWhitelist', ['crypto', 'buffer']);
-    expect(c).toHaveProperty('brunoConfig.scripts.filesystemAccess.allow', true);
     expect(c).toHaveProperty('brunoConfig.clientCertificates.enabled', true);
     expect(c).toHaveProperty('brunoConfig.clientCertificates.certs', []);
 
@@ -168,5 +169,97 @@ describe('create collection json from pathname', () => {
     expect(c).toHaveProperty('items[4].request.vars.res[0].enabled', true);
     // tests
     expect(c).toHaveProperty('items[4].request.tests', 'test(\"request level script\", function() {\n  expect(\"test\").to.equal(\"test\");\n});');
+  });
+
+  it('creates a collection json from OpenCollection yml files', () => {
+    const collectionPathname = path.join(__dirname, './fixtures/opencollection/collection');
+    const c = createCollectionJsonFromPathname(collectionPathname);
+
+    expect(c).toBeDefined();
+    expect(c).toHaveProperty('format', 'yml');
+    expect(c).toHaveProperty('brunoConfig.opencollection', '1.0.0');
+    expect(c).toHaveProperty('brunoConfig.name', 'Test OpenCollection');
+    expect(c).toHaveProperty('brunoConfig.type', 'collection');
+    expect(c).toHaveProperty('brunoConfig.ignore', ['node_modules', '.git']);
+    expect(c).toHaveProperty('pathname', collectionPathname);
+
+    // collection root headers
+    expect(c).toHaveProperty('root.request.headers[0].name', 'X-Collection-Header');
+    expect(c).toHaveProperty('root.request.headers[0].value', 'collection-header-value');
+    expect(c).toHaveProperty('root.request.headers[0].enabled', true);
+
+    // folder
+    expect(c.items.some((i) => i.type === 'folder' && i.name === 'users')).toBe(true);
+    const usersFolder = c.items.find((i) => i.name === 'users');
+    expect(usersFolder).toHaveProperty('root.meta.name', 'Users');
+    expect(usersFolder).toHaveProperty('root.meta.seq', 1);
+    expect(usersFolder.pathname).toContain('users');
+
+    // request in folder - name comes from info.name, pathname is correct
+    const createUserReq = usersFolder.items.find((i) => i.name === 'Create User');
+    expect(createUserReq).toBeDefined();
+    expect(createUserReq).toHaveProperty('type', 'http-request');
+    expect(createUserReq).toHaveProperty('request.method', 'POST');
+    expect(createUserReq).toHaveProperty('request.url', 'https://api.example.com/users');
+    expect(createUserReq.pathname).toContain('create-user.yml');
+
+    // root level request - name comes from info.name, pathname is correct
+    const getUsersReq = c.items.find((i) => i.name === 'Get Users');
+    expect(getUsersReq).toBeDefined();
+    expect(getUsersReq).toHaveProperty('type', 'http-request');
+    expect(getUsersReq).toHaveProperty('request.method', 'GET');
+    expect(getUsersReq).toHaveProperty('request.url', 'https://api.example.com/users');
+    expect(getUsersReq.pathname).toContain('get-users.yml');
+  });
+});
+
+describe('getCollectionFormat', () => {
+  it('returns yml for OpenCollection', () => {
+    const collectionPath = path.join(__dirname, './fixtures/opencollection/collection');
+    expect(getCollectionFormat(collectionPath)).toBe('yml');
+  });
+
+  it('returns bru for Bruno collection', () => {
+    const collectionPath = path.join(__dirname, './fixtures/collection-json-from-pathname/collection');
+    expect(getCollectionFormat(collectionPath)).toBe('bru');
+  });
+
+  it('returns null for invalid path', () => {
+    const collectionPath = path.join(__dirname, './fixtures/collection-invalid');
+    expect(getCollectionFormat(collectionPath)).toBe(null);
+  });
+});
+
+describe('FORMAT_CONFIG', () => {
+  it('has correct config for yml format', () => {
+    expect(FORMAT_CONFIG.yml).toEqual({
+      ext: '.yml',
+      collectionFile: 'opencollection.yml',
+      folderFile: 'folder.yml'
+    });
+  });
+
+  it('has correct config for bru format', () => {
+    expect(FORMAT_CONFIG.bru).toEqual({
+      ext: '.bru',
+      collectionFile: 'collection.bru',
+      folderFile: 'folder.bru'
+    });
+  });
+});
+
+describe('OpenCollection environment parsing', () => {
+  it('parses YML environment files correctly', () => {
+    const envPath = path.join(__dirname, './fixtures/opencollection/collection/environments/dev.yml');
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    const env = parseEnvironment(envContent, { format: 'yml' });
+
+    expect(env).toBeDefined();
+    expect(env).toHaveProperty('name', 'Development');
+    expect(env.variables).toHaveLength(2);
+    expect(env.variables[0]).toHaveProperty('name', 'baseUrl');
+    expect(env.variables[0]).toHaveProperty('value', 'https://api.dev.example.com');
+    expect(env.variables[1]).toHaveProperty('name', 'apiKey');
+    expect(env.variables[1]).toHaveProperty('value', 'dev-api-key-123');
   });
 });

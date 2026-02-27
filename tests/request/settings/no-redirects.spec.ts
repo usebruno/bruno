@@ -1,4 +1,5 @@
 import { test, expect } from '../../../playwright';
+import { selectRequestPaneTab } from '../../utils/page';
 
 test.describe('No Redirects Settings Tests', () => {
   test('should configure and test no redirects settings', async ({
@@ -13,7 +14,7 @@ test.describe('No Redirects Settings Tests', () => {
     await page.getByRole('complementary').getByText('no-redirects').click();
 
     // Go to Settings tab
-    await page.getByRole('tab', { name: 'Settings' }).click();
+    await selectRequestPaneTab(page, 'Settings');
 
     // Test No Redirects Settings
     const maxRedirectsInput = page.locator('input[id="maxRedirects"]');
@@ -42,7 +43,7 @@ test.describe('No Redirects Settings Tests', () => {
     await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
 
     // Close without saving to avoid modifying the .bru file
-    await page.locator('.close-icon-container').click();
+    await page.locator('.close-icon-container').click({ force: true });
     await page.locator('button:has-text("Don\'t Save")').first().click();
   });
 });

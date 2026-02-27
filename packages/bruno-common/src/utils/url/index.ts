@@ -18,7 +18,7 @@ function buildQueryString(paramsArray: QueryParam[], { encode = false }: BuildQu
       const finalName = encode ? encodeURIComponent(name) : name;
       const finalValue = encode ? encodeURIComponent(value ?? '') : (value ?? '');
 
-      return finalValue ? `${finalName}=${finalValue}` : finalName;
+      return `${finalName}=${finalValue}`;
     })
     .join('&');
 }
@@ -32,7 +32,7 @@ function parseQueryParams(query: string, { decode = false }: ExtractQueryParamsO
     const [queryString, ...hashParts] = query.split('#');
     const pairs = queryString.split('&');
 
-    const params = pairs.map(pair => {
+    const params = pairs.map((pair) => {
       const [name, ...valueParts] = pair.split('=');
 
       if (!name) {

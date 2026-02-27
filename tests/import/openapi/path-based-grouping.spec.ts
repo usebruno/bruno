@@ -12,7 +12,8 @@ test.describe('OpenAPI Path-Based Grouping', () => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-path-grouping.json');
 
     // Start the import process
-    await page.getByRole('button', { name: 'Import Collection' }).click();
+    await page.getByTestId('collections-header-add-menu').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready
     const importModal = page.getByTestId('import-collection-modal');
@@ -21,11 +22,9 @@ test.describe('OpenAPI Path-Based Grouping', () => {
     // Upload the OpenAPI file
     await page.setInputFiles('input[type="file"]', openApiFile);
 
-    // Wait for the loader to disappear
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
-
-    // Verify that the collection location modal appears
-    const locationModal = page.getByTestId('import-collection-location-modal');
+    // Wait for location modal to appear after file processing
+    const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+    await locationModal.waitFor({ state: 'visible', timeout: 10000 });
     await expect(locationModal.getByText('Path Grouping Test API')).toBeVisible();
 
     // Select path-based grouping from dropdown
@@ -34,15 +33,14 @@ test.describe('OpenAPI Path-Based Grouping', () => {
 
     // Select a location and import
     await page.locator('#collection-location').fill(await createTmpDir('path-grouping-test'));
-    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.waitFor({ state: 'hidden' });
 
     // Verify the collection was imported successfully
     await expect(page.locator('#sidebar-collection-name').getByText('Path Grouping Test API')).toBeVisible();
 
     // Configure the collection settings
     await page.locator('#sidebar-collection-name').getByText('Path Grouping Test API').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Verify path-based folder structure was created
     // Should have 'users' and 'products' folders

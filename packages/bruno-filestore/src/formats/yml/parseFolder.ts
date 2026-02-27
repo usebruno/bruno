@@ -4,17 +4,20 @@ import { parseYml } from './utils';
 import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
+import { toBrunoPostResponseVariables } from './common/actions';
 import { toBrunoScripts } from './common/scripts';
-import { isNonEmptyString } from '../../utils';
+import { ensureString } from '../../utils';
 
 const parseFolder = (ymlString: string): FolderRoot => {
   try {
     const ocFolder: Folder = parseYml(ymlString);
 
+    const info = ocFolder.info;
+
     const folderRoot: FolderRoot = {
       meta: {
-        name: ocFolder.name || 'Untitled Folder',
-        seq: ocFolder.seq || 1
+        name: ensureString(info?.name, 'Untitled Folder'),
+        seq: info?.seq || 1
       },
       request: null,
       docs: null
@@ -50,7 +53,11 @@ const parseFolder = (ymlString: string): FolderRoot => {
 
       // variables
       const variables = toBrunoVariables(ocFolder.request.variables);
-      folderRoot.request.vars = variables;
+      const postResponseVars = toBrunoPostResponseVariables((ocFolder.request as any).actions);
+      folderRoot.request.vars = {
+        req: variables.req,
+        res: postResponseVars
+      };
 
       // scripts
       const scripts = toBrunoScripts(ocFolder.request.scripts);
@@ -67,9 +74,13 @@ const parseFolder = (ymlString: string): FolderRoot => {
       }
     }
 
-    // docs
-    if (isNonEmptyString(ocFolder.docs)) {
-      folderRoot.docs = ocFolder.docs;
+    // docs (now at root level)
+    if (ocFolder.docs) {
+      if (typeof ocFolder.docs === 'string' && ocFolder.docs.trim().length) {
+        folderRoot.docs = ocFolder.docs;
+      } else if (typeof ocFolder.docs === 'object' && ocFolder.docs.content?.trim().length) {
+        folderRoot.docs = ocFolder.docs.content;
+      }
     }
 
     return folderRoot;

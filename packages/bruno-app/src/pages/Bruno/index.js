@@ -1,10 +1,12 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import classnames from 'classnames';
-import Welcome from 'components/Welcome';
+import ManageWorkspace from 'components/ManageWorkspace';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
+import AppTitleBar from 'components/AppTitleBar';
+import ApiSpecPanel from 'components/ApiSpecPanel';
 // import ErrorCapture from 'components/ErrorCapture';
 import { useSelector } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
@@ -12,10 +14,13 @@ import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
+import 'swagger-ui-react/swagger-ui.css';
 import Devtools from 'components/Devtools';
 import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
 import useWsEventListeners from 'utils/network/ws-event-listeners';
 import Portal from 'components/Portal';
+import SaveTransientRequestContainer from 'components/SaveTransientRequest/Container';
+import SaveTransientRequest from 'components/SaveTransientRequest';
 
 require('codemirror/mode/javascript/javascript');
 require('codemirror/mode/xml/xml');
@@ -49,11 +54,32 @@ require('utils/codemirror/brunoVarInfo');
 require('utils/codemirror/javascript-lint');
 require('utils/codemirror/autocomplete');
 
+const TransientRequestModalsRenderer = ({ modals }) => {
+  if (modals.length === 0) {
+    return null;
+  }
+
+  if (modals.length === 1) {
+    return (
+      <SaveTransientRequest
+        item={modals[0].item}
+        collection={modals[0].collection}
+        isOpen={true}
+      />
+    );
+  }
+
+  return <SaveTransientRequestContainer />;
+};
+
 export default function Main() {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
   const isDragging = useSelector((state) => state.app.isDragging);
-  const showHomePage = useSelector((state) => state.app.showHomePage);
+  const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
+  const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
+  const saveTransientRequestModals = useSelector((state) => state.collections.saveTransientRequestModals);
   const mainSectionRef = useRef(null);
   const [showRosettaBanner, setShowRosettaBanner] = useState(false);
 
@@ -87,6 +113,7 @@ export default function Main() {
   return (
     // <ErrorCapture>
     <div id="main-container" className="flex flex-col h-screen max-h-screen overflow-hidden">
+      <AppTitleBar />
       {showRosettaBanner ? (
         <Portal>
           <div className="fixed bottom-0 left-0 right-0 z-10 bg-amber-100 border border-amber-400 text-amber-700 px-4 py-3" role="alert">
@@ -105,27 +132,30 @@ export default function Main() {
         className="flex-1 min-h-0 flex"
         data-app-state="loading"
         style={{
-          height: isConsoleOpen ? `calc(100vh - 22px - ${isConsoleOpen ? '300px' : '0px'})` : 'calc(100vh - 22px)'
-          }}
-        >
-          <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
-            <Sidebar />
-            <section className="flex flex-grow flex-col overflow-hidden">
-              {showHomePage ? (
-                <Welcome />
-              ) : (
-                <>
-                  <RequestTabs />
-                  <RequestTabPanel key={activeTabUid} />
-                </>
-              )}
-            </section>
-          </StyledWrapper>
-        </div>
-
-        <Devtools mainSectionRef={mainSectionRef} />
-        <StatusBar />
+          height: isConsoleOpen ? `calc(100vh - 60px - ${isConsoleOpen ? '300px' : '0px'})` : 'calc(100vh - 60px)'
+        }}
+      >
+        <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
+          <Sidebar />
+          <section className="flex flex-grow flex-col overflow-hidden">
+            {showApiSpecPage && activeApiSpecUid ? (
+              <ApiSpecPanel key={activeApiSpecUid} />
+            ) : showManageWorkspacePage ? (
+              <ManageWorkspace />
+            ) : (
+              <>
+                <RequestTabs />
+                <RequestTabPanel key={activeTabUid} />
+              </>
+            )}
+          </section>
+        </StyledWrapper>
       </div>
+
+      <Devtools mainSectionRef={mainSectionRef} />
+      <StatusBar />
+      <TransientRequestModalsRenderer modals={saveTransientRequestModals} />
+    </div>
     // </ErrorCapture>
   );
 }

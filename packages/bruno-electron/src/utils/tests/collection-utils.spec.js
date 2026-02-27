@@ -2,7 +2,6 @@ const { transformRequestToSaveToFilesystem } = require('../collection');
 
 describe('transformRequestToSaveToFilesystem', () => {
   it('should preserve all relevant fields when transforming request', () => {
-
     const testItem = {
       uid: 'test-uid-123',
       type: 'http-request',
@@ -55,14 +54,14 @@ describe('transformRequestToSaveToFilesystem', () => {
             uid: 'assert-uid-1',
             name: 'Status Code',
             operator: 'equals',
-            expected: '200'
+            expected: 200
           }
         ],
         tests: [
           {
             uid: 'test-uid-1',
             name: 'Test Response',
-            code: 'expect(response.status).toBe(200);'
+            code: 'expect(response.status).toEqual(200);'
           }
         ],
         docs: 'This is a test request documentation'
@@ -78,7 +77,7 @@ describe('transformRequestToSaveToFilesystem', () => {
     expect(result.name).toBe(testItem.name);
     expect(result.seq).toBe(testItem.seq);
     expect(result.settings).toEqual(testItem.settings);
-    
+
     // Verify tags are preserved (this is the main focus)
     expect(result.tags).toEqual(['smoke', 'regression', 'api']);
     expect(result.tags).toHaveLength(3);
@@ -167,7 +166,7 @@ describe('transformRequestToSaveToFilesystem', () => {
     expect(result.uid).toBe('draft-uid-789');
     expect(result.name).toBe('Draft Request Modified');
     expect(result.settings).toEqual({ enableEncodeUrl: true });
-    
+
     // Verify draft tags are preserved
     expect(result.tags).toEqual(['draft', 'wip', 'modified']);
     expect(result.tags).toContain('modified');

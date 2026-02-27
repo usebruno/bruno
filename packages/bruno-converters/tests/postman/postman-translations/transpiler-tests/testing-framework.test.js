@@ -1,59 +1,59 @@
-import translateCode from '../../../../src/utils/jscode-shift-translator';
+import translateCode from '../../../../src/utils/postman-to-bruno-translator';
 
 describe('Testing Framework Translation', () => {
-    // Basic testing framework translations
-    it('should translate pm.test', () => {
-        const code = 'pm.test("Status code is 200", function() { pm.response.to.have.status(200); });';
-        const translatedCode = translateCode(code);
-        expect(translatedCode).toBe('test("Status code is 200", function() { expect(res.getStatus()).to.equal(200); });');
-    });
+  // Basic testing framework translations
+  it('should translate pm.test', () => {
+    const code = 'pm.test("Status code is 200", function() { pm.response.to.have.status(200); });';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('test("Status code is 200", function() { expect(res.getStatus()).to.equal(200); });');
+  });
 
-    it('should translate pm.expect', () => {
-        const code = 'pm.expect(jsonData.success).to.be.true;';
-        const translatedCode = translateCode(code);
-        expect(translatedCode).toBe('expect(jsonData.success).to.be.true;');
-    });
+  it('should translate pm.expect', () => {
+    const code = 'pm.expect(jsonData.success).to.be.true;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(jsonData.success).to.be.true;');
+  });
 
-    it('should translate pm.expect.fail', () => {
-        const code = 'if (!isValid) pm.expect.fail("Data is invalid");';
-        const translatedCode = translateCode(code);
-        expect(translatedCode).toBe('if (!isValid) expect.fail("Data is invalid");');
-    });
+  it('should translate pm.expect.fail', () => {
+    const code = 'if (!isValid) pm.expect.fail("Data is invalid");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('if (!isValid) expect.fail("Data is invalid");');
+  });
 
-    // Tests with response assertions
-    it('should translate pm.response.to.have.status in tests', () => {
-        const code = `
+  // Tests with response assertions
+  it('should translate pm.response.to.have.status in tests', () => {
+    const code = `
         pm.test("Check environment and call successful", function () {
             pm.expect(pm.environment.name).to.equal("ENVIRONMENT_NAME");
             pm.response.to.have.status(200);
         });`;
-        const translatedCode = translateCode(code);
-        expect(translatedCode).toBe(`
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe(`
         test("Check environment and call successful", function () {
             expect(bru.getEnvName()).to.equal("ENVIRONMENT_NAME");
             expect(res.getStatus()).to.equal(200);
         });`);
-    });
+  });
 
-    // Test aliases
-    it('should handle test aliases', () => {
-        const code = `
+  // Test aliases
+  it('should handle test aliases', () => {
+    const code = `
         const { test, expect } = pm;
         
         test("Status code is 200", function () {
             expect(pm.response.code).to.equal(200);
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).not.toContain('const { test, expect } = pm');
-        expect(translatedCode).toContain('test("Status code is 200", function () {');
-        expect(translatedCode).toContain('expect(res.getStatus()).to.equal(200);');
-    });
+    const translatedCode = translateCode(code);
 
-    // Tests inside different code structures
-    it('should translate pm commands inside tests with nested functions', () => {
-        const code = `
+    expect(translatedCode).not.toContain('const { test, expect } = pm');
+    expect(translatedCode).toContain('test("Status code is 200", function () {');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(200);');
+  });
+
+  // Tests inside different code structures
+  it('should translate pm commands inside tests with nested functions', () => {
+    const code = `
         pm.test("Auth flow works", function() {
             const response = pm.response.json();
             pm.expect(response.authenticated).to.be.true;
@@ -61,29 +61,29 @@ describe('Testing Framework Translation', () => {
             pm.collectionVariables.set("sessionId", response.session.id);
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).toContain('test("Auth flow works", function() {');
-        expect(translatedCode).toContain('const response = res.getBody();');
-        expect(translatedCode).toContain('expect(response.authenticated).to.be.true;');
-        expect(translatedCode).toContain('bru.setEnvVar("userId", response.user.id);');
-        expect(translatedCode).toContain('bru.setVar("sessionId", response.session.id);');
-    });
+    const translatedCode = translateCode(code);
 
-    it('should translate pm.test with arrow functions', () => {
-        const code = `
+    expect(translatedCode).toContain('test("Auth flow works", function() {');
+    expect(translatedCode).toContain('const response = res.getBody();');
+    expect(translatedCode).toContain('expect(response.authenticated).to.be.true;');
+    expect(translatedCode).toContain('bru.setEnvVar("userId", response.user.id);');
+    expect(translatedCode).toContain('bru.setCollectionVar("sessionId", response.session.id);');
+  });
+
+  it('should translate pm.test with arrow functions', () => {
+    const code = `
         pm.test("Status code is 200", () => {
             pm.expect(pm.response.code).to.eql(200);
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).toContain('test("Status code is 200", () => {');
-        expect(translatedCode).toContain('expect(res.getStatus()).to.eql(200);');
-    });
+    const translatedCode = translateCode(code);
 
-    it('should handle multiple test assertions in one function', () => {
-        const code = `
+    expect(translatedCode).toContain('test("Status code is 200", () => {');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.eql(200);');
+  });
+
+  it('should handle multiple test assertions in one function', () => {
+    const code = `
         pm.test("The response has all properties", () => {
             const responseJson = pm.response.json();
             pm.expect(responseJson.type).to.eql('vip');
@@ -91,18 +91,18 @@ describe('Testing Framework Translation', () => {
             pm.expect(responseJson.id).to.have.lengthOf(1);
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).toContain('test("The response has all properties", () => {');
-        expect(translatedCode).toContain('const responseJson = res.getBody();');
-        expect(translatedCode).toContain('expect(responseJson.type).to.eql(\'vip\');');
-        expect(translatedCode).toContain('expect(responseJson.name).to.be.a(\'string\');');
-        expect(translatedCode).toContain('expect(responseJson.id).to.have.lengthOf(1);');
-    });
+    const translatedCode = translateCode(code);
 
-    // Test with aliased variables
-    it('should translate aliases within test functions', () => {
-        const code = `
+    expect(translatedCode).toContain('test("The response has all properties", () => {');
+    expect(translatedCode).toContain('const responseJson = res.getBody();');
+    expect(translatedCode).toContain('expect(responseJson.type).to.eql(\'vip\');');
+    expect(translatedCode).toContain('expect(responseJson.name).to.be.a(\'string\');');
+    expect(translatedCode).toContain('expect(responseJson.id).to.have.lengthOf(1);');
+  });
+
+  // Test with aliased variables
+  it('should translate aliases within test functions', () => {
+    const code = `
         const tempRes = pm.response;
         const tempTest = pm.test;
         const tempExpect = pm.expect;
@@ -111,18 +111,18 @@ describe('Testing Framework Translation', () => {
             tempExpect(tempRes.code).to.equal(200); 
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).not.toContain('const tempRes = pm.response;');
-        expect(translatedCode).not.toContain('const tempTest = pm.test;');
-        expect(translatedCode).not.toContain('const tempExpect = pm.expect;');
-        expect(translatedCode).toContain('test("Status code is 200", function() {');
-        expect(translatedCode).toContain('expect(res.getStatus()).to.equal(200);');
-    });
+    const translatedCode = translateCode(code);
 
-    // Additional robust tests for testing framework
-    it('should handle nested test functions', () => {
-        const code = `
+    expect(translatedCode).not.toContain('const tempRes = pm.response;');
+    expect(translatedCode).not.toContain('const tempTest = pm.test;');
+    expect(translatedCode).not.toContain('const tempExpect = pm.expect;');
+    expect(translatedCode).toContain('test("Status code is 200", function() {');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(200);');
+  });
+
+  // Additional robust tests for testing framework
+  it('should handle nested test functions', () => {
+    const code = `
         pm.test("Main test group", function() {
             const responseJson = pm.response.json();
             
@@ -137,18 +137,18 @@ describe('Testing Framework Translation', () => {
             });
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).toContain('test("Main test group", function() {');
-        expect(translatedCode).toContain('const responseJson = res.getBody();');
-        expect(translatedCode).toContain('test("User data validation", function() {');
-        expect(translatedCode).toContain('expect(responseJson.user).to.be.an(\'object\');');
-        expect(translatedCode).toContain('test("Settings validation", function() {');
-        expect(translatedCode).toContain('expect(responseJson.settings.notifications).to.be.a(\'boolean\');');
-    });
+    const translatedCode = translateCode(code);
 
-    it('should handle test with dynamic test names', () => {
-        const code = `
+    expect(translatedCode).toContain('test("Main test group", function() {');
+    expect(translatedCode).toContain('const responseJson = res.getBody();');
+    expect(translatedCode).toContain('test("User data validation", function() {');
+    expect(translatedCode).toContain('expect(responseJson.user).to.be.an(\'object\');');
+    expect(translatedCode).toContain('test("Settings validation", function() {');
+    expect(translatedCode).toContain('expect(responseJson.settings.notifications).to.be.a(\'boolean\');');
+  });
+
+  it('should handle test with dynamic test names', () => {
+    const code = `
         const endpoint = pm.variables.get("currentEndpoint");
         
         pm.test(\`\${endpoint} returns correct data\`, function() {
@@ -156,16 +156,16 @@ describe('Testing Framework Translation', () => {
             pm.expect(responseJson).to.be.an('object');
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).toContain('const endpoint = bru.getVar("currentEndpoint");');
-        expect(translatedCode).toContain('test(`${endpoint} returns correct data`, function() {');
-        expect(translatedCode).toContain('const responseJson = res.getBody();');
-        expect(translatedCode).toContain('expect(responseJson).to.be.an(\'object\');');
-    });
+    const translatedCode = translateCode(code);
 
-    it('should handle test with conditional execution', () => {
-        const code = `
+    expect(translatedCode).toContain('const endpoint = bru.getVar("currentEndpoint");');
+    expect(translatedCode).toContain('test(`${endpoint} returns correct data`, function() {');
+    expect(translatedCode).toContain('const responseJson = res.getBody();');
+    expect(translatedCode).toContain('expect(responseJson).to.be.an(\'object\');');
+  });
+
+  it('should handle test with conditional execution', () => {
+    const code = `
         const responseJson = pm.response.json();
         
         if (responseJson.type === 'user') {
@@ -180,19 +180,19 @@ describe('Testing Framework Translation', () => {
             });
         }
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).toContain('const responseJson = res.getBody();');
-        expect(translatedCode).toContain('if (responseJson.type === \'user\') {');
-        expect(translatedCode).toContain('test("User validation", function() {');
-        expect(translatedCode).toContain('expect(responseJson.name).to.be.a(\'string\');');
-        expect(translatedCode).toContain('} else if (responseJson.type === \'admin\') {');
-        expect(translatedCode).toContain('test("Admin validation", function() {');
-        expect(translatedCode).toContain('expect(responseJson.accessLevel).to.be.above(5);');
-    });
+    const translatedCode = translateCode(code);
 
-    it('should handle assertions with logical operators', () => {
-        const code = `
+    expect(translatedCode).toContain('const responseJson = res.getBody();');
+    expect(translatedCode).toContain('if (responseJson.type === \'user\') {');
+    expect(translatedCode).toContain('test("User validation", function() {');
+    expect(translatedCode).toContain('expect(responseJson.name).to.be.a(\'string\');');
+    expect(translatedCode).toContain('} else if (responseJson.type === \'admin\') {');
+    expect(translatedCode).toContain('test("Admin validation", function() {');
+    expect(translatedCode).toContain('expect(responseJson.accessLevel).to.be.above(5);');
+  });
+
+  it('should handle assertions with logical operators', () => {
+    const code = `
         pm.test("Response has valid structure", function() {
             const data = pm.response.json();
             
@@ -201,17 +201,17 @@ describe('Testing Framework Translation', () => {
             pm.expect(!data.deleted).to.be.true;
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).toContain('test("Response has valid structure", function() {');
-        expect(translatedCode).toContain('const data = res.getBody();');
-        expect(translatedCode).toContain('expect(data.id && data.name).to.be.ok;');
-        expect(translatedCode).toContain('expect(data.active || data.pending).to.be.true;');
-        expect(translatedCode).toContain('expect(!data.deleted).to.be.true;');
-    });
+    const translatedCode = translateCode(code);
 
-    it('should handle array and object assertions', () => {
-        const code = `
+    expect(translatedCode).toContain('test("Response has valid structure", function() {');
+    expect(translatedCode).toContain('const data = res.getBody();');
+    expect(translatedCode).toContain('expect(data.id && data.name).to.be.ok;');
+    expect(translatedCode).toContain('expect(data.active || data.pending).to.be.true;');
+    expect(translatedCode).toContain('expect(!data.deleted).to.be.true;');
+  });
+
+  it('should handle array and object assertions', () => {
+    const code = `
         pm.test("Array and object validations", function() {
             const data = pm.response.json();
             
@@ -226,20 +226,20 @@ describe('Testing Framework Translation', () => {
             pm.expect(data.user).to.include({active: true});
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).toContain('test("Array and object validations", function() {');
-        expect(translatedCode).toContain('const data = res.getBody();');
-        expect(translatedCode).toContain('expect(data.items).to.be.an(\'array\');');
-        expect(translatedCode).toContain('expect(data.items).to.have.lengthOf.at.least(1);');
-        expect(translatedCode).toContain('expect(data.items[0]).to.have.property(\'id\');');
-        expect(translatedCode).toContain('expect(data.user).to.be.an(\'object\');');
-        expect(translatedCode).toContain('expect(data.user).to.have.all.keys(\'id\', \'name\', \'email\');');
-        expect(translatedCode).toContain('expect(data.user).to.include({active: true});');
-    });
+    const translatedCode = translateCode(code);
 
-    it('should handle chai assertions with deep equality', () => {
-        const code = `
+    expect(translatedCode).toContain('test("Array and object validations", function() {');
+    expect(translatedCode).toContain('const data = res.getBody();');
+    expect(translatedCode).toContain('expect(data.items).to.be.an(\'array\');');
+    expect(translatedCode).toContain('expect(data.items).to.have.lengthOf.at.least(1);');
+    expect(translatedCode).toContain('expect(data.items[0]).to.have.property(\'id\');');
+    expect(translatedCode).toContain('expect(data.user).to.be.an(\'object\');');
+    expect(translatedCode).toContain('expect(data.user).to.have.all.keys(\'id\', \'name\', \'email\');');
+    expect(translatedCode).toContain('expect(data.user).to.include({active: true});');
+  });
+
+  it('should handle chai assertions with deep equality', () => {
+    const code = `
         pm.test("Deep equality checks", function() {
             const data = pm.response.json();
             
@@ -253,20 +253,20 @@ describe('Testing Framework Translation', () => {
             pm.expect(data.meta).to.deep.include({format: 'json'});
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).toContain('test("Deep equality checks", function() {');
-        expect(translatedCode).toContain('const data = res.getBody();');
-        expect(translatedCode).toContain('expect(data.config).to.deep.equal({');
-        expect(translatedCode).toContain('version: "1.0",');
-        expect(translatedCode).toContain('active: true,');
-        expect(translatedCode).toContain('features: ["search", "export"]');
-        expect(translatedCode).toContain('expect(data.tags).to.have.members([\'api\', \'test\']);');
-        expect(translatedCode).toContain('expect(data.meta).to.deep.include({format: \'json\'});');
-    });
+    const translatedCode = translateCode(code);
 
-    it('should handle chai assertions with string comparisons', () => {
-        const code = `
+    expect(translatedCode).toContain('test("Deep equality checks", function() {');
+    expect(translatedCode).toContain('const data = res.getBody();');
+    expect(translatedCode).toContain('expect(data.config).to.deep.equal({');
+    expect(translatedCode).toContain('version: "1.0",');
+    expect(translatedCode).toContain('active: true,');
+    expect(translatedCode).toContain('features: ["search", "export"]');
+    expect(translatedCode).toContain('expect(data.tags).to.have.members([\'api\', \'test\']);');
+    expect(translatedCode).toContain('expect(data.meta).to.deep.include({format: \'json\'});');
+  });
+
+  it('should handle chai assertions with string comparisons', () => {
+    const code = `
         pm.test("String validations", function() {
             const data = pm.response.json();
             
@@ -277,19 +277,19 @@ describe('Testing Framework Translation', () => {
             pm.expect(data.code).to.have.lengthOf(8);
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).toContain('test("String validations", function() {');
-        expect(translatedCode).toContain('const data = res.getBody();');
-        expect(translatedCode).toContain('expect(data.id).to.be.a(\'string\');');
-        expect(translatedCode).toContain('expect(data.name).to.match(/^[A-Za-z\\s]+$/);');
-        expect(translatedCode).toContain('expect(data.description).to.include(\'API\');');
-        expect(translatedCode).toContain('expect(data.url).to.have.string(\'api/v1\');');
-        expect(translatedCode).toContain('expect(data.code).to.have.lengthOf(8);');
-    });
+    const translatedCode = translateCode(code);
 
-    it('should handle assertions with numeric comparisons', () => {
-        const code = `
+    expect(translatedCode).toContain('test("String validations", function() {');
+    expect(translatedCode).toContain('const data = res.getBody();');
+    expect(translatedCode).toContain('expect(data.id).to.be.a(\'string\');');
+    expect(translatedCode).toContain('expect(data.name).to.match(/^[A-Za-z\\s]+$/);');
+    expect(translatedCode).toContain('expect(data.description).to.include(\'API\');');
+    expect(translatedCode).toContain('expect(data.url).to.have.string(\'api/v1\');');
+    expect(translatedCode).toContain('expect(data.code).to.have.lengthOf(8);');
+  });
+
+  it('should handle assertions with numeric comparisons', () => {
+    const code = `
         pm.test("Numeric validations", function() {
             const data = pm.response.json();
             
@@ -300,19 +300,19 @@ describe('Testing Framework Translation', () => {
             pm.expect(data.quantity * data.price).to.equal(data.total);
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).toContain('test("Numeric validations", function() {');
-        expect(translatedCode).toContain('const data = res.getBody();');
-        expect(translatedCode).toContain('expect(data.count).to.be.a(\'number\');');
-        expect(translatedCode).toContain('expect(data.count).to.be.above(0);');
-        expect(translatedCode).toContain('expect(data.price).to.be.within(10, 100);');
-        expect(translatedCode).toContain('expect(data.discount).to.be.at.most(25);');
-        expect(translatedCode).toContain('expect(data.quantity * data.price).to.equal(data.total);');
-    });
+    const translatedCode = translateCode(code);
 
-    it('should handle pm.expect.fail with conditions', () => {
-        const code = `
+    expect(translatedCode).toContain('test("Numeric validations", function() {');
+    expect(translatedCode).toContain('const data = res.getBody();');
+    expect(translatedCode).toContain('expect(data.count).to.be.a(\'number\');');
+    expect(translatedCode).toContain('expect(data.count).to.be.above(0);');
+    expect(translatedCode).toContain('expect(data.price).to.be.within(10, 100);');
+    expect(translatedCode).toContain('expect(data.discount).to.be.at.most(25);');
+    expect(translatedCode).toContain('expect(data.quantity * data.price).to.equal(data.total);');
+  });
+
+  it('should handle pm.expect.fail with conditions', () => {
+    const code = `
         pm.test("Validate critical fields", function() {
             const data = pm.response.json();
             
@@ -328,19 +328,19 @@ describe('Testing Framework Translation', () => {
             pm.expect(data.name).to.be.a('string');
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        expect(translatedCode).toContain('test("Validate critical fields", function() {');
-        expect(translatedCode).toContain('const data = res.getBody();');
-        expect(translatedCode).toContain('if (!data.id) {');
-        expect(translatedCode).toContain('expect.fail("Missing ID field");');
-        expect(translatedCode).toContain('if (data.status !== \'active\' && data.status !== \'pending\') {');
-        expect(translatedCode).toContain('expect.fail("Invalid status: " + data.status);');
-        expect(translatedCode).toContain('expect(data.name).to.be.a(\'string\');');
-    });
+    const translatedCode = translateCode(code);
 
-    it('should handle complex test compositions', () => {
-        const code = `
+    expect(translatedCode).toContain('test("Validate critical fields", function() {');
+    expect(translatedCode).toContain('const data = res.getBody();');
+    expect(translatedCode).toContain('if (!data.id) {');
+    expect(translatedCode).toContain('expect.fail("Missing ID field");');
+    expect(translatedCode).toContain('if (data.status !== \'active\' && data.status !== \'pending\') {');
+    expect(translatedCode).toContain('expect.fail("Invalid status: " + data.status);');
+    expect(translatedCode).toContain('expect(data.name).to.be.a(\'string\');');
+  });
+
+  it('should handle complex test compositions', () => {
+    const code = `
         // Helper function
         function validateUserObject(user) {
             pm.expect(user).to.be.an('object');
@@ -384,16 +384,16 @@ describe('Testing Framework Translation', () => {
             }
         });
         `;
-        const translatedCode = translateCode(code);
-        
-        // Test key transformations
-        expect(translatedCode).toContain('function validateUserObject(user) {');
-        expect(translatedCode).toContain('expect(user).to.be.an(\'object\');');
-        expect(translatedCode).toContain('test("Response validation", function() {');
-        expect(translatedCode).toContain('const response = res.getBody();');
-        expect(translatedCode).toContain('expect(res.getStatus()).to.equal(200);');
-        expect(translatedCode).toContain('test("Related users validation", function() {');
-        expect(translatedCode).toContain('test(`User at index ${index}`, function() {');
-        expect(translatedCode).toContain('bru.setEnvVar("validUsers", JSON.stringify(validUsers));');
-    });
-}); 
+    const translatedCode = translateCode(code);
+
+    // Test key transformations
+    expect(translatedCode).toContain('function validateUserObject(user) {');
+    expect(translatedCode).toContain('expect(user).to.be.an(\'object\');');
+    expect(translatedCode).toContain('test("Response validation", function() {');
+    expect(translatedCode).toContain('const response = res.getBody();');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(200);');
+    expect(translatedCode).toContain('test("Related users validation", function() {');
+    expect(translatedCode).toContain('test(`User at index ${index}`, function() {');
+    expect(translatedCode).toContain('bru.setEnvVar("validUsers", JSON.stringify(validUsers));');
+  });
+});

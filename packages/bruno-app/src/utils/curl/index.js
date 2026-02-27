@@ -40,9 +40,9 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
     }
 
     const parsedHeaders = request?.headers;
-    const headers =
-      parsedHeaders &&
-      Object.keys(parsedHeaders).map((key) => ({ name: key, value: parsedHeaders[key], enabled: true }));
+    const headers
+      = parsedHeaders
+        && Object.keys(parsedHeaders).map((key) => ({ name: key, value: parsedHeaders[key], enabled: true }));
 
     const contentType = headers?.find((h) => h.name.toLowerCase() === 'content-type')?.value;
     const parsedBody = request.data;
@@ -65,6 +65,9 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
       if (requestType === 'graphql-request' && (isJsonLikeContentType(contentType) || normalizedContentType.includes('application/graphql'))) {
         body.mode = 'graphql';
         body.graphql = parseGraphQL(parsedBody);
+      } else if (normalizedContentType.includes('application/x-ndjson') || normalizedContentType.includes('application/ndjson')) {
+        body.mode = 'text';
+        body.text = parsedBody;
       } else if (requestType === 'http-request' && request.isDataBinary) {
         body.mode = 'file';
         body.file = parsedBody;

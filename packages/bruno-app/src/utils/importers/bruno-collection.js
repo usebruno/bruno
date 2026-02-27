@@ -1,12 +1,20 @@
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, updateUidsInCollection, hydrateSeqInCollection } from './common';
+import { transformExampleStatusInCollection } from '@usebruno/common';
 
+const stripExportMetadata = (collection) => {
+  delete collection.exportedAt;
+  delete collection.exportedUsing;
+  return collection;
+};
 
 export const processBrunoCollection = async (jsonData) => {
   try {
-    let collection = hydrateSeqInCollection(jsonData);
+    let collection = stripExportMetadata(jsonData);
+    collection = hydrateSeqInCollection(collection);
     collection = updateUidsInCollection(collection);
     collection = transformItemsInCollection(collection);
+    collection = transformExampleStatusInCollection(collection);
     await validateSchema(collection);
     return collection;
   } catch (err) {

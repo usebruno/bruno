@@ -99,6 +99,7 @@ const Wrapper = styled.div`
     margin-right: 0.5rem;
     cursor: pointer;
     color: ${(props) => props.theme.grpc.importPaths.item.checkbox.color};
+    accent-color: ${(props) => props.theme.colors.accent};
   }
 
   .item-text {

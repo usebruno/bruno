@@ -13,6 +13,9 @@ const STATIC_API_HINTS = {
     'req.timeout',
     'req.getUrl()',
     'req.setUrl(url)',
+    'req.getHost()',
+    'req.getPath()',
+    'req.getQueryString()',
     'req.getMethod()',
     'req.getAuthMode()',
     'req.setMethod(method)',
@@ -20,6 +23,8 @@ const STATIC_API_HINTS = {
     'req.getHeaders()',
     'req.setHeader(name, value)',
     'req.setHeaders(data)',
+    'req.deleteHeader(name)',
+    'req.deleteHeaders(data)',
     'req.getBody()',
     'req.setBody(data)',
     'req.setMaxRedirects(maxRedirects)',
@@ -27,14 +32,15 @@ const STATIC_API_HINTS = {
     'req.setTimeout(timeout)',
     'req.getExecutionMode()',
     'req.getName()',
+    'req.getPathParams()',
     'req.getTags()',
     'req.disableParsingResponseJson()',
-    'req.onFail(function(err) {})',
+    'req.onFail(function(err) {})'
   ],
   res: [
     'res',
     'res.status',
-    'res.statusText', 
+    'res.statusText',
     'res.headers',
     'res.body',
     'res.responseTime',
@@ -61,23 +67,38 @@ const STATIC_API_HINTS = {
     'bru.getEnvVar(key)',
     'bru.getFolderVar(key)',
     'bru.getCollectionVar(key)',
+    'bru.setCollectionVar(key, value)',
+    'bru.hasCollectionVar(key)',
+    'bru.deleteCollectionVar(key)',
+    'bru.deleteAllCollectionVars()',
+    'bru.getAllCollectionVars()',
     'bru.setEnvVar(key, value)',
     'bru.setEnvVar(key, value, options)',
     'bru.deleteEnvVar(key)',
+    'bru.getAllEnvVars()',
+    'bru.deleteAllEnvVars()',
     'bru.hasVar(key)',
     'bru.getVar(key)',
     'bru.setVar(key,value)',
     'bru.deleteVar(key)',
     'bru.deleteAllVars()',
+    'bru.getAllVars()',
     'bru.setNextRequest(requestName)',
     'bru.getRequestVar(key)',
     'bru.runRequest(requestPathName)',
+    'bru.sendRequest(requestConfig)',
+    'bru.sendRequest(requestConfig, callback)',
     'bru.getAssertionResults()',
     'bru.getTestResults()',
     'bru.sleep(ms)',
     'bru.getCollectionName()',
+    'bru.isSafeMode()',
+    'bru.getOauth2CredentialVar(key)',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
+    'bru.deleteGlobalEnvVar(key)',
+    'bru.getAllGlobalEnvVars()',
+    'bru.deleteAllGlobalEnvVars()',
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
@@ -95,12 +116,13 @@ const STATIC_API_HINTS = {
     'bru.cookies.jar().deleteCookie(url, name, callback)',
     'bru.utils',
     'bru.utils.minifyJson(json)',
-    'bru.utils.minifyXml(xml)'
+    'bru.utils.minifyXml(xml)',
+    'bru.resetOauth2Credential(credentialId)'
   ]
 };
 
 // Mock data functions - prefixed with $
-const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map(key => `$${key}`);
+const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
 
 // Constants for word pattern matching
 const WORD_PATTERN = /[\w.$-/]/;
@@ -115,11 +137,11 @@ const NON_CHARACTER_KEYS = /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLe
 const generateProgressiveHints = (fullHint) => {
   const parts = fullHint.split('.');
   const progressiveHints = [];
-  
+
   for (let i = 1; i <= parts.length; i++) {
     progressiveHints.push(parts.slice(0, i).join('.'));
   }
-  
+
   return progressiveHints;
 };
 
@@ -139,21 +161,21 @@ const shouldSkipVariableKey = (key) => {
  */
 const transformVariablesToHints = (allVariables = {}) => {
   const hints = [];
-  
+
   // Process all variables without type-specific handling
-  Object.keys(allVariables).forEach(key => {
+  Object.keys(allVariables).forEach((key) => {
     if (!shouldSkipVariableKey(key)) {
       hints.push(key);
     }
   });
-  
+
   // Handle process environment variables
   if (allVariables.process && allVariables.process.env) {
-    Object.keys(allVariables.process.env).forEach(key => {
+    Object.keys(allVariables.process.env).forEach((key) => {
       hints.push(`process.env.${key}`);
     });
   }
-  
+
   return hints;
 };
 
@@ -164,11 +186,11 @@ const transformVariablesToHints = (allVariables = {}) => {
  */
 const addApiHintsToSet = (apiHints, showHintsFor) => {
   const apiTypes = ['req', 'res', 'bru'];
-  
-  apiTypes.forEach(apiType => {
+
+  apiTypes.forEach((apiType) => {
     if (showHintsFor.includes(apiType)) {
-      STATIC_API_HINTS[apiType].forEach(hint => {
-        generateProgressiveHints(hint).forEach(h => apiHints.add(h));
+      STATIC_API_HINTS[apiType].forEach((hint) => {
+        generateProgressiveHints(hint).forEach((h) => apiHints.add(h));
       });
     }
   });
@@ -181,14 +203,14 @@ const addApiHintsToSet = (apiHints, showHintsFor) => {
  */
 const addVariableHintsToSet = (variableHints, allVariables) => {
   // Add mock data hints
-  MOCK_DATA_HINTS.forEach(hint => {
-    generateProgressiveHints(hint).forEach(h => variableHints.add(h));
+  MOCK_DATA_HINTS.forEach((hint) => {
+    generateProgressiveHints(hint).forEach((h) => variableHints.add(h));
   });
-  
+
   // Add variable hints with progressive hints
   const variableHintsList = transformVariablesToHints(allVariables);
-  variableHintsList.forEach(hint => {
-    generateProgressiveHints(hint).forEach(h => variableHints.add(h));
+  variableHintsList.forEach((hint) => {
+    generateProgressiveHints(hint).forEach((h) => variableHints.add(h));
   });
 };
 
@@ -199,8 +221,8 @@ const addVariableHintsToSet = (variableHints, allVariables) => {
  */
 const addCustomHintsToSet = (anywordHints, customHints) => {
   if (customHints && Array.isArray(customHints)) {
-    customHints.forEach(hint => {
-      generateProgressiveHints(hint).forEach(h => anywordHints.add(h));
+    customHints.forEach((hint) => {
+      generateProgressiveHints(hint).forEach((h) => anywordHints.add(h));
     });
   }
 };
@@ -218,14 +240,14 @@ const buildCategorizedHintsList = (allVariables = {}, anywordAutocompleteHints =
     variables: new Set(),
     anyword: new Set()
   };
-  
+
   const showHintsFor = options.showHintsFor || [];
-  
+
   // Add different types of hints
   addApiHintsToSet(categorizedHints.api, showHintsFor);
   addVariableHintsToSet(categorizedHints.variables, allVariables);
   addCustomHintsToSet(categorizedHints.anyword, anywordAutocompleteHints);
-  
+
   return {
     api: Array.from(categorizedHints.api).sort(),
     variables: Array.from(categorizedHints.variables).sort(),
@@ -242,7 +264,7 @@ const buildCategorizedHintsList = (allVariables = {}, anywordAutocompleteHints =
  */
 const calculateVariableReplacementPositions = (cursor, startPos, wordMatch) => {
   let replaceFrom, replaceTo;
-  
+
   if (wordMatch.endsWith('.')) {
     replaceFrom = cursor;
     replaceTo = cursor;
@@ -256,7 +278,7 @@ const calculateVariableReplacementPositions = (cursor, startPos, wordMatch) => {
       replaceTo = cursor;
     }
   }
-  
+
   return { replaceFrom, replaceTo };
 };
 
@@ -270,7 +292,7 @@ const calculateVariableReplacementPositions = (cursor, startPos, wordMatch) => {
  */
 const calculateWordReplacementPositions = (cursor, start, end, word) => {
   let replaceFrom, replaceTo;
-  
+
   if (word.endsWith('.')) {
     replaceFrom = { line: cursor.line, ch: end };
     replaceTo = cursor;
@@ -284,7 +306,7 @@ const calculateWordReplacementPositions = (cursor, start, end, word) => {
       replaceTo = { line: cursor.line, ch: end };
     }
   }
-  
+
   return { replaceFrom, replaceTo };
 };
 
@@ -294,9 +316,14 @@ const calculateWordReplacementPositions = (cursor, start, end, word) => {
  * @returns {string} The determined context
  */
 const determineWordContext = (word) => {
-  if (word.startsWith('req') || word.startsWith('res') || word.startsWith('bru')) {
+  const isApiHint = Object.keys(STATIC_API_HINTS).some(
+    (apiRoot) => apiRoot.toLowerCase().startsWith(word.toLowerCase()) || word.toLowerCase().startsWith(apiRoot.toLowerCase())
+  );
+
+  if (isApiHint) {
     return 'api';
   }
+
   return 'anyword';
 };
 
@@ -309,18 +336,18 @@ const determineWordContext = (word) => {
 const extractWordFromLine = (currentLine, cursorPosition) => {
   let start = cursorPosition;
   let end = start;
-  
+
   while (end < currentLine.length && WORD_PATTERN.test(currentLine.charAt(end))) {
     ++end;
   }
   while (start && WORD_PATTERN.test(currentLine.charAt(start - 1))) {
     --start;
   }
-  
+
   if (start === end) {
     return null;
   }
-  
+
   return {
     word: currentLine.slice(start, end),
     start,
@@ -337,14 +364,14 @@ const getCurrentWordWithContext = (cm) => {
   const cursor = cm.getCursor();
   const currentLine = cm.getLine(cursor.line);
   const currentString = cm.getRange({ line: cursor.line, ch: 0 }, cursor);
-  
+
   // Check for variable pattern {{word
   const variableMatch = currentString.match(VARIABLE_PATTERN);
   if (variableMatch) {
     const wordMatch = variableMatch[1];
     const startPos = { line: cursor.line, ch: currentString.lastIndexOf('{{') + 2 };
     const { replaceFrom, replaceTo } = calculateVariableReplacementPositions(cursor, startPos, wordMatch);
-    
+
     return {
       word: wordMatch,
       from: replaceFrom,
@@ -353,13 +380,13 @@ const getCurrentWordWithContext = (cm) => {
       requiresBraces: true
     };
   }
-  
+
   // Check for regular word
   const wordInfo = extractWordFromLine(currentLine, cursor.ch);
   if (!wordInfo) {
     return null;
   }
-  
+
   const { word, start, end } = wordInfo;
   const { replaceFrom, replaceTo } = calculateWordReplacementPositions(cursor, start, end, word);
   const context = determineWordContext(word);
@@ -380,40 +407,48 @@ const getCurrentWordWithContext = (cm) => {
  * @returns {string[]} Array of suggestion segments
  */
 const extractNextSegmentSuggestions = (filteredHints, currentInput) => {
-  const suggestions = new Set();
-  
-  filteredHints.forEach(hint => {
-    if (!hint.toLowerCase().startsWith(currentInput.toLowerCase())) {
-      return;
-    }
-    
-    // Handle exact match case
-    if (hint.toLowerCase() === currentInput.toLowerCase()) {
-      suggestions.add(hint.substring(hint.lastIndexOf('.') + 1));
-      return;
-    }
-    
-    const inputLength = currentInput.length;
-    
-    if (currentInput.endsWith('.')) {
-      // Show next segment after the dot
-      const afterDot = hint.substring(inputLength);
-      const nextDot = afterDot.indexOf('.');
-      const segment = nextDot === -1 ? afterDot : afterDot.substring(0, nextDot);
-      suggestions.add(segment);
-    } else {
-      // Show complete current segment
-      const lastDotInInput = currentInput.lastIndexOf('.');
-      const currentSegmentStart = lastDotInInput + 1;
-      const nextDotAfterInput = hint.indexOf('.', currentSegmentStart);
-      const segment = nextDotAfterInput === -1 
-        ? hint.substring(currentSegmentStart)
-        : hint.substring(currentSegmentStart, nextDotAfterInput);
-      suggestions.add(segment);
+  const prefixMatches = new Set();
+  const substringMatches = new Set();
+  const lowerInput = currentInput.toLowerCase();
+
+  filteredHints.forEach((hint) => {
+    const lowerHint = hint.toLowerCase();
+
+    // For prefix matches, use the original progressive logic
+    if (lowerHint.startsWith(lowerInput)) {
+      // Handle exact match case
+      if (lowerHint === lowerInput) {
+        prefixMatches.add(hint.substring(hint.lastIndexOf('.') + 1));
+        return;
+      }
+
+      const inputLength = currentInput.length;
+
+      if (currentInput.endsWith('.')) {
+        // Show next segment after the dot
+        const afterDot = hint.substring(inputLength);
+        const nextDot = afterDot.indexOf('.');
+        const segment = nextDot === -1 ? afterDot : afterDot.substring(0, nextDot);
+        prefixMatches.add(segment);
+      } else {
+        // Show complete current segment
+        const lastDotInInput = currentInput.lastIndexOf('.');
+        const currentSegmentStart = lastDotInInput + 1;
+        const nextDotAfterInput = hint.indexOf('.', currentSegmentStart);
+        const segment
+          = nextDotAfterInput === -1
+            ? hint.substring(currentSegmentStart)
+            : hint.substring(currentSegmentStart, nextDotAfterInput);
+        prefixMatches.add(segment);
+      }
+    } else if (lowerHint.includes(lowerInput)) {
+      // For substring matches (search within words), suggest the complete hint
+      substringMatches.add(hint);
     }
   });
-  
-  return Array.from(suggestions).sort();
+
+  // Return prefix matches first, then substring matches
+  return [...Array.from(prefixMatches).sort(), ...Array.from(substringMatches).sort()];
 };
 
 /**
@@ -426,7 +461,7 @@ const getHintParts = (filteredHints, currentInput) => {
   if (!filteredHints || filteredHints.length === 0) {
     return [];
   }
-  
+
   return extractNextSegmentSuggestions(filteredHints, currentInput);
 };
 
@@ -439,18 +474,18 @@ const getHintParts = (filteredHints, currentInput) => {
  */
 const getAllowedHintsByContext = (categorizedHints, context, showHintsFor) => {
   let allowedHints = [];
-  
+
   if (context === 'variables' && showHintsFor.includes('variables')) {
     allowedHints = [...categorizedHints.variables];
   } else if (context === 'api') {
-    const hasApiHints = showHintsFor.some(hint => ['req', 'res', 'bru'].includes(hint));
+    const hasApiHints = showHintsFor.some((hint) => ['req', 'res', 'bru'].includes(hint));
     if (hasApiHints) {
       allowedHints = [...categorizedHints.api];
     }
   } else if (context === 'anyword') {
     allowedHints = [...categorizedHints.anyword];
   }
-  
+
   return allowedHints;
 };
 
@@ -466,15 +501,16 @@ const filterHintsByContext = (categorizedHints, currentWord, context, showHintsF
   if (!currentWord) {
     return [];
   }
-  
+
   const allowedHints = getAllowedHintsByContext(categorizedHints, context, showHintsFor);
-  
-  const filtered = allowedHints.filter(hint => {
-    return hint.toLowerCase().startsWith(currentWord.toLowerCase());
+
+  const lowerWord = currentWord.toLowerCase();
+  const filtered = allowedHints.filter((hint) => {
+    return hint.toLowerCase().includes(lowerWord);
   });
-  
+
   const hintParts = getHintParts(filtered, currentWord);
-  
+
   return hintParts.slice(0, 50);
 };
 
@@ -486,11 +522,11 @@ const filterHintsByContext = (categorizedHints, currentWord, context, showHintsF
  * @returns {Object} Hint object with list and positions
  */
 const createVariableHintList = (filteredHints, from, to) => {
-  const hintList = filteredHints.map(hint => ({
+  const hintList = filteredHints.map((hint) => ({
     text: hint,
     displayText: hint
   }));
-  
+
   return {
     list: hintList,
     from,
@@ -514,6 +550,34 @@ const createStandardHintList = (filteredHints, from, to) => {
 };
 
 /**
+ * Show root-level API hints when the editor is empty
+ * @param {Object} cm - CodeMirror instance
+ * @param {string[]} showHintsFor - Array of hint types to show (e.g., ['req', 'res', 'bru'])
+ * @returns {boolean} True if hints were shown, false otherwise
+ */
+export const showRootHints = (cm, showHintsFor = []) => {
+  const wordInfo = getCurrentWordWithContext(cm);
+  // If user is currently typing a word, let handleKeyupForAutocomplete
+  // handle it instead of showing root hints.
+  if (wordInfo) {
+    return false;
+  }
+
+  const hints = Object.keys(STATIC_API_HINTS).filter((rootHint) => showHintsFor.includes(rootHint));
+
+  if (hints.length === 0) return false;
+
+  const cursor = cm.getCursor();
+  const hintList = createStandardHintList(hints, cursor, cursor);
+
+  cm.showHint({
+    hint: () => hintList,
+    completeSingle: false
+  });
+  return true;
+};
+
+/**
  * Bruno AutoComplete Helper - Main function with context awareness
  * @param {Object} cm - CodeMirror instance
  * @param {Object} allVariables - All available variables
@@ -525,23 +589,23 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
   if (!allVariables) {
     return null;
   }
-  
+
   const wordInfo = getCurrentWordWithContext(cm);
   if (!wordInfo) {
     return null;
   }
-  
+
   const { word, from, to, context, requiresBraces } = wordInfo;
-  const showHintsFor = options.showHintsFor || [];  
-  
+  const showHintsFor = options.showHintsFor || [];
+
   // Check if this context requires braces but we're not in a brace context
   if (context === 'variables' && !requiresBraces) {
     return null;
   }
-  
+
   const categorizedHints = buildCategorizedHintsList(allVariables, anywordAutocompleteHints, options);
   const filteredHints = filterHintsByContext(categorizedHints, word, context, showHintsFor);
-  
+
   if (filteredHints.length === 0) {
     return null;
   }
@@ -549,7 +613,7 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
   if (context === 'variables') {
     return createVariableHintList(filteredHints, from, to);
   }
-  
+
   return createStandardHintList(filteredHints, from, to);
 };
 
@@ -562,34 +626,34 @@ const handleClickForAutocomplete = (cm, options) => {
   const allVariables = options.getAllVariables?.() || {};
   const anywordAutocompleteHints = options.getAnywordAutocompleteHints?.() || [];
   const showHintsFor = options.showHintsFor || [];
-  
+
   // Build all available hints
   const categorizedHints = buildCategorizedHintsList(allVariables, anywordAutocompleteHints, options);
-  
+
   // Combine all hints based on showHintsFor configuration
   let allHints = [];
-  
+
   // Add API hints if enabled
-  const hasApiHints = showHintsFor.some(hint => ['req', 'res', 'bru'].includes(hint));
+  const hasApiHints = showHintsFor.some((hint) => ['req', 'res', 'bru'].includes(hint));
   if (hasApiHints) {
     allHints = [...allHints, ...categorizedHints.api];
   }
-  
+
   // Add variable hints if enabled
   if (showHintsFor.includes('variables')) {
     allHints = [...allHints, ...categorizedHints.variables];
   }
-  
+
   // Add anyword hints (always included)
   allHints = [...allHints, ...categorizedHints.anyword];
-  
+
   // Remove duplicates and sort
   allHints = [...new Set(allHints)].sort();
-  
+
   if (allHints.length === 0) {
     return;
   }
-  
+
   const cursor = cm.getCursor();
 
   if (cursor.ch > 0) return;
@@ -618,18 +682,19 @@ const handleKeyupForAutocomplete = (cm, event, options) => {
   if (!NON_CHARACTER_KEYS.test(event?.key)) {
     return;
   }
-  
+
   const allVariables = options.getAllVariables?.() || {};
   const anywordAutocompleteHints = options.getAnywordAutocompleteHints?.() || [];
   const hints = getAutoCompleteHints(cm, allVariables, anywordAutocompleteHints, options);
-  
+
   if (!hints) {
-    if (cm.state.completionActive) {
+    const wordInfo = getCurrentWordWithContext(cm);
+    if (cm.state.completionActive && wordInfo) {
       cm.state.completionActive.close();
     }
     return;
   }
-  
+
   cm.showHint({
     hint: () => hints,
     completeSingle: false
@@ -646,11 +711,11 @@ export const setupAutoComplete = (editor, options = {}) => {
   if (!editor) {
     return;
   }
-  
+
   const keyupHandler = (cm, event) => {
     handleKeyupForAutocomplete(cm, event, options);
   };
-  
+
   editor.on('keyup', keyupHandler);
 
   const clickHandler = (cm) => {
@@ -659,12 +724,12 @@ export const setupAutoComplete = (editor, options = {}) => {
       handleClickForAutocomplete(cm, options);
     }
   };
-  
+
   // Add click handler if showHintsOnClick is enabled
   if (options.showHintsOnClick) {
     editor.on('mousedown', clickHandler);
   }
-  
+
   return () => {
     editor.off('keyup', keyupHandler);
     if (options.showHintsOnClick) {
@@ -672,6 +737,9 @@ export const setupAutoComplete = (editor, options = {}) => {
     }
   };
 };
+
+// Exported for testing
+export { extractNextSegmentSuggestions };
 
 // Initialize autocomplete command if not already present
 if (!CodeMirror.commands.autocomplete) {

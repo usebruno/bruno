@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { openCollectionAndAcceptSandbox, closeAllCollections } from '../../utils/page/actions';
+import { openCollection, closeAllCollections } from '../../utils/page/actions';
 
 test.describe('Import Insomnia v5 Collection - Environment Import', () => {
   test.afterEach(async ({ page }) => {
@@ -23,7 +23,8 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
     const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v5-with-envs.yaml');
 
     await test.step('Import Insomnia v5 collection with environments', async () => {
-      await page.getByRole('button', { name: 'Import Collection' }).click();
+      await page.getByTestId('collections-header-add-menu').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
       const importModal = page.getByTestId('import-collection-modal');
       await importModal.waitFor({ state: 'visible' });
@@ -31,17 +32,15 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
 
       await page.setInputFiles('input[type="file"]', insomniaFile);
 
-      await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
-
-      const locationModal = page.getByTestId('import-collection-location-modal');
-      await expect(locationModal.getByText('Test API Collection v5 with Environments')).toBeVisible();
+      // Wait for location modal to appear after file processing
+      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await locationModal.waitFor({ state: 'visible', timeout: 10000 });
 
       await page.locator('#collection-location').fill(await createTmpDir('insomnia-v5-env-test'));
-      await page.getByRole('button', { name: 'Import', exact: true }).click();
+      await locationModal.getByRole('button', { name: 'Import' }).click();
+      await locationModal.waitFor({ state: 'hidden' });
 
-      await expect(page.getByText('Test API Collection v5 with Environments')).toBeVisible();
-
-      await openCollectionAndAcceptSandbox(page, 'Test API Collection v5 with Environments', 'safe');
+      await openCollection(page, 'Test API Collection v5 with Environments');
     });
 
     await test.step('Open collection environments panel', async () => {
@@ -80,8 +79,10 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       await expect(authTokenInput).toBeVisible();
 
       // Assert: Top-level string values are preserved exactly as in the source
-      await expect(page.getByTestId('env-var-row-base_url').locator('.CodeMirror-line').first()).toHaveText('https://api.example.com');
-      await expect(page.getByTestId('env-var-row-auth_token').locator('.CodeMirror-line').first()).toHaveText('your_auth_token_here');
+      const baseUrlRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"base_url\"]') });
+      await expect(baseUrlRow.locator('.CodeMirror-line').first()).toHaveText('https://api.example.com');
+      const authTokenRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"auth_token\"]') });
+      await expect(authTokenRow.locator('.CodeMirror-line').first()).toHaveText('your_auth_token_here');
 
       // **Assertion 2: Nested Object Flattening**
       // Verifies that nested objects are flattened to dot-notation keys (e.g., user.name, user.id)
@@ -91,9 +92,11 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       await expect(userIdInput).toBeVisible();
 
       // Assert: Nested object properties are accessible via dot notation
-      await expect(page.getByTestId('env-var-row-user.name').locator('.CodeMirror-line').first()).toHaveText('admin');
+      const userNameRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"user.name\"]') });
+      await expect(userNameRow.locator('.CodeMirror-line').first()).toHaveText('admin');
       // Assert: Numeric values are converted to strings and preserved
-      await expect(page.getByTestId('env-var-row-user.id').locator('.CodeMirror-line').first()).toHaveText('123');
+      const userIdRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"user.id\"]') });
+      await expect(userIdRow.locator('.CodeMirror-line').first()).toHaveText('123');
 
       // **Assertion 3: Array Flattening**
       // Verifies that arrays are flattened using JavaScript-style square bracket notation (e.g., user.roles[0], user.roles[1])
@@ -103,8 +106,10 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       await expect(userRoles1Input).toBeVisible();
 
       // Assert: Array elements are accessible via JavaScript-style square bracket notation
-      await expect(page.getByTestId('env-var-row-user.roles[0]').locator('.CodeMirror-line').first()).toHaveText('admin');
-      await expect(page.getByTestId('env-var-row-user.roles[1]').locator('.CodeMirror-line').first()).toHaveText('user');
+      const userRoles0Row = page.locator('tbody tr').filter({ has: page.locator('input[value=\"user.roles[0]\"]') });
+      await expect(userRoles0Row.locator('.CodeMirror-line').first()).toHaveText('admin');
+      const userRoles1Row = page.locator('tbody tr').filter({ has: page.locator('input[value=\"user.roles[1]\"]') });
+      await expect(userRoles1Row.locator('.CodeMirror-line').first()).toHaveText('user');
 
       // **Assertion 4: Deeply Nested Config Objects**
       // Verifies that deeply nested objects are properly flattened (e.g., config.timeout, config.debug)
@@ -114,9 +119,11 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       await expect(configDebugInput).toBeVisible();
 
       // Assert: Numeric values in nested objects are converted to strings
-      await expect(page.getByTestId('env-var-row-config.timeout').locator('.CodeMirror-line').first()).toHaveText('30000');
+      const configTimeoutRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"config.timeout\"]') });
+      await expect(configTimeoutRow.locator('.CodeMirror-line').first()).toHaveText('30000');
       // Assert: Boolean values in nested objects are converted to strings
-      await expect(page.getByTestId('env-var-row-config.debug').locator('.CodeMirror-line').first()).toHaveText('true');
+      const configDebugRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"config.debug\"]') });
+      await expect(configDebugRow.locator('.CodeMirror-line').first()).toHaveText('true');
     });
 
     await test.step('Test Staging Environment - verify merging and overrides', async () => {
@@ -131,14 +138,16 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       const stagingBaseUrlInput = page.locator('input[value="base_url"]');
       await expect(stagingBaseUrlInput).toBeVisible();
       // Assert: Staging overrides base_url with its own value
-      await expect(page.getByTestId('env-var-row-base_url').locator('.CodeMirror-line').first()).toHaveText('https://staging-api.example.com');
+      const baseUrlRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"base_url\"]') });
+      await expect(baseUrlRow.locator('.CodeMirror-line').first()).toHaveText('https://staging-api.example.com');
 
       // **Assertion 2: Top-level Variable Inheritance**
       // Verifies that staging environment inherits base environment values when not overridden
       const stagingAuthTokenInput = page.locator('input[value="auth_token"]');
       await expect(stagingAuthTokenInput).toBeVisible();
       // Assert: Staging inherits auth_token from base (not overridden in staging)
-      await expect(page.getByTestId('env-var-row-auth_token').locator('.CodeMirror-line').first()).toHaveText('your_auth_token_here');
+      const authTokenRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"auth_token\"]') });
+      await expect(authTokenRow.locator('.CodeMirror-line').first()).toHaveText('your_auth_token_here');
 
       // **Assertion 3: Nested Object Variable Override and Inheritance**
       // Verifies that nested object properties can be selectively overridden while inheriting others
@@ -148,9 +157,11 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       await expect(stagingUserIdInput).toBeVisible();
 
       // Assert: Staging overrides user.name with its own value
-      await expect(page.getByTestId('env-var-row-user.name').locator('.CodeMirror-line').first()).toHaveText('staging_admin');
+      const userNameRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"user.name\"]') });
+      await expect(userNameRow.locator('.CodeMirror-line').first()).toHaveText('staging_admin');
       // Assert: Staging inherits user.id from base (not overridden in staging)
-      await expect(page.getByTestId('env-var-row-user.id').locator('.CodeMirror-line').first()).toHaveText('123');
+      const userIdRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"user.id\"]') });
+      await expect(userIdRow.locator('.CodeMirror-line').first()).toHaveText('123');
 
       // **Assertion 4: Deeply Nested Config Override**
       // Verifies that deeply nested object properties can be overridden
@@ -160,9 +171,11 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       await expect(stagingConfigDebugInput).toBeVisible();
 
       // Assert: Staging overrides config.timeout with its own value
-      await expect(page.getByTestId('env-var-row-config.timeout').locator('.CodeMirror-line').first()).toHaveText('60000');
+      const configTimeoutRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"config.timeout\"]') });
+      await expect(configTimeoutRow.locator('.CodeMirror-line').first()).toHaveText('60000');
       // Assert: Staging overrides config.debug with its own value
-      await expect(page.getByTestId('env-var-row-config.debug').locator('.CodeMirror-line').first()).toHaveText('false');
+      const configDebugRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"config.debug\"]') });
+      await expect(configDebugRow.locator('.CodeMirror-line').first()).toHaveText('false');
     });
 
     await test.step('Test Development Environment - verify new variables', async () => {
@@ -180,9 +193,11 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       await expect(devAuthTokenInput).toBeVisible();
 
       // Assert: Development overrides base_url with its own value
-      await expect(page.getByTestId('env-var-row-base_url').locator('.CodeMirror-line').first()).toHaveText('https://dev-api.example.com');
+      const baseUrlRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"base_url\"]') });
+      await expect(baseUrlRow.locator('.CodeMirror-line').first()).toHaveText('https://dev-api.example.com');
       // Assert: Development overrides auth_token with its own value
-      await expect(page.getByTestId('env-var-row-auth_token').locator('.CodeMirror-line').first()).toHaveText('dev_token_123');
+      const authTokenRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"auth_token\"]') });
+      await expect(authTokenRow.locator('.CodeMirror-line').first()).toHaveText('dev_token_123');
 
       // **Assertion 2: New Nested Variables Addition**
       // Verifies that development environment can add completely new nested variables not present in base
@@ -192,21 +207,25 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       await expect(newFeatureVersionInput).toBeVisible();
 
       // Assert: New boolean variable is added and converted to string
-      await expect(page.getByTestId('env-var-row-new_feature.enabled').locator('.CodeMirror-line').first()).toHaveText('true');
+      const newFeatureEnabledRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"new_feature.enabled\"]') });
+      await expect(newFeatureEnabledRow.locator('.CodeMirror-line').first()).toHaveText('true');
       // Assert: New numeric variable is added and converted to string with full precision
-      await expect(page.getByTestId('env-var-row-new_feature.version').locator('.CodeMirror-line').first()).toHaveText('2.099123123');
+      const newFeatureVersionRow = page.locator('tbody tr').filter({ has: page.locator('input[value=\"new_feature.version\"]') });
+      await expect(newFeatureVersionRow.locator('.CodeMirror-line').first()).toHaveText('2.099123123');
 
       // **Assertion 3: Base Variable Inheritance**
       // Verifies that development environment still inherits base variables that are not overridden
       const devUserRoles0Input = page.locator('input[value="user.roles[0]"]');
       await expect(devUserRoles0Input).toBeVisible();
       // Assert: Development inherits user.roles[0] from base (not overridden in development)
-      await expect(page.getByTestId('env-var-row-user.roles[0]').locator('.CodeMirror-line').first()).toHaveText('admin');
+      const userRoles0Row = page.locator('tbody tr').filter({ has: page.locator('input[value=\"user.roles[0]\"]') });
+      await expect(userRoles0Row.locator('.CodeMirror-line').first()).toHaveText('admin');
     });
 
-    await test.step('Close environment modal', async () => {
-      // Close the environment configuration modal to ensure clean state
-      await page.getByText('×').click();
+    await test.step('Close environment tab', async () => {
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+      await envTab.hover();
+      await envTab.getByTestId('request-tab-close-icon').click({ force: true });
     });
   });
 });

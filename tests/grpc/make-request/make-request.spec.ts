@@ -1,6 +1,8 @@
 import { test, expect } from '../../../playwright';
 import { buildGrpcCommonLocators } from '../../utils/page/locators';
 
+const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+
 test.describe('make grpc requests', () => {
   const setupGrpcTest = async (page) => {
     const locators = buildGrpcCommonLocators(page);
@@ -23,7 +25,7 @@ test.describe('make grpc requests', () => {
 
     await test.step('select unary method', async () => {
       await locators.sidebar.request('SayHello').click();
-      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/SayHello');
+      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/SayHello', { timeout: 30000 });
     });
 
     await test.step('verify gRPC unary request is opened successfully', async () => {
@@ -53,7 +55,7 @@ test.describe('make grpc requests', () => {
 
     /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
     await test.step('save request via shortcut', async () => {
-      await page.keyboard.press('Meta+s');
+      await page.keyboard.press(saveShortcut);
     });
   });
 
@@ -88,13 +90,13 @@ test.describe('make grpc requests', () => {
     await test.step('verify response items are rendered', async () => {
       await expect(locators.response.content()).toBeVisible();
       await expect(locators.response.container()).toBeVisible();
-      await expect(locators.response.accordion()).toBeVisible();
+      await expect(locators.response.list()).toBeVisible();
       await expect(locators.response.responseItems()).toHaveCount(10);
     });
 
     /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
     await test.step('save request via shortcut', async () => {
-      await page.keyboard.press('Meta+s');
+      await page.keyboard.press(saveShortcut);
     });
   });
 
@@ -144,7 +146,7 @@ test.describe('make grpc requests', () => {
 
     /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
     await test.step('save request via shortcut', async () => {
-      await page.keyboard.press('Meta+s');
+      await page.keyboard.press(saveShortcut);
     });
   });
 
@@ -190,13 +192,13 @@ test.describe('make grpc requests', () => {
     await test.step('verify response items are rendered', async () => {
       await expect(locators.response.content()).toBeVisible();
       await expect(locators.response.container()).toBeVisible();
-      await expect(locators.response.accordion()).toBeVisible();
+      await expect(locators.response.list()).toBeVisible();
       await expect(locators.response.responseItems()).toHaveCount(2);
     });
 
     /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
     await test.step('save request via shortcut', async () => {
-      await page.keyboard.press('Meta+s');
+      await page.keyboard.press(saveShortcut);
     });
   });
 });

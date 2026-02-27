@@ -1,5 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import get from 'lodash/get';
+import debounce from 'lodash/debounce';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
@@ -10,7 +11,7 @@ import toast from 'react-hot-toast';
 import path from 'utils/common/path';
 import { IconTrash } from '@tabler/icons';
 
-const General = ({ close }) => {
+const General = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
   const inputFileCaCertificateRef = useRef();
@@ -37,7 +38,29 @@ const General = ({ close }) => {
       .test('isValidTimeout', 'Request Timeout must be equal or greater than 0', (value) => {
         return value === undefined || Number(value) >= 0;
       }),
-    defaultCollectionLocation: Yup.string().max(1024)
+    autoSave: Yup.object({
+      enabled: Yup.boolean(),
+      interval: Yup.mixed()
+        .transform((value, originalValue) => {
+          return originalValue === '' ? undefined : value;
+        })
+        .test('isNumber', 'Save Delay must be a number', (value) => {
+          return value === undefined || !isNaN(value);
+        })
+        .test('isValidInterval', 'Save Delay must be at least 500ms', (value) => {
+          return value === undefined || Number(value) >= 500;
+        })
+    }).test('intervalRequired', 'Save Delay is required when Auto Save is enabled', (value) => {
+      // If autosave is enabled, interval must be provided
+      if (value.enabled && (value.interval === undefined || value.interval === '')) {
+        return false;
+      }
+      return true;
+    }),
+    oauth2: Yup.object({
+      useSystemBrowser: Yup.boolean()
+    }),
+    defaultLocation: Yup.string().max(1024)
   });
 
   const formik = useFormik({
@@ -53,7 +76,14 @@ const General = ({ close }) => {
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
       sendCookies: get(preferences, 'request.sendCookies', true),
-      defaultCollectionLocation: get(preferences, 'general.defaultCollectionLocation', '')
+      autoSave: {
+        enabled: get(preferences, 'autoSave.enabled', false),
+        interval: get(preferences, 'autoSave.interval', 1000)
+      },
+      oauth2: {
+        useSystemBrowser: get(preferences, 'request.oauth2.useSystemBrowser', false)
+      },
+      defaultLocation: get(preferences, 'general.defaultLocation', '')
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -66,7 +96,7 @@ const General = ({ close }) => {
     }
   });
 
-  const handleSave = (newPreferences) => {
+  const handleSave = useCallback((newPreferences) => {
     dispatch(
       savePreferences({
         ...preferences,
@@ -81,18 +111,42 @@ const General = ({ close }) => {
           },
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
-          sendCookies: newPreferences.sendCookies
+          sendCookies: newPreferences.sendCookies,
+          oauth2: {
+            useSystemBrowser: newPreferences.oauth2.useSystemBrowser
+          }
+        },
+        autoSave: {
+          enabled: newPreferences.autoSave.enabled,
+          interval: newPreferences.autoSave.interval
         },
         general: {
-          defaultCollectionLocation: newPreferences.defaultCollectionLocation
+          defaultLocation: newPreferences.defaultLocation
         }
       }))
-      .then(() => {
-        toast.success('Preferences saved successfully')
-        close();
-      })
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
-  };
+  }, [dispatch, preferences]);
+
+  const debouncedSave = useCallback(
+    debounce((values) => {
+      preferencesSchema.validate(values, { abortEarly: true })
+        .then((validatedValues) => {
+          handleSave(validatedValues);
+        })
+        .catch((error) => {
+        });
+    }, 500),
+    [handleSave]
+  );
+
+  useEffect(() => {
+    if (formik.dirty && formik.isValid) {
+      debouncedSave(formik.values);
+    }
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 
   const addCaCertificate = (e) => {
     const filePath = window?.ipcRenderer?.getFilePath(e?.target?.files?.[0]);
@@ -109,19 +163,20 @@ const General = ({ close }) => {
     dispatch(browseDirectory())
       .then((dirPath) => {
         if (typeof dirPath === 'string') {
-          formik.setFieldValue('defaultCollectionLocation', dirPath);
+          formik.setFieldValue('defaultLocation', dirPath);
         }
       })
       .catch((error) => {
-        formik.setFieldValue('defaultCollectionLocation', '');
+        formik.setFieldValue('defaultLocation', '');
         console.error(error);
       });
   };
 
   return (
-    <StyledWrapper>
+    <StyledWrapper className="w-full">
+      <div className="section-header">General Settings</div>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="flex items-center my-2">
+        <div className="flex items-center mb-2">
           <input
             id="sslVerification"
             type="checkbox"
@@ -231,6 +286,19 @@ const General = ({ close }) => {
             Send Cookies automatically
           </label>
         </div>
+        <div className="flex items-center mt-2">
+          <input
+            id="oauth2.useSystemBrowser"
+            type="checkbox"
+            name="oauth2.useSystemBrowser"
+            checked={formik.values.oauth2.useSystemBrowser}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="oauth2.useSystemBrowser">
+            Use System Browser for OAuth2 Authorization
+          </label>
+        </div>
         <div className="flex flex-col mt-6">
           <label className="block select-none" htmlFor="timeout">
             Request Timeout (in ms)
@@ -250,40 +318,77 @@ const General = ({ close }) => {
         {formik.touched.timeout && formik.errors.timeout ? (
           <div className="text-red-500">{formik.errors.timeout}</div>
         ) : null}
-        <div className="flex flex-col mt-6">
-          <label className="block select-none default-collection-location-label" htmlFor="defaultCollectionLocation">
-            Default Collection Location
+        <div className="flex items-center mt-6">
+          <input
+            id="autoSaveEnabled"
+            type="checkbox"
+            name="autoSave.enabled"
+            checked={formik.values.autoSave.enabled}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="autoSaveEnabled">
+            Enable Auto Save
+          </label>
+        </div>
+        <div className={`flex flex-col mt-2 ${!formik.values.autoSave.enabled ? 'opacity-50' : ''}`}>
+          <label className="block select-none" htmlFor="autoSaveInterval">
+            Save Delay (in ms)
           </label>
           <input
             type="text"
-            name="defaultCollectionLocation"
-            className="block textbox mt-2 w-full cursor-pointer default-collection-location-input"
+            name="autoSave.interval"
+            id="autoSaveInterval"
+            className="block textbox mt-2 w-24"
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck="false"
             onChange={formik.handleChange}
-            value={formik.values.defaultCollectionLocation || ''}
+            value={formik.values.autoSave.interval}
+            disabled={!formik.values.autoSave.enabled}
+          />
+        </div>
+        {formik.touched.autoSave && formik.errors.autoSave && typeof formik.errors.autoSave === 'string' && (
+          <div className="text-red-500">{formik.errors.autoSave}</div>
+        )}
+        {formik.touched.autoSave?.interval && formik.errors.autoSave?.interval && (
+          <div className="text-red-500">{formik.errors.autoSave.interval}</div>
+        )}
+        <div className="flex flex-col mt-6">
+          <label className="block select-none default-location-label" htmlFor="defaultLocation">
+            Default Location
+          </label>
+          <p className="text-muted mt-1 text-xs">
+            Used as the default location for new workspaces and collections
+          </p>
+          <input
+            type="text"
+            name="defaultLocation"
+            id="defaultLocation"
+            className="block textbox mt-2 w-full cursor-pointer default-location-input"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            readOnly={true}
+            onChange={formik.handleChange}
+            value={formik.values.defaultLocation || ''}
             onClick={browseDefaultLocation}
             placeholder="Click to browse for default location"
           />
           <div className="mt-1">
             <span
-              className="text-link cursor-pointer hover:underline default-collection-location-browse"
+              className="text-link cursor-pointer hover:underline default-location-browse"
               onClick={browseDefaultLocation}
             >
               Browse
             </span>
           </div>
         </div>
-        {formik.touched.defaultCollectionLocation && formik.errors.defaultCollectionLocation ? (
-          <div className="text-red-500">{formik.errors.defaultCollectionLocation}</div>
+        {formik.touched.defaultLocation && formik.errors.defaultLocation ? (
+          <div className="text-red-500">{formik.errors.defaultLocation}</div>
         ) : null}
-        <div className="mt-10">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
-            Save
-          </button>
-        </div>
       </form>
     </StyledWrapper>
   );

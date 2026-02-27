@@ -6,13 +6,14 @@ import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { IconArrowBackUp, IconEdit} from '@tabler/icons';
+import { IconArrowBackUp, IconEdit } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import PathDisplay from 'components/PathDisplay/index';
 import Help from 'components/Help';
-import Dropdown from "components/Dropdown";
-import { IconCaretDown } from "@tabler/icons";
+import Dropdown from 'components/Dropdown';
+import { IconCaretDown } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const NewFolder = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
@@ -38,7 +39,7 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
         .trim()
         .min(1, 'must be at least 1 character')
         .required('foldername is required')
-        .test('is-valid-folder-name', function(value) {
+        .test('is-valid-folder-name', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
@@ -76,7 +77,7 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
         >
           Options
         </button>
-        <IconCaretDown className="caret ml-1" size={14} strokeWidth={2}/>
+        <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
       </div>
     );
   });
@@ -99,7 +100,7 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
-              onChange={e => {
+              onChange={(e) => {
                 formik.setFieldValue('folderName', e.target.value);
                 !isEditing && formik.setFieldValue('directoryName', sanitizeName(e.target.value));
               }}
@@ -113,7 +114,7 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
               <div className="mt-4">
                 <div className="flex items-center justify-between">
                   <label htmlFor="directoryName" className="flex items-center font-medium">
-                    Folder Name <small className='font-normal text-muted ml-1'>(on filesystem)</small>
+                    Folder Name <small className="font-normal text-muted ml-1">(on filesystem)</small>
                     <Help width="300">
                       <p>
                         You can choose to save the folder as a different name on your file system versus what is displayed in the app.
@@ -121,29 +122,29 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
                     </Help>
                   </label>
                   {isEditing ? (
-                    <IconArrowBackUp 
-                      className="cursor-pointer opacity-50 hover:opacity-80" 
-                      size={16} 
-                      strokeWidth={1.5} 
-                      onClick={() => toggleEditing(false)} 
-                    />
-                  ): (
-                    <IconEdit
-                      className="cursor-pointer opacity-50 hover:opacity-80" 
-                      size={16} 
+                    <IconArrowBackUp
+                      className="cursor-pointer opacity-50 hover:opacity-80"
+                      size={16}
                       strokeWidth={1.5}
-                      onClick={() => toggleEditing(true)} 
+                      onClick={() => toggleEditing(false)}
+                    />
+                  ) : (
+                    <IconEdit
+                      className="cursor-pointer opacity-50 hover:opacity-80"
+                      size={16}
+                      strokeWidth={1.5}
+                      onClick={() => toggleEditing(true)}
                     />
                   )}
                 </div>
                 {isEditing ? (
-                  <div className='relative flex flex-row gap-1 items-center justify-between'>
+                  <div className="relative flex flex-row gap-1 items-center justify-between">
                     <input
                       id="file-name"
                       type="text"
                       name="directoryName"
                       placeholder="Folder Name"
-                      className={`block textbox mt-2 w-full`}
+                      className="block textbox mt-2 w-full"
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -153,7 +154,7 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
                     />
                   </div>
                 ) : (
-                  <div className='relative flex flex-row gap-1 items-center justify-between'>
+                  <div className="relative flex flex-row gap-1 items-center justify-between">
                     <PathDisplay
                       iconType="folder"
                       baseName={formik.values.directoryName}
@@ -166,9 +167,9 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
               </div>
             )}
             <div className="flex justify-between items-center mt-8 bruno-modal-footer">
-              <div className='flex advanced-options'>
+              <div className="flex advanced-options">
                 <Dropdown onCreate={onDropdownCreate} icon={<AdvancedOptions />} placement="bottom-start">
-                  <div 
+                  <div
                     className="dropdown-item"
                     key="show-filesystem-name"
                     onClick={(e) => {
@@ -180,20 +181,13 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
                   </div>
                 </Dropdown>
               </div>
-              <div className='flex justify-end'>
-                <span className='mr-2'>
-                  <button type="button" onClick={onClose} className="btn btn-md btn-close">
-                    Cancel
-                  </button>
-                </span>
-                <span>
-                  <button
-                    type="submit"
-                    className="submit btn btn-md btn-secondary"
-                  >
-                    Create
-                  </button>
-                </span>
+              <div className="flex justify-end">
+                <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Create
+                </Button>
               </div>
             </div>
           </form>

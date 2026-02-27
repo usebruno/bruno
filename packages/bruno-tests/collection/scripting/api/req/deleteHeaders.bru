@@ -1,0 +1,32 @@
+meta {
+  name: deleteHeaders
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  X-Frame-Options: 1
+  Content-Type: application/json
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+script:pre-request {
+  req.deleteHeaders(['X-Frame-Options']);
+}
+
+tests {
+  test("req.deleteHeaders(names)", function() {
+    const h = req.getHeaders();
+    expect(h["x-frame-options"]).to.be.undefined;
+  });
+}

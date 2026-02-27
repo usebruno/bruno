@@ -1,7 +1,7 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
-import type { GrpcRequest, GrpcMetadata, GrpcMessage, GrpcMessageVariant } from '@opencollection/types/requests/grpc';
+import type { GrpcRequest, GrpcMetadata, GrpcMessage, GrpcRequestInfo, GrpcRequestDetails, GrpcRequestRuntime } from '@opencollection/types/requests/grpc';
 import type { Auth } from '@opencollection/types/common/auth';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import type { Variable } from '@opencollection/types/common/variables';
@@ -15,30 +15,36 @@ import { toOpenCollectionAssertions } from '../common/assertions';
 
 const stringifyGrpcRequest = (item: BrunoItem): string => {
   try {
-    const ocRequest: GrpcRequest = {
+    const ocRequest: GrpcRequest = {};
+    const brunoRequest = item.request as BrunoGrpcRequest;
+
+    // info block
+    const info: GrpcRequestInfo = {
+      name: isNonEmptyString(item.name) ? item.name : 'Untitled Request',
       type: 'grpc'
     };
-
-    ocRequest.name = isNonEmptyString(item.name) ? item.name : 'Untitled Request';
-
-    // sequence
     if (item.seq) {
-      ocRequest.seq = item.seq;
+      info.seq = item.seq;
     }
+    if (item.tags?.length) {
+      info.tags = item.tags;
+    }
+    ocRequest.info = info;
 
-    const brunoRequest = item.request as BrunoGrpcRequest;
-    // url and method
-    ocRequest.url = isNonEmptyString(brunoRequest.url) ? brunoRequest.url : '';
-    ocRequest.method = isNonEmptyString(brunoRequest.method) ? brunoRequest.method : '';
+    // grpc block
+    const grpc: GrpcRequestDetails = {
+      url: isNonEmptyString(brunoRequest.url) ? brunoRequest.url : '',
+      method: isNonEmptyString(brunoRequest.method) ? brunoRequest.method : ''
+    };
 
     // method type
     if (brunoRequest.methodType) {
-      ocRequest.methodType = brunoRequest.methodType;
+      grpc.methodType = brunoRequest.methodType;
     }
 
     // proto file path
     if (isNonEmptyString(brunoRequest.protoPath)) {
-      ocRequest.protoFilePath = brunoRequest.protoPath;
+      grpc.protoFilePath = brunoRequest.protoPath;
     }
 
     // metadata
@@ -61,7 +67,7 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
       });
 
       if (metadata.length) {
-        ocRequest.metadata = metadata;
+        grpc.metadata = metadata;
       }
     }
 
@@ -74,7 +80,7 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
       if (messages.length) {
         const message: GrpcMessage = messages[0].content || '';
         if (message.trim().length) {
-          ocRequest.message = message;
+          grpc.message = message;
         }
       }
     }
@@ -82,35 +88,43 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
     // auth
     const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
     if (auth) {
-      ocRequest.auth = auth;
+      grpc.auth = auth;
+    }
+
+    ocRequest.grpc = grpc;
+
+    // runtime block
+    const runtime: GrpcRequestRuntime = {};
+    let hasRuntime = false;
+
+    // variables
+    const variables: Variable[] | undefined = toOpenCollectionVariables(brunoRequest.vars);
+    if (variables) {
+      runtime.variables = variables;
+      hasRuntime = true;
     }
 
     // scripts
     const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest);
     if (scripts) {
-      ocRequest.scripts = scripts;
-    }
-
-    // variables
-    const variables: Variable[] | undefined = toOpenCollectionVariables(brunoRequest.vars);
-    if (variables) {
-      ocRequest.variables = variables;
+      runtime.scripts = scripts;
+      hasRuntime = true;
     }
 
     // assertions
     const assertions: Assertion[] | undefined = toOpenCollectionAssertions(brunoRequest.assertions);
     if (assertions) {
-      ocRequest.assertions = assertions;
+      runtime.assertions = assertions;
+      hasRuntime = true;
+    }
+
+    if (hasRuntime) {
+      ocRequest.runtime = runtime;
     }
 
     // docs
     if (isNonEmptyString(brunoRequest.docs)) {
       ocRequest.docs = brunoRequest.docs;
-    }
-
-    // tags
-    if (item.tags?.length) {
-      ocRequest.tags = item.tags;
     }
 
     return stringifyYml(ocRequest);

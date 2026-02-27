@@ -19,7 +19,7 @@ function getContentType(headers = {}) {
 }
 
 function repr(value, isKey) {
-  return isKey ? "'" + jsesc(value, { quotes: 'single' }) + "'" : value;
+  return isKey ? '\'' + jsesc(value, { quotes: 'single' }) + '\'' : value;
 }
 
 /**
@@ -92,7 +92,7 @@ function getFilesString(request) {
       {
         filePath: repr(filePath),
         contentType: request.headers['Content-Type'],
-        selected: true,
+        selected: true
       }
     ];
 
@@ -173,8 +173,8 @@ const curlToJson = (curlCommand) => {
       requestJson.headers = {};
     }
     requestJson.headers['Content-Type'] = 'multipart/form-data';
-  } else if (request.isDataBinary) {
-    Object.assign(requestJson, getFilesString(request));
+  } else if (request.isDataBinary && (typeof request.data === 'string' && request.data.startsWith('@'))) {
+    Object.assign(requestJson, getFilesString(request)); // file case
   } else if (typeof request.data === 'string' || typeof request.data === 'number') {
     Object.assign(requestJson, getDataString(request));
   }
@@ -184,12 +184,29 @@ const curlToJson = (curlCommand) => {
   }
 
   if (request.auth) {
-    if (request.auth.mode === 'basic') {
+    const authMode = request.auth.mode;
+    if (authMode === 'basic') {
       requestJson.auth = {
         mode: 'basic',
         basic: {
           username: repr(request.auth.basic?.username),
           password: repr(request.auth.basic?.password)
+        }
+      };
+    } else if (authMode === 'digest') {
+      requestJson.auth = {
+        mode: 'digest',
+        digest: {
+          username: repr(request.auth.digest?.username),
+          password: repr(request.auth.digest?.password)
+        }
+      };
+    } else if (authMode === 'ntlm') {
+      requestJson.auth = {
+        mode: 'ntlm',
+        ntlm: {
+          username: repr(request.auth.ntlm?.username),
+          password: repr(request.auth.ntlm?.password)
         }
       };
     }

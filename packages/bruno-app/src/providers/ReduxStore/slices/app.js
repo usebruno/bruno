@@ -1,16 +1,20 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import brunoClipboard from 'utils/bruno-clipboard';
+import { addTab, focusTab } from './tabs';
 
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
-  leftSidebarWidth: 222,
+  leftSidebarWidth: 250,
   sidebarCollapsed: false,
   screenWidth: 500,
   showHomePage: false,
-  showPreferences: false,
+  showApiSpecPage: false,
+  showManageWorkspacePage: false,
   isEnvironmentSettingsModalOpen: false,
+  isGlobalEnvironmentSettingsModalOpen: false,
+  activePreferencesTab: 'general',
   preferences: {
     request: {
       sslVerification: true,
@@ -21,13 +25,20 @@ const initialState = {
       keepDefaultCaCertificates: {
         enabled: true
       },
-      timeout: 0
+      timeout: 0,
+      oauth2: {
+        useSystemBrowser: false
+      }
     },
     font: {
       codeFont: 'default'
     },
     general: {
-      defaultCollectionLocation: ''
+      defaultLocation: ''
+    },
+    autoSave: {
+      enabled: false,
+      interval: 1000
     }
   },
   generateCode: {
@@ -37,9 +48,15 @@ const initialState = {
   },
   cookies: [],
   taskQueue: [],
-  systemProxyEnvVariables: {},
+  gitOperationProgress: {},
+  gitVersion: null,
   clipboard: {
     hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
+  },
+  systemProxyVariables: {},
+  envVarSearch: {
+    collection: { query: '', expanded: false },
+    global: { query: '', expanded: false }
   }
 };
 
@@ -59,20 +76,34 @@ export const appSlice = createSlice({
     updateIsDragging: (state, action) => {
       state.isDragging = action.payload.isDragging;
     },
-    updateEnvironmentSettingsModalVisibility: (state, action) => {
-      state.isEnvironmentSettingsModalOpen = action.payload;
-    },
     showHomePage: (state) => {
       state.showHomePage = true;
+      state.showApiSpecPage = false;
+      state.showManageWorkspacePage = false;
     },
     hideHomePage: (state) => {
       state.showHomePage = false;
     },
-    showPreferences: (state, action) => {
-      state.showPreferences = action.payload;
+    showManageWorkspacePage: (state) => {
+      state.showManageWorkspacePage = true;
+      state.showHomePage = false;
+      state.showApiSpecPage = false;
+    },
+    hideManageWorkspacePage: (state) => {
+      state.showManageWorkspacePage = false;
+    },
+    showApiSpecPage: (state) => {
+      state.showHomePage = false;
+      state.showApiSpecPage = true;
+    },
+    hideApiSpecPage: (state) => {
+      state.showApiSpecPage = false;
     },
     updatePreferences: (state, action) => {
       state.preferences = action.payload;
+    },
+    updateActivePreferencesTab: (state, action) => {
+      state.activePreferencesTab = action.payload.tab;
     },
     updateCookies: (state, action) => {
       state.cookies = action.payload;
@@ -86,8 +117,8 @@ export const appSlice = createSlice({
     removeAllTasksFromQueue: (state) => {
       state.taskQueue = [];
     },
-    updateSystemProxyEnvVariables: (state, action) => {
-      state.systemProxyEnvVariables = action.payload;
+    updateSystemProxyVariables: (state, action) => {
+      state.systemProxyVariables = action.payload;
     },
     updateGenerateCode: (state, action) => {
       state.generateCode = {
@@ -98,10 +129,45 @@ export const appSlice = createSlice({
     toggleSidebarCollapse: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed;
     },
+    updateGitOperationProgress: (state, action) => {
+      const { uid, data } = action.payload;
+      if (!state.gitOperationProgress[uid]) {
+        state.gitOperationProgress[uid] = { progressData: [] };
+      }
+      state.gitOperationProgress[uid].progressData.push(data);
+    },
+    removeGitOperationProgress: (state, action) => {
+      delete state.gitOperationProgress[action.payload];
+    },
+    setGitVersion: (state, action) => {
+      state.gitVersion = action.payload;
+    },
     setClipboard: (state, action) => {
       // Update clipboard UI state
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
+    },
+    setEnvVarSearchQuery: (state, { payload: { context, query } }) => {
+      if (!state.envVarSearch[context]) return;
+      state.envVarSearch[context].query = query;
+    },
+    setEnvVarSearchExpanded: (state, { payload: { context, expanded } }) => {
+      if (!state.envVarSearch[context]) return;
+      state.envVarSearch[context].expanded = expanded;
     }
+  },
+  extraReducers: (builder) => {
+    // Automatically hide special pages when any tab is added or focused
+    builder
+      .addCase(addTab, (state) => {
+        state.showHomePage = false;
+        state.showApiSpecPage = false;
+        state.showManageWorkspacePage = false;
+      })
+      .addCase(focusTab, (state) => {
+        state.showHomePage = false;
+        state.showApiSpecPage = false;
+        state.showManageWorkspacePage = false;
+      });
   }
 });
 
@@ -110,19 +176,27 @@ export const {
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateIsDragging,
-  updateEnvironmentSettingsModalVisibility,
   showHomePage,
   hideHomePage,
-  showPreferences,
+  showManageWorkspacePage,
+  hideManageWorkspacePage,
+  showApiSpecPage,
+  hideApiSpecPage,
   updatePreferences,
+  updateActivePreferencesTab,
   updateCookies,
   insertTaskIntoQueue,
   removeTaskFromQueue,
   removeAllTasksFromQueue,
-  updateSystemProxyEnvVariables,
+  updateSystemProxyVariables,
   updateGenerateCode,
   toggleSidebarCollapse,
-  setClipboard
+  updateGitOperationProgress,
+  removeGitOperationProgress,
+  setGitVersion,
+  setClipboard,
+  setEnvVarSearchQuery,
+  setEnvVarSearchExpanded
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
@@ -192,6 +266,30 @@ export const copyRequest = (item) => (dispatch, getState) => {
   brunoClipboard.write(item);
   dispatch(setClipboard({ hasCopiedItems: true }));
   return Promise.resolve();
+};
+
+export const getSystemProxyVariables = () => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:get-system-proxy-variables')
+      .then((variables) => {
+        dispatch(updateSystemProxyVariables(variables));
+        return variables;
+      })
+      .then(resolve).catch(reject);
+  });
+};
+
+export const refreshSystemProxy = () => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:refresh-system-proxy')
+      .then((variables) => {
+        dispatch(updateSystemProxyVariables(variables));
+        return variables;
+      })
+      .then(resolve).catch(reject);
+  });
 };
 
 export default appSlice.reducer;

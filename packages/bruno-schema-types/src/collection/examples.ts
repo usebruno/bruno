@@ -17,7 +17,7 @@ export interface ExampleResponseBody {
 }
 
 export interface ExampleResponse {
-  status?: string | null;
+  status?: number | null;
   statusText?: string | null;
   headers?: KeyValue[] | null;
   body?: ExampleResponseBody | null;
@@ -32,4 +32,3 @@ export interface Example {
   request?: ExampleRequest | null;
   response?: ExampleResponse | null;
 }
-

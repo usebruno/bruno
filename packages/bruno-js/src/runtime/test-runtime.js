@@ -27,12 +27,14 @@ class TestRuntime {
     collectionName
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
     const promptVariables = request?.promptVariables || {};
     const assertionResults = request?.assertionResults || [];
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, {}, collectionName, promptVariables);
+    const certsAndProxyConfig = request?.certsAndProxyConfig;
+    const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
 
@@ -76,7 +78,7 @@ class TestRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
@@ -108,6 +110,7 @@ class TestRuntime {
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
+      oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest
     };

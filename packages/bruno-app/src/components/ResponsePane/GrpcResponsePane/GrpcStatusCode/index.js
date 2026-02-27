@@ -14,7 +14,7 @@ const GrpcStatusCode = ({ status, text }) => {
     });
   };
 
-  const statusText = text || grpcStatusCodePhraseMap[status]
+  const statusText = text || grpcStatusCodePhraseMap[status];
 
   return (
     <StyledWrapper className={getTabClassname(status)}>
@@ -24,4 +24,4 @@ const GrpcStatusCode = ({ status, text }) => {
   );
 };
 
-export default GrpcStatusCode; 
+export default GrpcStatusCode;

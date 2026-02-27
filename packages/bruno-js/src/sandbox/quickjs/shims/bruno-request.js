@@ -9,6 +9,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   const body = marshallToVm(req.getBody(), vm);
   const timeout = marshallToVm(req.getTimeout(), vm);
   const name = marshallToVm(req.getName(), vm);
+  const pathParams = marshallToVm(req.getPathParams(), vm);
   const tags = marshallToVm(req.getTags(), vm);
 
   vm.setProp(reqObject, 'url', url);
@@ -17,6 +18,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'body', body);
   vm.setProp(reqObject, 'timeout', timeout);
   vm.setProp(reqObject, 'name', name);
+  vm.setProp(reqObject, 'pathParams', pathParams);
   vm.setProp(reqObject, 'tags', tags);
 
   url.dispose();
@@ -25,6 +27,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   body.dispose();
   timeout.dispose();
   name.dispose();
+  pathParams.dispose();
   tags.dispose();
 
   let getUrl = vm.newFunction('getUrl', function () {
@@ -38,6 +41,24 @@ const addBrunoRequestShimToContext = (vm, req) => {
   });
   vm.setProp(reqObject, 'setUrl', setUrl);
   setUrl.dispose();
+
+  let getHost = vm.newFunction('getHost', function () {
+    return marshallToVm(req.getHost(), vm);
+  });
+  vm.setProp(reqObject, 'getHost', getHost);
+  getHost.dispose();
+
+  let getPath = vm.newFunction('getPath', function () {
+    return marshallToVm(req.getPath(), vm);
+  });
+  vm.setProp(reqObject, 'getPath', getPath);
+  getPath.dispose();
+
+  let getQueryString = vm.newFunction('getQueryString', function () {
+    return marshallToVm(req.getQueryString(), vm);
+  });
+  vm.setProp(reqObject, 'getQueryString', getQueryString);
+  getQueryString.dispose();
 
   let getMethod = vm.newFunction('getMethod', function () {
     return marshallToVm(req.getMethod(), vm);
@@ -57,6 +78,12 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'getName', getName);
   getName.dispose();
 
+  let getPathParams = vm.newFunction('getPathParams', function () {
+    return marshallToVm(req.getPathParams(), vm);
+  });
+  vm.setProp(reqObject, 'getPathParams', getPathParams);
+  getPathParams.dispose();
+
   let setMethod = vm.newFunction('setMethod', function (method) {
     req.setMethod(vm.dump(method));
   });
@@ -75,6 +102,12 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'setHeaders', setHeaders);
   setHeaders.dispose();
 
+  let deleteHeaders = vm.newFunction('deleteHeaders', function (headers) {
+    req.deleteHeaders(vm.dump(headers));
+  });
+  vm.setProp(reqObject, 'deleteHeaders', deleteHeaders);
+  deleteHeaders.dispose();
+
   let getHeader = vm.newFunction('getHeader', function (name) {
     return marshallToVm(req.getHeader(vm.dump(name)), vm);
   });
@@ -86,6 +119,12 @@ const addBrunoRequestShimToContext = (vm, req) => {
   });
   vm.setProp(reqObject, 'setHeader', setHeader);
   setHeader.dispose();
+
+  let deleteHeader = vm.newFunction('deleteHeader', function (header) {
+    req.deleteHeader(vm.dump(header));
+  });
+  vm.setProp(reqObject, 'deleteHeader', deleteHeader);
+  deleteHeader.dispose();
 
   let getBody = vm.newFunction('getBody', function (options = {}) {
     return marshallToVm(req.getBody(vm.dump(options)), vm);

@@ -16,9 +16,10 @@ jest.mock('codemirror', () => {
 });
 
 // Import the functions to test
-import { 
-  getAutoCompleteHints, 
-  setupAutoComplete 
+import {
+  getAutoCompleteHints,
+  setupAutoComplete,
+  extractNextSegmentSuggestions
 } from './autocomplete';
 
 describe('Bruno Autocomplete', () => {
@@ -40,7 +41,7 @@ describe('Bruno Autocomplete', () => {
         mockedCodemirror.getRange.mockReturnValue('{{envVar');
         const allVariables = {
           envVar1: 'value1',
-          envVar2: 'value2',
+          envVar2: 'value2'
         };
 
         const result = getAutoCompleteHints(mockedCodemirror, allVariables, [], {
@@ -59,7 +60,7 @@ describe('Bruno Autocomplete', () => {
       it('should include mock data functions with $ prefix', () => {
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 9 });
         mockedCodemirror.getRange.mockReturnValue('{{$randomI');
-        
+
         const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
           showHintsFor: ['variables']
         });
@@ -334,11 +335,11 @@ describe('Bruno Autocomplete', () => {
         });
 
         expect(result).toBeTruthy();
-        const displayTexts = result.list.map(item => 
+        const displayTexts = result.list.map((item) =>
           typeof item === 'object' ? item.displayText : item
         );
-        
-        const userVars = displayTexts.filter(text => !text.startsWith('$'));
+
+        const userVars = displayTexts.filter((text) => !text.startsWith('$'));
         expect(userVars).toEqual(['apple', 'banana', 'zebra']);
       });
     });
@@ -382,6 +383,22 @@ describe('Bruno Autocomplete', () => {
         );
       });
 
+      it('should provide deleteHeader and deleteHeaders hints for req.delete prefix', () => {
+        const line = 'req.delete';
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
+        mockedCodemirror.getLine.mockReturnValue(line);
+        mockedCodemirror.getRange.mockReturnValue(line);
+
+        const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
+          showHintsFor: ['req']
+        });
+
+        expect(result).toBeTruthy();
+        expect(result.list).toEqual(
+          expect.arrayContaining(['deleteHeader(name)', 'deleteHeaders(data)'])
+        );
+      });
+
       it('should handle case-insensitive matching', () => {
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 10 });
         mockedCodemirror.getLine.mockReturnValue('{{varName}}');
@@ -399,6 +416,133 @@ describe('Bruno Autocomplete', () => {
 
         expect(result).toBeTruthy();
         expect(result.list.length).toBe(3);
+      });
+    });
+  });
+
+  describe('extractNextSegmentSuggestions', () => {
+    describe('prefix matching', () => {
+      it('should extract the current segment for a partial prefix match', () => {
+        const hints = ['req.getUrl()', 'req.getMethod()', 'req.setUrl(url)'];
+        const result = extractNextSegmentSuggestions(hints, 'req.get');
+
+        expect(result).toEqual(['getMethod()', 'getUrl()']);
+      });
+
+      it('should return the next segment after a trailing dot', () => {
+        const hints = ['bru.cookies.jar()', 'bru.runner.skipRequest()'];
+        const result = extractNextSegmentSuggestions(hints, 'bru.');
+
+        expect(result).toEqual(['cookies', 'runner']);
+      });
+
+      it('should return the last segment on exact match', () => {
+        const hints = ['req.url'];
+        const result = extractNextSegmentSuggestions(hints, 'req.url');
+
+        expect(result).toEqual(['url']);
+      });
+
+      it('should deduplicate segments from multiple hints', () => {
+        const hints = ['bru.cookies.jar().getCookie(url, name, callback)', 'bru.cookies.jar().getCookies(url, callback)'];
+        const result = extractNextSegmentSuggestions(hints, 'bru.');
+
+        expect(result).toEqual(['cookies']);
+      });
+
+      it('should extract top-level segment when input has no dots', () => {
+        const hints = ['req.url', 'req.getUrl()', 'res.url'];
+        const result = extractNextSegmentSuggestions(hints, 'r');
+
+        expect(result).toEqual(['req', 'res']);
+      });
+    });
+
+    describe('substring matching', () => {
+      it('should return full hints for substring-only matches', () => {
+        const hints = ['base_url', 'api_url', 'url_prefix'];
+        const result = extractNextSegmentSuggestions(hints, 'url');
+
+        // url_prefix is a prefix match (segment), base_url and api_url are substring matches (full hints)
+        expect(result).toEqual(['url_prefix', 'api_url', 'base_url']);
+      });
+
+      it('should return full hints for dotted substring matches', () => {
+        const hints = ['req.getUrl()', 'req.setUrl(url)', 'req.url'];
+        const result = extractNextSegmentSuggestions(hints, 'Url');
+
+        expect(result).toEqual(['req.getUrl()', 'req.setUrl(url)', 'req.url']);
+      });
+
+      it('should not include hints that do not contain the input', () => {
+        const hints = ['base_url', 'api_key', 'url_prefix'];
+        const result = extractNextSegmentSuggestions(hints, 'url');
+
+        expect(result).not.toContain('api_key');
+      });
+    });
+
+    describe('ordering', () => {
+      it('should return prefix matches before substring matches', () => {
+        const hints = ['base_url', 'url_prefix'];
+        const result = extractNextSegmentSuggestions(hints, 'url');
+
+        // url_prefix is prefix → segment "url_prefix"; base_url is substring → full hint
+        expect(result).toEqual(['url_prefix', 'base_url']);
+      });
+
+      it('should sort prefix matches alphabetically among themselves', () => {
+        const hints = ['req.setUrl(url)', 'req.getUrl()', 'req.getMethod()'];
+        const result = extractNextSegmentSuggestions(hints, 'req.');
+
+        expect(result).toEqual(['getMethod()', 'getUrl()', 'setUrl(url)']);
+      });
+
+      it('should sort substring matches alphabetically among themselves', () => {
+        const hints = ['z_url', 'a_url'];
+        const result = extractNextSegmentSuggestions(hints, 'url');
+
+        // Both are substring-only matches
+        expect(result).toEqual(['a_url', 'z_url']);
+      });
+    });
+
+    describe('case insensitivity', () => {
+      it('should match prefix regardless of case', () => {
+        const hints = ['Content-Type', 'Content-Length'];
+        const result = extractNextSegmentSuggestions(hints, 'content');
+
+        expect(result).toEqual(['Content-Length', 'Content-Type']);
+      });
+
+      it('should match substring regardless of case', () => {
+        const hints = ['X-Custom-Type', 'Accept'];
+        const result = extractNextSegmentSuggestions(hints, 'type');
+
+        expect(result).toEqual(['X-Custom-Type']);
+      });
+    });
+
+    describe('edge cases', () => {
+      it('should return an empty array when no hints match', () => {
+        const hints = ['foo', 'bar', 'baz'];
+        const result = extractNextSegmentSuggestions(hints, 'xyz');
+
+        expect(result).toEqual([]);
+      });
+
+      it('should return an empty array for empty hints list', () => {
+        const result = extractNextSegmentSuggestions([], 'url');
+
+        expect(result).toEqual([]);
+      });
+
+      it('should handle single-character input', () => {
+        const hints = ['apple', 'banana', 'avocado'];
+        const result = extractNextSegmentSuggestions(hints, 'a');
+
+        // apple and avocado are prefix matches, banana contains 'a' as substring
+        expect(result).toEqual(['apple', 'avocado', 'banana']);
       });
     });
   });
@@ -440,9 +584,9 @@ describe('Bruno Autocomplete', () => {
 
     describe('Event handling', () => {
       it('should trigger hints on character key press', () => {
-        const options = { 
+        const options = {
           getAllVariables: mockGetAllVariables,
-          showHintsFor: ['req'] 
+          showHintsFor: ['req']
         };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
         const keyupHandler = mockedCodemirror.on.mock.calls[0][1];
@@ -465,7 +609,7 @@ describe('Bruno Autocomplete', () => {
 
         const nonCharacterKeys = ['Shift', 'Tab', 'Enter', 'Escape', 'ArrowUp', 'ArrowDown', 'Meta'];
 
-        nonCharacterKeys.forEach(key => {
+        nonCharacterKeys.forEach((key) => {
           const mockEvent = { key };
           keyupHandler(mockedCodemirror, mockEvent);
         });
@@ -482,7 +626,7 @@ describe('Bruno Autocomplete', () => {
         mockedCodemirror.state.completionActive = mockCompletion;
 
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 0 });
-        mockedCodemirror.getLine.mockReturnValue('   ');
+        mockedCodemirror.getLine.mockReturnValue('req.bodyy');
         mockedCodemirror.getRange.mockReturnValue('');
 
         const mockEvent = { key: 'a' };
@@ -492,9 +636,9 @@ describe('Bruno Autocomplete', () => {
       });
 
       it('should pass options to getAutoCompleteHints', () => {
-        const options = { 
+        const options = {
           getAllVariables: mockGetAllVariables,
-          showHintsFor: ['req'] 
+          showHintsFor: ['req']
         };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
         const keyupHandler = mockedCodemirror.on.mock.calls[0][1];
@@ -515,9 +659,9 @@ describe('Bruno Autocomplete', () => {
 
     describe('Click event handling (showHintsOnClick)', () => {
       it('should setup mousedown event listener when showHintsOnClick is enabled', () => {
-        const options = { 
+        const options = {
           getAllVariables: mockGetAllVariables,
-          showHintsOnClick: true 
+          showHintsOnClick: true
         };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
@@ -527,9 +671,9 @@ describe('Bruno Autocomplete', () => {
       });
 
       it('should not setup mousedown event listener when showHintsOnClick is disabled', () => {
-        const options = { 
+        const options = {
           getAllVariables: mockGetAllVariables,
-          showHintsOnClick: false 
+          showHintsOnClick: false
         };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
@@ -538,7 +682,7 @@ describe('Bruno Autocomplete', () => {
       });
 
       it('should not setup mousedown event listener when showHintsOnClick is undefined', () => {
-        const options = { 
+        const options = {
           getAllVariables: mockGetAllVariables
         };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
@@ -549,9 +693,9 @@ describe('Bruno Autocomplete', () => {
 
       it('should show hints on click when showHintsOnClick is enabled', () => {
         jest.useFakeTimers();
-        
+
         const mockGetAnywordAutocompleteHints = jest.fn(() => ['Content-Type', 'Accept']);
-        const options = { 
+        const options = {
           getAllVariables: mockGetAllVariables,
           getAnywordAutocompleteHints: mockGetAnywordAutocompleteHints,
           showHintsOnClick: true,
@@ -560,8 +704,8 @@ describe('Bruno Autocomplete', () => {
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
         // Find the click handler (mousedown event)
-        const clickHandler = mockedCodemirror.on.mock.calls.find(call => call[0] === 'mousedown')[1];
-        
+        const clickHandler = mockedCodemirror.on.mock.calls.find((call) => call[0] === 'mousedown')[1];
+
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 0 });
 
         clickHandler(mockedCodemirror);
@@ -572,26 +716,26 @@ describe('Bruno Autocomplete', () => {
         expect(mockGetAllVariables).toHaveBeenCalled();
         expect(mockGetAnywordAutocompleteHints).toHaveBeenCalled();
         expect(mockedCodemirror.showHint).toHaveBeenCalled();
-        
+
         jest.useRealTimers();
       });
 
       it('should not show hints on click when showHintsOnClick is disabled', () => {
-        const options = { 
+        const options = {
           getAllVariables: mockGetAllVariables,
-          showHintsOnClick: false 
+          showHintsOnClick: false
         };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
         // There should be no mousedown handler
-        const mousedownCalls = mockedCodemirror.on.mock.calls.filter(call => call[0] === 'mousedown');
+        const mousedownCalls = mockedCodemirror.on.mock.calls.filter((call) => call[0] === 'mousedown');
         expect(mousedownCalls).toHaveLength(0);
       });
 
       it('should cleanup mousedown event listener when showHintsOnClick was enabled', () => {
-        const options = { 
+        const options = {
           getAllVariables: mockGetAllVariables,
-          showHintsOnClick: true 
+          showHintsOnClick: true
         };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
@@ -603,9 +747,9 @@ describe('Bruno Autocomplete', () => {
       });
 
       it('should only cleanup keyup event listener when showHintsOnClick was disabled', () => {
-        const options = { 
+        const options = {
           getAllVariables: mockGetAllVariables,
-          showHintsOnClick: false 
+          showHintsOnClick: false
         };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
@@ -617,9 +761,9 @@ describe('Bruno Autocomplete', () => {
 
       it('should show all available hints on click based on showHintsFor configuration', () => {
         jest.useFakeTimers();
-        
+
         const mockGetAnywordAutocompleteHints = jest.fn(() => ['Content-Type', 'Accept']);
-        const options = { 
+        const options = {
           getAllVariables: mockGetAllVariables.mockReturnValue({
             envVar1: 'value1',
             envVar2: 'value2'
@@ -631,8 +775,8 @@ describe('Bruno Autocomplete', () => {
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
         // Find the click handler (mousedown event)
-        const clickHandler = mockedCodemirror.on.mock.calls.find(call => call[0] === 'mousedown')[1];
-        
+        const clickHandler = mockedCodemirror.on.mock.calls.find((call) => call[0] === 'mousedown')[1];
+
         const mockCursor = { line: 0, ch: 0 };
         mockedCodemirror.getCursor.mockReturnValue(mockCursor);
 
@@ -649,19 +793,19 @@ describe('Bruno Autocomplete', () => {
         // Verify the hint function returns the expected structure
         const hintCall = mockedCodemirror.showHint.mock.calls[0][0];
         const hintResult = hintCall.hint();
-        
+
         expect(hintResult).toEqual({
           list: expect.any(Array),
           from: mockCursor,
           to: mockCursor
         });
         expect(hintResult.list.length).toBeGreaterThan(0);
-        
+
         jest.useRealTimers();
       });
 
       it('should not show hints on click when no hints are available', () => {
-        const options = { 
+        const options = {
           getAllVariables: mockGetAllVariables.mockReturnValue({}),
           getAnywordAutocompleteHints: jest.fn(() => []),
           showHintsOnClick: true,
@@ -670,8 +814,8 @@ describe('Bruno Autocomplete', () => {
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
         // Find the click handler (mousedown event)
-        const clickHandler = mockedCodemirror.on.mock.calls.find(call => call[0] === 'mousedown')[1];
-        
+        const clickHandler = mockedCodemirror.on.mock.calls.find((call) => call[0] === 'mousedown')[1];
+
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 0 });
 
         clickHandler(mockedCodemirror);
@@ -704,4 +848,4 @@ describe('Bruno Autocomplete', () => {
       expect(mockedCodemirror.commands.autocomplete).toBe(existingCommand);
     });
   });
-}); 
+});

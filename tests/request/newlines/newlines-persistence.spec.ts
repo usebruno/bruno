@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { openCollectionAndAcceptSandbox } from '../../utils/page/actions';
+import { test, expect, closeElectronApp } from '../../../playwright';
+import { createCollection, openCollection, selectRequestPaneTab } from '../../utils/page';
 import { getTableCell } from '../../utils/page/locators';
 
 test('should persist request with newlines across app restarts', async ({ createTmpDir, launchElectronApp }) => {
@@ -10,78 +10,71 @@ test('should persist request with newlines across app restarts', async ({ create
   const app1 = await launchElectronApp({ userDataPath });
   const page = await app1.firstWindow();
 
-  await page.locator('.dropdown-icon').click();
-  await page.locator('.dropdown-item').filter({ hasText: 'Create Collection' }).click();
-  await page.getByLabel('Name').fill('newlines-persistence');
-  await page.getByLabel('Location').fill(collectionPath);
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await createCollection(page, 'newlines-persistence', collectionPath);
 
-  const collection = page.locator('.collection-name').filter({ hasText: 'newlines-persistence' });
-  await collection.locator('.collection-actions').hover();
+  const collection = page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'newlines-persistence' });
+  await collection.hover();
   await collection.locator('.collection-actions .icon').click();
   await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
   await page.getByPlaceholder('Request Name').fill('persistence-test');
   await page.locator('#new-request-url').locator('.CodeMirror').click();
   await page.locator('#new-request-url').locator('textarea').fill('https://httpbin.org/get');
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
-  await openCollectionAndAcceptSandbox(page, 'newlines-persistence', 'safe');
+  await openCollection(page, 'newlines-persistence');
+
   await page.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();
 
-  // Add query param
-  await page.getByRole('tab', { name: 'Params' }).click();
-  await page.getByRole('button', { name: /Add.*Param/i }).click();
+  await selectRequestPaneTab(page, 'Params');
+  const paramRow = page.locator('table tbody tr').first();
+  await getTableCell(paramRow, 0).getByRole('textbox').fill('queryParamKey');
 
-  const paramRow = page.locator('table tbody tr').last();
-  await getTableCell(paramRow, 0).locator('input[type="text"]').fill('queryParamKey');
-
-  // Add header with newlines
-  await page.getByRole('tab', { name: 'Headers' }).click();
-  await page.getByRole('button', { name: /Add.*Header/i }).click();
-
-  const headerRow = page.locator('table tbody tr').last();
+  await selectRequestPaneTab(page, 'Headers');
+  const headerRow = page.locator('table tbody tr').first();
   await getTableCell(headerRow, 0).locator('.CodeMirror').click();
   await getTableCell(headerRow, 0).locator('textarea').fill('headerKey');
   await getTableCell(headerRow, 1).locator('.CodeMirror').click();
   await getTableCell(headerRow, 1).locator('textarea').fill('header\nValue');
 
-  // Add Pre Request var with newlines
-  await page.getByRole('tab', { name: 'Vars' }).click();
-  await page.locator('.btn-add-var').first().click();
+  await selectRequestPaneTab(page, 'Vars');
   const preReqRow = page.locator('table').first().locator('tbody tr').first();
-  await getTableCell(preReqRow, 0).locator('input[type="text"]').fill('preRequestVar');
+  await getTableCell(preReqRow, 0).getByRole('textbox').fill('preRequestVar');
+  // Wait for table to stabilize after fill (new empty row may be appended)
+  await expect(getTableCell(preReqRow, 0).getByRole('textbox')).toHaveValue('preRequestVar');
   await getTableCell(preReqRow, 1).locator('.CodeMirror').click();
   await getTableCell(preReqRow, 1).locator('textarea').fill('pre\nRequest\nValue');
 
-  // Add Post Response var with newlines
-  await page.locator('.btn-add-var').last().click();
   const postResRow = page.locator('table').nth(1).locator('tbody tr').first();
-  await getTableCell(postResRow, 0).locator('input[type="text"]').fill('postResponseVar');
+  await getTableCell(postResRow, 0).getByRole('textbox').fill('postResponseVar');
+  // Wait for table to stabilize after fill (new empty row may be appended)
+  await expect(getTableCell(postResRow, 0).getByRole('textbox')).toHaveValue('postResponseVar');
   await getTableCell(postResRow, 1).locator('.CodeMirror').click();
   await getTableCell(postResRow, 1).locator('textarea').fill('post\nResponse\nValue');
 
-  await page.keyboard.press('Meta+s');
-  await app1.close();
+  const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+  await page.keyboard.press(saveShortcut);
+  await expect(page.getByText('Request saved successfully')).toBeVisible();
+  await closeElectronApp(app1);
 
   // Verify persistence after restart
   const app2 = await launchElectronApp({ userDataPath });
   const page2 = await app2.firstWindow();
 
-  await page2.locator('.collection-name').filter({ hasText: 'newlines-persistence' }).click();
+  await page2.getByTestId('collections').locator('.collection-name').filter({ hasText: 'newlines-persistence' }).click();
   await page2.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();
 
   // Verify params persisted
-  await page2.getByRole('tab', { name: 'Params' }).click();
-  await expect(page2.locator('table tbody tr')).toHaveCount(1);
+  await selectRequestPaneTab(page2, 'Params');
+  await expect(page2.locator('table tbody tr')).toHaveCount(2);
 
   // Verify headers persisted
-  await page2.getByRole('tab', { name: 'Headers' }).click();
-  await expect(page2.locator('table tbody tr')).toHaveCount(1);
+  await selectRequestPaneTab(page2, 'Headers');
+  await expect(page2.locator('table tbody tr')).toHaveCount(2);
 
   // Verify vars persisted
-  await page2.getByRole('tab', { name: 'Vars' }).click();
-  await expect(page2.locator('table').first().locator('tbody tr')).toHaveCount(1);
-  await expect(page2.locator('table').nth(1).locator('tbody tr')).toHaveCount(1);
+  await selectRequestPaneTab(page2, 'Vars');
+  await expect(page2.locator('table').first().locator('tbody tr')).toHaveCount(2);
+  await expect(page2.locator('table').nth(1).locator('tbody tr')).toHaveCount(2);
 
-  await app2.close();
+  await closeElectronApp(app2);
 });

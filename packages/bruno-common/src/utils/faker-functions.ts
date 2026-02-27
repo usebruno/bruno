@@ -1,5 +1,7 @@
 import { faker } from '@faker-js/faker';
 
+export const timeBasedDynamicVars = new Set(['timestamp', 'isoTimestamp']);
+
 export const mockDataFunctions = {
   guid: () => faker.string.uuid(),
   timestamp: () => Math.floor(Date.now() / 1000).toString(),
@@ -30,8 +32,8 @@ export const mockDataFunctions = {
   randomJobDescriptor: () => faker.person.jobDescriptor(),
   randomJobTitle: () => faker.person.jobTitle(),
   randomJobType: () => faker.person.jobType(),
-  randomPhoneNumber: () => faker.phone.number(),
-  randomPhoneNumberExt: () => faker.phone.number(),
+  randomPhoneNumber: () => faker.phone.number({ style: 'national' }),
+  randomPhoneNumberExt: () => `${faker.phone.number({ style: 'national' })} x${faker.string.numeric(3)}`,
   randomCity: () => faker.location.city(),
   randomStreetName: () => faker.location.street(),
   randomStreetAddress: () => faker.location.streetAddress(),

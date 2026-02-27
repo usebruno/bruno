@@ -1,11 +1,12 @@
 export {
   encodeUrl,
   parseQueryParams,
-  buildQueryString,
+  buildQueryString
 } from './url';
 
 export {
-  buildFormUrlEncodedPayload
+  buildFormUrlEncodedPayload,
+  isFormData
 } from './form-data';
 
 export {

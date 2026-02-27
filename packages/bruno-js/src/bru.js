@@ -1,13 +1,33 @@
 const { cloneDeep } = require('lodash');
 const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
-const { sendRequest } = require('@usebruno/requests').scripting;
+const { sendRequest, createSendRequest } = require('@usebruno/requests').scripting;
 const { jar: createCookieJar } = require('@usebruno/requests').cookies;
 
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables) {
+  /**
+   * @param {string} runtime - The runtime environment ('quickjs' or 'nodevm')
+   * @param {object} envVariables - Environment variables
+   * @param {object} runtimeVariables - Runtime variables
+   * @param {object} processEnvVars - Process environment variables
+   * @param {string} collectionPath - Path to the collection
+   * @param {object} collectionVariables - Collection-level variables
+   * @param {object} folderVariables - Folder-level variables
+   * @param {object} requestVariables - Request-level variables
+   * @param {object} globalEnvironmentVariables - Global environment variables
+   * @param {object} oauth2CredentialVariables - OAuth2 credential variables
+   * @param {string} collectionName - Name of the collection
+   * @param {object} promptVariables - Prompt variables
+   * @param {object} certsAndProxyConfig - Configuration for bru.sendRequest (proxy, certs, TLS)
+   * @param {string} certsAndProxyConfig.collectionPath - Path to the collection
+   * @param {object} certsAndProxyConfig.options - TLS and proxy options
+   * @param {object} [certsAndProxyConfig.clientCertificates] - Client certificate configuration
+   * @param {object} [certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
+   * @param {object} [certsAndProxyConfig.systemProxyConfig] - System proxy configuration
+   */
+  constructor(runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.promptVariables = promptVariables || {};
@@ -19,11 +39,13 @@ class Bru {
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
-    this.sendRequest = sendRequest;
+    // Use createSendRequest with config if provided, otherwise use default sendRequest
+    this.sendRequest = certsAndProxyConfig ? createSendRequest(certsAndProxyConfig) : sendRequest;
+    this.runtime = runtime;
     this.cookies = {
       jar: () => {
         const cookieJar = createCookieJar();
-                
+
         return {
           getCookie: (url, cookieName, callback) => {
             const interpolatedUrl = this.interpolate(url);
@@ -59,12 +81,19 @@ class Bru {
           deleteCookie: (url, cookieName, callback) => {
             const interpolatedUrl = this.interpolate(url);
             return cookieJar.deleteCookie(interpolatedUrl, cookieName, callback);
+          },
+
+          hasCookie: (url, cookieName, callback) => {
+            const interpolatedUrl = this.interpolate(url);
+            return cookieJar.hasCookie(interpolatedUrl, cookieName, callback);
           }
         };
       }
     };
     // Holds variables that are marked as persistent by scripts
     this.persistentEnvVariables = {};
+    // Holds credential IDs to be reset after script execution
+    this.oauth2CredentialsToReset = [];
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
@@ -198,6 +227,24 @@ class Bru {
     delete this.envVariables[key];
   }
 
+  getAllEnvVars() {
+    const vars = Object.assign({}, this.envVariables);
+    delete vars.__name__;
+    return vars;
+  }
+
+  deleteAllEnvVars() {
+    const envName = this.envVariables.__name__;
+    for (let key in this.envVariables) {
+      if (this.envVariables.hasOwnProperty(key)) {
+        delete this.envVariables[key];
+      }
+    }
+    if (envName !== undefined) {
+      this.envVariables.__name__ = envName;
+    }
+  }
+
   getGlobalEnvVar(key) {
     return this.interpolate(this.globalEnvironmentVariables[key]);
   }
@@ -210,8 +257,42 @@ class Bru {
     this.globalEnvironmentVariables[key] = value;
   }
 
+  deleteGlobalEnvVar(key) {
+    delete this.globalEnvironmentVariables[key];
+  }
+
+  getAllGlobalEnvVars() {
+    return Object.assign({}, this.globalEnvironmentVariables);
+  }
+
+  deleteAllGlobalEnvVars() {
+    for (let key in this.globalEnvironmentVariables) {
+      if (this.globalEnvironmentVariables.hasOwnProperty(key)) {
+        delete this.globalEnvironmentVariables[key];
+      }
+    }
+  }
+
   getOauth2CredentialVar(key) {
     return this.interpolate(this.oauth2CredentialVariables[key]);
+  }
+
+  resetOauth2Credential(credentialId) {
+    if (!credentialId || typeof credentialId !== 'string') {
+      throw new Error('credentialId must be a non-empty string');
+    }
+
+    if (!this.oauth2CredentialsToReset.includes(credentialId)) {
+      this.oauth2CredentialsToReset.push(credentialId);
+    }
+
+    // Remove matching credential variables so subsequent getOauth2CredentialVar() calls return undefined
+    const prefix = `$oauth2.${credentialId}.`;
+    for (const key of Object.keys(this.oauth2CredentialVariables)) {
+      if (key.startsWith(prefix)) {
+        delete this.oauth2CredentialVariables[key];
+      }
+    }
   }
 
   hasVar(key) {
@@ -225,19 +306,19 @@ class Bru {
 
     if (variableNameRegex.test(key) === false) {
       throw new Error(
-        `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        `Variable name: "${key}" contains invalid characters!`
+        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
-    this.runtimeVariables[key] = this.interpolate(value);
+    this.runtimeVariables[key] = value;
   }
 
   getVar(key) {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
-        `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        `Variable name: "${key}" contains invalid characters!`
+        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
@@ -256,8 +337,47 @@ class Bru {
     }
   }
 
+  getAllVars() {
+    return Object.assign({}, this.runtimeVariables);
+  }
+
   getCollectionVar(key) {
     return this.interpolate(this.collectionVariables[key]);
+  }
+
+  setCollectionVar(key, value) {
+    if (!key) {
+      throw new Error('Creating a variable without specifying a name is not allowed.');
+    }
+
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters!`
+        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
+      );
+    }
+
+    this.collectionVariables[key] = value;
+  }
+
+  hasCollectionVar(key) {
+    return Object.hasOwn(this.collectionVariables, key);
+  }
+
+  deleteCollectionVar(key) {
+    delete this.collectionVariables[key];
+  }
+
+  deleteAllCollectionVars() {
+    for (let key in this.collectionVariables) {
+      if (this.collectionVariables.hasOwnProperty(key)) {
+        delete this.collectionVariables[key];
+      }
+    }
+  }
+
+  getAllCollectionVars() {
+    return Object.assign({}, this.collectionVariables);
   }
 
   getFolderVar(key) {
@@ -278,6 +398,10 @@ class Bru {
 
   getCollectionName() {
     return this.collectionName;
+  }
+
+  isSafeMode() {
+    return this.runtime === 'quickjs';
   }
 }
 

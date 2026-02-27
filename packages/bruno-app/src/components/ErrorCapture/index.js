@@ -33,24 +33,37 @@ class ErrorBoundary extends Component {
 }
 
 const serializeArgs = (args) => {
-  return args.map(arg => {
+  return args.map((arg) => {
+    const seen = new WeakSet();
+
+    const replacer = (key, value) => {
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) {
+          return '[Circular Reference]';
+        }
+        seen.add(value);
+
+        if (value instanceof Error || Object.prototype.toString.call(value) === '[object Error]' || (typeof value.message === 'string' && typeof value.stack === 'string')) {
+          const error = {};
+          Object.getOwnPropertyNames(value).forEach((prop) => {
+            error[prop] = value[prop];
+          });
+          return error;
+        }
+      }
+      return value;
+    };
+
     try {
       if (arg === null) return 'null';
       if (arg === undefined) return 'undefined';
       if (typeof arg === 'string' || typeof arg === 'number' || typeof arg === 'boolean') {
         return arg;
       }
-      if (arg instanceof Error) {
-        return {
-          __type: 'Error',
-          name: arg.name,
-          message: arg.message,
-          stack: arg.stack
-        };
-      }
+
       if (typeof arg === 'object') {
         try {
-          return JSON.parse(JSON.stringify(arg));
+          return JSON.parse(JSON.stringify(arg, replacer));
         } catch {
           return String(arg);
         }
@@ -65,12 +78,12 @@ const serializeArgs = (args) => {
 // Helper function to extract file and line info from stack trace
 const extractFileInfo = (stack) => {
   if (!stack) return { filename: null, lineno: null, colno: null };
-  
+
   try {
     const lines = stack.split('\n');
     for (let line of lines) {
       if (line.includes('ErrorCapture') || line.trim() === 'Error') continue;
-      
+
       const match = line.match(/(?:at\s+.*?\s+)?\(?([^)]+):(\d+):(\d+)\)?/);
       if (match) {
         return {
@@ -83,7 +96,7 @@ const extractFileInfo = (stack) => {
   } catch (e) {
     // Ignore parsing errors
   }
-  
+
   return { filename: null, lineno: null, colno: null };
 };
 
@@ -95,7 +108,7 @@ const useGlobalErrorCapture = () => {
 
     console.error = (...args) => {
       const currentStack = new Error().stack;
-      
+
       originalConsoleError.apply(console, args);
 
       if (currentStack && currentStack.includes('useIpcEvents.js')) {
@@ -130,7 +143,7 @@ const useGlobalErrorCapture = () => {
 
 const ErrorCapture = ({ children }) => {
   const dispatch = useDispatch();
-  
+
   useGlobalErrorCapture();
 
   const handleReactError = (errorData) => {
@@ -144,4 +157,4 @@ const ErrorCapture = ({ children }) => {
   );
 };
 
-export default ErrorCapture; 
+export default ErrorCapture;

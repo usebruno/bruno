@@ -2,9 +2,9 @@ import get from 'lodash/get';
 import each from 'lodash/each';
 import filter from 'lodash/filter';
 import { createListenerMiddleware } from '@reduxjs/toolkit';
-import { removeTaskFromQueue, hideHomePage } from 'providers/ReduxStore/slices/app';
+import { removeTaskFromQueue } from 'providers/ReduxStore/slices/app';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { collectionAddFileEvent, collectionChangeFileEvent } from 'providers/ReduxStore/slices/collections';
+import { collectionAddFileEvent, collectionChangeFileEvent, collectionBatchAddItems } from 'providers/ReduxStore/slices/collections';
 import { findCollectionByUid, findItemInCollectionByPathname, getDefaultRequestPaneTab, findItemInCollectionByItemUid } from 'utils/collections/index';
 import { taskTypes } from './utils';
 
@@ -34,10 +34,10 @@ taskMiddleware.startListening({
               addTab({
                 uid: item.uid,
                 collectionUid: collection.uid,
-                requestPaneTab: getDefaultRequestPaneTab(item)
+                requestPaneTab: getDefaultRequestPaneTab(item),
+                preview: task?.preview ?? true
               })
             );
-            listenerApi.dispatch(hideHomePage());
           }
         }
 
@@ -47,6 +47,57 @@ taskMiddleware.startListening({
           })
         );
       }
+    });
+  }
+});
+
+/*
+ * When files are added via batch processing (e.g., during collection mount or when new files are created),
+ * we need to check if any of the added files match pending OPEN_REQUEST tasks.
+ * This handles the case where file additions go through the batch reducer instead of individual events.
+ */
+taskMiddleware.startListening({
+  actionCreator: collectionBatchAddItems,
+  effect: (action, listenerApi) => {
+    const state = listenerApi.getState();
+    const items = action.payload?.items || [];
+
+    // Extract all addFile events from the batch
+    const addFileItems = items.filter((item) => item.eventType === 'addFile');
+    if (addFileItems.length === 0) return;
+
+    const openRequestTasks = filter(state.app.taskQueue, { type: taskTypes.OPEN_REQUEST });
+    if (openRequestTasks.length === 0) return;
+
+    each(addFileItems, ({ payload: file }) => {
+      const collectionUid = file?.meta?.collectionUid;
+      if (!collectionUid) return;
+
+      each(openRequestTasks, (task) => {
+        if (collectionUid === task.collectionUid && file?.meta?.pathname === task.itemPathname) {
+          const collection = findCollectionByUid(state.collections.collections, collectionUid);
+          if (collection && collection.mountStatus === 'mounted' && !collection.isLoading) {
+            const item = findItemInCollectionByPathname(collection, task.itemPathname);
+            const isTransient = item?.isTransient ?? false;
+            if (item) {
+              listenerApi.dispatch(
+                addTab({
+                  uid: item.uid,
+                  collectionUid: collection.uid,
+                  requestPaneTab: getDefaultRequestPaneTab(item),
+                  preview: !isTransient
+                })
+              );
+            }
+          }
+
+          listenerApi.dispatch(
+            removeTaskFromQueue({
+              taskUid: task.uid
+            })
+          );
+        }
+      });
     });
   }
 });
@@ -80,7 +131,6 @@ taskMiddleware.startListening({
                 type: 'response-example',
                 itemUid: item.uid
               }));
-              listenerApi.dispatch(hideHomePage());
             }
           }
         }

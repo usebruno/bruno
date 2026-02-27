@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const fs = require('fs');
+const fsPromises = require('fs').promises;
 const path = require('path');
 const chokidar = require('chokidar');
 const {
@@ -16,42 +17,36 @@ const {
   parseCollection,
   parseFolder
 } = require('@usebruno/filestore');
-const { parseDotEnv } = require('@usebruno/filestore');
 
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptStringSafe } = require('../utils/encryption');
-const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
 const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
-const { transformBrunoConfigAfterRead } = require('../utils/transfomBrunoConfig');
+const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
+const { parsedFileCacheStore } = require('../store/parsed-file-cache-idb');
+const { getBatcher } = require('./collection-tree-batcher');
+const dotEnvWatcher = require('./dotenv-watcher');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
-const isDotEnvFile = (pathname, collectionPath) => {
-  const dirname = path.dirname(pathname);
-  const basename = path.basename(pathname);
-
-  return dirname === collectionPath && basename === '.env';
-};
-
 const isBrunoConfigFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
-  return dirname === collectionPath && basename === 'bruno.json';
+  return path.normalize(dirname) === path.normalize(collectionPath) && basename === 'bruno.json';
 };
 
 const isEnvironmentsFolder = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const envDirectory = path.join(collectionPath, 'environments');
 
-  return dirname === envDirectory;
+  return path.normalize(dirname) === path.normalize(envDirectory);
 };
 
 const isFolderRootFile = (pathname, collectionPath) => {
@@ -72,7 +67,7 @@ const isCollectionRootFile = (pathname, collectionPath) => {
   const basename = path.basename(pathname);
 
   // return if we are not at the root of the collection
-  if (dirname !== collectionPath) {
+  if (path.normalize(dirname) !== path.normalize(collectionPath)) {
     return false;
   }
 
@@ -227,24 +222,6 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     }
   }
 
-  if (isDotEnvFile(pathname, collectionPath)) {
-    try {
-      const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = parseDotEnv(content);
-
-      setDotEnvVars(collectionUid, jsonData);
-      const payload = {
-        collectionUid,
-        processEnvVariables: {
-          ...jsonData
-        }
-      };
-      win.webContents.send('main:process-env-update', payload);
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
   if (isEnvironmentsFolder(pathname, collectionPath)) {
     return addEnvironmentFile(win, pathname, collectionUid, collectionPath);
   }
@@ -335,62 +312,71 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       }
     };
 
-    const fileStats = fs.statSync(pathname);
-    let content = fs.readFileSync(pathname, 'utf8');
+    const batcher = getBatcher(win, collectionUid);
 
-    // If worker thread is not used, we can directly parse the file
-    if (!useWorkerThread) {
-      try {
+    try {
+      const fileStats = await fsPromises.stat(pathname);
+
+      const cachedEntry = await parsedFileCacheStore.getEntry(collectionPath, pathname);
+      if (cachedEntry && cachedEntry.mtimeMs === fileStats.mtimeMs) {
+        // Cache hit
+        file.data = cachedEntry.parsedData;
+        file.partial = false;
+        file.loading = false;
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        batcher.add('addFile', file);
+        watcher.markFileAsProcessed(win, collectionUid, pathname);
+        return;
+      }
+
+      // Cache miss
+      const content = await fsPromises.readFile(pathname, 'utf8');
+
+      if (!useWorkerThread) {
         file.data = await parseRequest(content, { format });
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
-        
-      } catch (error) {
-        console.error(error);
-      } finally {
+        batcher.add('addFile', file);
+
+        await parsedFileCacheStore.setEntry(collectionPath, pathname, {
+          mtimeMs: fileStats.mtimeMs,
+          parsedData: file.data
+        });
         watcher.markFileAsProcessed(win, collectionUid, pathname);
+        return;
       }
-      return;
-    }
-
-    try {
-      // we need to send a partial file info to the UI
-      // so that the UI can display the file in the collection tree
-      file.data = {
-        name: path.basename(pathname),
-        type: 'http-request'
-      };
-
-      const metaJson = parseFileMeta(content, format);
-      file.data = metaJson;
-      file.partial = true;
-      file.loading = false;
-      file.size = sizeInMB(fileStats?.size);
-      hydrateRequestWithUuid(file.data, pathname);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
       if (fileStats.size < MAX_FILE_SIZE) {
-        // This is to update the loading indicator in the UI
-        file.data = metaJson;
-        file.partial = false;
-        file.loading = true;
-        hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
-
-        // This is to update the file info in the UI
         file.data = await parseRequestViaWorker(content, {
           format,
           filename: pathname
         });
         file.partial = false;
         file.loading = false;
+        file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        batcher.add('addFile', file);
+
+        await parsedFileCacheStore.setEntry(collectionPath, pathname, {
+          mtimeMs: fileStats.mtimeMs,
+          parsedData: file.data
+        });
+      } else {
+        const metaJson = parseFileMeta(content, format);
+        file.data = metaJson;
+        file.partial = true;
+        file.loading = false;
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        batcher.add('addFile', file);
       }
-    } catch(error) {
+
+      watcher.markFileAsProcessed(win, collectionUid, pathname);
+    } catch (error) {
+      console.error(`Error processing file ${pathname}:`, error);
       file.data = {
         name: path.basename(pathname),
         type: 'http-request'
@@ -400,10 +386,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       };
       file.partial = true;
       file.loading = false;
-      file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
-    } finally {
+      batcher.add('addFile', file);
       watcher.markFileAsProcessed(win, collectionUid, pathname);
     }
   }
@@ -412,7 +396,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
 const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
-  if (pathname === envDirectory) {
+  if (path.normalize(pathname) === path.normalize(envDirectory)) {
     return;
   }
 
@@ -423,15 +407,16 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   const folderFilePath = path.join(pathname, `folder.${format}`);
 
   try {
-    if (fs.existsSync(folderFilePath)) {
-      let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
-      let folderData = await parseFolder(folderFileContent, { format });
-      name = folderData?.meta?.name || name;
-      seq = folderData?.meta?.seq;
-    }
+    await fsPromises.access(folderFilePath);
+    const folderFileContent = await fsPromises.readFile(folderFilePath, 'utf8');
+    const folderData = await parseFolder(folderFileContent, { format });
+    name = folderData?.meta?.name || name;
+    seq = folderData?.meta?.seq;
   } catch (error) {
-    console.error(`Error occured while parsing folder.${format} file`);
-    console.error(error);
+    if (error.code !== 'ENOENT') {
+      console.error(`Error occurred while parsing folder.${format} file`);
+      console.error(error);
+    }
   }
 
   const directory = {
@@ -444,7 +429,8 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
     }
   };
 
-  win.webContents.send('main:collection-tree-updated', 'addDir', directory);
+  const batcher = getBatcher(win, collectionUid);
+  batcher.add('addDir', directory);
 };
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
@@ -464,26 +450,6 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       };
 
       win.webContents.send('main:bruno-config-update', payload);
-    } catch (err) {
-      console.error(err);
-    }
-
-    return;
-  }
-
-  if (isDotEnvFile(pathname, collectionPath)) {
-    try {
-      const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = parseDotEnv(content);
-
-      setDotEnvVars(collectionUid, jsonData);
-      const payload = {
-        collectionUid,
-        processEnvVariables: {
-          ...jsonData
-        }
-      };
-      win.webContents.send('main:process-env-update', payload);
     } catch (err) {
       console.error(err);
     }
@@ -571,6 +537,9 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
   const format = getCollectionFormat(collectionPath);
   if (hasRequestExtension(pathname, format)) {
+    // Invalidate cache for this file since it changed
+    await parsedFileCacheStore.invalidate(collectionPath, pathname);
+
     try {
       const file = {
         meta: {
@@ -584,13 +553,21 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       const fileStats = fs.statSync(pathname);
 
       if (fileStats.size >= MAX_FILE_SIZE && format === 'bru') {
-        file.data = await parseLargeRequestWithRedaction(content);
+        file.data = await parseLargeRequestWithRedaction(content, 'bru');
       } else {
         file.data = await parseRequest(content, { format });
       }
 
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
+
+      // Update cache with new parsed data
+      await parsedFileCacheStore.setEntry(collectionPath, pathname, {
+        mtimeMs: fileStats.mtimeMs,
+        parsedData: file.data
+      });
+
+      // Change events are not batched - they need immediate feedback
       win.webContents.send('main:collection-tree-updated', 'change', file);
     } catch (err) {
       console.error(err);
@@ -598,7 +575,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   }
 };
 
-const unlink = (win, pathname, collectionUid, collectionPath) => {
+const unlink = async (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher unlink: ${pathname}`);
 
   if (isEnvironmentsFolder(pathname, collectionPath)) {
@@ -607,10 +584,13 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
 
   const format = getCollectionFormat(collectionPath);
   if (hasRequestExtension(pathname, format)) {
+    // Invalidate cache for deleted file
+    await parsedFileCacheStore.invalidate(collectionPath, pathname);
+
     const basename = path.basename(pathname);
     const dirname = path.dirname(pathname);
 
-    if (basename === 'opencollection.yml' && dirname === collectionPath) {
+    if (basename === 'opencollection.yml' && path.normalize(dirname) === path.normalize(collectionPath)) {
       return;
     }
 
@@ -628,9 +608,11 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
 const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
-  if (pathname === envDirectory) {
+  if (path.normalize(pathname) === path.normalize(envDirectory)) {
     return;
   }
+
+  await parsedFileCacheStore.invalidateDirectory(collectionPath, pathname);
 
   const format = getCollectionFormat(collectionPath);
   const folderFilePath = path.join(pathname, `folder.${format}`);
@@ -654,12 +636,14 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {
-  // Mark discovery as complete
+  const batcher = getBatcher(win, collectionUid);
+  batcher.flush();
+
   watcher.completeCollectionDiscovery(win, collectionUid);
-  
+
   const UiStateSnapshotStore = new UiStateSnapshot();
   const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
-  const collectionSnapshotState = collectionsSnapshotState?.find(c => c?.pathname == watchPath);
+  const collectionSnapshotState = collectionsSnapshotState?.find((c) => c?.pathname == watchPath);
   win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
 };
 
@@ -667,6 +651,7 @@ class CollectionWatcher {
   constructor() {
     this.watchers = {};
     this.loadingStates = {};
+    this.tempDirectoryMap = {};
   }
 
   // Initialize loading state tracking for a collection
@@ -674,8 +659,8 @@ class CollectionWatcher {
     if (!this.loadingStates[collectionUid]) {
       this.loadingStates[collectionUid] = {
         isDiscovering: false, // Initial discovery phase
-        isProcessing: false,  // Processing discovered files
-        pendingFiles: new Set(), // Files that need processing
+        isProcessing: false, // Processing discovered files
+        pendingFiles: new Set() // Files that need processing
       };
     }
   }
@@ -683,10 +668,10 @@ class CollectionWatcher {
   startCollectionDiscovery(win, collectionUid) {
     this.initializeLoadingState(collectionUid);
     const state = this.loadingStates[collectionUid];
-    
+
     state.isDiscovering = true;
     state.pendingFiles.clear();
-    
+
     win.webContents.send('main:collection-loading-state-updated', {
       collectionUid,
       isLoading: true
@@ -701,10 +686,10 @@ class CollectionWatcher {
 
   markFileAsProcessed(win, collectionUid, filepath) {
     if (!this.loadingStates[collectionUid]) return;
-    
+
     const state = this.loadingStates[collectionUid];
     state.pendingFiles.delete(filepath);
-    
+
     // If discovery is complete and no pending files, mark as not loading
     if (!state.isDiscovering && state.pendingFiles.size === 0 && state.isProcessing) {
       state.isProcessing = false;
@@ -717,10 +702,10 @@ class CollectionWatcher {
 
   completeCollectionDiscovery(win, collectionUid) {
     if (!this.loadingStates[collectionUid]) return;
-    
+
     const state = this.loadingStates[collectionUid];
     state.isDiscovering = false;
-    
+
     // If there are pending files, start processing phase
     if (state.pendingFiles.size > 0) {
       state.isProcessing = true;
@@ -743,10 +728,15 @@ class CollectionWatcher {
     }
 
     this.initializeLoadingState(collectionUid);
-    
+
     this.startCollectionDiscovery(win, collectionUid);
 
-    const ignores = brunoConfig?.ignore || [];
+    // Always ignore node_modules and .git, regardless of user config
+    // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
+    const defaultIgnores = ['node_modules', '.git'];
+    const userIgnores = brunoConfig?.ignore || [];
+    const ignores = [...new Set([...defaultIgnores, ...userIgnores])];
+
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
@@ -754,6 +744,18 @@ class CollectionWatcher {
         ignored: (filepath) => {
           const normalizedPath = normalizeAndResolvePath(filepath);
           const relativePath = path.relative(watchPath, normalizedPath);
+          const basename = path.basename(filepath);
+
+          // Ignore .env files - handled by dotenv-watcher
+          if (basename === '.env' || basename.startsWith('.env.')) {
+            return true;
+          }
+
+          // Check if any path segment matches a default ignore pattern (handles symlinks)
+          const pathSegments = relativePath.split(path.sep);
+          if (pathSegments.some((segment) => defaultIgnores.includes(segment))) {
+            return true;
+          }
 
           return ignores.some((ignorePattern) => {
             return relativePath === ignorePattern || relativePath.startsWith(ignorePattern);
@@ -800,6 +802,8 @@ class CollectionWatcher {
         });
 
       this.watchers[watchPath] = watcher;
+
+      dotEnvWatcher.addCollectionWatcher(win, watchPath, collectionUid);
     }, 100);
   }
 
@@ -812,7 +816,16 @@ class CollectionWatcher {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
     }
-    
+
+    dotEnvWatcher.removeCollectionWatcher(watchPath);
+
+    const tempDirectoryPath = this.tempDirectoryMap[watchPath];
+    if (tempDirectoryPath && this.watchers[tempDirectoryPath]) {
+      this.watchers[tempDirectoryPath].close();
+      delete this.watchers[tempDirectoryPath];
+      delete this.tempDirectoryMap[watchPath];
+    }
+
     if (collectionUid) {
       this.cleanupLoadingState(collectionUid);
     }
@@ -821,7 +834,7 @@ class CollectionWatcher {
   getWatcherByItemPath(itemPath) {
     const paths = Object.keys(this.watchers);
 
-    const watcherPath = paths?.find(collectionPath => {
+    const watcherPath = paths?.find((collectionPath) => {
       const absCollectionPath = path.resolve(collectionPath);
       const absItemPath = path.resolve(itemPath);
 
@@ -837,12 +850,112 @@ class CollectionWatcher {
       watcher.unwatch(itemPath);
     }
   }
-  
+
   addItemPathInWatcher(itemPath) {
     const watcher = this.getWatcherByItemPath(itemPath);
     if (watcher && !watcher?.has?.(itemPath)) {
       watcher?.add?.(itemPath);
     }
+  }
+
+  // Helper function to get collection path from temp directory metadata
+  getCollectionPathFromTempDirectory(tempDirectoryPath) {
+    const metadataPath = path.join(tempDirectoryPath, 'metadata.json');
+    try {
+      const metadataContent = fs.readFileSync(metadataPath, 'utf8');
+      const metadata = JSON.parse(metadataContent);
+      return metadata.collectionPath;
+    } catch (error) {
+      console.error(`Error reading metadata from temp directory ${tempDirectoryPath}:`, error);
+      return null;
+    }
+  }
+
+  // Add watcher for transient directory
+  // The tempDirectoryPath is stored in this.tempDirectoryMap[collectionPath] so removeWatcher can clean it up
+  addTempDirectoryWatcher(win, tempDirectoryPath, collectionUid, collectionPath) {
+    if (this.watchers[tempDirectoryPath]) {
+      this.watchers[tempDirectoryPath].close();
+    }
+
+    // Store the mapping from collectionPath to tempDirectoryPath for cleanup in removeWatcher
+    this.tempDirectoryMap[collectionPath] = tempDirectoryPath;
+
+    // Ignore metadata.json file
+    const ignored = (filepath) => {
+      const basename = path.basename(filepath);
+      return basename === 'metadata.json';
+    };
+
+    const watcher = chokidar.watch(tempDirectoryPath, {
+      ignoreInitial: true, // Don't process existing files
+      usePolling: isWSLPath(tempDirectoryPath) ? true : false,
+      ignored,
+      persistent: true,
+      ignorePermissionErrors: true,
+      awaitWriteFinish: {
+        stabilityThreshold: 80,
+        pollInterval: 10
+      },
+      depth: 1, // Only watch the temp directory itself, not subdirectories
+      disableGlobbing: true
+    });
+
+    // Wrapper function to handle temp directory files
+    const addTempFile = async (pathname) => {
+      // Skip metadata.json
+      if (path.basename(pathname) === 'metadata.json') {
+        return;
+      }
+
+      // Get the actual collection path from metadata
+      const actualCollectionPath = this.getCollectionPathFromTempDirectory(tempDirectoryPath);
+      if (!actualCollectionPath) {
+        console.error(`Could not determine collection path for temp directory: ${tempDirectoryPath}`);
+        return;
+      }
+
+      // Use the collection format from the actual collection
+      const format = getCollectionFormat(actualCollectionPath);
+
+      // Only process request files
+      if (hasRequestExtension(pathname, format)) {
+        // Call the regular add function with the actual collection path
+        // This will hydrate and send the file to the renderer
+        await add(win, pathname, collectionUid, actualCollectionPath, false, this);
+      }
+    };
+    const unlinkTempFile = async (pathname) => {
+      // Skip metadata.json
+      if (path.basename(pathname) === 'metadata.json') {
+        return;
+      }
+
+      // Get the actual collection path from metadata
+      const actualCollectionPath = this.getCollectionPathFromTempDirectory(tempDirectoryPath);
+      if (!actualCollectionPath) {
+        console.error(`Could not determine collection path for temp directory: ${tempDirectoryPath}`);
+        return;
+      }
+
+      // Use the collection format from the actual collection
+      const format = getCollectionFormat(actualCollectionPath);
+
+      // Only process request files
+      if (hasRequestExtension(pathname, format)) {
+        // Call the regular unlink function with the actual collection path
+        await unlink(win, pathname, collectionUid, actualCollectionPath);
+      }
+    };
+
+    watcher
+      .on('add', (pathname) => addTempFile(pathname))
+      .on('unlink', (pathname) => unlinkTempFile(pathname))
+      .on('error', (error) => {
+        console.error(`An error occurred in the temp directory watcher for: ${tempDirectoryPath}`, error);
+      });
+
+    this.watchers[tempDirectoryPath] = watcher;
   }
 
   getAllWatcherPaths() {
