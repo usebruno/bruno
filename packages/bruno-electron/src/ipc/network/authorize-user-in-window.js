@@ -151,7 +151,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
         callbackUrlObj = null;
       }
 
-      // Handle OAuth error responses on the callback URL first, so we reject with
+      // Handle OAuth error responses first, so we reject with
       // a descriptive error instead of resolving with a null authorization code
       if (urlObj.searchParams.has('error')) {
         const error = urlObj.searchParams.get('error');
