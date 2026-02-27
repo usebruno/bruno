@@ -42,6 +42,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     url: request.url,
     headers: headers,
     name: item.name,
+    pathname: item.pathname,
     tags: item.tags || [],
     pathParams: request.params?.filter((param) => param.type === 'path'),
     settings: item.settings,
@@ -398,6 +399,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
   if (request.tests) {
     axiosRequest.tests = request.tests;
+    axiosRequest.testsMetadata = request.testsMetadata;
   }
 
   axiosRequest.vars = request.vars;

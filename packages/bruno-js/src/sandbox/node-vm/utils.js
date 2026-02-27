@@ -25,6 +25,19 @@ function isPathWithinAllowedRoots(normalizedPath, additionalContextRootsAbsolute
   });
 }
 
+/**
+ * Resolve the VM filename for the script
+ * @param {string|null} scriptPath - Path to the source file
+ * @param {string} collectionPath - Path to the collection directory
+ * @returns {string} Absolute path to use as the VM filename
+ */
+function resolveVmFilename(scriptPath, collectionPath) {
+  if (scriptPath) {
+    return path.isAbsolute(scriptPath) ? scriptPath : path.join(collectionPath, scriptPath);
+  }
+  return path.join(collectionPath, 'script.js');
+}
+
 class ScriptError extends Error {
   constructor(error, script) {
     super(error.message);
@@ -32,11 +45,13 @@ class ScriptError extends Error {
     this.originalError = error;
     this.script = script;
     this.stack = error.stack;
+    this.__callSites = error.__callSites || null;
   }
 }
 
 module.exports = {
   isBuiltinModule,
   isPathWithinAllowedRoots,
+  resolveVmFilename,
   ScriptError
 };

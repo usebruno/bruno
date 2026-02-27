@@ -34,6 +34,7 @@ class ScriptRuntime {
     const promptVariables = request?.promptVariables || {};
     const assertionResults = request?.assertionResults || [];
     const certsAndProxyConfig = request?.certsAndProxyConfig;
+    const scriptPath = request?.pathname;
     const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig);
     const req = new BrunoRequest(request);
 
@@ -94,7 +95,8 @@ class ScriptRuntime {
           script,
           context,
           collectionPath,
-          scriptingConfig
+          scriptingConfig,
+          scriptPath
         });
       } catch (error) {
         scriptError = error;
@@ -115,7 +117,8 @@ class ScriptRuntime {
       await executeQuickJsVmAsync({
         script: script,
         context: context,
-        collectionPath
+        collectionPath,
+        scriptPath
       });
     } catch (error) {
       scriptError = error;
@@ -150,6 +153,7 @@ class ScriptRuntime {
     const promptVariables = request?.promptVariables || {};
     const assertionResults = request?.assertionResults || {};
     const certsAndProxyConfig = request?.certsAndProxyConfig;
+    const scriptPath = request?.pathname;
     const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -212,7 +216,8 @@ class ScriptRuntime {
           script,
           context,
           collectionPath,
-          scriptingConfig
+          scriptingConfig,
+          scriptPath
         });
       } catch (error) {
         scriptError = error;
@@ -233,7 +238,8 @@ class ScriptRuntime {
       await executeQuickJsVmAsync({
         script: script,
         context: context,
-        collectionPath
+        collectionPath,
+        scriptPath
       });
     } catch (error) {
       scriptError = error;
