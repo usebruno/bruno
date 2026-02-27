@@ -1,18 +1,17 @@
 import { useEffect } from 'react';
 import {
   updateCookies,
-  updatePreferences
+  updatePreferences,
+  setGitVersion
 } from 'providers/ReduxStore/slices/app';
 import {
   addTab
 } from 'providers/ReduxStore/slices/tabs';
 import {
-  setActiveWorkspaceTab
-} from 'providers/ReduxStore/slices/workspaceTabs';
-import {
   brunoConfigUpdateEvent,
   collectionAddDirectoryEvent,
   collectionAddFileEvent,
+  collectionBatchAddItems,
   collectionChangeFileEvent,
   collectionRenamedEvent,
   collectionUnlinkDirectoryEvent,
@@ -28,13 +27,16 @@ import {
   setDotEnvVariables
 } from 'providers/ReduxStore/slices/collections';
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import { workspaceOpenedEvent, workspaceConfigUpdatedEvent } from 'providers/ReduxStore/slices/workspaces/actions';
+import {
+  workspaceOpenedEvent,
+  workspaceConfigUpdatedEvent
+} from 'providers/ReduxStore/slices/workspaces/actions';
 import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
 import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
-import { collectionAddOauth2CredentialsByUrl, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
+import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
 import { apiSpecAddFileEvent, apiSpecChangeFileEvent } from 'providers/ReduxStore/slices/apiSpec';
@@ -100,6 +102,50 @@ const useIpcEvents = () => {
       }
     };
 
+    // Batch handler for collection tree updates (performance optimization)
+    // Uses a single Redux dispatch to process all items, avoiding multiple re-renders
+    const _collectionTreeBatchUpdated = (batch) => {
+      if (!batch || !Array.isArray(batch) || batch.length === 0) {
+        return;
+      }
+
+      if (window.__IS_DEV__) {
+        console.log('Batch update received:', batch.length, 'items');
+      }
+
+      // Separate batch items into those that can be bulk-processed vs those that need individual handling
+      const bulkItems = []; // addFile, addDir - can be processed in single reducer
+      const individualItems = []; // change, unlink, etc - need individual dispatches
+
+      batch.forEach(({ eventType, payload }) => {
+        if (eventType === 'addDir' || eventType === 'addFile') {
+          bulkItems.push({ eventType, payload });
+        } else {
+          individualItems.push({ eventType, payload });
+        }
+      });
+
+      // Process bulk items in a single dispatch (addFile and addDir)
+      if (bulkItems.length > 0) {
+        dispatch(collectionBatchAddItems({ items: bulkItems }));
+      }
+
+      // Process remaining items individually (these are typically rare during mount)
+      individualItems.forEach(({ eventType, payload }) => {
+        if (eventType === 'change') {
+          dispatch(collectionChangeFileEvent({ file: payload }));
+        } else if (eventType === 'unlink') {
+          dispatch(collectionUnlinkFileEvent({ file: payload }));
+        } else if (eventType === 'unlinkDir') {
+          dispatch(collectionUnlinkDirectoryEvent({ directory: payload }));
+        } else if (eventType === 'addEnvironmentFile') {
+          dispatch(collectionAddEnvFileEvent(payload));
+        } else if (eventType === 'unlinkEnvironmentFile') {
+          dispatch(collectionUnlinkEnvFileEvent(payload));
+        }
+      });
+    };
+
     const _apiSpecTreeUpdated = (type, val) => {
       if (window.__IS_DEV__) {
         console.log('API Spec update:', type);
@@ -116,6 +162,8 @@ const useIpcEvents = () => {
     ipcRenderer.invoke('renderer:ready');
 
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
+
+    const removeCollectionTreeBatchUpdateListener = ipcRenderer.on('main:collection-tree-batch-updated', _collectionTreeBatchUpdated);
 
     const removeApiSpecTreeUpdateListener = ipcRenderer.on('main:apispec-tree-updated', _apiSpecTreeUpdated);
 
@@ -274,24 +322,21 @@ const useIpcEvents = () => {
     const removeShowPreferencesListener = ipcRenderer.on('main:open-preferences', () => {
       const state = store.getState();
       const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
-      const { showHomePage, showManageWorkspacePage, showApiSpecPage } = state.app;
+      const workspaces = state.workspaces?.workspaces;
       const tabs = state.tabs?.tabs;
       const activeTabUid = state.tabs?.activeTabUid;
       const activeTab = tabs?.find((t) => t.uid === activeTabUid);
 
-      if (showHomePage || showManageWorkspacePage || showApiSpecPage || !activeTabUid) {
-        if (activeWorkspaceUid) {
-          dispatch(setActiveWorkspaceTab({ workspaceUid: activeWorkspaceUid, type: 'preferences' }));
-        }
-      } else {
-        dispatch(
-          addTab({
-            type: 'preferences',
-            uid: activeTab?.collectionUid ? `${activeTab.collectionUid}-preferences` : 'preferences',
-            collectionUid: activeTab?.collectionUid
-          })
-        );
-      }
+      const activeWorkspace = workspaces?.find((w) => w.uid === activeWorkspaceUid);
+      const collectionUid = activeTab?.collectionUid || activeWorkspace?.scratchCollectionUid;
+
+      dispatch(
+        addTab({
+          type: 'preferences',
+          uid: collectionUid ? `${collectionUid}-preferences` : 'preferences',
+          collectionUid
+        })
+      );
     });
 
     const removePreferencesUpdatesListener = ipcRenderer.on('main:load-preferences', (val) => {
@@ -320,6 +365,10 @@ const useIpcEvents = () => {
       dispatch(collectionAddOauth2CredentialsByUrl(payload));
     });
 
+    const removeCollectionOauth2CredentialsClearListener = ipcRenderer.on('main:credentials-clear', (val) => {
+      dispatch(collectionClearOauth2CredentialsByCredentialsId(val));
+    });
+
     const removeHttpStreamNewDataListener = ipcRenderer.on('main:http-stream-new-data', (val) => {
       dispatch(streamDataReceived(val));
     });
@@ -332,8 +381,13 @@ const useIpcEvents = () => {
       dispatch(updateCollectionLoadingState(val));
     });
 
+    const gitVersionListener = ipcRenderer.on('main:git-version', (val) => {
+      dispatch(setGitVersion(val));
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
+      removeCollectionTreeBatchUpdateListener();
       removeApiSpecTreeUpdateListener();
       removeOpenCollectionListener();
       removeOpenWorkspaceListener();
@@ -358,11 +412,13 @@ const useIpcEvents = () => {
       removeGlobalEnvironmentsUpdatesListener();
       removeSnapshotHydrationListener();
       removeCollectionOauth2CredentialsUpdatesListener();
+      removeCollectionOauth2CredentialsClearListener();
       removeHttpStreamNewDataListener();
       removeHttpStreamEndListener();
       removeCollectionLoadingStateListener();
       removePersistentEnvVariablesUpdateListener();
       removeSystemResourcesListener();
+      gitVersionListener();
     };
   }, [isElectron]);
 };

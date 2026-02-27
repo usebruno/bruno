@@ -1,0 +1,22 @@
+name: 'Run E2E Tests'
+description: 'Setup dependencies, configure environment, and run Playwright E2E tests'
+inputs:
+  os:
+    description: 'Operating system (ubuntu, macos, windows)'
+    default: 'ubuntu'
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Test Collection Dependencies
+      shell: bash
+      run: npm ci --prefix packages/bruno-tests/collection
+
+    - name: Run Playwright Tests (Ubuntu)
+      if: inputs.os == 'ubuntu'
+      shell: bash
+      run: xvfb-run npm run test:e2e
+
+    - name: Run Playwright Tests
+      if: inputs.os != 'ubuntu'
+      shell: bash
+      run: npm run test:e2e

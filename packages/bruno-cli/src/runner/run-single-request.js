@@ -23,7 +23,8 @@ const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2 } = require('@usebruno/requests');
 const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
-const { getOAuth2Token } = require('../utils/oauth2');
+const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
+const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
@@ -225,6 +226,12 @@ const runSingleRequest = async function (
           shouldStopRunnerExecution = true;
         }
 
+        if (result?.oauth2CredentialsToReset?.length) {
+          for (const credentialId of result.oauth2CredentialsToReset) {
+            tokenStore.deleteCredentialById(credentialId);
+          }
+        }
+
         if (result?.skipRequest) {
           return {
             test: {
@@ -307,6 +314,16 @@ const runSingleRequest = async function (
 
     // interpolate variables inside request
     interpolateVars(request, envVariables, runtimeVariables, processEnvVars);
+
+    // if this is a graphql request, parse the variables, only after interpolation
+    // https://github.com/usebruno/bruno/issues/884
+    if (request.mode === 'graphql' && typeof request.data?.variables === 'string') {
+      try {
+        request.data.variables = JSON.parse(request.data.variables);
+      } catch (err) {
+        throw new Error(`Failed to parse GraphQL variables: ${err.message}`);
+      }
+    }
 
     if (request.settings?.encodeUrl) {
       request.url = encodeUrl(request.url);
@@ -523,12 +540,23 @@ const runSingleRequest = async function (
       // if `data` is of string type - return as-is (assumes already encoded)
     }
 
-    if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
+    if (contentTypeHeader && contentTypeHeader.startsWith('multipart/')) {
       if (!isFormData(request?.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);
         request.data = form;
+
+        if (request?.headers?.['content-type'] !== 'multipart/form-data') {
+          // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
+          const formHeaders = form.getHeaders();
+          const ct = request.headers['content-type'];
+          formHeaders['content-type'] = `${ct}; boundary=${form.getBoundary()}`;
+          form.getHeaders = function () {
+            return formHeaders;
+          };
+        }
+
         extend(request.headers, form.getHeaders());
       }
     }
@@ -623,6 +651,8 @@ const runSingleRequest = async function (
         console.error('OAuth2 token fetch error:', error.message);
       }
 
+      request.oauth2CredentialVariables = getFormattedOauth2Credentials();
+
       // Remove oauth2 config from request to prevent it from being sent
       delete request.oauth2;
     }
@@ -637,7 +667,8 @@ const runSingleRequest = async function (
 
       let axiosInstance = makeAxiosInstance({
         requestMaxRedirects: requestMaxRedirects,
-        disableCookies: options.disableCookies
+        disableCookies: options.disableCookies,
+        followRedirects: followRedirects
       });
 
       if (request.ntlmConfig) {
@@ -776,6 +807,12 @@ const runSingleRequest = async function (
           shouldStopRunnerExecution = true;
         }
 
+        if (result?.oauth2CredentialsToReset?.length) {
+          for (const credentialId of result.oauth2CredentialsToReset) {
+            tokenStore.deleteCredentialById(credentialId);
+          }
+        }
+
         postResponseTestResults = result?.results || [];
         logResults(postResponseTestResults, 'Post-Response Tests');
       } catch (error) {
@@ -845,6 +882,12 @@ const runSingleRequest = async function (
 
         if (result?.stopExecution) {
           shouldStopRunnerExecution = true;
+        }
+
+        if (result?.oauth2CredentialsToReset?.length) {
+          for (const credentialId of result.oauth2CredentialsToReset) {
+            tokenStore.deleteCredentialById(credentialId);
+          }
         }
 
         logResults(testResults, 'Tests');

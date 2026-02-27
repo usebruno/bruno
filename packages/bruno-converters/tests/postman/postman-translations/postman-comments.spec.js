@@ -10,14 +10,14 @@ describe('postmanTranslations - comment handling', () => {
     const expectedOutput = `
       console.log('This script does not contain pm commands.');
       const data = bru.getEnvVar('key');
-      bru.setVar('key', data);
+      bru.setCollectionVar('key', data);
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
   test('should comment non-translated pm commands', () => {
-    const inputScript = 'pm.test(\'random test\', () => pm.globals.clear());';
-    const expectedOutput = '// test(\'random test\', () => pm.globals.clear());';
+    const inputScript = 'pm.test(\'random test\', () => pm.vault.get(secretPath));';
+    const expectedOutput = '// test(\'random test\', () => pm.vault.get(secretPath));';
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 

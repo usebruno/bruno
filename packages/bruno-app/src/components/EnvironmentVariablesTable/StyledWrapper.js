@@ -96,6 +96,36 @@ const Wrapper = styled.div`
     max-width: 200px !important;
   }
 
+  .name-cell-wrapper {
+    position: relative;
+    width: 100%;
+
+    .name-highlight-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      white-space: pre;
+      overflow: hidden;
+      font-size: inherit;
+      line-height: inherit;
+      color: ${(props) => props.theme.text};
+    }
+  }
+
+  .search-highlight {
+    background: ${(props) => props.theme.colors.accent}55;
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  .no-results {
+    padding: 24px;
+    text-align: center;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
   input[type='text'] {
     width: 100%;
     border: 1px solid transparent;

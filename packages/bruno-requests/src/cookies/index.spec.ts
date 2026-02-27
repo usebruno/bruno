@@ -142,6 +142,19 @@ describe('Bruno Cookie Jar Wrapper - API Examples', () => {
     });
   });
 
+  describe('hasCookie', () => {
+    test('hasCookie returns true for existing cookie', async () => {
+      await jar.setCookie(testUrl, 'authToken', 'jwt123');
+      const exists = await jar.hasCookie(testUrl, 'authToken');
+      expect(exists).toBe(true);
+    });
+
+    test('hasCookie returns false for non-existent cookie', async () => {
+      const exists = await jar.hasCookie(testUrl, 'nonexistent');
+      expect(exists).toBe(false);
+    });
+  });
+
   describe('Error Handling', () => {
     test('setCookie handles missing URL', async () => {
       await expect(jar.setCookie('', 'name', 'value')).rejects.toThrow('URL is required');

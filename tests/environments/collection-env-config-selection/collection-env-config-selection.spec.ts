@@ -35,6 +35,6 @@ test.describe('Collection Environment Configuration Selection Tests', () => {
     await expect(activeEnvItem).toContainText('prod');
 
     await envTab.hover();
-    await envTab.getByTestId('request-tab-close-icon').click();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
   });
 });

@@ -127,6 +127,79 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
+  .collection-list {
+    border: 1px solid ${(props) => props.theme.border.border1};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    max-height: 320px;
+    overflow-y: auto;
+    background-color: ${(props) => props.theme.modal.body.bg};
+    padding: 8px 8px;
+  }
+
+  .collection-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+  }
+
+  .collection-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    color: ${(props) => props.theme.text};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    user-select: none;
+    border: 1px solid ${(props) => props.theme.border.border1};
+
+    &:hover {
+      background-color: ${(props) => props.theme.plainGrid.hoverBg};
+      border-color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  .collection-item-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .collection-item-name {
+    color: ${(props) => props.theme.text};
+    font-weight: 500;
+  }
+
+  .collection-empty-state {
+    padding: 20px 16px;
+    text-align: center;
+    font-size: 14px;
+    color: ${(props) => props.theme.colors.text.muted};
+    line-height: 1.5;
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .icon-success {
+    color: ${(props) => props.theme.colors.success};
+  }
+
   .custom-modal-footer {
     display: flex;
     justify-content: space-between;
@@ -240,6 +313,35 @@ const StyledWrapper = styled.div`
     font-size: 13px;
     font-weight: 500;
     color: ${(props) => props.theme.text};
+  }
+
+  .filesystem-input-container {
+    display: flex;
+    align-items: center;
+    background: ${(props) => props.theme.requestTabPanel.url.bg};
+    border-radius: 4px;
+    padding: 8px 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    margin-top: 8px;
+  }
+
+  .filesystem-input-icon {
+    flex-shrink: 0;
+    margin-right: 8px;
+    color: ${(props) => props.theme.colors.text.yellow};
+  }
+
+  .filesystem-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: ${(props) => props.theme.colors.text.yellow};
+    font-size: ${(props) => props.theme.font.size.base};
+
+    &::placeholder {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
   }
 
   .new-folder-toggle-filesystem-btn {

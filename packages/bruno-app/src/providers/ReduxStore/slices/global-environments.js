@@ -183,6 +183,13 @@ export const renameGlobalEnvironment = ({ name: newName, environmentUid }) => (d
           .invoke('renderer:get-global-environments', { workspaceUid, workspacePath })
           .then((data) => {
             dispatch(updateGlobalEnvironments(data));
+            if (resolvedUid !== environmentUid) {
+              const currentState = getState();
+              const draft = currentState.globalEnvironments.globalEnvironmentDraft;
+              if (draft?.environmentUid === environmentUid) {
+                dispatch(setGlobalEnvironmentDraft({ environmentUid: resolvedUid, variables: draft.variables }));
+              }
+            }
             return resolvedUid;
           });
       })

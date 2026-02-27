@@ -17,12 +17,17 @@ const simpleTranslations = {
   // Global variables
   'bru.getGlobalEnvVar': 'pm.globals.get',
   'bru.setGlobalEnvVar': 'pm.globals.set',
+  'bru.deleteGlobalEnvVar': 'pm.globals.unset',
+  'bru.getAllGlobalEnvVars': 'pm.globals.toObject',
+  'bru.deleteAllGlobalEnvVars': 'pm.globals.clear',
 
   // Environment variables
   'bru.getEnvVar': 'pm.environment.get',
   'bru.setEnvVar': 'pm.environment.set',
   'bru.hasEnvVar': 'pm.environment.has',
   'bru.deleteEnvVar': 'pm.environment.unset',
+  'bru.getAllEnvVars': 'pm.environment.toObject',
+  'bru.deleteAllEnvVars': 'pm.environment.clear',
   // Note: bru.getEnvName() is handled in complexTransformations because it's a function -> property conversion
 
   // Runtime variables
@@ -30,11 +35,16 @@ const simpleTranslations = {
   'bru.setVar': 'pm.variables.set',
   'bru.hasVar': 'pm.variables.has',
   'bru.deleteVar': 'pm.variables.unset',
+  'bru.getAllVars': 'pm.variables.toObject',
   // 'bru.deleteAllVars':  Postman does not have a way to delete all variables
 
   // Collection variables
-  'bru.getCollectionVar': 'pm.variables.get',
-  /* Bruno does not have a way to set, has or delete collection variables */
+  'bru.getCollectionVar': 'pm.collectionVariables.get',
+  'bru.setCollectionVar': 'pm.collectionVariables.set',
+  'bru.hasCollectionVar': 'pm.collectionVariables.has',
+  'bru.deleteCollectionVar': 'pm.collectionVariables.unset',
+  'bru.getAllCollectionVars': 'pm.collectionVariables.toObject',
+  'bru.deleteAllCollectionVars': 'pm.collectionVariables.clear',
 
   // Folder variables
   'bru.getFolderVar': 'pm.variables.get',
@@ -60,7 +70,8 @@ const simpleTranslations = {
   'req.headers': 'pm.request.headers',
   'req.body': 'pm.request.body',
   'req.getHeader': 'pm.request.headers.get',
-  'req.setHeader': 'pm.request.headers.set',
+  // Note: req.setHeader is handled in complexTransformations because it needs arg restructuring (two args -> object)
+  'req.deleteHeader': 'pm.request.headers.remove',
 
   // URL helper methods
   'req.getHost': 'pm.request.url.getHost',
@@ -305,6 +316,28 @@ const complexTransformations = [
         ]
       );
       return updateCall;
+    }
+  },
+  // req.setHeader(key, value) -> pm.request.headers.upsert({key: key, value: value})
+  {
+    pattern: 'req.setHeader',
+    transform: (path) => {
+      const args = path.value.arguments;
+      if (!args || args.length < 2) {
+        return j.callExpression(
+          buildMemberExpressionFromString('pm.request.headers.upsert'),
+          args || []
+        );
+      }
+      return j.callExpression(
+        buildMemberExpressionFromString('pm.request.headers.upsert'),
+        [
+          j.objectExpression([
+            j.property('init', j.identifier('key'), args[0]),
+            j.property('init', j.identifier('value'), args[1])
+          ])
+        ]
+      );
     }
   },
   // req.setHeaders(headers) -> loop calling pm.request.headers.upsert() for each header

@@ -10,6 +10,7 @@ import trim from 'lodash/trim';
 import path, { normalizePath } from 'utils/common/path';
 import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
+import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
 import {
   findCollectionByUid,
   findEnvironmentInCollection,
@@ -43,7 +44,7 @@ import {
   updateLastAction,
   setCollectionSecurityConfig,
   collectionAddOauth2CredentialsByUrl,
-  collectionClearOauth2CredentialsByUrl,
+  collectionClearOauth2CredentialsByUrlAndCredentialsId,
   initRunRequestEvent,
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
@@ -829,7 +830,7 @@ export const renameItem
             .invoke('renderer:rename-item-filename', { oldPath: item.pathname, newPath, newName, newFilename, collectionPathname: collection.pathname })
             .catch((err) => {
               console.error(err);
-              throw new Error('Failed to rename the file');
+              throw new Error('Duplicate request names are not allowed under the same folder');
             });
         };
 
@@ -2062,7 +2063,14 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Variable not found'));
           }
 
-          const updatedVariables = environment.variables.map((v) => (v.uid === variable.uid ? { ...v, value: newValue } : v));
+          const updatedVariables = environment.variables.map((v) => {
+            if (v.uid === variable.uid) {
+              // Clear ephemeral metadata when user manually edits the value
+              const { ephemeral, persistedValue, ...rest } = v;
+              return { ...rest, value: newValue };
+            }
+            return v;
+          });
 
           return dispatch(saveEnvironment(updatedVariables, environment.uid, collectionUid))
             .then(() => {
@@ -2171,8 +2179,14 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Variable not found'));
           }
 
-          const updatedVariables = environment.variables.map((v) =>
-            v.uid === variable.uid ? { ...v, value: newValue } : v);
+          const updatedVariables = environment.variables.map((v) => {
+            if (v.uid === variable.uid) {
+              // Clear ephemeral metadata when user manually edits the value
+              const { ephemeral, persistedValue, ...rest } = v;
+              return { ...rest, value: newValue };
+            }
+            return v;
+          });
 
           return dispatch(saveGlobalEnvironment({ variables: updatedVariables, environmentUid: activeGlobalEnvUid }))
             .then(() => {
@@ -2439,6 +2453,53 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
   });
 };
 
+/**
+ * Opens a scratch collection and creates it in Redux state.
+ * This is a simplified version of openCollectionEvent for scratch collections,
+ * without workspace management, toasts, or sidebar toggles.
+ *
+ * @param {string} uid - The unique identifier for the scratch collection
+ * @param {string} pathname - The filesystem path to the scratch collection
+ * @param {Object} brunoConfig - The Bruno configuration object for the collection
+ * @returns {Promise} Resolves when the collection is created, rejects on error
+ */
+export const openScratchCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const existingCollection = state.collections.collections.find(
+      (c) => normalizePath(c.pathname) === normalizePath(pathname)
+    );
+
+    if (existingCollection) {
+      resolve();
+      return;
+    }
+
+    const collection = {
+      version: '1',
+      uid,
+      name: brunoConfig.name,
+      pathname,
+      items: [],
+      runtimeVariables: {},
+      brunoConfig
+    };
+
+    ipcRenderer
+      .invoke('renderer:get-collection-security-config', pathname)
+      .then((securityConfig) => {
+        collectionSchema
+          .validate(collection)
+          .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
+          .then(resolve)
+          .catch(reject);
+      })
+      .catch(reject);
+  });
+};
+
 export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
   const { ipcRenderer } = window;
 
@@ -2447,24 +2508,20 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
     const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables || {};
 
-    // Check if collection already exists in Redux state
     const existingCollection = state.collections.collections.find(
       (c) => normalizePath(c.pathname) === normalizePath(pathname)
     );
 
-    // Check if collection is already in the current workspace
     const isAlreadyInWorkspace = activeWorkspace?.collections?.some(
       (c) => normalizePath(c.path) === normalizePath(pathname)
     );
 
-    // If collection already exists in Redux AND in current workspace, show toast and return
     if (existingCollection && isAlreadyInWorkspace) {
       toast.success('Collection is already opened');
       resolve();
       return;
     }
 
-    // If collection exists in Redux but not in workspace, add to workspace
     if (existingCollection) {
       if (state.app.sidebarCollapsed) {
         dispatch(toggleSidebarCollapse());
@@ -2493,7 +2550,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
       return;
     }
 
-    // Collection doesn't exist - create it
     const collection = {
       version: '1',
       uid: uid,
@@ -2520,7 +2576,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
           );
 
           if (currentWorkspace) {
-            // Set collection-workspace mapping for workspace env vars
             ipcRenderer.invoke('renderer:set-collection-workspace', uid, currentWorkspace.pathname);
 
             const alreadyInWorkspace = currentWorkspace.collections?.some(
@@ -2644,19 +2699,22 @@ export const importCollection = (collection, collectionLocation, options = {}) =
     try {
       const state = getState();
       const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+      const isMultiple = Array.isArray(collection);
 
-      const collectionPath = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, options.format || DEFAULT_COLLECTION_FORMAT);
+      const result = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, options.format || DEFAULT_COLLECTION_FORMAT);
+      const importedPaths = result.success.items;
 
-      if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
-        const workspaceCollection = {
-          name: collection.name,
-          path: collectionPath
-        };
-
-        await ipcRenderer.invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection);
+      if (importedPaths.length > 0 && activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
+        for (const importedItem of importedPaths) {
+          const workspaceCollection = {
+            name: importedItem.name,
+            path: importedItem.path
+          };
+          await ipcRenderer.invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection);
+        }
       }
 
-      resolve(collectionPath);
+      resolve(isMultiple ? importedPaths : importedPaths[0]);
     } catch (error) {
       reject(error);
     }
@@ -2681,11 +2739,43 @@ export const importCollectionFromZip = (zipFilePath, collectionLocation) => asyn
   return collectionPath;
 };
 
+/**
+ * Updates Redux collection order and persists it to the active workspace's workspace.yml.
+ */
 export const moveCollectionAndPersist
   = ({ draggedItem, targetItem }) =>
     (dispatch, getState) => {
-      dispatch(moveCollection({ draggedItem, targetItem }));
-      return Promise.resolve();
+      const state = getState();
+      const activeWorkspace = state.workspaces.workspaces.find(
+        (w) => w.uid === state.workspaces.activeWorkspaceUid
+      );
+      if (!activeWorkspace?.pathname || !activeWorkspace.collections?.length) {
+        return Promise.resolve();
+      }
+
+      const workspacePathSet = new Set(
+        activeWorkspace.collections.map((wc) => normalizePath(wc.path))
+      );
+      const collectionsInWorkspace = state.collections.collections
+        .filter((c) => workspacePathSet.has(normalizePath(c.pathname)));
+      if (collectionsInWorkspace.length === 0) {
+        return Promise.resolve();
+      }
+
+      const reordered = collectionsInWorkspace.filter((i) => i.uid !== draggedItem.uid);
+      const targetIndex = reordered.findIndex((i) => i.uid === targetItem.uid);
+      reordered.splice(targetIndex, 0, draggedItem);
+      const collectionPaths = reordered.map((c) => c.pathname);
+
+      return window.ipcRenderer
+        .invoke('renderer:reorder-workspace-collections', activeWorkspace.pathname, collectionPaths)
+        .then(() => {
+          dispatch(moveCollection({ draggedItem, targetItem }));
+        })
+        .catch((err) => {
+          console.error('Failed to reorder workspace collections', err);
+          return Promise.reject(err);
+        });
     };
 
 export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (dispatch, getState) => {
@@ -2793,9 +2883,10 @@ export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
       .invoke('clear-oauth2-cache', collectionUid, url, credentialsId)
       .then(() => {
         dispatch(
-          collectionClearOauth2CredentialsByUrl({
+          collectionClearOauth2CredentialsByUrlAndCredentialsId({
             url,
-            collectionUid
+            collectionUid,
+            credentialsId
           })
         );
         resolve();
@@ -2983,6 +3074,34 @@ export const deleteDotEnvFile = (collectionUid, filename = '.env') => (dispatch,
       .invoke('renderer:delete-dotenv-file', collection.pathname, filename)
       .then(resolve)
       .catch(reject);
+  });
+};
+
+export const cloneGitRepository = (data) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:clone-git-repository', data)
+      .then((res) => {
+        console.log('clone done', res);
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.custom(<IpcErrorModal error={err?.message} />);
+        reject();
+      });
+  });
+};
+
+export const scanForBrunoFiles = (dir) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:scan-for-bruno-files', dir)
+      .then(resolve)
+      .catch((err) => {
+        reject();
+      });
   });
 };
 

@@ -16,8 +16,7 @@ test.describe('Invalid Postman Collection - Missing Info', () => {
     await page.setInputFiles('input[type="file"]', postmanFile);
 
     // Check for error message
-    const hasError = await page.getByText('Unsupported collection format').first().isVisible();
-    expect(hasError).toBe(true);
+    await expect(page.getByText('Unsupported collection format').first()).toBeVisible();
 
     // Cleanup: close any open modals
     await page.getByTestId('modal-close-button').click();
