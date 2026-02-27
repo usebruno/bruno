@@ -148,7 +148,7 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
                 <div className="grid grid-cols-2 gap-2">
                   {creds.token_type ? (
                     <div className="flex items-center space-x-1">
-                      <span className="font-medium">Token Source:</span>
+                      <span className="font-medium">Token Type:</span>
                       <span className="text-gray-600 dark:text-gray-300">{creds.token_type}</span>
                     </div>
                   ) : null}
