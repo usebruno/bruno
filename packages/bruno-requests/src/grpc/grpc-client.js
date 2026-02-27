@@ -90,33 +90,56 @@ const processGrpcMetadata = (metadata) => {
   });
 };
 
+// Unix socket: unix:/path, unix:///path, unix-abstract:name
+const isUnixSocket = (str) => {
+  if (!str) return false;
+  return str.startsWith('unix:') || str.startsWith('unix-abstract:');
+};
+
+// Windows named pipe: \\.\pipe\name or //./pipe/name
+const isWindowsNamedPipe = (str) => {
+  if (!str) return false;
+  return str.startsWith('\\\\.\\pipe\\')
+    || str.startsWith('//./pipe/')
+    || str.toLowerCase().startsWith('\\\\.\\pipe\\')
+    || str.toLowerCase().startsWith('//./pipe/');
+};
+
+const normalizeWindowsNamedPipe = (pipePath) => {
+  if (pipePath.startsWith('//./pipe/')) {
+    return pipePath.replace('//./pipe/', '\\\\.\\pipe\\');
+  }
+  return pipePath;
+};
+
+// Parse gRPC URL into components, handling TCP, Unix sockets, and Windows named pipes
 const getParsedGrpcUrlObject = (url) => {
-  const isUnixSocket = (str) => str.startsWith('unix:');
-  // const isXdsUrl = str => str.startsWith('xds:');
-  // By default, secure protocol grpcs is set if not specified, localhost is set to insecure (grpc://)
   const addProtocolIfMissing = (str) => {
     if (str.includes('://')) return str;
-
-    // For localhost, default to insecure (grpc://) for local development
     if (str.includes('localhost') || str.includes('127.0.0.1')) {
       return `grpc://${str}`;
     }
-
-    // For other hosts, default to secure
     return `grpcs://${str}`;
   };
   const removeTrailingSlash = (str) => (str.endsWith('/') ? str.slice(0, -1) : str);
 
-  if (!url) return { host: '', path: '' };
-  if (isUnixSocket(url)) return { host: url, path: '' };
-  // if (isXdsUrl(url)) return { host: url, path: '' }; /* TODO: add xds support, https://www.npmjs.com/package/@grpc/grpc-js-xds */
+  if (!url) return { host: '', path: '', protocol: '', isLocalTransport: false };
+
+  if (isUnixSocket(url)) {
+    return { host: url, path: '', protocol: 'unix', isLocalTransport: true };
+  }
+
+  if (isWindowsNamedPipe(url)) {
+    return { host: normalizeWindowsNamedPipe(url), path: '', protocol: 'pipe', isLocalTransport: true };
+  }
 
   const urlObj = new URL(addProtocolIfMissing(url.toLowerCase()));
 
   return {
     host: urlObj.host,
     protocol: urlObj.protocol.replace(':', ''),
-    path: removeTrailingSlash(urlObj.pathname)
+    path: removeTrailingSlash(urlObj.pathname),
+    isLocalTransport: false
   };
 };
 
@@ -257,7 +280,12 @@ class GrpcClient {
   #getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, passphrase, pfx, verifyOptions }) {
     const securedProtocols = ['grpcs', 'https'];
     try {
-      const { protocol } = getParsedGrpcUrlObject(url);
+      const { protocol, isLocalTransport } = getParsedGrpcUrlObject(url);
+
+      if (isLocalTransport) {
+        return ChannelCredentials.createInsecure();
+      }
+
       const isSecureConnection = securedProtocols.some((sp) => protocol === sp);
       if (!isSecureConnection) {
         return ChannelCredentials.createInsecure();
@@ -840,12 +868,19 @@ class GrpcClient {
     const { url, method, methodType = 'unary', body, headers, protoPath } = request;
     const useReflection = !protoPath;
     const parts = [];
-    const { host, path } = getParsedGrpcUrlObject(url);
+    const { host, path, protocol } = getParsedGrpcUrlObject(url);
     const { ca, cert, key } = certificates;
 
     parts.push('grpcurl');
 
-    if (url.startsWith('grpcs://') || url.startsWith('https://')) {
+    if (protocol === 'unix') {
+      parts.push('-plaintext');
+      parts.push('-unix');
+      parts.push('-authority localhost');
+    } else if (protocol === 'pipe') {
+      console.warn('Windows named pipes are not directly supported by grpcurl');
+      parts.push('-plaintext');
+    } else if (url.startsWith('grpcs://') || url.startsWith('https://')) {
       if (ca) {
         /**
          * Instead of using certificate that relies on CN, use SANs
@@ -892,7 +927,17 @@ class GrpcClient {
       }
     }
 
-    parts.push(host);
+    if (protocol === 'unix') {
+      let socketPath = url;
+      if (url.startsWith('unix:///')) {
+        socketPath = url.slice(7);
+      } else if (url.startsWith('unix:')) {
+        socketPath = url.slice(5);
+      }
+      parts.push(socketPath);
+    } else {
+      parts.push(host);
+    }
 
     parts.push(path.slice(1) + (path ? '/' : '') + (method.startsWith('/') ? method.slice(1) : method));
 

@@ -5,6 +5,7 @@ import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
 import ConfirmAppClose from './ConfirmAppClose';
 import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
+import useParsedFileCacheIpc from './useParsedFileCacheIpc';
 import StyledWrapper from './StyledWrapper';
 import { version } from '../../../package.json';
 
@@ -13,6 +14,7 @@ export const AppContext = React.createContext();
 export const AppProvider = (props) => {
   useTelemetry({ version });
   useIpcEvents();
+  useParsedFileCacheIpc();
   const dispatch = useDispatch();
 
   useEffect(() => {

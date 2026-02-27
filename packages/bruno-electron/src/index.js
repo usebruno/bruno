@@ -3,6 +3,8 @@ const path = require('path');
 const { execSync } = require('node:child_process');
 const isDev = require('electron-is-dev');
 const os = require('os');
+const { initializeShellEnv } = require('@usebruno/requests');
+const { percentageToZoomLevel } = require('@usebruno/common');
 
 if (isDev) {
   if (!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
@@ -38,6 +40,7 @@ const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
+const { parsedFileCacheStore } = require('./store/parsed-file-cache-idb');
 const registerSystemMonitorIpc = require('./ipc/system-monitor');
 const registerWorkspaceIpc = require('./ipc/workspace');
 const registerApiSpecIpc = require('./ipc/apiSpec');
@@ -46,6 +49,7 @@ const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
+const { preferencesUtil, getPreferences, savePreferences } = require('./store/preferences');
 const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
@@ -90,6 +94,25 @@ const isLinux = process.platform === 'linux';
 
 let mainWindow;
 let appProtocolUrl;
+
+// Helper function to save zoom percentage to preferences and notify renderer
+const saveZoomPreferences = async (percentage) => {
+  if (!mainWindow) return;
+
+  const clampedPercentage = Math.max(50, Math.min(150, percentage));
+
+  const prefs = getPreferences();
+  prefs.display = prefs.display || {};
+  prefs.display.zoomPercentage = clampedPercentage;
+
+  try {
+    await savePreferences(prefs);
+    // Notify renderer to update Redux state only after successful save
+    mainWindow.webContents.send('main:load-preferences', prefs);
+  } catch (err) {
+    console.error('Failed to save zoom preference:', err);
+  }
+};
 
 // Helper function to focus and restore the main window
 const focusMainWindow = () => {
@@ -155,6 +178,9 @@ if (useSingleInstance && !gotTheLock) {
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
+  // Ensure shell environment is loaded before any operations that need it
+  await initializeShellEnv();
+
   if (isDev) {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
     try {
@@ -242,17 +268,32 @@ app.on('ready', async () => {
   });
 
   ipcMain.handle('renderer:reset-zoom', () => {
-    mainWindow.webContents.setZoomLevel(0);
+    updateZoomLevel(100);
   });
 
   ipcMain.handle('renderer:zoom-in', () => {
-    const currentZoom = mainWindow.webContents.getZoomLevel();
-    mainWindow.webContents.setZoomLevel(currentZoom + 0.5);
+    incrementZoomAndPersist(10);
   });
 
   ipcMain.handle('renderer:zoom-out', () => {
-    const currentZoom = mainWindow.webContents.getZoomLevel();
-    mainWindow.webContents.setZoomLevel(currentZoom - 0.5);
+    incrementZoomAndPersist(-10);
+  });
+
+  // Menu event handlers for zoom (from menu-template.js)
+  ipcMain.on('menu:reset-zoom', () => {
+    updateZoomLevel(100);
+  });
+
+  ipcMain.on('menu:zoom-in', () => {
+    incrementZoomAndPersist(10);
+  });
+
+  ipcMain.on('menu:zoom-out', () => {
+    incrementZoomAndPersist(-10);
+  });
+
+  ipcMain.handle('renderer:set-zoom-level', (event, zoomLevel) => {
+    mainWindow.webContents.setZoomLevel(zoomLevel);
   });
 
   ipcMain.handle('renderer:toggle-fullscreen', () => {
@@ -278,6 +319,12 @@ app.on('ready', async () => {
   });
 
   mainWindow.once('ready-to-show', () => {
+    // Apply saved zoom level from preferences before showing window
+    const zoomPercentage = preferencesUtil.getZoomPercentage();
+    if (zoomPercentage) {
+      const zoomLevel = percentageToZoomLevel(zoomPercentage);
+      mainWindow.webContents.setZoomLevel(zoomLevel);
+    }
     mainWindow.show();
   });
   const devPort = process.env.BRUNO_DEV_PORT || 3000;
@@ -369,13 +416,19 @@ app.on('ready', async () => {
   });
 
   mainWindow.webContents.on('did-finish-load', async () => {
-    let ogSend = mainWindow.webContents.send;
-    mainWindow.webContents.send = function (channel, ...args) {
-      return ogSend.apply(this, [channel, ...args?.map((_) => {
-        // todo: replace this with @msgpack/msgpack encode/decode
-        return safeParseJSON(safeStringifyJSON(_));
-      })]);
-    };
+    try {
+      let ogSend = mainWindow.webContents.send;
+      mainWindow.webContents.send = function (channel, ...args) {
+        return ogSend.apply(this, [channel, ...args.map((_) => {
+          // todo: replace this with @msgpack/msgpack encode/decode
+          return safeParseJSON(safeStringifyJSON(_));
+        })]);
+      };
+    } catch (err) {
+      console.error('Error wrapping webContents.send:', err);
+      // Ensure onboarding gate is unblocked so renderer:ready doesn't hang
+      ipcMain.emit('main:onboarding-complete');
+    }
 
     // Handle onboarding
     await onboardUser(mainWindow, lastOpenedCollections);
@@ -393,6 +446,9 @@ app.on('ready', async () => {
       isRunningInRosetta: getIsRunningInRosetta()
     });
   });
+
+  // Initialize the parsed file cache IPC handlers
+  parsedFileCacheStore.initialize(mainWindow);
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
@@ -441,7 +497,7 @@ app.on('open-file', (event, path) => {
 app.on('browser-window-focus', () => {
   // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
   globalShortcut.register('Ctrl+=', () => {
-    mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
+    incrementZoomAndPersist(10);
   });
 });
 
@@ -449,3 +505,24 @@ app.on('browser-window-focus', () => {
 app.on('browser-window-blur', () => {
   globalShortcut.unregisterAll();
 });
+
+/**
+ * @param {number} inc (+/- amount to zoom in / out);
+ */
+function incrementZoomAndPersist(inc) {
+  const currentPercentage = preferencesUtil.getZoomPercentage();
+  const nextPercentage = Math.min(
+    Math.max(currentPercentage + inc, 50),
+    150
+  );
+  updateZoomLevel(nextPercentage);
+}
+
+/**
+ * @param {number} percent percentage to increase or decrease zoom by, percentage is converted to chrome's log value internally
+ */
+function updateZoomLevel(percent) {
+  const zoomLevel = percentageToZoomLevel(percent);
+  mainWindow.webContents.setZoomLevel(zoomLevel);
+  saveZoomPreferences(percent);
+}

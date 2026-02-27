@@ -6,7 +6,7 @@ const { generateUidBasedOnHash } = require('./common');
 const { withLock, getWorkspaceLockKey } = require('./workspace-lock');
 
 // Normalize Windows backslash paths to forward slashes for cross-platform compatibility.
-const posixifyPath = (p) => p.replace(/\\/g, '/');
+const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
 
 const WORKSPACE_TYPE = 'workspace';
 const OPENCOLLECTION_VERSION = '1.0.0';
@@ -139,6 +139,12 @@ const makeRelativePath = (workspacePath, absolutePath) => {
   } catch (error) {
     return posixifyPath(absolutePath);
   }
+};
+
+const getNormalizedAbsoluteCollectionPath = (workspacePath, collection) => {
+  if (!collection?.path) return null;
+  const resolved = path.isAbsolute(collection.path) ? collection.path : path.resolve(workspacePath, collection.path);
+  return path.normalize(resolved);
 };
 
 const normalizeCollectionEntry = (workspacePath, collection) => {
@@ -394,6 +400,43 @@ const removeCollectionFromWorkspace = async (workspacePath, collectionPath) => {
   });
 };
 
+/**
+ * Reorders the collections array in the workspace's workspace.yml to match the given path list.
+ * Entries not in the list are appended at the end.
+ * @param {string} workspacePath - Absolute path to the workspace directory
+ * @param {string[]} collectionPaths - Absolute collection pathnames in the desired order
+ */
+const reorderWorkspaceCollections = async (workspacePath, collectionPaths) => {
+  if (!Array.isArray(collectionPaths)) {
+    throw new Error('collectionPaths must be an array');
+  }
+
+  return withLock(getWorkspaceLockKey(workspacePath), async () => {
+    const config = readWorkspaceConfig(workspacePath);
+    const existing = config.collections || [];
+
+    const inNewOrder = [];
+    const matched = new Set();
+
+    for (const absolutePath of collectionPaths) {
+      const targetPath = posixifyPath(path.normalize(absolutePath));
+      const entry = existing.find(
+        (c) => posixifyPath(getNormalizedAbsoluteCollectionPath(workspacePath, c)) === targetPath
+      );
+      if (entry && !matched.has(entry)) {
+        inNewOrder.push(entry);
+        matched.add(entry);
+      }
+    }
+
+    const notInList = existing.filter((c) => !matched.has(c));
+    config.collections = [...inNewOrder, ...notInList];
+
+    const yamlContent = generateYamlContent(config);
+    await writeWorkspaceFileAtomic(workspacePath, yamlContent);
+  });
+};
+
 const getWorkspaceCollections = (workspacePath) => {
   const config = readWorkspaceConfig(workspacePath);
   const collections = config.collections || [];
@@ -533,6 +576,7 @@ module.exports = {
   updateWorkspaceDocs,
   addCollectionToWorkspace,
   removeCollectionFromWorkspace,
+  reorderWorkspaceCollections,
   getWorkspaceCollections,
   getWorkspaceApiSpecs,
   addApiSpecToWorkspace,

@@ -25,7 +25,7 @@ const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } 
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
-const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials } = require('../../utils/oauth2');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
@@ -160,7 +160,7 @@ const configureRequest = async (
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
-    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
+    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
 
     // Get cert/proxy configs for token and refresh URLs
     let certsAndProxyConfigForTokenUrl = certsAndProxyConfig;
@@ -221,56 +221,68 @@ const configureRequest = async (
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header' && credentials?.access_token) {
-          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
-        } else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          } catch (error) {}
+        {
+          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
+          if (tokenPlacement == 'header' && tokenValue) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+          } else if (tokenValue) {
+            try {
+              const url = new URL(request.url);
+              url.searchParams.set(tokenQueryKey, tokenValue);
+              request.url = url.toString();
+            } catch (error) {}
+          }
         }
         break;
       case 'implicit':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingImplicitGrant({ request: requestCopy, collectionUid }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header') {
-          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        } else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          } catch (error) {}
+        {
+          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
+          if (tokenPlacement == 'header' && tokenValue) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+          } else if (tokenValue) {
+            try {
+              const url = new URL(request.url);
+              url.searchParams.set(tokenQueryKey, tokenValue);
+              request.url = url.toString();
+            } catch (error) {}
+          }
         }
         break;
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header' && credentials?.access_token) {
-          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
-        } else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          } catch (error) {}
+        {
+          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
+          if (tokenPlacement == 'header' && tokenValue) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+          } else if (tokenValue) {
+            try {
+              const url = new URL(request.url);
+              url.searchParams.set(tokenQueryKey, tokenValue);
+              request.url = url.toString();
+            } catch (error) {}
+          }
         }
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        if (tokenPlacement == 'header' && credentials?.access_token) {
-          request.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`.trim();
-        } else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          } catch (error) {}
+        {
+          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
+          if (tokenPlacement == 'header' && tokenValue) {
+            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+          } else if (tokenValue) {
+            try {
+              const url = new URL(request.url);
+              url.searchParams.set(tokenQueryKey, tokenValue);
+              request.url = url.toString();
+            } catch (error) {}
+          }
         }
         break;
     }
@@ -477,6 +489,25 @@ const registerNetworkIpc = (mainWindow) => {
     };
   };
 
+  const resetOauth2Credentials = ({ oauth2CredentialsToReset, request, collectionUid }) => {
+    if (!oauth2CredentialsToReset?.length) return;
+    for (const credentialId of oauth2CredentialsToReset) {
+      clearOauth2CredentialsByCredentialsId({ collectionUid, credentialsId: credentialId });
+      if (request?.oauth2Credentials?.credentialsId === credentialId) {
+        request.oauth2Credentials = null;
+      }
+      const prefix = `$oauth2.${credentialId}.`;
+      if (request.oauth2CredentialVariables) {
+        for (const key of Object.keys(request.oauth2CredentialVariables)) {
+          if (key.startsWith(prefix)) {
+            delete request.oauth2CredentialVariables[key];
+          }
+        }
+      }
+      mainWindow.webContents.send('main:credentials-clear', { collectionUid, credentialsId: credentialId });
+    }
+  };
+
   const runPreRequest = async (
     request,
     requestUid,
@@ -528,6 +559,8 @@ const registerNetworkIpc = (mainWindow) => {
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
 
+      resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
+
       const domainsWithCookies = await getDomainsWithCookies();
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
     }
@@ -561,12 +594,22 @@ const registerNetworkIpc = (mainWindow) => {
       // if `data` is of string type - return as-is (assumes already encoded)
     }
 
-    if (contentTypeHeader && request.headers[contentTypeHeader] === 'multipart/form-data') {
+    if (contentTypeHeader && contentTypeHeader.startsWith('multipart/')) {
       if (!isFormData(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);
         request.data = form;
+        if (contentTypeHeader !== 'multipart/form-data') {
+          // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
+          const formHeaders = form.getHeaders();
+          const ct = contentTypeHeader;
+          formHeaders['content-type'] = `${ct}; boundary=${form.getBoundary()}`;
+          form.getHeaders = function () {
+            return formHeaders;
+          };
+        }
+
         extend(request.headers, form.getHeaders());
       }
     }
@@ -665,6 +708,8 @@ const registerNetworkIpc = (mainWindow) => {
       });
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+
+      resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
 
       const domainsWithCookiesPost = await getDomainsWithCookies();
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPost)));
@@ -816,7 +861,7 @@ const registerNetworkIpc = (mainWindow) => {
         cancelTokenUid
       });
 
-      if (request?.oauth2Credentials) {
+      if (request.oauth2Credentials?.credentials && request.oauth2Credentials?.credentialsId) {
         mainWindow.webContents.send('main:credentials-update', {
           credentials: request?.oauth2Credentials?.credentials,
           url: request?.oauth2Credentials?.url,
@@ -824,6 +869,12 @@ const registerNetworkIpc = (mainWindow) => {
           credentialsId: request?.oauth2Credentials?.credentialsId,
           ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
           debugInfo: request?.oauth2Credentials?.debugInfo
+        });
+
+        const { credentialsId, credentials } = request.oauth2Credentials;
+        request.oauth2CredentialVariables = request.oauth2CredentialVariables || {};
+        Object.entries(credentials).forEach(([key, value]) => {
+          request.oauth2CredentialVariables[`$oauth2.${credentialsId}.${key}`] = value;
         });
       }
 
@@ -1031,6 +1082,8 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+
+          resetOauth2Credentials({ oauth2CredentialsToReset: testResults.oauth2CredentialsToReset, request, collectionUid });
 
           !runInBackground && notifyScriptExecution({
             channel: 'main:run-request-event',
@@ -1487,7 +1540,7 @@ const registerNetworkIpc = (mainWindow) => {
               collection.globalEnvironmentVariables
             );
 
-            if (request?.oauth2Credentials) {
+            if (request.oauth2Credentials?.credentials && request.oauth2Credentials?.credentialsId) {
               mainWindow.webContents.send('main:credentials-update', {
                 credentials: request?.oauth2Credentials?.credentials,
                 url: request?.oauth2Credentials?.url,
@@ -1495,6 +1548,12 @@ const registerNetworkIpc = (mainWindow) => {
                 credentialsId: request?.oauth2Credentials?.credentialsId,
                 ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
                 debugInfo: request?.oauth2Credentials?.debugInfo
+              });
+
+              const { credentialsId, credentials } = request.oauth2Credentials;
+              request.oauth2CredentialVariables = request.oauth2CredentialVariables || {};
+              Object.entries(credentials).forEach(([key, value]) => {
+                request.oauth2CredentialVariables[`$oauth2.${credentialsId}.${key}`] = value;
               });
 
               collection.oauth2Credentials = updateCollectionOauth2Credentials({
@@ -1737,6 +1796,8 @@ const registerNetworkIpc = (mainWindow) => {
               });
 
               collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+
+              resetOauth2Credentials({ oauth2CredentialsToReset: testResults.oauth2CredentialsToReset, request, collectionUid });
 
               notifyScriptExecution({
                 channel: 'main:run-folder-event',
