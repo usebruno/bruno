@@ -565,7 +565,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     const [macRenameKey, winRenameKey] = getKeyBindingsForActionAllOS('renameItem');
     const renameKey = isMac ? macRenameKey : winRenameKey;
 
-    if (e.key.toLowerCase() === renameKey) {
+    // Only trigger rename if no modifier keys are pressed (allow Cmd+Enter for run request)
+    const hasModifier = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+    if (e.key.toLowerCase() === renameKey && !hasModifier) {
       e.preventDefault();
       e.stopPropagation();
       setRenameItemModalOpen(true);
