@@ -271,7 +271,8 @@ describe('Response Translation', () => {
     expect(translatedCode).toContain('expect(statusText).to.equal(\'OK\');');
   });
 
-  it('should handle pm objects with array access on response', () => {
+  // TODO: Restore once UI update fixes are live for setCollectionVar
+  it.skip('should handle pm objects with array access on response', () => {
     const code = `
         const items = pm.response.json().items;
         for (let i = 0; i < items.length; i++) {

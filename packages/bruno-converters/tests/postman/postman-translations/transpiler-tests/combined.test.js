@@ -78,7 +78,8 @@ describe('Combined API Features Translation', () => {
   });
 
   // Multiple transformations in the same code block
-  it('should handle multiple translations in the same code block', () => {
+  // TODO: Restore once UI update fixes are live for setCollectionVar
+  it.skip('should handle multiple translations in the same code block', () => {
     const code = `
         const token = pm.environment.get("authToken");
         pm.test("Auth flow works", function() {
@@ -109,7 +110,8 @@ describe('Combined API Features Translation', () => {
     expect(translatedCode).toBe('bru.setEnvVar("computed", bru.getVar("base") + "-suffix");');
   });
 
-  it('should handle more complex nested expressions', () => {
+  // TODO: Restore once UI update fixes are live for setCollectionVar
+  it.skip('should handle more complex nested expressions', () => {
     const code = 'pm.collectionVariables.set("fullPath", pm.environment.get("baseUrl") + pm.variables.get("endpoint"));';
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe('bru.setCollectionVar("fullPath", bru.getEnvVar("baseUrl") + bru.getVar("endpoint"));');
@@ -328,7 +330,8 @@ describe('Combined API Features Translation', () => {
         `);
   });
 
-  it('should handle pm aliases inside functions', () => {
+  // TODO: Restore once UI update fixes are live for setCollectionVar
+  it.skip('should handle pm aliases inside functions', () => {
     const code = `
         const tempRes = pm.response;
         const tempTest = pm.test;

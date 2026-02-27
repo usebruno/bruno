@@ -1,5 +1,8 @@
 import translateCode from '../utils/postman-to-bruno-translator';
 
+// TODO: Restore the commented-out translations once the UI update fixes are live.
+// Currently these APIs only work within the request lifecycle but fail to update the UI tables.
+// e.g., setCollectionVar only sets the variable in the request lifecycle, fails to update the table in the UI.
 const replacements = {
   'pm\\.environment\\.get\\(': 'bru.getEnvVar(',
   'pm\\.environment\\.set\\(': 'bru.setEnvVar(',
@@ -7,11 +10,11 @@ const replacements = {
   'pm\\.variables\\.set\\(': 'bru.setVar(',
   'pm\\.variables\\.replaceIn\\(': 'bru.interpolate(',
   'pm\\.collectionVariables\\.get\\(': 'bru.getCollectionVar(',
-  'pm\\.collectionVariables\\.set\\(': 'bru.setCollectionVar(',
+  // 'pm\\.collectionVariables\\.set\\(': 'bru.setCollectionVar(',
   'pm\\.collectionVariables\\.has\\(': 'bru.hasCollectionVar(',
-  'pm\\.collectionVariables\\.unset\\(': 'bru.deleteCollectionVar(',
-  'pm\\.collectionVariables\\.clear\\(': 'bru.deleteAllCollectionVars(',
-  'pm\\.collectionVariables\\.toObject\\(': 'bru.getAllCollectionVars(',
+  // 'pm\\.collectionVariables\\.unset\\(': 'bru.deleteCollectionVar(',
+  // 'pm\\.collectionVariables\\.clear\\(': 'bru.deleteAllCollectionVars(',
+  // 'pm\\.collectionVariables\\.toObject\\(': 'bru.getAllCollectionVars(',
   'pm\\.setNextRequest\\(': 'bru.setNextRequest(',
   'pm\\.test\\(': 'test(',
   'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
@@ -25,9 +28,9 @@ const replacements = {
   'pm\\.response\\.responseTime': 'res.getResponseTime()',
   'pm\\.globals\\.set\\(': 'bru.setGlobalEnvVar(',
   'pm\\.globals\\.get\\(': 'bru.getGlobalEnvVar(',
-  'pm\\.globals\\.unset\\(': 'bru.deleteGlobalEnvVar(',
+  // 'pm\\.globals\\.unset\\(': 'bru.deleteGlobalEnvVar(',
   'pm\\.globals\\.toObject\\(': 'bru.getAllGlobalEnvVars(',
-  'pm\\.globals\\.clear\\(': 'bru.deleteAllGlobalEnvVars(',
+  // 'pm\\.globals\\.clear\\(': 'bru.deleteAllGlobalEnvVars(',
   'pm\\.environment\\.toObject\\(': 'bru.getAllEnvVars(',
   'pm\\.environment\\.clear\\(': 'bru.deleteAllEnvVars(',
   'pm\\.variables\\.toObject\\(': 'bru.getAllVars(',
