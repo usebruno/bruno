@@ -1,3 +1,5 @@
+const { interpolatePathParams } = require('./utils/url');
+
 class BrunoRequest {
   /**
    * The following properties are available as shorthand:
@@ -52,31 +54,23 @@ class BrunoRequest {
   }
 
   getPath() {
+    let pathname;
     try {
       const url = new URL(this.req.url);
-      let pathname = url.pathname;
-
-      // If path params exist, interpolate them into the pathname
-      if (this.req.pathParams && Array.isArray(this.req.pathParams)) {
-        pathname = pathname
-          .split('/')
-          .map((segment) => {
-            if (segment.startsWith(':')) {
-              const paramName = segment.slice(1);
-              const pathParam = this.req.pathParams.find((param) => param.name === paramName);
-              if (pathParam && pathParam.value) {
-                return pathParam.value;
-              }
-            }
-            return segment;
-          })
-          .join('/');
-      }
-
-      return pathname;
+      pathname = url.pathname;
     } catch (e) {
-      return '';
+      if (typeof this.req.url !== 'string') {
+        return '';
+      }
+      let urlWithoutQuery = this.req.url.split('?')[0];
+      const protoEnd = urlWithoutQuery.indexOf('://');
+      if (protoEnd >= 0) {
+        urlWithoutQuery = urlWithoutQuery.substring(protoEnd + 3);
+      }
+      const firstSlash = urlWithoutQuery.indexOf('/');
+      pathname = firstSlash >= 0 ? urlWithoutQuery.substring(firstSlash) : '';
     }
+    return interpolatePathParams(pathname, this.req.pathParams) || '';
   }
 
   getQueryString() {
