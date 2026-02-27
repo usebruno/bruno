@@ -126,10 +126,7 @@ class BrunoRequest {
   }
 
   deleteHeaders(headers) {
-    headers.forEach((name) => {
-      delete this.headers[name];
-      delete this.req.headers[name];
-    });
+    headers.forEach((name) => this.deleteHeader(name));
   }
 
   getHeader(name) {
@@ -144,6 +141,18 @@ class BrunoRequest {
   deleteHeader(name) {
     delete this.headers[name];
     delete this.req.headers[name];
+
+    /**
+      Store header name to be applied in the axios request interceptor.
+      Default headers (user-agent, accept, accept-encoding, etc.) are added after
+      the pre-request script runs, so we track them here and delete them later.
+    */
+    if (!this.req.__headersToDelete) {
+      this.req.__headersToDelete = [];
+    }
+    if (!this.req.__headersToDelete.includes(name)) {
+      this.req.__headersToDelete.push(name);
+    }
   }
 
   hasJSONContentType(headers) {
