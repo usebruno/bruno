@@ -119,6 +119,9 @@ const createPostData = (body) => {
     }
     case 'graphql': {
       const graphql = body[body.mode];
+      if (!graphql) {
+        return { mimeType: contentType, text: undefined };
+      }
       let variables;
       try {
         variables = typeof graphql.variables === 'string' ? JSON.parse(graphql.variables) : graphql.variables;
