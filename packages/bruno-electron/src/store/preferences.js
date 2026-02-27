@@ -47,7 +47,8 @@ const defaultPreferences = {
   },
   beta: {},
   onboarding: {
-    hasLaunchedBefore: false
+    hasLaunchedBefore: false,
+    hasSeenWelcomeModal: true
   },
   general: {
     defaultLocation: '',
@@ -104,7 +105,8 @@ const preferencesSchema = Yup.object().shape({
   beta: Yup.object({
   }),
   onboarding: Yup.object({
-    hasLaunchedBefore: Yup.boolean()
+    hasLaunchedBefore: Yup.boolean(),
+    hasSeenWelcomeModal: Yup.boolean()
   }),
   general: Yup.object({
     defaultLocation: Yup.string().max(1024).nullable(),

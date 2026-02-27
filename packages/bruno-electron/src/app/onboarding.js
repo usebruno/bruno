@@ -1,9 +1,22 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { app } = require('electron');
-const { preferencesUtil } = require('../store/preferences');
+const { app, ipcMain } = require('electron');
+const { preferencesUtil, getPreferences, savePreferences } = require('../store/preferences');
 const { importCollection, findUniqueFolderName } = require('../utils/collection-import');
 const { resolveDefaultLocation } = require('../utils/default-location');
+
+let pendingSampleCollection = null;
+
+// When renderer is ready, send any pending collection-opened event
+// This ensures the sample collection appears in the sidebar after onboarding
+ipcMain.on('main:renderer-ready', (mainWindow) => {
+  if (pendingSampleCollection) {
+    const { mainWindow: win, collectionPath, uid, brunoConfig } = pendingSampleCollection;
+    win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+    ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
+    pendingSampleCollection = null;
+  }
+});
 
 /**
  * Import sample collection for new users
@@ -37,7 +50,9 @@ async function importSampleCollection(collectionLocation, mainWindow) {
       collectionToImport,
       collectionLocation,
       mainWindow,
-      collectionName
+      collectionName,
+      undefined, // format - use default
+      { skipOpenEvent: true } // Don't send event yet - renderer isn't ready
     );
 
     return { collectionPath: createdPath, uid, brunoConfig };
@@ -48,7 +63,14 @@ async function importSampleCollection(collectionLocation, mainWindow) {
 }
 
 /**
- * Onboard new users by creating a sample collection
+ * Onboard new users by creating a sample collection.
+ *
+ * This also determines whether the welcome modal should be shown:
+ * - Genuinely new users (no collections, no previous launch) → show welcome modal
+ * - Existing users upgrading (have collections but no hasLaunchedBefore flag) → skip welcome modal
+ *
+ * The 'main:onboarding-complete' event in finally unblocks the renderer:ready IPC handler,
+ * ensuring the renderer always gets the correct preference values.
  */
 async function onboardUser(mainWindow, lastOpenedCollections) {
   try {
@@ -56,26 +78,45 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
       return;
     }
 
-    if (process.env.DISABLE_SAMPLE_COLLECTION_IMPORT !== 'true') {
-      // Check if user already has collections (indicates they're an existing user)
-      // Onboarding was added in a later version, so for existing users we should skip it
-      // to avoid creating sample collections
-      // lastOpenedCollections is still used here to check for existing collections during migration
-      const collections = lastOpenedCollections ? lastOpenedCollections.getAll() : [];
-      if (collections.length > 0) {
-        await preferencesUtil.markAsLaunched();
-        return;
-      }
+    // Check if user already has collections — this indicates an existing user
+    // upgrading to a version that introduced onboarding, not a genuinely new user
+    const collections = lastOpenedCollections ? lastOpenedCollections.getAll() : [];
+    const isExistingUser = collections.length > 0;
 
-      const collectionLocation = resolveDefaultLocation();
-      await importSampleCollection(collectionLocation, mainWindow);
+    if (isExistingUser) {
+      // Existing user upgrading: mark as launched, don't show welcome modal
+      // hasSeenWelcomeModal is intentionally NOT set here — it will be absent
+      // from preferences, and the renderer defaults absent values to true (no modal)
+      await preferencesUtil.markAsLaunched();
+      return;
     }
 
-    await preferencesUtil.markAsLaunched();
+    // Genuinely new user
+    if (process.env.DISABLE_SAMPLE_COLLECTION_IMPORT !== 'true') {
+      const collectionLocation = resolveDefaultLocation();
+      const collectionInfo = await importSampleCollection(collectionLocation, mainWindow);
+
+      // Store collection info to open after renderer is ready
+      // The main:collection-opened event is deferred because the renderer
+      // is still waiting for main:onboarding-complete at this point
+      pendingSampleCollection = { mainWindow, ...collectionInfo };
+    }
+
+    // Mark as launched and explicitly enable the welcome modal for new users
+    const preferences = getPreferences();
+    preferences.onboarding = {
+      ...preferences.onboarding,
+      hasLaunchedBefore: true,
+      hasSeenWelcomeModal: false
+    };
+    await savePreferences(preferences);
   } catch (error) {
     console.error('Failed to handle onboarding:', error);
     // Still mark as launched to prevent retry on next startup
     await preferencesUtil.markAsLaunched();
+  } finally {
+    // Always unblock the renderer:ready handler so the app can proceed
+    ipcMain.emit('main:onboarding-complete');
   }
 }
 

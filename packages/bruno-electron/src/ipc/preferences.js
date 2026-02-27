@@ -8,6 +8,11 @@ const { resolveDefaultLocation } = require('../utils/default-location');
 
 const registerPreferencesIpc = (mainWindow) => {
   ipcMain.handle('renderer:ready', async (event) => {
+    // Wait for onboarding to finish before reading preferences.
+    // Onboarding may set hasSeenWelcomeModal for new vs existing users,
+    // and we need the renderer to receive the correct values.
+    await new Promise((resolve) => ipcMain.once('main:onboarding-complete', resolve));
+
     // load preferences
     const preferences = getPreferences();
 

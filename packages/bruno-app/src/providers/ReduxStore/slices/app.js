@@ -36,6 +36,10 @@ const initialState = {
     general: {
       defaultLocation: ''
     },
+    onboarding: {
+      hasLaunchedBefore: false,
+      hasSeenWelcomeModal: true
+    },
     autoSave: {
       enabled: false,
       interval: 1000
