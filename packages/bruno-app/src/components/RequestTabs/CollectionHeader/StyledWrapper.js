@@ -17,8 +17,7 @@ const StyledWrapper = styled.div`
     background: transparent;
     color: ${(props) => props.theme.text};
     cursor: pointer;
-    font-size: 15px;
-    font-weight: 600;
+    font-weight: 500;
     transition: background-color 0.15s ease;
 
     &:hover {
@@ -30,6 +29,11 @@ const StyledWrapper = styled.div`
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+
+      &.scratch-collection {
+        font-weight: 600;
+        font-size: 15px;
+      }
     }
 
     .tab-count {
