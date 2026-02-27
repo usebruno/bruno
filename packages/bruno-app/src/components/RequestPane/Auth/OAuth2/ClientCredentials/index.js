@@ -1,4 +1,4 @@
-import React, { useRef, forwardRef, useMemo } from 'react';
+import React from 'react';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
@@ -7,7 +7,7 @@ import { IconCaretDown, IconSettings, IconKey, IconAdjustmentsHorizontal, IconHe
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
 import AdditionalParams from '../AdditionalParams/index';
@@ -16,8 +16,6 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const dropdownTippyRef = useRef();
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const { isSensitive } = useDetectSensitiveField(collection);
   const oAuth = get(request, 'auth.oauth2', {});
 
@@ -42,33 +40,6 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
   const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
 
   const handleSave = () => { save(); };
-
-  const TokenSourceIcon = useMemo(() => forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {tokenSource === 'id_token' ? 'ID Token' : 'Access Token'}
-        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
-      </div>
-    );
-  }), [tokenSource]);
-
-  const TokenPlacementIcon = useMemo(() => forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {tokenPlacement == 'url' ? 'URL' : 'Headers'}
-        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
-      </div>
-    );
-  }), [tokenPlacement]);
-
-  const CredentialsPlacementIcon = useMemo(() => forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {credentialsPlacement == 'body' ? 'Request Body' : 'Basic Auth Header'}
-        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
-      </div>
-    );
-  }), [credentialsPlacement]);
 
   const handleChange = (key, value) => {
     dispatch(
@@ -137,26 +108,19 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
       <div className="flex items-center gap-4 w-full" key="input-credentials-placement">
         <label className="block min-w-[140px]">Add Credentials to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
-          <Dropdown onCreate={onDropdownCreate} icon={<CredentialsPlacementIcon />} placement="bottom-end">
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('credentialsPlacement', 'body');
-              }}
-            >
-              Request Body
+          <MenuDropdown
+            items={[
+              { id: 'body', label: 'Request Body', onClick: () => handleChange('credentialsPlacement', 'body') },
+              { id: 'basic_auth_header', label: 'Basic Auth Header', onClick: () => handleChange('credentialsPlacement', 'basic_auth_header') }
+            ]}
+            selectedItemId={credentialsPlacement}
+            placement="bottom-end"
+          >
+            <div className="flex items-center justify-end token-placement-label select-none">
+              {credentialsPlacement == 'body' ? 'Request Body' : 'Basic Auth Header'}
+              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('credentialsPlacement', 'basic_auth_header');
-              }}
-            >
-              Basic Auth Header
-            </div>
-          </Dropdown>
+          </MenuDropdown>
         </div>
       </div>
       <div className="flex items-center gap-2.5 mt-2">
@@ -170,26 +134,19 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
       <div className="flex items-center gap-4 w-full" key="input-token-type">
         <label className="block min-w-[140px]">Token Source</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
-          <Dropdown onCreate={onDropdownCreate} icon={<TokenSourceIcon />} placement="bottom-end">
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('tokenSource', 'access_token');
-              }}
-            >
-              Access Token
+          <MenuDropdown
+            items={[
+              { id: 'access_token', label: 'Access Token', onClick: () => handleChange('tokenSource', 'access_token') },
+              { id: 'id_token', label: 'ID Token', onClick: () => handleChange('tokenSource', 'id_token') }
+            ]}
+            selectedItemId={tokenSource}
+            placement="bottom-end"
+          >
+            <div className="flex items-center justify-end token-placement-label select-none">
+              {tokenSource === 'id_token' ? 'ID Token' : 'Access Token'}
+              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('tokenSource', 'id_token');
-              }}
-            >
-              ID Token
-            </div>
-          </Dropdown>
+          </MenuDropdown>
         </div>
       </div>
       <div className="flex items-center gap-4 w-full" key="input-token-name">
@@ -210,26 +167,19 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
       <div className="flex items-center gap-4 w-full" key="input-token-placement">
         <label className="block min-w-[140px]">Add token to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector w-fit">
-          <Dropdown onCreate={onDropdownCreate} icon={<TokenPlacementIcon />} placement="bottom-end">
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('tokenPlacement', 'header');
-              }}
-            >
-              Header
+          <MenuDropdown
+            items={[
+              { id: 'header', label: 'Header', onClick: () => handleChange('tokenPlacement', 'header') },
+              { id: 'url', label: 'URL', onClick: () => handleChange('tokenPlacement', 'url') }
+            ]}
+            selectedItemId={tokenPlacement}
+            placement="bottom-end"
+          >
+            <div className="flex items-center justify-end token-placement-label select-none">
+              {tokenPlacement == 'url' ? 'URL' : 'Headers'}
+              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('tokenPlacement', 'url');
-              }}
-            >
-              URL
-            </div>
-          </Dropdown>
+          </MenuDropdown>
         </div>
       </div>
       {
