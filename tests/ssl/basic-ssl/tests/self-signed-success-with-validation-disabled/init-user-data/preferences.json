@@ -6,15 +6,15 @@
       "hasLaunchedBefore": true,
       "hasSeenWelcomeModal": true
     },
-		"request": {
-			"sslVerification": false,
-			"customCaCertificate": {
-				"enabled": false,
-				"filePath": ""
-			},
-			"keepDefaultCaCertificates": {
-				"enabled": true
-			}
-		}
+    "request": {
+      "sslVerification": false,
+      "customCaCertificate": {
+        "enabled": false,
+        "filePath": ""
+      },
+      "keepDefaultCaCertificates": {
+        "enabled": true
+      }
+    }
   }
 }

@@ -6,8 +6,8 @@
       "hasLaunchedBefore": true,
       "hasSeenWelcomeModal": true
     },
-		"general": {
-			"defaultLocation": "/tmp/bruno-collections"
-		}
+    "general": {
+      "defaultLocation": "/tmp/bruno-collections"
+    }
   }
 }

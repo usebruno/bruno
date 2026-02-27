@@ -1,16 +1,16 @@
 {
-    "maximized": false,
-    "lastOpenedCollections": [
-        "{{collectionPath}}"
-    ],
-    "preferences": {
+  "maximized": false,
+  "lastOpenedCollections": [
+    "{{collectionPath}}"
+  ],
+  "preferences": {
     "onboarding": {
       "hasLaunchedBefore": true,
       "hasSeenWelcomeModal": true
     },
-        "beta": {
-            "grpc": true,
-            "nodevm": false
-        }
+    "beta": {
+      "grpc": true,
+      "nodevm": false
     }
+  }
 }

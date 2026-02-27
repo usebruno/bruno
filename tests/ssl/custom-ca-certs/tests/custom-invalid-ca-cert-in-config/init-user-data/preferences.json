@@ -6,15 +6,15 @@
       "hasLaunchedBefore": true,
       "hasSeenWelcomeModal": true
     },
-		"request": {
-			"sslVerification": true,
-			"customCaCertificate": {
-				"enabled": true,
-				"filePath": "{{projectRoot}}/tests/ssl/custom-ca-certs/server/certs/ca-key.pem"
-			},
-			"keepDefaultCaCertificates": {
-				"enabled": false
-			}
-		}
+    "request": {
+      "sslVerification": true,
+      "customCaCertificate": {
+        "enabled": true,
+        "filePath": "{{projectRoot}}/tests/ssl/custom-ca-certs/server/certs/ca-key.pem"
+      },
+      "keepDefaultCaCertificates": {
+        "enabled": false
+      }
+    }
   }
 }
