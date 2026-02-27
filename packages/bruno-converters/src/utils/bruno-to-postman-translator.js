@@ -13,13 +13,16 @@ const j = require('jscodeshift');
  * Simple 1:1 translations from Bruno helpers to Postman helpers.
  * These are direct member expression replacements.
  */
+// TODO: Restore the commented-out translations once the UI update fixes are live.
+// Currently these APIs only work within the request lifecycle but fail to update the UI tables.
+// e.g., setCollectionVar only sets the variable in the request lifecycle, fails to update the table in the UI.
 const simpleTranslations = {
   // Global variables
   'bru.getGlobalEnvVar': 'pm.globals.get',
   'bru.setGlobalEnvVar': 'pm.globals.set',
-  'bru.deleteGlobalEnvVar': 'pm.globals.unset',
+  // 'bru.deleteGlobalEnvVar': 'pm.globals.unset',
   'bru.getAllGlobalEnvVars': 'pm.globals.toObject',
-  'bru.deleteAllGlobalEnvVars': 'pm.globals.clear',
+  // 'bru.deleteAllGlobalEnvVars': 'pm.globals.clear',
 
   // Environment variables
   'bru.getEnvVar': 'pm.environment.get',
@@ -40,11 +43,11 @@ const simpleTranslations = {
 
   // Collection variables
   'bru.getCollectionVar': 'pm.collectionVariables.get',
-  'bru.setCollectionVar': 'pm.collectionVariables.set',
+  // 'bru.setCollectionVar': 'pm.collectionVariables.set',
   'bru.hasCollectionVar': 'pm.collectionVariables.has',
-  'bru.deleteCollectionVar': 'pm.collectionVariables.unset',
-  'bru.getAllCollectionVars': 'pm.collectionVariables.toObject',
-  'bru.deleteAllCollectionVars': 'pm.collectionVariables.clear',
+  // 'bru.deleteCollectionVar': 'pm.collectionVariables.unset',
+  // 'bru.getAllCollectionVars': 'pm.collectionVariables.toObject',
+  // 'bru.deleteAllCollectionVars': 'pm.collectionVariables.clear',
 
   // Folder variables
   'bru.getFolderVar': 'pm.variables.get',
