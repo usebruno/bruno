@@ -1,13 +1,5 @@
 import { getAuthHeaders } from 'utils/codegenerator/auth';
 
-jest.mock('@usebruno/common/utils', () => {
-  const actual = jest.requireActual('@usebruno/common/utils');
-  return {
-    ...actual,
-    encodeUrl: actual.encodeUrl
-  };
-});
-
 jest.mock('httpsnippet', () => {
   return {
     HTTPSnippet: jest.fn().mockImplementation((harRequest) => ({

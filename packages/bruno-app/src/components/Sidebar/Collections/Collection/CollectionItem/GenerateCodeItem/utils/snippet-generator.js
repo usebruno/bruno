@@ -110,7 +110,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       }
     }
 
-    if (httpSnippetPath !== desiredPath) {
+    if (httpSnippetPath !== desiredPath && httpSnippetPath?.length > 1) {
       result = result.replaceAll(httpSnippetPath, desiredPath);
     }
 
