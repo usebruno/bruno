@@ -99,6 +99,31 @@ describe('formatResponse', () => {
     });
   });
 
+  describe('msgpack mode', () => {
+    it('should decode msgpack data and return a formatted string', () => {
+      const dataBuffer = Buffer.from([0x81, 0xa3, 0x66, 0x6f, 0x6f, 0xa3, 0x62, 0x61, 0x72]);
+      const result = formatResponse(null, dataBuffer.toString('base64'), 'msgpack');
+      expect(result).toBe(`{
+  "foo": "bar"
+}`);
+    });
+
+    it('should show raw data when invalid msgpack', () => {
+      const dataBuffer = Buffer.from([0x81, 0xa3, 0x66, 0x6f, 0x6f]);
+      const result = formatResponse(null, dataBuffer.toString('base64'), 'msgpack');
+      expect(result).toBe('��foo');
+    });
+
+    it('should show raw UTF-8 data when invalid msgpack for large responses', () => {
+      const invalidMsgpackData = 'This is invalid msgpack: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua';
+      const largeBuffer = createLargeBase64Buffer(invalidMsgpackData);
+      const result = formatResponse(null, largeBuffer, 'msgpack', undefined, 100);
+
+      expect(typeof result).toBe('string');
+      expect(result).toContain('Lorem ipsum');
+    });
+  });
+
   describe('other modes', () => {
     it('should handle string data for non-JSON/XML modes', () => {
       const data = 'plain text content';
