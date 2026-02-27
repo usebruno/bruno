@@ -325,8 +325,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
               icon={(
                 <button className="switcher-trigger">
                   <DisplayIcon size={18} strokeWidth={1.5} />
-                  <span className="switcher-name">{displayName}</span>
-                  {tabCount > 0 && <span className="tab-count">{tabCount}</span>}
+                  <span className={classNames('switcher-name', { 'scratch-collection': isScratchCollection })}>{displayName}</span>
                   <IconChevronDown size={14} strokeWidth={1.5} className="chevron" />
                 </button>
               )}
