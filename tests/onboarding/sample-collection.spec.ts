@@ -5,12 +5,26 @@ const env = {
   DISABLE_SAMPLE_COLLECTION_IMPORT: 'false'
 };
 
+// Helper to dismiss welcome modal if visible
+async function dismissWelcomeModalIfVisible(page: any) {
+  const welcomeModal = page.getByTestId('welcome-modal');
+  const isVisible = await welcomeModal.isVisible().catch(() => false);
+  if (isVisible) {
+    await page.getByRole('button', { name: 'Skip' }).click();
+    await expect(welcomeModal).not.toBeVisible();
+  }
+}
+
 test.describe('Onboarding', () => {
   test('should create sample collection on first launch', async ({ launchElectronApp, createTmpDir }) => {
     // Use a fresh app instance to avoid contamination from previous tests
     const userDataPath = await createTmpDir('onboarding-fresh');
     const app = await launchElectronApp({ userDataPath, dotEnv: env });
     const page = await app.firstWindow();
+
+    // Wait for app to load and dismiss welcome modal
+    await page.locator('[data-app-state="loaded"]').waitFor();
+    await dismissWelcomeModalIfVisible(page);
 
     // Verify sample collection appears in sidebar
     const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
@@ -36,6 +50,10 @@ test.describe('Onboarding', () => {
     const userDataPath = await createTmpDir('duplicate-collections');
     const app = await launchElectronApp({ userDataPath, dotEnv: env });
     const page = await app.firstWindow();
+
+    // Wait for app to load and dismiss welcome modal
+    await page.locator('[data-app-state="loaded"]').waitFor();
+    await dismissWelcomeModalIfVisible(page);
 
     // First launch - verify sample collection is created
     const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
@@ -78,6 +96,10 @@ test.describe('Onboarding', () => {
     const userDataPath = await createTmpDir('first-launch');
     const app = await launchElectronApp({ userDataPath, dotEnv: env });
     const page = await app.firstWindow();
+
+    // Wait for app to load and dismiss welcome modal
+    await page.locator('[data-app-state="loaded"]').waitFor();
+    await dismissWelcomeModalIfVisible(page);
 
     // First launch - sample collection should be created
     const sampleCollection = page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'Sample API Collection' });
