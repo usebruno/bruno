@@ -96,6 +96,24 @@ const MULTI_BLOCK_YML = [
   '        });'
 ].join('\n');
 
+// Collection/folder yml : scripts at request.scripts
+// blockStartLine: before-request = 5, tests = 9
+const COLLECTION_YML = [
+  'info:',
+  '  name: test-collection',
+  'request:',
+  '  scripts:',
+  '    - type: before-request',
+  '      code: |-',
+  '        const abc = fc()',
+  '        const x = bru.getVar(\'x\');',
+  '    - type: tests',
+  '      code: |-',
+  '        test("example", function() {',
+  '          expect(true).to.be.true;',
+  '        });'
+].join('\n');
+
 // Wrapper offsets: QuickJS = 9 (script line 1 = VM line 10), NodeVM = 2 (script line 1 = VM line 3)
 
 describe('Error Formatter', () => {
@@ -103,15 +121,18 @@ describe('Error Formatter', () => {
   let bruFilePath;
   let ymlFilePath;
   let bruWithCommentsPath;
+  let collectionYmlPath;
 
   beforeEach(() => {
     testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-test-'));
     bruFilePath = path.join(testDir, 'test.bru');
     ymlFilePath = path.join(testDir, 'test.yml');
     bruWithCommentsPath = path.join(testDir, 'comments.bru');
+    collectionYmlPath = path.join(testDir, 'opencollection.yml');
     fs.writeFileSync(bruFilePath, MULTI_BLOCK_BRU);
     fs.writeFileSync(ymlFilePath, MULTI_BLOCK_YML);
     fs.writeFileSync(bruWithCommentsPath, BRU_WITH_COMMENTS);
+    fs.writeFileSync(collectionYmlPath, COLLECTION_YML);
   });
 
   afterEach(() => {
@@ -138,6 +159,11 @@ describe('Error Formatter', () => {
       expect(findYmlScriptBlockStartLine(ymlFilePath, 'pre-request')).toBe(8);
       expect(findYmlScriptBlockStartLine(ymlFilePath, 'post-response')).toBe(12);
       expect(findYmlScriptBlockStartLine(ymlFilePath, 'test')).toBe(16);
+    });
+
+    it('should find script blocks in collection/folder yml files (request.scripts path)', () => {
+      expect(findYmlScriptBlockStartLine(collectionYmlPath, 'pre-request')).toBe(7);
+      expect(findYmlScriptBlockStartLine(collectionYmlPath, 'test')).toBe(11);
     });
 
     it('should return null for missing block or non-.yml files', () => {
@@ -327,6 +353,28 @@ describe('Error Formatter', () => {
       const formatted = formatErrorWithContext(error, 'test.bru', 'pre-request', 5, metadata);
       expect(formatted).toContain('File: folder2/folder.bru');
       expect(formatted).toContain('b.pop()');
+    });
+
+    it('should resolve collection yml segment errors to opencollection.yml', () => {
+      const error = new Error('\'fc\' is not defined');
+      error.name = 'ReferenceError';
+      error.__isQuickJS = true;
+      // QuickJS offset=9, scriptRelativeLine = 11-9 = 2 → falls in collection segment [1,4]
+      error.stack = `ReferenceError: 'fc' is not defined\n    at <anonymous> (${ymlFilePath}:11)`;
+
+      const metadata = {
+        requestStartLine: 6,
+        requestEndLine: 8,
+        segments: [
+          { startLine: 1, endLine: 4, filePath: collectionYmlPath, displayPath: 'opencollection.yml' }
+        ]
+      };
+
+      const formatted = formatErrorWithContext(error, 'test.yml', 'pre-request', 5, metadata);
+      expect(formatted).toContain('File: opencollection.yml');
+      expect(formatted).toContain('\'fc\' is not defined');
+      const arrowLine = formatted.split('\n').find((l) => l.startsWith('>'));
+      expect(arrowLine).toContain('fc()');
     });
 
     it('should handle edge cases gracefully', () => {

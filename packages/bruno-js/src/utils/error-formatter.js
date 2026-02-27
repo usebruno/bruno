@@ -82,17 +82,22 @@ const findYmlScriptBlockStartLine = (filePath, scriptType, cache = null) => {
     const lineCounter = new YAML.LineCounter();
     const doc = YAML.parseDocument(content, { lineCounter });
 
-    const scripts = doc.getIn(['runtime', 'scripts'], true);
-    if (YAML.isSeq(scripts)) {
-      for (const item of scripts.items) {
-        if (!YAML.isMap(item)) continue;
-        if (item.get('type') === ymlType) {
-          const codeNode = item.get('code', true);
-          if (codeNode && codeNode.range) {
-            result = lineCounter.linePos(codeNode.range[0]).line + 1;
-            break;
+    // Request yml files use runtime.scripts, collection/folder yml files use request.scripts
+    const scriptPaths = [['runtime', 'scripts'], ['request', 'scripts']];
+    for (const scriptPath of scriptPaths) {
+      const scripts = doc.getIn(scriptPath, true);
+      if (YAML.isSeq(scripts)) {
+        for (const item of scripts.items) {
+          if (!YAML.isMap(item)) continue;
+          if (item.get('type') === ymlType) {
+            const codeNode = item.get('code', true);
+            if (codeNode && codeNode.range) {
+              result = lineCounter.linePos(codeNode.range[0]).line + 1;
+              break;
+            }
           }
         }
+        if (result) break;
       }
     }
   } catch {
