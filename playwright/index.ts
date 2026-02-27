@@ -172,20 +172,25 @@ export const test = baseTest.extend<
           }
         } else {
           // No initUserDataPath provided: create default preferences to skip onboarding
-          // This prevents the welcome modal from blocking tests that don't need user data setup
-          const defaultPreferences = {
-            preferences: {
-              onboarding: {
-                hasLaunchedBefore: true,
-                hasSeenWelcomeModal: true
+          // BUT only if preferences.json doesn't already exist
+          const prefsPath = path.join(userDataPath, 'preferences.json');
+          const prefsExist = await existsAsync(prefsPath);
+
+          if (!prefsExist) {
+            const defaultPreferences = {
+              preferences: {
+                onboarding: {
+                  hasLaunchedBefore: true,
+                  hasSeenWelcomeModal: true
+                }
               }
-            }
-          };
-          await fs.promises.writeFile(
-            path.join(userDataPath, 'preferences.json'),
-            JSON.stringify(defaultPreferences, null, 2),
-            'utf-8'
-          );
+            };
+            await fs.promises.writeFile(
+              prefsPath,
+              JSON.stringify(defaultPreferences, null, 2),
+              'utf-8'
+            );
+          }
         }
 
         const app = await playwright._electron.launch({
