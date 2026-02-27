@@ -4,8 +4,7 @@ const StyledWrapper = styled.div`
   color: ${(props) => props.theme.text};
 
   .zoom-field {
-    min-width: 120px;
-    max-width: 150px;
+    width: 120px;
     position: relative;
   }
 
@@ -17,23 +16,24 @@ const StyledWrapper = styled.div`
   }
 
   .custom-select {
-    width: 100%;
-    height: 2.25rem;
-    padding: 0 2rem 0 0.625rem;
+    width: 80px;
+    height: 35.89px;
+    padding: 0 0.5rem;
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
     background-color: ${(props) => props.theme.input.background};
     border: 1px solid ${(props) => props.theme.input.border};
-    border-radius: 0.375rem;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     color: ${(props) => props.theme.text};
     font-size: 0.875rem;
-    line-height: 1.25;
+    line-height: 1.5;
     transition: all 0.15s ease;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.5rem;
   }
 
   .custom-select:hover {
@@ -48,9 +48,11 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.input.border};
     flex-shrink: 0;
     transition: transform 0.15s ease;
+    margin-left: auto;
   }
 
   .dropdown-menu {
+    width: 80px;
     position: absolute;
     top: 100%;
     left: 0;
@@ -58,11 +60,17 @@ const StyledWrapper = styled.div`
     margin-top: 0.25rem;
     background-color: ${(props) => props.theme.input.background};
     border: 1px solid ${(props) => props.theme.input.border};
-    border-radius: 0.375rem;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     z-index: 50;
     max-height: 200px;
     overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .dropdown-menu::-webkit-scrollbar {
+    display: none;
   }
 
   .dropdown-option {
@@ -93,14 +101,13 @@ const StyledWrapper = styled.div`
   }
 
   .reset-btn {
-    padding: 0.5rem 1rem;
-    height: 2.25rem;
+    padding: 0.45rem 1rem;
     background: transparent;
     border: 1px solid ${(props) => props.theme.input.border};
-    border-radius: 0.375rem;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     color: ${(props) => props.theme.textLink};
     font-size: 0.875rem;
-    line-height: 1;
+    line-height: 1.5;
     cursor: pointer;
     transition: all 0.15s ease;
     white-space: nowrap;
