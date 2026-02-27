@@ -375,7 +375,7 @@ const exampleSchema = Yup.object({
     .strict()
     .nullable(),
   response: Yup.object({
-    status: Yup.string().nullable(),
+    status: Yup.number().nullable(),
     statusText: Yup.string().nullable(),
     headers: Yup.array().of(keyValueSchema).nullable(),
     body: Yup.object({
@@ -545,7 +545,7 @@ const itemSchema = Yup.object({
   type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request', 'ws-request']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
-  tags: Yup.array().of(Yup.string()),
+  tags: Yup.array().of(Yup.string().matches(/^[\p{L}\p{N}_-](?:[\p{L}\p{N}_\s-]*[\p{L}\p{N}_-])?$/u, 'tag must contain only letters, numbers, spaces, hyphens, or underscores')),
   request: Yup.mixed().when('type', {
     is: (type) => type === 'grpc-request',
     then: grpcRequestSchema.required('request is required when item-type is grpc-request'),

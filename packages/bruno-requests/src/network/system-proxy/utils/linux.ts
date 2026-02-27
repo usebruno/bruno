@@ -66,7 +66,7 @@ export class LinuxProxyResolver implements ProxyResolver {
       const cleanIgnoreHosts = ignoreHosts || '';
 
       const http_proxy = cleanHttpHost && cleanHttpPort ? normalizeProxyUrl(`${cleanHttpHost}:${cleanHttpPort}`) : null;
-      const https_proxy = cleanHttpsHost && cleanHttpsPort ? normalizeProxyUrl(`${cleanHttpsHost}:${cleanHttpsPort}`, 'https') : null;
+      const https_proxy = cleanHttpsHost && cleanHttpsPort ? normalizeProxyUrl(`${cleanHttpsHost}:${cleanHttpsPort}`) : null;
 
       const rawNoProxy = cleanIgnoreHosts !== '[]' ? cleanIgnoreHosts.replace(/[\[\]']/g, '').replace(/,\s*/g, ',') : null;
 
@@ -107,7 +107,7 @@ export class LinuxProxyResolver implements ProxyResolver {
       const cleanNoProxy = noProxy || '';
 
       const http_proxy = cleanHttpProxy ? normalizeProxyUrl(cleanHttpProxy) : null;
-      const https_proxy = cleanHttpsProxy ? normalizeProxyUrl(cleanHttpsProxy, 'https') : null;
+      const https_proxy = cleanHttpsProxy ? normalizeProxyUrl(cleanHttpsProxy) : null;
 
       return {
         http_proxy,
@@ -210,7 +210,7 @@ export class LinuxProxyResolver implements ProxyResolver {
     const httpProxy = proxies.http_proxy || proxies.all_proxy || null;
     const httpsProxy = proxies.https_proxy || proxies.all_proxy || null;
     const http_proxy = httpProxy ? normalizeProxyUrl(httpProxy) : null;
-    const https_proxy = httpsProxy ? normalizeProxyUrl(httpsProxy, 'https') : null;
+    const https_proxy = httpsProxy ? normalizeProxyUrl(httpsProxy) : null;
     const no_proxy = proxies.no_proxy || null;
 
     if (http_proxy || https_proxy) {

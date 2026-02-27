@@ -95,7 +95,8 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
   // interpolate the path params
   const finalUrl = interpolateUrlPathParams(
     interpolatedUrl,
-    requestData.params
+    requestData.params,
+    variables
   );
 
   // Get the full language object based on current preferences
