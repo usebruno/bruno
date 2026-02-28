@@ -6,9 +6,13 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { savePreferences, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
-import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { createWorkspaceAction, openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
 import { focusTab } from 'providers/ReduxStore/slices/tabs';
+import { sanitizeName, generateUntitledName } from 'utils/common/regex';
+import path from 'utils/common/path';
+import get from 'lodash/get';
 
 import Bruno from 'components/Bruno';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -150,8 +154,31 @@ const AppTitleBar = () => {
     }
   };
 
-  const handleCreateWorkspace = () => {
-    setCreateWorkspaceModalOpen(true);
+  const handleCreateWorkspace = async () => {
+    const defaultLocation = get(preferences, 'general.defaultLocation', '');
+    if (!defaultLocation) {
+      setCreateWorkspaceModalOpen(true);
+      return;
+    }
+
+    const existingNames = workspaces.map((w) => w.name);
+    const existingFolders = workspaces
+      .filter((w) => w.pathname?.startsWith(defaultLocation))
+      .map((w) => path.basename(w.pathname));
+
+    const name = generateUntitledName('untitled workspace', existingNames, existingFolders);
+    const folderName = sanitizeName(name);
+
+    try {
+      const result = await dispatch(createWorkspaceAction(name, folderName, defaultLocation));
+      // Mark as newly created so titlebar auto-focuses the rename input
+      if (result?.workspaceUid) {
+        dispatch(updateWorkspace({ uid: result.workspaceUid, isNewlyCreated: true }));
+      }
+      toast.success('Workspace created!');
+    } catch (error) {
+      toast.error(error?.message || 'Failed to create workspace');
+    }
   };
 
   const handleManageWorkspaces = () => {

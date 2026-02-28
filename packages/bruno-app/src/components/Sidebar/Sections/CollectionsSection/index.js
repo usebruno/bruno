@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { setIsCreatingCollection } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
@@ -44,6 +45,7 @@ const CollectionsSection = () => {
 
   const { collections } = useSelector((state) => state.collections);
   const { collectionSortOrder } = useSelector((state) => state.collections);
+  const { isCreatingCollection } = useSelector((state) => state.app);
   const preferences = useSelector((state) => state.app.preferences);
   const [collectionsToClose, setCollectionsToClose] = useState([]);
 
@@ -179,13 +181,18 @@ const CollectionsSection = () => {
     });
   };
 
+  const handleOpenAdvancedCreate = () => {
+    dispatch(setIsCreatingCollection(false));
+    setCreateCollectionModalOpen(true);
+  };
+
   const addDropdownItems = [
     {
       id: 'create',
       leftSection: IconPlus,
       label: 'Create collection',
       onClick: () => {
-        setCreateCollectionModalOpen(true);
+        dispatch(setIsCreatingCollection(true));
       }
     },
     {
@@ -330,7 +337,13 @@ const CollectionsSection = () => {
         icon={IconBox}
         actions={sectionActions}
       >
-        <Collections showSearch={showSearch} />
+        <Collections
+          showSearch={showSearch}
+          isCreatingCollection={isCreatingCollection}
+          onCreateClick={() => dispatch(setIsCreatingCollection(true))}
+          onDismissCreate={() => dispatch(setIsCreatingCollection(false))}
+          onOpenAdvancedCreate={handleOpenAdvancedCreate}
+        />
       </SidebarSection>
     </>
   );

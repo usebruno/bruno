@@ -1,18 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import Collection from './Collection';
-import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
+import InlineCollectionCreator from './InlineCollectionCreator';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
 
-const Collections = ({ showSearch }) => {
+const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
   const { collections } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
 
@@ -30,24 +29,32 @@ const Collections = ({ showSearch }) => {
   if (!workspaceCollections || !workspaceCollections.length) {
     return (
       <StyledWrapper>
-        <CreateOrOpenCollection />
+        {isCreatingCollection && (
+          <InlineCollectionCreator
+            onComplete={onDismissCreate}
+            onCancel={onDismissCreate}
+            onOpenAdvanced={onOpenAdvancedCreate}
+          />
+        )}
+        {!isCreatingCollection && <CreateOrOpenCollection onCreateClick={onCreateClick} />}
       </StyledWrapper>
     );
   }
 
   return (
     <StyledWrapper data-testid="collections">
-      {createCollectionModalOpen ? (
-        <CreateCollection
-          onClose={() => setCreateCollectionModalOpen(false)}
-        />
-      ) : null}
-
       {showSearch && (
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
       )}
 
       <div className="collections-list">
+        {isCreatingCollection && (
+          <InlineCollectionCreator
+            onComplete={onDismissCreate}
+            onCancel={onDismissCreate}
+            onOpenAdvanced={onOpenAdvancedCreate}
+          />
+        )}
         {workspaceCollections && workspaceCollections.length
           ? workspaceCollections.map((c) => {
               return (
