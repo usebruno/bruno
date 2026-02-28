@@ -258,6 +258,7 @@ const nordTheme = {
     },
     responseStatus: colors.NORD4,
     responseOk: colors.NORD14,
+    responseWarning: colors.NORD13,
     responseError: colors.NORD11,
     responsePending: colors.NORD8,
     responseOverlayBg: 'rgba(46, 52, 64, 0.6)',
