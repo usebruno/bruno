@@ -1,6 +1,7 @@
 import classnames from 'classnames';
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
+import { REQUEST_TYPES } from 'utils/common/constants';
 
 const getMethodFlags = (item) => ({
   isGrpc: item.type === 'grpc-request',
@@ -34,7 +35,7 @@ const getClassname = (method = '', { isGrpc, isWS, isGraphQL }) => {
 };
 
 const RequestMethod = ({ item }) => {
-  if (!['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
+  if (![REQUEST_TYPES.HTTP_REQUEST, REQUEST_TYPES.GRAPHQL_REQUEST, REQUEST_TYPES.GRPC_REQUEST, REQUEST_TYPES.WS_REQUEST].includes(item.type)) {
     return null;
   }
 

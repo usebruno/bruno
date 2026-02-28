@@ -12,6 +12,7 @@ import { getInitialExampleName } from 'utils/collections/index';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import ActionIcon from 'ui/ActionIcon/index';
+import { REQUEST_TYPES } from 'utils/common/constants';
 
 const getTitleText = ({ isResponseTooLarge, isStreamingResponse }) => {
   if (isStreamingResponse) {
@@ -41,7 +42,7 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
   }), [isDisabled]);
 
   // Only show for HTTP requests
-  if (item.type !== 'http-request') {
+  if (item.type !== REQUEST_TYPES.HTTP_REQUEST) {
     return null;
   }
 

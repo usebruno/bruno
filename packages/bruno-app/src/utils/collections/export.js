@@ -2,12 +2,13 @@ import * as FileSaver from 'file-saver';
 import get from 'lodash/get';
 import each from 'lodash/each';
 import { filterTransientItems } from 'utils/collections';
+import { REQUEST_TYPES } from 'utils/common/constants';
 
 export const deleteUidsInItems = (items) => {
   each(items, (item) => {
     delete item.uid;
 
-    if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
+    if ([REQUEST_TYPES.HTTP_REQUEST, REQUEST_TYPES.GRAPHQL_REQUEST, REQUEST_TYPES.GRPC_REQUEST].includes(item.type)) {
       each(get(item, 'request.headers'), (header) => delete header.uid);
       each(get(item, 'request.params'), (param) => delete param.uid);
       each(get(item, 'request.vars.req'), (v) => delete v.uid);
@@ -41,32 +42,32 @@ export const deleteUidsInItems = (items) => {
  */
 export const transformItem = (items = []) => {
   each(items, (item) => {
-    if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-      if (item.type === 'graphql-request') {
+    if ([REQUEST_TYPES.GRAPHQL_REQUEST, REQUEST_TYPES.HTTP_REQUEST, REQUEST_TYPES.GRPC_REQUEST, REQUEST_TYPES.WS_REQUEST].includes(item.type)) {
+      if (item.type === REQUEST_TYPES.GRAPHQL_REQUEST) {
         item.type = 'graphql';
       }
 
-      if (item.type === 'http-request') {
+      if (item.type === REQUEST_TYPES.HTTP_REQUEST) {
         item.type = 'http';
       }
 
-      if (item.type === 'grpc-request') {
+      if (item.type === REQUEST_TYPES.GRPC_REQUEST) {
         item.type = 'grpc';
       }
 
-      if (item.type === 'ws-request') {
+      if (item.type === REQUEST_TYPES.WS_REQUEST) {
         item.type = 'ws';
       }
     }
 
     each(get(item, 'examples'), (example) => {
-      if (example.type === 'graphql-request') {
+      if (example.type === REQUEST_TYPES.GRAPHQL_REQUEST) {
         example.type = 'graphql';
-      } else if (example.type === 'http-request') {
+      } else if (example.type === REQUEST_TYPES.HTTP_REQUEST) {
         example.type = 'http';
-      } else if (example.type === 'grpc-request') {
+      } else if (example.type === REQUEST_TYPES.GRPC_REQUEST) {
         example.type = 'grpc';
-      } else if (example.type === 'ws-request') {
+      } else if (example.type === REQUEST_TYPES.WS_REQUEST) {
         example.type = 'ws';
       }
     });

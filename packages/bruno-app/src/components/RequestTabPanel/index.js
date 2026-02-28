@@ -36,6 +36,7 @@ import WorkspaceOverview from 'components/WorkspaceHome/WorkspaceOverview';
 import Preferences from 'components/Preferences';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
+import { REQUEST_TYPES } from 'utils/common/constants';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 490;
@@ -300,7 +301,7 @@ const RequestTabPanel = () => {
 
   const renderRequestPane = () => {
     switch (item.type) {
-      case 'graphql-request':
+      case REQUEST_TYPES.GRAPHQL_REQUEST:
         return (
           <GraphQLRequestPane
             item={item}
@@ -310,11 +311,11 @@ const RequestTabPanel = () => {
             handleGqlClickReference={handleGqlClickReference}
           />
         );
-      case 'http-request':
+      case REQUEST_TYPES.HTTP_REQUEST:
         return <HttpRequestPane item={item} collection={collection} />;
-      case 'grpc-request':
+      case REQUEST_TYPES.GRPC_REQUEST:
         return <GrpcRequestPane item={item} collection={collection} handleRun={handleRun} />;
-      case 'ws-request':
+      case REQUEST_TYPES.WS_REQUEST:
         return <WSRequestPane item={item} collection={collection} handleRun={handleRun} />;
       default:
         return null;
@@ -323,9 +324,9 @@ const RequestTabPanel = () => {
 
   const renderResponsePane = () => {
     switch (item.type) {
-      case 'grpc-request':
+      case REQUEST_TYPES.GRPC_REQUEST:
         return <GrpcResponsePane item={item} collection={collection} response={item.response} />;
-      case 'ws-request':
+      case REQUEST_TYPES.WS_REQUEST:
         return <WSResponsePane item={item} collection={collection} response={item.response} />;
       default:
         return <ResponsePane item={item} collection={collection} response={item.response} />;

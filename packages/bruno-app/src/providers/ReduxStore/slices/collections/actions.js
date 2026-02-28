@@ -1061,7 +1061,7 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
         .then(async () => {
           // Reorder items in parent directory after deletion
           if (parentDirectoryItem.items) {
-            const requestAndFolderTypes = [...REQUEST_TYPES, 'folder'];
+            const requestAndFolderTypes = [...Object.values(REQUEST_TYPES), 'folder'];
             const directoryItemsWithOnlyRequestAndFolders = parentDirectoryItem.items.filter((i) => requestAndFolderTypes.includes(i.type));
             const directoryItemsWithoutDeletedItem = directoryItemsWithOnlyRequestAndFolders.filter((i) => i.uid !== itemUid);
             const reorderedSourceItems = getReorderedItemsInSourceDirectory({
