@@ -1,0 +1,10 @@
+{
+  "collections": [
+    {
+      "path": "{{projectRoot}}/tests/response/json-base64-preview/fixtures/collection",
+      "securityConfig": {
+        "jsSandboxMode": "safe"
+      }
+    }
+  ]
+}

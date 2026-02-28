@@ -1,12 +1,15 @@
 import { debounce } from 'lodash';
 import { useTheme } from 'providers/Theme/index';
 import React, { useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
+import get from 'lodash/get';
 import { formatResponse, getContentType } from 'utils/common';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
 import LargeResponseWarning from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
+import useJsonBase64Preview from './useJsonBase64Preview';
 
 // Raw format options (for byte format types)
 const RAW_FORMAT_OPTIONS = [
@@ -104,6 +107,8 @@ const QueryResult = ({
   const [filter, setFilter] = useState(null);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
   const { displayedTheme } = useTheme();
+  const preferences = useSelector((state) => state.app.preferences);
+  const isJsonBase64PreviewEnabled = get(preferences, 'beta.jsonBase64Preview', false);
 
   const responseSize = useMemo(() => {
     const response = item.response || {};
@@ -120,18 +125,29 @@ const QueryResult = ({
 
   const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
 
-  const detectedContentType = useMemo(() => {
-    return detectContentTypeFromBase64(dataBuffer);
-  }, [dataBuffer, isLargeResponse]);
+  const {
+    binarySourcePath,
+    setBinarySourcePath,
+    binarySourceFilterEnabled,
+    binaryMimeType,
+    effectiveDataBuffer,
+    detectedContentType
+  } = useJsonBase64Preview({
+    data,
+    dataBuffer,
+    selectedFormat,
+    selectedTab,
+    isEnabled: isJsonBase64PreviewEnabled
+  });
 
   const formattedData = useMemo(
     () => {
       if (isLargeResponse && !showLargeResponse) {
         return '';
       }
-      return formatResponse(data, dataBuffer, selectedFormat, filter);
+      return formatResponse(data, effectiveDataBuffer, selectedFormat, filter);
     },
-    [data, dataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse]
+    [data, effectiveDataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse]
   );
 
   const debouncedResultFilterOnChange = debounce((e) => {
@@ -139,6 +155,9 @@ const QueryResult = ({
   }, 250);
 
   const previewMode = useMemo(() => {
+    const previewContentType = selectedTab === 'preview'
+      ? (binaryMimeType || detectedContentType)
+      : detectedContentType;
     // Derive preview mode based on selected format
     if (selectedFormat === 'html') return 'preview-web';
     if (selectedFormat === 'json') return 'preview-json';
@@ -148,17 +167,17 @@ const QueryResult = ({
 
     // For base64/hex, check content type to determine binary preview type
     if (selectedFormat === 'base64' || selectedFormat === 'hex') {
-      if (detectedContentType) {
-        if (detectedContentType.includes('image')) return 'preview-image';
-        if (detectedContentType.includes('pdf')) return 'preview-pdf';
-        if (detectedContentType.includes('audio')) return 'preview-audio';
-        if (detectedContentType.includes('video')) return 'preview-video';
+      if (previewContentType) {
+        if (previewContentType.includes('image')) return 'preview-image';
+        if (previewContentType.includes('pdf')) return 'preview-pdf';
+        if (previewContentType.includes('audio')) return 'preview-audio';
+        if (previewContentType.includes('video')) return 'preview-video';
       }
       // for all other content types, return preview-text
       return 'preview-text';
     }
     return 'preview-text';
-  }, [selectedFormat, detectedContentType]);
+  }, [selectedFormat, detectedContentType, binaryMimeType]);
 
   const codeMirrorMode = useMemo(() => {
     // Find the codeMirrorMode from PREVIEW_FORMAT_OPTIONS (contains all format options)
@@ -167,7 +186,9 @@ const QueryResult = ({
       .find((option) => option.id === selectedFormat)?.codeMirrorMode || 'text/plain';
   }, [selectedFormat]);
 
-  const queryFilterEnabled = useMemo(() => codeMirrorMode.includes('json') && selectedFormat === 'json' && selectedTab === 'editor', [codeMirrorMode, selectedFormat, selectedTab]);
+  const queryFilterEnabled = useMemo(() => {
+    return codeMirrorMode.includes('json') && selectedFormat === 'json' && selectedTab === 'editor';
+  }, [codeMirrorMode, selectedFormat, selectedTab]);
   const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
 
   return (
@@ -201,10 +222,10 @@ const QueryResult = ({
               <QueryResultPreview
                 selectedTab={selectedTab}
                 data={data}
-                dataBuffer={dataBuffer}
+                dataBuffer={effectiveDataBuffer}
                 formattedData={formattedData}
                 item={item}
-                contentType={detectedContentType ?? contentType}
+                contentType={binaryMimeType || (detectedContentType ?? contentType)}
                 previewMode={previewMode}
                 codeMirrorMode={codeMirrorMode}
                 collection={collection}
@@ -214,6 +235,17 @@ const QueryResult = ({
             </div>
             {queryFilterEnabled && (
               <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={codeMirrorMode} />
+            )}
+            {binarySourceFilterEnabled && (
+              <QueryResultFilter
+                filter={binarySourcePath}
+                onChange={(event) => setBinarySourcePath(event.target.value)}
+                mode="application/ld+json"
+                placeholderText="Optional JSONPath (auto-detects if empty)"
+                infotipText="Binary source JSONPath (auto-detects if empty, uses $.mimeType when present)"
+                inputId="response-binary-source"
+                iconId="response-binary-source-icon"
+              />
             )}
           </div>
         </div>

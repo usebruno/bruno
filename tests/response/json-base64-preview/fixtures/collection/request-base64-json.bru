@@ -1,0 +1,18 @@
+meta {
+  name: request-base64-json
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8081/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "mimeType": "image/png",
+    "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/woAAgIB/1X2sQAAAABJRU5ErkJggg=="
+  }
+}
