@@ -539,10 +539,12 @@ export const collectionsSlice = createSlice({
             collection.timeline = [];
           }
 
+          const timelineRequest = action.payload.requestSent || item.requestSent || item.request;
+
           // Ensure timestamp is a number (milliseconds since epoch)
-          const timestamp = item?.requestSent?.timestamp instanceof Date
-            ? item.requestSent.timestamp.getTime()
-            : item?.requestSent?.timestamp || Date.now();
+          const timestamp = timelineRequest?.timestamp instanceof Date
+            ? timelineRequest.timestamp.getTime()
+            : timelineRequest?.timestamp || Date.now();
 
           // Append the new timeline entry with numeric timestamp
           collection.timeline.push({
@@ -552,7 +554,7 @@ export const collectionsSlice = createSlice({
             itemUid: item.uid,
             timestamp: timestamp,
             data: {
-              request: item.requestSent || item.request,
+              request: timelineRequest,
               response: action.payload.response,
               timestamp: timestamp
             }
