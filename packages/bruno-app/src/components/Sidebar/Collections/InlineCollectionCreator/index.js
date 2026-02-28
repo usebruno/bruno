@@ -51,18 +51,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
     onCancel();
   }, [isCreating, onCancel]);
 
-  // Click outside to cancel
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        handleCancel();
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [handleCancel]);
-
-  const handleCreate = async () => {
+  const handleCreate = useCallback(async () => {
     if (isCreating || openingAdvancedRef.current) return;
 
     const name = inputRef.current?.value?.trim();
@@ -92,7 +81,18 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
       toast.error(multiLineMsg('An error occurred while creating the collection', formatIpcError(e)));
       setIsCreating(false);
     }
-  };
+  }, [isCreating, defaultLocation, dispatch, onCancel, onComplete]);
+
+  // Click outside to create
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        handleCreate();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [handleCreate]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
