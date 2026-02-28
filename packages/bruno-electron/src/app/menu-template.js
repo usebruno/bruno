@@ -1,4 +1,4 @@
-const { ipcMain } = require('electron');
+const { ipcMain, shell } = require('electron');
 const os = require('os');
 const { BrowserWindow } = require('electron');
 const { version } = require('../../package.json');
@@ -103,6 +103,17 @@ const template = [
             webPreferences: {
               nodeIntegration: true
             }
+          });
+          aboutWindow.webContents.setWindowOpenHandler(({ url }) => {
+            try {
+              const { protocol } = new URL(url);
+              if (['https:', 'http:'].includes(protocol)) {
+                shell.openExternal(url);
+              }
+            } catch (e) {
+              console.error(e);
+            }
+            return { action: 'deny' };
           });
           aboutWindow.removeMenu();
           aboutWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(aboutBruno({ version }))}`);
