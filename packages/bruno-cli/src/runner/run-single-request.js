@@ -72,7 +72,8 @@ const extractPromptVariablesForRequest = ({ request, collection, envVariables, r
 
   // client certificate config
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
-  for (let clientCert of clientCertConfig) {
+  const enabledCerts = clientCertConfig.filter((clientCert) => clientCert.enabled !== false);
+  for (const clientCert of enabledCerts) {
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
     if (domain) {
       const hostRegex = getCACertHostRegex(domain);
@@ -356,7 +357,8 @@ const runSingleRequest = async function (
 
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
-    for (let clientCert of clientCertConfig) {
+    const enabledCerts = clientCertConfig.filter((clientCert) => clientCert.enabled !== false);
+    for (const clientCert of enabledCerts) {
       const domain = interpolateString(clientCert?.domain, interpolationOptions);
       const type = clientCert?.type || 'cert';
       if (domain) {
