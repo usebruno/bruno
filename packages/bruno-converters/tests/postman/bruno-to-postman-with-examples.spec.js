@@ -44,7 +44,7 @@ describe('Bruno to Postman Converter with Examples', () => {
                 }
               },
               response: {
-                status: '200',
+                status: 200,
                 statusText: 'OK',
                 headers: [
                   {
@@ -84,7 +84,7 @@ describe('Bruno to Postman Converter with Examples', () => {
                 }
               },
               response: {
-                status: '500',
+                status: 500,
                 statusText: 'Internal Server Error',
                 headers: [
                   {
@@ -151,7 +151,7 @@ describe('Bruno to Postman Converter with Examples', () => {
                 }
               },
               response: {
-                status: '201',
+                status: 201,
                 statusText: 'Created',
                 headers: [
                   {
@@ -197,7 +197,7 @@ describe('Bruno to Postman Converter with Examples', () => {
     const successResponse = getUsersRequest.response[0];
     expect(successResponse.name).toBe('Success Response');
     expect(successResponse.status).toBe('OK');
-    expect(successResponse.code).toBe(200);
+    expect(successResponse.code).toEqual(200);
     expect(successResponse._postman_previewlanguage).toBe('json');
     expect(successResponse.header).toHaveLength(1);
     expect(successResponse.header[0].key).toBe('Content-Type');
@@ -239,7 +239,7 @@ describe('Bruno to Postman Converter with Examples', () => {
     const createdResponse = createUserRequest.response[0];
     expect(createdResponse.name).toBe('User Created');
     expect(createdResponse.status).toBe('Created');
-    expect(createdResponse.code).toBe(201);
+    expect(createdResponse.code).toEqual(201);
     expect(JSON.parse(createdResponse.body)).toEqual({
       id: 123,
       name: 'New User',
@@ -343,7 +343,7 @@ describe('Bruno to Postman Converter with Examples', () => {
                 body: { mode: 'none' }
               },
               response: {
-                status: '200',
+                status: 200,
                 statusText: 'OK',
                 headers: [
                   {
@@ -369,7 +369,7 @@ describe('Bruno to Postman Converter with Examples', () => {
                 body: { mode: 'none' }
               },
               response: {
-                status: '200',
+                status: 200,
                 statusText: 'OK',
                 headers: [
                   {
@@ -440,7 +440,7 @@ describe('Bruno to Postman Converter with Examples', () => {
                     body: { mode: 'none' }
                   },
                   response: {
-                    status: '200',
+                    status: 200,
                     statusText: 'OK',
                     headers: [
                       {

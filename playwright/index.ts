@@ -170,6 +170,27 @@ export const test = baseTest.extend<
             });
             await fs.promises.writeFile(path.join(userDataPath, file), content, 'utf-8');
           }
+        } else {
+          // No initUserDataPath provided: create default preferences to skip onboarding
+          // BUT only if preferences.json doesn't already exist
+          const prefsPath = path.join(userDataPath, 'preferences.json');
+          const prefsExist = await existsAsync(prefsPath);
+
+          if (!prefsExist) {
+            const defaultPreferences = {
+              preferences: {
+                onboarding: {
+                  hasLaunchedBefore: true,
+                  hasSeenWelcomeModal: true
+                }
+              }
+            };
+            await fs.promises.writeFile(
+              prefsPath,
+              JSON.stringify(defaultPreferences, null, 2),
+              'utf-8'
+            );
+          }
         }
 
         const app = await playwright._electron.launch({

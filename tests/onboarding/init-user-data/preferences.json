@@ -4,7 +4,8 @@
   ],
   "preferences": {
     "onboarding": {
-      "hasLaunchedBefore": true
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
     }
   }
 }

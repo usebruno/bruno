@@ -61,36 +61,28 @@ const template = [
     submenu: [
       { role: 'toggledevtools' },
       { type: 'separator' },
-      { type: 'separator' },
       {
-        label: 'Reset Zoom',
+        label: 'Actual Size',
+        accelerator: 'CommandOrControl+0',
         click() {
-          const focusedWindow = BrowserWindow.getFocusedWindow();
-          if (focusedWindow) {
-            focusedWindow.webContents.setZoomLevel(0);
-          }
+          ipcMain.emit('menu:reset-zoom');
         }
       },
       {
         label: 'Zoom In',
+        accelerator: 'CommandOrControl+Plus',
         click() {
-          const focusedWindow = BrowserWindow.getFocusedWindow();
-          if (focusedWindow) {
-            const current = focusedWindow.webContents.getZoomLevel();
-            focusedWindow.webContents.setZoomLevel(current + 0.5);
-          }
+          ipcMain.emit('menu:zoom-in');
         }
       },
       {
         label: 'Zoom Out',
+        accelerator: 'CommandOrControl+-',
         click() {
-          const focusedWindow = BrowserWindow.getFocusedWindow();
-          if (focusedWindow) {
-            const current = focusedWindow.webContents.getZoomLevel();
-            focusedWindow.webContents.setZoomLevel(current - 0.5);
-          }
+          ipcMain.emit('menu:zoom-out');
         }
       },
+      { type: 'separator' },
       { role: 'togglefullscreen' }
     ]
   },

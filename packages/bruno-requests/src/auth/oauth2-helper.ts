@@ -27,6 +27,7 @@ export interface OAuth2Config {
   credentialsId?: string;
   autoRefreshToken?: boolean;
   autoFetchToken?: boolean;
+  tokenSource?: 'access_token' | 'id_token';
   additionalParameters?: {
     token?: AdditionalParameter[];
   };
@@ -320,7 +321,8 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
     grantType,
     accessTokenUrl,
     credentialsId = 'default',
-    autoFetchToken = true
+    autoFetchToken = true,
+    tokenSource = 'access_token'
   } = oauth2Config;
 
   if (verbose) {
@@ -346,7 +348,7 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
     // Check if token is expired
     if (!isTokenExpired(existingToken)) {
       // Token is valid, use it
-      return existingToken.access_token;
+      return tokenSource === 'id_token' ? existingToken.id_token : existingToken.access_token;
     } else {
       // Token is expired
       if (autoFetchToken) {
@@ -354,7 +356,7 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
         await tokenStore.deleteCredential({ url: accessTokenUrl, credentialsId });
       } else {
         // Return expired token if autoFetchToken is disabled
-        return existingToken.access_token;
+        return tokenSource === 'id_token' ? existingToken.id_token : existingToken.access_token;
       }
     }
   } else {
@@ -393,5 +395,5 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
     console.warn('OAuth2: Failed to save token to store, but proceeding with token');
   }
 
-  return tokenResponse.access_token;
+  return tokenSource === 'id_token' ? tokenResponse.id_token : tokenResponse.access_token;
 };

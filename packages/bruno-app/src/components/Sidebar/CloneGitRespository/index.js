@@ -33,7 +33,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
   const defaultLocation = isDefaultWorkspace
-    ? get(preferences, 'general.defaultCollectionLocation', '')
+    ? get(preferences, 'general.defaultLocation', '')
     : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
   const inputRef = useRef();
   const dispatch = useDispatch();
