@@ -1,0 +1,43 @@
+meta {
+  name: legacy-set-next-request-target
+  type: http
+  seq: 302
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] Target request reached via legacy bru.setNextRequest() jump');
+    
+    // Mark that target was reached
+    bru.setVar('legacy-set-next-target-reached', 'true');
+    
+    console.log('[beforeRequest] Legacy target request starting');
+  });
+}
+
+tests {
+  test("target request should execute successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("target should have been reached via legacy API", function() {
+    const reached = bru.getVar('legacy-set-next-target-reached');
+    expect(reached).to.equal('true');
+  });
+  
+  test("first request should have run before jump", function() {
+    const firstRan = bru.getVar('legacy-set-next-first-ran');
+    expect(firstRan).to.equal('true');
+  });
+  
+  test("skipped request should NOT have run", function() {
+    const skippedRan = bru.getVar('legacy-set-next-skipped-ran');
+    expect(skippedRan).to.be.undefined;
+  });
+}

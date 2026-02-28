@@ -1,0 +1,47 @@
+meta {
+  name: error-in-sync-hook
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(() => {
+    console.log('[beforeRequest] About to throw error');
+    // Intentionally throw an error to test error handling
+    try {
+      throw new Error('Test error in sync hook');
+    } catch (error) {
+      bru.setVar('error-caught-in-hook', 'true');
+      bru.setVar('error-message', error.message);
+      console.log('[beforeRequest] Error caught:', error.message);
+    }
+  });
+  
+  bru.hooks.http.onAfterResponse(() => {
+    // This should still execute even if beforeRequest had an error
+    bru.setVar('afterResponse-executed', 'true');
+  });
+}
+
+tests {
+  test("error should have been caught in hook", function() {
+    const errorCaught = bru.getVar('error-caught-in-hook');
+    expect(errorCaught).to.equal('true');
+  });
+  
+  test("afterResponse should execute even if beforeRequest had error", function() {
+    const afterResponseExecuted = bru.getVar('afterResponse-executed');
+    expect(afterResponseExecuted).to.equal('true');
+  });
+  
+  test("request should still execute", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+

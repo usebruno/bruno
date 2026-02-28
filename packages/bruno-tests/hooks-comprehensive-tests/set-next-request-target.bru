@@ -1,0 +1,43 @@
+meta {
+  name: set-next-request-target
+  type: http
+  seq: 202
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] Target request reached via setNextRequest jump');
+    
+    // Mark that target was reached
+    bru.setVar('set-next-request-target-reached', 'true');
+    
+    console.log('[beforeRequest] Target request starting');
+  });
+}
+
+tests {
+  test("target request should execute successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("target should have been reached", function() {
+    const reached = bru.getVar('set-next-request-target-reached');
+    expect(reached).to.equal('true');
+  });
+  
+  test("first request should have run before jump", function() {
+    const firstRan = bru.getVar('set-next-request-first-ran');
+    expect(firstRan).to.equal('true');
+  });
+  
+  test("skipped request should NOT have run", function() {
+    const skippedRan = bru.getVar('set-next-request-skipped-ran');
+    expect(skippedRan).to.be.undefined;
+  });
+}

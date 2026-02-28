@@ -1,0 +1,17 @@
+meta {
+  name: helper-request
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("helper request returns pong", function() {
+    expect(res.getBody()).to.equal('pong');
+  });
+}

@@ -1,0 +1,31 @@
+meta {
+  name: sleep
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(async ({ req }) => {
+    const start = Date.now();
+    await bru.sleep(100);
+    bru.setVar('sleep-elapsed', Date.now() - start);
+  });
+}
+
+tests {
+  test("bru.sleep - delays execution", function() {
+    const elapsed = bru.getVar('sleep-elapsed');
+    expect(elapsed).to.be.at.least(100);
+  });
+  
+  test("request succeeds after async hook", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+

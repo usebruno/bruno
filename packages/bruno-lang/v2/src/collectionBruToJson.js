@@ -72,9 +72,10 @@ const grammar = ohm.grammar(`Bru {
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
 
-  script = scriptreq | scriptres
+  script = scriptreq | scriptres | scripthooks
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
   scriptres = "script:post-response" st* "{" nl* textblock tagend
+  scripthooks = "script:hooks" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
@@ -548,6 +549,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       script: {
         res: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scripthooks(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        hooks: outdentString(textblock.sourceString)
       }
     };
   },

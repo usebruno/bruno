@@ -2,7 +2,7 @@ const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
 const yaml = require('js-yaml');
-const { forOwn, cloneDeep } = require('lodash');
+const { forOwn, cloneDeep, get } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
@@ -20,8 +20,12 @@ const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
 const { sanitizeResultsForReporter } = require('../utils/sanitize-results');
 const { getSystemProxy } = require('@usebruno/requests');
+const { HooksRuntime, HookManager } = require('@usebruno/js');
+const decomment = require('decomment');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
+
+const HOOK_EVENTS = HookManager.EVENTS;
 
 const formatTestSummary = (label, maxLength, passed, failed, total, errorCount = 0, skippedCount = 0) => {
   const parts = [
@@ -338,7 +342,7 @@ const handler = async function (argv) {
     const collectionPath = process.cwd();
 
     let collection = createCollectionJsonFromPathname(collectionPath);
-    const { root: collectionRoot, brunoConfig } = collection;
+    let { root: collectionRoot, brunoConfig } = collection;
 
     if (clientCertConfig) {
       try {
@@ -639,7 +643,15 @@ const handler = async function (argv) {
         console.warn(chalk.yellow('Failed to detect system proxy, continuing without system proxy'));
       }
     }
+    const scriptingConfig = get(brunoConfig, 'scripts', {});
+    scriptingConfig.runtime = runtime;
 
+    const collectionName = collection?.brunoConfig?.name;
+    const onConsoleLog = (type, args) => {
+      console[type](...args);
+    };
+
+    // Define runSingleRequestByPathname before hooks initialization so it's available at all hook levels
     const runSingleRequestByPathname = async (relativeItemPathname) => {
       const ext = FORMAT_CONFIG[collection.format].ext;
       return new Promise(async (resolve, reject) => {
@@ -667,6 +679,42 @@ const handler = async function (argv) {
         reject(`bru.runRequest: invalid request path - ${itemPathname}`);
       });
     };
+
+    // Initialize collection-level hooks once (evaluated once, reused for before/after events)
+    let collectionHooksCtx = null;
+    {
+      collectionRoot = collection?.draft?.root || collection?.root || {};
+      const collectionHooks = get(collectionRoot, 'request.script.hooks', '');
+
+      if (collectionHooks && collectionHooks.trim()) {
+        try {
+          const hooksRuntime = new HooksRuntime({ runtime: scriptingConfig?.runtime });
+          collectionHooksCtx = await hooksRuntime.runHooks({
+            hooksFile: decomment(collectionHooks),
+            request: {}, // Placeholder request for collection-level hooks
+            envVariables: envVars,
+            runtimeVariables,
+            collectionPath,
+            onConsoleLog,
+            processEnvVars,
+            scriptingConfig,
+            runRequestByItemPathname: runSingleRequestByPathname,
+            collectionName
+          });
+        } catch (error) {
+          console.error('Error initializing collection-level hooks:', error);
+        }
+      }
+    }
+
+    // Call onBeforeCollectionRun hook before starting to run requests
+    if (collectionHooksCtx?.hookManager) {
+      try {
+        await collectionHooksCtx.hookManager.call(HOOK_EVENTS.RUNNER_BEFORE_COLLECTION_RUN, { collection });
+      } catch (error) {
+        console.error('Error executing beforeCollectionRun hook:', error);
+      }
+    }
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
@@ -757,6 +805,17 @@ const handler = async function (argv) {
 
     const skippedFileResults = createSkippedFileResults(global.brunoSkippedFiles || [], collectionPath);
     results.push(...skippedFileResults);
+
+    // Call onAfterCollectionRun hook after all requests are done
+    if (collectionHooksCtx?.hookManager) {
+      try {
+        await collectionHooksCtx.hookManager.call(HOOK_EVENTS.RUNNER_AFTER_COLLECTION_RUN, { collection });
+      } catch (error) {
+        console.error('Error executing afterCollectionRun hook:', error);
+      }
+      collectionHooksCtx.hookManager.dispose();
+      collectionHooksCtx = null;
+    }
 
     const summary = printRunSummary(results);
     const runCompletionTime = new Date().toISOString();

@@ -1,0 +1,45 @@
+meta {
+  name: set-next-request-first
+  type: http
+  seq: 200
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:hooks {
+  bru.hooks.http.onBeforeRequest(({ req }) => {
+    console.log('[beforeRequest] Testing bru.runner.setNextRequest() API');
+    
+    // Clear any previous markers
+    bru.deleteVar('set-next-request-skipped-ran');
+    
+    // Mark that this request started
+    bru.setVar('set-next-request-first-ran', 'true');
+    
+    console.log('[beforeRequest] First request starting');
+  });
+  
+  bru.hooks.http.onAfterResponse(({ res }) => {
+    console.log('[afterResponse] Setting next request to jump to target');
+    
+    // Jump to the target request, skipping the intermediate request
+    bru.runner.setNextRequest('set-next-request-target');
+    
+    console.log('[afterResponse] Called bru.runner.setNextRequest("set-next-request-target")');
+  });
+}
+
+tests {
+  test("first request should execute successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("first request marker should be set", function() {
+    const ran = bru.getVar('set-next-request-first-ran');
+    expect(ran).to.equal('true');
+  });
+}
