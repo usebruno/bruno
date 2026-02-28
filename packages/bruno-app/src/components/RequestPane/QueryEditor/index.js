@@ -12,6 +12,7 @@ import { format } from 'prettier/standalone';
 import prettierPluginGraphql from 'prettier/parser-graphql';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { focusAddressBar } from 'utils/common/keybinding-commons';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import { IconWand } from '@tabler/icons';
@@ -115,6 +116,8 @@ export default class QueryEditor extends React.Component {
             this.props.onRun();
           }
         },
+        'Cmd-L': focusAddressBar,
+        'Ctrl-L': focusAddressBar,
         'Shift-Ctrl-C': () => {
           if (this.props.onCopyQuery) {
             this.props.onCopyQuery();
