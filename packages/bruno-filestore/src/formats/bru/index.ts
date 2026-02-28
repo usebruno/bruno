@@ -8,6 +8,7 @@ import {
   jsonToCollectionBru as _jsonToCollectionBru
 } from '@usebruno/lang';
 import { getOauth2AdditionalParameters } from './utils/oauth2-additional-params';
+import { uuid } from '../../utils';
 
 export const parseBruRequest = (data: string | any, parsed: boolean = false): any => {
   try {
@@ -107,6 +108,34 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
         transformedJson.request.auth.oauth2.additionalParameters = additionalParameters;
       }
     }
+
+    // Handle body variants
+    const bodyVariants = _.get(json, 'bodyVariants', []);
+    if (bodyVariants.length > 0) {
+      // Assign UIDs to variants (parsed from .bru files won't have UIDs)
+      const variantsWithUids = bodyVariants.map((variant: any) => ({
+        ...variant,
+        uid: variant.uid || uuid()
+      }));
+      transformedJson.request.bodyVariants = variantsWithUids;
+
+      // Match active variant by name (names are what survive the .bru round-trip)
+      const activeVariantName = _.get(json, 'meta.activeBodyVariant');
+      if (activeVariantName) {
+        const activeVariant = variantsWithUids.find((v: any) => v.name === activeVariantName);
+        if (activeVariant) {
+          transformedJson.request.activeBodyVariantUid = activeVariant.uid;
+          // Load the active variant's body as the request body
+          transformedJson.request.body = _.cloneDeep(activeVariant.body);
+        } else {
+          transformedJson.request.activeBodyVariantUid = variantsWithUids[0].uid;
+        }
+      } else {
+        // No active variant saved, default to first
+        transformedJson.request.activeBodyVariantUid = variantsWithUids[0].uid;
+      }
+    }
+
     return transformedJson;
   } catch (error) {
     console.log('parseBruRequest error', error);
@@ -219,6 +248,20 @@ export const stringifyBruRequest = (json: any): string => {
     bruJson.settings = _.get(json, 'settings', {});
     bruJson.docs = _.get(json, 'request.docs', '');
     bruJson.examples = _.get(json, 'examples', []).map((e: any) => jsonExampleToBru(e));
+
+    // Handle body variants
+    const bodyVariants = _.get(json, 'request.bodyVariants', []);
+    if (bodyVariants.length > 0) {
+      bruJson.bodyVariants = bodyVariants;
+      // Save active variant NAME (not UID) so it survives .bru file round-trips
+      const activeBodyVariantUid = _.get(json, 'request.activeBodyVariantUid');
+      if (activeBodyVariantUid) {
+        const activeVariant = bodyVariants.find((v: any) => v.uid === activeBodyVariantUid);
+        if (activeVariant) {
+          bruJson.activeBodyVariantUid = activeVariant.name;
+        }
+      }
+    }
 
     const bru = jsonToBruV2(bruJson);
     return bru;

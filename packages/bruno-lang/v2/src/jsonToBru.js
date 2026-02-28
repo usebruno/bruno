@@ -14,7 +14,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples } = json;
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples, bodyVariants, activeBodyVariantUid } = json;
 
   let bru = '';
 
@@ -26,6 +26,10 @@ const jsonToBru = (json) => {
 
     for (const key in meta) {
       bru += `  ${key}: ${meta[key]}\n`;
+    }
+
+    if (activeBodyVariantUid) {
+      bru += `  activeBodyVariant: ${activeBodyVariantUid}\n`;
     }
 
     if (tags && tags.length) {
@@ -628,6 +632,75 @@ ${indentString(body.sparql)}
         bru += '}\n\n';
       });
     }
+  }
+
+  // Write body variants
+  if (bodyVariants && bodyVariants.length) {
+    bodyVariants.forEach((variant) => {
+      const variantBody = variant.body;
+      if (!variantBody) return;
+
+      const mode = variantBody.mode;
+      const name = variant.name;
+
+      if (mode === 'json' && variantBody.json && variantBody.json.length) {
+        bru += `body:json:variant:${name} {\n${indentString(variantBody.json)}\n}\n\n`;
+      }
+
+      if (mode === 'text' && variantBody.text && variantBody.text.length) {
+        bru += `body:text:variant:${name} {\n${indentString(variantBody.text)}\n}\n\n`;
+      }
+
+      if (mode === 'xml' && variantBody.xml && variantBody.xml.length) {
+        bru += `body:xml:variant:${name} {\n${indentString(variantBody.xml)}\n}\n\n`;
+      }
+
+      if (mode === 'sparql' && variantBody.sparql && variantBody.sparql.length) {
+        bru += `body:sparql:variant:${name} {\n${indentString(variantBody.sparql)}\n}\n\n`;
+      }
+
+      if (mode === 'formUrlEncoded' && variantBody.formUrlEncoded && variantBody.formUrlEncoded.length) {
+        bru += `body:form-urlencoded:variant:${name} {\n`;
+        if (enabled(variantBody.formUrlEncoded).length) {
+          const enabledValues = enabled(variantBody.formUrlEncoded)
+            .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .join('\n');
+          bru += `${indentString(enabledValues)}\n`;
+        }
+        if (disabled(variantBody.formUrlEncoded).length) {
+          const disabledValues = disabled(variantBody.formUrlEncoded)
+            .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .join('\n');
+          bru += `${indentString(disabledValues)}\n`;
+        }
+        bru += '}\n\n';
+      }
+
+      if (mode === 'multipartForm' && variantBody.multipartForm && variantBody.multipartForm.length) {
+        bru += `body:multipart-form:variant:${name} {`;
+        const multipartForms = enabled(variantBody.multipartForm).concat(disabled(variantBody.multipartForm));
+        if (multipartForms.length) {
+          bru += `\n${indentString(
+            multipartForms
+              .map((item) => {
+                const isEnabled = item.enabled ? '' : '~';
+                const contentType = item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
+                if (item.type === 'text') {
+                  return `${isEnabled}${getKeyString(item.name)}: ${getValueString(item.value)}${contentType}`;
+                }
+                if (item.type === 'file') {
+                  const filepaths = Array.isArray(item.value) ? item.value : [];
+                  const filestr = filepaths.join('|');
+                  const value = `@file(${filestr})`;
+                  return `${isEnabled}${getKeyString(item.name)}: ${value}${contentType}`;
+                }
+              })
+              .join('\n')
+          )}`;
+        }
+        bru += '\n}\n\n';
+      }
+    });
   }
 
   let reqvars = _.get(vars, 'req');
