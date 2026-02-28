@@ -526,38 +526,31 @@ const complexTransformations = [
     }
   },
 
-  // pm.response.to.have.jsonBody(path) -> expect(res.getBody()).to.have.nested.property(path)
+  // pm.response.to.have.jsonBody(...) -> expect(res.getBody()).to.have.jsonBody(...)
   {
     pattern: 'pm.response.to.have.jsonBody',
     transform: (path, j) => {
       const callExpr = path.parent.value;
       const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('to.have.jsonBody')),
+        args
+      );
+    }
+  },
 
-      if (args.length === 0) {
-        // No path provided, just check that body exists
-        return j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
-          j.identifier('to.exist')
-        );
-      } else if (args.length === 1) {
-        // Path provided, check property exists
-        return j.callExpression(
-          j.memberExpression(
-            j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
-            j.identifier('to.have.nested.property')
-          ),
-          args
-        );
-      } else {
-        // Path and value provided, check property equals value
-        return j.callExpression(
-          j.memberExpression(
-            j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
-            j.identifier('to.have.nested.property')
-          ),
-          args
-        );
-      }
+  // pm.response.to.not.have.jsonBody(...) -> expect(res.getBody()).to.not.have.jsonBody(...)
+  {
+    pattern: 'pm.response.to.not.have.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('to.not.have.jsonBody')),
+        args
+      );
     }
   },
 

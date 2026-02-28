@@ -79,6 +79,86 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
       })();
     `
   );
+  // Register custom chai assertion for jsonBody (Postman parity)
+  vm.evalCode(
+    `
+      (function() {
+        var proto = Object.getPrototypeOf(expect(null));
+
+        function getNestedValue(obj, path) {
+          var keys = path.replace(/\\[(\\d+)\\]/g, '.$1').split('.');
+          var current = obj;
+          for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            if (current === null || current === undefined || !Object.prototype.hasOwnProperty.call(Object(current), key)) {
+              return { found: false };
+            }
+            current = current[key];
+          }
+          return { found: true, value: current };
+        }
+
+        function deepEqual(a, b) {
+          if (a === b) return true;
+          if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
+          if (Array.isArray(a) !== Array.isArray(b)) return false;
+          var keysA = Object.keys(a);
+          var keysB = Object.keys(b);
+          if (keysA.length !== keysB.length) return false;
+          for (var i = 0; i < keysA.length; i++) {
+            if (!Object.prototype.hasOwnProperty.call(b, keysA[i]) || !deepEqual(a[keysA[i]], b[keysA[i]])) return false;
+          }
+          return true;
+        }
+
+        proto.jsonBody = function() {
+          var obj = this._obj;
+          var args = Array.prototype.slice.call(arguments);
+          var negate = this.__flags && this.__flags.negate;
+
+          if (args.length === 0) {
+            var pass = typeof obj === 'object' && obj !== null;
+            if (negate ? pass : !pass) {
+              throw new DummyChaiAssertionError(
+                negate
+                  ? 'expected value not to be a JSON body'
+                  : 'expected value to be a JSON body (object or array)'
+              );
+            }
+          } else if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
+            var pass = deepEqual(obj, args[0]);
+            if (negate ? pass : !pass) {
+              throw new DummyChaiAssertionError(
+                negate
+                  ? 'expected body to not deeply equal given object'
+                  : 'expected body to deeply equal given object'
+              );
+            }
+          } else if (args.length === 1) {
+            var result = getNestedValue(obj, String(args[0]));
+            if (negate ? result.found : !result.found) {
+              throw new DummyChaiAssertionError(
+                negate
+                  ? "expected body to not have nested property '" + args[0] + "'"
+                  : "expected body to have nested property '" + args[0] + "'"
+              );
+            }
+          } else {
+            var result = getNestedValue(obj, String(args[0]));
+            var pass = result.found && deepEqual(result.value, args[1]);
+            if (negate ? pass : !pass) {
+              throw new DummyChaiAssertionError(
+                negate
+                  ? "expected body to not have nested property '" + args[0] + "' equal to given value"
+                  : "expected body to have nested property '" + args[0] + "' equal to given value"
+              );
+            }
+          }
+          return this;
+        };
+      })();
+    `
+  );
 };
 
 module.exports = addBruShimToContext;
