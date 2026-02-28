@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
 import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
+import { setIsCreatingCollection } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
-import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
@@ -17,7 +17,6 @@ const WorkspaceOverview = ({ workspace }) => {
   const dispatch = useDispatch();
   const { globalEnvironments } = useSelector((state) => state.globalEnvironments);
 
-  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [importData, setImportData] = useState(null);
@@ -37,7 +36,7 @@ const WorkspaceOverview = ({ workspace }) => {
     try {
       const { ipcRenderer } = window;
       await ipcRenderer.invoke('renderer:ensure-collections-folder', workspace.pathname);
-      setCreateCollectionModalOpen(true);
+      dispatch(setIsCreatingCollection(true));
     } catch (error) {
       console.error('Error ensuring collections folder exists:', error);
       toast.error('Error preparing workspace for collection creation');
@@ -87,10 +86,6 @@ const WorkspaceOverview = ({ workspace }) => {
 
   return (
     <StyledWrapper>
-      {createCollectionModalOpen && (
-        <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} />
-      )}
-
       {importCollectionModalOpen && (
         <ImportCollection
           onClose={() => setImportCollectionModalOpen(false)}

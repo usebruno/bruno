@@ -6,7 +6,7 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 4px;
     height: 1.6rem;
-    padding-left: 4px;
+    padding-left: 8px;
     padding-right: 4px;
   }
 

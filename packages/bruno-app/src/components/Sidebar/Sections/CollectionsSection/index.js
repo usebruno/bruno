@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { setIsCreatingCollection } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
@@ -46,11 +47,11 @@ const CollectionsSection = () => {
 
   const { collections } = useSelector((state) => state.collections);
   const { collectionSortOrder } = useSelector((state) => state.collections);
+  const { isCreatingCollection } = useSelector((state) => state.app);
   const preferences = useSelector((state) => state.app.preferences);
   const [collectionsToClose, setCollectionsToClose] = useState([]);
 
   const [importData, setImportData] = useState(null);
-  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
@@ -243,7 +244,7 @@ const CollectionsSection = () => {
   };
 
   const handleOpenAdvancedCreate = () => {
-    setIsCreatingCollection(false);
+    dispatch(setIsCreatingCollection(false));
     setCreateCollectionModalOpen(true);
   };
 
@@ -253,7 +254,7 @@ const CollectionsSection = () => {
       leftSection: IconPlus,
       label: 'Create collection',
       onClick: () => {
-        setIsCreatingCollection(true);
+        dispatch(setIsCreatingCollection(true));
       }
     },
     {
@@ -405,8 +406,8 @@ const CollectionsSection = () => {
         <Collections
           showSearch={showSearch}
           isCreatingCollection={isCreatingCollection}
-          onCreateClick={() => setIsCreatingCollection(true)}
-          onDismissCreate={() => setIsCreatingCollection(false)}
+          onCreateClick={() => dispatch(setIsCreatingCollection(true))}
+          onDismissCreate={() => dispatch(setIsCreatingCollection(false))}
           onOpenAdvancedCreate={handleOpenAdvancedCreate}
         />
       </SidebarSection>
