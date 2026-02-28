@@ -17,6 +17,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
   const dispatch = useDispatch();
   const [isCreating, setIsCreating] = useState(false);
   const openingAdvancedRef = useRef(false);
+  const clickedOutsideRef = useRef(false);
 
   const preferences = useSelector((state) => state.app.preferences);
   const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
@@ -52,16 +53,26 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
   }, [isCreating, onCancel]);
 
   const handleCreate = useCallback(async () => {
+    const fromOutside = clickedOutsideRef.current;
+    clickedOutsideRef.current = false;
+
     if (isCreating || openingAdvancedRef.current) return;
 
     const name = inputRef.current?.value?.trim();
     if (!name) {
-      toast.error('Collection name is required');
+      if (fromOutside) {
+        onCancel();
+      } else {
+        toast.error('Collection name is required');
+      }
       return;
     }
 
     if (!validateName(name)) {
       toast.error(validateNameError(name));
+      if (fromOutside) {
+        onCancel();
+      }
       return;
     }
 
@@ -87,6 +98,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
+        clickedOutsideRef.current = true;
         handleCreate();
       }
     };
