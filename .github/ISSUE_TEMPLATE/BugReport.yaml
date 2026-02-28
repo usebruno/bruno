@@ -46,6 +46,22 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    attributes:
+      label: Architecture (CPU)
+      description: The CPU architecture of the machine where the issue occurs.
+      options:
+        - label: x86_64 / amd64
+          value: x86_64
+        - label: arm64 / aarch64
+          value: arm64
+        - label: armv7l
+          value: armv7l
+        - label: Other
+          value: other
+    validations:
+      required: true
+
   - type: textarea
     attributes:
       label: Describe the bug
