@@ -33,6 +33,7 @@ const replacements = {
   'pm\\.variables\\.toObject\\(': 'bru.getAllVars(',
   'pm\\.request\\.headers\\.remove\\(': 'req.deleteHeader(',
   'pm\\.response\\.headers\\.get\\(': 'res.getHeader(',
+  'pm\\.response\\.to\\.have\\.jsonSchema\\(': 'expect(res.getBody()).to.have.jsonSchema(',
   'pm\\.response\\.to\\.have\\.body\\(': 'expect(res.getBody()).to.equal(',
   'pm\\.response\\.to\\.have\\.header\\(': 'expect(res.getHeaders()).to.have.property(',
   'pm\\.response\\.size\\(\\)': 'res.getSize()',

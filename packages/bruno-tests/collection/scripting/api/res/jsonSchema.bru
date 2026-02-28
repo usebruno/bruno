@@ -1,0 +1,290 @@
+meta {
+  name: jsonSchema
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "John",
+    "age": 30,
+    "email": "john@example.com",
+    "status": "active",
+    "score": 95.5,
+    "isVerified": true,
+    "tags": ["developer", "tester"],
+    "address": {
+      "street": "123 Main St",
+      "city": "Springfield",
+      "zip": "62701"
+    }
+  }
+}
+
+tests {
+  // --- Passing validations ---
+
+  test("Basic object with properties and required", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        age: { type: 'number' },
+        email: { type: 'string' },
+        status: { type: 'string' },
+        score: { type: 'number' },
+        isVerified: { type: 'boolean' },
+        tags: { type: 'array' },
+        address: { type: 'object' }
+      },
+      required: ['name', 'age', 'email']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("Nested object validation", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        address: {
+          type: 'object',
+          properties: {
+            street: { type: 'string' },
+            city: { type: 'string' },
+            zip: { type: 'string' }
+          },
+          required: ['street', 'city', 'zip']
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("Array items validation", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        tags: {
+          type: 'array',
+          items: { type: 'string' }
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("String pattern (regex)", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        email: {
+          type: 'string',
+          pattern: '^[^@]+@[^@]+\\.[^@]+$'
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("Enum validation", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['active', 'inactive', 'pending']
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("Number range (minimum/maximum)", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        age: {
+          type: 'number',
+          minimum: 0,
+          maximum: 150
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("String length constraints (minLength/maxLength)", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 100
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("allOf composition", function() {
+    const schema = {
+      allOf: [
+        {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name']
+        },
+        {
+          type: 'object',
+          properties: { age: { type: 'number' } },
+          required: ['age']
+        }
+      ]
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("anyOf composition", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        score: {
+          anyOf: [
+            { type: 'number' },
+            { type: 'string' }
+          ]
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("jsonSchema with ajvOptions", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        age: { type: 'number' }
+      },
+      required: ['name', 'age']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema, { allErrors: true });
+  });
+
+  // --- Failure validations ---
+
+  test("Type mismatch - schema expects array, response is object", function() {
+    const schema = { type: 'array' };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  test("Missing required field", function() {
+    const schema = {
+      type: 'object',
+      required: ['nonExistentField']
+    };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  test("additionalProperties false rejects extra fields", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string' }
+      },
+      additionalProperties: false
+    };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  test("Enum mismatch", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['deleted', 'archived']
+        }
+      },
+      required: ['status']
+    };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  test("Pattern mismatch - name does not match digits-only", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          pattern: '^[0-9]+$'
+        }
+      },
+      required: ['name']
+    };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  // --- .not (negation) validations ---
+
+  test(".not with mismatched type - body is object, not array", function() {
+    const schema = { type: 'array' };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test(".not with missing required field", function() {
+    const schema = {
+      type: 'object',
+      required: ['nonExistent']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test(".not fails when schema actually matches", function() {
+    const schema = { type: 'object' };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.not.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+}
