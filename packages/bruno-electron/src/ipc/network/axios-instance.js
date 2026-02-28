@@ -15,6 +15,73 @@ const LOCALHOST = 'localhost';
 const version = electronApp?.app?.getVersion() ?? '';
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 
+/**
+ * Restore original server-sent header casing on an AxiosHeaders instance.
+ *
+ * Node.js's `http` module (and by extension axios) normalises all response
+ * header names to lowercase before exposing them on `response.headers`. This
+ * matches the HTTP/1.1 specification (RFC 7230 §3.2) which states that header
+ * field names are case-insensitive, and is a mandatory requirement for HTTP/2
+ * (RFC 7540 §8.1.2). However it means Bruno's UI shows `content-type` instead
+ * of `Content-Type`, which is surprising to users and breaks any test that
+ * asserts header names by their original casing (see issue #2012).
+ *
+ * Node exposes the raw headers as a flat array on `res.rawHeaders` in the form
+ * `[name1, value1, name2, value2, ...]`. We use that array to determine which
+ * key names the server actually sent, then rename the matching keys on the
+ * existing `AxiosHeaders` instance **in place** so that:
+ *
+ *  - Downstream code that calls `headers.get()`/`headers.delete()` (which
+ *    relies on the AxiosHeaders prototype) keeps working.
+ *  - Synthetic headers added by Bruno before this call (e.g. `request-duration`)
+ *    are untouched because they are not present in `rawHeaders`.
+ *  - `Set-Cookie` entries are left as-is — AxiosHeaders already stores them as
+ *    an array, so we only rename the key, never the values.
+ *  - Duplicate raw header names with different casings (pathological but
+ *    theoretically possible) are de-duplicated using the casing of the first
+ *    occurrence, consistent with RFC 7230 §3.2.2.
+ *
+ * When `rawHeaders` is not available (HTTP/2, mocked responses, intercepted
+ * responses) the function returns the headers object unchanged — no regression.
+ *
+ * @param {import('http').IncomingMessage|undefined} res - The raw Node.js response object.
+ * @param {import('axios').AxiosHeaders} headers        - The axios response headers instance.
+ * @returns {import('axios').AxiosHeaders}
+ */
+const reconstructOriginalCaseHeaders = (res, headers) => {
+  const rawHeaders = res?.rawHeaders;
+  if (!rawHeaders || rawHeaders.length === 0) {
+    return headers;
+  }
+
+  // Build a map of lowercase-name -> first-seen original-cased name from rawHeaders.
+  // Only the first occurrence wins (RFC 7230 §3.2.2: no redefinition of field names).
+  const originalCaseMap = {};
+  for (let i = 0; i < rawHeaders.length; i += 2) {
+    const name = rawHeaders[i];
+    const lower = name.toLowerCase();
+    if (!Object.prototype.hasOwnProperty.call(originalCaseMap, lower)) {
+      originalCaseMap[lower] = name;
+    }
+  }
+
+  // Rename server-sent headers on the existing AxiosHeaders instance so that
+  // the prototype (and therefore .get()/.delete()/.set()) is preserved, and
+  // synthetic Bruno-added headers (e.g. 'request-duration') are left untouched.
+  for (const [lower, originalName] of Object.entries(originalCaseMap)) {
+    // Skip if the key is already stored with the correct casing, or if the
+    // header is not present on the instance at all.
+    if (lower === originalName || !Object.prototype.hasOwnProperty.call(headers, lower)) {
+      continue;
+    }
+    // Copy the value under the original-cased name, then remove the lowercase key.
+    headers[originalName] = headers[lower];
+    delete headers[lower];
+  }
+
+  return headers;
+};
+
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
     let setCookieHeaders = [];
@@ -212,6 +279,12 @@ function makeAxiosInstance({
       const config = response.config;
       timeline = config?.metadata?.timeline || [];
       const duration = end - config?.metadata.startTime;
+
+      // Restore original server-sent header casing on the AxiosHeaders instance
+      // (Node.js http normalises names to lowercase; we rename keys in-place
+      // from rawHeaders so synthetic headers like 'request-duration' are kept).
+      // See: https://github.com/usebruno/bruno/issues/2012
+      reconstructOriginalCaseHeaders(response?.request?.res, response.headers);
 
       const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
       if (httpVersion?.startsWith('2')) {
