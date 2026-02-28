@@ -89,8 +89,11 @@ const createCollection = async (page, collectionName: string, collectionLocation
   });
 };
 
+const STANDARD_HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE', 'CONNECT'];
+
 type CreateRequestOptions = {
   url?: string;
+  method?: string;
   inFolder?: boolean;
 };
 
@@ -241,7 +244,7 @@ const createRequest = async (
   parentName: string,
   options: CreateRequestOptions = {}
 ) => {
-  const { url, inFolder = false } = options;
+  const { url, method, inFolder = false } = options;
   const parentType = inFolder ? 'folder' : 'collection';
 
   await test.step(`Create request "${requestName}" in ${parentType} "${parentName}"`, async () => {
@@ -257,6 +260,19 @@ const createRequest = async (
 
     await locators.dropdown.item('New Request').click();
     await page.getByPlaceholder('Request Name').fill(requestName);
+
+    if (method) {
+      await page.locator('.bruno-modal .method-selector').click();
+      const isStandardMethod = STANDARD_HTTP_METHODS.includes(method.toUpperCase());
+      if (isStandardMethod) {
+        await locators.modal.newRequestMethodOption(method).click();
+      } else {
+        await locators.modal.newRequestMethodOption('add-custom').click();
+        await page.locator('.bruno-modal .method-selector input').fill(method);
+        await page.keyboard.press('Enter');
+      }
+      await page.waitForTimeout(200);
+    }
 
     if (url) {
       await page.locator('#new-request-url .CodeMirror').click();
@@ -610,7 +626,7 @@ const selectEnvironment = async (
  */
 const sendRequest = async (
   page: Page,
-  expectedStatusCode?: number | string,
+  expectedStatusCode?: number,
   timeout: number = 30000
 ) => {
   await test.step('Send request', async () => {
@@ -677,11 +693,11 @@ const openFolderRequest = async (page: Page, folderName: string, requestName: st
 /**
 * Send a request and wait for the response
  * @param page - The page object
- * @param expectedStatusCode - The expected status code (default: '200')
+ * @param expectedStatusCode - The expected status code (default: 200)
  * @param options - The options for sending the request (default: { timeout: 15000 })
  */
 const sendRequestAndWaitForResponse = async (page: Page,
-  expectedStatusCode: string = '200',
+  expectedStatusCode: number = 200,
   options: {
     ignoreCase?: boolean;
     timeout?: number;
@@ -689,7 +705,7 @@ const sendRequestAndWaitForResponse = async (page: Page,
   } = { timeout: 15000 }) => {
   await test.step(`Send request and wait for status code ${expectedStatusCode}`, async () => {
     await page.getByTestId('send-arrow-icon').click();
-    await expect(page.getByTestId('response-status-code')).toContainText(expectedStatusCode, options);
+    await expect(page.getByTestId('response-status-code')).toContainText(String(expectedStatusCode), options);
   });
 };
 

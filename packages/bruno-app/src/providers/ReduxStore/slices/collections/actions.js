@@ -65,7 +65,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
@@ -89,6 +89,8 @@ import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
+
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
   // Extract base name by removing any existing " (number)" suffix
@@ -2361,6 +2363,8 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
           }));
         }
 
+        dispatch(ensureActiveTabInCurrentWorkspace());
+
         // Only remove from Redux if no workspaces remain
         if (!remainingWorkspaces || remainingWorkspaces.length === 0) {
           return waitForNextTick().then(() => {
@@ -3105,6 +3109,25 @@ export const scanForBrunoFiles = (dir) => (dispatch, getState) => {
 };
 
 /**
+ * If the current active tab belongs to another workspace, focus a tab in the current workspace.
+ */
+export const ensureActiveTabInCurrentWorkspace = () => (dispatch, getState) => {
+  const state = getState();
+  const result = getTabToFocusForCurrentWorkspace(state);
+  if (!result) {
+    return; // Already in workspace, no active workspace, or unfixable (no workspace tabs and no scratch).
+  }
+  if (result.addOverviewFirst && result.scratchCollectionUid) {
+    dispatch(addTab({
+      uid: result.uid,
+      collectionUid: result.scratchCollectionUid,
+      type: 'workspaceOverview'
+    }));
+  }
+  dispatch(focusTab({ uid: result.uid }));
+};
+
+/**
  * Close tabs and delete any transient request files from the filesystem.
  * This thunk wraps the closeTabs reducer to handle transient file cleanup automatically.
  */
@@ -3134,6 +3157,10 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
 
   // Close the tabs first
   await dispatch(_closeTabs({ tabUids }));
+
+  // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: prefer any open in-workspace tab, then workspace overview if none.
+  // Dispatch is synchronous; state is already updated by _closeTabs above.
+  await dispatch(ensureActiveTabInCurrentWorkspace());
 
   // Delete transient files after tabs are closed
   for (const [tempDir, filePaths] of Object.entries(transientByTempDir)) {

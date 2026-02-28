@@ -18,8 +18,9 @@ script:pre-request {
 
 tests {
   const jar = bru.cookies.jar()
-  
-  jar.getCookie("https://testbench-sanity.usebruno.com", "name", function(error, data) {
+  // Await so the callback runs before jar.clear() below; otherwise the test script can finish
+  // before the callback registers/runs the test, causing a flaky failure (e.g. in CI).
+  await jar.getCookie("https://testbench-sanity.usebruno.com", "name", function(error, data) {
     if(error) {
       console.error("Cookie retrieval error:", error)
       throw new Error(`Failed to get cookie: ${error.message || error}`)

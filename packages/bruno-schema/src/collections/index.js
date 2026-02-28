@@ -285,6 +285,11 @@ const oauth2Schema = Yup.object({
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
+  tokenSource: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
+    then: Yup.string().oneOf(['access_token', 'id_token']).optional(),
+    otherwise: Yup.string().optional().strip()
+  }),
   tokenPlacement: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
@@ -375,7 +380,7 @@ const exampleSchema = Yup.object({
     .strict()
     .nullable(),
   response: Yup.object({
-    status: Yup.string().nullable(),
+    status: Yup.number().nullable(),
     statusText: Yup.string().nullable(),
     headers: Yup.array().of(keyValueSchema).nullable(),
     body: Yup.object({
@@ -545,7 +550,7 @@ const itemSchema = Yup.object({
   type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request', 'ws-request']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
-  tags: Yup.array().of(Yup.string().matches(/^[\w-][\w\s-]*[\w-]$|^[\w-]+$/, 'tag must contain only alphanumeric characters, spaces, hyphens, or underscores')),
+  tags: Yup.array().of(Yup.string().matches(/^[\p{L}\p{N}_-](?:[\p{L}\p{N}_\s-]*[\p{L}\p{N}_-])?$/u, 'tag must contain only letters, numbers, spaces, hyphens, or underscores')),
   request: Yup.mixed().when('type', {
     is: (type) => type === 'grpc-request',
     then: grpcRequestSchema.required('request is required when item-type is grpc-request'),

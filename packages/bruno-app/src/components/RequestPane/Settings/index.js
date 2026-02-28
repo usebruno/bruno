@@ -116,6 +116,7 @@ const Settings = ({ item, collection }) => {
               label="URL Encoding"
               description="Automatically encode query parameters in the URL"
               size="medium"
+              data-testid="encode-url-toggle"
             />
           </div>
 

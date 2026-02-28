@@ -40,6 +40,7 @@ const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
+const { parsedFileCacheStore } = require('./store/parsed-file-cache-idb');
 const registerSystemMonitorIpc = require('./ipc/system-monitor');
 const registerWorkspaceIpc = require('./ipc/workspace');
 const registerApiSpecIpc = require('./ipc/apiSpec');
@@ -415,13 +416,19 @@ app.on('ready', async () => {
   });
 
   mainWindow.webContents.on('did-finish-load', async () => {
-    let ogSend = mainWindow.webContents.send;
-    mainWindow.webContents.send = function (channel, ...args) {
-      return ogSend.apply(this, [channel, ...args?.map((_) => {
-        // todo: replace this with @msgpack/msgpack encode/decode
-        return safeParseJSON(safeStringifyJSON(_));
-      })]);
-    };
+    try {
+      let ogSend = mainWindow.webContents.send;
+      mainWindow.webContents.send = function (channel, ...args) {
+        return ogSend.apply(this, [channel, ...args.map((_) => {
+          // todo: replace this with @msgpack/msgpack encode/decode
+          return safeParseJSON(safeStringifyJSON(_));
+        })]);
+      };
+    } catch (err) {
+      console.error('Error wrapping webContents.send:', err);
+      // Ensure onboarding gate is unblocked so renderer:ready doesn't hang
+      ipcMain.emit('main:onboarding-complete');
+    }
 
     // Handle onboarding
     await onboardUser(mainWindow, lastOpenedCollections);
@@ -439,6 +446,9 @@ app.on('ready', async () => {
       isRunningInRosetta: getIsRunningInRosetta()
     });
   });
+
+  // Initialize the parsed file cache IPC handlers
+  parsedFileCacheStore.initialize(mainWindow);
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);

@@ -2,12 +2,27 @@ const { ipcMain, nativeTheme } = require('electron');
 const { getPreferences, savePreferences } = require('../store/preferences');
 const { getGitVersion } = require('../utils/git');
 const { globalEnvironmentsStore } = require('../store/global-environments');
+const { parsedFileCacheStore } = require('../store/parsed-file-cache-idb');
 const { getCachedSystemProxy, refreshSystemProxy } = require('../store/system-proxy');
+const { resolveDefaultLocation } = require('../utils/default-location');
 
 const registerPreferencesIpc = (mainWindow) => {
   ipcMain.handle('renderer:ready', async (event) => {
+    // Wait for onboarding to finish before reading preferences.
+    // Onboarding may set hasSeenWelcomeModal for new vs existing users,
+    // and we need the renderer to receive the correct values.
+    await new Promise((resolve) => ipcMain.once('main:onboarding-complete', resolve));
+
     // load preferences
     const preferences = getPreferences();
+
+    // Set the default location if it hasn't been set by the user
+    if (!preferences.general?.defaultLocation) {
+      preferences.general ??= {};
+      preferences.general.defaultLocation = resolveDefaultLocation();
+      await savePreferences(preferences);
+    }
+
     mainWindow.webContents.send('main:load-preferences', preferences);
 
     try {
@@ -41,6 +56,25 @@ const registerPreferencesIpc = (mainWindow) => {
 
   ipcMain.on('renderer:theme-change', (event, theme) => {
     nativeTheme.themeSource = theme;
+  });
+
+  ipcMain.handle('renderer:get-cache-stats', async () => {
+    try {
+      return await parsedFileCacheStore.getStats();
+    } catch (error) {
+      console.error('Error getting cache stats:', error);
+      return { error: error.message };
+    }
+  });
+
+  ipcMain.handle('renderer:purge-cache', async () => {
+    try {
+      await parsedFileCacheStore.clear();
+      return { success: true };
+    } catch (error) {
+      console.error('Error purging cache:', error);
+      return { success: false, error: error.message };
+    }
   });
 
   ipcMain.handle('renderer:get-system-proxy-variables', async () => {

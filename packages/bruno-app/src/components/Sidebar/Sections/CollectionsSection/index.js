@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
+import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   IconArrowsSort,
@@ -17,6 +18,7 @@ import {
 
 import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
 
@@ -28,6 +30,7 @@ import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectio
 import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
 import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollectionsModal/index';
 import CreateCollection from 'components/Sidebar/CreateCollection';
+import WelcomeModal from 'components/WelcomeModal';
 import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
@@ -41,6 +44,7 @@ const CollectionsSection = () => {
 
   const { collections } = useSelector((state) => state.collections);
   const { collectionSortOrder } = useSelector((state) => state.collections);
+  const preferences = useSelector((state) => state.app.preferences);
   const [collectionsToClose, setCollectionsToClose] = useState([]);
 
   const [importData, setImportData] = useState(null);
@@ -49,6 +53,26 @@ const CollectionsSection = () => {
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [showCloneGitModal, setShowCloneGitModal] = useState(false);
   const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
+
+  // Default to true (don't show modal) so that:
+  // 1. Existing users who upgrade (no hasSeenWelcomeModal in their prefs) don't see it
+  // 2. The modal doesn't flash before preferences are loaded from the electron process
+  // Only genuinely new users will have hasSeenWelcomeModal explicitly set to false by onboarding
+  const hasSeenWelcomeModal = get(preferences, 'onboarding.hasSeenWelcomeModal', true);
+  const showWelcomeModal = !hasSeenWelcomeModal;
+
+  const handleDismissWelcomeModal = () => {
+    const updatedPreferences = {
+      ...preferences,
+      onboarding: {
+        ...preferences.onboarding,
+        hasSeenWelcomeModal: true
+      }
+    };
+    dispatch(savePreferences(updatedPreferences)).catch(() => {
+      toast.error('Failed to save preferences');
+    });
+  };
 
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];
@@ -250,6 +274,23 @@ const CollectionsSection = () => {
 
   return (
     <>
+      {showWelcomeModal && (
+        <WelcomeModal
+          onDismiss={handleDismissWelcomeModal}
+          onImportCollection={() => {
+            handleDismissWelcomeModal();
+            setImportCollectionModalOpen(true);
+          }}
+          onCreateCollection={() => {
+            handleDismissWelcomeModal();
+            setCreateCollectionModalOpen(true);
+          }}
+          onOpenCollection={() => {
+            handleDismissWelcomeModal();
+            handleOpenCollection();
+          }}
+        />
+      )}
       {createCollectionModalOpen && (
         <CreateCollection
           onClose={() => setCreateCollectionModalOpen(false)}
