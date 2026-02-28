@@ -23,8 +23,8 @@ export const validateSchema = async (collections = []) => {
     );
     return collections;
   } catch (err) {
-    console.log(err);
-    throw new BrunoError('The Collection file is corrupted');
+    console.error(err);
+    throw new BrunoError(`The Collection file is corrupted: ${err.message}`);
   }
 };
 
