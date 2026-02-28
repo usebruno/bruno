@@ -3511,12 +3511,14 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (data.data) {
+          // Avoid generating massive hexdumps for large streaming chunks (can lock up the UI).
+          const MAX_HEXDUMP_BYTES = 32 * 1024;
           item.response.data ||= [];
           item.response.data.push({
             type: 'incoming',
             seq,
             message: data.data,
-            messageHexdump: hexdump(data.data),
+            messageHexdump: hexdump(data.data, { length: MAX_HEXDUMP_BYTES }),
             timestamp: timestamp || Date.now()
           });
         }

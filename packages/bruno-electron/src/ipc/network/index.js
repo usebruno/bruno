@@ -36,6 +36,7 @@ const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { buildFormUrlEncodedPayload, isFormData } = require('@usebruno/common').utils;
+const { createEventStreamEmitter } = require('./event-stream');
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -1184,22 +1185,27 @@ const registerNetworkIpc = (mainWindow) => {
       const stream = response.stream;
       response.stream = { running: response.status >= 200 && response.status < 300 };
 
+      const emitter = createEventStreamEmitter({
+        onMessage: (message) => {
+          seq += 1;
+          mainWindow.webContents.send('main:http-stream-new-data', {
+            collectionUid,
+            itemUid: item.uid,
+            seq,
+            timestamp: Date.now(),
+            data: { data: message }
+          });
+        }
+      });
+
       stream.on('data', (newData) => {
-        seq += 1;
-
-        const parsed = parseDataFromResponse({ data: newData, headers: {} });
-
-        mainWindow.webContents.send('main:http-stream-new-data', {
-          collectionUid,
-          itemUid: item.uid,
-          seq,
-          timestamp: Date.now(),
-          data: parsed
-        });
+        emitter.write(newData);
       });
 
       stream.on('close', () => {
         if (!cancelTokens[response.cancelTokenUid]) return;
+
+        emitter.end();
 
         mainWindow.webContents.send('main:http-stream-end', {
           collectionUid,
