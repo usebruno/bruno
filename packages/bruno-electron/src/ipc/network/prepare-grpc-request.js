@@ -1,4 +1,5 @@
 const { cloneDeep, each, get } = require('lodash');
+const decomment = require('decomment');
 const interpolateVars = require('./interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -145,6 +146,18 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
   const processEnvVars = getProcessEnvVars(collection.uid);
   const envVars = getEnvVars(environment);
 
+  // Process gRPC body messages to strip comments
+  let processedBody = request.body;
+  if (request.body?.grpc && Array.isArray(request.body.grpc)) {
+    processedBody = {
+      ...request.body,
+      grpc: request.body.grpc.map((message) => ({
+        ...message,
+        content: typeof message.content === 'string' ? decomment(message.content) : message.content
+      }))
+    };
+  }
+
   let grpcRequest = {
     uid: item.uid,
     mode: request.body.mode,
@@ -156,7 +169,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     envVars,
     runtimeVariables,
     promptVariables,
-    body: request.body,
+    body: processedBody,
     protoPath: request.protoPath,
     // Add variable properties for interpolation
     vars: request.vars,
