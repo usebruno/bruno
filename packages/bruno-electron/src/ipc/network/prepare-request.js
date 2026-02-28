@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
 const path = require('node:path');
 const { isLargeFile } = require('../../utils/filesystem');
+const { SINGLE_VALUE_HEADERS } = require('../../utils/constants');
 
 const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
@@ -340,8 +341,16 @@ const prepareRequest = async (item, collection = {}, abortController) => {
 
   each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name.length > 0) {
-      headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
+      const nameLower = h.name.toLowerCase();
+      if (SINGLE_VALUE_HEADERS.has(nameLower)) {
+        headers[h.name] = h.value;
+      } else {
+        const existing = headers[h.name];
+        headers[h.name] = existing !== undefined
+          ? (Array.isArray(existing) ? [...existing, h.value] : [existing, h.value])
+          : h.value;
+      }
+      if (nameLower === 'content-type') {
         contentTypeDefined = true;
       }
     }
