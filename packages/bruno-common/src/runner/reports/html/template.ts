@@ -294,7 +294,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
           </n-switch>
 
           <n-collapse>
-            <x-result v-for="(result, index) in results" :result="result" :key="results.length"></x-result>
+            <x-result v-for="(result, index) in results" :result="result" :index="index" :key="index"></x-result>
           </n-collapse>
         </n-flex>
       </n-card>
@@ -673,7 +673,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
 
       app.component('x-result', {
         template: '#result-component',
-        props: ['result'],
+        props: ['result', 'index'],
         setup(props) {
           const headerColumns = [
             {
@@ -760,7 +760,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
           const hasError = computed(() => !!props?.result?.error || props?.result?.status === 'error' || (props?.result?.response?.status === 'skipped' && props?.result?.error));
           const hasFailure = computed(() => total.value !== totalPassed.value);
           const testDuration = computed(() => Math.round(props?.result?.runDuration * 1000) + ' ms');
-          const resultTitle = computed(() => props?.result?.path + ' ' + props?.result?.response?.status + ' ' + props?.result?.response?.statusText);
+          const resultTitle = computed(() => props?.result?.path + ' ' + props?.result?.response?.status + ' ' + props?.result?.response?.statusText + ' ' + props?.index);
           const getAlertType = computed(() => {
             if (props.result.response.status === 'skipped') {
               return 'warning';
