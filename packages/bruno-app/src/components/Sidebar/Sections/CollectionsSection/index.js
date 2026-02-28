@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
@@ -54,6 +54,22 @@ const CollectionsSection = () => {
   const [showCloneGitModal, setShowCloneGitModal] = useState(false);
   const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
 
+  // Listen for sidebar-search-open hotkey event
+  useEffect(() => {
+    const handleSidebarSearch = () => {
+      setShowSearch(true);
+      // Focus the search input after it's rendered
+      setTimeout(() => {
+        const searchInput = document.querySelector('.collection-search-input');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }, 50);
+    };
+
+    window.addEventListener('sidebar-search-open', handleSidebarSearch);
+    return () => window.removeEventListener('sidebar-search-open', handleSidebarSearch);
+  }, []);
   // Default to true (don't show modal) so that:
   // 1. Existing users who upgrade (no hasSeenWelcomeModal in their prefs) don't see it
   // 2. The modal doesn't flash before preferences are loaded from the electron process

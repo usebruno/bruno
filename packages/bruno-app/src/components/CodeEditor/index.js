@@ -18,6 +18,12 @@ import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
 
+import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
+import store from 'providers/ReduxStore/index';
+import { reorderTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
+import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
 window.JSHINT = JSHINT;
@@ -43,10 +49,244 @@ export default class CodeEditor extends React.Component {
       highlightLines: true
     };
 
+    // hotkey maps management
+    this._unsubscribeStore = null;
+
+    this._closeTabKeyMap = null;
+    this._sendRequestKeyMap = null;
+    this._prevTabKeyMap = null;
+    this._nextTabKeyMap = null;
+    this._moveLeftTabKeyMap = null;
+    this._moveRightTabKeyMap = null;
+    this._changeLayoutKeyMap = null;
+    this._collapseSidebarKeyMap = null;
+
+    this._lastCloseTabKeySig = null;
+    this._lastSendRequestKeySig = null;
+    this._lastPrevTabKeySig = null;
+    this._lastNextTabKeySig = null;
+    this._lastMoveLeftTabKeySig = null;
+    this._lastMoveRightTabKeySig = null;
+    this._lastChangeLayoutKeySig = null;
+    this._lastCollapseSidebarKeySig = null;
+
     this.state = {
       searchBarVisible: false
     };
   }
+
+  // same converter as other editors
+  convertToCodeMirrorFormat = (combo) => {
+    if (!combo || typeof combo !== 'string') return null;
+
+    const normalized = combo
+      .replace(/-/g, '+')
+      .split('+')
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .filter((p) => p.toLowerCase() !== 'bind') // remove bind tokens
+      .join('+');
+
+    const parts = normalized.split('+').map((p) => p.trim()).filter(Boolean);
+
+    const out = parts.map((key) => {
+      const lower = key.toLowerCase();
+
+      if (lower === 'command' || lower === 'cmd') return 'Cmd';
+      if (lower === 'control' || lower === 'ctrl') return 'Ctrl';
+      if (lower === 'option' || lower === 'alt') return 'Alt';
+      if (lower === 'shift') return 'Shift';
+      if (lower === 'mod') return 'Mod';
+
+      if (lower === 'enter' || lower === 'return') return 'Enter';
+      if (lower === 'esc' || lower === 'escape') return 'Esc';
+      if (lower === 'space') return 'Space';
+      if (lower === 'tab') return 'Tab';
+      if (lower === 'backspace') return 'Backspace';
+      if (lower === 'delete' || lower === 'del') return 'Delete';
+      if (lower === 'up') return 'Up';
+      if (lower === 'down') return 'Down';
+      if (lower === 'left') return 'Left';
+      if (lower === 'right') return 'Right';
+
+      if (key.length === 1) return key.toUpperCase();
+      return key.charAt(0).toUpperCase() + key.slice(1);
+    });
+
+    return out.join('-');
+  };
+
+  _applyActionKeyMap = ({ actionName, handler, mapName, getSig, setSig, getMap, setMap }) => {
+    if (!this.editor) return;
+
+    const oldMap = getMap();
+    if (oldMap) {
+      try {
+        this.editor.removeKeyMap(oldMap);
+      } catch (e) {}
+      setMap(null);
+    }
+
+    let combos = [];
+    try {
+      const state = store.getState();
+      const userKeyBindings = state.app.preferences?.keyBindings || {};
+      combos = getKeyBindingsForActionAllOS(actionName, userKeyBindings) || [];
+    } catch (e) {
+      combos = [];
+    }
+
+    const cmCombos = combos.map((k) => this.convertToCodeMirrorFormat(k)).filter(Boolean);
+    const sig = cmCombos.join('|');
+    setSig(sig);
+
+    if (!cmCombos.length) return;
+
+    const cmHandler = () => {
+      handler?.();
+      return true;
+    };
+
+    const keyMap = { name: mapName };
+    cmCombos.forEach((cmKey) => {
+      keyMap[cmKey] = cmHandler;
+    });
+
+    setMap(keyMap);
+    this.editor.addKeyMap(keyMap);
+  };
+
+  _applyCloseTabKeyMap = () => {
+    this._applyActionKeyMap({
+      actionName: 'closeTab',
+      mapName: 'codeEditor.closeTab',
+      handler: () => window.dispatchEvent(new CustomEvent('close-active-tab')),
+      getSig: () => this._lastCloseTabKeySig,
+      setSig: (v) => (this._lastCloseTabKeySig = v),
+      getMap: () => this._closeTabKeyMap,
+      setMap: (m) => (this._closeTabKeyMap = m)
+    });
+  };
+
+  _applySendRequestKeyMap = () => {
+    this._applyActionKeyMap({
+      actionName: 'sendRequest',
+      mapName: 'codeEditor.sendRequest',
+      handler: () => {
+        if (this.props.onRun) this.props.onRun();
+      },
+      getSig: () => this._lastSendRequestKeySig,
+      setSig: (v) => (this._lastSendRequestKeySig = v),
+      getMap: () => this._sendRequestKeyMap,
+      setMap: (m) => (this._sendRequestKeyMap = m)
+    });
+  };
+
+  _applySwitchPrevTabKeyMap = () => {
+    this._applyActionKeyMap({
+      actionName: 'switchToPreviousTab',
+      mapName: 'codeEditor.switchToPreviousTab',
+      handler: () => {
+        store.dispatch(switchTab({ direction: 'pageup' }));
+      },
+      getSig: () => this._lastPrevTabKeySig,
+      setSig: (v) => (this._lastPrevTabKeySig = v),
+      getMap: () => this._prevTabKeyMap,
+      setMap: (m) => (this._prevTabKeyMap = m)
+    });
+  };
+
+  _applySwitchNextTabKeyMap = () => {
+    this._applyActionKeyMap({
+      actionName: 'switchToNextTab',
+      mapName: 'codeEditor.switchToNextTab',
+      handler: () => {
+        store.dispatch(switchTab({ direction: 'pagedown' }));
+      },
+      getSig: () => this._lastNextTabKeySig,
+      setSig: (v) => (this._lastNextTabKeySig = v),
+      getMap: () => this._nextTabKeyMap,
+      setMap: (m) => (this._nextTabKeyMap = m)
+    });
+  };
+
+  _applyMoveTabLeftKeyMap = () => {
+    this._applyActionKeyMap({
+      actionName: 'moveTabLeft',
+      mapName: 'codeEditor.moveTabLeft',
+      handler: () => {
+        store.dispatch(reorderTabs({ direction: -1 }));
+      },
+      getSig: () => this._lastMoveLeftTabKeySig,
+      setSig: (v) => (this._lastMoveLeftTabKeySig = v),
+      getMap: () => this._moveLeftTabKeyMap,
+      setMap: (m) => (this._moveLeftTabKeyMap = m)
+    });
+  };
+
+  _applyMoveTabRightKeyMap = () => {
+    this._applyActionKeyMap({
+      actionName: 'moveTabRight',
+      mapName: 'codeEditor.moveTabRight',
+      handler: () => {
+        store.dispatch(reorderTabs({ direction: 1 }));
+      },
+      getSig: () => this._lastMoveRightTabKeySig,
+      setSig: (v) => (this._lastMoveRightTabKeySig = v),
+      getMap: () => this._moveRightTabKeyMap,
+      setMap: (m) => (this._moveRightTabKeyMap = m)
+    });
+  };
+
+  _applyChangeLayoutKeyMap = () => {
+    this._applyActionKeyMap({
+      actionName: 'changeLayout',
+      mapName: 'codeEditor.changeLayout',
+      handler: () => {
+        const state = store.getState();
+        const preferences = state.app.preferences;
+        const currentOrientation = preferences?.layout?.responsePaneOrientation || 'horizontal';
+        const newOrientation = currentOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+        const updatedPreferences = {
+          ...preferences,
+          layout: {
+            ...preferences.layout,
+            responsePaneOrientation: newOrientation
+          }
+        };
+        store.dispatch(savePreferences(updatedPreferences));
+      },
+      getSig: () => this._lastChangeLayoutKeySig,
+      setSig: (v) => (this._lastChangeLayoutKeySig = v),
+      getMap: () => this._changeLayoutKeyMap,
+      setMap: (m) => (this._changeLayoutKeyMap = m)
+    });
+  };
+
+  _applyCollapseSidebarKeyMap = () => {
+    this._applyActionKeyMap({
+      actionName: 'collapseSidebar',
+      mapName: 'codeEditor.collapseSidebar',
+      handler: () => {
+        store.dispatch(toggleSidebarCollapse());
+      },
+      getSig: () => this._lastCollapseSidebarKeySig,
+      setSig: (v) => (this._lastCollapseSidebarKeySig = v),
+      getMap: () => this._collapseSidebarKeyMap,
+      setMap: (m) => (this._collapseSidebarKeyMap = m)
+    });
+  };
+
+  _applyAllHotkeyMaps = () => {
+    this._applyCloseTabKeyMap();
+    this._applySendRequestKeyMap();
+    this._applySwitchPrevTabKeyMap();
+    this._applySwitchNextTabKeyMap();
+    this._applyMoveTabLeftKeyMap();
+    this._applyMoveTabRightKeyMap();
+    this._applyChangeLayoutKeyMap();
+    this._applyCollapseSidebarKeyMap();
+  };
 
   componentDidMount() {
     const variables = getAllVariables(this.props.collection, this.props.item);
@@ -74,16 +314,16 @@ export default class CodeEditor extends React.Component {
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
-        'Cmd-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
+        // 'Cmd-Enter': () => {
+        //   if (this.props.onRun) {
+        //     this.props.onRun();
+        //   }
+        // },
+        // 'Ctrl-Enter': () => {
+        //   if (this.props.onRun) {
+        //     this.props.onRun();
+        //   }
+        // },
         'Cmd-S': () => {
           if (this.props.onSave) {
             this.props.onSave();
@@ -217,6 +457,14 @@ export default class CodeEditor extends React.Component {
 
       // Setup lint error tooltip on line number hover
       this.cleanupLintErrorTooltip = setupLintErrorTooltip(editor);
+
+      // apply all preference-based hotkey maps
+      this._applyAllHotkeyMaps();
+
+      // keep updated if preferences change
+      this._unsubscribeStore = store.subscribe(() => {
+        this._applyAllHotkeyMaps();
+      });
     }
   }
 
@@ -288,6 +536,11 @@ export default class CodeEditor extends React.Component {
   }
 
   componentWillUnmount() {
+    if (this._unsubscribeStore) {
+      this._unsubscribeStore();
+      this._unsubscribeStore = null;
+    }
+
     if (this.editor) {
       if (this.props.onScroll) {
         this.props.onScroll(this.editor);
@@ -298,6 +551,34 @@ export default class CodeEditor extends React.Component {
 
       // Clean up lint error tooltip
       this.cleanupLintErrorTooltip?.();
+
+      // remove our hotkey maps
+      const maps = [
+        this._closeTabKeyMap,
+        this._sendRequestKeyMap,
+        this._prevTabKeyMap,
+        this._nextTabKeyMap,
+        this._moveLeftTabKeyMap,
+        this._moveRightTabKeyMap,
+        this._changeLayoutKeyMap,
+        this._collapseSidebarKeyMap
+      ];
+
+      maps.forEach((m) => {
+        if (!m) return;
+        try {
+          this.editor.removeKeyMap(m);
+        } catch (e) {}
+      });
+
+      this._closeTabKeyMap = null;
+      this._sendRequestKeyMap = null;
+      this._prevTabKeyMap = null;
+      this._nextTabKeyMap = null;
+      this._moveLeftTabKeyMap = null;
+      this._moveRightTabKeyMap = null;
+      this._changeLayoutKeyMap = null;
+      this._collapseSidebarKeyMap = null;
 
       const wrapper = this.editor.getWrapperElement();
       wrapper?.parentNode?.removeChild(wrapper);
