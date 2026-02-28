@@ -116,6 +116,68 @@ const Wrapper = styled.div`
       background-color: ${(props) => props.theme.dropdown.hoverBg};
     }
   }
+
+  /* Send dropdown styling */
+  .send-dropdown-container {
+    position: relative;
+  }
+
+  .send-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .send-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background-color: ${(props) => props.theme.dropdown.bg};
+    border: 1px solid ${(props) => props.theme.dropdown.border};
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    min-width: 180px;
+  }
+
+  .send-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: ${(props) => props.theme.text};
+    white-space: nowrap;
+
+    &:first-child {
+      border-top-left-radius: 4px;
+      border-top-right-radius: 4px;
+    }
+
+    &:last-child {
+      border-bottom-left-radius: 4px;
+      border-bottom-right-radius: 4px;
+    }
+
+    &:hover {
+      background-color: ${(props) => props.theme.dropdown.hoverBg};
+    }
+
+    &.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+
+      &:hover {
+        background-color: transparent;
+      }
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
 `;
 
 export default Wrapper;
