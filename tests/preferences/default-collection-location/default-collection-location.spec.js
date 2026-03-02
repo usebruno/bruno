@@ -44,6 +44,11 @@ test.describe('Default Location Feature', () => {
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
+    // Wait for inline creator to appear, then click the cog button to open advanced modal
+    const inlineCreator = page.locator('.inline-collection-creator');
+    await inlineCreator.waitFor({ state: 'visible', timeout: 5000 });
+    await inlineCreator.locator('.cog-btn').click();
+
     // Wait for modal to be visible
     await page.locator('.bruno-modal').waitFor({ state: 'visible' });
 
