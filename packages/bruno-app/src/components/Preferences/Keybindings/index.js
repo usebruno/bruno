@@ -388,7 +388,32 @@ const Keybindings = () => {
 
   const stopEditing = (action) => {
     const ok = commitCombo(action);
-    if (!ok) return; // keep editing if invalid
+    if (!ok) {
+      // If commit failed (validation error), reset to original value
+      cancelEditing(action);
+      return;
+    }
+
+    setRecordingAction(null);
+    setEditingAction(null);
+    pressedKeysRef.current = new Set();
+  };
+
+  // Reset draft to original value and clear error (used on blur with invalid state)
+  const cancelEditing = (action) => {
+    // Clear error for this action
+    setErrorByAction((prev) => {
+      const next = { ...prev };
+      delete next[action];
+      return next;
+    });
+
+    // Reset draft to current saved value
+    setDraftByAction((prev) => {
+      const next = { ...prev };
+      delete next[action];
+      return next;
+    });
 
     setRecordingAction(null);
     setEditingAction(null);
@@ -488,7 +513,7 @@ const Keybindings = () => {
             onClick={resetAllKeybindings}
             title="Reset all keybindings to default"
           >
-            <IconRefresh size={14} stroke={1.5} />
+            <IconRefresh size={12} stroke={1} />
 
           </button>
         )}
@@ -539,7 +564,12 @@ const Keybindings = () => {
                             onKeyDown={(e) => handleKeyDown(action, e)}
                             onKeyUp={(e) => handleKeyUp(action, e)}
                             onBlur={() => {
-                              if (isEditing) stopEditing(action);
+                              // If there's an error, reset to original value instead of keeping invalid state
+                              if (isEditing && hasError) {
+                                cancelEditing(action);
+                              } else if (isEditing) {
+                                stopEditing(action);
+                              }
                             }}
                             spellCheck={false}
                           />

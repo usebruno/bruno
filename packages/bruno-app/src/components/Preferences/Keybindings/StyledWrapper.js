@@ -23,11 +23,10 @@ const StyledWrapper = styled.div`
   .reset-all-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
     background: transparent;
     border: 1px solid ${(props) => props.theme.table.border};
     border-radius: 6px;
-    padding: 4px 10px;
+    padding: 4px 4px;
     cursor: pointer;
     color: ${(props) => props.theme.text};
     font-size: 12px;
