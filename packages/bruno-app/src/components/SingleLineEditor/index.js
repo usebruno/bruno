@@ -62,7 +62,7 @@ class SingleLineEditor extends Component {
       tabindex: 0,
       readOnly: this.props.readOnly,
       extraKeys: {
-        // 'Enter': runHandler,
+        'Enter': runHandler,
         // 'Ctrl-Enter': runHandler,
         // 'Cmd-Enter': runHandler,
         // 'Alt-Enter': () => {
