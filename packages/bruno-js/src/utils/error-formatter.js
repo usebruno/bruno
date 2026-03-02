@@ -1,6 +1,6 @@
 const fs = require('fs');
 const YAML = require('yaml');
-const { NODEVM_SCRIPT_WRAPPER_OFFSET, QUICKJS_SCRIPT_WRAPPER_OFFSET } = require('../sandbox/wrapper-constants');
+const { NODEVM_SCRIPT_WRAPPER_OFFSET, QUICKJS_SCRIPT_WRAPPER_OFFSET } = require('./sandbox');
 
 const DEFAULT_CONTEXT_LINES = 5;
 const ALLOWED_SOURCE_EXTENSIONS = ['.bru', '.yml', '.yaml'];

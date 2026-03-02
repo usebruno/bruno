@@ -7,6 +7,7 @@ const { createBruTestResultMethods } = require('../utils/results');
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const { SANDBOX } = require('../utils/sandbox');
 
 class TestRuntime {
   constructor(props) {
@@ -86,7 +87,7 @@ class TestRuntime {
     let scriptError = null;
 
     try {
-      if (this.runtime === 'nodevm') {
+      if (this.runtime === SANDBOX.NODEVM) {
         await runScriptInNodeVm({
           script: testsFile,
           context,

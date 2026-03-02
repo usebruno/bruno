@@ -7,7 +7,7 @@ const { ScriptError, resolveVmFilename } = require('./utils');
 const { createCustomRequire } = require('./cjs-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
-const { wrapInNodeVmClosure } = require('../wrapper-constants');
+const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
 
 /**
  * Executes a script in a Node.js VM context with enhanced security and module loading
@@ -69,7 +69,7 @@ async function runScriptInNodeVm({
     const vmFilename = resolveVmFilename(scriptPath, collectionPath);
 
     // Execute the script in the isolated context
-    const wrappedScript = wrapInNodeVmClosure(script);
+    const wrappedScript = wrapScriptInClosure(script, SANDBOX.NODEVM);
     let compiledScript;
     try {
       compiledScript = new vm.Script(wrappedScript, {

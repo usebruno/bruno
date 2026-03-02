@@ -1,6 +1,11 @@
-// Wrapper templates that sandwich user scripts before VM execution (Node VM and QuickJS).
+// Sandbox script wrapping utilities for Node VM and QuickJS.
 // Line offsets are computed from the prefix strings so error-formatter.js can map
 // VM-reported line numbers back to the original .bru/.yml source lines.
+
+const SANDBOX = Object.freeze({
+  NODEVM: 'nodevm',
+  QUICKJS: 'quickjs'
+});
 
 // -- Node VM --
 
@@ -38,12 +43,22 @@ const QUICKJS_SCRIPT_SUFFIX = `
 const NODEVM_SCRIPT_WRAPPER_OFFSET = NODEVM_SCRIPT_PREFIX.split('\n').length - 1;
 const QUICKJS_SCRIPT_WRAPPER_OFFSET = QUICKJS_SCRIPT_PREFIX.split('\n').length - 1;
 
-const wrapInNodeVmClosure = (script) => NODEVM_SCRIPT_PREFIX + script + NODEVM_SCRIPT_SUFFIX;
-const wrapInQuickJSClosure = (script) => QUICKJS_SCRIPT_PREFIX + script + QUICKJS_SCRIPT_SUFFIX;
+/**
+ * Wraps a script in the appropriate sandbox closure.
+ * @param {string} script - The script code to wrap
+ * @param {'nodevm'|'quickjs'} sandbox - The sandbox runtime to wrap for
+ * @returns {string} The wrapped script
+ */
+const wrapScriptInClosure = (script, sandbox) => {
+  if (sandbox === SANDBOX.QUICKJS) {
+    return QUICKJS_SCRIPT_PREFIX + script + QUICKJS_SCRIPT_SUFFIX;
+  }
+  return NODEVM_SCRIPT_PREFIX + script + NODEVM_SCRIPT_SUFFIX;
+};
 
 module.exports = {
-  wrapInNodeVmClosure,
-  wrapInQuickJSClosure,
+  SANDBOX,
+  wrapScriptInClosure,
   NODEVM_SCRIPT_WRAPPER_OFFSET,
   QUICKJS_SCRIPT_WRAPPER_OFFSET
 };

@@ -6,6 +6,7 @@ const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const { SANDBOX } = require('../utils/sandbox');
 
 class ScriptRuntime {
   constructor(props) {
@@ -89,7 +90,7 @@ class ScriptRuntime {
     // Similar pattern to test-runtime.js which already handles this correctly
     let scriptError = null;
 
-    if (this.runtime === 'nodevm') {
+    if (this.runtime === SANDBOX.NODEVM) {
       try {
         await runScriptInNodeVm({
           script,
@@ -210,7 +211,7 @@ class ScriptRuntime {
     // Similar pattern to test-runtime.js which already handles this correctly
     let scriptError = null;
 
-    if (this.runtime === 'nodevm') {
+    if (this.runtime === SANDBOX.NODEVM) {
       try {
         await runScriptInNodeVm({
           script,
