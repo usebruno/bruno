@@ -1,6 +1,6 @@
 import React from 'react';
 
-const HelpIcon = ({ size = 14 }) => {
+const QuestionCircle = ({ size = 14 }) => {
   return (
     <svg
       tabIndex="-1"
@@ -17,4 +17,4 @@ const HelpIcon = ({ size = 14 }) => {
   );
 };
 
-export default HelpIcon;
+export default QuestionCircle;

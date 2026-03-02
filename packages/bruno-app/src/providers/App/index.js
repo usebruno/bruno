@@ -6,6 +6,7 @@ import ConfirmAppClose from './ConfirmAppClose';
 import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
 import StyledWrapper from './StyledWrapper';
+import useOpenAPISyncPolling from './useOpenAPISyncPolling';
 import { version } from '../../../package.json';
 
 export const AppContext = React.createContext();
@@ -13,6 +14,7 @@ export const AppContext = React.createContext();
 export const AppProvider = (props) => {
   useTelemetry({ version });
   useIpcEvents();
+  useOpenAPISyncPolling();
   const dispatch = useDispatch();
 
   useEffect(() => {

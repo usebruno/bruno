@@ -5,7 +5,8 @@
  */
 
 import React, { useState } from 'react';
-import HelpIcon from 'components/Icons/Help';
+import QuestionCircle from 'components/Icons/QuestionCircle';
+import InfoCircle from 'components/Icons/InfoCircle';
 import StyledWrapper from './StyledWrapper';
 
 const getPlacementStyles = (placement) => {
@@ -38,8 +39,14 @@ const getPlacementStyles = (placement) => {
   }
 };
 
-const Help = ({ children, width = 200, placement = 'right' }) => {
+const iconMap = {
+  question: QuestionCircle,
+  info: InfoCircle
+};
+
+const Help = ({ children, width = 200, placement = 'right', icon = 'question', iconComponent: IconComponent, size = 14 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const ResolvedIcon = IconComponent || iconMap[icon] || QuestionCircle;
 
   return (
     <div className="flex items-center relative">
@@ -48,7 +55,7 @@ const Help = ({ children, width = 200, placement = 'right' }) => {
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
-        <HelpIcon size={14} />
+        <ResolvedIcon size={size} />
       </span>
       {showTooltip && (
         <StyledWrapper

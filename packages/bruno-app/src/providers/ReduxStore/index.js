@@ -10,6 +10,7 @@ import logsReducer from './slices/logs';
 import performanceReducer from './slices/performance';
 import workspacesReducer from './slices/workspaces';
 import apiSpecReducer from './slices/apiSpec';
+import openapiSyncReducer from './slices/openapi-sync';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
 import { autosaveMiddleware } from './middlewares/autosave/middleware';
 
@@ -32,7 +33,8 @@ export const store = configureStore({
     logs: logsReducer,
     performance: performanceReducer,
     workspaces: workspacesReducer,
-    apiSpec: apiSpecReducer
+    apiSpec: apiSpecReducer,
+    openapiSync: openapiSyncReducer
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
 });

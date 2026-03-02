@@ -41,7 +41,7 @@ const parseCollection = (ymlString: string): ParsedCollection => {
       }
     }
 
-    // bruno-specific script extensions
+    // bruno-specific extensions
     const brunoExtensions = oc.extensions?.bruno as any;
     if (Array.isArray(brunoExtensions?.scripts?.additionalContextRoots)) {
       const sanitizedRoots = brunoExtensions.scripts.additionalContextRoots
@@ -53,6 +53,16 @@ const parseCollection = (ymlString: string): ParsedCollection => {
           additionalContextRoots: sanitizedRoots
         };
       }
+    }
+    if (Array.isArray(brunoExtensions?.openapi) && brunoExtensions.openapi.length > 0) {
+      brunoConfig.openapi = brunoExtensions.openapi.map((entry: any) => ({
+        sourceUrl: entry.sourceUrl,
+        groupBy: entry.groupBy,
+        ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),
+        ...(entry.specHash && { specHash: entry.specHash }),
+        autoCheck: entry.autoCheck !== false,
+        autoCheckInterval: entry.autoCheckInterval || 5
+      }));
     }
 
     // protobuf
