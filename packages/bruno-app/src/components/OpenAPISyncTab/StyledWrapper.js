@@ -1233,6 +1233,10 @@ const StyledWrapper = styled.div`
         font-size: ${(props) => props.theme.font.size.sm};
         color: ${(props) => props.theme.colors.text.muted};
         cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+        font-family: inherit;
 
         &:hover {
           color: ${(props) => props.theme.text};

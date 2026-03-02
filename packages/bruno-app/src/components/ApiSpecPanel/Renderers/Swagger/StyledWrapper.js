@@ -372,10 +372,17 @@ const StyledWrapper = styled.div`
       .models-control,
       .opblock-summary,
       .opblock-summary-control,
-      .opblock-tag,
-      button {
+      .opblock-tag {
         outline: none !important;
         box-shadow: none !important;
+      }
+
+      button:focus-visible,
+      .opblock-summary:focus-visible,
+      .opblock-tag:focus-visible,
+      .models-control:focus-visible {
+        outline: 2px solid ${(props) => props.theme.textLink} !important;
+        outline-offset: 2px;
       }
 
       .json-schema-2020-12__title {

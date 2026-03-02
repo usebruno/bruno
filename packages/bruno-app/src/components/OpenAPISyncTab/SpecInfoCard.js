@@ -28,20 +28,25 @@ const SpecInfoCard = ({
 
   const copyUrl = async () => {
     if (!sourceUrl) return;
-    if (sourceIsLocal) {
-      const absolutePath = await window.ipcRenderer.invoke('renderer:resolve-path', sourceUrl, collection.pathname);
-      navigator.clipboard.writeText(absolutePath);
-    } else {
-      navigator.clipboard.writeText(sourceUrl);
+    try {
+      if (sourceIsLocal) {
+        const absolutePath = await window.ipcRenderer.invoke('renderer:resolve-path', sourceUrl, collection.pathname);
+        await navigator.clipboard.writeText(absolutePath);
+      } else {
+        await navigator.clipboard.writeText(sourceUrl);
+      }
+      toast.success(sourceIsLocal ? 'Path copied to clipboard' : 'URL copied to clipboard');
+    } catch (err) {
+      console.error('Error copying to clipboard:', err);
+      toast.error('Failed to copy to clipboard');
     }
-    toast.success(sourceIsLocal ? 'Path copied to clipboard' : 'URL copied to clipboard');
   };
 
   const revealInFolder = async () => {
     if (!sourceUrl) return;
     try {
       const absolutePath = await window.ipcRenderer.invoke('renderer:resolve-path', sourceUrl, collection.pathname);
-      window.ipcRenderer.invoke('renderer:show-in-folder', absolutePath);
+      await window.ipcRenderer.invoke('renderer:show-in-folder', absolutePath);
     } catch (err) {
       console.error('Error revealing in folder:', err);
       toast.error('Failed to open in file manager');

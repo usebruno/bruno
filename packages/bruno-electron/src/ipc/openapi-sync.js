@@ -849,7 +849,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           const stats = fs.statSync(fullPath);
           if (stats.isDirectory()) {
             files.push(...scanCollectionFiles(fullPath, relPath));
-          } else if ((entry.endsWith('.bru') || entry.endsWith('.yml'))
+          } else if ((entry.endsWith('.bru') || entry.endsWith('.yml') || entry.endsWith('.yaml'))
             && !entry.startsWith('folder.') && !entry.startsWith('collection.') && !entry.startsWith('opencollection.')) {
             files.push({ fullPath, relativePath: relPath });
           }
@@ -862,7 +862,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       for (const { fullPath, relativePath } of collectionFiles) {
         try {
           const content = fs.readFileSync(fullPath, 'utf8');
-          const fileFormat = fullPath.endsWith('.yml') ? 'yml' : 'bru';
+          const fileFormat = fullPath.endsWith('.yml') || fullPath.endsWith('.yaml') ? 'yml' : 'bru';
           const parsed = parseRequest(content, { format: fileFormat });
           if (!parsed?.request) continue;
           collectionEndpoints.push({
@@ -1210,11 +1210,11 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 
             if (stats.isDirectory() && !['node_modules', '.git', 'environments'].includes(file)) {
               await findAndResetRequest(filePath);
-            } else if ((file.endsWith('.bru') || file.endsWith('.yml'))
+            } else if ((file.endsWith('.bru') || file.endsWith('.yml') || file.endsWith('.yaml'))
               && !file.startsWith('folder.') && !file.startsWith('collection.')) {
               try {
                 const content = fs.readFileSync(filePath, 'utf8');
-                const fileFormat = file.endsWith('.yml') ? 'yml' : 'bru';
+                const fileFormat = file.endsWith('.yml') || file.endsWith('.yaml') ? 'yml' : 'bru';
                 const existingRequest = parseRequest(content, { format: fileFormat });
 
                 if (existingRequest?.request) {
@@ -1326,11 +1326,11 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 
             if (stats.isDirectory() && !['node_modules', '.git', 'environments'].includes(file)) {
               findAndRemoveRequest(filePath);
-            } else if ((file.endsWith('.bru') || file.endsWith('.yml'))
+            } else if ((file.endsWith('.bru') || file.endsWith('.yml') || file.endsWith('.yaml'))
               && !file.startsWith('folder.') && !file.startsWith('collection.')) {
               try {
                 const content = fs.readFileSync(filePath, 'utf8');
-                const request = parseRequest(content, { format: file.endsWith('.yml') ? 'yml' : 'bru' });
+                const request = parseRequest(content, { format: file.endsWith('.yml') || file.endsWith('.yaml') ? 'yml' : 'bru' });
 
                 if (request?.request) {
                   const method = request.request.method?.toUpperCase();
@@ -1430,7 +1430,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
               }
               if (fs.existsSync(fullPath)) {
                 try {
-                  const fileFormat = fullPath.endsWith('.yml') ? 'yml' : 'bru';
+                  const fileFormat = fullPath.endsWith('.yml') || fullPath.endsWith('.yaml') ? 'yml' : 'bru';
                   const existingContent = fs.readFileSync(fullPath, 'utf8');
                   const existingRequest = parseRequest(existingContent, { format: fileFormat });
                   const mergedRequest = mergeSpecIntoRequest(existingRequest, specItem, { fullReset: true });

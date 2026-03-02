@@ -53,10 +53,10 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
 
   // Load diff data when expanded (e.g. restored from Redux state)
   useEffect(() => {
-    if (isExpanded && !diffData && !isLoading) {
+    if (isExpanded && !diffData && !isLoading && !error) {
       loadDiffData();
     }
-  }, [isExpanded, diffData, isLoading, loadDiffData]);
+  }, [isExpanded, diffData, isLoading, loadDiffData, error]);
 
   const handleToggle = () => {
     const willExpand = !isExpanded;
@@ -70,7 +70,18 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
 
   return (
     <div className={`endpoint-review-row ${showDecisions ? `decision-${decision}` : ''}`}>
-      <div className="review-row-header" onClick={handleToggle}>
+      <div
+        className="review-row-header"
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        onClick={handleToggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault(); handleToggle();
+          }
+        }}
+      >
         <span className="expand-toggle">
           {isExpanded ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
         </span>

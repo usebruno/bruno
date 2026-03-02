@@ -70,7 +70,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, onConnect }) => {
                   const file = e.target.files?.[0];
                   if (file) {
                     const filePath = window.ipcRenderer.getFilePath(file);
-                    setSourceUrl(filePath);
+                    if (filePath) setSourceUrl(filePath);
                   }
                 }}
               />

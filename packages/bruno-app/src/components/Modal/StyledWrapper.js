@@ -193,7 +193,7 @@ const Wrapper = styled.div`
     -webkit-appearance: none;
     width: 1rem;
     height: 1rem;
-    border: 1px solid ${(props) => props.theme.border.border2};;
+    border: 1px solid ${(props) => props.theme.border.border2};
     border-radius: 3px;
     background: transparent;
     position: relative;
@@ -201,6 +201,11 @@ const Wrapper = styled.div`
 
     &:hover {
       border-color: ${(props) => props.theme.primary.solid};
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${(props) => props.theme.textLink};
+      outline-offset: 2px;
     }
 
     &:checked {

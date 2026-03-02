@@ -162,7 +162,7 @@ const SyncReviewPage = ({
     addGroup('Keeping local version', 'keep', specUpdatedEndpoints.filter((ep) => ep.conflict && isSkipped(ep)));
     addGroup('Retaining removed endpoints', 'keep', specRemovedEndpoints.filter(isSkipped));
     addGroup('Skipped new endpoints', 'keep', specAddedEndpoints.filter(isSkipped));
-    addGroup('Keeping current version (skipped updates)', 'keep', specUpdatedEndpoints.filter(isSkipped));
+    addGroup('Keeping current version (skipped updates)', 'keep', specUpdatedEndpoints.filter((ep) => !ep.conflict && isSkipped(ep)));
 
     return groups;
   }, [specAddedEndpoints, specUpdatedEndpoints, localUpdatedEndpoints, specRemovedEndpoints, decisions]);
@@ -207,10 +207,10 @@ const SyncReviewPage = ({
     <div className="sync-review-page sync-mode">
       <div className="sync-review-header">
         <div className="back-link-row">
-          <span className="back-link" onClick={onGoBack}>
+          <button type="button" className="back-link" onClick={onGoBack}>
             <IconArrowLeft size={14} />
             Back to Overview
-          </span>
+          </button>
           {specDrift?.unifiedDiff && (
             <Button variant="outline" size="sm" onClick={() => setShowSpecDiffModal(true)}>View Spec Diff</Button>
           )}

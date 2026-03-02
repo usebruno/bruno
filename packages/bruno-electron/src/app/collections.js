@@ -41,7 +41,7 @@ const readConfigFile = async (pathname) => {
     const jsonData = fs.readFileSync(pathname, 'utf8');
     return JSON.parse(jsonData);
   } catch (err) {
-    return Promise.reject(new Error('Unable to parse json in bruno.json in ', pathname));
+    return Promise.reject(new Error(`Unable to parse json in bruno.json in ${pathname}`));
   }
 };
 
