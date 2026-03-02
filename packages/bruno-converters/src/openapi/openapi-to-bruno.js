@@ -607,6 +607,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
   };
 
   // If the operation has its own servers, override baseUrl via request vars
+  // Only the first server is used; Bruno supports a single baseUrl per request
   if (request.servers && request.servers.length > 0) {
     const serverVarPairs = extractServerVars(request.servers[0]);
     brunoRequestItem.request.vars = {
@@ -1213,7 +1214,7 @@ const getDefaultUrl = (serverObject) => {
   let url = serverObject.url;
   if (serverObject.variables) {
     each(serverObject.variables, (variable, variableName) => {
-      let sub = variable.default || (variable.enum ? variable.enum[0] : `{{${variableName}}}`);
+      let sub = variable.default !== undefined ? variable.default : (variable.enum ? variable.enum[0] : `{{${variableName}}}`);
       url = url.replace(`{${variableName}}`, sub);
     });
   }
@@ -1232,7 +1233,7 @@ const extractServerVars = (server) => {
     baseUrlTemplate = baseUrlTemplate.endsWith('/') ? baseUrlTemplate.slice(0, -1) : baseUrlTemplate;
     vars.push({ name: 'baseUrl', value: baseUrlTemplate });
     each(server.variables, (variable, variableName) => {
-      let value = variable.default || (variable.enum ? variable.enum[0] : '');
+      let value = variable.default !== undefined ? variable.default : (variable.enum ? variable.enum[0] : '');
       vars.push({ name: variableName, value: String(value) });
     });
   } else {

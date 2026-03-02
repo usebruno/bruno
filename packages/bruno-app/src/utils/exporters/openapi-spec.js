@@ -35,7 +35,8 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       const serverVariables = {};
 
       // each match m is an array where m[0] is the full match (e.g. {{protocol}}) and m[1] is the capture group (e.g. protocol).
-      matches.map((m) => m[1]).forEach((varName) => {
+      matches.forEach((m) => {
+        const varName = m[1];
         if (vars[varName] !== undefined) {
           serverVariables[varName] = { default: String(vars[varName]) };
         }
@@ -101,21 +102,21 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
         const reqVarsMap = {};
         requestVars.filter((v) => v.enabled).forEach((v) => { reqVarsMap[v.name] = v.value; });
         const path = rawUrl.slice('{{baseUrl}}'.length) || '/';
-        return { url: interpolate(path, variables), operationLevelServer: buildServerEntry(baseUrlOverride.value, reqVarsMap) };
+        return { url: interpolate(path, reqVarsMap), operationLevelServer: buildServerEntry(baseUrlOverride.value, reqVarsMap) };
       }
     }
 
     // URL uses {{baseUrl}} placeholder — strip it and resolve remaining path
     if (rawUrl.startsWith('{{baseUrl}}')) {
       const path = rawUrl.slice('{{baseUrl}}'.length) || '/';
-      return { url: interpolate(path, variables), operationLevelServer: null };
+      return { url: interpolate(path, {}), operationLevelServer: null };
     }
 
     // URL matches a known baseUrl value directly (e.g. user typed template vars inline)
     for (const source of baseUrlSources) {
       if (rawUrl.startsWith(source.baseUrl)) {
         const path = rawUrl.slice(source.baseUrl.length) || '/';
-        return { url: interpolate(path, variables), operationLevelServer: null };
+        return { url: interpolate(path, {}), operationLevelServer: null };
       }
     }
 
@@ -276,7 +277,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
             }
             break;
           case 'multipartForm':
-            if (!body?.multipartForm) return;
+            if (!body?.multipartForm) break;
             let multipartFormToKeyValue = body?.multipartForm.reduce((acc, f) => {
               acc[f?.name] = f.value;
               return acc;
@@ -296,8 +297,9 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
             pathBody['requestBody'] = {
               $ref: `#/components/requestBodies/${requestBodyId}`
             };
+            break;
           case 'formUrlEncoded':
-            if (!body?.formUrlEncoded) return;
+            if (!body?.formUrlEncoded) break;
             let formUrlEncodedToKeyValue = body?.formUrlEncoded.reduce((acc, f) => {
               acc[f?.name] = f.value;
               return acc;
@@ -317,8 +319,9 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
             pathBody['requestBody'] = {
               $ref: `#/components/requestBodies/${requestBodyId}`
             };
+            break;
           case 'text':
-            if (!body?.text) return;
+            if (!body?.text) break;
             pathBody['requestBody'] = {
               content: {
                 'text/plain': {
@@ -328,6 +331,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                 }
               }
             };
+            break;
           default:
             break;
         }

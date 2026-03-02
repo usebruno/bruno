@@ -609,10 +609,11 @@ paths:
   });
 });
 
+// Tests backward-compat handling of non-standard in: 'querystring' (some importers emit this instead of 'query')
 describe('openapi querystring parameter location', () => {
   it('should map in: "querystring" to query type', () => {
     const spec = {
-      openapi: '3.2.0',
+      openapi: '3.0.0',
       info: { title: 'Querystring API', version: '1.0.0' },
       servers: [{ url: 'https://api.example.com' }],
       paths: {

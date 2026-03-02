@@ -192,7 +192,7 @@ servers:
 
   it('should use server.name for environment name when present', () => {
     const spec = {
-      openapi: '3.2.0',
+      openapi: '3.0.0',
       info: { title: 'Named Server API', version: '1.0.0' },
       paths: {
         '/test': {
