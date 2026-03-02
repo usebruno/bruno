@@ -5,10 +5,6 @@ import { savePreferences, toggleSidebarCollapse } from 'providers/ReduxStore/sli
 
 const CodeMirror = require('codemirror');
 
-// ============================================================================
-// Scalable Keybinding Configuration
-// Add new keybindings here - no other code changes needed!
-// ============================================================================
 const KEYBINDING_ACTIONS = [
   {
     actionName: 'closeTab',
