@@ -136,7 +136,10 @@ export const test = baseTest.extend<
     if (srcPath) {
       const tmpDir = await createTmpDir(path.basename(srcPath));
       await fs.promises.cp(srcPath, tmpDir, { recursive: true });
-      await use(tmpDir);
+      // Normalize to forward slashes so the path is valid JSON when substituted
+      // into template files (e.g. preferences.json). Windows paths with backslashes
+      // produce invalid JSON escape sequences such as \U, \A, \T, etc.
+      await use(tmpDir.replace(/\\/g, '/'));
     } else {
       await use(null);
     }
