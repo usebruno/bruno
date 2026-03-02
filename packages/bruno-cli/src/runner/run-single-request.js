@@ -6,7 +6,7 @@ const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lod
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString, interpolateObject } = require('./interpolate-string');
-const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
+const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, formatErrorWithContext, SCRIPT_TYPES } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const https = require('https');
@@ -102,7 +102,7 @@ const runSingleRequest = async function (
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
 
-  const logResults = (results, title) => {
+  const logResults = (results, title, scriptType = null, request = null) => {
     if (results?.length) {
       if (title) {
         console.log(chalk.dim(title));
@@ -113,7 +113,18 @@ const runSingleRequest = async function (
           console.log(chalk.green(`   ✓ `) + chalk.dim(message));
         } else {
           console.log(chalk.red(`   ✕ `) + chalk.red(message));
-          if (r.error) {
+          if (r.stack && scriptType) {
+            const errorObj = {
+              message: r.error || message,
+              stack: r.stack,
+              name: r.errorName || 'Error'
+            };
+            const metadata = scriptType === SCRIPT_TYPES.PRE_REQUEST ? request?.script?.reqMetadata
+              : scriptType === SCRIPT_TYPES.POST_RESPONSE ? request?.script?.resMetadata
+                : scriptType === SCRIPT_TYPES.TEST ? request?.testsMetadata
+                  : null;
+            console.log('\n' + formatErrorWithContext(errorObj, relativeItemPathname, scriptType, 5, metadata) + '\n');
+          } else if (r.error) {
             console.log(chalk.red(`      ${r.error}`));
           }
         }
@@ -208,7 +219,7 @@ const runSingleRequest = async function (
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       try {
-        const result = await scriptRuntime.runRequestScript(decomment(requestScriptFile),
+        const result = await scriptRuntime.runRequestScript(decomment(requestScriptFile, { space: true }),
           request,
           envVariables,
           runtimeVariables,
@@ -263,8 +274,8 @@ const runSingleRequest = async function (
         preRequestTestResults = result?.results || [];
       } catch (error) {
         // Pre-request errors are treated as request errors (we return early with status: 'error'), not as failures. Unlike post-response and test script errors, we do not add a synthetic fail and continue.
-        console.error('Pre-request script execution error:', error);
-        console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${error.message})`));
+        console.error(chalk.red(`[${relativeItemPathname}] Pre-request script error:`));
+        console.log('\n' + formatErrorWithContext(error, relativeItemPathname, SCRIPT_TYPES.PRE_REQUEST, 5, request.script?.reqMetadata) + '\n');
 
         // Extract partial results from the error (tests that passed before the error)
         preRequestTestResults = error?.partialResults?.results || [];
@@ -279,7 +290,7 @@ const runSingleRequest = async function (
           shouldStopRunnerExecution = true;
         }
 
-        logResults(preRequestTestResults, 'Pre-Request Tests');
+        logResults(preRequestTestResults, 'Pre-Request Tests', SCRIPT_TYPES.PRE_REQUEST, request);
 
         // Pre-request script error: execution didn't complete (request never sent). Return early so we don't run the HTTP request, post-response script, assertions, or tests.
         return {
@@ -764,7 +775,7 @@ const runSingleRequest = async function (
     );
 
     // Log pre-request test results
-    logResults(preRequestTestResults, 'Pre-Request Tests');
+    logResults(preRequestTestResults, 'Pre-Request Tests', SCRIPT_TYPES.PRE_REQUEST, request);
 
     // run post-response vars
     const postResponseVars = get(item, 'request.vars.res');
@@ -787,7 +798,7 @@ const runSingleRequest = async function (
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       try {
         const result = await scriptRuntime.runResponseScript(
-          decomment(responseScriptFile),
+          decomment(responseScriptFile, { space: true }),
           request,
           response,
           envVariables,
@@ -814,9 +825,10 @@ const runSingleRequest = async function (
         }
 
         postResponseTestResults = result?.results || [];
-        logResults(postResponseTestResults, 'Post-Response Tests');
+        logResults(postResponseTestResults, 'Post-Response Tests', SCRIPT_TYPES.POST_RESPONSE, request);
       } catch (error) {
-        console.error('Post-response script execution error:', error);
+        console.error(chalk.red(`[${relativeItemPathname}] Post-response script error:`));
+        console.log('\n' + formatErrorWithContext(error, relativeItemPathname, SCRIPT_TYPES.POST_RESPONSE, 5, request.script?.resMetadata) + '\n');
 
         const partialResults = error?.partialResults?.results || [];
         postResponseTestResults = [
@@ -837,7 +849,7 @@ const runSingleRequest = async function (
           shouldStopRunnerExecution = true;
         }
 
-        logResults(postResponseTestResults, 'Post-Response Tests');
+        logResults(postResponseTestResults, 'Post-Response Tests', SCRIPT_TYPES.POST_RESPONSE, request);
       }
     }
 
@@ -862,7 +874,7 @@ const runSingleRequest = async function (
       const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
       try {
         const result = await testRuntime.runTests(
-          decomment(testFile),
+          decomment(testFile, { space: true }),
           request,
           response,
           envVariables,
@@ -890,9 +902,10 @@ const runSingleRequest = async function (
           }
         }
 
-        logResults(testResults, 'Tests');
+        logResults(testResults, 'Tests', SCRIPT_TYPES.TEST, request);
       } catch (error) {
-        console.error('Test script execution error:', error);
+        console.error(chalk.red(`[${relativeItemPathname}] Test script error:`));
+        console.log('\n' + formatErrorWithContext(error, relativeItemPathname, SCRIPT_TYPES.TEST, 5, request.testsMetadata) + '\n');
 
         const partialResults = error?.partialResults?.results || [];
         testResults = [
@@ -913,7 +926,7 @@ const runSingleRequest = async function (
           shouldStopRunnerExecution = true;
         }
 
-        logResults(testResults, 'Tests');
+        logResults(testResults, 'Tests', SCRIPT_TYPES.TEST, request);
       }
     }
 

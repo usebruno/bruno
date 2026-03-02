@@ -12,6 +12,7 @@ const getBundledCode = require('../bundle-browser-rollup');
 const addPathShimToContext = require('./shims/lib/path');
 const { marshallToVm } = require('./utils');
 const addCryptoUtilsShimToContext = require('./shims/lib/crypto-utils');
+const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
 
 let QuickJSSyncContext;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
@@ -89,7 +90,7 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   }
 };
 
-const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext, collectionPath }) => {
+const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext, collectionPath, scriptPath }) => {
   if (!externalScript?.length || typeof externalScript !== 'string') {
     return externalScript;
   }
@@ -157,26 +158,9 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
     test && __brunoTestResults && addTestShimToContext(vm, __brunoTestResults);
 
-    const script = `
-      (async () => {
-        const setTimeout = async(fn, timer) => {
-          v = await bru.sleep(timer);
-          fn.apply();
-        }
+    const script = wrapScriptInClosure(externalScript, SANDBOX.QUICKJS);
 
-        await bru.sleep(0);
-        try {
-          ${externalScript}
-        }
-        catch(error) {
-          console?.debug?.('quick-js:execution-end:with-error', error?.message);
-          throw new Error(error?.message);
-        }
-        return 'done';
-      })()
-    `;
-
-    const result = vm.evalCode(script);
+    const result = vm.evalCode(script, scriptPath);
     const promiseHandle = vm.unwrapResult(result);
     const resolvedResult = await vm.resolvePromise(promiseHandle);
     promiseHandle.dispose();
@@ -185,8 +169,8 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     // vm.dispose();
     return;
   } catch (error) {
-    console.error('Error executing the script!', error);
-    throw new Error(error);
+    error.__isQuickJS = true;
+    throw error;
   }
 };
 

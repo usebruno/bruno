@@ -353,6 +353,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     url,
     headers,
     name: item.name,
+    pathname: item.pathname,
     tags: item.tags || [],
     pathParams: request.params?.filter((param) => param.type === 'path'),
     settings,
