@@ -130,10 +130,6 @@ const MultipartFormParams = ({ item, collection }) => {
         if (fileName) {
           return (
             <div className="flex items-center file-value-cell">
-              <IconFile size={16} className="text-muted mr-1" />
-              <span className="file-name flex-1 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
-                {fileName}
-              </span>
               <button
                 className="clear-file-btn ml-1"
                 onClick={() => handleClearFile(row)}
@@ -141,6 +137,10 @@ const MultipartFormParams = ({ item, collection }) => {
               >
                 <IconX size={16} />
               </button>
+              <IconFile size={16} className="text-muted mr-1" />
+              <span className="file-name flex-1 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
+                {fileName}
+              </span>
             </div>
           );
         }
