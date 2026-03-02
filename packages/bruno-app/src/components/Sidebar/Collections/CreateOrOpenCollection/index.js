@@ -1,5 +1,5 @@
 import { useTheme } from '../../../../providers/Theme';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { openCollection } from 'providers/ReduxStore/slices/collections/actions';
 
 import toast from 'react-hot-toast';
@@ -13,9 +13,6 @@ const LinkStyle = styled.span`
 const CreateOrOpenCollection = ({ onCreateClick }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
-
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
 
   const handleOpenCollection = () => {
     dispatch(openCollection()).catch(
