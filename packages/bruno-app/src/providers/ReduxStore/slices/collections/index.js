@@ -100,13 +100,24 @@ const REQUEST_UID_PATHS = [
   'assertions',
   'body.formUrlEncoded',
   'body.multipartForm',
-  'body.file'
+  'body.file',
+  'bodyVariants'
 ];
 
 const ROOT_UID_PATHS = ['request.headers', 'request.vars.req', 'request.vars.res'];
 
-const mergeRequestWithPreservedUids = (existingRequest, newRequest) =>
-  preserveUidsAtPaths(existingRequest, newRequest, REQUEST_UID_PATHS);
+const mergeRequestWithPreservedUids = (existingRequest, newRequest) => {
+  const merged = preserveUidsAtPaths(existingRequest, newRequest, REQUEST_UID_PATHS);
+
+  // Preserve body variants if the file data doesn't include them
+  // (e.g., yml format doesn't support body variants yet)
+  if (existingRequest?.bodyVariants?.length > 0 && !merged?.bodyVariants?.length) {
+    merged.bodyVariants = existingRequest.bodyVariants;
+    merged.activeBodyVariantUid = existingRequest.activeBodyVariantUid;
+  }
+
+  return merged;
+};
 
 const mergeRootWithPreservedUids = (existingRoot, newRoot) =>
   preserveUidsAtPaths(existingRoot, newRoot, ROOT_UID_PATHS);
@@ -1728,6 +1739,125 @@ export const collectionsSlice = createSlice({
               item.draft.request.body.ws = action.payload.content;
               break;
             }
+          }
+        }
+      }
+    },
+    addBodyVariant: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          const request = item.draft.request;
+
+          if (!request.bodyVariants) {
+            request.bodyVariants = [];
+          }
+
+          // If this is the first variant being added, also save the current body as "Default"
+          if (request.bodyVariants.length === 0) {
+            const defaultVariantUid = uuid();
+            request.bodyVariants.push({
+              uid: defaultVariantUid,
+              name: 'Default',
+              body: cloneDeep(request.body)
+            });
+            request.activeBodyVariantUid = defaultVariantUid;
+          }
+
+          // Add new variant by cloning the current body
+          const newVariantUid = uuid();
+          const variantName = action.payload.name || `Variant ${request.bodyVariants.length + 1}`;
+          request.bodyVariants.push({
+            uid: newVariantUid,
+            name: variantName,
+            body: cloneDeep(request.body)
+          });
+        }
+      }
+    },
+    switchBodyVariant: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          const request = item.draft.request;
+          const variants = request.bodyVariants || [];
+          const targetUid = action.payload.variantUid;
+
+          // Save current body back to the active variant
+          const activeVariant = variants.find((v) => v.uid === request.activeBodyVariantUid);
+          if (activeVariant) {
+            activeVariant.body = cloneDeep(request.body);
+          }
+
+          // Load the target variant's body
+          const targetVariant = variants.find((v) => v.uid === targetUid);
+          if (targetVariant) {
+            request.body = cloneDeep(targetVariant.body);
+            request.activeBodyVariantUid = targetUid;
+          }
+        }
+      }
+    },
+    renameBodyVariant: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          const variants = item.draft.request.bodyVariants || [];
+          const variant = variants.find((v) => v.uid === action.payload.variantUid);
+          if (variant) {
+            variant.name = action.payload.name;
+          }
+        }
+      }
+    },
+    deleteBodyVariant: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          const request = item.draft.request;
+          const variants = request.bodyVariants || [];
+          const deleteUid = action.payload.variantUid;
+
+          // If deleting the active variant, switch to another one first
+          if (request.activeBodyVariantUid === deleteUid) {
+            const otherVariant = variants.find((v) => v.uid !== deleteUid);
+            if (otherVariant) {
+              request.body = cloneDeep(otherVariant.body);
+              request.activeBodyVariantUid = otherVariant.uid;
+            }
+          }
+
+          request.bodyVariants = variants.filter((v) => v.uid !== deleteUid);
+
+          // If only one variant left, remove the variants system entirely
+          if (request.bodyVariants.length <= 1) {
+            // Keep the current body as-is
+            request.bodyVariants = undefined;
+            request.activeBodyVariantUid = undefined;
           }
         }
       }
@@ -3861,6 +3991,10 @@ export const {
   updateRequestAuthMode,
   updateRequestBodyMode,
   updateRequestBody,
+  addBodyVariant,
+  switchBodyVariant,
+  renameBodyVariant,
+  deleteBodyVariant,
   updateRequestGraphqlQuery,
   updateRequestGraphqlVariables,
   updateRequestScript,

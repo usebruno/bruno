@@ -190,6 +190,22 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     });
   }
 
+  // body variants
+  const bodyVariants = (ocRequest as any).bodyVariants;
+  if (bodyVariants?.length) {
+    (brunoItem.request as any).bodyVariants = bodyVariants.map((variant: any) => ({
+      uid: variant.uid || uuid(),
+      name: variant.name,
+      body: variant.body
+    }));
+    const activeBodyVariantUid = (ocRequest as any).activeBodyVariantUid;
+    if (activeBodyVariantUid) {
+      (brunoItem.request as any).activeBodyVariantUid = activeBodyVariantUid;
+    } else if (bodyVariants.length > 0) {
+      (brunoItem.request as any).activeBodyVariantUid = (brunoItem.request as any).bodyVariants[0].uid;
+    }
+  }
+
   return brunoItem;
 };
 
