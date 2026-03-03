@@ -69,8 +69,8 @@ async function importSampleCollection(collectionLocation, mainWindow) {
  * - Genuinely new users (no collections, no previous launch) → show welcome modal
  * - Existing users upgrading (have collections but no hasLaunchedBefore flag) → skip welcome modal
  *
- * The 'main:onboarding-complete' event in finally unblocks the renderer:ready IPC handler,
- * ensuring the renderer always gets the correct preference values.
+ * Called directly from the renderer:ready IPC handler in preferences.js to ensure
+ * preferences are set correctly before being sent to the renderer.
  */
 async function onboardUser(mainWindow, lastOpenedCollections) {
   try {
@@ -97,8 +97,7 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
       const collectionInfo = await importSampleCollection(collectionLocation, mainWindow);
 
       // Store collection info to open after renderer is ready
-      // The main:collection-opened event is deferred because the renderer
-      // is still waiting for main:onboarding-complete at this point
+      // The main:collection-opened event is deferred until main:renderer-ready is emitted
       pendingSampleCollection = { mainWindow, ...collectionInfo };
     }
 
@@ -114,9 +113,6 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
     console.error('Failed to handle onboarding:', error);
     // Still mark as launched to prevent retry on next startup
     await preferencesUtil.markAsLaunched();
-  } finally {
-    // Always unblock the renderer:ready handler so the app can proceed
-    ipcMain.emit('main:onboarding-complete');
   }
 }
 

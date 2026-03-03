@@ -2802,7 +2802,10 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
   return new Promise((resolve, reject) => {
     const state = getState();
     try {
-      if (!collectionSnapshotData) resolve();
+      if (!collectionSnapshotData) {
+        resolve();
+        return;
+      }
       const { pathname, selectedEnvironment } = collectionSnapshotData;
       const collection = findCollectionByPathname(state.collections.collections, pathname);
       const collectionCopy = cloneDeep(collection);
