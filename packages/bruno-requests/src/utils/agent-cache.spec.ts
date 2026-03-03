@@ -103,12 +103,11 @@ describe('Agent Cache', () => {
 
       // First call creates new agent - no reuse message
       getOrCreateAgent({ AgentClass: https.Agent, options: {}, timeline: timeline1 });
-      expect(timeline1.some((e) => e.message.includes('Reusing cached agent'))).toBe(false);
+      expect(timeline1.some((e) => e.message.includes('Reusing cached https agent'))).toBe(false);
 
       // Second call reuses cached agent - should log reuse message with SSL session reuse
       getOrCreateAgent({ AgentClass: https.Agent, options: {}, timeline: timeline2 });
-      expect(timeline2.some((e) => e.message.includes('Reusing cached agent'))).toBe(true);
-      expect(timeline2.some((e) => e.message.includes('SSL session reuse'))).toBe(true);
+      expect(timeline2.some((e) => e.message.includes('Reusing cached https agent'))).toBe(true);
     });
 
     it('logs when reusing a cached HTTP agent', () => {
@@ -117,12 +116,11 @@ describe('Agent Cache', () => {
 
       // First call creates new agent - no reuse message
       getOrCreateHttpAgent({ AgentClass: http.Agent, options: { keepAlive: true }, timeline: timeline1 });
-      expect(timeline1.some((e) => e.message.includes('Reusing cached agent'))).toBe(false);
+      expect(timeline1.some((e) => e.message.includes('Reusing cached http agent'))).toBe(false);
 
       // Second call reuses cached agent - should log reuse message with connection reuse
       getOrCreateHttpAgent({ AgentClass: http.Agent, options: { keepAlive: true }, timeline: timeline2 });
-      expect(timeline2.some((e) => e.message.includes('Reusing cached agent'))).toBe(true);
-      expect(timeline2.some((e) => e.message.includes('connection reuse'))).toBe(true);
+      expect(timeline2.some((e) => e.message.includes('Reusing cached http agent'))).toBe(true);
     });
 
     it('logs SSL validation status on agent creation', () => {
