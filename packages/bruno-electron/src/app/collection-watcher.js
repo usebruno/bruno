@@ -644,7 +644,7 @@ const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {
 
   const UiStateSnapshotStore = new UiStateSnapshot();
   const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
-  const collectionSnapshotState = collectionsSnapshotState?.find((c) => path.normalize(c?.pathname) === path.normalize(watchPath));
+  const collectionSnapshotState = collectionsSnapshotState?.find((c) => c?.pathname && path.normalize(c.pathname) === path.normalize(watchPath));
   win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
 };
 
