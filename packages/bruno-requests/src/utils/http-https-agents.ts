@@ -96,6 +96,7 @@ type ConfigOptions = {
   shouldUseCustomCaCertificate: boolean;
   customCaCertificateFilePath?: string;
   shouldKeepDefaultCaCertificates: boolean;
+  disableHttpHttpsAgentsCache?: boolean;
 };
 
 type GetCertsAndProxyConfigParams = {
@@ -124,6 +125,7 @@ type CreateAgentsParams = {
   httpsAgentRequestFields: HttpsAgentRequestFields;
   systemProxyConfig?: SystemProxyConfig;
   timeline?: TimelineEntry[];
+  disableCache?: boolean;
 };
 
 type GetHttpHttpsAgentsParams = {
@@ -341,6 +343,15 @@ const getCertsAndProxyConfig = ({
   return { proxyMode, proxyConfig, certsConfig };
 };
 
+function extractHostname(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname || null;
+  } catch {
+    return null;
+  }
+}
+
 function createAgents({
   requestUrl,
   proxyMode,
@@ -348,7 +359,8 @@ function createAgents({
   systemProxyConfig,
   certsConfig,
   httpsAgentRequestFields,
-  timeline
+  timeline,
+  disableCache = false
 }: CreateAgentsParams): AgentResult {
   // Ensure TLS options are properly set
   const tlsOptions: TlsOptions = {
@@ -366,6 +378,9 @@ function createAgents({
 
   // Determine if this is an HTTPS request
   const isHttpsRequest = requestUrl ? requestUrl.startsWith('https:') : true;
+
+  // Extract hostname for per-host agent caching (enables TLS session reuse per host)
+  const hostname = extractHostname(requestUrl);
 
   if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(requestUrl, get(proxyConfig, 'bypassProxy', ''));
@@ -393,21 +408,21 @@ function createAgents({
       // Only set the agent needed for the request protocol
       if (socksEnabled) {
         if (isHttpsRequest) {
-          httpsAgent = getOrCreateAgent({ AgentClass: SocksProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null }) as HttpsAgent;
+          httpsAgent = getOrCreateAgent({ AgentClass: SocksProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
         } else {
-          httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null });
+          httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname });
         }
       } else {
         if (isHttpsRequest) {
-          httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null }) as HttpsAgent;
+          httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
         } else {
-          httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null });
+          httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname });
         }
       }
     } else {
       // If proxy should not be used, only set HTTPS agent for HTTPS requests
       if (isHttpsRequest) {
-        httpsAgent = getOrCreateAgent({ AgentClass: https.Agent, options: tlsOptions as any, timeline: timeline || null }) as HttpsAgent;
+        httpsAgent = getOrCreateAgent({ AgentClass: https.Agent, options: tlsOptions as any, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
       }
       // HTTP requests without proxy don't need a custom agent
     }
@@ -420,7 +435,7 @@ function createAgents({
       try {
         if (http_proxy?.length && !isHttpsRequest) {
           new URL(http_proxy);
-          httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri: http_proxy, timeline: timeline || null });
+          httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri: http_proxy, timeline: timeline || null, disableCache, hostname });
         }
       } catch (error) {
         throw new Error('Invalid system http_proxy');
@@ -428,7 +443,7 @@ function createAgents({
       try {
         if (https_proxy?.length && isHttpsRequest) {
           new URL(https_proxy);
-          httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri: https_proxy, timeline: timeline || null }) as HttpsAgent;
+          httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri: https_proxy, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
         }
       } catch (error) {
         throw new Error('Invalid system https_proxy');
@@ -438,9 +453,9 @@ function createAgents({
 
   if (!httpAgent && !httpsAgent) {
     if (isHttpsRequest) {
-      httpsAgent = getOrCreateAgent({ AgentClass: https.Agent, options: tlsOptions as any, timeline: timeline || null }) as HttpsAgent;
+      httpsAgent = getOrCreateAgent({ AgentClass: https.Agent, options: tlsOptions as any, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
     } else {
-      httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: { keepAlive: true }, timeline: timeline || null });
+      httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: { keepAlive: true }, timeline: timeline || null, disableCache, hostname });
     }
   }
 
@@ -483,7 +498,8 @@ const getHttpHttpsAgents = async ({
     systemProxyConfig,
     certsConfig,
     httpsAgentRequestFields,
-    timeline
+    timeline,
+    disableCache: options.disableHttpHttpsAgentsCache
   });
 
   return { httpAgent, httpsAgent };

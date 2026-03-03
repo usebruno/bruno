@@ -42,6 +42,38 @@ describe('Agent Cache', () => {
       expect(getAgentCacheSize()).toBe(2);
     });
 
+    it('creates separate agents for different cert values', () => {
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options: { cert: Buffer.from('cert-a') } });
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options: { cert: Buffer.from('cert-b') } });
+
+      expect(agent1).not.toBe(agent2);
+      expect(getAgentCacheSize()).toBe(2);
+    });
+
+    it('creates separate agents for different key values', () => {
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options: { key: Buffer.from('key-a') } });
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options: { key: Buffer.from('key-b') } });
+
+      expect(agent1).not.toBe(agent2);
+      expect(getAgentCacheSize()).toBe(2);
+    });
+
+    it('creates separate agents for different pfx values', () => {
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options: { pfx: Buffer.from('pfx-a') } });
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options: { pfx: Buffer.from('pfx-b') } });
+
+      expect(agent1).not.toBe(agent2);
+      expect(getAgentCacheSize()).toBe(2);
+    });
+
+    it('creates separate agents for different passphrase values', () => {
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options: { passphrase: 'pass-a' } });
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options: { passphrase: 'pass-b' } });
+
+      expect(agent1).not.toBe(agent2);
+      expect(getAgentCacheSize()).toBe(2);
+    });
+
     it('creates separate agents for different proxy URIs', () => {
       const options = { rejectUnauthorized: true };
 
@@ -65,6 +97,36 @@ describe('Agent Cache', () => {
     it('creates separate agents for different keepAlive values', () => {
       const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options: { keepAlive: true } });
       const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options: { keepAlive: false } });
+
+      expect(agent1).not.toBe(agent2);
+      expect(getAgentCacheSize()).toBe(2);
+    });
+
+    it('creates separate agents for different hostnames', () => {
+      const options = { rejectUnauthorized: true };
+
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options, hostname: 'api.example.com' });
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options, hostname: 'auth.example.com' });
+
+      expect(agent1).not.toBe(agent2);
+      expect(getAgentCacheSize()).toBe(2);
+    });
+
+    it('returns cached agent for the same hostname', () => {
+      const options = { rejectUnauthorized: true };
+
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options, hostname: 'api.example.com' });
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options, hostname: 'api.example.com' });
+
+      expect(agent1).toBe(agent2);
+      expect(getAgentCacheSize()).toBe(1);
+    });
+
+    it('creates separate agents for null hostname vs explicit hostname', () => {
+      const options = { rejectUnauthorized: true };
+
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options, hostname: null });
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options, hostname: 'api.example.com' });
 
       expect(agent1).not.toBe(agent2);
       expect(getAgentCacheSize()).toBe(2);

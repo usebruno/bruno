@@ -75,10 +75,11 @@ function hashCaValue(value: string | Buffer | (string | Buffer)[] | undefined): 
  * Generate a cache key from HTTPS agent options.
  * Uses a hash of the serialized options to create a compact key.
  */
-function getAgentCacheKey(agentClassId: number, options: AgentOptions, proxyUri: string | null = null): string {
+function getAgentCacheKey(agentClassId: number, options: AgentOptions, proxyUri: string | null = null, hostname: string | null = null): string {
   // Extract the TLS-relevant options for the cache key
   const keyData = {
     agentClassId,
+    hostname,
     proxyUri,
     keepAlive: options.keepAlive,
     rejectUnauthorized: options.rejectUnauthorized,
@@ -98,9 +99,10 @@ function getAgentCacheKey(agentClassId: number, options: AgentOptions, proxyUri:
  * Generate a cache key from HTTP agent options.
  * Simpler than HTTPS since no TLS options are involved.
  */
-function getHttpAgentCacheKey(agentClassId: number, options: HttpAgentOptions, proxyUri: string | null = null): string {
+function getHttpAgentCacheKey(agentClassId: number, options: HttpAgentOptions, proxyUri: string | null = null, hostname: string | null = null): string {
   const keyData = {
     agentClassId,
+    hostname,
     proxyUri,
     keepAlive: options.keepAlive
   };
@@ -136,7 +138,7 @@ function getTimelineHttpAgentClass(BaseAgentClass: any): HttpAgentClass {
 /**
  * Type for cache key generation functions.
  */
-type CacheKeyFn<T> = (classId: number, options: T, proxyUri: string | null) => string;
+type CacheKeyFn<T> = (classId: number, options: T, proxyUri: string | null, hostname: string | null) => string;
 
 /**
  * Type for timeline class wrapper functions.
@@ -155,10 +157,11 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
   getCacheKey: CacheKeyFn<TOptions>,
   getTimelineClass: TimelineClassFn,
   cacheHitMessage: string,
-  disableCache: boolean = false
+  disableCache: boolean = false,
+  hostname: string | null = null
 ): HttpAgent | HttpsAgent {
   const agentClassId = getAgentClassId(BaseAgentClass);
-  const cacheKey = getCacheKey(agentClassId, options, proxyUri);
+  const cacheKey = getCacheKey(agentClassId, options, proxyUri, hostname);
 
   if (!disableCache && agentCache.has(cacheKey)) {
     // Move to end for LRU (delete and re-add)
@@ -223,13 +226,15 @@ function getOrCreateAgent({
   options,
   proxyUri = null,
   timeline = null,
-  disableCache = false
+  disableCache = false,
+  hostname = null
 }: {
   AgentClass: any;
   options: AgentOptions;
   proxyUri?: string | null;
   timeline?: TimelineEntry[] | null;
   disableCache?: boolean;
+  hostname?: string | null;
 }): HttpAgent | HttpsAgent {
   return getOrCreateAgentInternal(
     AgentClass,
@@ -239,7 +244,8 @@ function getOrCreateAgent({
     getAgentCacheKey,
     getTimelineAgentClass,
     'Reusing cached https agent',
-    disableCache
+    disableCache,
+    hostname
   );
 }
 
@@ -254,13 +260,15 @@ function getOrCreateHttpAgent({
   options,
   proxyUri = null,
   timeline = null,
-  disableCache = false
+  disableCache = false,
+  hostname = null
 }: {
   AgentClass: any;
   options: HttpAgentOptions;
   proxyUri?: string | null;
   timeline?: TimelineEntry[] | null;
   disableCache?: boolean;
+  hostname?: string | null;
 }): HttpAgent {
   return getOrCreateAgentInternal(
     AgentClass,
@@ -270,7 +278,8 @@ function getOrCreateHttpAgent({
     getHttpAgentCacheKey,
     getTimelineHttpAgentClass,
     'Reusing cached http agent',
-    disableCache
+    disableCache,
+    hostname
   ) as HttpAgent;
 }
 

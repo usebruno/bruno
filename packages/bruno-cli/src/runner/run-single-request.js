@@ -204,7 +204,8 @@ const runSingleRequest = async function (
         shouldVerifyTls: !get(options, 'insecure', false),
         shouldUseCustomCaCertificate: !!options['cacert'],
         customCaCertificateFilePath: options['cacert'],
-        shouldKeepDefaultCaCertificates: !options['ignoreTruststore']
+        shouldKeepDefaultCaCertificates: !options['ignoreTruststore'],
+        disableHttpHttpsAgentsCache: get(options, 'disableHttpHttpsAgentsCache', false)
       },
       clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
       collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
@@ -438,6 +439,7 @@ const runSingleRequest = async function (
 
     const parsedRequestUrl = new URL(request.url);
     const isHttpsRequest = parsedRequestUrl.protocol === 'https:';
+    const hostname = parsedRequestUrl.hostname || null;
 
     if (proxyMode === 'on') {
       const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
@@ -460,15 +462,15 @@ const runSingleRequest = async function (
         // Only set the agent needed for the request protocol
         if (socksEnabled) {
           if (isHttpsRequest) {
-            request.httpsAgent = getOrCreateAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, disableCache });
+            request.httpsAgent = getOrCreateAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
           } else {
-            request.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: httpAgentOptions, proxyUri, disableCache });
+            request.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: httpAgentOptions, proxyUri, disableCache, hostname });
           }
         } else {
           if (isHttpsRequest) {
-            request.httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, disableCache });
+            request.httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
           } else {
-            request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpAgentOptions, proxyUri, disableCache });
+            request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpAgentOptions, proxyUri, disableCache, hostname });
           }
         }
       }
@@ -480,7 +482,7 @@ const runSingleRequest = async function (
           try {
             if (http_proxy?.length && !isHttpsRequest) {
               new URL(http_proxy);
-              request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpAgentOptions, proxyUri: http_proxy, disableCache });
+              request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpAgentOptions, proxyUri: http_proxy, disableCache, hostname });
             }
           } catch (error) {
             throw new Error('Invalid system http_proxy');
@@ -488,7 +490,7 @@ const runSingleRequest = async function (
           try {
             if (https_proxy?.length && isHttpsRequest) {
               new URL(https_proxy);
-              request.httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, disableCache });
+              request.httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, disableCache, hostname });
             }
           } catch (error) {
             throw new Error('Invalid system https_proxy');
@@ -502,9 +504,9 @@ const runSingleRequest = async function (
 
     if (!request.httpAgent && !request.httpsAgent) {
       if (isHttpsRequest) {
-        request.httpsAgent = getOrCreateAgent({ AgentClass: https.Agent, options: tlsOptions, disableCache });
+        request.httpsAgent = getOrCreateAgent({ AgentClass: https.Agent, options: tlsOptions, disableCache, hostname });
       } else {
-        request.httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: httpAgentOptions, disableCache });
+        request.httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: httpAgentOptions, disableCache, hostname });
       }
     }
 
@@ -617,7 +619,8 @@ const runSingleRequest = async function (
             shouldVerifyTls: !insecure,
             shouldUseCustomCaCertificate: !!options['cacert'],
             customCaCertificateFilePath: options['cacert'],
-            shouldKeepDefaultCaCertificates: !options['ignoreTruststore']
+            shouldKeepDefaultCaCertificates: !options['ignoreTruststore'],
+            disableHttpHttpsAgentsCache: disableCache
           };
 
           const clientCertificates = get(brunoConfig, 'clientCertificates');
