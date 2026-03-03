@@ -154,12 +154,13 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
   timeline: TimelineEntry[] | null,
   getCacheKey: CacheKeyFn<TOptions>,
   getTimelineClass: TimelineClassFn,
-  cacheHitMessage: string
+  cacheHitMessage: string,
+  disableCache: boolean = false
 ): HttpAgent | HttpsAgent {
   const agentClassId = getAgentClassId(BaseAgentClass);
   const cacheKey = getCacheKey(agentClassId, options, proxyUri);
 
-  if (agentCache.has(cacheKey)) {
+  if (!disableCache && agentCache.has(cacheKey)) {
     // Move to end for LRU (delete and re-add)
     const agent = agentCache.get(cacheKey)!;
     agentCache.delete(cacheKey);
@@ -191,20 +192,23 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
     ? new AgentClass({ ...options, proxy: proxyUri }, timeline || undefined)
     : new AgentClass(options, timeline || undefined);
 
-  // Evict oldest entry if cache is full (LRU eviction)
-  if (agentCache.size >= MAX_AGENT_CACHE_SIZE) {
-    const firstKey = agentCache.keys().next().value;
-    if (firstKey !== undefined) {
-      const evictedAgent = agentCache.get(firstKey);
-      agentCache.delete(firstKey);
-      // Destroy the agent to release its sockets and prevent memory leaks
-      if (evictedAgent && typeof (evictedAgent as any).destroy === 'function') {
-        (evictedAgent as any).destroy();
+  if (!disableCache) {
+    // Evict oldest entry if cache is full (LRU eviction)
+    if (agentCache.size >= MAX_AGENT_CACHE_SIZE) {
+      const firstKey = agentCache.keys().next().value;
+      if (firstKey !== undefined) {
+        const evictedAgent = agentCache.get(firstKey);
+        agentCache.delete(firstKey);
+        // Destroy the agent to release its sockets and prevent memory leaks
+        if (evictedAgent && typeof (evictedAgent as any).destroy === 'function') {
+          (evictedAgent as any).destroy();
+        }
       }
     }
+
+    agentCache.set(cacheKey, agent);
   }
 
-  agentCache.set(cacheKey, agent);
   return agent;
 }
 
@@ -223,7 +227,8 @@ function getOrCreateAgent(
   BaseAgentClass: any,
   options: AgentOptions,
   proxyUri: string | null = null,
-  timeline: TimelineEntry[] | null = null
+  timeline: TimelineEntry[] | null = null,
+  disableCache: boolean = false
 ): HttpAgent | HttpsAgent {
   return getOrCreateAgentInternal(
     BaseAgentClass,
@@ -232,7 +237,8 @@ function getOrCreateAgent(
     timeline,
     getAgentCacheKey,
     getTimelineAgentClass,
-    'Reusing cached https agent'
+    'Reusing cached https agent',
+    disableCache
   );
 }
 
@@ -251,7 +257,8 @@ function getOrCreateHttpAgent(
   BaseAgentClass: any,
   options: HttpAgentOptions,
   proxyUri: string | null = null,
-  timeline: TimelineEntry[] | null = null
+  timeline: TimelineEntry[] | null = null,
+  disableCache: boolean = false
 ): HttpAgent {
   return getOrCreateAgentInternal(
     BaseAgentClass,
@@ -260,7 +267,8 @@ function getOrCreateHttpAgent(
     timeline,
     getHttpAgentCacheKey,
     getTimelineHttpAgentClass,
-    'Reusing cached http agent'
+    'Reusing cached http agent',
+    disableCache
   ) as HttpAgent;
 }
 
