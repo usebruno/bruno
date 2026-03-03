@@ -5,13 +5,16 @@ const { globalEnvironmentsStore } = require('../store/global-environments');
 const { parsedFileCacheStore } = require('../store/parsed-file-cache-idb');
 const { getCachedSystemProxy, fetchSystemProxy } = require('../store/system-proxy');
 const { resolveDefaultLocation } = require('../utils/default-location');
+const onboardUser = require('../app/onboarding');
+const LastOpenedCollections = require('../store/last-opened-collections');
 
 const registerPreferencesIpc = (mainWindow) => {
+  const lastOpenedCollections = new LastOpenedCollections();
+
+  const onboardingPromise = onboardUser(mainWindow, lastOpenedCollections);
+
   ipcMain.handle('renderer:ready', async (event) => {
-    // Wait for onboarding to finish before reading preferences.
-    // Onboarding may set hasSeenWelcomeModal for new vs existing users,
-    // and we need the renderer to receive the correct values.
-    await new Promise((resolve) => ipcMain.once('main:onboarding-complete', resolve));
+    await onboardingPromise;
 
     // load preferences
     const preferences = getPreferences();
