@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
 import SearchInput from 'components/SearchInput';
@@ -72,11 +72,9 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   const [showFilesystemName, setShowFilesystemName] = useState(false);
   const [isEditingFolderFilename, setIsEditingFolderFilename] = useState(false);
   const [pendingFolderNavigation, setPendingFolderNavigation] = useState(null);
-  const newFolderInputRef = useRef(null);
 
   // State for new collection creation
   const [newCollection, setNewCollection] = useState({ show: false, name: '', location: '', format: DEFAULT_COLLECTION_FORMAT });
-  const newCollectionInputRef = useRef(null);
 
   const [selectedTargetCollectionPath, setSelectedTargetCollectionPath] = useState(null);
   const [isSelectingCollection, setIsSelectingCollection] = useState(isScratchCollection);
@@ -130,18 +128,6 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       resetForm();
     }
   }, [isOpen, item, resetForm]);
-
-  useEffect(() => {
-    if (showNewFolderInput && newFolderInputRef.current) {
-      newFolderInputRef.current.focus();
-    }
-  }, [showNewFolderInput]);
-
-  useEffect(() => {
-    if (newCollection.show && newCollectionInputRef.current) {
-      newCollectionInputRef.current.focus();
-    }
-  }, [newCollection.show]);
 
   useEffect(() => {
     if (pendingFolderNavigation) {
@@ -459,7 +445,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                             Collection name
                           </label>
                           <input
-                            ref={newCollectionInputRef}
+                            ref={(node) => node?.focus()}
                             type="text"
                             className="new-collection-input"
                             placeholder="Enter collection name"
@@ -615,7 +601,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                           </div>
                           <div className="new-folder-input-row">
                             <input
-                              ref={newFolderInputRef}
+                              ref={(node) => node?.focus()}
                               type="text"
                               className="new-folder-input"
                               placeholder="Untitled new folder"
