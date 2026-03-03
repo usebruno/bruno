@@ -10,8 +10,8 @@ import StyledWrapper from './StyledWrapper';
 const highlights = [
   {
     icon: IconFolderTabler,
-    title: 'Filesystem-first',
-    desc: 'Collections are plain files on your disk. No cloud sync, no proprietary lock-in. Your data stays yours.'
+    title: 'Filesystem only',
+    desc: 'Collections are plain files on your disk. No cloud sync, no proprietary lock-in.'
   },
   {
     icon: IconGitFork,
@@ -21,12 +21,12 @@ const highlights = [
   {
     icon: IconLock,
     title: 'Privacy-focused',
-    desc: 'No accounts required. No telemetry. Bruno works entirely offline — your API keys never leave your machine.'
+    desc: 'No account, no login. Bruno works entirely offline, your API keys never leave your machine.'
   },
   {
     icon: IconRocket,
     title: 'Fast and lightweight',
-    desc: 'Built to be snappy. No bloated runtimes — just a fast, focused tool for exploring and testing APIs.'
+    desc: 'Built to be snappy. No bloated runtimes, just a fast, focused tool for exploring and testing APIs.'
   }
 ];
 

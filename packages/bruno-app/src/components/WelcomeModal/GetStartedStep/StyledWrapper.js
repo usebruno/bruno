@@ -76,8 +76,12 @@ const StyledWrapper = styled.div`
     transition: all 0.15s ease;
 
     &:hover {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      border-color: ${(props) => props.theme.border.border1};
+      border-color: ${(props) => props.theme.primary.subtle};
+      background: ${(props) => rgba(props.theme.primary.solid, 0.06)};
+    }
+
+    &:active {
+      transform: scale(0.98);
     }
 
     .secondary-icon {

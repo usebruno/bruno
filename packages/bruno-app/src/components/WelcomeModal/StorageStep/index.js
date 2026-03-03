@@ -6,7 +6,7 @@ const StorageStep = ({ collectionLocation, onBrowse }) => (
     <div className="step-label">Storage</div>
     <div className="step-title">Where should we store your collections?</div>
     <div className="step-description">
-      Bruno saves collections as plain files on your filesystem — perfect for version control with Git.
+      Bruno saves collections as plain files on your filesystem, perfect for version control with Git.
     </div>
 
     <div className="location-input-group">
@@ -31,7 +31,7 @@ const StorageStep = ({ collectionLocation, onBrowse }) => (
       </div>
     </div>
     <div className="location-hint">
-      Each collection gets its own folder inside this directory. You can change this per-collection later.
+      Each collection and workspace gets its own folder inside this directory. You can change this later.
     </div>
   </StyledWrapper>
 );
