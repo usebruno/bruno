@@ -204,7 +204,7 @@ const StyledWrapper = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 0px;
+    padding: 16px 0px 0px 0px;
     background-color: ${(props) => props.theme.modal.body.bg};
     border-top: 1px solid ${(props) => props.theme.border.border0};
     border-bottom-left-radius: ${(props) => props.theme.border.radius.base};
@@ -426,23 +426,6 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-
-  .new-collection-browse-btn {
-    padding: 8px 12px;
-    border-radius: ${(props) => props.theme.border.radius.sm};
-    background-color: transparent;
-    border: 1px solid ${(props) => props.theme.border.border1};
-    color: ${(props) => props.theme.text};
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-
-    &:hover {
-      background-color: ${(props) => props.theme.plainGrid.hoverBg};
-      border-color: ${(props) => props.theme.colors.text.muted};
-    }
   }
 
   .new-collection-select {

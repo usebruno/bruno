@@ -499,13 +499,16 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                               readOnly
                               onClick={handleBrowseCollectionLocation}
                             />
-                            <button
+                            <Button
                               type="button"
-                              className="new-collection-browse-btn"
+                              variant="outline"
+                              color="secondary"
+                              size="sm"
+                              rounded="sm"
                               onClick={handleBrowseCollectionLocation}
                             >
                               Browse
-                            </button>
+                            </Button>
                           </div>
                         </div>
 
