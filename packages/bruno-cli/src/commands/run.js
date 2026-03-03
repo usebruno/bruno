@@ -225,6 +225,11 @@ const builder = async (yargs) => {
       description: 'Disable all proxy settings (both collection-defined and system proxies)',
       default: false
     })
+    .option('disable-http-https-agents-cache', {
+      type: 'boolean',
+      description: 'Disable HTTP/HTTPS agent caching — creates a fresh agent for every request',
+      default: false
+    })
     .option('delay', {
       type: 'number',
       description: 'Delay between each requests (in miliseconds)'
@@ -330,6 +335,7 @@ const handler = async function (argv) {
       reporterSkipBody,
       clientCertConfig,
       noproxy,
+      disableHttpHttpsAgentsCache,
       delay,
       tags: includeTags,
       excludeTags,
@@ -530,6 +536,9 @@ const handler = async function (argv) {
     }
     if (noproxy) {
       options['noproxy'] = true;
+    }
+    if (disableHttpHttpsAgentsCache) {
+      options['disableHttpHttpsAgentsCache'] = true;
     }
     if (verbose) {
       options['verbose'] = true;
