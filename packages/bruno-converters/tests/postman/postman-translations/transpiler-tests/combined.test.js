@@ -78,8 +78,7 @@ describe('Combined API Features Translation', () => {
   });
 
   // Multiple transformations in the same code block
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should handle multiple translations in the same code block', () => {
+  it('should handle multiple translations in the same code block', () => {
     const code = `
         const token = pm.environment.get("authToken");
         pm.test("Auth flow works", function() {
@@ -94,13 +93,18 @@ describe('Combined API Features Translation', () => {
     expect(translatedCode).not.toContain('pm.test("Auth flow works", function() {');
     expect(translatedCode).not.toContain('pm.expect(response.authenticated).to.be.true;');
     expect(translatedCode).not.toContain('pm.environment.set("userId", response.user.id);');
-    expect(translatedCode).not.toContain('pm.collectionVariables.set("sessionId", response.session.id);');
     expect(translatedCode).toContain('const token = bru.getEnvVar("authToken");');
     expect(translatedCode).toContain('test("Auth flow works", function() {');
     expect(translatedCode).toContain('const response = res.getBody();');
     expect(translatedCode).toContain('expect(response.authenticated).to.be.true;');
     expect(translatedCode).toContain('bru.setEnvVar("userId", response.user.id);');
-    expect(translatedCode).toContain('bru.setCollectionVar("sessionId", response.session.id);');
+  });
+
+  // TODO: Restore once UI update fixes are live for setCollectionVar
+  it.skip('should translate pm.collectionVariables.set in a combined code block', () => {
+    const code = 'pm.collectionVariables.set("sessionId", response.session.id);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.setCollectionVar("sessionId", response.session.id);');
   });
 
   // Nested expressions
@@ -330,8 +334,7 @@ describe('Combined API Features Translation', () => {
         `);
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should handle pm aliases inside functions', () => {
+  it('should handle pm aliases inside functions', () => {
     const code = `
         const tempRes = pm.response;
         const tempTest = pm.test;
@@ -350,14 +353,19 @@ describe('Combined API Features Translation', () => {
 
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe(`
-        function processResponse() {
-            test("Status code is 200", function() { expect(res.getStatus()).to.equal(200); });
-            bru.setEnvVar("userId", res.getBody().userId);
-            bru.setVar("token", res.getBody().token);
-            bru.setCollectionVar("sessionId", res.getBody().sessionId);
-        }
-        `);
+    expect(translatedCode).toContain('test("Status code is 200", function() { expect(res.getStatus()).to.equal(200); });');
+    expect(translatedCode).toContain('bru.setEnvVar("userId", res.getBody().userId);');
+    expect(translatedCode).toContain('bru.setVar("token", res.getBody().token);');
+  });
+
+  // TODO: Restore once UI update fixes are live for setCollectionVar
+  it.skip('should translate pm.collectionVariables alias set inside functions', () => {
+    const code = `
+        const tempCollVars = pm.collectionVariables;
+        tempCollVars.set("sessionId", "value");
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('bru.setCollectionVar("sessionId", "value");');
   });
 
   it('should nested pm commands', () => {

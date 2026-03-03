@@ -34,19 +34,23 @@ describe('Multiline Syntax Handling', () => {
     `);
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should handle multiline collection variable syntax', () => {
+  it('should handle multiline collection variable get syntax', () => {
     const code = `
     const apiKey = pm.collectionVariables
                             .get("apiKey");
+    `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('const apiKey = bru.getCollectionVar("apiKey")');
+  });
+
+  // TODO: Restore once UI update fixes are live for setCollectionVar
+  it.skip('should handle multiline collection variable set syntax', () => {
+    const code = `
     pm.collectionVariables
                             .set("lastRun", new Date().toISOString());
     `;
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe(`
-    const apiKey = bru.getCollectionVar("apiKey");
-    bru.setCollectionVar("lastRun", new Date().toISOString());
-    `);
+    expect(translatedCode).toContain('bru.setCollectionVar("lastRun", new Date().toISOString())');
   });
 
   it('should handle complex environment.has transformation with multiline syntax', () => {
@@ -191,11 +195,10 @@ describe('Multiline Syntax Handling', () => {
     expect(translatedCode).toContain('.equal(true)');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should handle a comprehensive script with various multiline formats', () => {
+  it('should handle a comprehensive script with various multiline formats', () => {
     const code = `
     // This comprehensive script tests different multiline styles and whitespace variations
-    
+
     // Environment variables with different formatting styles
     const baseUrl = pm.environment.get("baseUrl");
     const apiKey = pm
@@ -203,39 +206,39 @@ describe('Multiline Syntax Handling', () => {
         .get("apiKey");
     const userId = pm.environment
                       .get("userId");
-                      
+
     // Mix of variable styles
     pm.variables.set("testId", "test-" + Date.now());
     pm
       .variables
         .set("timestamp", new Date().toISOString());
-        
+
     // Collection variables with inconsistent spacing
     pm.collectionVariables
       .set("lastRun", new Date());
-      
+
     // Complex conditionals with multiline expressions
     if (pm
           .environment
-            .has("apiKey") && 
+            .has("apiKey") &&
        pm.variables.has("testId")) {
-      
+
       // Testing response with mixed syntax styles
       pm.test("Response validation", function() {
         // Normal style
         pm.response.to.have.status(200);
-        
+
         // Multiline with different indentation
         pm
           .response
             .to
               .have
                 .header("content-type");
-                
+
         pm.response
                 .to.have
                       .jsonBody("success", true);
-                      
+
         // Extreme indentation
         pm
                                 .response
@@ -244,7 +247,7 @@ describe('Multiline Syntax Handling', () => {
                                                                   .have
                                                                             .jsonBody("error");
       });
-      
+
       // Flow control with mixed styles
       if (pm.response.code === 401) {
         pm.execution.setNextRequest(null);
@@ -266,9 +269,6 @@ describe('Multiline Syntax Handling', () => {
     expect(translatedCode).toContain('bru.setVar("testId", "test-" + Date.now())');
     expect(translatedCode).toContain('bru.setVar("timestamp", new Date().toISOString())');
 
-    // Check collection variables
-    expect(translatedCode).toContain('bru.setCollectionVar("lastRun", new Date())');
-
     // Check complex conditionals
     expect(translatedCode).toContain('if (bru.getEnvVar("apiKey") !== undefined && bru.getEnvVar("apiKey") !== null &&');
     expect(translatedCode).toContain('bru.hasVar("testId"))');
@@ -281,5 +281,15 @@ describe('Multiline Syntax Handling', () => {
     expect(translatedCode).toContain('if (res.getStatus() === 401)');
     expect(translatedCode).toContain('bru.runner.stopExecution()');
     expect(translatedCode).toContain('bru.runner.setNextRequest("Next API Call")');
+  });
+
+  // TODO: Restore once UI update fixes are live for setCollectionVar
+  it.skip('should translate multiline pm.collectionVariables.set in comprehensive script', () => {
+    const code = `
+    pm.collectionVariables
+      .set("lastRun", new Date());
+    `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('bru.setCollectionVar("lastRun", new Date())');
   });
 });

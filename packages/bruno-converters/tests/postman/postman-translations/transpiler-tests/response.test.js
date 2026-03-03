@@ -271,8 +271,7 @@ describe('Response Translation', () => {
     expect(translatedCode).toContain('expect(statusText).to.equal(\'OK\');');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should handle pm objects with array access on response', () => {
+  it('should handle pm objects with array access on response', () => {
     const code = `
         const items = pm.response.json().items;
         for (let i = 0; i < items.length; i++) {
@@ -282,6 +281,12 @@ describe('Response Translation', () => {
     const translatedCode = translateCode(code);
 
     expect(translatedCode).toContain('const items = res.getBody().items;');
+  });
+
+  // TODO: Restore once UI update fixes are live for setCollectionVar
+  it.skip('should translate pm.collectionVariables.set with array access pattern', () => {
+    const code = 'pm.collectionVariables.set("item_" + i, items[i].id);';
+    const translatedCode = translateCode(code);
     expect(translatedCode).toContain('bru.setCollectionVar("item_" + i, items[i].id);');
   });
 

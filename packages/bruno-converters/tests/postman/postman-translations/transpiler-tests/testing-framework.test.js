@@ -52,8 +52,7 @@ describe('Testing Framework Translation', () => {
   });
 
   // Tests inside different code structures
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should translate pm commands inside tests with nested functions', () => {
+  it('should translate pm commands inside tests with nested functions', () => {
     const code = `
         pm.test("Auth flow works", function() {
             const response = pm.response.json();
@@ -68,6 +67,12 @@ describe('Testing Framework Translation', () => {
     expect(translatedCode).toContain('const response = res.getBody();');
     expect(translatedCode).toContain('expect(response.authenticated).to.be.true;');
     expect(translatedCode).toContain('bru.setEnvVar("userId", response.user.id);');
+  });
+
+  // TODO: Restore once UI update fixes are live for setCollectionVar
+  it.skip('should translate pm.collectionVariables.set inside test functions', () => {
+    const code = 'pm.collectionVariables.set("sessionId", response.session.id);';
+    const translatedCode = translateCode(code);
     expect(translatedCode).toContain('bru.setCollectionVar("sessionId", response.session.id);');
   });
 
