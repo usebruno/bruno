@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import http from 'node:http';
 import https from 'node:https';
 import type { Agent as HttpAgent } from 'node:http';
 import type { Agent as HttpsAgent } from 'node:https';
@@ -11,6 +12,7 @@ import { isEmpty, get, isUndefined, isNull } from 'lodash';
 import { getCACertificates } from './ca-cert';
 import { transformProxyConfig } from './proxy-util';
 import { getOrCreateAgent, getOrCreateHttpAgent } from './agent-cache';
+import type { TimelineEntry } from './timeline-agent';
 
 const DEFAULT_PORTS: Record<string, number> = {
   ftp: 21,
@@ -112,12 +114,6 @@ type GetCertsAndProxyConfigResult = {
   proxyMode: ProxyMode;
   proxyConfig: ProxyConfig;
   certsConfig: CertsConfig;
-};
-
-type TimelineEntry = {
-  timestamp: Date;
-  type: 'info' | 'tls' | 'error';
-  message: string;
 };
 
 type CreateAgentsParams = {
@@ -368,9 +364,10 @@ function createAgents({
   let httpAgent: HttpAgent | undefined;
   let httpsAgent: HttpsAgent | HttpsProxyAgent<any> | SocksProxyAgent | undefined;
 
+  // Determine if this is an HTTPS request
+  const isHttpsRequest = requestUrl ? requestUrl.startsWith('https:') : true;
+
   if (proxyMode === 'on') {
-    // Determine if this is an HTTPS request
-    const isHttpsRequest = requestUrl ? requestUrl.startsWith('https:') : true;
     const shouldProxy = shouldUseProxy(requestUrl, get(proxyConfig, 'bypassProxy', ''));
     if (shouldProxy) {
       const proxyProtocol = get(proxyConfig, 'protocol');
@@ -421,7 +418,7 @@ function createAgents({
     const shouldUseSystemProxy = shouldUseProxy(requestUrl, no_proxy || '');
     if (shouldUseSystemProxy) {
       try {
-        if (http_proxy?.length) {
+        if (http_proxy?.length && !isHttpsRequest) {
           new URL(http_proxy);
           httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, http_proxy, timeline || null);
         }
@@ -429,20 +426,22 @@ function createAgents({
         throw new Error('Invalid system http_proxy');
       }
       try {
-        if (https_proxy?.length) {
+        if (https_proxy?.length && isHttpsRequest) {
           new URL(https_proxy);
           httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions as any, https_proxy, timeline || null) as HttpsAgent;
-        } else {
-          httpsAgent = getOrCreateAgent(https.Agent, tlsOptions as any, null, timeline || null) as HttpsAgent;
         }
       } catch (error) {
         throw new Error('Invalid system https_proxy');
       }
-    } else {
-      httpsAgent = getOrCreateAgent(https.Agent, tlsOptions as any, null, timeline || null) as HttpsAgent;
     }
-  } else {
-    httpsAgent = getOrCreateAgent(https.Agent, tlsOptions as any, null, timeline || null) as HttpsAgent;
+  }
+
+  if (!httpAgent && !httpsAgent) {
+    if (isHttpsRequest) {
+      httpsAgent = getOrCreateAgent(https.Agent, tlsOptions as any, null, timeline || null) as HttpsAgent;
+    } else {
+      httpAgent = getOrCreateHttpAgent(http.Agent, { keepAlive: true }, null, timeline || null);
+    }
   }
 
   return { httpAgent, httpsAgent };

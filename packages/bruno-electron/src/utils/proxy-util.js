@@ -6,7 +6,7 @@ const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
-const { getOrCreateAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize } = require('@usebruno/requests');
+const { getOrCreateAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -200,9 +200,5 @@ function setupProxyAgents({
 module.exports = {
   shouldUseProxy,
   PatchedHttpsProxyAgent,
-  setupProxyAgents,
-  clearAgentCache,
-  getAgentCacheSize,
-  getOrCreateAgent,
-  getOrCreateHttpAgent
+  setupProxyAgents
 };

@@ -61,6 +61,14 @@ describe('Agent Cache', () => {
       expect(httpsAgent).not.toBe(httpAgent);
       expect(getAgentCacheSize()).toBe(2);
     });
+
+    it('creates separate agents for different keepAlive values', () => {
+      const agent1 = getOrCreateAgent(https.Agent, { keepAlive: true });
+      const agent2 = getOrCreateAgent(https.Agent, { keepAlive: false });
+
+      expect(agent1).not.toBe(agent2);
+      expect(getAgentCacheSize()).toBe(2);
+    });
   });
 
   describe('timeline support', () => {

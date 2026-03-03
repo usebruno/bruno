@@ -106,6 +106,11 @@ const defaultPreferences = {
   },
   display: {
     zoomPercentage: 100
+  },
+  cache: {
+    httpHttpsAgents: {
+      enabled: true
+    }
   }
 };
 
@@ -164,7 +169,12 @@ const preferencesSchema = Yup.object().shape({
   }),
   display: Yup.object({
     zoomPercentage: Yup.number().min(50).max(150)
-  })
+  }),
+  cache: Yup.object({
+    httpHttpsAgents: Yup.object({
+      enabled: Yup.boolean()
+    })
+  }).optional()
 });
 
 class PreferencesStore {
@@ -350,6 +360,9 @@ const preferencesUtil = {
   },
   getZoomPercentage: () => {
     return get(getPreferences(), 'display.zoomPercentage', 100);
+  },
+  isHttpHttpsAgentCachingEnabled: () => {
+    return get(getPreferences(), 'cache.httpHttpsAgents.enabled', true);
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);

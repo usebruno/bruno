@@ -1,6 +1,4 @@
 import crypto from 'node:crypto';
-import http from 'node:http';
-import https from 'node:https';
 import type { Agent as HttpAgent } from 'node:http';
 import type { Agent as HttpsAgent } from 'node:https';
 import { createTimelineAgentClass, createTimelineHttpAgentClass, type TimelineEntry, type AgentOptions, type HttpAgentOptions, type AgentClass, type HttpAgentClass } from './timeline-agent';
@@ -82,6 +80,7 @@ function getAgentCacheKey(agentClassId: number, options: AgentOptions, proxyUri:
   const keyData = {
     agentClassId,
     proxyUri,
+    keepAlive: options.keepAlive,
     rejectUnauthorized: options.rejectUnauthorized,
     // Hash certificates and passphrase instead of including full content
     ca: hashCaValue(options.ca),
@@ -233,7 +232,7 @@ function getOrCreateAgent(
     timeline,
     getAgentCacheKey,
     getTimelineAgentClass,
-    'Reusing cached agent (SSL session reuse enabled)'
+    'Reusing cached https agent'
   );
 }
 
@@ -261,7 +260,7 @@ function getOrCreateHttpAgent(
     timeline,
     getHttpAgentCacheKey,
     getTimelineHttpAgentClass,
-    'Reusing cached agent (connection reuse enabled)'
+    'Reusing cached http agent'
   ) as HttpAgent;
 }
 

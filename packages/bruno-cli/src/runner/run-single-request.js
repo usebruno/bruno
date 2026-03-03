@@ -429,9 +429,11 @@ const runSingleRequest = async function (
 
     // Prepare TLS options for agent caching
     const tlsOptions = {
-      ...httpsAgentRequestFields,
-      keepAlive: true
+      ...httpsAgentRequestFields
     };
+
+    // HTTP agent options — separate from tlsOptions to avoid leaking TLS fields
+    const httpAgentOptions = { keepAlive: true };
 
     const parsedRequestUrl = new URL(request.url);
     const isHttpsRequest = parsedRequestUrl.protocol === 'https:';
@@ -459,13 +461,13 @@ const runSingleRequest = async function (
           if (isHttpsRequest) {
             request.httpsAgent = getOrCreateAgent(SocksProxyAgent, tlsOptions, proxyUri);
           } else {
-            request.httpAgent = getOrCreateHttpAgent(SocksProxyAgent, { keepAlive: true }, proxyUri);
+            request.httpAgent = getOrCreateHttpAgent(SocksProxyAgent, httpAgentOptions, proxyUri);
           }
         } else {
           if (isHttpsRequest) {
             request.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, proxyUri);
           } else {
-            request.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, proxyUri);
+            request.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, httpAgentOptions, proxyUri);
           }
         }
       }
@@ -477,7 +479,7 @@ const runSingleRequest = async function (
           try {
             if (http_proxy?.length && !isHttpsRequest) {
               new URL(http_proxy);
-              request.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, http_proxy);
+              request.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, httpAgentOptions, http_proxy);
             }
           } catch (error) {
             throw new Error('Invalid system http_proxy');
@@ -501,7 +503,7 @@ const runSingleRequest = async function (
       if (isHttpsRequest) {
         request.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null);
       } else {
-        request.httpAgent = getOrCreateHttpAgent(http.Agent, { keepAlive: true }, null);
+        request.httpAgent = getOrCreateHttpAgent(http.Agent, httpAgentOptions, null);
       }
     }
 
@@ -609,7 +611,7 @@ const runSingleRequest = async function (
 
         let token;
         if (oauth2RequestUrl) {
-          const tlsOptions = {
+          const oauth2ConfigOptions = {
             noproxy: options.noproxy,
             shouldVerifyTls: !insecure,
             shouldUseCustomCaCertificate: !!options['cacert'],
@@ -626,7 +628,7 @@ const runSingleRequest = async function (
           const { httpAgent: oauth2HttpAgent, httpsAgent: oauth2HttpsAgent } = await getHttpHttpsAgents({
             requestUrl: oauth2RequestUrl,
             collectionPath,
-            options: tlsOptions,
+            options: oauth2ConfigOptions,
             clientCertificates: interpolatedClientCertificates,
             collectionLevelProxy: interpolatedProxyConfig,
             systemProxyConfig
