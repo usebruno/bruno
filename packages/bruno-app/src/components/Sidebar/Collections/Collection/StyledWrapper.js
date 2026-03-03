@@ -95,6 +95,23 @@ const Wrapper = styled.div`
     text-overflow: ellipsis;
     overflow: hidden;
   }
+
+  .indent-block {
+    border-right: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder};
+  }
+
+  .empty-collection-message {
+    display: flex;
+    align-items: center;
+    height: 1.6rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.sidebar.muted};
+
+    .add-request-link {
+      color: ${(props) => props.theme.textLink};
+      cursor: pointer;
+    }
+  }
 `;
 
 export default Wrapper;
