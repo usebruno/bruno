@@ -1,11 +1,10 @@
-import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconCheck, IconX, IconSettings } from '@tabler/icons';
 import get from 'lodash/get';
 import toast from 'react-hot-toast';
 import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { sanitizeName, generateUntitledName, validateName, validateNameError } from 'utils/common/regex';
-import path from 'utils/common/path';
+import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import { multiLineMsg } from 'utils/common';
 import { formatIpcError } from 'utils/common/error';
@@ -25,27 +24,30 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isDefaultWorkspace = activeWorkspace?.type === 'default';
 
-  const { collections } = useSelector((state) => state.collections);
-
   const defaultLocation = isDefaultWorkspace
     ? get(preferences, 'general.defaultLocation', '')
     : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
 
-  const defaultName = useMemo(() => {
-    const existingNames = collections.map((c) => c.name);
-    const existingFolders = collections
-      .filter((c) => c.pathname?.startsWith(defaultLocation))
-      .map((c) => path.basename(c.pathname));
-
-    return generateUntitledName('untitled collection', existingNames, existingFolders);
-  }, [collections, defaultLocation]);
-
   useEffect(() => {
-    if (inputRef.current) {
+    const focusAndSelect = (value) => {
+      if (!inputRef.current) {
+        return;
+      }
+      if (value) {
+        inputRef.current.value = value;
+      }
       inputRef.current.focus();
       inputRef.current.select();
+    };
+
+    if (defaultLocation) {
+      window.ipcRenderer?.invoke('renderer:find-unique-folder-name', 'untitled collection', defaultLocation)
+        ?.then((name) => focusAndSelect(name))
+        ?.catch(() => focusAndSelect());
+    } else {
+      focusAndSelect();
     }
-  }, []);
+  }, [defaultLocation]);
 
   const handleCancel = useCallback(() => {
     if (isCreating || openingAdvancedRef.current) return;
@@ -124,7 +126,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
             ref={inputRef}
             type="text"
             className="inline-collection-input"
-            defaultValue={defaultName}
+            defaultValue="untitled collection"
             onKeyDown={handleKeyDown}
             autoComplete="off"
             autoCorrect="off"

@@ -10,8 +10,7 @@ import { createWorkspaceAction, openWorkspaceDialog, switchWorkspace } from 'pro
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
 import { focusTab } from 'providers/ReduxStore/slices/tabs';
-import { sanitizeName, generateUntitledName } from 'utils/common/regex';
-import path from 'utils/common/path';
+import { sanitizeName } from 'utils/common/regex';
 import get from 'lodash/get';
 
 import Bruno from 'components/Bruno';
@@ -161,15 +160,10 @@ const AppTitleBar = () => {
       return;
     }
 
-    const existingNames = workspaces.map((w) => w.name);
-    const existingFolders = workspaces
-      .filter((w) => w.pathname?.startsWith(defaultLocation))
-      .map((w) => path.basename(w.pathname));
-
-    const name = generateUntitledName('untitled workspace', existingNames, existingFolders);
-    const folderName = sanitizeName(name);
-
     try {
+      const name = await window.ipcRenderer?.invoke('renderer:find-unique-folder-name', 'untitled workspace', defaultLocation) || 'untitled workspace';
+      const folderName = sanitizeName(name);
+
       const result = await dispatch(createWorkspaceAction(name, folderName, defaultLocation));
       // Mark as newly created so titlebar auto-focuses the rename input
       if (result?.workspaceUid) {
