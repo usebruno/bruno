@@ -393,21 +393,21 @@ function createAgents({
       // Only set the agent needed for the request protocol
       if (socksEnabled) {
         if (isHttpsRequest) {
-          httpsAgent = getOrCreateAgent(SocksProxyAgent, tlsOptions as any, proxyUri, timeline || null) as HttpsAgent;
+          httpsAgent = getOrCreateAgent({ AgentClass: SocksProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null }) as HttpsAgent;
         } else {
-          httpAgent = getOrCreateHttpAgent(SocksProxyAgent, { keepAlive: true }, proxyUri, timeline || null);
+          httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null });
         }
       } else {
         if (isHttpsRequest) {
-          httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions as any, proxyUri, timeline || null) as HttpsAgent;
+          httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null }) as HttpsAgent;
         } else {
-          httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, proxyUri, timeline || null);
+          httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null });
         }
       }
     } else {
       // If proxy should not be used, only set HTTPS agent for HTTPS requests
       if (isHttpsRequest) {
-        httpsAgent = getOrCreateAgent(https.Agent, tlsOptions as any, null, timeline || null) as HttpsAgent;
+        httpsAgent = getOrCreateAgent({ AgentClass: https.Agent, options: tlsOptions as any, timeline: timeline || null }) as HttpsAgent;
       }
       // HTTP requests without proxy don't need a custom agent
     }
@@ -420,7 +420,7 @@ function createAgents({
       try {
         if (http_proxy?.length && !isHttpsRequest) {
           new URL(http_proxy);
-          httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, http_proxy, timeline || null);
+          httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri: http_proxy, timeline: timeline || null });
         }
       } catch (error) {
         throw new Error('Invalid system http_proxy');
@@ -428,7 +428,7 @@ function createAgents({
       try {
         if (https_proxy?.length && isHttpsRequest) {
           new URL(https_proxy);
-          httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions as any, https_proxy, timeline || null) as HttpsAgent;
+          httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri: https_proxy, timeline: timeline || null }) as HttpsAgent;
         }
       } catch (error) {
         throw new Error('Invalid system https_proxy');
@@ -438,9 +438,9 @@ function createAgents({
 
   if (!httpAgent && !httpsAgent) {
     if (isHttpsRequest) {
-      httpsAgent = getOrCreateAgent(https.Agent, tlsOptions as any, null, timeline || null) as HttpsAgent;
+      httpsAgent = getOrCreateAgent({ AgentClass: https.Agent, options: tlsOptions as any, timeline: timeline || null }) as HttpsAgent;
     } else {
-      httpAgent = getOrCreateHttpAgent(http.Agent, { keepAlive: true }, null, timeline || null);
+      httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: { keepAlive: true }, timeline: timeline || null });
     }
   }
 

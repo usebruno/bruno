@@ -459,15 +459,15 @@ const runSingleRequest = async function (
         // Only set the agent needed for the request protocol
         if (socksEnabled) {
           if (isHttpsRequest) {
-            request.httpsAgent = getOrCreateAgent(SocksProxyAgent, tlsOptions, proxyUri);
+            request.httpsAgent = getOrCreateAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri });
           } else {
-            request.httpAgent = getOrCreateHttpAgent(SocksProxyAgent, httpAgentOptions, proxyUri);
+            request.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: httpAgentOptions, proxyUri });
           }
         } else {
           if (isHttpsRequest) {
-            request.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, proxyUri);
+            request.httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri });
           } else {
-            request.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, httpAgentOptions, proxyUri);
+            request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpAgentOptions, proxyUri });
           }
         }
       }
@@ -479,7 +479,7 @@ const runSingleRequest = async function (
           try {
             if (http_proxy?.length && !isHttpsRequest) {
               new URL(http_proxy);
-              request.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, httpAgentOptions, http_proxy);
+              request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpAgentOptions, proxyUri: http_proxy });
             }
           } catch (error) {
             throw new Error('Invalid system http_proxy');
@@ -487,7 +487,7 @@ const runSingleRequest = async function (
           try {
             if (https_proxy?.length && isHttpsRequest) {
               new URL(https_proxy);
-              request.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, https_proxy);
+              request.httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy });
             }
           } catch (error) {
             throw new Error('Invalid system https_proxy');
@@ -501,9 +501,9 @@ const runSingleRequest = async function (
 
     if (!request.httpAgent && !request.httpsAgent) {
       if (isHttpsRequest) {
-        request.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null);
+        request.httpsAgent = getOrCreateAgent({ AgentClass: https.Agent, options: tlsOptions });
       } else {
-        request.httpAgent = getOrCreateHttpAgent(http.Agent, httpAgentOptions, null);
+        request.httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: httpAgentOptions });
       }
     }
 

@@ -10,7 +10,7 @@ describe('Agent Cache', () => {
 
   describe('getOrCreateAgent', () => {
     it('creates a new agent when cache is empty', () => {
-      const agent = getOrCreateAgent(https.Agent, { rejectUnauthorized: true });
+      const agent = getOrCreateAgent({ AgentClass: https.Agent, options: { rejectUnauthorized: true } });
 
       expect(agent).toBeInstanceOf(https.Agent);
       expect(getAgentCacheSize()).toBe(1);
@@ -19,24 +19,24 @@ describe('Agent Cache', () => {
     it('returns cached agent for identical options', () => {
       const options = { rejectUnauthorized: true, keepAlive: true };
 
-      const agent1 = getOrCreateAgent(https.Agent, options);
-      const agent2 = getOrCreateAgent(https.Agent, options);
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options });
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options });
 
       expect(agent1).toBe(agent2);
       expect(getAgentCacheSize()).toBe(1);
     });
 
     it('creates separate agents for different rejectUnauthorized values', () => {
-      const agent1 = getOrCreateAgent(https.Agent, { rejectUnauthorized: true });
-      const agent2 = getOrCreateAgent(https.Agent, { rejectUnauthorized: false });
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options: { rejectUnauthorized: true } });
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options: { rejectUnauthorized: false } });
 
       expect(agent1).not.toBe(agent2);
       expect(getAgentCacheSize()).toBe(2);
     });
 
     it('creates separate agents for different CA certificates', () => {
-      const agent1 = getOrCreateAgent(https.Agent, { ca: 'cert-a' });
-      const agent2 = getOrCreateAgent(https.Agent, { ca: 'cert-b' });
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options: { ca: 'cert-a' } });
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options: { ca: 'cert-b' } });
 
       expect(agent1).not.toBe(agent2);
       expect(getAgentCacheSize()).toBe(2);
@@ -45,8 +45,8 @@ describe('Agent Cache', () => {
     it('creates separate agents for different proxy URIs', () => {
       const options = { rejectUnauthorized: true };
 
-      const agent1 = getOrCreateAgent(https.Agent, options, 'http://proxy1:8080');
-      const agent2 = getOrCreateAgent(https.Agent, options, 'http://proxy2:8080');
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options, proxyUri: 'http://proxy1:8080' });
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options, proxyUri: 'http://proxy2:8080' });
 
       expect(agent1).not.toBe(agent2);
       expect(getAgentCacheSize()).toBe(2);
@@ -55,16 +55,16 @@ describe('Agent Cache', () => {
     it('creates separate agents for different agent classes', () => {
       const options = { keepAlive: true };
 
-      const httpsAgent = getOrCreateAgent(https.Agent, options);
-      const httpAgent = getOrCreateAgent(http.Agent, options);
+      const httpsAgent = getOrCreateAgent({ AgentClass: https.Agent, options });
+      const httpAgent = getOrCreateAgent({ AgentClass: http.Agent, options });
 
       expect(httpsAgent).not.toBe(httpAgent);
       expect(getAgentCacheSize()).toBe(2);
     });
 
     it('creates separate agents for different keepAlive values', () => {
-      const agent1 = getOrCreateAgent(https.Agent, { keepAlive: true });
-      const agent2 = getOrCreateAgent(https.Agent, { keepAlive: false });
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options: { keepAlive: true } });
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options: { keepAlive: false } });
 
       expect(agent1).not.toBe(agent2);
       expect(getAgentCacheSize()).toBe(2);
@@ -73,14 +73,14 @@ describe('Agent Cache', () => {
 
   describe('timeline support', () => {
     it('initializes timeline array on new agents', () => {
-      const agent = getOrCreateAgent(https.Agent, {}) as any;
+      const agent = getOrCreateAgent({ AgentClass: https.Agent, options: {} }) as any;
 
       expect(Array.isArray(agent.timeline)).toBe(true);
     });
 
     it('uses provided timeline array', () => {
       const timeline: any[] = [];
-      const agent = getOrCreateAgent(https.Agent, {}, null, timeline) as any;
+      const agent = getOrCreateAgent({ AgentClass: https.Agent, options: {}, timeline }) as any;
 
       expect(agent.timeline).toBe(timeline);
     });
@@ -89,10 +89,10 @@ describe('Agent Cache', () => {
       const timeline1: any[] = [];
       const timeline2: any[] = [];
 
-      const agent1 = getOrCreateAgent(https.Agent, {}, null, timeline1) as any;
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options: {}, timeline: timeline1 }) as any;
       expect(agent1.timeline).toBe(timeline1);
 
-      const agent2 = getOrCreateAgent(https.Agent, {}, null, timeline2) as any;
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options: {}, timeline: timeline2 }) as any;
       expect(agent1).toBe(agent2);
       expect(agent2.timeline).toBe(timeline2);
     });
@@ -102,11 +102,11 @@ describe('Agent Cache', () => {
       const timeline2: any[] = [];
 
       // First call creates new agent - no reuse message
-      getOrCreateAgent(https.Agent, {}, null, timeline1);
+      getOrCreateAgent({ AgentClass: https.Agent, options: {}, timeline: timeline1 });
       expect(timeline1.some((e) => e.message.includes('Reusing cached agent'))).toBe(false);
 
       // Second call reuses cached agent - should log reuse message with SSL session reuse
-      getOrCreateAgent(https.Agent, {}, null, timeline2);
+      getOrCreateAgent({ AgentClass: https.Agent, options: {}, timeline: timeline2 });
       expect(timeline2.some((e) => e.message.includes('Reusing cached agent'))).toBe(true);
       expect(timeline2.some((e) => e.message.includes('SSL session reuse'))).toBe(true);
     });
@@ -116,18 +116,18 @@ describe('Agent Cache', () => {
       const timeline2: any[] = [];
 
       // First call creates new agent - no reuse message
-      getOrCreateHttpAgent(http.Agent, { keepAlive: true }, null, timeline1);
+      getOrCreateHttpAgent({ AgentClass: http.Agent, options: { keepAlive: true }, timeline: timeline1 });
       expect(timeline1.some((e) => e.message.includes('Reusing cached agent'))).toBe(false);
 
       // Second call reuses cached agent - should log reuse message with connection reuse
-      getOrCreateHttpAgent(http.Agent, { keepAlive: true }, null, timeline2);
+      getOrCreateHttpAgent({ AgentClass: http.Agent, options: { keepAlive: true }, timeline: timeline2 });
       expect(timeline2.some((e) => e.message.includes('Reusing cached agent'))).toBe(true);
       expect(timeline2.some((e) => e.message.includes('connection reuse'))).toBe(true);
     });
 
     it('logs SSL validation status on agent creation', () => {
       const timeline: any[] = [];
-      getOrCreateAgent(https.Agent, { rejectUnauthorized: true }, null, timeline);
+      getOrCreateAgent({ AgentClass: https.Agent, options: { rejectUnauthorized: true }, timeline });
 
       const sslEntry = timeline.find((e) => e.message.includes('SSL validation'));
       expect(sslEntry).toBeDefined();
@@ -136,7 +136,7 @@ describe('Agent Cache', () => {
 
     it('logs SSL validation disabled when rejectUnauthorized is false', () => {
       const timeline: any[] = [];
-      getOrCreateAgent(https.Agent, { rejectUnauthorized: false }, null, timeline);
+      getOrCreateAgent({ AgentClass: https.Agent, options: { rejectUnauthorized: false }, timeline });
 
       const sslEntry = timeline.find((e) => e.message.includes('SSL validation'));
       expect(sslEntry).toBeDefined();
@@ -146,8 +146,8 @@ describe('Agent Cache', () => {
 
   describe('clearAgentCache', () => {
     it('removes all cached agents', () => {
-      getOrCreateAgent(https.Agent, { rejectUnauthorized: true });
-      getOrCreateAgent(https.Agent, { rejectUnauthorized: false });
+      getOrCreateAgent({ AgentClass: https.Agent, options: { rejectUnauthorized: true } });
+      getOrCreateAgent({ AgentClass: https.Agent, options: { rejectUnauthorized: false } });
       expect(getAgentCacheSize()).toBe(2);
 
       clearAgentCache();
@@ -159,7 +159,7 @@ describe('Agent Cache', () => {
 
       // Create several agents and attach mock destroy functions
       for (let i = 0; i < 5; i++) {
-        const agent = getOrCreateAgent(https.Agent, { ca: `cert-${i}` }) as any;
+        const agent = getOrCreateAgent({ AgentClass: https.Agent, options: { ca: `cert-${i}` } }) as any;
         const mock = jest.fn();
         agent.destroy = mock;
         destroyMocks.push(mock);
@@ -181,7 +181,7 @@ describe('Agent Cache', () => {
     it('maintains cache size under limit', () => {
       // Create many agents with different options
       for (let i = 0; i < 150; i++) {
-        getOrCreateAgent(https.Agent, { ca: `cert-${i}` });
+        getOrCreateAgent({ AgentClass: https.Agent, options: { ca: `cert-${i}` } });
       }
 
       // Cache should be capped at MAX_AGENT_CACHE_SIZE (100)
@@ -190,13 +190,13 @@ describe('Agent Cache', () => {
 
     it('destroys evicted agents to prevent memory leaks', () => {
       // Create first agent and attach a mock destroy function
-      const firstAgent = getOrCreateAgent(https.Agent, { ca: 'cert-to-evict' }) as any;
+      const firstAgent = getOrCreateAgent({ AgentClass: https.Agent, options: { ca: 'cert-to-evict' } }) as any;
       const destroyMock = jest.fn();
       firstAgent.destroy = destroyMock;
 
       // Fill cache to trigger eviction (100 more agents will evict the first one)
       for (let i = 0; i < 100; i++) {
-        getOrCreateAgent(https.Agent, { ca: `cert-${i}` });
+        getOrCreateAgent({ AgentClass: https.Agent, options: { ca: `cert-${i}` } });
       }
 
       // First agent should have been evicted and destroyed
@@ -210,8 +210,8 @@ describe('Agent Cache', () => {
       const timeline2: any[] = [];
 
       // Get the same agent twice with different timelines (simulating concurrent requests)
-      const agent1 = getOrCreateAgent(https.Agent, {}, null, timeline1) as any;
-      const agent2 = getOrCreateAgent(https.Agent, {}, null, timeline2) as any;
+      const agent1 = getOrCreateAgent({ AgentClass: https.Agent, options: {}, timeline: timeline1 }) as any;
+      const agent2 = getOrCreateAgent({ AgentClass: https.Agent, options: {}, timeline: timeline2 }) as any;
 
       // Both should return the same cached agent
       expect(agent1).toBe(agent2);
@@ -285,7 +285,7 @@ describe('Agent Cache', () => {
       const timeline1: any[] = [];
       const timeline2: any[] = [];
 
-      const agent = getOrCreateAgent(https.Agent, {}, null, timeline1) as any;
+      const agent = getOrCreateAgent({ AgentClass: https.Agent, options: {}, timeline: timeline1 }) as any;
 
       // Create a mock socket
       const mockSocket = new EventEmitter() as any;

@@ -217,21 +217,22 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
  * Reuses existing agents to enable SSL session caching.
  * Uses LRU-style eviction when cache exceeds MAX_AGENT_CACHE_SIZE.
  * Automatically wraps the agent class with timeline logging support.
- *
- * @param BaseAgentClass - The base agent class (https.Agent, HttpsProxyAgent, etc.)
- * @param options - Agent options (TLS settings, etc.)
- * @param proxyUri - Proxy URI if using a proxy
- * @param timeline - Timeline array for logging TLS events
  */
-function getOrCreateAgent(
-  BaseAgentClass: any,
-  options: AgentOptions,
-  proxyUri: string | null = null,
-  timeline: TimelineEntry[] | null = null,
-  disableCache: boolean = false
-): HttpAgent | HttpsAgent {
+function getOrCreateAgent({
+  AgentClass,
+  options,
+  proxyUri = null,
+  timeline = null,
+  disableCache = false
+}: {
+  AgentClass: any;
+  options: AgentOptions;
+  proxyUri?: string | null;
+  timeline?: TimelineEntry[] | null;
+  disableCache?: boolean;
+}): HttpAgent | HttpsAgent {
   return getOrCreateAgentInternal(
-    BaseAgentClass,
+    AgentClass,
     options,
     proxyUri,
     timeline,
@@ -247,21 +248,22 @@ function getOrCreateAgent(
  * Reuses existing agents to enable connection reuse.
  * Uses LRU-style eviction when cache exceeds MAX_AGENT_CACHE_SIZE.
  * Automatically wraps the agent class with timeline logging support.
- *
- * @param BaseAgentClass - The base HTTP agent class (http.Agent, HttpProxyAgent, etc.)
- * @param options - Agent options
- * @param proxyUri - Proxy URI if using a proxy
- * @param timeline - Timeline array for logging connection events
  */
-function getOrCreateHttpAgent(
-  BaseAgentClass: any,
-  options: HttpAgentOptions,
-  proxyUri: string | null = null,
-  timeline: TimelineEntry[] | null = null,
-  disableCache: boolean = false
-): HttpAgent {
+function getOrCreateHttpAgent({
+  AgentClass,
+  options,
+  proxyUri = null,
+  timeline = null,
+  disableCache = false
+}: {
+  AgentClass: any;
+  options: HttpAgentOptions;
+  proxyUri?: string | null;
+  timeline?: TimelineEntry[] | null;
+  disableCache?: boolean;
+}): HttpAgent {
   return getOrCreateAgentInternal(
-    BaseAgentClass,
+    AgentClass,
     options,
     proxyUri,
     timeline,
