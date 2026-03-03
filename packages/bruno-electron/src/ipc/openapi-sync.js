@@ -1249,7 +1249,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           }
 
           const requestContent = await stringifyRequestViaWorker(specItem, { format });
-          const sanitizedFilename = sanitizeName(specItem.filename || `${specItem.name}.${format}`);
+          const sanitizedFilename = `${sanitizeName(specItem.name || path.basename(specItem.filename || '', `.${format}`))}.${format}`;
           await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
         }
 
@@ -1308,7 +1308,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
               }
 
               const requestContent = await stringifyRequestViaWorker(newItem, { format });
-              const sanitizedFilename = sanitizeName(newItem.filename || `${newItem.name}.${format}`);
+              const sanitizedFilename = `${sanitizeName(newItem.name || path.basename(newItem.filename || '', `.${format}`))}.${format}`;
               await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
             }
           }
@@ -1640,7 +1640,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           }
 
           const requestContent = await stringifyRequestViaWorker(specItem, { format });
-          const sanitizedFilename = sanitizeName(specItem.filename || `${specItem.name}.${format}`);
+          const sanitizedFilename = `${sanitizeName(specItem.name || path.basename(specItem.filename || '', `.${format}`))}.${format}`;
           await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
           addedCount++;
         }
