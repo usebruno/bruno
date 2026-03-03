@@ -110,10 +110,9 @@ const Cache = () => {
         </div>
 
         <div className="mt-6">
-          <button type="button" className="btn btn-sm btn-secondary" onClick={handleResetCache}>
-            Reset Cache
+          <button type="button" className="purge-button" onClick={handleResetCache}>
+            Clear
           </button>
-          <div className="text-xs mt-1 opacity-70">Destroys all cached agents and their connections.</div>
         </div>
       </form>
     </StyledWrapper>

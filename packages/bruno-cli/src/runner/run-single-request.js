@@ -496,10 +496,7 @@ const runSingleRequest = async function (
             throw new Error('Invalid system https_proxy');
           }
         }
-      } catch (error) {
-        // Log system proxy detection errors but continue without proxy
-        console.warn('Failed to configure system proxy:', error.message);
-      }
+      } catch (error) {}
     }
 
     if (!request.httpAgent && !request.httpsAgent) {

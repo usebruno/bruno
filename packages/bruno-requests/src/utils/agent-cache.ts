@@ -188,12 +188,9 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
     return agent;
   }
 
-  // Wrap the agent class with timeline support (cached)
-  const AgentClass = getTimelineClass(BaseAgentClass);
-
-  const agent = proxyUri
-    ? new AgentClass({ ...options, proxy: proxyUri }, timeline || undefined)
-    : new AgentClass(options, timeline || undefined);
+  const AgentClass = timeline ? getTimelineClass(BaseAgentClass) : BaseAgentClass;
+  const agentOptions = proxyUri ? { ...options, proxy: proxyUri } : options;
+  const agent = new AgentClass(agentOptions, timeline ?? undefined);
 
   if (!disableCache) {
     // Evict oldest entry if cache is full (LRU eviction)
