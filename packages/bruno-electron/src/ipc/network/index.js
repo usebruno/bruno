@@ -528,7 +528,7 @@ const registerNetworkIpc = (mainWindow) => {
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runRequestScript(
-        decomment(requestScript),
+        decomment(requestScript, { space: true }),
         request,
         envVars,
         runtimeVariables,
@@ -677,7 +677,7 @@ const registerNetworkIpc = (mainWindow) => {
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runResponseScript(
-        decomment(responseScript),
+        decomment(responseScript, { space: true }),
         request,
         response,
         envVars,
@@ -1027,7 +1027,7 @@ const registerNetworkIpc = (mainWindow) => {
           let testError = null;
 
           try {
-            testResults = await testRuntime.runTests(decomment(testFile),
+            testResults = await testRuntime.runTests(decomment(testFile, { space: true }),
               request,
               response,
               envVars,
@@ -1744,7 +1744,7 @@ const registerNetworkIpc = (mainWindow) => {
               try {
                 const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
                 testResults = await testRuntime.runTests(
-                  decomment(testFile),
+                  decomment(testFile, { space: true }),
                   request,
                   response,
                   envVars,

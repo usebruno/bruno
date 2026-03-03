@@ -35,7 +35,6 @@ if (os.platform() === 'linux') {
 
 const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
-const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const registerFilesystemIpc = require('./ipc/filesystem');
@@ -57,12 +56,10 @@ const TerminalManager = require('./ipc/terminal');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
 const { cookiesStore } = require('./store/cookies');
-const onboardUser = require('./app/onboarding');
 const SystemMonitor = require('./app/system-monitor');
 const { getIsRunningInRosetta } = require('./utils/arch');
 const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/deeplink');
 
-const lastOpenedCollections = new LastOpenedCollections();
 const systemMonitor = new SystemMonitor();
 const terminalManager = new TerminalManager();
 
@@ -199,8 +196,8 @@ app.on('ready', async () => {
   }
 
   // Initialize system proxy cache early (non-blocking)
-  const { initializeSystemProxy } = require('./store/system-proxy');
-  initializeSystemProxy().catch((err) => {
+  const { fetchSystemProxy } = require('./store/system-proxy');
+  fetchSystemProxy().catch((err) => {
     console.warn('Failed to initialize system proxy cache:', err);
   });
 
@@ -448,12 +445,7 @@ app.on('ready', async () => {
       };
     } catch (err) {
       console.error('Error wrapping webContents.send:', err);
-      // Ensure onboarding gate is unblocked so renderer:ready doesn't hang
-      ipcMain.emit('main:onboarding-complete');
     }
-
-    // Handle onboarding
-    await onboardUser(mainWindow, lastOpenedCollections);
 
     // Send cookies list after renderer is ready
     try {
