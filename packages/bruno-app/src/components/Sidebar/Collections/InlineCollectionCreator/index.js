@@ -139,7 +139,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
               openingAdvancedRef.current = true;
-              onOpenAdvanced();
+              onOpenAdvanced(inputRef.current?.value?.trim());
             }}
             title="Advanced options"
             disabled={isCreating}

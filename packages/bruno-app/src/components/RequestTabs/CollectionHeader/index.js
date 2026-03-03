@@ -61,10 +61,11 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
       setIsRenamingWorkspace(true);
       setWorkspaceNameInput(currentWorkspace.name || '');
       setWorkspaceNameError('');
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         workspaceNameInputRef.current?.focus();
         workspaceNameInputRef.current?.select();
       }, 50);
+      return () => clearTimeout(timer);
     }
   }, [isScratchCollection, currentWorkspace?.isNewlyCreated, currentWorkspace?.uid, currentWorkspace?.name, dispatch]);
 

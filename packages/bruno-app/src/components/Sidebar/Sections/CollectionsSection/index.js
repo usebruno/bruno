@@ -53,6 +53,7 @@ const CollectionsSection = () => {
 
   const [importData, setImportData] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const [advancedCreateName, setAdvancedCreateName] = useState('');
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [showCloneGitModal, setShowCloneGitModal] = useState(false);
@@ -243,8 +244,9 @@ const CollectionsSection = () => {
     });
   };
 
-  const handleOpenAdvancedCreate = () => {
+  const handleOpenAdvancedCreate = (name) => {
     dispatch(setIsCreatingCollection(false));
+    setAdvancedCreateName(name || '');
     setCreateCollectionModalOpen(true);
   };
 
@@ -366,7 +368,11 @@ const CollectionsSection = () => {
       )}
       {createCollectionModalOpen && (
         <CreateCollection
-          onClose={() => setCreateCollectionModalOpen(false)}
+          onClose={() => {
+            setCreateCollectionModalOpen(false);
+            setAdvancedCreateName('');
+          }}
+          initialCollectionName={advancedCreateName}
         />
       )}
       {importCollectionModalOpen && (
