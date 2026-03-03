@@ -11,10 +11,10 @@ const LastOpenedCollections = require('../store/last-opened-collections');
 const registerPreferencesIpc = (mainWindow) => {
   const lastOpenedCollections = new LastOpenedCollections();
 
+  const onboardingPromise = onboardUser(mainWindow, lastOpenedCollections);
+
   ipcMain.handle('renderer:ready', async (event) => {
-    // Run onboarding synchronously to determine new vs existing user
-    // and set hasSeenWelcomeModal preference correctly before loading preferences
-    await onboardUser(mainWindow, lastOpenedCollections);
+    await onboardingPromise;
 
     // load preferences
     const preferences = getPreferences();

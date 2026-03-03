@@ -113,9 +113,6 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
     console.error('Failed to handle onboarding:', error);
     // Still mark as launched to prevent retry on next startup
     await preferencesUtil.markAsLaunched();
-  } finally {
-    // Always unblock the renderer:ready handler so the app can proceed
-    ipcMain.emit('main:onboarding-complete');
   }
 }
 
