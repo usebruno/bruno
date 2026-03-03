@@ -1215,7 +1215,7 @@ const getDefaultUrl = (serverObject) => {
   if (serverObject.variables) {
     each(serverObject.variables, (variable, variableName) => {
       let sub = variable.default !== undefined ? variable.default : (variable.enum ? variable.enum[0] : `{{${variableName}}}`);
-      url = url.replace(`{${variableName}}`, sub);
+      url = url.replaceAll(`{${variableName}}`, sub);
     });
   }
   return url.endsWith('/') ? url.slice(0, -1) : url;
@@ -1228,7 +1228,7 @@ const extractServerVars = (server) => {
   if (server.variables && Object.keys(server.variables).length > 0) {
     let baseUrlTemplate = server.url;
     each(server.variables, (variable, variableName) => {
-      baseUrlTemplate = baseUrlTemplate.replace(`{${variableName}}`, `{{${variableName}}}`);
+      baseUrlTemplate = baseUrlTemplate.replaceAll(`{${variableName}}`, `{{${variableName}}}`);
     });
     baseUrlTemplate = baseUrlTemplate.endsWith('/') ? baseUrlTemplate.slice(0, -1) : baseUrlTemplate;
     vars.push({ name: 'baseUrl', value: baseUrlTemplate });

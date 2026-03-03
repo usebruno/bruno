@@ -37,9 +37,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       // each match m is an array where m[0] is the full match (e.g. {{protocol}}) and m[1] is the capture group (e.g. protocol).
       matches.forEach((m) => {
         const varName = m[1];
-        if (vars[varName] !== undefined) {
-          serverVariables[varName] = { default: String(vars[varName]) };
-        }
+        serverVariables[varName] = { default: vars[varName] !== undefined ? String(vars[varName]) : '' };
       });
       if (Object.keys(serverVariables).length > 0) {
         entry.variables = serverVariables;
@@ -115,7 +113,8 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
     // URL matches a known baseUrl value directly (e.g. user typed template vars inline)
     for (const source of baseUrlSources) {
       if (rawUrl.startsWith(source.baseUrl)) {
-        const path = rawUrl.slice(source.baseUrl.length) || '/';
+        const rawPath = rawUrl.slice(source.baseUrl.length);
+        const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
         return { url: interpolate(path, {}), operationLevelServer: null };
       }
     }
