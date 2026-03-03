@@ -6,6 +6,7 @@ const { getCachedSystemProxy, fetchSystemProxy } = require('../store/system-prox
 const { resolveDefaultLocation } = require('../utils/default-location');
 const onboardUser = require('../app/onboarding');
 const LastOpenedCollections = require('../store/last-opened-collections');
+const { clearAgentCache } = require('@usebruno/requests');
 
 const registerPreferencesIpc = (mainWindow) => {
   const lastOpenedCollections = new LastOpenedCollections();
@@ -51,6 +52,14 @@ const registerPreferencesIpc = (mainWindow) => {
   ipcMain.handle('renderer:save-preferences', async (event, preferences) => {
     try {
       await savePreferences(preferences);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:clear-http-https-agent-cache', async () => {
+    try {
+      clearAgentCache();
     } catch (error) {
       return Promise.reject(error);
     }
