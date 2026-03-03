@@ -1,7 +1,10 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
-import { savePreferences } from 'providers/ReduxStore/slices/app';
+import {
+  savePreferences,
+  clearHttpHttpsAgentCache
+} from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
@@ -17,6 +20,21 @@ const cacheSchema = Yup.object().shape({
 const Cache = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
+
+  const handleSave = useCallback(
+    (newCachePreferences) => {
+      dispatch(
+        savePreferences({
+          ...preferences,
+          cache: newCachePreferences
+        })
+      ).catch(() => toast.error('Failed to update cache preferences'));
+    },
+    [dispatch, preferences]
+  );
+
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
 
   const formik = useFormik({
     initialValues: {
@@ -35,26 +53,14 @@ const Cache = () => {
     }
   });
 
-  const handleSave = useCallback(
-    (newCachePreferences) => {
-      dispatch(
-        savePreferences({
-          ...preferences,
-          cache: newCachePreferences
-        })
-      ).catch(() => toast.error('Failed to update cache preferences'));
-    },
-    [dispatch, preferences]
-  );
-
   const debouncedSave = useCallback(
     debounce((values) => {
       cacheSchema
         .validate(values, { abortEarly: true })
-        .then((validatedValues) => handleSave(validatedValues))
+        .then((validatedValues) => handleSaveRef.current(validatedValues))
         .catch(() => {});
     }, 500),
-    [handleSave]
+    []
   );
 
   useEffect(() => {
@@ -70,13 +76,12 @@ const Cache = () => {
     formik.handleChange(e);
     // Immediately evict all cached agents when caching is disabled
     if (!e.target.checked) {
-      window.ipcRenderer.invoke('renderer:clear-http-https-agent-cache').catch(() => {});
+      dispatch(clearHttpHttpsAgentCache()).catch(() => {});
     }
   };
 
   const handleResetCache = () => {
-    window.ipcRenderer
-      .invoke('renderer:clear-http-https-agent-cache')
+    dispatch(clearHttpHttpsAgentCache())
       .then(() => toast.success('Agent cache cleared'))
       .catch(() => toast.error('Failed to clear agent cache'));
   };

@@ -306,4 +306,25 @@ export const refreshSystemProxy = () => (dispatch, getState) => {
   });
 };
 
+export const getCacheStats = () => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:get-cache-stats').then(resolve).catch(reject);
+  });
+};
+
+export const purgeCache = () => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:purge-cache').then(resolve).catch(reject);
+  });
+};
+
+export const clearHttpHttpsAgentCache = () => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:clear-http-https-agent-cache').then(resolve).catch(reject);
+  });
+};
+
 export default appSlice.reducer;
