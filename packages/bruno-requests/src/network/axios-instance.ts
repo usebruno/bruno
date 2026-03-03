@@ -63,14 +63,7 @@ const makeAxiosInstance = (customRequestConfig?: AxiosRequestConfig) => {
     if (headersToDelete && Array.isArray(headersToDelete)) {
       headersToDelete.forEach((headerName: string) => {
         const lower = headerName.toLowerCase();
-        if (lower === 'host') return;
-        if (lower === 'connection') {
-          // connection is set by Node.js http.Agent at socket level, not by axios.
-          // keepAlive:false means Node.js does not inject Connection:keep-alive.
-          modConfig.httpAgent = new http.Agent({ keepAlive: false });
-          modConfig.httpsAgent = new https.Agent({ keepAlive: false });
-          return;
-        }
+        if (lower === 'host' || lower === 'connection') return;
         // Using set(name, null) rather than delete(): the axios http adapter guards its
         // own defaults (User-Agent, Accept-Encoding) with set(..., false) which only
         // skips writing when the key already exists. delete() removes the key entirely,

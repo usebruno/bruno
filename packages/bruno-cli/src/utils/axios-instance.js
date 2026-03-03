@@ -99,18 +99,9 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies, followRedi
     */
     const headersToDelete = config.__headersToDelete;
     if (headersToDelete && Array.isArray(headersToDelete)) {
-      const http = require('http');
-      const https = require('https');
       headersToDelete.forEach((headerName) => {
         const lower = headerName.toLowerCase();
-        if (lower === 'host') return;
-        if (lower === 'connection') {
-          // connection is set by Node.js http.Agent at socket level, not by axios.
-          // keepAlive:false means Node.js does not inject Connection:keep-alive.
-          config.httpAgent = new http.Agent({ keepAlive: false });
-          config.httpsAgent = new https.Agent({ keepAlive: false });
-          return;
-        }
+        if (lower === 'host' || lower === 'connection') return;
         config.headers.set(headerName, null);
       });
       delete config.__headersToDelete;

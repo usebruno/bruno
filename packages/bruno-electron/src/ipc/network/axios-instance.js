@@ -220,15 +220,6 @@ function makeAxiosInstance({
       });
     }
 
-    // Override the agent AFTER setupProxyAgents so keepAlive:true doesn't win.
-    // With keepAlive:false Node.js does not inject Connection:keep-alive at all.
-    if (deleteConnection) {
-      const http = require('http');
-      const https = require('https');
-      config.httpAgent = new http.Agent({ keepAlive: false });
-      config.httpsAgent = new https.Agent({ keepAlive: false });
-    }
-
     config.metadata.timeline = timeline;
     return config;
   });
