@@ -9,7 +9,7 @@ export { default as createVaultClient, VaultError } from './utils/node-vault';
 export type { VaultClient, VaultConfig, VaultRequestOptions } from './utils/node-vault';
 export { getHttpHttpsAgents } from './utils/http-https-agents';
 export { initializeShellEnv } from './utils/shell-env';
-export { getOrCreateAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize } from './utils/agent-cache';
+export { getOrCreateHttpsAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize } from './utils/agent-cache';
 
 export * as scripting from './scripting';
 

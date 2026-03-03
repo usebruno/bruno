@@ -6,7 +6,7 @@ const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
-const { getOrCreateAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
+const { getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
 const { preferencesUtil } = require('../store/preferences');
 
 const DEFAULT_PORTS = {
@@ -143,13 +143,13 @@ function setupProxyAgents({
       // Only set the agent needed for the request protocol
       if (socksEnabled) {
         if (isHttpsRequest) {
-          requestConfig.httpsAgent = getOrCreateAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
+          requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
         } else {
           requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
         }
       } else {
         if (isHttpsRequest) {
-          requestConfig.httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
+          requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
         } else {
           requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
         }
@@ -184,7 +184,7 @@ function setupProxyAgents({
               message: `Using system proxy: ${https_proxy}`
             });
           }
-          requestConfig.httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, timeline, disableCache, hostname });
+          requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, timeline, disableCache, hostname });
         }
       } catch (error) {
         throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
@@ -194,7 +194,7 @@ function setupProxyAgents({
 
   if (!requestConfig.httpAgent && !requestConfig.httpsAgent) {
     if (isHttpsRequest) {
-      requestConfig.httpsAgent = getOrCreateAgent({ AgentClass: https.Agent, options: tlsOptions, proxyUri: null, timeline, disableCache, hostname });
+      requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: https.Agent, options: tlsOptions, proxyUri: null, timeline, disableCache, hostname });
     } else {
       requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: { keepAlive: true }, proxyUri: null, timeline, disableCache, hostname });
     }

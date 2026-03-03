@@ -23,7 +23,7 @@ const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2 } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig, getOrCreateAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig, getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData } = require('@usebruno/common').utils;
@@ -462,13 +462,13 @@ const runSingleRequest = async function (
         // Only set the agent needed for the request protocol
         if (socksEnabled) {
           if (isHttpsRequest) {
-            request.httpsAgent = getOrCreateAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
+            request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
           } else {
             request.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: httpAgentOptions, proxyUri, disableCache, hostname });
           }
         } else {
           if (isHttpsRequest) {
-            request.httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
+            request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
           } else {
             request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpAgentOptions, proxyUri, disableCache, hostname });
           }
@@ -490,7 +490,7 @@ const runSingleRequest = async function (
           try {
             if (https_proxy?.length && isHttpsRequest) {
               new URL(https_proxy);
-              request.httpsAgent = getOrCreateAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, disableCache, hostname });
+              request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, disableCache, hostname });
             }
           } catch (error) {
             throw new Error('Invalid system https_proxy');
@@ -504,7 +504,7 @@ const runSingleRequest = async function (
 
     if (!request.httpAgent && !request.httpsAgent) {
       if (isHttpsRequest) {
-        request.httpsAgent = getOrCreateAgent({ AgentClass: https.Agent, options: tlsOptions, disableCache, hostname });
+        request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: https.Agent, options: tlsOptions, disableCache, hostname });
       } else {
         request.httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: httpAgentOptions, disableCache, hostname });
       }

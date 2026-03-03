@@ -221,7 +221,7 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
  * Uses LRU-style eviction when cache exceeds MAX_AGENT_CACHE_SIZE.
  * Automatically wraps the agent class with timeline logging support.
  */
-function getOrCreateAgent({
+function getOrCreateHttpsAgent({
   AgentClass,
   options,
   proxyUri = null,
@@ -303,4 +303,4 @@ function getAgentCacheSize(): number {
   return agentCache.size;
 }
 
-export { getOrCreateAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize };
+export { getOrCreateHttpsAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize };
