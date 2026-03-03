@@ -7,6 +7,7 @@ import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { setupShortcuts } from 'utils/codemirror/shortcuts';
 
 const CodeMirror = require('codemirror');
 
@@ -21,8 +22,11 @@ class SingleLineEditor extends Component {
     this.variables = {};
     this.readOnly = props.readOnly || false;
 
+    // Shortcuts cleanup function
+    this._shortcutsCleanup = null;
+
     this.state = {
-      maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
+      maskInput: props.isSecret || false
     };
   }
 
@@ -59,8 +63,8 @@ class SingleLineEditor extends Component {
       readOnly: this.props.readOnly,
       extraKeys: {
         'Enter': runHandler,
-        'Ctrl-Enter': runHandler,
-        'Cmd-Enter': runHandler,
+        // 'Ctrl-Enter': runHandler,
+        // 'Cmd-Enter': runHandler,
         'Alt-Enter': () => {
           if (this.props.allowNewlines) {
             this.editor.setValue(this.editor.getValue() + '\n');
@@ -69,7 +73,7 @@ class SingleLineEditor extends Component {
             this.props.onRun();
           }
         },
-        'Shift-Enter': runHandler,
+        // 'Shift-Enter': runHandler,
         'Cmd-S': saveHandler,
         'Ctrl-S': saveHandler,
         'Cmd-F': noopHandler,
@@ -108,6 +112,9 @@ class SingleLineEditor extends Component {
       this._updateNewlineMarkers();
     }
     setupLinkAware(this.editor);
+
+    // Setup keyboard shortcuts using the dedicated utility
+    this._shortcutsCleanup = setupShortcuts(this.editor, this);
   }
 
   /** Enable or disable masking the rendered content of the editor */
@@ -172,7 +179,7 @@ class SingleLineEditor extends Component {
       // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
       const nextValue = String(this.props.value ?? '');
       const currentValue = this.editor.getValue();
-      if (this.editor.hasFocus?.() && currentValue !== nextValue) {
+      if (this.editor.hasFocus?.() && currentValue !== nextValue && nextValue !== '') {
         this.cachedValue = currentValue;
       } else {
         const cursor = this.editor.getCursor();
@@ -202,6 +209,12 @@ class SingleLineEditor extends Component {
   }
 
   componentWillUnmount() {
+    // Cleanup shortcuts (keymap and store subscription)
+    if (this._shortcutsCleanup) {
+      this._shortcutsCleanup();
+      this._shortcutsCleanup = null;
+    }
+
     if (this.editor) {
       if (this.editor?._destroyLinkAware) {
         this.editor._destroyLinkAware();

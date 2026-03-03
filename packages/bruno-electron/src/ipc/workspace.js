@@ -20,6 +20,7 @@ const {
   updateWorkspaceDocs,
   addCollectionToWorkspace,
   removeCollectionFromWorkspace,
+  reorderWorkspaceCollections,
   getWorkspaceCollections,
   normalizeCollectionEntry,
   validateWorkspacePath,
@@ -185,6 +186,18 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       validateWorkspacePath(workspacePath);
       return getWorkspaceCollections(workspacePath);
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:reorder-workspace-collections', async (event, workspacePath, collectionPaths) => {
+    try {
+      if (!workspacePath) {
+        throw new Error('Workspace path is undefined');
+      }
+      validateWorkspacePath(workspacePath);
+      await reorderWorkspaceCollections(workspacePath, collectionPaths);
     } catch (error) {
       throw error;
     }

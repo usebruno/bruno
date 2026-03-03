@@ -8,6 +8,44 @@ function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
 }
 
+const MAX_MATCHES = 99_999;
+function findSearchMatches(editor, searchText, regex, caseSensitive, wholeWord) {
+  try {
+    let query, options = {};
+    if (regex) {
+      try {
+        query = new RegExp(searchText, caseSensitive ? 'g' : 'gi');
+      } catch (error) {
+        console.warn('Invalid regex provided in search!', error);
+        return [];
+      }
+    } else if (wholeWord) {
+      const escaped = escapeRegExp(searchText);
+      query = new RegExp(`\\b${escaped}\\b`, caseSensitive ? 'g' : 'gi');
+    } else {
+      query = searchText;
+      options = { caseFold: !caseSensitive };
+    }
+
+    const cursor = editor.getSearchCursor(query, { line: 0, ch: 0 }, options);
+    const out = [];
+    while (cursor.findNext()) {
+      out.push({ from: cursor.from(), to: cursor.to() });
+      if (out.length >= MAX_MATCHES) {
+        break;
+      }
+    }
+    return out;
+  } catch (e) {
+    console.error('Search error:', e);
+    return [];
+  }
+}
+
+function createCacheKey(editor, searchText, regex, caseSensitive, wholeWord) {
+  return `${editor.getValue().length}⇴${searchText}⇴${regex}⇴${caseSensitive}⇴${wholeWord}`;
+}
+
 const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   const [searchText, setSearchText] = useState('');
   const [regex, setRegex] = useState(false);
@@ -19,49 +57,15 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   const searchMarks = useRef([]);
   const searchLineHighlight = useRef(null);
   const searchMatches = useRef([]);
+  const searchCacheKey = useRef('');
   const inputRef = useRef(null);
 
-  const debouncedSearchText = useDebounce(searchText, 150);
-
-  const memoizedMatches = useMemo(() => {
-    if (!editor || !visible) return [];
-    if (!debouncedSearchText) return [];
-
-    try {
-      let query, options = {};
-      if (regex) {
-        try {
-          query = new RegExp(debouncedSearchText, caseSensitive ? 'g' : 'gi');
-        } catch {
-          return [];
-        }
-      } else if (wholeWord) {
-        const escaped = escapeRegExp(debouncedSearchText);
-        query = new RegExp(`\\b${escaped}\\b`, caseSensitive ? 'g' : 'gi');
-      } else {
-        query = debouncedSearchText;
-        options = { caseFold: !caseSensitive };
-      }
-
-      const cursor = editor.getSearchCursor(query, { line: 0, ch: 0 }, options);
-      const out = [];
-      while (cursor.findNext()) {
-        out.push({ from: cursor.from(), to: cursor.to() });
-      }
-      return out;
-    } catch (e) {
-      console.error('Search error:', e);
-      return [];
-    }
-  }, [editor, visible, debouncedSearchText, regex, caseSensitive, wholeWord]);
-
+  const debouncedSearchText = useDebounce(searchText, 250);
   const doSearch = useCallback((newIndex = 0) => {
-    if (!editor) return;
+    if (!editor || !visible) {
+      return;
+    }
 
-    // Clear previous marks
-    searchMarks.current.forEach((mark) => mark.clear());
-    searchMarks.current = [];
-    // Clear previous line highlight
     if (searchLineHighlight.current !== null) {
       editor.removeLineClass(searchLineHighlight.current, 'wrap', 'cm-search-line-highlight');
       searchLineHighlight.current = null;
@@ -71,41 +75,89 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
       setMatchCount(0);
       setMatchIndex(0);
       searchMatches.current = [];
+      searchMarks.current.forEach((mark) => mark.clear());
+      searchMarks.current = [];
       return;
     }
 
     try {
-      const matches = memoizedMatches;
-      let matchIndex = matches.length ? Math.max(0, Math.min(newIndex, matches.length - 1)) : 0;
-      matches.forEach((m, i) => {
-        const mark = editor.markText(m.from, m.to, {
-          className: i === matchIndex ? 'cm-search-current' : 'cm-search-match',
-          clearOnEnter: true
-        });
-        searchMarks.current.push(mark);
-      });
+      const newCacheKey = createCacheKey(editor, debouncedSearchText, regex, caseSensitive, wholeWord);
+      const isCacheHit = newCacheKey === searchCacheKey.current;
 
-      if (matches.length) {
-        const currentLine = matches[matchIndex].from.line;
-        editor.addLineClass(currentLine, 'wrap', 'cm-search-line-highlight');
-        searchLineHighlight.current = currentLine;
-
-        editor.scrollIntoView(matches[matchIndex].from, 100);
-        editor.setSelection(matches[matchIndex].from, matches[matchIndex].to);
-      } else {
-        searchLineHighlight.current = null;
+      let matches = searchMatches.current;
+      if (!isCacheHit) {
+        matches = findSearchMatches(editor, debouncedSearchText, regex, caseSensitive, wholeWord);
+        searchMatches.current = matches;
+        searchCacheKey.current = newCacheKey;
+        setMatchCount(matches.length);
       }
 
-      setMatchCount(matches.length);
+      if (!matches.length) {
+        setMatchIndex(0);
+        // Clear previous marks
+        searchMarks.current.forEach((mark) => mark.clear());
+        searchMarks.current = [];
+        return;
+      }
+
+      const matchIndex = Math.max(0, Math.min(newIndex, matches.length - 1));
       setMatchIndex(matchIndex);
-      searchMatches.current = matches;
+
+      if (isCacheHit) {
+        // Clear only old current mark
+        const oldIndex = searchMarks.current.findIndex((mark) => mark.className?.includes('cm-search-current'));
+
+        if (oldIndex !== -1) {
+          searchMarks.current[oldIndex].clear();
+          searchMarks.current.splice(oldIndex, 1);
+        }
+
+        // Add mark to the new current and remark the previous and next
+        const toMark = [
+          // Previous
+          matchIndex > 0 ? matchIndex - 1 : null,
+          // Current
+          matchIndex,
+          // Next
+          matchIndex < matches.length - 1 ? matchIndex + 1 : null
+        ].filter((i) => i !== null);
+
+        toMark.forEach((i) => {
+          const mark = editor.markText(matches[i].from, matches[i].to, {
+            className: i === matchIndex ? 'cm-search-current' : 'cm-search-match',
+            clearOnEnter: true
+          });
+          searchMarks.current.push(mark);
+        });
+      } else {
+        // Clear previous marks
+        searchMarks.current.forEach((mark) => mark.clear());
+        searchMarks.current = [];
+
+        // Mark all on new search
+        matches.forEach((m, i) => {
+          const mark = editor.markText(m.from, m.to, {
+            className: i === matchIndex ? 'cm-search-current' : 'cm-search-match',
+            clearOnEnter: true
+          });
+          searchMarks.current.push(mark);
+        });
+      }
+
+      const currentLine = matches[matchIndex].from.line;
+      editor.addLineClass(currentLine, 'wrap', 'cm-search-line-highlight');
+      searchLineHighlight.current = currentLine;
+
+      editor.scrollIntoView(matches[matchIndex].from, 100);
+      editor.setSelection(matches[matchIndex].from, matches[matchIndex].to);
     } catch (e) {
       console.error('Search error:', e);
       setMatchCount(0);
       setMatchIndex(0);
       searchMatches.current = [];
+      searchCacheKey.current = '';
     }
-  }, [debouncedSearchText, regex, caseSensitive, wholeWord, editor, memoizedMatches]);
+  }, [debouncedSearchText, regex, caseSensitive, wholeWord, editor, visible]);
 
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -116,7 +168,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   }));
 
   useEffect(() => {
-    doSearch(0, debouncedSearchText);
+    doSearch(0);
   }, [debouncedSearchText, doSearch]);
 
   const handleSearchBarClose = useCallback(() => {
@@ -127,6 +179,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
       searchLineHighlight.current = null;
     }
     searchMatches.current = [];
+    searchCacheKey.current = '';
     if (onClose) onClose();
     // Focus the editor after closing the search bar
     if (editor) {
@@ -142,32 +195,27 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   const handleToggleRegex = () => {
     setRegex((prev) => !prev);
     setMatchIndex(0);
-    doSearch(0);
   };
 
   const handleToggleCase = () => {
     setCaseSensitive((prev) => !prev);
     setMatchIndex(0);
-    doSearch(0);
   };
 
   const handleToggleWholeWord = () => {
     setWholeWord((prev) => !prev);
     setMatchIndex(0);
-    doSearch(0);
   };
 
   const handleNext = () => {
     if (!searchMatches.current || !searchMatches.current.length) return;
-    let next = (matchIndex + 1) % searchMatches.current.length;
-    setMatchIndex(next);
+    const next = (matchIndex + 1) % searchMatches.current.length;
     doSearch(next);
   };
 
   const handlePrev = () => {
     if (!searchMatches.current || !searchMatches.current.length) return;
-    let prev = (matchIndex - 1 + searchMatches.current.length) % searchMatches.current.length;
-    setMatchIndex(prev);
+    const prev = (matchIndex - 1 + searchMatches.current.length) % searchMatches.current.length;
     doSearch(prev);
   };
 

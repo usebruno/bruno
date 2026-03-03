@@ -27,7 +27,6 @@ const template = [
       },
       {
         label: 'Preferences',
-        accelerator: 'CommandOrControl+,',
         click() {
           ipcMain.emit('main:open-preferences');
         }
@@ -62,16 +61,34 @@ const template = [
     submenu: [
       { role: 'toggledevtools' },
       { type: 'separator' },
-      { role: 'resetzoom' },
-      { role: 'zoomin' },
-      { role: 'zoomout' },
+      {
+        label: 'Actual Size',
+        accelerator: 'CommandOrControl+0',
+        click() {
+          ipcMain.emit('menu:reset-zoom');
+        }
+      },
+      {
+        label: 'Zoom In',
+        accelerator: 'CommandOrControl+Plus',
+        click() {
+          ipcMain.emit('menu:zoom-in');
+        }
+      },
+      {
+        label: 'Zoom Out',
+        accelerator: 'CommandOrControl+-',
+        click() {
+          ipcMain.emit('menu:zoom-out');
+        }
+      },
       { type: 'separator' },
       { role: 'togglefullscreen' }
     ]
   },
   {
     role: 'window',
-    submenu: [{ role: 'minimize' }, { role: 'close', accelerator: 'CommandOrControl+Shift+Q' }]
+    submenu: [{ role: 'minimize' }, { role: 'close' }]
   },
   {
     role: 'help',

@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
 import { IconFolder, IconWorld, IconApi, IconShare, IconBook } from '@tabler/icons';
-import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
@@ -11,10 +10,13 @@ import StyledWrapper from './StyledWrapper';
 
 const Info = ({ collection }) => {
   const dispatch = useDispatch();
-  const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
 
-  const isCollectionLoading = areItemsLoading(collection);
-  const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
+  const isCollectionLoading = collection.isLoading;
+
+  const totalRequestsInCollection = useMemo(
+    () => getTotalRequestCountInCollection(collection),
+    [collection.items]
+  );
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
 
@@ -95,7 +97,9 @@ const Info = ({ collection }) => {
               <div className="font-medium">Requests</div>
               <div className="mt-1 text-muted">
                 {
-                  isCollectionLoading ? `${totalItems - itemsLoadingCount} out of ${totalItems} requests in the collection loaded` : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
+                  isCollectionLoading
+                    ? 'Loading requests...'
+                    : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
                 }
               </div>
             </div>

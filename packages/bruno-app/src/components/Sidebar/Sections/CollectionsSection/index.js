@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   IconArrowsSort,
@@ -15,10 +16,13 @@ import {
   IconTerminal2
 } from '@tabler/icons';
 
-import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
+import { importCollection, openCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { normalizePath } from 'utils/common/path';
-import { isScratchCollection } from 'utils/collections';
+import { isScratchCollection, flattenItems, isItemTransientRequest } from 'utils/collections';
+import { sanitizeName } from 'utils/common/regex';
+import filter from 'lodash/filter';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
@@ -28,6 +32,7 @@ import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectio
 import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
 import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollectionsModal/index';
 import CreateCollection from 'components/Sidebar/CreateCollection';
+import WelcomeModal from 'components/WelcomeModal';
 import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
@@ -41,6 +46,7 @@ const CollectionsSection = () => {
 
   const { collections } = useSelector((state) => state.collections);
   const { collectionSortOrder } = useSelector((state) => state.collections);
+  const preferences = useSelector((state) => state.app.preferences);
   const [collectionsToClose, setCollectionsToClose] = useState([]);
 
   const [importData, setImportData] = useState(null);
@@ -49,6 +55,42 @@ const CollectionsSection = () => {
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [showCloneGitModal, setShowCloneGitModal] = useState(false);
   const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
+
+  // Listen for sidebar-search-open hotkey event
+  useEffect(() => {
+    const handleSidebarSearch = () => {
+      setShowSearch(true);
+      // Focus the search input after it's rendered
+      setTimeout(() => {
+        const searchInput = document.querySelector('.collection-search-input');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }, 50);
+    };
+
+    window.addEventListener('sidebar-search-open', handleSidebarSearch);
+    return () => window.removeEventListener('sidebar-search-open', handleSidebarSearch);
+  }, []);
+  // Default to true (don't show modal) so that:
+  // 1. Existing users who upgrade (no hasSeenWelcomeModal in their prefs) don't see it
+  // 2. The modal doesn't flash before preferences are loaded from the electron process
+  // Only genuinely new users will have hasSeenWelcomeModal explicitly set to false by onboarding
+  const hasSeenWelcomeModal = get(preferences, 'onboarding.hasSeenWelcomeModal', true);
+  const showWelcomeModal = !hasSeenWelcomeModal;
+
+  const handleDismissWelcomeModal = () => {
+    const updatedPreferences = {
+      ...preferences,
+      onboarding: {
+        ...preferences.onboarding,
+        hasSeenWelcomeModal: true
+      }
+    };
+    dispatch(savePreferences(updatedPreferences)).catch(() => {
+      toast.error('Failed to save preferences');
+    });
+  };
 
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];
@@ -155,6 +197,50 @@ const CollectionsSection = () => {
     });
   };
 
+  const handleStartRequest = () => {
+    const scratchCollectionUid = activeWorkspace?.scratchCollectionUid;
+    if (!scratchCollectionUid) {
+      toast.error('Unable to create request');
+      return;
+    }
+
+    const scratchCollection = collections.find((c) => c.uid === scratchCollectionUid);
+    if (!scratchCollection) {
+      toast.error('Unable to create request');
+      return;
+    }
+
+    const allItems = flattenItems(scratchCollection.items || []);
+    const transientRequests = filter(allItems, (item) => isItemTransientRequest(item));
+    let maxNumber = 0;
+    transientRequests.forEach((item) => {
+      const match = item.name?.match(/^Untitled (\d+)$/);
+      if (match) {
+        const number = parseInt(match[1], 10);
+        if (number > maxNumber) {
+          maxNumber = number;
+        }
+      }
+    });
+    const requestName = `Untitled ${maxNumber + 1}`;
+    const filename = sanitizeName(requestName);
+
+    dispatch(
+      newHttpRequest({
+        requestName,
+        filename,
+        requestType: 'http-request',
+        requestUrl: '',
+        requestMethod: 'GET',
+        collectionUid: scratchCollectionUid,
+        itemUid: null,
+        isTransient: true
+      })
+    ).catch((err) => {
+      toast.error('An error occurred while creating the request');
+    });
+  };
+
   const addDropdownItems = [
     {
       id: 'create',
@@ -250,6 +336,27 @@ const CollectionsSection = () => {
 
   return (
     <>
+      {showWelcomeModal && (
+        <WelcomeModal
+          onDismiss={handleDismissWelcomeModal}
+          onImportCollection={() => {
+            handleDismissWelcomeModal();
+            setImportCollectionModalOpen(true);
+          }}
+          onCreateCollection={() => {
+            handleDismissWelcomeModal();
+            setCreateCollectionModalOpen(true);
+          }}
+          onOpenCollection={() => {
+            handleDismissWelcomeModal();
+            handleOpenCollection();
+          }}
+          onStartRequest={() => {
+            handleDismissWelcomeModal();
+            handleStartRequest();
+          }}
+        />
+      )}
       {createCollectionModalOpen && (
         <CreateCollection
           onClose={() => setCreateCollectionModalOpen(false)}

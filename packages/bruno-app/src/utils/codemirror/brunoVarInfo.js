@@ -233,7 +233,7 @@ export const renderVarInfo = (token, options) => {
 
     // If variable doesn't exist in any scope, determine scope based on context
     if (!scopeInfo) {
-      if (item) {
+      if (item && item.uid) {
         // Determine if item is a folder or request
         const isFolder = item.type === 'folder';
 

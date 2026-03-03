@@ -70,7 +70,7 @@ const simpleTranslations = {
   'req.headers': 'pm.request.headers',
   'req.body': 'pm.request.body',
   'req.getHeader': 'pm.request.headers.get',
-  'req.setHeader': 'pm.request.headers.set',
+  // Note: req.setHeader is handled in complexTransformations because it needs arg restructuring (two args -> object)
   'req.deleteHeader': 'pm.request.headers.remove',
 
   // URL helper methods
@@ -316,6 +316,28 @@ const complexTransformations = [
         ]
       );
       return updateCall;
+    }
+  },
+  // req.setHeader(key, value) -> pm.request.headers.upsert({key: key, value: value})
+  {
+    pattern: 'req.setHeader',
+    transform: (path) => {
+      const args = path.value.arguments;
+      if (!args || args.length < 2) {
+        return j.callExpression(
+          buildMemberExpressionFromString('pm.request.headers.upsert'),
+          args || []
+        );
+      }
+      return j.callExpression(
+        buildMemberExpressionFromString('pm.request.headers.upsert'),
+        [
+          j.objectExpression([
+            j.property('init', j.identifier('key'), args[0]),
+            j.property('init', j.identifier('value'), args[1])
+          ])
+        ]
+      );
     }
   },
   // req.setHeaders(headers) -> loop calling pm.request.headers.upsert() for each header

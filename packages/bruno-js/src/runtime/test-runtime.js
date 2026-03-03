@@ -7,6 +7,7 @@ const { createBruTestResultMethods } = require('../utils/results');
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const { SANDBOX } = require('../utils/sandbox');
 
 class TestRuntime {
   constructor(props) {
@@ -27,13 +28,15 @@ class TestRuntime {
     collectionName
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
     const promptVariables = request?.promptVariables || {};
     const assertionResults = request?.assertionResults || [];
     const certsAndProxyConfig = request?.certsAndProxyConfig;
-    const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, {}, collectionName, promptVariables, certsAndProxyConfig);
+    const scriptPath = request?.pathname;
+    const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
 
@@ -84,19 +87,21 @@ class TestRuntime {
     let scriptError = null;
 
     try {
-      if (this.runtime === 'nodevm') {
+      if (this.runtime === SANDBOX.NODEVM) {
         await runScriptInNodeVm({
           script: testsFile,
           context,
           collectionPath,
-          scriptingConfig
+          scriptingConfig,
+          scriptPath
         });
       } else {
         // default runtime is `quickjs`
         await executeQuickJsVmAsync({
           script: testsFile,
           context: context,
-          collectionPath
+          collectionPath,
+          scriptPath
         });
       }
     } catch (error) {
@@ -109,6 +114,7 @@ class TestRuntime {
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
+      oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest
     };

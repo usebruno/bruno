@@ -1,11 +1,11 @@
 const { getSystemProxy } = require('@usebruno/requests');
 
-let cachedSystemProxy = null;
+let cachedSystemProxy;
+let systemProxyPromise;
 
-const initializeSystemProxy = async () => {
+const loadSystemProxy = async () => {
   try {
     cachedSystemProxy = await getSystemProxy();
-    return cachedSystemProxy;
   } catch (error) {
     console.error('Failed to initialize system proxy:', error);
     cachedSystemProxy = {
@@ -14,26 +14,27 @@ const initializeSystemProxy = async () => {
       no_proxy: null,
       source: 'error'
     };
-    return cachedSystemProxy;
   }
+  return cachedSystemProxy;
 };
 
-const refreshSystemProxy = async () => {
-  try {
-    cachedSystemProxy = await getSystemProxy();
-    return cachedSystemProxy;
-  } catch (error) {
-    console.error('Failed to refresh system proxy:', error);
-    throw error;
+const fetchSystemProxy = ({ refresh = false } = {}) => {
+  if (refresh || !systemProxyPromise) {
+    systemProxyPromise = loadSystemProxy();
   }
+  return systemProxyPromise;
 };
 
-const getCachedSystemProxy = () => {
+const getCachedSystemProxy = async () => {
+  if (!systemProxyPromise) {
+    await fetchSystemProxy();
+  } else {
+    await systemProxyPromise;
+  }
   return cachedSystemProxy;
 };
 
 module.exports = {
-  initializeSystemProxy,
-  refreshSystemProxy,
+  fetchSystemProxy,
   getCachedSystemProxy
 };

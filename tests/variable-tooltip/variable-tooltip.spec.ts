@@ -6,6 +6,7 @@ import {
   createEnvironment,
   addEnvironmentVariables,
   saveEnvironment,
+  selectRequestPaneTab,
   closeEnvironmentPanel
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
@@ -63,7 +64,7 @@ test.describe('Variable Tooltip', () => {
     await test.step('Test secret variable with toggle', async () => {
       await page.mouse.move(0, 0);
 
-      await page.getByRole('tab', { name: 'Headers' }).click();
+      await selectRequestPaneTab(page, 'Headers');
 
       const headerTable = page.locator('table').first();
       const headerRow = headerTable.locator('tbody tr').first();
@@ -359,7 +360,7 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Verify variable exists in Vars tab', async () => {
       // Check variable is saved to file - should appear in the Vars tab
-      await page.getByRole('tab', { name: 'Vars' }).click();
+      await selectRequestPaneTab(page, 'Vars');
 
       // The variable should exist in the saved file
       const varsTable = page.locator('table').first();
@@ -400,7 +401,7 @@ test.describe('Variable Tooltip', () => {
     });
 
     await test.step('Test invalid variable name with space', async () => {
-      await page.getByRole('tab', { name: 'Body' }).click();
+      await selectRequestPaneTab(page, 'Body');
 
       // Select JSON body mode
       await page.locator('.body-mode-selector').click();

@@ -1,0 +1,20 @@
+name: 'Run CLI Tests'
+description: 'Setup dependencies, start local testbench and run CLI tests'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Local Testbench
+      shell: bash
+      run: |
+        npm start --workspace=packages/bruno-tests &
+        sleep 5
+
+    - name: Install Test Collection Dependencies
+      shell: bash
+      run: npm ci --prefix packages/bruno-tests/collection
+
+    - name: Run CLI Tests
+      shell: bash
+      run: |
+        cd packages/bruno-tests/collection
+        node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit --sandbox developer

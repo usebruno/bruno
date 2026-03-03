@@ -522,8 +522,8 @@ const cleanRequest = (request) => {
  * Handles escape sequences, line continuations, and method concatenation
  */
 const cleanCurlCommand = (curlCommand) => {
-  // Handle escape sequences
-  curlCommand = curlCommand.replace(/\$('.*')/g, (match, group) => group);
+  // Handle bash ANSI $'..' escapes by decoding common sequences
+  curlCommand = curlCommand.replace(/\$'((?:\\.|[^'])*)'/g, (match, group) => quoteForShell(decodeAnsiEscapes(group)));
   // Convert escaped single quotes to shell quote pattern
   curlCommand = curlCommand.replace(/\\'(?!')/g, '\'\\\'\'');
   // Fix concatenated HTTP methods
@@ -553,6 +553,35 @@ const fixConcatenatedMethods = (command) => {
   });
 
   return command;
+};
+
+/**
+ * Decode bash ANSI $'..' escape sequences
+ */
+const decodeAnsiEscapes = (value) => {
+  return value.replace(/\\(\\|'|n|r|t|v|f|a|b|x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4})/g, (match, seq) => {
+    switch (seq[0]) {
+      case '\\': return '\\';
+      case '\'': return '\'';
+      case 'n': return '\n';
+      case 'r': return '\r';
+      case 't': return '\t';
+      case 'v': return '\v';
+      case 'f': return '\f';
+      case 'a': return '\x07';
+      case 'b': return '\b';
+      case 'x': return String.fromCharCode(parseInt(seq.slice(1), 16));
+      case 'u': return String.fromCharCode(parseInt(seq.slice(1), 16));
+      default: return match;
+    }
+  });
+};
+
+/**
+ * Wrap value in single quotes while preserving embedded single quotes
+ */
+const quoteForShell = (value) => {
+  return `'${value.replace(/'/g, '\'\\\'\'')}'`;
 };
 
 export default parseCurlCommand;

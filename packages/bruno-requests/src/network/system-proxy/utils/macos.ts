@@ -92,7 +92,7 @@ export class MacOSProxyResolver implements ProxyResolver {
     // Check HTTPS proxy
     if (config.HTTPSEnable === 1 && config.HTTPSProxy) {
       const port = config.HTTPSPort || 443;
-      https_proxy = normalizeProxyUrl(`${config.HTTPSProxy}:${port}`, 'https');
+      https_proxy = normalizeProxyUrl(`${config.HTTPSProxy}:${port}`);
     }
 
     // Check bypass list

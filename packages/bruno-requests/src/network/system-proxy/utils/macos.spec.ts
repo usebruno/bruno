@@ -43,7 +43,7 @@ describe('MacOSProxyResolver', () => {
 
       expect(result).toEqual({
         http_proxy: 'http://proxy.usebruno.com:8080',
-        https_proxy: 'https://secure-proxy.usebruno.com:8443',
+        https_proxy: 'http://secure-proxy.usebruno.com:8443',
         no_proxy: 'localhost,127.0.0.1,<local>',
         source: 'macos-system'
       });
@@ -82,7 +82,7 @@ describe('MacOSProxyResolver', () => {
       const result = await detector.detect();
 
       expect(result.http_proxy).toBe('http://proxy.usebruno.com:80');
-      expect(result.https_proxy).toBe('https://secure-proxy.usebruno.com:443');
+      expect(result.https_proxy).toBe('http://secure-proxy.usebruno.com:443');
     });
 
     it('should handle only HTTP proxy enabled', async () => {
@@ -121,7 +121,7 @@ describe('MacOSProxyResolver', () => {
 
       expect(result).toEqual({
         http_proxy: null,
-        https_proxy: 'https://secure-proxy.usebruno.com:8443',
+        https_proxy: 'http://secure-proxy.usebruno.com:8443',
         no_proxy: null,
         source: 'macos-system'
       });
@@ -146,7 +146,7 @@ describe('MacOSProxyResolver', () => {
 
       expect(result).toEqual({
         http_proxy: 'http://proxy.usebruno.com:8080',
-        https_proxy: 'https://proxy.usebruno.com:8080',
+        https_proxy: 'http://proxy.usebruno.com:8080',
         no_proxy: null,
         source: 'macos-system'
       });
@@ -169,7 +169,7 @@ describe('MacOSProxyResolver', () => {
 
       expect(result).toEqual({
         http_proxy: 'http://proxy.usebruno.com:8080',
-        https_proxy: 'https://proxy.usebruno.com:8080',
+        https_proxy: 'http://proxy.usebruno.com:8080',
         no_proxy: '<local>',
         source: 'macos-system'
       });
@@ -198,7 +198,7 @@ describe('MacOSProxyResolver', () => {
 
       expect(result).toEqual({
         http_proxy: 'http://proxy.usebruno.com:8080',
-        https_proxy: 'https://proxy.usebruno.com:8080',
+        https_proxy: 'http://proxy.usebruno.com:8080',
         no_proxy: 'localhost,127.0.0.1,*.local,192.168.1.0/24,<local>',
         source: 'macos-system'
       });

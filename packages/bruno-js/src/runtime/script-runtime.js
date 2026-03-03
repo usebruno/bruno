@@ -6,6 +6,7 @@ const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const { SANDBOX } = require('../utils/sandbox');
 
 class ScriptRuntime {
   constructor(props) {
@@ -34,6 +35,7 @@ class ScriptRuntime {
     const promptVariables = request?.promptVariables || {};
     const assertionResults = request?.assertionResults || [];
     const certsAndProxyConfig = request?.certsAndProxyConfig;
+    const scriptPath = request?.pathname;
     const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig);
     const req = new BrunoRequest(request);
 
@@ -76,6 +78,7 @@ class ScriptRuntime {
       runtimeVariables: cleanJson(runtimeVariables),
       persistentEnvVariables: bru.persistentEnvVariables,
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
@@ -87,13 +90,14 @@ class ScriptRuntime {
     // Similar pattern to test-runtime.js which already handles this correctly
     let scriptError = null;
 
-    if (this.runtime === 'nodevm') {
+    if (this.runtime === SANDBOX.NODEVM) {
       try {
         await runScriptInNodeVm({
           script,
           context,
           collectionPath,
-          scriptingConfig
+          scriptingConfig,
+          scriptPath
         });
       } catch (error) {
         scriptError = error;
@@ -114,7 +118,8 @@ class ScriptRuntime {
       await executeQuickJsVmAsync({
         script: script,
         context: context,
-        collectionPath
+        collectionPath,
+        scriptPath
       });
     } catch (error) {
       scriptError = error;
@@ -149,6 +154,7 @@ class ScriptRuntime {
     const promptVariables = request?.promptVariables || {};
     const assertionResults = request?.assertionResults || {};
     const certsAndProxyConfig = request?.certsAndProxyConfig;
+    const scriptPath = request?.pathname;
     const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -193,6 +199,7 @@ class ScriptRuntime {
       persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
@@ -204,13 +211,14 @@ class ScriptRuntime {
     // Similar pattern to test-runtime.js which already handles this correctly
     let scriptError = null;
 
-    if (this.runtime === 'nodevm') {
+    if (this.runtime === SANDBOX.NODEVM) {
       try {
         await runScriptInNodeVm({
           script,
           context,
           collectionPath,
-          scriptingConfig
+          scriptingConfig,
+          scriptPath
         });
       } catch (error) {
         scriptError = error;
@@ -231,7 +239,8 @@ class ScriptRuntime {
       await executeQuickJsVmAsync({
         script: script,
         context: context,
-        collectionPath
+        collectionPath,
+        scriptPath
       });
     } catch (error) {
       scriptError = error;

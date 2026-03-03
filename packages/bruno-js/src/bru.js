@@ -92,6 +92,8 @@ class Bru {
     };
     // Holds variables that are marked as persistent by scripts
     this.persistentEnvVariables = {};
+    // Holds credential IDs to be reset after script execution
+    this.oauth2CredentialsToReset = [];
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
@@ -273,6 +275,24 @@ class Bru {
 
   getOauth2CredentialVar(key) {
     return this.interpolate(this.oauth2CredentialVariables[key]);
+  }
+
+  resetOauth2Credential(credentialId) {
+    if (!credentialId || typeof credentialId !== 'string') {
+      throw new Error('credentialId must be a non-empty string');
+    }
+
+    if (!this.oauth2CredentialsToReset.includes(credentialId)) {
+      this.oauth2CredentialsToReset.push(credentialId);
+    }
+
+    // Remove matching credential variables so subsequent getOauth2CredentialVar() calls return undefined
+    const prefix = `$oauth2.${credentialId}.`;
+    for (const key of Object.keys(this.oauth2CredentialVariables)) {
+      if (key.startsWith(prefix)) {
+        delete this.oauth2CredentialVariables[key];
+      }
+    }
   }
 
   hasVar(key) {

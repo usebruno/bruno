@@ -1,0 +1,48 @@
+name: 'Run Unit Tests'
+description: 'Setup dependencies and run unit tests for all packages'
+runs:
+  using: 'composite'
+  steps:
+    - name: Test Package bruno-js
+      shell: bash
+      run: npm run test --workspace=packages/bruno-js
+
+    - name: Test Package bruno-cli
+      shell: bash
+      run: npm run test --workspace=packages/bruno-cli
+
+    - name: Test Package bruno-query
+      shell: bash
+      run: npm run test --workspace=packages/bruno-query
+
+    - name: Test Package bruno-lang
+      shell: bash
+      run: npm run test --workspace=packages/bruno-lang
+
+    - name: Test Package bruno-schema
+      shell: bash
+      run: npm run test --workspace=packages/bruno-schema
+
+    - name: Test Package bruno-app
+      shell: bash
+      run: npm run test --workspace=packages/bruno-app
+
+    - name: Test Package bruno-common
+      shell: bash
+      run: npm run test --workspace=packages/bruno-common
+
+    - name: Test Package bruno-converters
+      shell: bash
+      run: npm run test --workspace=packages/bruno-converters
+
+    - name: Test Package bruno-electron
+      shell: bash
+      run: npm run test --workspace=packages/bruno-electron
+
+    - name: Test Package bruno-requests
+      shell: bash
+      run: npm run test --workspace=packages/bruno-requests
+
+    - name: Test Package bruno-filestore
+      shell: bash
+      run: npm run test --workspace=packages/bruno-filestore

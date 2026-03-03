@@ -1,7 +1,8 @@
 export {
   encodeUrl,
   parseQueryParams,
-  buildQueryString
+  buildQueryString,
+  stripOrigin
 } from './url';
 
 export {

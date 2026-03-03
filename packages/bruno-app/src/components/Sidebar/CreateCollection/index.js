@@ -32,7 +32,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
   const activeWorkspace = workspaces.find((w) => w.uid === workspaceUid);
   const isDefaultWorkspace = activeWorkspace?.type === 'default';
 
-  const defaultLocation = isDefaultWorkspace ? get(preferences, 'general.defaultCollectionLocation', '') : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
+  const defaultLocation = isDefaultWorkspace ? get(preferences, 'general.defaultLocation', '') : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
 
   const formik = useFormik({
     enableReinitialize: true,

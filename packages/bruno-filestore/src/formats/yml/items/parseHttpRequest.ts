@@ -171,7 +171,8 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
 
       if (example.response) {
         brunoExample.response = {
-          status: example.response.status !== undefined ? String(example.response.status) : null,
+          status: typeof example.response.status === 'number' ? example.response.status
+            : example.response.status !== undefined ? Number(example.response.status) : null,
           statusText: example.response.statusText || null,
           headers: toBrunoHttpHeaders(example.response.headers) || [],
           body: null

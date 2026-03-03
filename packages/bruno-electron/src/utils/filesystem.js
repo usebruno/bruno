@@ -442,7 +442,7 @@ const isDotEnvFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
-  return dirname === collectionPath && basename === '.env';
+  return path.normalize(dirname) === path.normalize(collectionPath) && basename === '.env';
 };
 
 const isValidDotEnvFilename = (filename) => {
@@ -456,7 +456,7 @@ const isBrunoConfigFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
-  return dirname === collectionPath && basename === 'bruno.json';
+  return path.normalize(dirname) === path.normalize(collectionPath) && basename === 'bruno.json';
 };
 
 const isBruEnvironmentConfig = (pathname, collectionPath) => {
@@ -464,14 +464,14 @@ const isBruEnvironmentConfig = (pathname, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
   const basename = path.basename(pathname);
 
-  return dirname === envDirectory && hasBruExtension(basename);
+  return path.normalize(dirname) === path.normalize(envDirectory) && hasBruExtension(basename);
 };
 
 const isCollectionRootBruFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
-  return dirname === collectionPath && basename === 'collection.bru';
+  return path.normalize(dirname) === path.normalize(collectionPath) && basename === 'collection.bru';
 };
 
 const scanForBrunoFiles = async (dir) => {

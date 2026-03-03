@@ -130,7 +130,7 @@ export class WindowsProxyResolver implements ProxyResolver {
     if (http_proxy || https_proxy) {
       return {
         http_proxy: http_proxy ? normalizeProxyUrl(http_proxy) : null,
-        https_proxy: https_proxy ? normalizeProxyUrl(https_proxy, 'https') : null,
+        https_proxy: https_proxy ? normalizeProxyUrl(https_proxy) : null,
         no_proxy: no_proxy ? normalizeNoProxy(no_proxy) : null,
         source: 'windows-system'
       };
@@ -171,7 +171,7 @@ export class WindowsProxyResolver implements ProxyResolver {
     if (http_proxy || https_proxy) {
       return {
         http_proxy: http_proxy ? normalizeProxyUrl(http_proxy) : null,
-        https_proxy: https_proxy ? normalizeProxyUrl(https_proxy, 'https') : null,
+        https_proxy: https_proxy ? normalizeProxyUrl(https_proxy) : null,
         no_proxy: no_proxy ? normalizeNoProxy(no_proxy) : null,
         source: 'windows-system'
       };
@@ -193,7 +193,7 @@ export class WindowsProxyResolver implements ProxyResolver {
         if (proto === 'http') {
           http_proxy = normalizeProxyUrl(server);
         } else if (proto === 'https') {
-          https_proxy = normalizeProxyUrl(server, 'https');
+          https_proxy = normalizeProxyUrl(server);
         }
       }
     } else {

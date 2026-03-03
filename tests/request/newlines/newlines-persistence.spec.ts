@@ -1,5 +1,5 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
-import { createCollection, openCollection } from '../../utils/page';
+import { createCollection, openCollection, selectRequestPaneTab } from '../../utils/page';
 import { getTableCell } from '../../utils/page/locators';
 
 test('should persist request with newlines across app restarts', async ({ createTmpDir, launchElectronApp }) => {
@@ -25,18 +25,18 @@ test('should persist request with newlines across app restarts', async ({ create
 
   await page.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();
 
-  await page.getByRole('tab', { name: 'Params' }).click();
+  await selectRequestPaneTab(page, 'Params');
   const paramRow = page.locator('table tbody tr').first();
   await getTableCell(paramRow, 0).getByRole('textbox').fill('queryParamKey');
 
-  await page.getByRole('tab', { name: 'Headers' }).click();
+  await selectRequestPaneTab(page, 'Headers');
   const headerRow = page.locator('table tbody tr').first();
   await getTableCell(headerRow, 0).locator('.CodeMirror').click();
   await getTableCell(headerRow, 0).locator('textarea').fill('headerKey');
   await getTableCell(headerRow, 1).locator('.CodeMirror').click();
   await getTableCell(headerRow, 1).locator('textarea').fill('header\nValue');
 
-  await page.getByRole('tab', { name: 'Vars' }).click();
+  await selectRequestPaneTab(page, 'Vars');
   const preReqRow = page.locator('table').first().locator('tbody tr').first();
   await getTableCell(preReqRow, 0).getByRole('textbox').fill('preRequestVar');
   // Wait for table to stabilize after fill (new empty row may be appended)
@@ -64,15 +64,15 @@ test('should persist request with newlines across app restarts', async ({ create
   await page2.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();
 
   // Verify params persisted
-  await page2.getByRole('tab', { name: 'Params' }).click();
+  await selectRequestPaneTab(page2, 'Params');
   await expect(page2.locator('table tbody tr')).toHaveCount(2);
 
   // Verify headers persisted
-  await page2.getByRole('tab', { name: 'Headers' }).click();
+  await selectRequestPaneTab(page2, 'Headers');
   await expect(page2.locator('table tbody tr')).toHaveCount(2);
 
   // Verify vars persisted
-  await page2.getByRole('tab', { name: 'Vars' }).click();
+  await selectRequestPaneTab(page2, 'Vars');
   await expect(page2.locator('table').first().locator('tbody tr')).toHaveCount(2);
   await expect(page2.locator('table').nth(1).locator('tbody tr')).toHaveCount(2);
 

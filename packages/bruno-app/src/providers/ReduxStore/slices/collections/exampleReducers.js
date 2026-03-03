@@ -41,7 +41,7 @@ export const addResponseExample = (state, action) => {
       body: requestBody
     },
     response: {
-      status: String(example.status ?? ''),
+      status: example.status ? Number(example.status) : null,
       statusText: String(example.statusText ?? (example.status ? (statusCodePhraseMap[Number(example.status)] ?? '') : '')),
       headers: (example.headers || []).map((header) => ({
         uid: uuid(),
@@ -717,7 +717,13 @@ export const updateResponseExampleResponse = (state, action) => {
   const example = item.draft.examples.find((e) => e.uid === exampleUid);
   if (!example) return;
 
-  example.response = { ...example.response, ...response };
+  // Ensure status is a number if provided
+  const processedResponse = { ...response };
+  if (processedResponse.status !== undefined) {
+    processedResponse.status = processedResponse.status ? Number(processedResponse.status) : null;
+  }
+
+  example.response = { ...example.response, ...processedResponse };
 };
 
 export const updateResponseExampleDetails = (state, action) => {
@@ -1319,7 +1325,7 @@ export const updateResponseExampleStatusCode = (state, action) => {
     example.response = {};
   }
 
-  example.response.status = String(statusCode ?? '');
+  example.response.status = statusCode ? Number(statusCode) : null;
 };
 
 export const updateResponseExampleStatusText = (state, action) => {

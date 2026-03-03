@@ -51,7 +51,8 @@ export const buildCommonLocators = (page: Page) => ({
     closeButton: () => page.locator('.bruno-modal').getByTestId('modal-close-button'),
     card: () => page.locator('.bruno-modal-card'),
     footer: () => page.locator('.bruno-modal-footer'),
-    submitButton: () => page.locator('.bruno-modal-footer .submit')
+    submitButton: () => page.locator('.bruno-modal-footer .submit'),
+    newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`)
   },
   environment: {
     selector: () => page.getByTestId('environment-selector-trigger'),
@@ -73,7 +74,10 @@ export const buildCommonLocators = (page: Page) => ({
     methodDropdown: () => page.getByTestId('request-method-selector'),
     newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
     requestNameInput: () => page.getByPlaceholder('Request Name'),
-    requestTestId: () => page.getByTestId('request-name')
+    requestTestId: () => page.getByTestId('request-name'),
+    generateCodeButton: () => page.locator('#send-request .infotip').first(),
+    bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
+    bodyEditor: () => page.getByTestId('request-body-editor')
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
@@ -88,6 +92,7 @@ export const buildCommonLocators = (page: Page) => ({
     formatTab: () => page.getByTestId('format-response-tab'),
     formatTabDropdown: () => page.getByTestId('format-response-tab-dropdown'),
     previewContainer: () => page.getByTestId('response-preview-container'),
+    previewContainerCodeMirror: () => page.getByTestId('response-preview-container').locator('.CodeMirror').first(),
     codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
     jsonTreeLine: () => page.locator('.response-pane .object-content')
   },
