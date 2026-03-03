@@ -6,11 +6,9 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { savePreferences, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
-import { createWorkspaceAction, openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
-import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
+import { createWorkspaceWithUniqueName, openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
 import { focusTab } from 'providers/ReduxStore/slices/tabs';
-import { sanitizeName } from 'utils/common/regex';
 import get from 'lodash/get';
 
 import Bruno from 'components/Bruno';
@@ -161,14 +159,7 @@ const AppTitleBar = () => {
     }
 
     try {
-      const name = await window.ipcRenderer?.invoke('renderer:find-unique-folder-name', 'untitled workspace', defaultLocation) || 'untitled workspace';
-      const folderName = sanitizeName(name);
-
-      const result = await dispatch(createWorkspaceAction(name, folderName, defaultLocation));
-      // Mark as newly created so titlebar auto-focuses the rename input
-      if (result?.workspaceUid) {
-        dispatch(updateWorkspace({ uid: result.workspaceUid, isNewlyCreated: true }));
-      }
+      await dispatch(createWorkspaceWithUniqueName(defaultLocation));
       toast.success('Workspace created!');
     } catch (error) {
       toast.error(error?.message || 'Failed to create workspace');

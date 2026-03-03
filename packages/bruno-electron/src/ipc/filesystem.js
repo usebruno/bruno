@@ -51,9 +51,9 @@ const registerFilesystemIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:find-unique-folder-name', async (_, baseName, location) => {
     try {
-      return findUniqueFolderName(baseName, location);
+      return await findUniqueFolderName(baseName, location);
     } catch (error) {
-      return baseName;
+      throw error;
     }
   });
 };

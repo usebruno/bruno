@@ -142,6 +142,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
               onOpenAdvanced();
             }}
             title="Advanced options"
+            disabled={isCreating}
           >
             <IconSettings size={13} strokeWidth={1.5} />
           </button>
@@ -161,6 +162,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
             onClick={handleCancel}
             onMouseDown={(e) => e.preventDefault()}
             title="Cancel"
+            disabled={isCreating}
           >
             <IconX size={14} strokeWidth={2} />
           </button>
