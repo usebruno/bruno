@@ -15,7 +15,7 @@ import StyledWrapper from './StyledWrapper';
 
 const TOTAL_STEPS = 4;
 
-const WelcomeModal = ({ onDismiss, onImportCollection, onCreateCollection, onOpenCollection }) => {
+const WelcomeModal = ({ onDismiss, onImportCollection, onCreateCollection, onOpenCollection, onStartRequest }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
   const defaultLocation = get(preferences, 'general.defaultLocation', '');
@@ -93,6 +93,7 @@ const WelcomeModal = ({ onDismiss, onImportCollection, onCreateCollection, onOpe
       onCreateCollection={handleActionAndDismiss(onCreateCollection)}
       onImportCollection={handleActionAndDismiss(onImportCollection)}
       onOpenCollection={handleActionAndDismiss(onOpenCollection)}
+      onStartRequest={handleActionAndDismiss(onStartRequest)}
     />
   ];
 
