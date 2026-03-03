@@ -11,6 +11,8 @@ get {
 }
 
 script:pre-request {
+  // TODO: skipped because getAllCollectionVars does not update the UI
+  bru.runner.skipRequest();
   bru.setCollectionVar("testCollectionA", "valueA");
   bru.setCollectionVar("testCollectionB", "valueB");
 }

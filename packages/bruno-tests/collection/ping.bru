@@ -5,11 +5,22 @@ meta {
 }
 
 get {
-  url: {{host}}/ping
+  url: {{host}}/ping?singer=micheal jackson
   body: none
   auth: none
 }
 
+params:query {
+  singer: micheal jackson
+}
+
 script:pre-request {
   bru.runner.stopExecution();
+}
+
+settings {
+  encodeUrl: false
+  timeout: inherit
+  followRedirects: true
+  maxRedirects: 5
 }

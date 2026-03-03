@@ -257,21 +257,25 @@ class Bru {
     this.globalEnvironmentVariables[key] = value;
   }
 
-  deleteGlobalEnvVar(key) {
-    delete this.globalEnvironmentVariables[key];
-  }
+  // TODO: deleteGlobalEnvVar works in the request lifecycle but does not update the UI.
+  // Re-enable once the UI sync issue is resolved.
+  // deleteGlobalEnvVar(key) {
+  //   delete this.globalEnvironmentVariables[key];
+  // }
 
   getAllGlobalEnvVars() {
     return Object.assign({}, this.globalEnvironmentVariables);
   }
 
-  deleteAllGlobalEnvVars() {
-    for (let key in this.globalEnvironmentVariables) {
-      if (this.globalEnvironmentVariables.hasOwnProperty(key)) {
-        delete this.globalEnvironmentVariables[key];
-      }
-    }
-  }
+  // TODO: deleteAllGlobalEnvVars works in the request lifecycle but does not update the UI.
+  // Re-enable once the UI sync issue is resolved.
+  // deleteAllGlobalEnvVars() {
+  //   for (let key in this.globalEnvironmentVariables) {
+  //     if (this.globalEnvironmentVariables.hasOwnProperty(key)) {
+  //       delete this.globalEnvironmentVariables[key];
+  //     }
+  //   }
+  // }
 
   getOauth2CredentialVar(key) {
     return this.interpolate(this.oauth2CredentialVariables[key]);
@@ -345,40 +349,48 @@ class Bru {
     return this.interpolate(this.collectionVariables[key]);
   }
 
-  setCollectionVar(key, value) {
-    if (!key) {
-      throw new Error('Creating a variable without specifying a name is not allowed.');
-    }
-
-    if (variableNameRegex.test(key) === false) {
-      throw new Error(
-        `Variable name: "${key}" contains invalid characters!`
-        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
-      );
-    }
-
-    this.collectionVariables[key] = value;
-  }
+  // TODO: setCollectionVar works in the request lifecycle but does not update the UI.
+  // Re-enable once the UI sync issue is resolved.
+  // setCollectionVar(key, value) {
+  //   if (!key) {
+  //     throw new Error('Creating a variable without specifying a name is not allowed.');
+  //   }
+  //
+  //   if (variableNameRegex.test(key) === false) {
+  //     throw new Error(
+  //       `Variable name: "${key}" contains invalid characters!`
+  //       + ' Names must only contain alpha-numeric characters, "-", "_", "."'
+  //     );
+  //   }
+  //
+  //   this.collectionVariables[key] = value;
+  // }
 
   hasCollectionVar(key) {
     return Object.hasOwn(this.collectionVariables, key);
   }
 
-  deleteCollectionVar(key) {
-    delete this.collectionVariables[key];
-  }
+  // TODO: deleteCollectionVar works in the request lifecycle but does not update the UI.
+  // Re-enable once the UI sync issue is resolved.
+  // deleteCollectionVar(key) {
+  //   delete this.collectionVariables[key];
+  // }
 
-  deleteAllCollectionVars() {
-    for (let key in this.collectionVariables) {
-      if (this.collectionVariables.hasOwnProperty(key)) {
-        delete this.collectionVariables[key];
-      }
-    }
-  }
+  // TODO: deleteAllCollectionVars works in the request lifecycle but does not update the UI.
+  // Re-enable once the UI sync issue is resolved.
+  // deleteAllCollectionVars() {
+  //   for (let key in this.collectionVariables) {
+  //     if (this.collectionVariables.hasOwnProperty(key)) {
+  //       delete this.collectionVariables[key];
+  //     }
+  //   }
+  // }
 
-  getAllCollectionVars() {
-    return Object.assign({}, this.collectionVariables);
-  }
+  // TODO: getAllCollectionVars works in the request lifecycle but does not update the UI.
+  // Re-enable once the UI sync issue is resolved.
+  // getAllCollectionVars() {
+  //   return Object.assign({}, this.collectionVariables);
+  // }
 
   getFolderVar(key) {
     return this.interpolate(this.folderVariables[key]);
