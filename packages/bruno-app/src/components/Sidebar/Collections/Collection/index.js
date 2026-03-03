@@ -291,7 +291,7 @@ const Collection = ({ collection, searchText }) => {
       window.removeEventListener('rename-item-open', handleRenameCollectionOpen);
     };
   }, []);
-  
+
   // Debounce showing empty state to prevent flicker
   // Race condition: isLoading can become false before items batch arrives from IPC
   useEffect(() => {
