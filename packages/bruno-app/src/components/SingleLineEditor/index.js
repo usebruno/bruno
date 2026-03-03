@@ -65,14 +65,14 @@ class SingleLineEditor extends Component {
         'Enter': runHandler,
         // 'Ctrl-Enter': runHandler,
         // 'Cmd-Enter': runHandler,
-        // 'Alt-Enter': () => {
-        //   if (this.props.allowNewlines) {
-        //     this.editor.setValue(this.editor.getValue() + '\n');
-        //     this.editor.setCursor({ line: this.editor.lineCount(), ch: 0 });
-        //   } else if (this.props.onRun) {
-        //     this.props.onRun();
-        //   }
-        // },
+        'Alt-Enter': () => {
+          if (this.props.allowNewlines) {
+            this.editor.setValue(this.editor.getValue() + '\n');
+            this.editor.setCursor({ line: this.editor.lineCount(), ch: 0 });
+          } else if (this.props.onRun) {
+            this.props.onRun();
+          }
+        },
         // 'Shift-Enter': runHandler,
         'Cmd-S': saveHandler,
         'Ctrl-S': saveHandler,
