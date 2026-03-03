@@ -7,6 +7,7 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
 const { getOrCreateAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
+const { preferencesUtil } = require('../store/preferences');
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -93,6 +94,8 @@ function setupProxyAgents({
   interpolationOptions,
   timeline
 }) {
+  const disableCache = !preferencesUtil.isHttpHttpsAgentCachingEnabled();
+
   // Ensure TLS options are properly set
   const tlsOptions = {
     ...httpsAgentRequestFields,
@@ -139,15 +142,15 @@ function setupProxyAgents({
       // Only set the agent needed for the request protocol
       if (socksEnabled) {
         if (isHttpsRequest) {
-          requestConfig.httpsAgent = getOrCreateAgent(SocksProxyAgent, tlsOptions, proxyUri, timeline);
+          requestConfig.httpsAgent = getOrCreateAgent(SocksProxyAgent, tlsOptions, proxyUri, timeline, disableCache);
         } else {
-          requestConfig.httpAgent = getOrCreateHttpAgent(SocksProxyAgent, { keepAlive: true }, proxyUri, timeline);
+          requestConfig.httpAgent = getOrCreateHttpAgent(SocksProxyAgent, { keepAlive: true }, proxyUri, timeline, disableCache);
         }
       } else {
         if (isHttpsRequest) {
-          requestConfig.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, proxyUri, timeline);
+          requestConfig.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, proxyUri, timeline, disableCache);
         } else {
-          requestConfig.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, proxyUri, timeline);
+          requestConfig.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, proxyUri, timeline, disableCache);
         }
       }
     }
@@ -165,7 +168,7 @@ function setupProxyAgents({
               message: `Using system proxy: ${http_proxy}`
             });
           }
-          requestConfig.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, http_proxy, timeline);
+          requestConfig.httpAgent = getOrCreateHttpAgent(HttpProxyAgent, { keepAlive: true }, http_proxy, timeline, disableCache);
         }
       } catch (error) {
         throw new Error(`Invalid system http_proxy "${http_proxy}": ${error.message}`);
@@ -180,7 +183,7 @@ function setupProxyAgents({
               message: `Using system proxy: ${https_proxy}`
             });
           }
-          requestConfig.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, https_proxy, timeline);
+          requestConfig.httpsAgent = getOrCreateAgent(PatchedHttpsProxyAgent, tlsOptions, https_proxy, timeline, disableCache);
         }
       } catch (error) {
         throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
@@ -190,9 +193,9 @@ function setupProxyAgents({
 
   if (!requestConfig.httpAgent && !requestConfig.httpsAgent) {
     if (isHttpsRequest) {
-      requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null, timeline);
+      requestConfig.httpsAgent = getOrCreateAgent(https.Agent, tlsOptions, null, timeline, disableCache);
     } else {
-      requestConfig.httpAgent = getOrCreateHttpAgent(http.Agent, { keepAlive: true }, null, timeline);
+      requestConfig.httpAgent = getOrCreateHttpAgent(http.Agent, { keepAlive: true }, null, timeline, disableCache);
     }
   }
 }
