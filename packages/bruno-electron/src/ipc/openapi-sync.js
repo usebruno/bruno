@@ -156,7 +156,7 @@ const fetchSpecFromSource = async ({ collectionUid, collectionPath, sourceUrl, e
   if (isLocalFilePath(sourceUrl)) {
     const resolvedPath = collectionPath ? path.resolve(collectionPath, sourceUrl) : sourceUrl;
     if (!fs.existsSync(resolvedPath)) {
-      return { error: `Spec file not found at: ${sourceUrl}`, errorCode: 'LOCAL_FILE_NOT_FOUND' };
+      return { error: `Spec file not found at: ${sourceUrl}`, errorCode: 'SOURCE_FILE_NOT_FOUND' };
     }
     content = fs.readFileSync(resolvedPath, 'utf8');
   } else {
@@ -750,6 +750,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       return {
         ...diff,
         isValid: true,
+        storedSpec,
         newSpec,
         newSpecContent,
         specFilename: correctSpecFilename,

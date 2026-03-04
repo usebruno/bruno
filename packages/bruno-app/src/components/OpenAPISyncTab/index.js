@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { v4 as uuid } from 'uuid';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { IconLoader2 } from '@tabler/icons';
+import { IconLoader2, IconClock } from '@tabler/icons';
 import { selectTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
+import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
-import SpecInfoCard from './SpecInfoCard';
+import OpenAPISyncHeader from './OpenAPISyncHeader';
 import ConnectSpecForm from './ConnectSpecForm';
 import SpecStatusSection from './SpecStatusSection';
 import CollectionStatusSection from './CollectionStatusSection';
 import ConnectionSettingsModal from './ConnectionSettingsModal';
 import DisconnectSyncModal from './DisconnectSyncModal';
+import OverviewSection from './OverviewSection';
 import useOpenAPISync from './useOpenAPISync';
 
 const OpenAPISyncTab = ({ collection }) => {
@@ -49,68 +51,141 @@ const OpenAPISyncTab = ({ collection }) => {
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const hasDriftData = collectionDrift && !collectionDrift.noStoredSpec;
+  const collectionChangesCount = hasDriftData
+    ? (collectionDrift.modified?.length || 0) + (collectionDrift.missing?.length || 0) + (collectionDrift.localOnly?.length || 0)
+    : 0;
+  const specUpdatesCount = hasDriftData
+    ? (specDrift?.added?.length || 0) + (specDrift?.modified?.length || 0) + (specDrift?.removed?.length || 0)
+    : (remoteDrift?.modified?.length || 0) + (remoteDrift?.missing?.length || 0);
+
+  const syncTabs = useMemo(() => [
+    { key: 'overview', label: 'Overview' },
+    {
+      key: 'collection-changes',
+      label: 'Collection Changes',
+      indicator: collectionChangesCount > 0 ? <span className="tab-count">{collectionChangesCount}</span> : null
+    },
+    {
+      key: 'spec-updates',
+      label: 'Spec Updates',
+      indicator: specUpdatesCount > 0 ? <span className="tab-count">{specUpdatesCount}</span> : null
+    }
+  ], [collectionChangesCount, specUpdatesCount]);
 
   return (
-    <StyledWrapper className={`flex flex-col h-full relative px-4 py-4 overflow-auto ${viewMode === 'review' ? ' review-active' : ''}`}>
+    <StyledWrapper className={`flex flex-col h-full relative px-4 pt-4 overflow-auto ${viewMode === 'review' ? ' review-active' : ''}`}>
       <div className="sync-page max-w-screen-xl">
 
-        {/* Spec header — hidden during review mode and when not configured */}
-        {isConfigured && viewMode === 'tabs' && (
-          <SpecInfoCard
-            collection={collection}
-            spec={storedSpec || specDrift?.newSpec}
-            sourceUrl={sourceUrl}
-            onViewSpec={handleViewSpec}
-            onOpenSettings={() => setShowSettingsModal(true)}
-            onOpenDisconnect={() => setShowDisconnectModal(true)}
-          />
-        )}
-
-        {/* Setup form when not configured, spec status when configured */}
-        {!isConfigured ? (
+        {/* Setup form when not configured */}
+        {!isConfigured && (
           <ConnectSpecForm
             sourceUrl={sourceUrl}
             setSourceUrl={setSourceUrl}
             isLoading={isLoading}
             onConnect={handleConnect}
           />
-        ) : (
-          <SpecStatusSection
-            collection={collection}
-            sourceUrl={sourceUrl}
-            isLoading={isLoading}
-            error={error}
-            setError={setError}
-            fileNotFound={fileNotFound}
-            specDrift={specDrift}
-            storedSpec={storedSpec}
-            collectionDrift={collectionDrift}
-            remoteDrift={remoteDrift}
-            onCheck={checkForUpdates}
-            onOpenSettings={() => setShowSettingsModal(true)}
-          />
         )}
 
-        {/* Collection drift status — hidden during review mode and when not configured */}
-        {isConfigured && viewMode === 'tabs' && (
+        {/* Configured: spec header + tabs */}
+        {isConfigured && (
           <>
-            {isDriftLoading && !collectionDrift && (
-              <div className="state-message">
-                <IconLoader2 size={24} className="animate-spin" />
-                <span>Checking collection status...</span>
+            <OpenAPISyncHeader
+              collection={collection}
+              spec={storedSpec || specDrift?.newSpec}
+              sourceUrl={sourceUrl}
+              onViewSpec={handleViewSpec}
+              onOpenSettings={() => setShowSettingsModal(true)}
+              onOpenDisconnect={() => setShowDisconnectModal(true)}
+              onCheck={checkForUpdates}
+              isLoading={isLoading}
+            />
+
+            <ResponsiveTabs
+              tabs={syncTabs}
+              activeTab={activeTab}
+              onTabSelect={setActiveTab}
+            />
+
+            {activeTab === 'overview' && (
+              <div className="sync-tab-content">
+                <OverviewSection
+                  collection={collection}
+                  storedSpec={storedSpec}
+                  collectionDrift={collectionDrift}
+                  specDrift={specDrift}
+                  remoteDrift={remoteDrift}
+                  onTabSelect={setActiveTab}
+                  error={error}
+                  isLoading={isLoading}
+                  fileNotFound={fileNotFound}
+                  onOpenSettings={() => setShowSettingsModal(true)}
+                />
               </div>
             )}
 
-            {collectionDrift && !collectionDrift.noStoredSpec && (
-              <CollectionStatusSection
-                collection={collection}
-                collectionDrift={collectionDrift}
-                reloadDrift={reloadDrift}
-                specDrift={specDrift}
-                storedSpec={storedSpec}
-                lastSyncDate={openApiSyncConfig?.lastSyncDate}
-                onOpenEndpoint={openEndpointInTab}
-              />
+            {activeTab === 'collection-changes' && (
+              <div className="sync-tab-content">
+                {isDriftLoading && !collectionDrift && (
+                  <div className="state-message">
+                    <IconLoader2 size={24} className="animate-spin" />
+                    <span>Checking collection status...</span>
+                  </div>
+                )}
+                {collectionDrift && !collectionDrift.noStoredSpec ? (
+                  <CollectionStatusSection
+                    collection={collection}
+                    collectionDrift={collectionDrift}
+                    reloadDrift={reloadDrift}
+                    specDrift={specDrift}
+                    storedSpec={storedSpec}
+                    lastSyncDate={openApiSyncConfig?.lastSyncDate}
+                    onOpenEndpoint={openEndpointInTab}
+                  />
+                ) : !isDriftLoading && (
+                  <>
+                    <div className="spec-update-banner warning">
+                      <div className="banner-left">
+                        <div className="status-dot warning" />
+                        <span className="banner-title">
+                          {openApiSyncConfig?.lastSyncDate
+                            ? 'Last synced spec is required to show collection changes. Restore the latest spec from the source to track future changes..'
+                            : 'Collection changes will be available after the initial sync'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="sync-review-empty-state mt-5">
+                      <IconClock size={40} className="empty-state-icon" />
+                      <h4>{openApiSyncConfig?.lastSyncDate ? 'Last Synced Spec missing from storage' : 'Waiting for initial sync'}</h4>
+                      <p>{openApiSyncConfig?.lastSyncDate
+                        ? 'Restore the latest spec from the source to track future changes..'
+                        : 'Once you sync your collection with the spec, changes will appear here.'}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'spec-updates' && (
+              <div className="sync-tab-content">
+                <SpecStatusSection
+                  collection={collection}
+                  sourceUrl={sourceUrl}
+                  isLoading={isLoading}
+                  error={error}
+                  setError={setError}
+                  fileNotFound={fileNotFound}
+                  specDrift={specDrift}
+                  storedSpec={storedSpec}
+                  collectionDrift={collectionDrift}
+                  remoteDrift={remoteDrift}
+                  onCheck={checkForUpdates}
+                  onOpenSettings={() => setShowSettingsModal(true)}
+                />
+              </div>
             )}
           </>
         )}

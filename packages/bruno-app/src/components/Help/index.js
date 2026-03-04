@@ -4,36 +4,38 @@
  * We should allow icon and placement props to be passed in
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import QuestionCircle from 'components/Icons/QuestionCircle';
 import InfoCircle from 'components/Icons/InfoCircle';
 import StyledWrapper from './StyledWrapper';
 
-const getPlacementStyles = (placement) => {
+const GAP = 8;
+
+const getPortalPosition = (rect, placement, width) => {
   switch (placement) {
     case 'top':
       return {
-        bottom: 'calc(100% + 8px)',
-        left: '50%',
-        transform: 'translateX(-50%)'
+        top: rect.top - GAP,
+        left: rect.left + rect.width / 2 - width / 2,
+        transform: 'translateY(-100%)'
       };
     case 'bottom':
       return {
-        top: 'calc(100% + 8px)',
-        left: '50%',
-        transform: 'translateX(-50%)'
+        top: rect.bottom + GAP,
+        left: rect.left + rect.width / 2 - width / 2
       };
     case 'left':
       return {
-        top: '50%',
-        right: 'calc(100% + 8px)',
+        top: rect.top + rect.height / 2,
+        left: rect.left - GAP - width,
         transform: 'translateY(-50%)'
       };
     case 'right':
     default:
       return {
-        top: '50%',
-        left: 'calc(100% + 8px)',
+        top: rect.top + rect.height / 2,
+        left: rect.right + GAP,
         transform: 'translateY(-50%)'
       };
   }
@@ -46,27 +48,40 @@ const iconMap = {
 
 const Help = ({ children, width = 200, placement = 'right', icon = 'question', iconComponent: IconComponent, size = 14 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [position, setPosition] = useState(null);
+  const iconRef = useRef(null);
   const ResolvedIcon = IconComponent || iconMap[icon] || QuestionCircle;
 
+  const handleMouseEnter = useCallback(() => {
+    if (iconRef.current) {
+      const rect = iconRef.current.getBoundingClientRect();
+      setPosition(getPortalPosition(rect, placement, width));
+    }
+    setShowTooltip(true);
+  }, [placement, width]);
+
   return (
-    <div className="flex items-center relative">
+    <div className="flex items-center">
       <span
+        ref={iconRef}
         className="flex items-center"
-        onMouseEnter={() => setShowTooltip(true)}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setShowTooltip(false)}
       >
         <ResolvedIcon size={size} />
       </span>
-      {showTooltip && (
+      {showTooltip && position && createPortal(
         <StyledWrapper
-          className="absolute z-50 rounded-md p-3"
+          className="z-50 rounded-md p-3"
           style={{
-            ...getPlacementStyles(placement),
+            position: 'fixed',
+            ...position,
             width: `${width}px`
           }}
         >
           {children}
-        </StyledWrapper>
+        </StyledWrapper>,
+        document.body
       )}
     </div>
   );

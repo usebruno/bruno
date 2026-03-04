@@ -4,7 +4,9 @@ import {
   IconCheck,
   IconX,
   IconArrowRight,
-  IconArrowLeft
+  IconArrowsDiff,
+  IconInfoCircle,
+  IconRefresh
 } from '@tabler/icons';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
@@ -71,7 +73,6 @@ const SyncReviewPage = ({
   collectionUid,
   newSpec,
   isSyncing,
-  onGoBack,
   onApplySync
 }) => {
   const dispatch = useDispatch();
@@ -196,59 +197,36 @@ const SyncReviewPage = ({
   };
 
   const totalChanges = specAddedEndpoints.length + specUpdatedEndpoints.length + localUpdatedEndpoints.length + specRemovedEndpoints.length;
+  const hasRemoteUpdates = specAddedEndpoints.length + specUpdatedEndpoints.length + specRemovedEndpoints.length > 0;
 
   const buttonLabel = unresolvedConflicts > 0
-    ? `Resolve ${unresolvedConflicts} conflict${unresolvedConflicts !== 1 ? 's' : ''}`
-    : totalChanges === 0 && specDrift?.storedSpecMissing
-      ? 'Update Spec File'
-      : 'Sync Collection';
+    ? `Resolve ${unresolvedConflicts} conflict${unresolvedConflicts !== 1 ? 's and sync' : ' and sync'}`
+    : !hasRemoteUpdates && specDrift?.storedSpecMissing
+        ? 'Restore Spec File'
+        : 'Sync Collection';
 
   return (
     <div className="sync-review-page sync-mode">
-      <div className="sync-review-header">
-        <div className="back-link-row">
-          <button type="button" className="back-link" onClick={onGoBack}>
-            <IconArrowLeft size={14} />
-            Back to Overview
-          </button>
-          {specDrift?.unifiedDiff && (
-            <Button variant="outline" size="sm" onClick={() => setShowSpecDiffModal(true)}>View Spec Diff</Button>
-          )}
-        </div>
-
-        <div className="title-row">
-          <h3 className="review-title">Sync Changes</h3>
-        </div>
-
-        {totalChanges > 0 && (
-          <div className="description-row">
-            <p className="review-subtitle">
-              Review each endpoint and decide whether to keep your local changes or accept the updated spec version.
-            </p>
-          </div>
-        )}
-
-      </div>
-
-      <div className="sync-review-body">
-        {totalChanges === 0 ? (
-          <div className="sync-review-empty-state">
-            <IconCheck size={40} className="empty-state-icon" />
-            <h4>Your collection is already in sync</h4>
-            <p>
-              All endpoints in your collection match the remote spec. No changes are needed.
-              {specDrift?.storedSpecMissing && (
-                <> Click <strong>Sync Collection</strong> below to restore the local spec file.</>
+      {hasRemoteUpdates && (
+        <div className="sync-review-header">
+          <div className="title-row">
+            <div className="title-left">
+              <h3 className="review-title">Review Changes</h3>
+              {totalChanges > 0 && (
+                <p className="review-subtitle">
+                  Choose to keep the current version or accept the updated one.
+                </p>
               )}
-            </p>
-          </div>
-        ) : (
-          <div className="endpoints-review-sections">
-            {/* === Updates from Spec === */}
-            {decidableEndpoints.length > 0 && (
-              <div className="review-group">
-                <div className="review-group-header">
-                  <div className="bulk-actions">
+            </div>
+            {(specDrift?.unifiedDiff || decidableEndpoints.length > 0) && (
+              <div className="bulk-actions">
+                {specDrift?.unifiedDiff && (
+                  <button className="bulk-btn" onClick={() => setShowSpecDiffModal(true)}>
+                    <IconArrowsDiff size={12} /> View Spec Diff
+                  </button>
+                )}
+                {decidableEndpoints.length > 0 && (
+                  <>
                     <button
                       className={`bulk-btn ${allSkipped ? 'active' : ''}`}
                       onClick={() => setBulkDecision('keep-mine')}
@@ -261,8 +239,26 @@ const SyncReviewPage = ({
                     >
                       <IconCheck size={12} /> Accept All
                     </button>
-                  </div>
-                </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="sync-review-body">
+        {!hasRemoteUpdates ? (
+          <div className="sync-review-empty-state">
+            <IconRefresh size={40} className="empty-state-icon" />
+            <h4>No updates from the spec</h4>
+            <p>The collection is up to date.</p>
+          </div>
+        ) : (
+          <div className="endpoints-review-sections">
+            {/* === Updates from Spec === */}
+            {decidableEndpoints.length > 0 && (
+              <div className="review-group">
 
                 <EndpointChangeSection
                   title="Updated in Spec"
@@ -275,7 +271,7 @@ const SyncReviewPage = ({
                     <StatusBadge
                       status="danger"
                       rightSection={(
-                        <Help icon="info" size={11} placement="bottom" width={250}>
+                        <Help icon="info" size={11} placement="top" width={250}>
                           {`This section has ${conflictCount} endpoint${conflictCount === 1 ? '' : 's'} modified in both the spec and your collection. Expand to review and resolve.`}
                         </Help>
                       )}
@@ -354,26 +350,34 @@ const SyncReviewPage = ({
         )}
       </div>
 
-      <div className="sync-review-bottom-bar">
-        <div className="bar-stats">
-          {totalChanges === 0 && (
-            <span className="stats-prefix">
-              {specDrift?.storedSpecMissing ? 'Sync will update the spec file' : 'No endpoint changes to apply'}
-            </span>
-          )}
+      {hasRemoteUpdates && (
+        <div className="sync-info-notice mt-4">
+          <IconInfoCircle size={14} className="sync-info-icon" />
+          <span><span className="whats-updated-title">What gets updated:</span> Parameters, headers, body and auth will be updated. Tests, scripts, and assertions are always preserved.</span>
         </div>
-        <div className="bar-actions">
-          <Button variant="ghost" onClick={onGoBack}>Go Back</Button>
-          <Button
-            onClick={totalChanges === 0 ? handleConfirmApply : () => setShowConfirmation(true)}
-            disabled={unresolvedConflicts > 0 || isSyncing}
-            loading={isSyncing}
-          >
-            {buttonLabel}
-            {unresolvedConflicts === 0 && <IconArrowRight size={14} style={{ marginLeft: 4 }} />}
-          </Button>
+      )}
+
+      {hasRemoteUpdates && (
+        <div className="sync-review-bottom-bar mt-4">
+          <div className="bar-stats">
+            {totalChanges === 0 && (
+              <span className="stats-prefix">
+                {specDrift?.storedSpecMissing ? 'Sync will update the spec file' : 'No endpoint changes to apply'}
+              </span>
+            )}
+          </div>
+          <div className="bar-actions">
+            <Button
+              onClick={totalChanges === 0 ? handleConfirmApply : () => setShowConfirmation(true)}
+              disabled={unresolvedConflicts > 0 || isSyncing}
+              loading={isSyncing}
+            >
+              {buttonLabel}
+              {unresolvedConflicts === 0 && <IconArrowRight size={14} style={{ marginLeft: 4 }} />}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {showConfirmation && (
         <ConfirmSyncModal

@@ -78,7 +78,7 @@ const ConfirmSyncModal = ({ groups, onCancel, onSync, isSyncing }) => {
             Cancel
           </Button>
           <Button onClick={onSync} loading={isSyncing} disabled={isSyncing}>
-            {hasNoChanges ? 'Update Spec File' : 'Confirm & Sync Collection'}
+            {hasNoChanges ? 'Restore Spec File' : 'Confirm & Sync Collection'}
           </Button>
         </div>
       </div>

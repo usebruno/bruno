@@ -87,11 +87,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  /* Tab Content */
-  .sync-tab-content {
-    margin-top: 1rem;
-  }
-
   .url-label {
     display: block;
     font-size: ${(props) => props.theme.font.size.xs};
@@ -128,13 +123,12 @@ const StyledWrapper = styled.div`
 
   /* Spec Info Card — borderless header */
   .spec-info-card {
-    margin-bottom: 5px;
+    margin-bottom: 14px;
 
     .spec-info-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 5px;
     }
 
     .spec-title-section {
@@ -171,7 +165,6 @@ const StyledWrapper = styled.div`
       display: flex;
       align-items: center;
       gap: 6px;
-      margin-bottom: 4px;
 
       .spec-url-label {
         font-size: 11px;
@@ -226,13 +219,191 @@ const StyledWrapper = styled.div`
       }
     }
 
-    .spec-info-meta {
+  }
+
+  /* Overview Status Banner */
+  .overview-status-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    margin-top: 20px;
+
+    &.success {
+      background: ${(props) => rgba(props.theme.colors.text.green, 0.07)};
+      border-color: ${(props) => rgba(props.theme.colors.text.green, 0.22)};
+
+      .banner-title { color: ${(props) => props.theme.colors.text.green}; }
+    }
+
+    &.warning {
+      background: ${(props) => rgba(props.theme.colors.text.warning, 0.07)};
+      border-color: ${(props) => rgba(props.theme.colors.text.warning, 0.22)};
+
+      .banner-title { color: ${(props) => props.theme.colors.text.warning}; }
+    }
+
+    &.muted {
+      background: ${(props) => rgba(props.theme.colors.text.muted, 0.07)};
+      border-color: ${(props) => props.theme.border.border1};
+
+      .banner-title { color: ${(props) => props.theme.text}; }
+    }
+
+    &.danger {
+      background: ${(props) => rgba(props.theme.colors.text.danger || '#c0392b', 0.07)};
+      border-color: ${(props) => rgba(props.theme.colors.text.danger || '#c0392b', 0.22)};
+
+      .banner-title { color: ${(props) => props.theme.colors.text.danger}; }
+    }
+
+    &.info {
+      background: ${(props) => rgba(props.theme.status.info.text, 0.07)};
+      border-color: ${(props) => rgba(props.theme.status.info.text, 0.22)};
+
+      .banner-title { color: ${(props) => props.theme.status.info.text}; }
+    }
+
+    .banner-text {
+      flex: 1 1 0%;
+      min-width: 60%;
+    }
+
+    .banner-title-row {
       display: flex;
       align-items: center;
-      gap: 5px;
-      flex-wrap: wrap;
-      font-size: 11px;
+      gap: 8px;
+    }
+
+    .status-dot {
+      position: relative;
+      width: 12px;
+      height: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      &::before {
+        content: '';
+        position: absolute;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        opacity: 0.35;
+        animation: radiate 1.6s ease-out infinite;
+      }
+
+      &::after {
+        content: '';
+        position: relative;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+      }
+
+      &.success {
+        &::before, &::after { background: ${(props) => props.theme.colors.text.green}; }
+        &::before { animation: none; }
+      }
+      &.warning {
+        &::before, &::after { background: ${(props) => props.theme.colors.text.warning}; }
+      }
+      &.muted {
+        &::before, &::after { background: ${(props) => props.theme.colors.text.muted}; }
+      }
+      &.danger {
+        &::before, &::after { background: ${(props) => props.theme.colors.text.danger}; }
+      }
+      &.info {
+        &::before, &::after { background: ${(props) => props.theme.status.info.text}; }
+      }
+    }
+
+    .status-check-icon {
+      flex-shrink: 0;
+      color: ${(props) => props.theme.colors.text.green};
+    }
+
+    .banner-title {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .banner-subtitle {
+      font-size: 12px;
       color: ${(props) => props.theme.colors.text.muted};
+      margin: 6px 0 0 16px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .banner-button-row {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+      margin-left: 16px;
+    }
+  }
+
+  /* Overview Section */
+  .overview-section {
+    margin-top: 0;
+
+    .overview-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: ${(props) => props.theme.text};
+      margin-bottom: 6px;
+    }
+
+    .spec-details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      border: 1px solid ${(props) => props.theme.border.border1};
+      border-radius: 8px;
+    }
+
+    .spec-detail-item {
+      padding: 12px 16px;
+      border-right: 1px solid ${(props) => props.theme.border.border1};
+      border-bottom: 1px solid ${(props) => props.theme.border.border1};
+
+      &:nth-child(3n) {
+        border-right: none;
+      }
+
+      &:nth-child(n+4) {
+        border-bottom: none;
+      }
+
+      &:first-child { border-top-left-radius: 8px; }
+      &:nth-child(3) { border-top-right-radius: 8px; }
+      &:nth-child(4) { border-bottom-left-radius: 8px; }
+      &:last-child { border-bottom-right-radius: 8px; }
+    }
+
+    .spec-detail-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: ${(props) => props.theme.colors.text.muted};
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .spec-detail-value {
+      display: inline-flex;
+      align-items: center;
+      gap: 0px;
+      font-size: 13px;
+      font-weight: 500;
+      color: ${(props) => props.theme.text};
     }
   }
 
@@ -242,24 +413,31 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 8px 12px;
-    margin-top: 12px;
+    padding: 10px 16px;
+    margin-top: 20px;
     border-radius: 8px;
     background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.08)};
+    border: 1px solid transparent;
     overflow: hidden;
 
     &.danger {
-      border-color: ${(props) => props.theme.status.danger.border};
-      background: ${(props) => props.theme.status.danger.background};
+      background: ${(props) => rgba(props.theme.colors.text.danger || '#c0392b', 0.07)};
+      border-color: ${(props) => rgba(props.theme.colors.text.danger || '#c0392b', 0.22)};
     }
 
     &.info {
-      border-color: ${(props) => props.theme.status.info.border};
-      background: ${(props) => props.theme.status.info.background};
+      background: ${(props) => rgba(props.theme.status.info.text, 0.07)};
+      border-color: ${(props) => rgba(props.theme.status.info.text, 0.22)};
+    }
+
+    &.warning {
+      background: ${(props) => rgba(props.theme.colors.text.warning, 0.07)};
+      border-color: ${(props) => rgba(props.theme.colors.text.warning, 0.22)};
     }
 
     &.success {
-      background: ${(props) => props.theme.status.success.background};
+      background: ${(props) => rgba(props.theme.colors.text.green, 0.07)};
+      border-color: ${(props) => rgba(props.theme.colors.text.green, 0.22)};
 
       .status-dot::before {
         animation: none;
@@ -267,7 +445,8 @@ const StyledWrapper = styled.div`
     }
 
     &.muted {
-      background: ${(props) => props.theme.background.surface0};
+      background: ${(props) => rgba(props.theme.colors.text.muted, 0.07)};
+      border: 1px solid ${(props) => props.theme.border.border1};
     }
 
     .banner-left {
@@ -408,13 +587,6 @@ const StyledWrapper = styled.div`
     gap: 10px;
   }
 
-  .discard-all-row {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 0.25rem;
-    margin-top: -30px;
-  }
-
   .summary-card {
     width: 180px;
     flex-shrink: 0;
@@ -423,6 +595,10 @@ const StyledWrapper = styled.div`
     padding: 14px 16px;
     background: ${(props) => props.theme.background.default};
     position: relative;
+
+    &.clickable {
+      cursor: pointer;
+    }
   }
 
   .summary-count-row {
@@ -443,6 +619,7 @@ const StyledWrapper = styled.div`
     &.blue   { color: ${(props) => props.theme.status.info.text}; }
     &.red    { color: ${(props) => props.theme.colors.text.danger || '#c0392b'}; }
     &.purple { color: #7c3aed; }
+    &.default { color: ${(props) => props.theme.text}; }
     &.muted  { color: ${(props) => props.theme.colors.text.muted}; }
   }
 
@@ -454,7 +631,13 @@ const StyledWrapper = styled.div`
   .summary-label {
     font-size: 12px;
     font-weight: 500;
-    color: ${(props) => props.theme.text};
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .conflict-annotation {
+    font-size: 11px;
+    font-weight: 600;
+    color: ${(props) => props.theme.colors.text.danger || '#c0392b'};
   }
 
   .card-info-icon {
@@ -647,25 +830,43 @@ const StyledWrapper = styled.div`
   }
 
   .spec-status-section {
-    margin-top: 24px;
+    margin-top: 20px;
 
     .spec-update-banner {
       margin-top: 0;
     }
   }
 
-  .collection-status-section {
-    margin-top: 36px;
+  .sync-info-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.subtext0};
+    background: ${(props) => props.theme.background.mantle};
 
-    .sync-summary-cards {
-      margin-bottom: 0.75rem;
+    .sync-info-icon {
+      flex-shrink: 0;
+      margin-top: 1px;
+      color: ${(props) => props.theme.colors.text.muted};
     }
+
+    .whats-updated-title {
+      color: ${(props) => props.theme.text};
+      font-weight: 500;
+    }
+  }
+
+  .collection-status-section {
+    margin-top: 20px;
 
     .change-section {
       margin-top: 0.75rem;
 
       .section-body.expandable-mode {
-        border-radius: 0 0 ${(props) => props.theme.border.radius.sm} ${(props) => props.theme.border.radius.sm};
+        border-radius: 0 0 8px 8px;
         max-height: none; /* Override default max-height so all items remain visible */
       }
     }
@@ -673,6 +874,64 @@ const StyledWrapper = styled.div`
     /* Local Changes tab: override hover background */
     .endpoint-review-row .review-row-header:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    }
+
+    .sync-review-empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      text-align: center;
+
+      .empty-state-icon {
+        color: var(--color-text-muted, #9ca3af);
+        margin-bottom: 1rem;
+      }
+
+      h4 {
+        font-size: ${(props) => props.theme.font.size.base};
+        font-weight: 500;
+        color: ${(props) => props.theme.text};
+        margin: 0 0 0.375rem 0;
+      }
+
+      p {
+        font-size: ${(props) => props.theme.font.size.xs};
+        line-height: 1.5;
+        max-width: 400px;
+        margin: 0;
+        color: ${(props) => props.theme.colors.text.muted};
+      }
+    }
+  }
+
+  .sync-tab-content .sync-review-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+
+    .empty-state-icon {
+      color: var(--color-text-muted, #9ca3af);
+      margin-bottom: 1rem;
+    }
+
+    h4 {
+      font-size: ${(props) => props.theme.font.size.base};
+      font-weight: 500;
+      color: ${(props) => props.theme.text};
+      margin: 0 0 0.375rem 0;
+    }
+
+    p {
+      font-size: ${(props) => props.theme.font.size.xs};
+      line-height: 1.5;
+      max-width: 400px;
+      margin: 0;
+      color: ${(props) => props.theme.colors.text.muted};
     }
   }
 
@@ -692,7 +951,7 @@ const StyledWrapper = styled.div`
       cursor: pointer;
 
       &:hover {
-        background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+        background: ${(props) => props.theme.background.mantle};
       }
 
       .expand-toggle {
@@ -762,20 +1021,20 @@ const StyledWrapper = styled.div`
 
   .change-section {
     border: 1px solid ${(props) => props.theme.border.border1};
-    border-radius: ${(props) => props.theme.border.radius.sm};
+    border-radius: 8px;
 
     .section-header {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       padding: 0.5rem 0.75rem;
-      background: ${(props) => props.theme.background.mantle};
-      border-radius: ${(props) => props.theme.border.radius.sm};
+      background: transparent;
+      border-radius: 8px;
       cursor: pointer;
       user-select: none;
 
       &:hover {
-        background: ${(props) => props.theme.background.surface0};
+        background: ${(props) => props.theme.background.mantle};
       }
 
       .section-dot {
@@ -803,12 +1062,16 @@ const StyledWrapper = styled.div`
       }
 
       .section-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.25rem;
+        height: 1.25rem;
+        padding: 0 0.3rem;
         font-size: ${(props) => props.theme.font.size.xs};
-        color: ${(props) => props.theme.colors.text.muted};
-        background: ${(props) => props.theme.background.surface1};
-        border: 1px solid ${(props) => props.theme.border.border1};
-        padding: 0.125rem 0.375rem;
-        border-radius: ${(props) => props.theme.border.radius.sm};
+        color: ${(props) => props.theme.colors.text.subtext0};
+        background: ${(props) => props.theme.background.surface0};
+        border-radius: 999px;
       }
 
       .section-subtitle {
@@ -821,16 +1084,17 @@ const StyledWrapper = styled.div`
       }
     }
 
-    /* When section body is visible, flatten header's bottom radius */
+    /* When section body is visible, show background and flatten header's bottom radius */
     &.expanded .section-header {
+      background: ${(props) => props.theme.background.mantle};
       border-bottom-left-radius: 0;
       border-bottom-right-radius: 0;
     }
 
     .section-body {
       border-top: 1px solid ${(props) => props.theme.border.border1};
-      border-bottom-left-radius: ${(props) => props.theme.border.radius.sm};
-      border-bottom-right-radius: ${(props) => props.theme.border.radius.sm};
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
       max-height: 300px;
       overflow-y: auto;
 
@@ -1045,7 +1309,7 @@ const StyledWrapper = styled.div`
         border-radius: ${(props) => props.theme.border.radius.sm};
 
         &.status-2xx {
-          background: ${(props) => props.theme.status.success.background};
+          background: ${(props) => rgba(props.theme.colors.text.green, 0.07)};
           color: ${(props) => props.theme.status.success.text};
         }
         &.status-3xx {
@@ -1243,7 +1507,22 @@ const StyledWrapper = styled.div`
         }
       }
 
-      .title-row, .description-row {
+      .title-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.25rem;
+      }
+
+      .title-left {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .description-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -1303,7 +1582,7 @@ const StyledWrapper = styled.div`
       }
 
       &.added {
-        background: ${(props) => props.theme.status.success.background};
+        background: ${(props) => rgba(props.theme.colors.text.green, 0.07)};
         color: ${(props) => props.theme.colors.text.green};
       }
 
@@ -1541,7 +1820,7 @@ const StyledWrapper = styled.div`
     }
 
     &.sync-mode .sync-review-body {
-      margin-top: -36px;
+      margin-top: 0;
     }
 
     .sync-review-empty-state {
@@ -1554,22 +1833,23 @@ const StyledWrapper = styled.div`
       color: var(--color-text-muted, #6b7280);
 
       .empty-state-icon {
-        color: var(--color-method-get, #22c55e);
+        color: var(--color-text-muted, #9ca3af);
         margin-bottom: 1rem;
       }
 
       h4 {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: var(--color-text-primary, #1f2937);
-        margin: 0 0 0.5rem 0;
+        font-size: ${(props) => props.theme.font.size.base};
+        font-weight: 500;
+        color: ${(props) => props.theme.text};
+        margin: 0 0 0.375rem 0;
       }
 
       p {
-        font-size: 0.875rem;
+        font-size: ${(props) => props.theme.font.size.xs};
         line-height: 1.5;
         max-width: 400px;
         margin: 0;
+        color: ${(props) => props.theme.colors.text.muted};
       }
     }
 
@@ -1688,7 +1968,7 @@ const StyledWrapper = styled.div`
         }
 
         &.accept.selected {
-          background: ${(props) => props.theme.status.success.background};
+          background: ${(props) => rgba(props.theme.colors.text.green, 0.07)};
           border-color: ${(props) => props.theme.colors.text.green};
           color: ${(props) => props.theme.colors.text.green};
         }
@@ -1754,7 +2034,7 @@ const StyledWrapper = styled.div`
           }
 
           .row-added {
-            background: ${(props) => props.theme.status.success.background};
+            background: ${(props) => rgba(props.theme.colors.text.green, 0.07)};
           }
 
           .row-deleted {
@@ -1776,7 +2056,7 @@ const StyledWrapper = styled.div`
             border-radius: 2px;
 
             &.added {
-              background: ${(props) => props.theme.status.success.background};
+              background: ${(props) => rgba(props.theme.colors.text.green, 0.07)};
               color: ${(props) => props.theme.colors.text.green};
             }
 

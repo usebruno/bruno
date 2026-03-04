@@ -2,29 +2,25 @@ import {
   IconCopy,
   IconDotsVertical,
   IconUnlink,
-  IconSettings
+  IconSettings,
+  IconRefresh
 } from '@tabler/icons';
-import moment from 'moment';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
 import ActionIcon from 'ui/ActionIcon/index';
 import MenuDropdown from 'ui/MenuDropdown';
 
-const SpecInfoCard = ({
+const OpenAPISyncHeader = ({
   collection, spec, sourceUrl, onViewSpec,
-  onOpenSettings, onOpenDisconnect
+  onOpenSettings, onOpenDisconnect,
+  onCheck, isLoading
 }) => {
   const sourceIsLocal = !sourceUrl?.startsWith('http');
+  const canCheck = !!sourceUrl?.trim();
 
-  const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
   const title = spec?.info?.title || 'Unknown API';
   const version = spec?.info?.version || '-';
-
-  const lastSyncedAt = openApiSyncConfig?.lastSyncDate;
-  const autoCheckEnabled = openApiSyncConfig?.autoCheck !== false;
-  const autoCheckInterval = openApiSyncConfig?.autoCheckInterval || 5;
-  const groupBy = openApiSyncConfig?.groupBy || 'tags';
 
   const copyUrl = async () => {
     if (!sourceUrl) return;
@@ -82,6 +78,16 @@ const SpecInfoCard = ({
           <Button
             color="secondary"
             size="sm"
+            onClick={onCheck}
+            disabled={!canCheck}
+            loading={isLoading}
+            icon={<IconRefresh size={14} />}
+          >
+            Check for updates
+          </Button>
+          <Button
+            color="secondary"
+            size="sm"
             onClick={onViewSpec}
           >
             View spec
@@ -119,15 +125,8 @@ const SpecInfoCard = ({
           <IconCopy size={12} />
         </button>
       </div>
-      <div className="spec-info-meta">
-        {`Grouped by ${groupBy}`}
-        {autoCheckEnabled
-          ? ` · Auto-check every ${autoCheckInterval} min`
-          : ' · Auto-check disabled'}
-        {lastSyncedAt && ` · Last synced ${moment(lastSyncedAt).fromNow()}`}
-      </div>
     </div>
   );
 };
 
-export default SpecInfoCard;
+export default OpenAPISyncHeader;

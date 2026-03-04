@@ -133,16 +133,14 @@ const useOpenAPISync = (collection) => {
         }
       });
 
-      if (result.errorCode === 'LOCAL_FILE_NOT_FOUND') {
+      if (result.errorCode === 'SOURCE_FILE_NOT_FOUND') {
         setFileNotFound(true);
         setError(result.error);
         return;
       }
 
       setSpecDrift(result);
-      if (result.newSpec) {
-        setStoredSpec(result.newSpec);
-      } else if (result.storedSpec) {
+      if (result.storedSpec) {
         setStoredSpec(result.storedSpec);
       }
 

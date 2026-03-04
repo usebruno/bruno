@@ -1,7 +1,7 @@
 import { useSelector } from 'react-redux';
 import {
-  IconRefresh,
-  IconCheck
+  IconCheck,
+  IconRefresh
 } from '@tabler/icons';
 import moment from 'moment';
 import Button from 'ui/Button';
@@ -22,7 +22,7 @@ const getSpecStatusState = ({
   }
 
   if (error || specDrift?.isValid === false) {
-    return { variant: 'danger', message: error || specDrift?.error || 'Invalid OpenAPI specification', actions: ['check'] };
+    return { variant: 'danger', message: error || specDrift?.error || 'Invalid OpenAPI specification', actions: [] };
   }
 
   const lastSyncedAt = openApiSyncConfig?.lastSyncDate;
@@ -30,7 +30,7 @@ const getSpecStatusState = ({
   if (!specDrift) {
     if (!lastSyncedAt) return null;
     return {
-      variant: 'success', message: 'Spec is up to date', actions: ['check'],
+      variant: 'success', message: 'Spec is up to date', actions: [],
       version: storedSpec?.info?.version,
       lastChecked: moment(lastCheckedAt || lastSyncedAt).fromNow()
     };
@@ -38,12 +38,12 @@ const getSpecStatusState = ({
 
   if (specDrift.storedSpecMissing) {
     if (!lastSyncedAt) {
-      return { variant: 'info', message: 'Review required — your collection differs from the spec', actions: ['check', 'review-sync'] };
+      return { variant: 'warning', message: 'Initial sync required — your collection differs from the spec', actions: [] };
     }
     if (specDrift.hasRemoteChanges) {
-      return { variant: 'warning', message: 'Local spec file not found — sync to restore', actions: ['check', 'review-sync'] };
+      return { variant: 'warning', message: 'Last synced spec not found — Restore the latest spec from the source to track future changes.', actions: [] };
     }
-    return { variant: 'warning', message: 'Local spec file not found — collection matches remote', actions: ['check', 'quick-sync'] };
+    return { variant: 'warning', message: 'Last synced spec not found — Restore the latest spec from the source to track future changes.', actions: [] };
   }
 
   if (specDrift.hasRemoteChanges) {
@@ -51,13 +51,13 @@ const getSpecStatusState = ({
       ? ` (v${specDrift.storedVersion} → v${specDrift.newVersion})`
       : '';
     return {
-      variant: 'warning', message: `OpenAPI spec has been updated${versionInfo}`, actions: ['check', 'review-sync'],
+      variant: 'warning', message: `OpenAPI spec has been updated${versionInfo}`, actions: [],
       changes: { added: specDrift.added?.length || 0, modified: specDrift.modified?.length || 0, removed: specDrift.removed?.length || 0 }
     };
   }
 
   return {
-    variant: 'success', message: 'Spec is up to date', actions: ['check'],
+    variant: 'success', message: 'Spec is up to date', actions: [],
     version: specDrift.newVersion || storedSpec?.info?.version || specDrift.storedVersion,
     lastChecked: lastCheckedAt ? moment(lastCheckedAt).fromNow() : 'just now'
   };
@@ -74,47 +74,20 @@ const SpecStatusSection = ({
   const lastCheckedAt = useSelector((state) => state.openapiSync?.collectionUpdates?.[collection.uid]?.lastChecked);
 
   const {
-    viewMode, isSyncing, showConfirmModal, confirmGroups,
-    enterReviewMode, handleSyncNow, handleGoBackFromReview,
-    handleApplySync, cancelConfirmModal, handleConfirmModalSync
+    isSyncing, showConfirmModal, confirmGroups,
+    handleSyncNow, handleApplySync, cancelConfirmModal, handleConfirmModalSync
   } = useSyncFlow({
     collection, specDrift, remoteDrift, collectionDrift,
     sourceUrl, setError, checkForUpdates: onCheck
   });
 
-  // Review mode
-  if (viewMode === 'review') {
-    return (
-      <SyncReviewPage
-        specDrift={specDrift}
-        remoteDrift={remoteDrift}
-        collectionDrift={collectionDrift}
-        collectionPath={collection.pathname}
-        collectionUid={collection.uid}
-        newSpec={specDrift?.newSpec}
-        isSyncing={isSyncing}
-        onGoBack={handleGoBackFromReview}
-        onApplySync={handleApplySync}
-      />
-    );
-  }
-
-  // Configured + tabs mode
   const bannerState = getSpecStatusState({
     isLoading, error, fileNotFound, sourceUrl, specDrift, openApiSyncConfig, storedSpec, lastCheckedAt
   });
-  const canCheck = !!sourceUrl?.trim();
-
   return (
     <>
       {bannerState && (
         <div className="spec-status-section">
-          <div className="sync-summary-title-row">
-            <div>
-              <div className="sync-summary-title">Spec Status</div>
-              <div className="sync-summary-subtitle">Checks if the spec has changed at the source URL</div>
-            </div>
-          </div>
 
           <div className={`spec-update-banner ${bannerState.variant}`}>
             <div className="banner-left">
@@ -124,7 +97,7 @@ const SpecStatusSection = ({
               <span className="banner-title">
                 {bannerState.message}
                 {bannerState.version && (
-                  <> &middot; <code className="version-code">v{bannerState.version}</code></>
+                  <> &middot; <code style={{ fontStyle: 'normal' }} className="checked-text">v{bannerState.version}</code></>
                 )}
                 {bannerState.lastChecked && (
                   <span className="checked-text"> &middot; Checked {bannerState.lastChecked}</span>
@@ -139,23 +112,8 @@ const SpecStatusSection = ({
               )}
             </div>
             <div className="banner-actions">
-              {bannerState.actions.includes('check') && (
-                <Button
-                  color="secondary"
-                  size="sm"
-                  onClick={onCheck}
-                  disabled={!canCheck}
-                  loading={isLoading}
-                  icon={<IconRefresh size={14} />}
-                >
-                  Check for updates
-                </Button>
-              )}
-              {bannerState.actions.includes('review-sync') && (
-                <Button size="sm" onClick={enterReviewMode}>Review and Sync Collection</Button>
-              )}
               {bannerState.actions.includes('quick-sync') && (
-                <Button size="sm" onClick={handleSyncNow}>Restore Spec File</Button>
+                <Button size="xs" onClick={handleSyncNow}>Restore Spec File</Button>
               )}
               {bannerState.actions.includes('open-settings') && (
                 <Button variant="ghost" size="sm" onClick={onOpenSettings}>
@@ -167,7 +125,30 @@ const SpecStatusSection = ({
         </div>
       )}
 
-      {/* Confirm sync modal */}
+      {specDrift?.storedSpecMissing && openApiSyncConfig?.lastSyncDate ? (
+        <div className="sync-review-empty-state mt-5">
+          <IconRefresh size={40} className="empty-state-icon" />
+          <h4>Last Synced Spec not found in storage</h4>
+          <p>The last synced spec is missing in the storage. Restore the latest spec from the source to track future changes.</p>
+          <Button className="mt-4" color="warning" onClick={handleSyncNow} loading={isSyncing}>
+            Restore Spec File
+          </Button>
+        </div>
+      ) : remoteDrift && (
+        <div className="mt-5">
+          <SyncReviewPage
+            specDrift={specDrift}
+            remoteDrift={remoteDrift}
+            collectionDrift={collectionDrift}
+            collectionPath={collection.pathname}
+            collectionUid={collection.uid}
+            newSpec={specDrift?.newSpec}
+            isSyncing={isSyncing}
+            onApplySync={handleApplySync}
+          />
+        </div>
+      )}
+
       {showConfirmModal && (
         <ConfirmSyncModal
           groups={confirmGroups}
