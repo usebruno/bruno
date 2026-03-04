@@ -134,10 +134,10 @@ describe('Agent Cache', () => {
   });
 
   describe('timeline support', () => {
-    it('initializes timeline array on new agents', () => {
+    it('does not add timeline when none is provided', () => {
       const agent = getOrCreateHttpsAgent({ AgentClass: https.Agent, options: {} }) as any;
 
-      expect(Array.isArray(agent.timeline)).toBe(true);
+      expect(agent.timeline).toBeUndefined();
     });
 
     it('uses provided timeline array', () => {
