@@ -43,6 +43,58 @@ chai.use(function (chai, utils) {
   });
 });
 
+// Custom assertion for jsonBody (Postman parity)
+chai.use(function (chai, utils) {
+  function getNestedValue(obj, path) {
+    const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.');
+    let current = obj;
+    for (const key of keys) {
+      if (current === null || current === undefined || !Object.prototype.hasOwnProperty.call(Object(current), key)) {
+        return { found: false };
+      }
+      current = current[key];
+    }
+    return { found: true, value: current };
+  }
+
+  chai.Assertion.addMethod('jsonBody', function () {
+    const obj = this._obj;
+    const args = Array.prototype.slice.call(arguments);
+
+    if (args.length === 0) {
+      // No args: check body is valid JSON (object or array)
+      this.assert(
+        typeof obj === 'object' && obj !== null,
+        `expected ${utils.inspect(obj)} to be a JSON body (object or array)`,
+        `expected ${utils.inspect(obj)} not to be a JSON body`
+      );
+    } else if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
+      // Object arg: deep equality
+      this.assert(
+        utils.eql(obj, args[0]),
+        `expected body to deeply equal ${utils.inspect(args[0])}`,
+        `expected body to not deeply equal ${utils.inspect(args[0])}`
+      );
+    } else if (args.length === 1) {
+      // String path: check nested property exists
+      const result = getNestedValue(obj, String(args[0]));
+      this.assert(
+        result.found,
+        `expected body to have nested property '${args[0]}'`,
+        `expected body to not have nested property '${args[0]}'`
+      );
+    } else {
+      // Path + value: check nested property equals value
+      const result = getNestedValue(obj, String(args[0]));
+      this.assert(
+        result.found && utils.eql(result.value, args[1]),
+        `expected body to have nested property '${args[0]}' equal to ${utils.inspect(args[1])}`,
+        `expected body to not have nested property '${args[0]}' equal to ${utils.inspect(args[1])}`
+      );
+    }
+  });
+});
+
 /**
  * Assertion operators
  *
