@@ -98,10 +98,37 @@ function buildSecureContext(ca: string | Buffer | (string | Buffer)[]): tls.Secu
  * Convert agent options to use a secureContext instead of raw `ca`.
  * This ensures custom CAs are added on top of the OpenSSL defaults
  * rather than replacing the default CA store.
+ *
+ * When client certificates (pfx/cert/key) are also present, they are loaded
+ * into the secure context so they aren't silently ignored by Node.js
+ * (Node.js skips pfx/cert/key/ca when a secureContext is provided).
  */
 function applySecureContext<T extends AgentOptions | HttpAgentOptions>(options: T): T {
   if ('ca' in options && (options as AgentOptions).ca) {
     const { ca, ...rest } = options as AgentOptions;
+
+    // When client certs are present alongside CA, build a combined context
+    // that includes both. This context can't be CA-cached since it's unique
+    // per client cert + CA combination.
+    const hasClientCert = rest.pfx || rest.cert || rest.key;
+    if (hasClientCert) {
+      const ctxOptions: Record<string, any> = {};
+      if (rest.pfx) ctxOptions.pfx = rest.pfx;
+      if (rest.cert) ctxOptions.cert = rest.cert;
+      if (rest.key) ctxOptions.key = rest.key;
+      if (rest.passphrase) ctxOptions.passphrase = rest.passphrase;
+
+      const ctx = tls.createSecureContext(ctxOptions);
+      const caList = Array.isArray(ca) ? ca : [ca!];
+      for (const caCert of caList) {
+        if (caCert) ctx.context.addCACert(caCert);
+      }
+
+      const { pfx: _pfx, cert: _cert, key: _key, passphrase: _pass, ...cleanRest } = rest;
+      return { ...cleanRest, secureContext: ctx } as unknown as T;
+    }
+
+    // CA-only case: use cached secure context
     return { ...rest, secureContext: buildSecureContext(ca!) } as unknown as T;
   }
   return options;

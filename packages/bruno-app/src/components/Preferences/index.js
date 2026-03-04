@@ -9,7 +9,8 @@ import {
   IconUserCircle,
   IconKeyboard,
   IconZoomQuestion,
-  IconSquareLetterB
+  IconSquareLetterB,
+  IconDatabase
 } from '@tabler/icons';
 
 import Support from './Support';
@@ -21,6 +22,7 @@ import Keybindings from './Keybindings';
 import Beta from './Beta';
 
 import StyledWrapper from './StyledWrapper';
+import Cache from './Cache/index';
 
 const Preferences = () => {
   const dispatch = useDispatch();
@@ -65,6 +67,10 @@ const Preferences = () => {
       case 'support': {
         return <Support />;
       }
+
+      case 'cache': {
+        return <Cache />;
+      }
     }
   };
 
@@ -99,6 +105,10 @@ const Preferences = () => {
           <div className={getTabClassname('beta')} role="tab" onClick={() => setTab('beta')}>
             <IconSquareLetterB size={16} strokeWidth={1.5} />
             Beta
+          </div>
+          <div className={getTabClassname('cache')} role="tab" onClick={() => setTab('cache')}>
+            <IconDatabase size={16} strokeWidth={1.5} />
+            Cache
           </div>
         </div>
         <section
