@@ -61,11 +61,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
       setIsRenamingWorkspace(true);
       setWorkspaceNameInput(currentWorkspace.name || '');
       setWorkspaceNameError('');
-      const timer = setTimeout(() => {
-        workspaceNameInputRef.current?.focus();
-        workspaceNameInputRef.current?.select();
-      }, 50);
-      return () => clearTimeout(timer);
     }
   }, [isScratchCollection, currentWorkspace?.isNewlyCreated, currentWorkspace?.uid, currentWorkspace?.name, dispatch]);
 
@@ -85,8 +80,13 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
+    const timer = setTimeout(() => {
+      workspaceNameInputRef.current?.focus();
+      workspaceNameInputRef.current?.select();
+    }, 50);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      clearTimeout(timer);
     };
   }, [isRenamingWorkspace, handleCancelWorkspaceRename]);
 
@@ -186,10 +186,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     setIsRenamingWorkspace(true);
     setWorkspaceNameInput(currentWorkspace?.name || '');
     setWorkspaceNameError('');
-    setTimeout(() => {
-      workspaceNameInputRef.current?.focus();
-      workspaceNameInputRef.current?.select();
-    }, 50);
   };
 
   const handleCloseWorkspaceClick = () => {
