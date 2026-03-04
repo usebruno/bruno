@@ -45,6 +45,7 @@ const registerApiSpecIpc = require('./ipc/apiSpec');
 const registerGitIpc = require('./ipc/git');
 const registerFileCacheIpc = require('./ipc/file-cache');
 const { fileCache } = require('./cache/fileCache');
+const registerOpenAPISyncIpc = require('./ipc/openapi-sync');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
@@ -480,6 +481,7 @@ app.on('ready', async () => {
   registerSystemMonitorIpc(mainWindow, systemMonitor);
   registerGitIpc(mainWindow);
   registerFileCacheIpc();
+  registerOpenAPISyncIpc(mainWindow);
 });
 
 // Quit the app once all windows are closed

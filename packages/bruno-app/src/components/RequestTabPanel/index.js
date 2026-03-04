@@ -36,6 +36,8 @@ import WorkspaceOverview from 'components/WorkspaceHome/WorkspaceOverview';
 import Preferences from 'components/Preferences';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
+import OpenAPISyncTab from 'components/OpenAPISyncTab';
+import OpenAPISpecTab from 'components/OpenAPISpecTab';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 490;
@@ -243,6 +245,14 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'environment-settings') {
     return <EnvironmentSettings collection={collection} />;
+  }
+
+  if (focusedTab.type === 'openapi-sync') {
+    return <OpenAPISyncTab collection={collection} />;
+  }
+
+  if (focusedTab.type === 'openapi-spec') {
+    return <OpenAPISpecTab collection={collection} />;
   }
 
   if (!item || !item.uid) {
