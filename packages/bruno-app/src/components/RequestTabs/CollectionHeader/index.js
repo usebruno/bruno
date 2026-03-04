@@ -186,10 +186,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     setIsRenamingWorkspace(true);
     setWorkspaceNameInput(currentWorkspace?.name || '');
     setWorkspaceNameError('');
-    setTimeout(() => {
-      workspaceNameInputRef.current?.focus();
-      workspaceNameInputRef.current?.select();
-    }, 50);
   };
 
   const handleCloseWorkspaceClick = () => {
