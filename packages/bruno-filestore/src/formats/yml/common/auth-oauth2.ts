@@ -145,13 +145,16 @@ const buildClientCredentialsFlow = (oauth: BrunoOAuth2): OAuth2ClientCredentials
   isNonEmptyString(oauth.scope) && (flow.scope = oauth.scope);
 
   const accessTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.token);
-  if (accessTokenRequest) {
-    flow.additionalParameters = { accessTokenRequest };
-  }
-
   const refreshTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.refresh);
-  if (refreshTokenRequest) {
-    flow.additionalParameters = { refreshTokenRequest };
+
+  if (accessTokenRequest || refreshTokenRequest) {
+    flow.additionalParameters = {};
+    if (accessTokenRequest) {
+      flow.additionalParameters.accessTokenRequest = accessTokenRequest;
+    }
+    if (refreshTokenRequest) {
+      flow.additionalParameters.refreshTokenRequest = refreshTokenRequest;
+    }
   }
 
   const tokenConfig = buildTokenConfig(oauth);
@@ -181,13 +184,16 @@ const buildResourceOwnerPasswordFlow = (oauth: BrunoOAuth2): OAuth2ResourceOwner
   isNonEmptyString(oauth.scope) && (flow.scope = oauth.scope);
 
   const accessTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.token);
-  if (accessTokenRequest) {
-    flow.additionalParameters = { accessTokenRequest };
-  }
-
   const refreshTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.refresh);
-  if (refreshTokenRequest) {
-    flow.additionalParameters = { refreshTokenRequest };
+
+  if (accessTokenRequest || refreshTokenRequest) {
+    flow.additionalParameters = {};
+    if (accessTokenRequest) {
+      flow.additionalParameters.accessTokenRequest = accessTokenRequest;
+    }
+    if (refreshTokenRequest) {
+      flow.additionalParameters.refreshTokenRequest = refreshTokenRequest;
+    }
   }
 
   const tokenConfig = buildTokenConfig(oauth);
@@ -214,18 +220,20 @@ const buildAuthorizationCodeFlow = (oauth: BrunoOAuth2): OAuth2AuthorizationCode
   if (credentials) flow.credentials = credentials;
 
   const authorizationRequest = mapAdditionalParameters(oauth.additionalParameters?.authorization);
-  if (authorizationRequest) {
-    flow.additionalParameters = { authorizationRequest };
-  }
-
   const accessTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.token);
-  if (accessTokenRequest) {
-    flow.additionalParameters = { accessTokenRequest };
-  }
-
   const refreshTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.refresh);
-  if (refreshTokenRequest) {
-    flow.additionalParameters = { refreshTokenRequest };
+
+  if (authorizationRequest || accessTokenRequest || refreshTokenRequest) {
+    flow.additionalParameters = {};
+    if (authorizationRequest) {
+      flow.additionalParameters.authorizationRequest = authorizationRequest;
+    }
+    if (accessTokenRequest) {
+      flow.additionalParameters.accessTokenRequest = accessTokenRequest;
+    }
+    if (refreshTokenRequest) {
+      flow.additionalParameters.refreshTokenRequest = refreshTokenRequest;
+    }
   }
 
   isNonEmptyString(oauth.scope) && (flow.scope = oauth.scope);
