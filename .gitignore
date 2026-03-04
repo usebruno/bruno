@@ -50,6 +50,7 @@ bruno.iml
 .vscode
 .cursor
 .claude
+.codex
 
 # Playwright
 /blob-report/
