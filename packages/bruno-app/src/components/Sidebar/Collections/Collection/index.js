@@ -69,7 +69,8 @@ const Collection = ({ collection, searchText }) => {
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
   const collectionRef = useRef(null);
-  const itemCount = collection.items?.length || 0;
+  // Only count persisted items; transients don't affect empty state
+  const itemCount = collection.items?.filter((i) => !i.isTransient).length || 0;
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
