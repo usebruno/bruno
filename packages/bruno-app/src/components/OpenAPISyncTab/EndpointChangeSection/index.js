@@ -46,9 +46,19 @@ const EndpointChangeSection = ({
     <div className={`change-section type-${type}${isExpanded ? ' expanded' : ''}`}>
       <div
         className="section-header"
+        role="button"
+        tabIndex={0}
         onClick={() => {
           if (collectionUid && sectionKey) {
             dispatch(toggleSectionExpanded({ collectionUid, sectionKey }));
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (collectionUid && sectionKey) {
+              dispatch(toggleSectionExpanded({ collectionUid, sectionKey }));
+            }
           }
         }}
       >

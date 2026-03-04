@@ -98,7 +98,10 @@ const loadSpecMetadata = () => {
 const saveSpecMetadata = (metadata) => {
   const specsDir = getSpecsDir();
   fsExtra.ensureDirSync(specsDir);
-  fs.writeFileSync(path.join(specsDir, 'metadata.json'), JSON.stringify(metadata, null, 2), 'utf8');
+  const metadataPath = path.join(specsDir, 'metadata.json');
+  const tmpPath = metadataPath + '.tmp';
+  fs.writeFileSync(tmpPath, JSON.stringify(metadata, null, 2), 'utf8');
+  fs.renameSync(tmpPath, metadataPath);
 };
 
 /**
@@ -371,6 +374,8 @@ const saveSpecAndUpdateMetadata = async ({ collectionPath, specContent, sourceUr
   const idx = openapi.findIndex((e) => e.sourceUrl === sourceUrl);
   if (idx !== -1) {
     openapi[idx] = { ...openapi[idx], lastSyncDate, specHash };
+  } else {
+    openapi.push({ sourceUrl, lastSyncDate, specHash });
   }
   brunoConfig.openapi = openapi;
 
@@ -1337,11 +1342,15 @@ const registerOpenAPISyncIpc = (mainWindow) => {
                   const method = request.request.method?.toUpperCase();
                   const url = normalizeUrlPath(request.request.url);
 
-                  for (const removed of diff.removed) {
-                    const removedPath = normalizeUrlPath(removed.path);
-                    if (method === removed.method.toUpperCase() && url === removedPath) {
-                      fs.unlinkSync(filePath);
-                      break;
+                  if (!isPathInsideCollection(filePath, collectionPath)) {
+                    console.error(`[OpenAPI Sync] Path traversal blocked: ${filePath}`);
+                  } else {
+                    for (const removed of diff.removed) {
+                      const removedPath = normalizeUrlPath(removed.path);
+                      if (method === removed.method.toUpperCase() && url === removedPath) {
+                        fs.unlinkSync(filePath);
+                        break;
+                      }
                     }
                   }
                 }

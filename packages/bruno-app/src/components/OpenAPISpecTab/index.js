@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { IconLoader2, IconCloud } from '@tabler/icons';
 import SpecViewer from 'components/ApiSpecPanel/SpecViewer';
 import StyledWrapper from 'components/ApiSpecPanel/StyledWrapper';
@@ -12,52 +12,52 @@ const OpenAPISpecTab = ({ collection }) => {
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
   const sourceUrl = openApiSyncConfig?.sourceUrl;
 
-  useEffect(() => {
-    const loadSpec = async () => {
-      setIsLoading(true);
-      setError(null);
-      setIsRemote(false);
-      try {
-        const { ipcRenderer } = window;
-        const result = await ipcRenderer.invoke('renderer:read-openapi-spec', {
-          collectionPath: collection.pathname,
-          sourceUrl
-        });
-        if (result.error) {
-          // Local file not found — fall back to fetching from remote URL
-          if (sourceUrl) {
-            const fetchResult = await ipcRenderer.invoke('renderer:fetch-openapi-spec', {
-              collectionUid: collection.uid,
-              collectionPath: collection.pathname,
-              sourceUrl,
-              environmentContext: {
-                activeEnvironmentUid: collection.activeEnvironmentUid,
-                environments: collection.environments,
-                runtimeVariables: collection.runtimeVariables,
-                globalEnvironmentVariables: collection.globalEnvironmentVariables
-              }
-            });
-            if (fetchResult.content) {
-              setSpecContent(fetchResult.content);
-              setIsRemote(true);
-              return;
+  const loadSpec = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    setIsRemote(false);
+    try {
+      const { ipcRenderer } = window;
+      const result = await ipcRenderer.invoke('renderer:read-openapi-spec', {
+        collectionPath: collection.pathname,
+        sourceUrl
+      });
+      if (result.error) {
+        // Local file not found — fall back to fetching from remote URL
+        if (sourceUrl) {
+          const fetchResult = await ipcRenderer.invoke('renderer:fetch-openapi-spec', {
+            collectionUid: collection.uid,
+            collectionPath: collection.pathname,
+            sourceUrl,
+            environmentContext: {
+              activeEnvironmentUid: collection.activeEnvironmentUid,
+              environments: collection.environments,
+              runtimeVariables: collection.runtimeVariables,
+              globalEnvironmentVariables: collection.globalEnvironmentVariables
             }
+          });
+          if (fetchResult.content) {
+            setSpecContent(fetchResult.content);
+            setIsRemote(true);
+            return;
           }
-          setError(result.error);
-        } else {
-          setSpecContent(result.content);
         }
-      } catch (err) {
-        setError(err.message || 'Failed to read spec file');
-      } finally {
-        setIsLoading(false);
+        setError(result.error);
+      } else {
+        setSpecContent(result.content);
       }
-    };
+    } catch (err) {
+      setError(err.message || 'Failed to read spec file');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [collection?.pathname, collection?.uid, collection?.activeEnvironmentUid, collection?.environments, collection?.runtimeVariables, collection?.globalEnvironmentVariables, sourceUrl]);
 
+  useEffect(() => {
     if (collection?.pathname) {
       loadSpec();
     }
-  }, [collection?.pathname, sourceUrl]);
+  }, [loadSpec]);
 
   if (isLoading) {
     return (

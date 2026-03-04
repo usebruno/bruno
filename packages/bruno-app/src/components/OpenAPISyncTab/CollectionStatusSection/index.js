@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   IconCheck,
   IconPlus,
@@ -10,10 +11,10 @@ import moment from 'moment';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
 import Modal from 'components/Modal';
-import EndpointChangeSection from './EndpointChangeSection';
-import EndpointItem from './EndpointChangeSection/EndpointItem';
-import ExpandableEndpointRow from './EndpointChangeSection/ExpandableEndpointRow';
-import useEndpointActions from './useEndpointActions';
+import EndpointChangeSection from '../EndpointChangeSection';
+import EndpointItem from '../EndpointChangeSection/EndpointItem';
+import ExpandableEndpointRow from '../EndpointChangeSection/ExpandableEndpointRow';
+import useEndpointActions from '../hooks/useEndpointActions';
 
 const CollectionStatusSection = ({
   collection,
@@ -37,13 +38,13 @@ const CollectionStatusSection = ({
   } = useEndpointActions(collection, collectionDrift, reloadDrift);
 
   const spec = storedSpec || specDrift?.newSpec;
-  const hasDrift = collectionDrift.modified?.length > 0
+  const hasDrift = !!collectionDrift && (collectionDrift.modified?.length > 0
     || collectionDrift.missing?.length > 0
-    || collectionDrift.localOnly?.length > 0;
+    || collectionDrift.localOnly?.length > 0);
 
   const renderDriftRow = (endpoint, idx, actions) => (
     <ExpandableEndpointRow
-      key={endpoint.id || idx}
+      key={endpoint.id}
       endpoint={endpoint}
       collectionPath={collection.pathname}
       newSpec={spec}
@@ -56,43 +57,57 @@ const CollectionStatusSection = ({
     />
   );
 
-  const modifiedCount = collectionDrift.modified?.length || 0;
-  const missingCount = collectionDrift.missing?.length || 0;
-  const localOnlyCount = collectionDrift.localOnly?.length || 0;
+  const modifiedCount = collectionDrift?.modified?.length || 0;
+  const missingCount = collectionDrift?.missing?.length || 0;
+  const localOnlyCount = collectionDrift?.localOnly?.length || 0;
   const version = specDrift?.storedVersion || storedSpec?.info?.version;
+
+  const bannerState = useMemo(() => {
+    if (hasDrift) {
+      return {
+        variant: 'muted',
+        message: 'Collection has changes since last sync',
+        badges: { modifiedCount, missingCount, localOnlyCount },
+        actions: ['revert-all']
+      };
+    }
+    return null;
+  }, [hasDrift, modifiedCount, missingCount, localOnlyCount, version, lastSyncDate]);
 
   return (
     <div className="collection-status-section">
-      <div className={`spec-update-banner ${hasDrift ? 'muted' : 'success'}`}>
-        <div className="banner-left">
-          {hasDrift
-            ? <div className="status-dot muted" />
-            : <IconCheck size={16} className="status-check-icon" />}
-          <span className="banner-title">
-            {hasDrift ? 'Collection has changes since last sync' : 'No changes since last sync'}
-            {!hasDrift && version && (
-              <> &middot; <code style={{ fontStyle: 'normal' }} className="checked-text">v{version}</code></>
-            )}
-            {!hasDrift && lastSyncDate && (
-              <span className="checked-text"> &middot; Synced {moment(lastSyncDate).fromNow()}</span>
-            )}
-          </span>
-          {hasDrift && (
-            <span className="banner-details">
-              {modifiedCount > 0 && <StatusBadge status="warning" radius="full">{modifiedCount} modified</StatusBadge>}
-              {missingCount > 0 && <StatusBadge status="danger" radius="full">{missingCount} deleted</StatusBadge>}
-              {localOnlyCount > 0 && <StatusBadge status="muted" radius="full">{localOnlyCount} added</StatusBadge>}
+      {bannerState && (
+        <div className={`spec-update-banner ${bannerState.variant}`}>
+          <div className="banner-left">
+            {bannerState.variant === 'success'
+              ? <IconCheck size={16} className="status-check-icon" />
+              : <div className={`status-dot ${bannerState.variant}`} />}
+            <span className="banner-title">
+              {bannerState.message}
+              {bannerState.version && (
+                <> &middot; <code style={{ fontStyle: 'normal' }} className="checked-text">v{bannerState.version}</code></>
+              )}
+              {bannerState.lastSyncDate && (
+                <span className="checked-text"> &middot; Synced {moment(bannerState.lastSyncDate).fromNow()}</span>
+              )}
             </span>
+            {bannerState.badges && (
+              <span className="banner-details">
+                {bannerState.badges.modifiedCount > 0 && <StatusBadge status="warning" radius="full">{bannerState.badges.modifiedCount} modified</StatusBadge>}
+                {bannerState.badges.missingCount > 0 && <StatusBadge status="danger" radius="full">{bannerState.badges.missingCount} deleted</StatusBadge>}
+                {bannerState.badges.localOnlyCount > 0 && <StatusBadge status="muted" radius="full">{bannerState.badges.localOnlyCount} added</StatusBadge>}
+              </span>
+            )}
+          </div>
+          {bannerState.actions.includes('revert-all') && (
+            <div className="banner-actions">
+              <Button size="sm" variant="ghost" color="danger" onClick={handleRevertAllChanges}>
+                Revert All to Spec
+              </Button>
+            </div>
           )}
         </div>
-        {hasDrift && (
-          <div className="banner-actions">
-            <Button size="sm" variant="ghost" color="danger" onClick={handleRevertAllChanges}>
-              Revert All to Spec
-            </Button>
-          </div>
-        )}
-      </div>
+      )}
 
       {hasDrift ? (
         <div className="mt-5">
@@ -187,27 +202,6 @@ const CollectionStatusSection = ({
               </Button>
             )}
           />
-
-          {/* In Sync */}
-          {/* <EndpointChangeSection
-            title="In Sync with Spec"
-            type="in-sync"
-            endpoints={collectionDrift.inSync || []}
-            collectionUid={collection.uid}
-            sectionKey="drift-in-sync"
-            renderItem={(endpoint, idx) => (
-              <EndpointItem
-                key={endpoint.id || idx}
-                endpoint={endpoint}
-                type="in-sync"
-                actions={(
-                  <Button size="xs" variant="ghost" onClick={() => onOpenEndpoint(endpoint.id)} title="Open in tab" icon={<IconExternalLink size={14} />}>
-                    Open
-                  </Button>
-                )}
-              />
-            )}
-          /> */}
         </div>
       ) : (
         <div className="sync-review-empty-state mt-5">

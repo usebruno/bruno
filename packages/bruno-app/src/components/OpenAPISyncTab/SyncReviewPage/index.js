@@ -10,10 +10,10 @@ import {
 } from '@tabler/icons';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
-import EndpointChangeSection from './EndpointChangeSection';
-import ExpandableEndpointRow from './EndpointChangeSection/ExpandableEndpointRow';
-import ConfirmSyncModal from './ConfirmSyncModal';
-import SpecDiffModal from './SpecDiffModal';
+import EndpointChangeSection from '../EndpointChangeSection';
+import ExpandableEndpointRow from '../EndpointChangeSection/ExpandableEndpointRow';
+import ConfirmSyncModal from '../ConfirmSyncModal';
+import SpecDiffModal from '../SpecDiffModal';
 import Help from 'components/Help';
 import { setReviewDecision, setReviewDecisions, selectTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
 
@@ -252,7 +252,7 @@ const SyncReviewPage = ({
           <div className="sync-review-empty-state">
             <IconRefresh size={40} className="empty-state-icon" />
             <h4>No updates from the spec</h4>
-            <p>The collection is up to date.</p>
+            <p>The collection matches the latest spec. Nothing to sync.</p>
           </div>
         ) : (
           <div className="endpoints-review-sections">

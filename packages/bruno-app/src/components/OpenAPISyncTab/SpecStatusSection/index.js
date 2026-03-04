@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import {
   IconCheck,
@@ -6,62 +7,9 @@ import {
 import moment from 'moment';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
-import ConfirmSyncModal from './ConfirmSyncModal';
-import SyncReviewPage from './SyncReviewPage';
-import useSyncFlow from './useSyncFlow';
-
-const getSpecStatusState = ({
-  isLoading, error, fileNotFound, sourceUrl, specDrift, openApiSyncConfig, storedSpec, lastCheckedAt
-}) => {
-  if (isLoading) {
-    return { variant: 'muted', message: 'Checking for updates...', actions: [] };
-  }
-
-  if (fileNotFound) {
-    return { variant: 'danger', message: `Source file not found at ${sourceUrl}`, actions: ['open-settings'] };
-  }
-
-  if (error || specDrift?.isValid === false) {
-    return { variant: 'danger', message: error || specDrift?.error || 'Invalid OpenAPI specification', actions: [] };
-  }
-
-  const lastSyncedAt = openApiSyncConfig?.lastSyncDate;
-
-  if (!specDrift) {
-    if (!lastSyncedAt) return null;
-    return {
-      variant: 'success', message: 'Spec is up to date', actions: [],
-      version: storedSpec?.info?.version,
-      lastChecked: moment(lastCheckedAt || lastSyncedAt).fromNow()
-    };
-  }
-
-  if (specDrift.storedSpecMissing) {
-    if (!lastSyncedAt) {
-      return { variant: 'warning', message: 'Initial sync required — your collection differs from the spec', actions: [] };
-    }
-    if (specDrift.hasRemoteChanges) {
-      return { variant: 'warning', message: 'Last synced spec not found — Restore the latest spec from the source to track future changes.', actions: [] };
-    }
-    return { variant: 'warning', message: 'Last synced spec not found — Restore the latest spec from the source to track future changes.', actions: [] };
-  }
-
-  if (specDrift.hasRemoteChanges) {
-    const versionInfo = (specDrift.storedVersion && specDrift.newVersion && specDrift.storedVersion !== specDrift.newVersion)
-      ? ` (v${specDrift.storedVersion} → v${specDrift.newVersion})`
-      : '';
-    return {
-      variant: 'warning', message: `OpenAPI spec has been updated${versionInfo}`, actions: [],
-      changes: { added: specDrift.added?.length || 0, modified: specDrift.modified?.length || 0, removed: specDrift.removed?.length || 0 }
-    };
-  }
-
-  return {
-    variant: 'success', message: 'Spec is up to date', actions: [],
-    version: specDrift.newVersion || storedSpec?.info?.version || specDrift.storedVersion,
-    lastChecked: lastCheckedAt ? moment(lastCheckedAt).fromNow() : 'just now'
-  };
-};
+import ConfirmSyncModal from '../ConfirmSyncModal';
+import SyncReviewPage from '../SyncReviewPage';
+import useSyncFlow from '../hooks/useSyncFlow';
 
 const SpecStatusSection = ({
   collection, sourceUrl,
@@ -81,9 +29,53 @@ const SpecStatusSection = ({
     sourceUrl, setError, checkForUpdates: onCheck
   });
 
-  const bannerState = getSpecStatusState({
-    isLoading, error, fileNotFound, sourceUrl, specDrift, openApiSyncConfig, storedSpec, lastCheckedAt
-  });
+  const lastSyncedAt = openApiSyncConfig?.lastSyncDate;
+
+  const bannerState = useMemo(() => {
+    if (isLoading) {
+      return { variant: 'muted', message: 'Checking for updates...', actions: [] };
+    }
+    if (fileNotFound) {
+      return { variant: 'danger', message: `Source file not found at ${sourceUrl}`, actions: ['open-settings'] };
+    }
+    if (error || specDrift?.isValid === false) {
+      return { variant: 'danger', message: error || specDrift?.error || 'Invalid OpenAPI specification', actions: [] };
+    }
+    if (!specDrift) {
+      return null;
+      // TODO: re-enable success banner
+      // if (!lastSyncedAt) return null;
+      // return {
+      //   variant: 'success', message: 'Spec is up to date', actions: [],
+      //   version: storedSpec?.info?.version,
+      //   lastChecked: moment(lastCheckedAt || lastSyncedAt).fromNow()
+      // };
+    }
+    if (specDrift.storedSpecMissing) {
+      if (!lastSyncedAt) {
+        return { variant: 'warning', message: 'Initial sync required — your collection differs from the spec', actions: [] };
+      }
+      if (specDrift.hasRemoteChanges) {
+        return { variant: 'warning', message: 'Last synced spec not found — Restore the latest spec from the source to track future changes.', actions: [] };
+      }
+      return { variant: 'warning', message: 'Last synced spec not found — Restore the latest spec from the source to track future changes.', actions: [] };
+    }
+    if (specDrift.hasRemoteChanges) {
+      const versionInfo = (specDrift.storedVersion && specDrift.newVersion && specDrift.storedVersion !== specDrift.newVersion)
+        ? ` (v${specDrift.storedVersion} → v${specDrift.newVersion})`
+        : '';
+      return {
+        variant: 'warning', message: `OpenAPI spec has been updated${versionInfo}`, actions: [],
+        changes: { added: specDrift.added?.length || 0, modified: specDrift.modified?.length || 0, removed: specDrift.removed?.length || 0 }
+      };
+    }
+    // return {
+    //   variant: 'success', message: 'Spec is up to date', actions: [],
+    //   version: specDrift.newVersion || storedSpec?.info?.version || specDrift.storedVersion,
+    //   lastChecked: lastCheckedAt ? moment(lastCheckedAt).fromNow() : 'just now'
+    // };
+    return null;
+  }, [isLoading, fileNotFound, error, sourceUrl, specDrift, lastSyncedAt, storedSpec, lastCheckedAt]);
   return (
     <>
       {bannerState && (

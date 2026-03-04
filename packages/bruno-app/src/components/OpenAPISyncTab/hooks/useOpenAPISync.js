@@ -188,7 +188,6 @@ const useOpenAPISync = (collection) => {
   useEffect(() => {
     if (isConfigured) {
       checkForUpdates();
-      loadCollectionDrift();
     }
   }, [isConfigured]);
 

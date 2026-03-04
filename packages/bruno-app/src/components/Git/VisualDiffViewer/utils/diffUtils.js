@@ -1,8 +1,11 @@
+// Matches word-boundary separators: whitespace, slashes, query/path delimiters (?&=), dots, hyphens, underscores, colons, @
+const WORD_SEPARATOR = /[\s\/\?\&\=\.\-\_\:\@]/;
+
 const splitWithSeparators = (str) => {
   const result = [];
   let current = '';
   for (const char of str) {
-    if (/[\s\/\?\&\=\.\-\_\:\@]/.test(char)) {
+    if (WORD_SEPARATOR.test(char)) {
       if (current) {
         result.push(current);
         current = '';

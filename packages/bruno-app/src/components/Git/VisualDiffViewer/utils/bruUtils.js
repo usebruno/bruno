@@ -1,5 +1,12 @@
 import get from 'lodash/get';
 
+export const DIFF_STATUS = Object.freeze({
+  ADDED: 'added',
+  DELETED: 'deleted',
+  MODIFIED: 'modified',
+  UNCHANGED: 'unchanged'
+});
+
 export const getBodyContent = (body) => {
   if (!body) return '';
   if (body.json) return body.json;
@@ -37,10 +44,10 @@ export const getUrl = (data) => {
 
 export const computeItemDiffStatus = (currentItem, otherItem, showSide) => {
   if (!otherItem) {
-    return showSide === 'old' ? 'deleted' : 'added';
+    return showSide === 'old' ? DIFF_STATUS.DELETED : DIFF_STATUS.ADDED;
   }
   if (currentItem.value !== otherItem.value || currentItem.enabled !== otherItem.enabled) {
-    return 'modified';
+    return DIFF_STATUS.MODIFIED;
   }
-  return 'unchanged';
+  return DIFF_STATUS.UNCHANGED;
 };

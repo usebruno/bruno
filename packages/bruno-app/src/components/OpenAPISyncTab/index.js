@@ -13,7 +13,7 @@ import CollectionStatusSection from './CollectionStatusSection';
 import ConnectionSettingsModal from './ConnectionSettingsModal';
 import DisconnectSyncModal from './DisconnectSyncModal';
 import OverviewSection from './OverviewSection';
-import useOpenAPISync from './useOpenAPISync';
+import useOpenAPISync from './hooks/useOpenAPISync';
 
 const OpenAPISyncTab = ({ collection }) => {
   const {

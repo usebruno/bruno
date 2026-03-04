@@ -168,12 +168,13 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
         buttons: ['changes']
       };
     }
-    return {
-      variant: 'success',
-      title: 'Collection is in sync with the spec',
-      subtitle: null,
-      buttons: []
-    };
+    // return {
+    //   variant: 'success',
+    //   title: 'Collection is in sync with the spec',
+    //   subtitle: null,
+    //   buttons: []
+    // };
+    return null;
   }, [activeError, isLoading, fileNotFound, hasDriftData, hasSpecUpdates, hasCollectionChanges, specDrift?.storedSpecMissing, lastSyncDate]);
 
   return (
@@ -229,7 +230,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
         </div>
       )}
 
-      <h4 className="overview-section-title mt-7">Endpoint Summary</h4>
+      <h4 className="overview-section-title mt-5">Endpoint Summary</h4>
       <div className="sync-summary-cards">
         {SUMMARY_CARDS.map(({ key, label, tooltip, tab, color }) => {
           const count = summaryValues[key];

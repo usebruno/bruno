@@ -223,8 +223,8 @@ export const fetchAndValidateApiSpecFromUrl = ({ url }) => {
   return new Promise((resolve, reject) => {
     ipcRenderer
       .invoke('renderer:fetch-api-spec', url)
-      .then((res) => {
-        const data = jsyaml.load(res);
+      .then(async (res) => {
+        const data = await jsyaml.load(res);
         const specType = getCollectionSpecType(data);
         resolve({ data, specType, rawContent: res });
       })

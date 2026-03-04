@@ -19,8 +19,6 @@ const useSyncFlow = ({
 
   const performSync = async (selections = { removedIds: [], localOnlyIds: [], endpointDecisions: {} }, mode = 'sync') => {
     setShowConfirmModal(false);
-    setViewMode('tabs');
-    setPendingSyncMode(null);
     setIsSyncing(true);
     setError(null);
 
@@ -81,6 +79,9 @@ const useSyncFlow = ({
         mode,
         endpointDecisions: decisions
       });
+
+      setViewMode('tabs');
+      setPendingSyncMode(null);
 
       dispatch(clearCollectionUpdate({ collectionUid: collection.uid }));
       toast.success(
