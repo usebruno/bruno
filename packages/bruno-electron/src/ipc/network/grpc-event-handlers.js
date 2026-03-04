@@ -149,6 +149,122 @@ const registerGrpcEventHandlers = (window) => {
     }
   });
 
+  // Connect and send all enabled messages atomically (for client-streaming methods)
+  ipcMain.handle('grpc:connect-and-send', async (event, { request, collection, environment, runtimeVariables }) => {
+    try {
+      const requestCopy = cloneDeep(request);
+      const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
+
+      const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+      if (!protocolRegex.test(preparedRequest.url)) {
+        preparedRequest.url = `http://${preparedRequest.url}`;
+      }
+
+      // Get enabled messages
+      const messages = preparedRequest.body?.grpc || [];
+      const enabledMessages = messages.filter((m) => m.enabled !== false);
+
+      if (enabledMessages.length === 0) {
+        throw new Error('No enabled messages to send');
+      }
+
+      // Get certificates and proxy configuration
+      const certsAndProxyConfig = await getCertsAndProxyConfig({
+        collectionUid: collection.uid,
+        collection,
+        request: preparedRequest,
+        envVars: preparedRequest.envVars,
+        runtimeVariables,
+        processEnvVars: preparedRequest.processEnvVars,
+        collectionPath: collection.pathname,
+        globalEnvironmentVariables: collection.globalEnvironmentVariables
+      });
+
+      await configureRequest(
+        preparedRequest,
+        requestCopy,
+        collection,
+        preparedRequest.envVars,
+        runtimeVariables,
+        preparedRequest.processEnvVars,
+        preparedRequest.promptVariables,
+        certsAndProxyConfig
+      );
+
+      // Extract certificate information from the config
+      const { httpsAgentRequestFields } = certsAndProxyConfig;
+
+      // Configure verify options
+      const verifyOptions = {
+        rejectUnauthorized: preferencesUtil.shouldVerifyTls()
+      };
+
+      // Extract certificate information
+      const rootCertificate = httpsAgentRequestFields.ca;
+      const privateKey = httpsAgentRequestFields.key;
+      const certificateChain = httpsAgentRequestFields.cert;
+      const passphrase = httpsAgentRequestFields.passphrase;
+      const pfx = httpsAgentRequestFields.pfx;
+
+      const requestSent = {
+        type: 'request',
+        url: preparedRequest.url,
+        method: preparedRequest.method,
+        methodType: preparedRequest.methodType,
+        headers: preparedRequest.headers,
+        body: preparedRequest.body,
+        timestamp: Date.now()
+      };
+
+      const includeDirs = getProtobufIncludeDirs(collection);
+
+      // Start gRPC connection
+      await grpcClient.startConnection({
+        request: preparedRequest,
+        collection,
+        rootCertificate,
+        privateKey,
+        certificateChain,
+        passphrase,
+        pfx,
+        verifyOptions,
+        includeDirs
+      });
+
+      sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);
+
+      // Send OAuth credentials update if available
+      if (preparedRequest?.oauth2Credentials) {
+        window.webContents.send('main:credentials-update', {
+          credentials: preparedRequest.oauth2Credentials?.credentials,
+          url: preparedRequest.oauth2Credentials?.url,
+          collectionUid: collection.uid,
+          credentialsId: preparedRequest.oauth2Credentials?.credentialsId,
+          ...(preparedRequest.oauth2Credentials?.folderUid ? { folderUid: preparedRequest.oauth2Credentials.folderUid } : { itemUid: preparedRequest.uid }),
+          debugInfo: preparedRequest.oauth2Credentials.debugInfo
+        });
+      }
+
+      // Send all enabled messages
+      for (const message of enabledMessages) {
+        grpcClient.sendMessage(preparedRequest.uid, collection.uid, message.content);
+        sendEvent('grpc:message', preparedRequest.uid, collection.uid, message.content);
+      }
+
+      // End stream to signal completion (triggers server response)
+      grpcClient.end(preparedRequest.uid);
+
+      return { success: true, messagesSent: enabledMessages.length };
+    } catch (error) {
+      console.error('Error in connect-and-send:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      sendEvent('grpc:error', request.uid, collection.uid, { error: error.message });
+      return { success: false, error: error.message };
+    }
+  });
+
   // Get all active connection IDs
   ipcMain.handle('grpc:get-active-connections', (event) => {
     try {

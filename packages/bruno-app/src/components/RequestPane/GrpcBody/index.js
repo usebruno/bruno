@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
+import { updateRequestBody, toggleGrpcMessageEnabled } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sendGrpcMessage, generateGrpcSampleMessage } from 'utils/network/index';
 import useLocalStorage from 'hooks/useLocalStorage';
@@ -19,17 +19,31 @@ import { prettifyJsonString } from 'utils/common/index';
 
 const MessageToolbar = ({
   index,
+  enabled,
   canClientStream,
   isConnectionActive,
   onSend,
+  onToggleEnabled,
   onRegenerateMessage,
   onPrettify,
   onDeleteMessage,
-  showDelete
+  showDelete,
+  showCheckbox
 }) => {
   return (
     <div className="message-toolbar">
-      <span className="message-label">Message {index + 1}</span>
+      <div className="message-label-container">
+        {showCheckbox && (
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={onToggleEnabled}
+            className="message-checkbox"
+            data-testid={`grpc-message-enabled-${index}`}
+          />
+        )}
+        <span className="message-label">Message {index + 1}</span>
+      </div>
       <div className="toolbar-actions mr-2">
         <ToolHint text="Format JSON" toolhintId={`prettify-msg-${index}`}>
           <button onClick={onPrettify} className="toolbar-btn">
@@ -79,13 +93,22 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
   const [protofileCache] = useLocalStorage('bruno.grpc.protofileCache', {});
 
   const canClientStream = methodType === 'client-streaming' || methodType === 'bidi-streaming';
-  const { name, content } = message;
+  const { name, content, enabled = true } = message;
+
+  const onToggleEnabled = () => {
+    dispatch(toggleGrpcMessageEnabled({
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      messageIndex: index
+    }));
+  };
 
   const onEdit = (value) => {
     const currentMessages = [...(body.grpc || [])];
     currentMessages[index] = {
       name: name ? name : `message ${index + 1}`,
-      content: value
+      content: value,
+      enabled: enabled
     };
     dispatch(updateRequestBody({
       content: currentMessages,
@@ -138,7 +161,8 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
         const currentMessages = [...(body.grpc || [])];
         currentMessages[index] = {
           name: name ? name : `message ${index + 1}`,
-          content: result.message
+          content: result.message,
+          enabled: enabled
         };
         dispatch(updateRequestBody({
           content: currentMessages,
@@ -171,7 +195,8 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
       const currentMessages = [...(body.grpc || [])];
       currentMessages[index] = {
         name: name ? name : `message ${index + 1}`,
-        content: prettyBodyJson
+        content: prettyBodyJson,
+        enabled: enabled
       };
       dispatch(updateRequestBody({
         content: currentMessages,
@@ -186,16 +211,19 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
   const isSingleMessage = !canClientSendMultipleMessages || body.grpc.length === 1;
 
   return (
-    <div className={`message-container ${isSingleMessage ? 'single' : ''} ${isLast ? 'last' : ''}`}>
+    <div className={`message-container ${isSingleMessage ? 'single' : ''} ${isLast ? 'last' : ''} ${!enabled ? 'disabled' : ''}`}>
       <MessageToolbar
         index={index}
+        enabled={enabled}
         canClientStream={canClientStream}
         isConnectionActive={isConnectionActive}
         onSend={onSend}
+        onToggleEnabled={onToggleEnabled}
         onRegenerateMessage={onRegenerateMessage}
         onPrettify={onPrettify}
         onDeleteMessage={onDeleteMessage}
         showDelete={index > 0}
+        showCheckbox={canClientSendMultipleMessages}
       />
       <div className="editor-container">
         <CodeEditor
@@ -233,7 +261,8 @@ const GrpcBody = ({ item, collection, handleRun }) => {
     const currentMessages = Array.isArray(body.grpc) ? [...body.grpc] : [];
     currentMessages.push({
       name: `message ${currentMessages.length + 1}`,
-      content: '{}'
+      content: '{}',
+      enabled: true
     });
     dispatch(updateRequestBody({
       content: currentMessages,
