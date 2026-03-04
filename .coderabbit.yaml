@@ -23,6 +23,19 @@ reviews:
     drafts: false
     base_branches: ['main', 'release/*']
   path_instructions:
+    - path: '**/*'
+      instructions: |
+        Bruno is a cross-platform Electron desktop app that runs on macOS, Windows, and Linux. Ensure that all code is OS-agnostic:
+        - File paths must use `path.join()` or `path.resolve()` instead of hardcoded `/` or `\\` separators
+        - Never assume case-sensitive or case-insensitive filesystems
+        - Use `os.homedir()`, `app.getPath()`, or environment-appropriate APIs instead of hardcoded paths like `/home/`, `C:\\Users\\`, or `~/`
+        - Line endings should be handled consistently (be aware of CRLF vs LF issues)
+        - Use `path.sep` or `path.posix`/`path.win32` when platform-specific separators are needed
+        - Shell commands or child_process calls must account for platform differences (e.g., `which` vs `where`, `/bin/sh` vs `cmd.exe`)
+        - File permissions (e.g., `fs.chmod`, `fs.access`) should account for Windows not supporting Unix-style permission bits
+        - Avoid relying on Unix-only signals (e.g., `SIGKILL`) without Windows fallbacks
+        - Use `os.tmpdir()` instead of hardcoding `/tmp`
+        - Environment variable access should handle platform differences (e.g., `HOME` vs `USERPROFILE`)
     - path: 'tests/**/**.*'
       instructions: |
         Review the following e2e test code written using the Playwright test library. Ensure that:
