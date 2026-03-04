@@ -106,6 +106,9 @@ const defaultPreferences = {
   },
   display: {
     zoomPercentage: 100
+  },
+  cache: {
+    enabled: false
   }
 };
 
@@ -164,6 +167,9 @@ const preferencesSchema = Yup.object().shape({
   }),
   display: Yup.object({
     zoomPercentage: Yup.number().min(50).max(150)
+  }),
+  cache: Yup.object({
+    enabled: Yup.boolean()
   })
 });
 
@@ -363,6 +369,9 @@ const preferencesUtil = {
     } catch (err) {
       console.error('Failed to save preferences in markAsLaunched:', err);
     }
+  },
+  isCacheEnabled: () => {
+    return get(getPreferences(), 'cache.enabled', false);
   }
 };
 

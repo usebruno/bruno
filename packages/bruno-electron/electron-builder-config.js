@@ -8,6 +8,8 @@ const config = {
     buildResources: 'resources',
     output: 'out'
   },
+  npmRebuild: false,
+  buildDependenciesFromSource: false,
   extraResources: [
     {
       from: 'resources/data/sample-collection.json',

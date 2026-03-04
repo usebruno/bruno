@@ -27,6 +27,7 @@ const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection')
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const dotEnvWatcher = require('./dotenv-watcher');
+const { fileCache } = require('../cache/fileCache');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
@@ -310,6 +311,20 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     };
 
     const fileStats = fs.statSync(pathname);
+    const currentMtime = fileStats.mtimeMs;
+
+    const cachedData = fileCache.get(pathname, currentMtime);
+    if (cachedData) {
+      file.data = cachedData;
+      file.partial = false;
+      file.loading = false;
+      file.size = sizeInMB(fileStats?.size);
+      hydrateRequestWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      watcher.markFileAsProcessed(win, collectionUid, pathname);
+      return;
+    }
+
     let content = fs.readFileSync(pathname, 'utf8');
 
     // If worker thread is not used, we can directly parse the file
@@ -320,6 +335,16 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
+
+        fileCache.set(pathname, {
+          mtime: currentMtime,
+          fileType: 'request',
+          parsedData: file.data,
+          collectionUid,
+          collectionPath,
+          size: fileStats.size
+        });
+
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       } catch (error) {
         console.error(error);
@@ -361,6 +386,16 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.partial = false;
         file.loading = false;
         hydrateRequestWithUuid(file.data, pathname);
+
+        fileCache.set(pathname, {
+          mtime: currentMtime,
+          fileType: 'request',
+          parsedData: file.data,
+          collectionUid,
+          collectionPath,
+          size: fileStats.size
+        });
+
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
     } catch (error) {
@@ -544,6 +579,16 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
+
+      fileCache.set(pathname, {
+        mtime: fileStats.mtimeMs,
+        fileType: 'request',
+        parsedData: file.data,
+        collectionUid,
+        collectionPath,
+        size: fileStats.size
+      });
+
       win.webContents.send('main:collection-tree-updated', 'change', file);
     } catch (err) {
       console.error(err);
@@ -566,6 +611,8 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
     if (basename === 'opencollection.yml' && path.normalize(dirname) === path.normalize(collectionPath)) {
       return;
     }
+
+    fileCache.delete(pathname);
 
     const file = {
       meta: {
