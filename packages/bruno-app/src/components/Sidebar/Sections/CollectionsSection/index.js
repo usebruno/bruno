@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { setIsCreatingCollection } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
@@ -46,11 +47,13 @@ const CollectionsSection = () => {
 
   const { collections } = useSelector((state) => state.collections);
   const { collectionSortOrder } = useSelector((state) => state.collections);
+  const { isCreatingCollection } = useSelector((state) => state.app);
   const preferences = useSelector((state) => state.app.preferences);
   const [collectionsToClose, setCollectionsToClose] = useState([]);
 
   const [importData, setImportData] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const [advancedCreateName, setAdvancedCreateName] = useState('');
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [showCloneGitModal, setShowCloneGitModal] = useState(false);
@@ -241,13 +244,19 @@ const CollectionsSection = () => {
     });
   };
 
+  const handleOpenAdvancedCreate = (name) => {
+    dispatch(setIsCreatingCollection(false));
+    setAdvancedCreateName(name || '');
+    setCreateCollectionModalOpen(true);
+  };
+
   const addDropdownItems = [
     {
       id: 'create',
       leftSection: IconPlus,
       label: 'Create collection',
       onClick: () => {
-        setCreateCollectionModalOpen(true);
+        dispatch(setIsCreatingCollection(true));
       }
     },
     {
@@ -359,7 +368,11 @@ const CollectionsSection = () => {
       )}
       {createCollectionModalOpen && (
         <CreateCollection
-          onClose={() => setCreateCollectionModalOpen(false)}
+          onClose={() => {
+            setCreateCollectionModalOpen(false);
+            setAdvancedCreateName('');
+          }}
+          initialCollectionName={advancedCreateName}
         />
       )}
       {importCollectionModalOpen && (
@@ -396,7 +409,13 @@ const CollectionsSection = () => {
         icon={IconBox}
         actions={sectionActions}
       >
-        <Collections showSearch={showSearch} />
+        <Collections
+          showSearch={showSearch}
+          isCreatingCollection={isCreatingCollection}
+          onCreateClick={() => dispatch(setIsCreatingCollection(true))}
+          onDismissCreate={() => dispatch(setIsCreatingCollection(false))}
+          onOpenAdvancedCreate={handleOpenAdvancedCreate}
+        />
       </SidebarSection>
     </>
   );

@@ -18,7 +18,7 @@ import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
 import Button from 'ui/Button';
 
-const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => {
+const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initialCollectionName = '' }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
@@ -37,8 +37,8 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      collectionName: '',
-      collectionFolderName: '',
+      collectionName: initialCollectionName,
+      collectionFolderName: initialCollectionName ? sanitizeName(initialCollectionName) : '',
       collectionLocation: defaultLocation || '',
       format: DEFAULT_COLLECTION_FORMAT
     },
@@ -86,9 +86,13 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
   };
 
   useEffect(() => {
-    if (inputRef && inputRef.current) {
-      inputRef.current.focus();
-    }
+    const timer = setTimeout(() => {
+      if (inputRef && inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
+    }, 50);
+    return () => clearTimeout(timer);
   }, [inputRef]);
 
   const AdvancedOptions = forwardRef((props, ref) => {
