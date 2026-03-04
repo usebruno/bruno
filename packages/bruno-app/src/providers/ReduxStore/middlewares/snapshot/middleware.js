@@ -2,35 +2,36 @@ import { serializeAppSnapshot } from 'utils/app-snapshot';
 
 const { ipcRenderer } = window;
 
-const actionsToIntercept = [
-  // Tab actions
-  'tabs/addTab',
-  'tabs/focusTab',
-  'tabs/closeTabs',
-  'tabs/closeAllCollectionTabs',
-  'tabs/makeTabPermanent',
-  'tabs/reorderTabs',
-  'tabs/updateRequestPaneTab',
-  'tabs/updateResponsePaneTab',
-  'tabs/updateRequestPaneTabWidth',
-  'tabs/updateRequestPaneTabHeight',
-  'tabs/updateResponseFormat',
-  'tabs/updateResponseViewTab',
+/**
+ * State selectors for snapshot-relevant state.
+ *
+ * Instead of tracking specific actions, we track state changes directly.
+ * This approach makes it easier to extend the snapshot to new states -
+ * just add serialization/deserialization and add a selector here.
+ *
+ * Each selector extracts a piece of state that, when changed, should trigger
+ * a snapshot save. We use reference equality for comparison, which works
+ * because Redux uses immutable updates.
+ */
+const watchedStateSelectors = [
+  // Tabs - entire slice (tabs array and activeTabUid)
+  (state) => state.tabs,
 
-  // Workspace actions
-  'workspaces/setActiveWorkspace',
+  // Collections - extract only snapshot-relevant properties to avoid
+  // triggering on unrelated changes (like request/response data)
+  (state) => {
+    const collections = state.collections.collections;
+    // Create a derived value that only changes when snapshot-relevant properties change
+    return collections.map((c) => `${c.uid}:${c.collapsed}:${c.mountStatus}:${c.activeEnvironmentUid}`).join('|');
+  },
 
-  // Collection actions
-  'collections/collectionAddedToWorkspace',
-  'collections/removeCollection',
-  'collections/selectEnvironment',
-  'collections/setCollectionCollapsed',
+  // Workspaces - active workspace
+  (state) => state.workspaces.activeWorkspaceUid,
 
-  // DevTools/Logs actions
-  'logs/openConsole',
-  'logs/closeConsole',
-  'logs/setActiveTab',
-  'logs/setDevtoolsHeight'
+  // DevTools/Logs - console state
+  (state) => state.logs.isConsoleOpen,
+  (state) => state.logs.activeTab,
+  (state) => state.logs.devtoolsHeight
 ];
 
 const DEBOUNCE_DELAY = 1000;
@@ -57,19 +58,43 @@ const scheduleSave = (getState) => {
   }, DEBOUNCE_DELAY);
 };
 
-export const snapshotMiddleware = ({ getState }) => (next) => (action) => {
-  const result = next(action);
+/**
+ * Snapshot middleware that tracks state changes instead of actions.
+ *
+ * This approach eliminates the need to maintain a list of actions that affect
+ * snapshot state. To add new state to the snapshot:
+ * 1. Add serialization in utils/app-snapshot/index.js
+ * 2. Add deserialization in utils/app-snapshot/restore.js
+ * 3. Add a selector to watchedStateSelectors above
+ */
+export const snapshotMiddleware = ({ getState }) => {
+  // Track previous values of watched state
+  let prevValues = null;
 
-  const { snapshotSaveEnabled } = getState().app;
-  if (!snapshotSaveEnabled) {
+  return (next) => (action) => {
+    const result = next(action);
+
+    const state = getState();
+    const { snapshotSaveEnabled } = state.app;
+
+    if (!snapshotSaveEnabled) {
+      return result;
+    }
+
+    // Get current values of all watched state
+    const currentValues = watchedStateSelectors.map((selector) => selector(state));
+
+    // Check if any watched state has changed
+    const hasChanged
+      = prevValues === null || currentValues.some((value, index) => value !== prevValues[index]);
+
+    if (hasChanged) {
+      scheduleSave(getState);
+    }
+
+    // Update previous values for next comparison
+    prevValues = currentValues;
+
     return result;
-  }
-
-  if (!actionsToIntercept.includes(action.type)) {
-    return result;
-  }
-
-  scheduleSave(getState);
-
-  return result;
+  };
 };
