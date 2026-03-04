@@ -27,6 +27,7 @@ type AgentOptions = {
   ALPNProtocols?: string[];
   caCertificatesCount?: CaCertificatesCount;
   proxy?: string;
+  secureContext?: any;
 };
 
 type AgentClass = new (options: AgentOptions, timeline?: TimelineEntry[]) => https.Agent;
@@ -86,7 +87,7 @@ function createTimelineAgentClass<T extends ProxyAgentClass | typeof https.Agent
         super(proxyUri, tlsOptions);
         this.timeline = Array.isArray(timeline) ? timeline : [];
         this.alpnProtocols = tlsOptions.ALPNProtocols || ['h2', 'http/1.1'];
-        this.caProvided = !!tlsOptions.ca;
+        this.caProvided = !!(tlsOptions.ca || tlsOptions.secureContext);
 
         // Log TLS verification status and proxy details
         this.log('info', `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`);
@@ -100,7 +101,7 @@ function createTimelineAgentClass<T extends ProxyAgentClass | typeof https.Agent
         super(tlsOptions);
         this.timeline = Array.isArray(timeline) ? timeline : [];
         this.alpnProtocols = optionsCopy.ALPNProtocols || ['h2', 'http/1.1'];
-        this.caProvided = !!optionsCopy.ca;
+        this.caProvided = !!(optionsCopy.ca || optionsCopy.secureContext);
 
         // Log TLS verification status
         this.log('info', `SSL validation: ${tlsOptions.rejectUnauthorized ? 'enabled' : 'disabled'}`);

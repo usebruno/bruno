@@ -70,9 +70,17 @@ const shouldUseProxy = (url, proxyBypass) => {
 };
 
 /**
- * Patched version of HttpsProxyAgent to get around a bug that ignores options
- * such as ca and rejectUnauthorized when upgrading the proxied socket to TLS:
- * https://github.com/TooTallNate/proxy-agents/issues/194
+ * Options that should be forwarded from the constructor to the target TLS upgrade.
+ */
+const TARGET_TLS_OPTIONS = ['cert', 'key', 'pfx', 'passphrase', 'rejectUnauthorized', 'secureContext'];
+
+/**
+ * Patched version of HttpsProxyAgent that correctly handles TLS options for
+ * both the proxy connection and the target server connection.
+ *
+ * The upstream HttpsProxyAgent (https://github.com/TooTallNate/proxy-agents/issues/194)
+ * ignores constructor options when upgrading the tunneled socket to TLS for the
+ * target server. This patch forwards the relevant TLS options to the target upgrade.
  */
 class PatchedHttpsProxyAgent extends HttpsProxyAgent {
   constructor(proxy, opts) {
@@ -81,8 +89,17 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
   }
 
   async connect(req, opts) {
-    const combinedOpts = { ...this.constructorOpts, ...opts };
-    return super.connect(req, combinedOpts);
+    const targetOpts = { ...opts };
+
+    if (this.constructorOpts) {
+      for (const key of TARGET_TLS_OPTIONS) {
+        if (key in this.constructorOpts) {
+          targetOpts[key] = this.constructorOpts[key];
+        }
+      }
+    }
+
+    return super.connect(req, targetOpts);
   }
 }
 
@@ -140,18 +157,23 @@ function setupProxyAgents({
         });
       }
 
+      // When the proxy itself uses HTTPS, the agent connecting to it needs TLS options
+      // (e.g., ca certs) even for plain HTTP requests
+      const isHttpsProxy = proxyProtocol === 'https';
+      const httpProxyAgentOptions = isHttpsProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
+
       // Only set the agent needed for the request protocol
       if (socksEnabled) {
         if (isHttpsRequest) {
           requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
         } else {
-          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
+          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: httpProxyAgentOptions, proxyUri, timeline, disableCache, hostname });
         }
       } else {
         if (isHttpsRequest) {
           requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
         } else {
-          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
+          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpProxyAgentOptions, proxyUri, timeline, disableCache, hostname });
         }
       }
     }
@@ -161,7 +183,9 @@ function setupProxyAgents({
     if (shouldUseSystemProxy) {
       try {
         if (http_proxy?.length && !isHttpsRequest) {
-          new URL(http_proxy);
+          const parsedHttpProxy = new URL(http_proxy);
+          const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
+          const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
           if (timeline) {
             timeline.push({
               timestamp: new Date(),
@@ -169,7 +193,7 @@ function setupProxyAgents({
               message: `Using system proxy: ${http_proxy}`
             });
           }
-          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri: http_proxy, timeline, disableCache, hostname });
+          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, timeline, disableCache, hostname });
         }
       } catch (error) {
         throw new Error(`Invalid system http_proxy "${http_proxy}": ${error.message}`);

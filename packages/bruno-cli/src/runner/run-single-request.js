@@ -459,18 +459,23 @@ const runSingleRequest = async function (
         } else {
           proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
         }
+        // When the proxy itself uses HTTPS, the agent connecting to it needs TLS options
+        // (e.g., ca certs) even for plain HTTP requests
+        const isHttpsProxy = proxyProtocol === 'https';
+        const httpProxyAgentOptions = isHttpsProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
+
         // Only set the agent needed for the request protocol
         if (socksEnabled) {
           if (isHttpsRequest) {
             request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
           } else {
-            request.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: httpAgentOptions, proxyUri, disableCache, hostname });
+            request.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: httpProxyAgentOptions, proxyUri, disableCache, hostname });
           }
         } else {
           if (isHttpsRequest) {
             request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
           } else {
-            request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpAgentOptions, proxyUri, disableCache, hostname });
+            request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpProxyAgentOptions, proxyUri, disableCache, hostname });
           }
         }
       }
@@ -481,8 +486,10 @@ const runSingleRequest = async function (
         if (shouldUseSystemProxy) {
           try {
             if (http_proxy?.length && !isHttpsRequest) {
-              new URL(http_proxy);
-              request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpAgentOptions, proxyUri: http_proxy, disableCache, hostname });
+              const parsedHttpProxy = new URL(http_proxy);
+              const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
+              const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
+              request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, disableCache, hostname });
             }
           } catch (error) {
             throw new Error('Invalid system http_proxy');

@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import tls from 'node:tls';
 import type { Agent as HttpAgent } from 'node:http';
 import type { Agent as HttpsAgent } from 'node:https';
 import { createTimelineAgentClass, createTimelineHttpAgentClass, type TimelineEntry, type AgentOptions, type HttpAgentOptions, type AgentClass, type HttpAgentClass } from './timeline-agent';
@@ -57,6 +58,56 @@ function hashValue(value: string | Buffer | undefined): string | null {
 }
 
 /**
+ * Cache for secure contexts created from CA options.
+ * Keyed by the hash of the CA value to avoid creating duplicate contexts.
+ */
+const secureContextCache = new Map<string, tls.SecureContext>();
+
+/**
+ * Build a TLS secure context that adds custom CAs on top of the OpenSSL defaults.
+ *
+ * When Node.js receives an explicit `ca` option in tls.connect() or https.Agent,
+ * it replaces the default CA store entirely. This means CAs that are only in the
+ * OpenSSL default trust store (e.g. /etc/ssl/cert.pem) but not in
+ * tls.rootCertificates or tls.getCACertificates('system') are lost.
+ *
+ * This function creates a secureContext starting from the OpenSSL defaults
+ * and adds custom CAs on top via addCACert(), which appends rather than replaces.
+ */
+function buildSecureContext(ca: string | Buffer | (string | Buffer)[]): tls.SecureContext {
+  const caHash = hashCaValue(ca);
+  if (caHash && secureContextCache.has(caHash)) {
+    return secureContextCache.get(caHash)!;
+  }
+
+  const ctx = tls.createSecureContext();
+  const caList = Array.isArray(ca) ? ca : [ca];
+  for (const cert of caList) {
+    if (cert) {
+      ctx.context.addCACert(cert);
+    }
+  }
+
+  if (caHash) {
+    secureContextCache.set(caHash, ctx);
+  }
+  return ctx;
+}
+
+/**
+ * Convert agent options to use a secureContext instead of raw `ca`.
+ * This ensures custom CAs are added on top of the OpenSSL defaults
+ * rather than replacing the default CA store.
+ */
+function applySecureContext<T extends AgentOptions | HttpAgentOptions>(options: T): T {
+  if ('ca' in options && (options as AgentOptions).ca) {
+    const { ca, ...rest } = options as AgentOptions;
+    return { ...rest, secureContext: buildSecureContext(ca!) } as unknown as T;
+  }
+  return options;
+}
+
+/**
  * Hash a CA value which can be a single value or an array of certificates.
  * Node.js TLS options allow ca to be string | Buffer | (string | Buffer)[].
  */
@@ -79,7 +130,7 @@ function getAgentCacheKey(agentClassId: number, options: AgentOptions, proxyUri:
   // Extract the TLS-relevant options for the cache key
   const keyData = {
     agentClassId,
-    hostname,
+    hostname: proxyUri?.length ? null : hostname,
     proxyUri,
     keepAlive: options.keepAlive,
     rejectUnauthorized: options.rejectUnauthorized,
@@ -102,7 +153,7 @@ function getAgentCacheKey(agentClassId: number, options: AgentOptions, proxyUri:
 function getHttpAgentCacheKey(agentClassId: number, options: HttpAgentOptions, proxyUri: string | null = null, hostname: string | null = null): string {
   const keyData = {
     agentClassId,
-    hostname,
+    hostname: proxyUri?.length ? null : hostname,
     proxyUri,
     keepAlive: options.keepAlive
   };
@@ -189,8 +240,20 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
   }
 
   const AgentClass = timeline ? getTimelineClass(BaseAgentClass) : BaseAgentClass;
-  const agentOptions = proxyUri ? { ...options, proxy: proxyUri } : options;
-  const agent = new AgentClass(agentOptions, timeline ?? undefined);
+  // Convert raw `ca` to a secureContext that adds CAs on top of OpenSSL defaults
+  const resolvedOptions = applySecureContext(options);
+
+  let agent: HttpAgent | HttpsAgent;
+  if (timeline) {
+    // Timeline-wrapped classes handle proxy internally via options.proxy
+    const agentOptions = proxyUri ? { ...resolvedOptions, proxy: proxyUri } : resolvedOptions;
+    agent = new AgentClass(agentOptions, timeline);
+  } else if (proxyUri) {
+    // Proxy agent classes expect (proxyUri, options) constructor signature
+    agent = new BaseAgentClass(proxyUri, resolvedOptions);
+  } else {
+    agent = new BaseAgentClass(resolvedOptions);
+  }
 
   if (!disableCache) {
     // Evict oldest entry if cache is full (LRU eviction)
