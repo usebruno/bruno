@@ -369,7 +369,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                     authorizationCode: {
                       authorizationUrl,
                       tokenUrl: accessTokenUrl,
-                      ...(scope.length > 0
+                      ...(scope?.length > 0
                         ? {
                             scopes: {
                               [scope]: ''
@@ -389,7 +389,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                   flows: {
                     password: {
                       tokenUrl: accessTokenUrl,
-                      ...(scope.length > 0
+                      ...(scope?.length > 0
                         ? {
                             scopes: {
                               [scope]: ''
@@ -409,7 +409,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                   flows: {
                     password: {
                       tokenUrl: accessTokenUrl,
-                      ...(scope.length > 0
+                      ...(scope?.length > 0
                         ? {
                             scopes: {
                               [scope]: ''
