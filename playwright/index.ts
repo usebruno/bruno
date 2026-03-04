@@ -158,7 +158,7 @@ export const test = baseTest.extend<
 
         if (initUserDataPath) {
           const replacements: Record<string, string> = {
-            projectRoot: path.posix.join(__dirname, '..'),
+            projectRoot: path.join(__dirname, '..').replace(/\\/g, '/'),
             ...templateVars
           };
 
