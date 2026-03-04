@@ -2,7 +2,6 @@ const { ipcMain, nativeTheme } = require('electron');
 const { getPreferences, savePreferences } = require('../store/preferences');
 const { getGitVersion } = require('../utils/git');
 const { globalEnvironmentsStore } = require('../store/global-environments');
-const { parsedFileCacheStore } = require('../store/parsed-file-cache-idb');
 const { getCachedSystemProxy, fetchSystemProxy } = require('../store/system-proxy');
 const { resolveDefaultLocation } = require('../utils/default-location');
 const onboardUser = require('../app/onboarding');
@@ -59,25 +58,6 @@ const registerPreferencesIpc = (mainWindow) => {
 
   ipcMain.on('renderer:theme-change', (event, theme) => {
     nativeTheme.themeSource = theme;
-  });
-
-  ipcMain.handle('renderer:get-cache-stats', async () => {
-    try {
-      return await parsedFileCacheStore.getStats();
-    } catch (error) {
-      console.error('Error getting cache stats:', error);
-      return { error: error.message };
-    }
-  });
-
-  ipcMain.handle('renderer:purge-cache', async () => {
-    try {
-      await parsedFileCacheStore.clear();
-      return { success: true };
-    } catch (error) {
-      console.error('Error purging cache:', error);
-      return { success: false, error: error.message };
-    }
   });
 
   ipcMain.handle('renderer:get-system-proxy-variables', async () => {
