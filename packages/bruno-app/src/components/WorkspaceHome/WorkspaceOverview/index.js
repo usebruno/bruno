@@ -29,8 +29,9 @@ const WorkspaceOverview = ({ workspace }) => {
   const workspaceEnvironmentsCount = globalEnvironments?.length || 0;
 
   const handleCreateCollection = async () => {
-    if (isCreatingCollection)
+    if (isCreatingCollection) {
       return;
+    }
 
     if (!workspace?.pathname) {
       toast.error('Workspace path not found');

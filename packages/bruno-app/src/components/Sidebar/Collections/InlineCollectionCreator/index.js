@@ -49,10 +49,10 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
     }
   }, [defaultLocation]);
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = () => {
     if (isCreating || openingAdvancedRef.current) return;
     onCancel();
-  }, [isCreating, onCancel]);
+  };
 
   const handleCreate = useCallback(async () => {
     const fromOutside = clickedOutsideRef.current;

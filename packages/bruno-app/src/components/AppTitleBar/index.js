@@ -151,7 +151,7 @@ const AppTitleBar = () => {
     }
   };
 
-  const handleCreateWorkspace = async () => {
+  const handleCreateWorkspace = useCallback(async () => {
     const defaultLocation = get(preferences, 'general.defaultLocation', '');
     if (!defaultLocation) {
       setCreateWorkspaceModalOpen(true);
@@ -164,7 +164,7 @@ const AppTitleBar = () => {
     } catch (error) {
       toast.error(error?.message || 'Failed to create workspace');
     }
-  };
+  }, [preferences, dispatch]);
 
   const handleManageWorkspaces = () => {
     dispatch(showManageWorkspacePage());
@@ -252,7 +252,7 @@ const AppTitleBar = () => {
     );
 
     return items;
-  }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace]);
+  }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace, handleCreateWorkspace]);
 
   return (
     <StyledWrapper className={`app-titlebar ${osClass} ${isFullScreen ? 'fullscreen' : ''}`}>
