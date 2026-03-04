@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const fs = require('fs');
-const fsPromises = require('fs').promises;
 const path = require('path');
 const chokidar = require('chokidar');
 const {
@@ -27,8 +26,6 @@ const UiStateSnapshot = require('../store/ui-state-snapshot');
 const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
-const { parsedFileCacheStore } = require('../store/parsed-file-cache-idb');
-const { getBatcher } = require('./collection-tree-batcher');
 const dotEnvWatcher = require('./dotenv-watcher');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
@@ -226,8 +223,6 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     return addEnvironmentFile(win, pathname, collectionUid, collectionPath);
   }
 
-  const batcher = getBatcher(win, collectionUid);
-
   if (isCollectionRootFile(pathname, collectionPath)) {
     const format = getCollectionFormat(collectionPath);
     const file = {
@@ -294,8 +289,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.data = await parseFolder(content, { format });
 
       hydrateCollectionRootWithUuid(file.data);
-      // win.webContents.send('main:collection-tree-updated', 'addFile', file);
-      batcher.add('addFile', file);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
       return;
     } catch (err) {
       console.error(err);
@@ -315,69 +309,61 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       }
     };
 
-    try {
-      const fileStats = await fsPromises.stat(pathname);
+    const fileStats = fs.statSync(pathname);
+    let content = fs.readFileSync(pathname, 'utf8');
 
-      const cachedEntry = await parsedFileCacheStore.getEntry(collectionPath, pathname);
-      if (cachedEntry && cachedEntry.mtimeMs === fileStats.mtimeMs) {
-        // Cache hit
-        file.data = cachedEntry.parsedData;
-        file.partial = false;
-        file.loading = false;
-        file.size = sizeInMB(fileStats?.size);
-        hydrateRequestWithUuid(file.data, pathname);
-        batcher.add('addFile', file);
-        watcher.markFileAsProcessed(win, collectionUid, pathname);
-        return;
-      }
-
-      // Cache miss
-      const content = await fsPromises.readFile(pathname, 'utf8');
-
-      if (!useWorkerThread) {
+    // If worker thread is not used, we can directly parse the file
+    if (!useWorkerThread) {
+      try {
         file.data = await parseRequest(content, { format });
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
-        batcher.add('addFile', file);
-
-        await parsedFileCacheStore.setEntry(collectionPath, pathname, {
-          mtimeMs: fileStats.mtimeMs,
-          parsedData: file.data
-        });
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      } catch (error) {
+        console.error(error);
+      } finally {
         watcher.markFileAsProcessed(win, collectionUid, pathname);
-        return;
       }
+      return;
+    }
+
+    try {
+      // we need to send a partial file info to the UI
+      // so that the UI can display the file in the collection tree
+      file.data = {
+        name: path.basename(pathname),
+        type: 'http-request'
+      };
+
+      const metaJson = parseFileMeta(content, format);
+      file.data = metaJson;
+      file.partial = true;
+      file.loading = false;
+      file.size = sizeInMB(fileStats?.size);
+      hydrateRequestWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
       if (fileStats.size < MAX_FILE_SIZE) {
+        // This is to update the loading indicator in the UI
+        file.data = metaJson;
+        file.partial = false;
+        file.loading = true;
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+
+        // This is to update the file info in the UI
         file.data = await parseRequestViaWorker(content, {
           format,
           filename: pathname
         });
         file.partial = false;
         file.loading = false;
-        file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
-        batcher.add('addFile', file);
-
-        await parsedFileCacheStore.setEntry(collectionPath, pathname, {
-          mtimeMs: fileStats.mtimeMs,
-          parsedData: file.data
-        });
-      } else {
-        const metaJson = parseFileMeta(content, format);
-        file.data = metaJson;
-        file.partial = true;
-        file.loading = false;
-        file.size = sizeInMB(fileStats?.size);
-        hydrateRequestWithUuid(file.data, pathname);
-        batcher.add('addFile', file);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
-
-      watcher.markFileAsProcessed(win, collectionUid, pathname);
     } catch (error) {
-      console.error(`Error processing file ${pathname}:`, error);
       file.data = {
         name: path.basename(pathname),
         type: 'http-request'
@@ -387,8 +373,10 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       };
       file.partial = true;
       file.loading = false;
+      file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
-      batcher.add('addFile', file);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+    } finally {
       watcher.markFileAsProcessed(win, collectionUid, pathname);
     }
   }
@@ -408,16 +396,15 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   const folderFilePath = path.join(pathname, `folder.${format}`);
 
   try {
-    await fsPromises.access(folderFilePath);
-    const folderFileContent = await fsPromises.readFile(folderFilePath, 'utf8');
-    const folderData = await parseFolder(folderFileContent, { format });
-    name = folderData?.meta?.name || name;
-    seq = folderData?.meta?.seq;
-  } catch (error) {
-    if (error.code !== 'ENOENT') {
-      console.error(`Error occurred while parsing folder.${format} file`);
-      console.error(error);
+    if (fs.existsSync(folderFilePath)) {
+      let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
+      let folderData = await parseFolder(folderFileContent, { format });
+      name = folderData?.meta?.name || name;
+      seq = folderData?.meta?.seq;
     }
+  } catch (error) {
+    console.error(`Error occured while parsing folder.${format} file`);
+    console.error(error);
   }
 
   const directory = {
@@ -430,8 +417,7 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
     }
   };
 
-  const batcher = getBatcher(win, collectionUid);
-  batcher.add('addDir', directory);
+  win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
@@ -538,9 +524,6 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
   const format = getCollectionFormat(collectionPath);
   if (hasRequestExtension(pathname, format)) {
-    // Invalidate cache for this file since it changed
-    await parsedFileCacheStore.invalidate(collectionPath, pathname);
-
     try {
       const file = {
         meta: {
@@ -561,14 +544,6 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
-
-      // Update cache with new parsed data
-      await parsedFileCacheStore.setEntry(collectionPath, pathname, {
-        mtimeMs: fileStats.mtimeMs,
-        parsedData: file.data
-      });
-
-      // Change events are not batched - they need immediate feedback
       win.webContents.send('main:collection-tree-updated', 'change', file);
     } catch (err) {
       console.error(err);
@@ -576,7 +551,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   }
 };
 
-const unlink = async (win, pathname, collectionUid, collectionPath) => {
+const unlink = (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher unlink: ${pathname}`);
 
   if (isEnvironmentsFolder(pathname, collectionPath)) {
@@ -585,9 +560,6 @@ const unlink = async (win, pathname, collectionUid, collectionPath) => {
 
   const format = getCollectionFormat(collectionPath);
   if (hasRequestExtension(pathname, format)) {
-    // Invalidate cache for deleted file
-    await parsedFileCacheStore.invalidate(collectionPath, pathname);
-
     const basename = path.basename(pathname);
     const dirname = path.dirname(pathname);
 
@@ -613,8 +585,6 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
-  await parsedFileCacheStore.invalidateDirectory(collectionPath, pathname);
-
   const format = getCollectionFormat(collectionPath);
   const folderFilePath = path.join(pathname, `folder.${format}`);
 
@@ -637,9 +607,7 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {
-  const batcher = getBatcher(win, collectionUid);
-  batcher.flush();
-
+  // Mark discovery as complete
   watcher.completeCollectionDiscovery(win, collectionUid);
 
   const UiStateSnapshotStore = new UiStateSnapshot();
