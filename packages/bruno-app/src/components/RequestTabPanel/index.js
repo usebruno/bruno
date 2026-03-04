@@ -36,6 +36,7 @@ import WorkspaceOverview from 'components/WorkspaceHome/WorkspaceOverview';
 import Preferences from 'components/Preferences';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
+import EmptyState from './EmptyState';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 490;
@@ -175,7 +176,7 @@ const RequestTabPanel = () => {
   }
 
   if (!activeTabUid || !focusedTab) {
-    return <div className="pb-4 px-4">An error occurred!</div>;
+    return <EmptyState />;
   }
 
   if (focusedTab.type === 'global-environment-settings') {
@@ -195,7 +196,7 @@ const RequestTabPanel = () => {
   }
 
   if (!focusedTab.uid || !focusedTab.collectionUid) {
-    return <div className="pb-4 px-4">An error occurred!</div>;
+    return <EmptyState error="The current tab could not be loaded. Try selecting another request." />;
   }
 
   if (!collection || !collection.uid) {
