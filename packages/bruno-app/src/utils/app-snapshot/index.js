@@ -1,5 +1,9 @@
 import path from 'utils/common/path';
 import { findItemInCollection } from 'utils/collections';
+import { CURRENT_VERSION, validateSnapshot, safeValidateSnapshot, loadAndMigrateSnapshot } from './schema';
+
+// Re-export schema utilities for external use
+export { CURRENT_VERSION, validateSnapshot, safeValidateSnapshot, loadAndMigrateSnapshot };
 
 /**
  * Tab type mapping from Redux to schema format
@@ -227,7 +231,7 @@ export const serializeAppSnapshot = (state) => {
   const devtoolsHeight = logsState.devtoolsHeight || 300;
 
   return {
-    version: 1,
+    version: CURRENT_VERSION,
     activeWorkspacePathname: workspaces.find((w) => w.uid === activeWorkspaceUid)?.pathname || null,
     workspaces: serializedWorkspaces,
     collections: allSerializedCollections,

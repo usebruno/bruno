@@ -94,7 +94,8 @@
     "url": "^0.11.3",
     "xml-formatter": "^3.5.0",
     "xml2js": "^0.6.2",
-    "yup": "^0.32.11"
+    "yup": "^0.32.11",
+    "zod": "^3.24.4"
   },
   "devDependencies": {
     "@babel/core": "^7.27.1",

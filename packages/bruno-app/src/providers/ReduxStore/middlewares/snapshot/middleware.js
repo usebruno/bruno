@@ -1,4 +1,4 @@
-import { serializeAppSnapshot } from 'utils/app-snapshot';
+import { serializeAppSnapshot, safeValidateSnapshot } from 'utils/app-snapshot';
 
 const { ipcRenderer } = window;
 
@@ -40,7 +40,15 @@ let saveTimer = null;
 const saveSnapshot = async (state) => {
   try {
     const snapshot = serializeAppSnapshot(state);
-    await ipcRenderer.invoke('renderer:save-app-snapshot', snapshot);
+
+    // Validate snapshot against schema before saving
+    const validation = safeValidateSnapshot(snapshot);
+    if (!validation.success) {
+      console.error('[app-snapshot] Snapshot validation failed:', validation.error.errors);
+      return;
+    }
+
+    await ipcRenderer.invoke('renderer:save-app-snapshot', validation.data);
   } catch (error) {
     console.error('[app-snapshot] Failed to save snapshot:', error);
   }

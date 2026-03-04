@@ -1,5 +1,6 @@
 import path from 'utils/common/path';
 import { flattenItems, findCollectionByPathname } from 'utils/collections';
+import { loadAndMigrateSnapshot } from './schema';
 
 /**
  * Tab type mapping from schema to Redux format
@@ -131,9 +132,18 @@ export const deserializeDevTools = (devToolsSchema) => {
  * Build a restore sequence from a snapshot
  * Returns an object with actions to be dispatched
  */
-export const buildRestoreSequence = (snapshot, currentState) => {
-  if (!snapshot || snapshot.version !== 1) {
-    console.warn('[app-snapshot] Invalid or missing snapshot');
+export const buildRestoreSequence = (rawSnapshot, currentState) => {
+  if (!rawSnapshot) {
+    console.warn('[app-snapshot] No snapshot provided');
+    return null;
+  }
+
+  // Validate and migrate snapshot to current version
+  let snapshot;
+  try {
+    snapshot = loadAndMigrateSnapshot(rawSnapshot);
+  } catch (error) {
+    console.error('[app-snapshot] Failed to load snapshot:', error.message);
     return null;
   }
 
