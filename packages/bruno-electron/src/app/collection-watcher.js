@@ -289,7 +289,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.data = await parseFolder(content, { format });
 
       hydrateCollectionRootWithUuid(file.data);
-      // win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
       return;
     } catch (err) {
       console.error(err);

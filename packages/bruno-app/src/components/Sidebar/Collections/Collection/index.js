@@ -67,7 +67,7 @@ const Collection = ({ collection, searchText }) => {
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
   const dispatch = useDispatch();
-  const isLoading = areItemsLoading(collection);
+  const isLoading = collection.isLoading;
   const collectionRef = useRef(null);
   const itemCount = collection.items?.length || 0;
 

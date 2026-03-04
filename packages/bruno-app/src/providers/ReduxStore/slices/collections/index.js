@@ -2783,33 +2783,7 @@ export const collectionsSlice = createSlice({
 
       if (isFolderRoot) {
         const folderPath = path.dirname(file.meta.pathname);
-        let folderItem = findItemInCollectionByPathname(collection, folderPath);
-
-        if (!folderItem && collection) {
-          const subDirectories = getSubdirectoriesFromRoot(collection.pathname, folderPath);
-          let currentPath = collection.pathname;
-          let currentSubItems = collection.items;
-          for (const directoryName of subDirectories) {
-            let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
-            currentPath = path.join(currentPath, directoryName);
-            if (!childItem) {
-              childItem = {
-                uid: uuid(),
-                pathname: currentPath,
-                name: directoryName,
-                collapsed: true,
-                type: 'folder',
-                items: []
-              };
-              currentSubItems.push(childItem);
-            }
-            currentSubItems = childItem.items;
-            if (currentPath === folderPath) {
-              folderItem = childItem;
-            }
-          }
-        }
-
+        const folderItem = findItemInCollectionByPathname(collection, folderPath);
         if (folderItem) {
           if (file?.data?.meta?.name) {
             folderItem.name = file?.data?.meta?.name;
