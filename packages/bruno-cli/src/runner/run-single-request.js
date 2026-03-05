@@ -9,7 +9,8 @@ const { interpolateString, interpolateObject } = require('./interpolate-string')
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, formatErrorWithContext, SCRIPT_TYPES } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
-const https = require('https');
+const https = require('node:https');
+const http = require('node:http');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
@@ -22,7 +23,7 @@ const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2 } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig, getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData } = require('@usebruno/common').utils;
@@ -203,7 +204,8 @@ const runSingleRequest = async function (
         shouldVerifyTls: !get(options, 'insecure', false),
         shouldUseCustomCaCertificate: !!options['cacert'],
         customCaCertificateFilePath: options['cacert'],
-        shouldKeepDefaultCaCertificates: !options['ignoreTruststore']
+        shouldKeepDefaultCaCertificates: !options['ignoreTruststore'],
+        cacheSslSession: get(options, 'cacheSslSession', false)
       },
       clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
       collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
@@ -347,6 +349,7 @@ const runSingleRequest = async function (
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
     const cachedSystemProxy = get(options, 'cachedSystemProxy', null);
+    const disableCache = !get(options, 'cacheSslSession', false);
     const httpsAgentRequestFields = {};
 
     if (insecure) {
@@ -426,6 +429,18 @@ const runSingleRequest = async function (
     }
     // else: collection proxy is disabled, proxyMode stays 'off'
 
+    // Prepare TLS options for agent caching
+    const tlsOptions = {
+      ...httpsAgentRequestFields
+    };
+
+    // HTTP agent options — separate from tlsOptions to avoid leaking TLS fields
+    const httpAgentOptions = { keepAlive: true };
+
+    const parsedRequestUrl = new URL(request.url);
+    const isHttpsRequest = parsedRequestUrl.protocol === 'https:';
+    const hostname = parsedRequestUrl.hostname || null;
+
     if (proxyMode === 'on') {
       const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
       if (shouldProxy) {
@@ -444,35 +459,37 @@ const runSingleRequest = async function (
         } else {
           proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
         }
+        // When the proxy itself uses HTTPS, the agent connecting to it needs TLS options
+        // (e.g., ca certs) even for plain HTTP requests
+        const isHttpsProxy = proxyProtocol === 'https';
+        const httpProxyAgentOptions = isHttpsProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
+
+        // Only set the agent needed for the request protocol
         if (socksEnabled) {
-          request.httpsAgent = new SocksProxyAgent(
-            proxyUri,
-            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-          );
-          request.httpAgent = new SocksProxyAgent(proxyUri);
+          if (isHttpsRequest) {
+            request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
+          } else {
+            request.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: httpProxyAgentOptions, proxyUri, disableCache, hostname });
+          }
         } else {
-          request.httpsAgent = new PatchedHttpsProxyAgent(
-            proxyUri,
-            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-          );
-          request.httpAgent = new HttpProxyAgent(proxyUri);
+          if (isHttpsRequest) {
+            request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
+          } else {
+            request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpProxyAgentOptions, proxyUri, disableCache, hostname });
+          }
         }
-      } else {
-        request.httpsAgent = new https.Agent({
-          ...httpsAgentRequestFields
-        });
       }
     } else if (proxyMode === 'system') {
       try {
         const { http_proxy, https_proxy, no_proxy } = cachedSystemProxy || {};
         const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
-        const parsedUrl = new URL(request.url);
-        const isHttpsRequest = parsedUrl.protocol === 'https:';
         if (shouldUseSystemProxy) {
           try {
             if (http_proxy?.length && !isHttpsRequest) {
-              new URL(http_proxy);
-              request.httpAgent = new HttpProxyAgent(http_proxy);
+              const parsedHttpProxy = new URL(http_proxy);
+              const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
+              const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
+              request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, disableCache, hostname });
             }
           } catch (error) {
             throw new Error('Invalid system http_proxy');
@@ -480,30 +497,21 @@ const runSingleRequest = async function (
           try {
             if (https_proxy?.length && isHttpsRequest) {
               new URL(https_proxy);
-              request.httpsAgent = new PatchedHttpsProxyAgent(https_proxy,
-                Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined);
-            } else {
-              request.httpsAgent = new https.Agent({
-                ...httpsAgentRequestFields
-              });
+              request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, disableCache, hostname });
             }
           } catch (error) {
             throw new Error('Invalid system https_proxy');
           }
-        } else {
-          request.httpsAgent = new https.Agent({
-            ...httpsAgentRequestFields
-          });
         }
-      } catch (error) {
-        request.httpsAgent = new https.Agent({
-          ...httpsAgentRequestFields
-        });
+      } catch (error) {}
+    }
+
+    if (!request.httpAgent && !request.httpsAgent) {
+      if (isHttpsRequest) {
+        request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: https.Agent, options: tlsOptions, disableCache, hostname });
+      } else {
+        request.httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: httpAgentOptions, disableCache, hostname });
       }
-    } else if (Object.keys(httpsAgentRequestFields).length > 0) {
-      request.httpsAgent = new https.Agent({
-        ...httpsAgentRequestFields
-      });
     }
 
     // set cookies if enabled
@@ -610,12 +618,13 @@ const runSingleRequest = async function (
 
         let token;
         if (oauth2RequestUrl) {
-          const tlsOptions = {
+          const oauth2ConfigOptions = {
             noproxy: options.noproxy,
             shouldVerifyTls: !insecure,
             shouldUseCustomCaCertificate: !!options['cacert'],
             customCaCertificateFilePath: options['cacert'],
-            shouldKeepDefaultCaCertificates: !options['ignoreTruststore']
+            shouldKeepDefaultCaCertificates: !options['ignoreTruststore'],
+            cacheSslSession: !disableCache
           };
 
           const clientCertificates = get(brunoConfig, 'clientCertificates');
@@ -627,7 +636,7 @@ const runSingleRequest = async function (
           const { httpAgent: oauth2HttpAgent, httpsAgent: oauth2HttpsAgent } = await getHttpHttpsAgents({
             requestUrl: oauth2RequestUrl,
             collectionPath,
-            options: tlsOptions,
+            options: oauth2ConfigOptions,
             clientCertificates: interpolatedClientCertificates,
             collectionLevelProxy: interpolatedProxyConfig,
             systemProxyConfig

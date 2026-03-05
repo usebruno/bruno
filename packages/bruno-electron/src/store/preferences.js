@@ -106,6 +106,11 @@ const defaultPreferences = {
   },
   display: {
     zoomPercentage: 100
+  },
+  cache: {
+    sslSession: {
+      enabled: false
+    }
   }
 };
 
@@ -164,7 +169,12 @@ const preferencesSchema = Yup.object().shape({
   }),
   display: Yup.object({
     zoomPercentage: Yup.number().min(50).max(150)
-  })
+  }),
+  cache: Yup.object({
+    sslSession: Yup.object({
+      enabled: Yup.boolean()
+    })
+  }).optional()
 });
 
 class PreferencesStore {
@@ -350,6 +360,9 @@ const preferencesUtil = {
   },
   getZoomPercentage: () => {
     return get(getPreferences(), 'display.zoomPercentage', 100);
+  },
+  isSslSessionCachingEnabled: () => {
+    return get(getPreferences(), 'cache.sslSession.enabled', false);
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);

@@ -43,6 +43,11 @@ const initialState = {
     autoSave: {
       enabled: false,
       interval: 1000
+    },
+    cache: {
+      sslSession: {
+        enabled: false
+      }
     }
   },
   generateCode: {
@@ -298,6 +303,13 @@ export const refreshSystemProxy = () => (dispatch, getState) => {
         return variables;
       })
       .then(resolve).catch(reject);
+  });
+};
+
+export const clearHttpHttpsAgentCache = () => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:clear-http-https-agent-cache').then(resolve).catch(reject);
   });
 };
 
