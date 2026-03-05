@@ -203,7 +203,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     { id: 'variables', label: 'Variables', leftSection: IconEye, onClick: viewVariables },
     { id: 'collection-settings', label: 'Collection Settings', leftSection: IconSettings, onClick: viewCollectionSettings },
     ...(!hasOpenApiSyncConfigured
-      ? [{ id: 'openapi-sync', label: 'OpenAPI Sync', leftSection: () => <OpenAPISyncIcon size={16} />, onClick: viewOpenApiSync }]
+      ? [{ id: 'openapi-sync', label: 'OpenAPI Sync', leftSection: OpenAPISyncIcon, onClick: viewOpenApiSync }]
       : [])
   ];
 
