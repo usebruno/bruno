@@ -86,7 +86,6 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     if (language.target === 'shell' && language.client === 'curl') {
       result = addCurlAuthFlags(result, effectiveAuth);
     }
-
     if (!shouldInterpolate) {
       result = result.replace(harUrl, templateUrl);
     }

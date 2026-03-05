@@ -90,7 +90,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
   const interpolatedUrl = interpolateUrl({
     url: requestData.url,
     variables
-  });
+  }) || '';
   const validationUrl = interpolateUrlPathParams(
     interpolatedUrl,
     requestData.params,
