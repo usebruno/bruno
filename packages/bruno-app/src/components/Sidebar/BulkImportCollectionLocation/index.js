@@ -839,7 +839,7 @@ export const BulkImportCollectionLocation = ({
 
                 {isMultipleImport && hasOpenApiSpec && (
                   <div>
-                    <div className="flex gap-4 items-center">
+                    <div className="flex gap-4 items-center mt-4">
                       <div>
                         <label htmlFor="groupingType" className="block font-semibold">
                           Folder arrangement

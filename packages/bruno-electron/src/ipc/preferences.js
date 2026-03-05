@@ -2,16 +2,18 @@ const { ipcMain, nativeTheme } = require('electron');
 const { getPreferences, savePreferences } = require('../store/preferences');
 const { getGitVersion } = require('../utils/git');
 const { globalEnvironmentsStore } = require('../store/global-environments');
-const { parsedFileCacheStore } = require('../store/parsed-file-cache-idb');
-const { getCachedSystemProxy, refreshSystemProxy } = require('../store/system-proxy');
+const { getCachedSystemProxy, fetchSystemProxy } = require('../store/system-proxy');
 const { resolveDefaultLocation } = require('../utils/default-location');
+const onboardUser = require('../app/onboarding');
+const LastOpenedCollections = require('../store/last-opened-collections');
 
 const registerPreferencesIpc = (mainWindow) => {
+  const lastOpenedCollections = new LastOpenedCollections();
+
+  const onboardingPromise = onboardUser(mainWindow, lastOpenedCollections);
+
   ipcMain.handle('renderer:ready', async (event) => {
-    // Wait for onboarding to finish before reading preferences.
-    // Onboarding may set hasSeenWelcomeModal for new vs existing users,
-    // and we need the renderer to receive the correct values.
-    await new Promise((resolve) => ipcMain.once('main:onboarding-complete', resolve));
+    await onboardingPromise;
 
     // load preferences
     const preferences = getPreferences();
@@ -58,37 +60,12 @@ const registerPreferencesIpc = (mainWindow) => {
     nativeTheme.themeSource = theme;
   });
 
-  ipcMain.handle('renderer:get-cache-stats', async () => {
-    try {
-      return await parsedFileCacheStore.getStats();
-    } catch (error) {
-      console.error('Error getting cache stats:', error);
-      return { error: error.message };
-    }
-  });
-
-  ipcMain.handle('renderer:purge-cache', async () => {
-    try {
-      await parsedFileCacheStore.clear();
-      return { success: true };
-    } catch (error) {
-      console.error('Error purging cache:', error);
-      return { success: false, error: error.message };
-    }
-  });
-
   ipcMain.handle('renderer:get-system-proxy-variables', async () => {
-    // Return cached value (initialized at app startup)
-    const cachedProxy = getCachedSystemProxy();
-    if (cachedProxy) {
-      return cachedProxy;
-    }
-    // Fallback: refresh if cache is empty (shouldn't happen normally)
-    return await refreshSystemProxy();
+    return await getCachedSystemProxy();
   });
 
   ipcMain.handle('renderer:refresh-system-proxy', async () => {
-    return await refreshSystemProxy();
+    return await fetchSystemProxy({ refresh: true });
   });
 };
 

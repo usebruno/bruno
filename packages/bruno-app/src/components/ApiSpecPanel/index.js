@@ -3,13 +3,11 @@ import find from 'lodash/find';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconFileCode, IconDots } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
-import FileEditor from './FileEditor';
+import SpecViewer from './SpecViewer';
 import Dropdown from 'components/Dropdown';
-import { openApiSpec } from 'providers/ReduxStore/slices/apiSpec';
+import { openApiSpec, saveApiSpecToFile } from 'providers/ReduxStore/slices/apiSpec';
 import { useState } from 'react';
 import CreateApiSpec from 'components/Sidebar/ApiSpecs/CreateApiSpec';
-import { Suspense } from 'react';
-import Swagger from './Renderers/Swagger';
 import toast from 'react-hot-toast';
 
 const ApiSpecPanel = () => {
@@ -78,18 +76,10 @@ const ApiSpecPanel = () => {
           </Dropdown>
         </div>
       </div>
-      <section className="main flex flex-grow px-4 relative">
-        <div className="w-full grid grid-cols-2">
-          <div className="col-span-1">
-            <FileEditor apiSpec={apiSpec} />
-          </div>
-          <div className="col-span-1">
-            <Suspense fallback="">
-              <Swagger string={raw} />
-            </Suspense>
-          </div>
-        </div>
-      </section>
+      <SpecViewer
+        content={raw}
+        onSave={(content) => dispatch(saveApiSpecToFile({ uid, content }))}
+      />
     </StyledWrapper>
   );
 };

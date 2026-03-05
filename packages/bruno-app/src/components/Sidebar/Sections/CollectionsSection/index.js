@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { setIsCreatingCollection } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,11 +17,13 @@ import {
   IconTerminal2
 } from '@tabler/icons';
 
-import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
+import { importCollection, openCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { normalizePath } from 'utils/common/path';
-import { isScratchCollection } from 'utils/collections';
+import { isScratchCollection, flattenItems, isItemTransientRequest } from 'utils/collections';
+import { sanitizeName } from 'utils/common/regex';
+import filter from 'lodash/filter';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
@@ -44,16 +47,34 @@ const CollectionsSection = () => {
 
   const { collections } = useSelector((state) => state.collections);
   const { collectionSortOrder } = useSelector((state) => state.collections);
+  const { isCreatingCollection } = useSelector((state) => state.app);
   const preferences = useSelector((state) => state.app.preferences);
   const [collectionsToClose, setCollectionsToClose] = useState([]);
 
   const [importData, setImportData] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const [advancedCreateName, setAdvancedCreateName] = useState('');
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [showCloneGitModal, setShowCloneGitModal] = useState(false);
   const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
 
+  // Listen for sidebar-search-open hotkey event
+  useEffect(() => {
+    const handleSidebarSearch = () => {
+      setShowSearch(true);
+      // Focus the search input after it's rendered
+      setTimeout(() => {
+        const searchInput = document.querySelector('.collection-search-input');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }, 50);
+    };
+
+    window.addEventListener('sidebar-search-open', handleSidebarSearch);
+    return () => window.removeEventListener('sidebar-search-open', handleSidebarSearch);
+  }, []);
   // Default to true (don't show modal) so that:
   // 1. Existing users who upgrade (no hasSeenWelcomeModal in their prefs) don't see it
   // 2. The modal doesn't flash before preferences are loaded from the electron process
@@ -179,13 +200,63 @@ const CollectionsSection = () => {
     });
   };
 
+  const handleStartRequest = () => {
+    const scratchCollectionUid = activeWorkspace?.scratchCollectionUid;
+    if (!scratchCollectionUid) {
+      toast.error('Unable to create request');
+      return;
+    }
+
+    const scratchCollection = collections.find((c) => c.uid === scratchCollectionUid);
+    if (!scratchCollection) {
+      toast.error('Unable to create request');
+      return;
+    }
+
+    const allItems = flattenItems(scratchCollection.items || []);
+    const transientRequests = filter(allItems, (item) => isItemTransientRequest(item));
+    let maxNumber = 0;
+    transientRequests.forEach((item) => {
+      const match = item.name?.match(/^Untitled (\d+)$/);
+      if (match) {
+        const number = parseInt(match[1], 10);
+        if (number > maxNumber) {
+          maxNumber = number;
+        }
+      }
+    });
+    const requestName = `Untitled ${maxNumber + 1}`;
+    const filename = sanitizeName(requestName);
+
+    dispatch(
+      newHttpRequest({
+        requestName,
+        filename,
+        requestType: 'http-request',
+        requestUrl: '',
+        requestMethod: 'GET',
+        collectionUid: scratchCollectionUid,
+        itemUid: null,
+        isTransient: true
+      })
+    ).catch((err) => {
+      toast.error('An error occurred while creating the request');
+    });
+  };
+
+  const handleOpenAdvancedCreate = (name) => {
+    dispatch(setIsCreatingCollection(false));
+    setAdvancedCreateName(name || '');
+    setCreateCollectionModalOpen(true);
+  };
+
   const addDropdownItems = [
     {
       id: 'create',
       leftSection: IconPlus,
       label: 'Create collection',
       onClick: () => {
-        setCreateCollectionModalOpen(true);
+        dispatch(setIsCreatingCollection(true));
       }
     },
     {
@@ -289,11 +360,19 @@ const CollectionsSection = () => {
             handleDismissWelcomeModal();
             handleOpenCollection();
           }}
+          onStartRequest={() => {
+            handleDismissWelcomeModal();
+            handleStartRequest();
+          }}
         />
       )}
       {createCollectionModalOpen && (
         <CreateCollection
-          onClose={() => setCreateCollectionModalOpen(false)}
+          onClose={() => {
+            setCreateCollectionModalOpen(false);
+            setAdvancedCreateName('');
+          }}
+          initialCollectionName={advancedCreateName}
         />
       )}
       {importCollectionModalOpen && (
@@ -306,6 +385,9 @@ const CollectionsSection = () => {
         <ImportCollectionLocation
           rawData={importData.rawData}
           format={importData.type}
+          sourceUrl={importData.sourceUrl}
+          filePath={importData.filePath}
+          rawContent={importData.rawContent}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />
@@ -330,7 +412,13 @@ const CollectionsSection = () => {
         icon={IconBox}
         actions={sectionActions}
       >
-        <Collections showSearch={showSearch} />
+        <Collections
+          showSearch={showSearch}
+          isCreatingCollection={isCreatingCollection}
+          onCreateClick={() => dispatch(setIsCreatingCollection(true))}
+          onDismissCreate={() => dispatch(setIsCreatingCollection(false))}
+          onOpenAdvancedCreate={handleOpenAdvancedCreate}
+        />
       </SidebarSection>
     </>
   );

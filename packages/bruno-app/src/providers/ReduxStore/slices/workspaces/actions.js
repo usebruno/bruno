@@ -12,9 +12,11 @@ import {
 import { showHomePage } from '../app';
 import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus } from '../collections';
+import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
 import { addTab, focusTab } from '../tabs';
 import { normalizePath } from 'utils/common/path';
+import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 
 const { ipcRenderer } = window;
@@ -48,6 +50,21 @@ const transformCollection = async (collection, type) => {
     default:
       throw new Error(`Unsupported collection type: ${type}`);
   }
+};
+
+/**
+ * Creates a workspace with a unique name under the given location
+ */
+export const createWorkspaceWithUniqueName = (location) => {
+  return async (dispatch) => {
+    const name = await ipcRenderer?.invoke('renderer:find-unique-folder-name', 'untitled workspace', location) || 'untitled workspace';
+    const folderName = sanitizeName(name);
+    const result = await dispatch(createWorkspaceAction(name, folderName, location));
+    if (result?.workspaceUid) {
+      dispatch(updateWorkspace({ uid: result.workspaceUid, isNewlyCreated: true }));
+    }
+    return result;
+  };
 };
 
 export const createWorkspaceAction = (workspaceName, workspaceFolderName, workspaceLocation) => {
@@ -154,6 +171,7 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
 
         if (workspaceCollection) {
           dispatch(removeCollection({ collectionUid: collection.uid }));
+          dispatch(clearCollectionState({ collectionUid: collection.uid }));
         }
       }
 

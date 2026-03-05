@@ -166,7 +166,13 @@ const FileTab = ({
         throw new Error('Unsupported collection format');
       }
 
-      await handleSubmit({ rawData: data, type });
+      if (type === 'openapi') {
+        const filePath = window.ipcRenderer.getFilePath(file);
+        const rawContent = await file.text();
+        await handleSubmit({ rawData: data, type, filePath, rawContent });
+      } else {
+        await handleSubmit({ rawData: data, type });
+      }
     } catch (err) {
       toastError(err, 'Import collection failed');
     } finally {

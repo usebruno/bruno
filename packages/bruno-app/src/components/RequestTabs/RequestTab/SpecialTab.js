@@ -1,6 +1,7 @@
 import React from 'react';
 import GradientCloseButton from './GradientCloseButton';
-import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock, IconDatabase, IconWorld, IconHome } from '@tabler/icons';
+import { IconVariable, IconSettings, IconRun, IconFolder, IconDatabase, IconWorld, IconHome, IconFileCode } from '@tabler/icons';
+import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 
 const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft }) => {
   const getTabInfo = (type, tabName) => {
@@ -82,6 +83,22 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
           <>
             <IconWorld size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
             <span className="ml-1 tab-name">Environments</span>
+          </>
+        );
+      }
+      case 'openapi-sync': {
+        return (
+          <>
+            <OpenAPISyncIcon size={14} className="special-tab-icon flex-shrink-0" />
+            <span className="ml-1 tab-name">OpenAPI</span>
+          </>
+        );
+      }
+      case 'openapi-spec': {
+        return (
+          <>
+            <IconFileCode size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
+            <span className="ml-1 tab-name">API Spec</span>
           </>
         );
       }
