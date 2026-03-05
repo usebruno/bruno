@@ -14,10 +14,11 @@ const StyledWrapper = styled.div`
   -ms-overflow-style: none;
 
   .section-header {
+    width: 60%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 14px;
+    font-size: 12px;
   }
 
   .reset-all-btn {
@@ -42,7 +43,23 @@ const StyledWrapper = styled.div`
   .keybinding-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+  }
+
+  .keybinding-row .edit-btn,
+  .keybinding-row .reset-btn {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .button-placeholder {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .keybinding-row:hover .edit-btn {
@@ -117,22 +134,24 @@ const StyledWrapper = styled.div`
     opacity: 1;
   }
 
-  .kb-tooltip {
+  .tooltip-mod {
     border-radius: 8px;
     padding: 6px 8px;
     font-size: 12px;
     line-height: 1.2;
     max-width: 320px;
     white-space: normal;
-  }
-
-  .kb-tooltip--error {
-    color: ${(props) => props.theme.colors?.text?.red || '#ef4444'};
+    z-index: 100;
+    background-color: ${(props) => props.theme.tooltip?.bg || props.theme.sidebar.bg} !important;
+    color: ${(props) => props.theme.tooltip?.text || props.theme.text} !important;
+    border: 1px solid ${(props) => props.theme.tooltip?.border || props.theme.border.border0};
   }
 
   .table-container {
+    max-width: 60%;
     flex: 1 1 auto;
     min-height: 0;
+    margin-bottom: 10px;
     max-height: 650px;
     overflow-y: auto;
 
@@ -170,9 +189,7 @@ const StyledWrapper = styled.div`
     top: 0;
     z-index: 5;
 
-    background: ${(props) => props.theme.background};
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: ${(props) => props.theme.background.base};
 
     color: ${(props) => props.theme.table.thead.color};
     font-size: ${(props) => props.theme.font.size.base};

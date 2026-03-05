@@ -280,7 +280,7 @@ const Keybindings = () => {
         ...(preferences?.keyBindings || {}),
         [action]: {
           ...(preferences?.keyBindings?.[action] || {}),
-          name: preferences?.keyBindings?.[action]?.name || action,
+          name: preferences?.keyBindings?.[action]?.name || DEFAULT_KEY_BINDINGS?.[action]?.name || action,
           [os]: nextKeys
         }
       }
@@ -513,8 +513,7 @@ const Keybindings = () => {
             onClick={resetAllKeybindings}
             title="Reset all keybindings to default"
           >
-            <IconRefresh size={12} stroke={1} />
-
+            <IconRefresh size={14} stroke={1} />
           </button>
         )}
       </div>
@@ -581,12 +580,12 @@ const Keybindings = () => {
                               opacity={1}
                               isOpen={true}
                               content={errorMessage}
-                              className="kb-tooltip kb-tooltip--error"
+                              className="tooltip-mod tooltip-mod--error"
                             />
                           )}
                         </div>
 
-                        {showRefresh && (
+                        {showRefresh ? (
                           <button
                             type="button"
                             className="reset-btn"
@@ -594,10 +593,12 @@ const Keybindings = () => {
                             onClick={() => resetRowToDefault(action)}
                             title="Reset to default"
                           >
-                            <IconRefresh size={12} stroke={1} />
+                            <IconRefresh size={14} stroke={1} />
                           </button>
+                        ) : (
+                          <div className="button-placeholder" />
                         )}
-                        {showPencil && (
+                        {showPencil ? (
                           <button
                             type="button"
                             className="edit-btn"
@@ -605,8 +606,10 @@ const Keybindings = () => {
                             onClick={() => startEditing(action)}
                             title="Edit shortcut"
                           >
-                            <IconPencil size={12} stroke={1.5} />
+                            <IconPencil size={14} stroke={1.5} />
                           </button>
+                        ) : (
+                          <div className="button-placeholder" />
                         )}
                       </div>
                     </td>
