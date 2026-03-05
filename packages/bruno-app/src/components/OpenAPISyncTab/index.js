@@ -61,6 +61,14 @@ const OpenAPISyncTab = ({ collection }) => {
     ? (specDrift?.added?.length || 0) + (specDrift?.modified?.length || 0) + (specDrift?.removed?.length || 0)
     : (remoteDrift?.modified?.length || 0) + (remoteDrift?.missing?.length || 0);
 
+  const syncStatus = (() => {
+    if (isLoading) return 'loading';
+    if (error) return 'not-in-sync';
+    if (!hasDriftData) return null;
+    if (collectionChangesCount > 0 || specUpdatesCount > 0) return 'not-in-sync';
+    return 'in-sync';
+  })();
+
   const syncTabs = useMemo(() => [
     { key: 'overview', label: 'Overview' },
     {
@@ -96,6 +104,7 @@ const OpenAPISyncTab = ({ collection }) => {
               collection={collection}
               spec={storedSpec || specDrift?.newSpec}
               sourceUrl={sourceUrl}
+              syncStatus={syncStatus}
               onViewSpec={handleViewSpec}
               onOpenSettings={() => setShowSettingsModal(true)}
               onOpenDisconnect={() => setShowDisconnectModal(true)}
