@@ -204,19 +204,19 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
                 <Button
                   size="sm"
                   variant={bannerState.buttons.includes('sync') ? 'outline' : 'filled'}
-                  color={bannerState.buttons.includes('sync') ? 'secondary' : 'warning'}
+                  color={bannerState.buttons.includes('sync') ? 'secondary' : 'primary'}
                   onClick={() => onTabSelect('collection-changes')}
                 >
                   View Collection Changes
                 </Button>
               )}
               {(bannerState.buttons.includes('sync') || bannerState.buttons.includes('review')) && (
-                <Button size="sm" color="warning" onClick={() => onTabSelect('spec-updates')}>
+                <Button size="sm" onClick={() => onTabSelect('spec-updates')}>
                   Review and Sync Collection
                 </Button>
               )}
               {bannerState.buttons.includes('restore') && (
-                <Button size="sm" color="warning" onClick={() => onTabSelect('spec-updates')}>
+                <Button size="sm" onClick={() => onTabSelect('spec-updates')}>
                   Restore Spec File
                 </Button>
               )}
