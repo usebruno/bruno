@@ -3,7 +3,9 @@ import get from 'lodash/get';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
+import { IconRotate } from '@tabler/icons';
 import { IconChevronDown, IconCheck } from '@tabler/icons';
+import Button from 'ui/Button/index';
 const { percentageToZoomLevel } = require('@usebruno/common');
 
 // Zoom options for dropdown (50% to 150%)
@@ -85,10 +87,12 @@ const Zoom = () => {
 
   return (
     <StyledWrapper>
-      <div className="flex flex-row gap-1 items-end">
+      <div>
+        <label className="block">Interface Zoom</label>
+      </div>
+      <div className="flex flex-row gap-1 items-center mt-2">
         <div className="zoom-field" ref={dropdownRef}>
-          <label className="block">Interface Zoom</label>
-          <div className="custom-select mt-2" onClick={() => setIsOpen(!isOpen)}>
+          <div className="custom-select" onClick={() => setIsOpen(!isOpen)}>
             <span className="selected-value">{selectedOption?.label}</span>
             <IconChevronDown size={14} className="chevron-icon" />
           </div>
@@ -108,13 +112,13 @@ const Zoom = () => {
           )}
         </div>
         {!isDefault && (
-          <button
-            type="button"
-            className="reset-btn"
+          <Button
+            size="sm"
+            icon={<IconRotate />}
+            color="secondary"
+            variant="ghost"
             onClick={handleResetToDefault}
-          >
-            Reset
-          </button>
+          />
         )}
       </div>
     </StyledWrapper>
