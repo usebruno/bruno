@@ -2166,10 +2166,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  &.review-active {
-    padding-bottom: 0;
-  }
-
   /* URL/File mode toggle in setup form and settings modal */
   .setup-mode-toggle {
     display: inline-flex;

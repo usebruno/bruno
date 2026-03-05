@@ -1,9 +1,8 @@
 import { useState, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { v4 as uuid } from 'uuid';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { IconLoader2, IconClock } from '@tabler/icons';
-import { selectTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
 import OpenAPISyncHeader from './OpenAPISyncHeader';
@@ -37,9 +36,6 @@ const OpenAPISyncTab = ({ collection }) => {
   const dispatch = useDispatch();
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
   const isConfigured = !!openApiSyncConfig?.sourceUrl;
-
-  const tabUiState = useSelector(selectTabUiState(collection.uid));
-  const viewMode = tabUiState.viewMode || 'tabs';
 
   const handleViewSpec = () => {
     dispatch(addTab({
@@ -84,7 +80,7 @@ const OpenAPISyncTab = ({ collection }) => {
   ], [collectionChangesCount, specUpdatesCount]);
 
   return (
-    <StyledWrapper className={`flex flex-col h-full relative px-4 pt-4 overflow-auto ${viewMode === 'review' ? ' review-active' : ''}`}>
+    <StyledWrapper className="flex flex-col h-full relative px-4 pt-4 overflow-auto">
       <div className="sync-page max-w-screen-xl">
 
         {/* Setup form when not configured */}
