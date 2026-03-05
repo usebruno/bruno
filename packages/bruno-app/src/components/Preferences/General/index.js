@@ -60,7 +60,7 @@ const General = () => {
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()
     }),
-    defaultCollectionLocation: Yup.string().max(1024)
+    defaultLocation: Yup.string().max(1024)
   });
 
   const formik = useFormik({
@@ -83,7 +83,7 @@ const General = () => {
       oauth2: {
         useSystemBrowser: get(preferences, 'request.oauth2.useSystemBrowser', false)
       },
-      defaultCollectionLocation: get(preferences, 'general.defaultCollectionLocation', '')
+      defaultLocation: get(preferences, 'general.defaultLocation', '')
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -121,7 +121,7 @@ const General = () => {
           interval: newPreferences.autoSave.interval
         },
         general: {
-          defaultCollectionLocation: newPreferences.defaultCollectionLocation
+          defaultLocation: newPreferences.defaultLocation
         }
       }))
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
@@ -163,11 +163,11 @@ const General = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
         if (typeof dirPath === 'string') {
-          formik.setFieldValue('defaultCollectionLocation', dirPath);
+          formik.setFieldValue('defaultLocation', dirPath);
         }
       })
       .catch((error) => {
-        formik.setFieldValue('defaultCollectionLocation', '');
+        formik.setFieldValue('defaultLocation', '');
         console.error(error);
       });
   };
@@ -356,35 +356,38 @@ const General = () => {
           <div className="text-red-500">{formik.errors.autoSave.interval}</div>
         )}
         <div className="flex flex-col mt-6">
-          <label className="block select-none default-collection-location-label" htmlFor="defaultCollectionLocation">
-            Default Collection Location
+          <label className="block select-none default-location-label" htmlFor="defaultLocation">
+            Default Location
           </label>
+          <p className="text-muted mt-1 text-xs">
+            Used as the default location for new workspaces and collections
+          </p>
           <input
             type="text"
-            name="defaultCollectionLocation"
-            id="defaultCollectionLocation"
-            className="block textbox mt-2 w-full cursor-pointer default-collection-location-input"
+            name="defaultLocation"
+            id="defaultLocation"
+            className="block textbox mt-2 w-full cursor-pointer default-location-input"
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck="false"
             readOnly={true}
             onChange={formik.handleChange}
-            value={formik.values.defaultCollectionLocation || ''}
+            value={formik.values.defaultLocation || ''}
             onClick={browseDefaultLocation}
             placeholder="Click to browse for default location"
           />
           <div className="mt-1">
             <span
-              className="text-link cursor-pointer hover:underline default-collection-location-browse"
+              className="text-link cursor-pointer hover:underline default-location-browse"
               onClick={browseDefaultLocation}
             >
               Browse
             </span>
           </div>
         </div>
-        {formik.touched.defaultCollectionLocation && formik.errors.defaultCollectionLocation ? (
-          <div className="text-red-500">{formik.errors.defaultCollectionLocation}</div>
+        {formik.touched.defaultLocation && formik.errors.defaultLocation ? (
+          <div className="text-red-500">{formik.errors.defaultLocation}</div>
         ) : null}
       </form>
     </StyledWrapper>

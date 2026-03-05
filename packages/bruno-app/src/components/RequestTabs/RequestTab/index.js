@@ -36,6 +36,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const [showConfirmEnvironmentClose, setShowConfirmEnvironmentClose] = useState(false);
   const [showConfirmGlobalEnvironmentClose, setShowConfirmGlobalEnvironmentClose] = useState(false);
 
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTab = tabs.find((t) => t.uid === activeTabUid);
+
   const menuDropdownRef = useRef();
 
   const item = findItemInCollection(collection, tab.uid);
@@ -85,6 +89,62 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       resizeObserver.disconnect();
     };
   }, [item, item?.name, method, setHasOverflow]);
+
+  useEffect(() => {
+    const handleCloseTabFromHotkeys = () => {
+      if (!activeTabUid || !activeTab) return;
+
+      // Only the active tab component should handle this
+      if (tab.uid !== activeTabUid) return;
+
+      // Always compute item for the active tab
+      const activeItem = findItemInCollection(collection, activeTabUid);
+
+      switch (activeTab.type) {
+        case 'request':
+          if (activeItem && hasRequestChanges(activeItem)) {
+            console.log('Item have changes');
+            setShowConfirmClose(true);
+          } else {
+            console.log('Item dont have changes');
+            dispatch(closeTabs({ tabUids: [activeTabUid] }));
+          }
+          break;
+
+        case 'collection-settings':
+          if (collection?.draft) {
+            setShowConfirmCollectionClose(true);
+          } else {
+            dispatch(closeTabs({ tabUids: [activeTabUid] }));
+          }
+          break;
+
+        case 'folder-settings': {
+          const folderItem = findItemInCollection(collection, activeTab.folderUid || tab.folderUid);
+          if (folderItem?.draft) {
+            setShowConfirmFolderClose(true);
+          } else {
+            dispatch(closeTabs({ tabUids: [activeTabUid] }));
+          }
+          break;
+        }
+
+        case 'environment-settings':
+          if (collection?.environmentsDraft) {
+            setShowConfirmEnvironmentClose(true);
+          } else {
+            dispatch(closeTabs({ tabUids: [activeTabUid] }));
+          }
+          break;
+
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('close-active-tab', handleCloseTabFromHotkeys);
+    return () => window.removeEventListener('close-active-tab', handleCloseTabFromHotkeys);
+  }, [dispatch, activeTab, activeTabUid, tab.uid, collection]);
 
   const handleCloseClick = (event) => {
     event.stopPropagation();
@@ -146,6 +206,21 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     setShowConfirmFolderClose(true);
   };
 
+  const specialTabs = [
+    'collection-overview',
+    'collection-settings',
+    'folder-settings',
+    'variables',
+    'collection-runner',
+    'environment-settings',
+    'global-environment-settings',
+    'preferences',
+    'workspaceOverview',
+    'workspaceEnvironments',
+    'openapi-sync',
+    'openapi-spec'
+  ];
+
   const hasDraft = tab.type === 'collection-settings' && collection?.draft;
   const hasFolderDraft = tab.type === 'folder-settings' && folder?.draft;
   const hasEnvironmentDraft = tab.type === 'environment-settings' && collection?.environmentsDraft;
@@ -172,7 +247,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     setShowConfirmGlobalEnvironmentClose(true);
   };
 
-  if (['collection-settings', 'collection-overview', 'folder-settings', 'variables', 'collection-runner', 'environment-settings', 'global-environment-settings', 'preferences', 'workspaceOverview', 'workspaceEnvironments'].includes(tab.type)) {
+  if (specialTabs.includes(tab.type)) {
     return (
       <StyledWrapper
         className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}

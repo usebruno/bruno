@@ -9,8 +9,7 @@ import {
   IconUserCircle,
   IconKeyboard,
   IconZoomQuestion,
-  IconSquareLetterB,
-  IconDatabase
+  IconSquareLetterB
 } from '@tabler/icons';
 
 import Support from './Support';
@@ -20,7 +19,6 @@ import Proxy from './ProxySettings';
 import Display from './Display';
 import Keybindings from './Keybindings';
 import Beta from './Beta';
-import Cache from './Cache';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -64,10 +62,6 @@ const Preferences = () => {
         return <Beta />;
       }
 
-      case 'cache': {
-        return <Cache />;
-      }
-
       case 'support': {
         return <Support />;
       }
@@ -97,10 +91,6 @@ const Preferences = () => {
           <div className={getTabClassname('keybindings')} role="tab" onClick={() => setTab('keybindings')}>
             <IconKeyboard size={16} strokeWidth={1.5} />
             Keybindings
-          </div>
-          <div className={getTabClassname('cache')} role="tab" onClick={() => setTab('cache')}>
-            <IconDatabase size={16} strokeWidth={1.5} />
-            Cache
           </div>
           <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
             <IconZoomQuestion size={16} strokeWidth={1.5} />

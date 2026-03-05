@@ -58,9 +58,16 @@ const createSendRequest = (config?: SendRequestConfig) => {
       } catch (error) {
         return Promise.reject(error);
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Normalize axios error for callback: tests expect error.status (e.g. 404), but axios
+      // puts the status on error.response.status. Setting status here ensures the same
+      // behaviour in nodevm (--sandbox developer, used in CI) and in QuickJS (safe sandbox).
+      const errForCallback
+        = error && typeof error.response?.status === 'number'
+          ? { ...error, status: error.response.status }
+          : error;
       try {
-        await callback(error, null);
+        await callback(errForCallback, null);
       } catch (err) {
         return Promise.reject(err);
       }

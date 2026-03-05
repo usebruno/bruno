@@ -7,7 +7,7 @@ import { useTheme } from 'providers/Theme/index';
 const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSave, handleValidation, collectionFormat }) => {
   const { displayedTheme } = useTheme();
   const isBruFormat = collectionFormat === 'bru';
-  const tagNameRegex = isBruFormat ? /^[\w-]+$/ : /^[\w-][\w\s-]*[\w-]$|^[\w-]+$/;
+  const tagNameRegex = isBruFormat ? /^[\p{L}\p{N}_-]+$/u : /^[\p{L}\p{N}_-](?:[\p{L}\p{N}_\s-]*[\p{L}\p{N}_-])?$/u;
   const [text, setText] = useState('');
   const [error, setError] = useState('');
 
@@ -22,8 +22,8 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
     }
     if (!tagNameRegex.test(text)) {
       setError(isBruFormat
-        ? 'Tags in BRU format must only contain alpha-numeric characters, "-", "_".'
-        : 'Tags must only contain alpha-numeric characters, spaces, "-", "_"'
+        ? 'Tags in BRU format must only contain letters, numbers, "-", "_".'
+        : 'Tags must only contain letters, numbers, spaces, "-", "_"'
       );
       return;
     }

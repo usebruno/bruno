@@ -2,15 +2,19 @@
   "maximized": false,
   "lastOpenedCollections": ["{{projectRoot}}/tests/ssl/basic-ssl/collections/badssl"],
   "preferences": {
-		"request": {
-			"sslVerification": true,
-			"customCaCertificate": {
-				"enabled": false,
-				"filePath": ""
-			},
-			"keepDefaultCaCertificates": {
-				"enabled": true
-			}
-		}
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
+    "request": {
+      "sslVerification": true,
+      "customCaCertificate": {
+        "enabled": false,
+        "filePath": ""
+      },
+      "keepDefaultCaCertificates": {
+        "enabled": true
+      }
+    }
   }
 }

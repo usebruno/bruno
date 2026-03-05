@@ -8,6 +8,7 @@ const {
   isFile,
   isDirectory
 } = require('../utils/filesystem');
+const { findUniqueFolderName } = require('../utils/collection-import');
 
 const registerFilesystemIpc = (mainWindow) => {
   ipcMain.handle('renderer:browse-directory', async (event, pathname, request) => {
@@ -46,6 +47,14 @@ const registerFilesystemIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:is-directory', async (_, pathname) => {
     return isDirectory(pathname);
+  });
+
+  ipcMain.handle('renderer:find-unique-folder-name', async (_, baseName, location) => {
+    try {
+      return await findUniqueFolderName(baseName, location);
+    } catch (error) {
+      throw error;
+    }
   });
 };
 

@@ -34,7 +34,11 @@ const initialState = {
       codeFont: 'default'
     },
     general: {
-      defaultCollectionLocation: ''
+      defaultLocation: ''
+    },
+    onboarding: {
+      hasLaunchedBefore: false,
+      hasSeenWelcomeModal: true
     },
     autoSave: {
       enabled: false,
@@ -57,7 +61,8 @@ const initialState = {
   envVarSearch: {
     collection: { query: '', expanded: false },
     global: { query: '', expanded: false }
-  }
+  },
+  isCreatingCollection: false
 };
 
 export const appSlice = createSlice({
@@ -153,6 +158,9 @@ export const appSlice = createSlice({
     setEnvVarSearchExpanded: (state, { payload: { context, expanded } }) => {
       if (!state.envVarSearch[context]) return;
       state.envVarSearch[context].expanded = expanded;
+    },
+    setIsCreatingCollection: (state, action) => {
+      state.isCreatingCollection = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -196,7 +204,8 @@ export const {
   setGitVersion,
   setClipboard,
   setEnvVarSearchQuery,
-  setEnvVarSearchExpanded
+  setEnvVarSearchExpanded,
+  setIsCreatingCollection
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {

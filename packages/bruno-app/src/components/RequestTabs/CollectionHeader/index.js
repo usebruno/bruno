@@ -14,7 +14,9 @@ import {
   IconFolder,
   IconUpload
 } from '@tabler/icons';
+import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
+import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
@@ -28,6 +30,7 @@ import ActionIcon from 'ui/ActionIcon';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
+import { useTheme } from 'providers/Theme';
 
 const CollectionHeader = ({ collection, isScratchCollection }) => {
   const dispatch = useDispatch();
@@ -53,6 +56,16 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const onSwitcherCreate = (ref) => (switcherRef.current = ref);
   const onWorkspaceActionsCreate = (ref) => (workspaceActionsRef.current = ref);
 
+  // Auto-enter rename mode when workspace is newly created
+  useEffect(() => {
+    if (isScratchCollection && currentWorkspace?.isNewlyCreated) {
+      dispatch(updateWorkspace({ uid: currentWorkspace.uid, isNewlyCreated: false }));
+      setIsRenamingWorkspace(true);
+      setWorkspaceNameInput(currentWorkspace.name || '');
+      setWorkspaceNameError('');
+    }
+  }, [isScratchCollection, currentWorkspace?.isNewlyCreated, currentWorkspace?.uid, currentWorkspace?.name, dispatch]);
+
   const handleCancelWorkspaceRename = useCallback(() => {
     setIsRenamingWorkspace(false);
     setWorkspaceNameInput('');
@@ -69,14 +82,26 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
+    const timer = setTimeout(() => {
+      workspaceNameInputRef.current?.focus();
+      workspaceNameInputRef.current?.select();
+    }, 50);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      clearTimeout(timer);
     };
   }, [isRenamingWorkspace, handleCancelWorkspaceRename]);
+
+  const collectionUpdates = useSelector((state) => state.openapiSync?.collectionUpdates || {});
+  const { theme } = useTheme();
 
   if (!collection) {
     return null;
   }
+
+  const hasOpenApiSyncConfigured = collection?.brunoConfig?.openapi?.[0]?.sourceUrl;
+  const hasOpenApiUpdates = hasOpenApiSyncConfigured && collectionUpdates[collection.uid]?.hasUpdates;
+  const hasOpenApiError = hasOpenApiSyncConfigured && collectionUpdates[collection.uid]?.error;
 
   // Get mounted collections for the current workspace (excluding scratch collections)
   const mountedCollections = collections.filter((c) => {
@@ -164,16 +189,20 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     );
   };
 
+  const viewOpenApiSync = () => {
+    dispatch(addTab({
+      uid: uuid(),
+      collectionUid: collection.uid,
+      type: 'openapi-sync'
+    }));
+  };
+
   // Workspace action handlers (only used when isScratchCollection is true)
   const handleRenameWorkspaceClick = () => {
     workspaceActionsRef.current?.hide();
     setIsRenamingWorkspace(true);
     setWorkspaceNameInput(currentWorkspace?.name || '');
     setWorkspaceNameError('');
-    setTimeout(() => {
-      workspaceNameInputRef.current?.focus();
-      workspaceNameInputRef.current?.select();
-    }, 50);
   };
 
   const handleCloseWorkspaceClick = () => {
@@ -325,8 +354,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
               icon={(
                 <button className="switcher-trigger">
                   <DisplayIcon size={18} strokeWidth={1.5} />
-                  <span className="switcher-name">{displayName}</span>
-                  {tabCount > 0 && <span className="tab-count">{tabCount}</span>}
+                  <span className={classNames('switcher-name', { 'scratch-collection': isScratchCollection })}>{displayName}</span>
                   <IconChevronDown size={14} strokeWidth={1.5} className="chevron" />
                 </button>
               )}
@@ -423,6 +451,18 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         {/* Right side: Actions (only for regular collections) */}
         {!isScratchCollection && (
           <div className="flex flex-grow gap-1 items-center justify-end">
+            <ToolHint
+              text={hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI'}
+              toolhintId="OpenApiSyncToolhintId"
+              place="bottom"
+            >
+              <ActionIcon onClick={viewOpenApiSync} aria-label="OpenAPI" size="sm" className="relative">
+                <OpenAPISyncIcon size={16} />
+                {(hasOpenApiUpdates || hasOpenApiError) && (
+                  <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: hasOpenApiError ? theme.status.danger.text : theme.status.warning.text }} />
+                )}
+              </ActionIcon>
+            </ToolHint>
             <ToolHint text="Runner" toolhintId="RunnerToolhintId" place="bottom">
               <ActionIcon onClick={handleRun} aria-label="Runner" size="sm">
                 <IconRun size={16} strokeWidth={1.5} />

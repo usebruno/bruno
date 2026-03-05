@@ -75,6 +75,7 @@ export const buildCommonLocators = (page: Page) => ({
     newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
     requestNameInput: () => page.getByPlaceholder('Request Name'),
     requestTestId: () => page.getByTestId('request-name'),
+    generateCodeButton: () => page.locator('#send-request .infotip').first(),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
     bodyEditor: () => page.getByTestId('request-body-editor')
   },

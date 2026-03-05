@@ -2,5 +2,11 @@
   "maximized": false,
   "lastOpenedCollections": [
     "{{collectionPath}}/is-safe-mode-test"
-  ]
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
 }

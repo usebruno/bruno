@@ -68,7 +68,13 @@ const createCollection = async (page, collectionName: string, collectionLocation
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
+    // Wait for inline creator to appear, then click the cog button to open advanced modal
+    const inlineCreator = page.locator('.inline-collection-creator');
+    await inlineCreator.waitFor({ state: 'visible', timeout: 5000 });
+    await inlineCreator.locator('.cog-btn').click();
+
     const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
+    await createCollectionModal.waitFor({ state: 'visible', timeout: 5000 });
 
     await createCollectionModal.getByLabel('Name').fill(collectionName);
     const locationInput = createCollectionModal.getByLabel('Location');
@@ -444,7 +450,7 @@ const createFolder = async (
     }
 
     await locators.dropdown.item('New Folder').click();
-    await page.getByPlaceholder('Folder Name').fill(folderName);
+    await page.getByTestId('new-folder-input').fill(folderName);
     await locators.modal.button('Create').click();
     await expect(locators.sidebar.folder(folderName)).toBeVisible();
   });
@@ -626,7 +632,7 @@ const selectEnvironment = async (
  */
 const sendRequest = async (
   page: Page,
-  expectedStatusCode?: number | string,
+  expectedStatusCode?: number,
   timeout: number = 30000
 ) => {
   await test.step('Send request', async () => {
@@ -693,11 +699,11 @@ const openFolderRequest = async (page: Page, folderName: string, requestName: st
 /**
 * Send a request and wait for the response
  * @param page - The page object
- * @param expectedStatusCode - The expected status code (default: '200')
+ * @param expectedStatusCode - The expected status code (default: 200)
  * @param options - The options for sending the request (default: { timeout: 15000 })
  */
 const sendRequestAndWaitForResponse = async (page: Page,
-  expectedStatusCode: string = '200',
+  expectedStatusCode: number = 200,
   options: {
     ignoreCase?: boolean;
     timeout?: number;
@@ -705,7 +711,7 @@ const sendRequestAndWaitForResponse = async (page: Page,
   } = { timeout: 15000 }) => {
   await test.step(`Send request and wait for status code ${expectedStatusCode}`, async () => {
     await page.getByTestId('send-arrow-icon').click();
-    await expect(page.getByTestId('response-status-code')).toContainText(expectedStatusCode, options);
+    await expect(page.getByTestId('response-status-code')).toContainText(String(expectedStatusCode), options);
   });
 };
 

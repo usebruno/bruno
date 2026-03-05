@@ -4,14 +4,17 @@ const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
 
 // Simple 1:1 translations for straightforward replacements
+// TODO: Restore the commented-out translations once the UI update fixes are live.
+// Currently these APIs only work within the request lifecycle but fail to update the UI tables.
+// e.g., setCollectionVar only sets the variable in the request lifecycle, fails to update the table in the UI.
 const simpleTranslations = {
   // Global Variables
   'pm.globals.get': 'bru.getGlobalEnvVar',
   'pm.globals.set': 'bru.setGlobalEnvVar',
   'pm.globals.replaceIn': 'bru.interpolate',
-  'pm.globals.unset': 'bru.deleteGlobalEnvVar',
+  // 'pm.globals.unset': 'bru.deleteGlobalEnvVar',
   'pm.globals.toObject': 'bru.getAllGlobalEnvVars',
-  'pm.globals.clear': 'bru.deleteAllGlobalEnvVars',
+  // 'pm.globals.clear': 'bru.deleteAllGlobalEnvVars',
 
   // Environment variables
   'pm.environment.get': 'bru.getEnvVar',
@@ -30,12 +33,12 @@ const simpleTranslations = {
   'pm.variables.replaceIn': 'bru.interpolate',
   // Collection variables
   'pm.collectionVariables.get': 'bru.getCollectionVar',
-  'pm.collectionVariables.set': 'bru.setCollectionVar',
+  // 'pm.collectionVariables.set': 'bru.setCollectionVar',
   'pm.collectionVariables.has': 'bru.hasCollectionVar',
-  'pm.collectionVariables.unset': 'bru.deleteCollectionVar',
+  // 'pm.collectionVariables.unset': 'bru.deleteCollectionVar',
   'pm.collectionVariables.replaceIn': 'bru.interpolate',
-  'pm.collectionVariables.clear': 'bru.deleteAllCollectionVars',
-  'pm.collectionVariables.toObject': 'bru.getAllCollectionVars',
+  // 'pm.collectionVariables.clear': 'bru.deleteAllCollectionVars',
+  // 'pm.collectionVariables.toObject': 'bru.getAllCollectionVars',
 
   // Request flow control
   'pm.setNextRequest': 'bru.setNextRequest',
