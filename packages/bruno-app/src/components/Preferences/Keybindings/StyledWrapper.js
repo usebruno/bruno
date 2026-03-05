@@ -132,6 +132,7 @@ const StyledWrapper = styled.div`
 
   .table-container {
     flex: 1 1 auto;
+    margin-bottom:10px;
     min-height: 0;
     max-height: 650px;
     overflow-y: auto;
@@ -170,9 +171,7 @@ const StyledWrapper = styled.div`
     top: 0;
     z-index: 5;
 
-    background: ${(props) => props.theme.background};
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: ${(props) => props.theme.background.base};
 
     color: ${(props) => props.theme.table.thead.color};
     font-size: ${(props) => props.theme.font.size.base};

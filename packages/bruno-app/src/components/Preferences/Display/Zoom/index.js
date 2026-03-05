@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
-import { IconRotate } from '@tabler/icons';
+import { IconReload } from '@tabler/icons';
 import { IconChevronDown, IconCheck } from '@tabler/icons';
 import Button from 'ui/Button/index';
 const { percentageToZoomLevel } = require('@usebruno/common');
@@ -114,7 +114,7 @@ const Zoom = () => {
         {!isDefault && (
           <Button
             size="sm"
-            icon={<IconRotate />}
+            icon={<IconReload />}
             color="secondary"
             variant="ghost"
             onClick={handleResetToDefault}

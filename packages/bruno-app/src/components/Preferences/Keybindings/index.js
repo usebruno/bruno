@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 
 import StyledWrapper from './StyledWrapper';
-import { IconRefresh, IconPencil } from '@tabler/icons';
+import { IconReload, IconPencil } from '@tabler/icons';
 import { isMacOS } from 'utils/common/platform';
 
 import { savePreferences } from 'providers/ReduxStore/slices/app';
@@ -513,7 +513,7 @@ const Keybindings = () => {
             onClick={resetAllKeybindings}
             title="Reset all keybindings to default"
           >
-            <IconRefresh size={12} stroke={1} />
+            <IconReload size={12} stroke={1} />
 
           </button>
         )}
@@ -594,7 +594,7 @@ const Keybindings = () => {
                             onClick={() => resetRowToDefault(action)}
                             title="Reset to default"
                           >
-                            <IconRefresh size={12} stroke={1} />
+                            <IconReload size={12} stroke={1} />
                           </button>
                         )}
                         {showPencil && (

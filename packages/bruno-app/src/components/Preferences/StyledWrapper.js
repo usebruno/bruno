@@ -38,7 +38,7 @@ const StyledWrapper = styled.div`
   }
 
   section.tab-panel {
-    min-height: 70vh;
+    max-height: calc(100% - 24px); // 24 comes from the status bar height
     overflow-y: auto;
     flex-grow: 1;
     padding: 12px;
