@@ -61,9 +61,24 @@ function forceInstallPlatformDeps() {
   // Note: make sure to hard pin deps and only add deps that have been checked
   // for sec vuln already since the following will be force installed.
   const deps = {
-    darwin: ['@lydell/node-pty-darwin-arm64@1.1.0', '@lydell/node-pty-darwin-x64@1.1.0'],
-    win32: ['@lydell/node-pty-win32-arm64@1.1.0', '@lydell/node-pty-win32-x64@1.1.0'],
-    linux: ['@lydell/node-pty-linux-arm64@1.1.0', '@lydell/node-pty-linux-x64@1.1.0']
+    darwin: [
+      '@lydell/node-pty-darwin-arm64@1.1.0',
+      '@lydell/node-pty-darwin-x64@1.1.0',
+      '@lmdb/lmdb-darwin-arm64@3.5.1',
+      '@lmdb/lmdb-darwin-x64@3.5.1'
+    ],
+    win32: [
+      '@lydell/node-pty-win32-arm64@1.1.0',
+      '@lydell/node-pty-win32-x64@1.1.0',
+      '@lmdb/lmdb-win32-arm64@3.5.1',
+      '@lmdb/lmdb-win32-x64@3.5.1'
+    ],
+    linux: [
+      '@lydell/node-pty-linux-arm64@1.1.0',
+      '@lydell/node-pty-linux-x64@1.1.0',
+      '@lmdb/lmdb-linux-arm64@3.5.1',
+      '@lmdb/lmdb-linux-x64@3.5.1'
+    ]
   };
 
   // Ignore if no deps need to be installed

@@ -109,6 +109,7 @@ export const ossSchema = {
         size: {
           type: 'object',
           properties: {
+            xxs: { type: 'string', description: 'Extra extra small font size (9px)' },
             xs: { type: 'string', description: 'Extra small font size (11px)' },
             sm: { type: 'string', description: 'Small font size (12px)' },
             base: { type: 'string', description: 'Base font size (13px)' },

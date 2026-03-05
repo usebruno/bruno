@@ -43,6 +43,8 @@ const registerSystemMonitorIpc = require('./ipc/system-monitor');
 const registerWorkspaceIpc = require('./ipc/workspace');
 const registerApiSpecIpc = require('./ipc/apiSpec');
 const registerGitIpc = require('./ipc/git');
+const registerFileCacheIpc = require('./ipc/file-cache');
+const { fileCache } = require('./cache/fileCache');
 const registerOpenAPISyncIpc = require('./ipc/openapi-sync');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
@@ -177,6 +179,12 @@ if (useSingleInstance && !gotTheLock) {
 app.on('ready', async () => {
   // Ensure shell environment is loaded before any operations that need it
   await initializeShellEnv();
+
+  try {
+    fileCache.initialize();
+  } catch (err) {
+    console.warn('Failed to initialize file cache:', err);
+  }
 
   if (isDev) {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
@@ -472,6 +480,7 @@ app.on('ready', async () => {
   registerFilesystemIpc(mainWindow);
   registerSystemMonitorIpc(mainWindow, systemMonitor);
   registerGitIpc(mainWindow);
+  registerFileCacheIpc();
   registerOpenAPISyncIpc(mainWindow);
 });
 
@@ -487,6 +496,10 @@ app.on('before-quit', () => {
   } catch (err) {
     console.warn('Failed to flush cookies on quit', err);
   }
+
+  fileCache.close().catch((err) => {
+    console.warn('Failed to close file cache on quit', err);
+  });
 
   // Stop system monitoring
   systemMonitor.stop();
