@@ -74,7 +74,7 @@ const OpenAPISyncHeader = ({
         <div className="spec-title-section">
           <div className="spec-title-row">
             <span className="spec-title">{title}</span>
-            <StatusBadge status="muted" className="spec-version">{version}</StatusBadge>
+            <StatusBadge status="muted" variant="outline" className="spec-version">{version}</StatusBadge>
           </div>
         </div>
         <div className="spec-header-actions">
