@@ -410,7 +410,7 @@ function createAgents({
       const proxyProtocol = get(proxyConfig, 'protocol');
       const proxyHostname = get(proxyConfig, 'hostname');
       const proxyPort = get(proxyConfig, 'port');
-      const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
+      const proxyAuthEnabled = !get(proxyConfig, 'auth.disabled', false);
       const socksEnabled = proxyProtocol && proxyProtocol.includes('socks');
 
       if (!proxyProtocol || !proxyHostname) {
