@@ -1247,3 +1247,116 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).toBe(`curl -X GET '${rawUrl}'`);
   });
 });
+
+describe('generateSnippet – URL interpolation behavior', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const baseCollection = {
+    root: { request: { auth: { mode: 'none' }, headers: [] } },
+    globalEnvironmentVariables: {
+      host: 'https://api.example.com'
+    },
+    runtimeVariables: {},
+    processEnvVariables: {}
+  };
+
+  it('should NOT interpolate URL variables when shouldInterpolate is false', () => {
+    const item = {
+      uid: 'url-test-1',
+      request: {
+        method: 'GET',
+        url: '{{host}}/ping',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      }
+    };
+
+    const result = generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('{{host}}/ping');
+    expect(result).not.toContain('https://api.example.com/ping');
+  });
+
+  it('should interpolate URL variables when shouldInterpolate is true', () => {
+    const item = {
+      uid: 'url-test-2',
+      request: {
+        method: 'GET',
+        url: '{{host}}/ping',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      }
+    };
+
+    const result = generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    expect(result).toContain('https://api.example.com/ping');
+    expect(result).not.toContain('{{host}}');
+  });
+
+  it('should NOT interpolate URL path params when shouldInterpolate is false', () => {
+    const item = {
+      uid: 'url-test-3',
+      request: {
+        method: 'GET',
+        url: 'https://api.example.com/users/:userId',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: [
+          { name: 'userId', value: '123', type: 'path', enabled: true }
+        ]
+      }
+    };
+
+    const result = generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('/users/:userId');
+    expect(result).not.toContain('/users/123');
+  });
+
+  it('should interpolate both URL variables and path params when shouldInterpolate is true', () => {
+    const item = {
+      uid: 'url-test-4',
+      request: {
+        method: 'GET',
+        url: '{{host}}/users/:userId',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: [
+          { name: 'userId', value: '123', type: 'path', enabled: true }
+        ]
+      }
+    };
+
+    const result = generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    expect(result).toContain('https://api.example.com/users/123');
+    expect(result).not.toContain('{{host}}');
+    expect(result).not.toContain(':userId');
+  });
+});

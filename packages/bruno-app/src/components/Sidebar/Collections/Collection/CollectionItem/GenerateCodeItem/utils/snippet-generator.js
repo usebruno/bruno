@@ -68,9 +68,8 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       request.params = interpolateParams(request.params, variables);
     }
 
-    // Always interpolate the URL for HAR generation (HTTPSnippet requires a valid URL)
-    const rawUrl = request.url;
-    const interpolatedUrl = interpolateUrl({ url: rawUrl, variables });
+    const templateUrl = request.url;
+    const interpolatedUrl = interpolateUrl({ url: templateUrl, variables });
     const harUrl = interpolateUrlPathParams(interpolatedUrl, request.params);
 
     // Build HAR request with the interpolated URL without mutating the original request
@@ -87,9 +86,9 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     if (language.target === 'shell' && language.client === 'curl') {
       result = addCurlAuthFlags(result, effectiveAuth);
     }
-    
-    if (!shouldInterpolate && rawUrl !== harUrl) {
-      result = result.replace(harUrl, rawUrl);
+
+    if (!shouldInterpolate) {
+      result = result.replace(harUrl, templateUrl);
     }
 
     // Respect encodeUrl setting: when not explicitly true, replace HTTPSnippet's encoded path+query with the raw version.
