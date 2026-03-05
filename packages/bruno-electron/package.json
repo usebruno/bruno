@@ -74,7 +74,7 @@
     "simple-git": "^3.22.0",
     "socks-proxy-agent": "^8.0.2",
     "tough-cookie": "^6.0.0",
-    "uuid": "^9.0.0",
+    "uuid": "^10.0.0",
     "yup": "^0.32.11"
   },
   "optionalDependencies": {
