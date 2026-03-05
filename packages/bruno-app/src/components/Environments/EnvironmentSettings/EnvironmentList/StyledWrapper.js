@@ -32,19 +32,6 @@ const StyledWrapper = styled.div`
     flex-direction: column;
   }
 
-  .sidebar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 16px 12px 16px;
-    
-    .title {
-      font-size: ${(props) => props.theme.font.size.base};
-      font-weight: 500;
-      color: ${(props) => props.theme.text};
-      margin: 0;
-    }
-    
     .btn-action {
       display: flex;
       align-items: center;
@@ -66,35 +53,54 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .search-container {
+  .env-list-search {
     position: relative;
-    padding: 0 12px 12px 12px;
-    
-    .search-icon {
+    display: flex;
+    align-items: center;
+    margin: 0 4px 6px 4px;
+
+    .env-list-search-icon {
       position: absolute;
-      left: 20px;
-      top: 50%;
-      transform: translateY(-100%);
+      left: 8px;
       color: ${(props) => props.theme.colors.text.muted};
       pointer-events: none;
     }
-    
-    .search-input {
+
+    .env-list-search-input {
       width: 100%;
-      padding: 6px 8px 6px 28px;
+      padding: 5px 24px 5px 26px;
       font-size: 12px;
       background: transparent;
       border: 1px solid ${(props) => props.theme.border.border1};
       border-radius: 5px;
       color: ${(props) => props.theme.text};
-      transition: all 0.15s ease;
-      
+      transition: border-color 0.15s ease;
+
       &::placeholder {
         color: ${(props) => props.theme.colors.text.muted};
       }
       
       &:focus {
         outline: none;
+        border-color: ${(props) => props.theme.colors.accent};
+      }
+    }
+
+    .env-list-search-clear {
+      position: absolute;
+      right: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: ${(props) => props.theme.colors.text.muted};
+      border-radius: 3px;
+
+      &:hover {
+        color: ${(props) => props.theme.text};
       }
     }
   }
@@ -129,6 +135,10 @@ const StyledWrapper = styled.div`
     &:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       color: ${(props) => props.theme.text};
+    }
+
+    &.active {
+      color: ${(props) => props.theme.colors.accent};
     }
   }
 

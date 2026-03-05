@@ -26,7 +26,7 @@ const CloneCollection = ({ onClose, collectionUid }) => {
   const isDefaultWorkspace = activeWorkspace?.type === 'default';
 
   const defaultLocation = isDefaultWorkspace
-    ? get(preferences, 'general.defaultCollectionLocation', '')
+    ? get(preferences, 'general.defaultLocation', '')
     : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
   const { name } = collection;
 

@@ -1,7 +1,7 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
 import jsyaml from 'js-yaml';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTag, sanitizeTags } from '../common';
 
 // Content type patterns for matching MIME type variants
 // These patterns handle structured types with many variants (e.g., application/ld+json, application/vnd.api+json)
@@ -434,15 +434,18 @@ const populateRequestBody = ({ body, bodySchema, contentType }) => {
  * @param {*} params.exampleValue - The example value (object, array, or primitive)
  * @param {string} params.exampleName - Name of the example
  * @param {string} params.exampleDescription - Description of the example
- * @param {string|number} params.statusCode - HTTP status code (for response examples)
+ * @param {number} params.statusCode - HTTP status code (for response examples)
  * @param {string} params.contentType - Content type (e.g., 'application/json')
  * @param {Object} [params.requestBodySchema] - Optional request body schema to populate in the example
  * @param {string} [params.requestBodyContentType] - Optional request body content type
  * @returns {Object} Bruno example object
  */
+
 const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType, requestBodySchema = null, requestBodyContentType = null }) => {
   const sanitized = String(exampleName ?? '').replace(/\r?\n/g, ' ').trim();
   const name = sanitized || `${statusCode} Response`;
+  const numericStatus = Number(statusCode);
+  const safeStatus = Number.isFinite(numericStatus) ? numericStatus : null;
   // Deep copy the body to avoid shared references
   const bodyCopy = {
     mode: brunoRequestItem.request.body.mode,
@@ -468,8 +471,8 @@ const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, examp
       body: bodyCopy
     },
     response: {
-      status: String(statusCode),
-      statusText: getStatusText(statusCode),
+      status: safeStatus,
+      statusText: safeStatus ? getStatusText(safeStatus) : null,
       headers: contentType ? [
         {
           uid: uuid(),
@@ -492,6 +495,50 @@ const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, examp
   }
 
   return brunoExample;
+};
+
+// Extract a representative value from a schema property (used for request body properties)
+// Priority: prop.example > parentExample[propName] > prop.default > prop.enum[0] > ''
+const getSchemaPropertyExampleValue = (prop, propName, parentExample = {}) => {
+  if (prop.example !== undefined) return String(prop.example);
+  if (parentExample[propName] !== undefined) return String(parentExample[propName]);
+  if (prop.default !== undefined) return String(prop.default);
+  if (prop.enum && prop.enum.length > 0) return String(prop.enum[0]);
+  return '';
+};
+
+// Extract a representative value from an OpenAPI parameter object (query/path/header)
+// Priority: param.example > param.examples > array items > schema.default > schema.example > schema.enum > schema.examples > schema.minimum > ''
+const getParameterExampleValue = (param) => {
+  // Top-level param examples (mutually exclusive per spec)
+  if (param.example !== undefined) return String(param.example);
+  if (param.examples) {
+    const firstExample = Object.values(param.examples)[0];
+    if (firstExample?.value !== undefined) return String(firstExample.value);
+  }
+
+  // Array type - return first item as representative value
+  if (param.schema?.type === 'array' && param.schema?.items) {
+    const itemExample = param.schema.items.example
+      ?? param.schema.items.enum?.[0]
+      ?? '';
+    return String(itemExample);
+  }
+
+  // Schema-level fallback values
+  if (param.schema?.default !== undefined) return String(param.schema.default);
+  if (param.schema?.example !== undefined) return String(param.schema.example);
+  if (param.schema?.enum && param.schema.enum.length > 0) return String(param.schema.enum[0]);
+
+  // schema.examples is a plain JSON Schema array of values (OAS 3.1+)
+  if (Array.isArray(param.schema?.examples) && param.schema.examples.length > 0) {
+    return String(param.schema.examples[0]);
+  }
+
+  // Use minimum as a sensible fallback for numeric types
+  if (param.schema?.minimum !== undefined) return String(param.schema.minimum);
+
+  return '';
 };
 
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
@@ -530,15 +577,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
-    tags: [...new Set(
-      (request.operationObject.tags || []).map((tag) => {
-        let sanitized = tag.trim();
-        if (options.collectionFormat !== 'yml') {
-          sanitized = sanitized.replace(/\s+/g, '_');
-        }
-        return sanitized;
-      }).filter((tag) => tag.trim())
-    )],
+    tags: sanitizeTags(request.operationObject.tags || [], options),
     request: {
       docs: _operationObject.description,
       url: ensureUrl(request.global.server + path),
@@ -567,6 +606,22 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     }
   };
 
+  // If the operation has its own servers, override baseUrl via request vars
+  // Only the first server is used; Bruno supports a single baseUrl per request
+  if (request.servers && request.servers.length > 0) {
+    const serverVarPairs = extractServerVars(request.servers[0]);
+    brunoRequestItem.request.vars = {
+      req: serverVarPairs.map((sv) => ({
+        uid: uuid(),
+        name: sv.name,
+        value: sv.value,
+        enabled: true,
+        local: false
+      })),
+      res: []
+    };
+  }
+
   each(_operationObject.parameters || [], (param) => {
     // Check if parameter schema is an object type with properties
     // If so, expand the properties into individual parameters
@@ -574,14 +629,18 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
 
     if (isObjectSchema) {
       // Expand object schema properties into individual parameters
+      const schemaExample = param.schema.example || {};
+
       each(param.schema.properties, (prop, propName) => {
         const isRequired = Array.isArray(param.schema.required) && param.schema.required.includes(propName);
 
-        if (param.in === 'query') {
+        const propValue = getSchemaPropertyExampleValue(prop, propName, schemaExample);
+
+        if (param.in === 'query' || param.in === 'querystring') {
           brunoRequestItem.request.params.push({
             uid: uuid(),
             name: propName,
-            value: '',
+            value: propValue,
             description: prop.description || '',
             enabled: isRequired,
             type: 'query'
@@ -590,7 +649,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
           brunoRequestItem.request.params.push({
             uid: uuid(),
             name: propName,
-            value: '',
+            value: propValue,
             description: prop.description || '',
             enabled: isRequired,
             type: 'path'
@@ -599,18 +658,20 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
           brunoRequestItem.request.headers.push({
             uid: uuid(),
             name: propName,
-            value: '',
+            value: propValue,
             description: prop.description || '',
             enabled: isRequired
           });
         }
       });
     } else {
-      if (param.in === 'query') {
+      const paramValue = getParameterExampleValue(param);
+
+      if (param.in === 'query' || param.in === 'querystring') {
         brunoRequestItem.request.params.push({
           uid: uuid(),
           name: param.name,
-          value: '',
+          value: paramValue,
           description: param.description || '',
           enabled: param.required,
           type: 'query'
@@ -619,7 +680,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
         brunoRequestItem.request.params.push({
           uid: uuid(),
           name: param.name,
-          value: '',
+          value: paramValue,
           description: param.description || '',
           enabled: param.required,
           type: 'path'
@@ -628,7 +689,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
         brunoRequestItem.request.headers.push({
           uid: uuid(),
           name: param.name,
-          value: '',
+          value: paramValue,
           description: param.description || '',
           enabled: param.required
         });
@@ -803,7 +864,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
      * @param {*} params.responseExampleValue - The response example value
      * @param {string} params.exampleName - Name of the example
      * @param {string} params.exampleDescription - Description of the example
-     * @param {string|number} params.statusCode - HTTP status code
+     * @param {number} params.statusCode - HTTP status code
      * @param {string} params.responseContentType - Response content type
      * @param {string} [params.responseExampleKey] - Optional response example key for matching
      */
@@ -1029,13 +1090,13 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
   return resolved;
 };
 
-const groupRequestsByTags = (requests) => {
+const groupRequestsByTags = (requests, options = {}) => {
   let _groups = {};
   let ungrouped = [];
   each(requests, (request) => {
     let tags = request.operationObject.tags || [];
     if (tags.length > 0) {
-      let tag = tags[0].trim(); // take first tag and trim whitespace
+      let tag = sanitizeTag(tags[0].trim()); // take first tag, trim whitespace, and sanitize
 
       if (tag) {
         if (!_groups[tag]) {
@@ -1153,11 +1214,32 @@ const getDefaultUrl = (serverObject) => {
   let url = serverObject.url;
   if (serverObject.variables) {
     each(serverObject.variables, (variable, variableName) => {
-      let sub = variable.default || (variable.enum ? variable.enum[0] : `{{${variableName}}}`);
-      url = url.replace(`{${variableName}}`, sub);
+      let sub = variable.default !== undefined ? variable.default : (variable.enum ? variable.enum[0] : `{{${variableName}}}`);
+      url = url.replaceAll(`{${variableName}}`, sub);
     });
   }
   return url.endsWith('/') ? url.slice(0, -1) : url;
+};
+
+// Extract { name, value } pairs from an OpenAPI server object.
+// Converts {varName} to {{varName}} for template URLs and includes variable defaults.
+const extractServerVars = (server) => {
+  const vars = [];
+  if (server.variables && Object.keys(server.variables).length > 0) {
+    let baseUrlTemplate = server.url;
+    each(server.variables, (variable, variableName) => {
+      baseUrlTemplate = baseUrlTemplate.replaceAll(`{${variableName}}`, `{{${variableName}}}`);
+    });
+    baseUrlTemplate = baseUrlTemplate.endsWith('/') ? baseUrlTemplate.slice(0, -1) : baseUrlTemplate;
+    vars.push({ name: 'baseUrl', value: baseUrlTemplate });
+    each(server.variables, (variable, variableName) => {
+      let value = variable.default !== undefined ? variable.default : (variable.enum ? variable.enum[0] : '');
+      vars.push({ name: variableName, value: String(value) });
+    });
+  } else {
+    vars.push({ name: 'baseUrl', value: getDefaultUrl(server) });
+  }
+  return vars;
 };
 
 const getSecurity = (apiSpec) => {
@@ -1220,45 +1302,58 @@ export const parseOpenApiCollection = (data, options = {}) => {
 
     // Create environments based on the servers
     servers.forEach((server, index) => {
-      let baseUrl = getDefaultUrl(server);
-      let environmentName = server.description ? server.description : `Environment ${index + 1}`;
+      let environmentName = server.name || server.description || `Environment ${index + 1}`;
+      const serverVars = extractServerVars(server);
+      const variables = serverVars.map((sv) => ({
+        uid: uuid(),
+        name: sv.name,
+        value: sv.value,
+        type: 'text',
+        enabled: true,
+        secret: false
+      }));
 
       brunoCollection.environments.push({
         uid: uuid(),
         name: environmentName,
-        variables: [
-          {
-            uid: uuid(),
-            name: 'baseUrl',
-            value: baseUrl,
-            type: 'text',
-            enabled: true,
-            secret: false
-          }
-        ]
+        variables
       });
     });
 
     let securityConfig = getSecurity(collectionData);
 
+    // Merge path-item parameters with operation parameters.
+    // Operation parameters override path-item parameters with the same name+in combination.
+    const mergeParams = (pathParams, operationParams) => {
+      const overrides = new Set(operationParams.map((p) => `${p.name}:${p.in}`));
+      const inheritedParams = pathParams.filter((p) => !overrides.has(`${p.name}:${p.in}`));
+      return [...inheritedParams, ...operationParams];
+    };
+
     let allRequests = Object.entries(collectionData.paths)
-      .map(([path, methods]) => {
-        return Object.entries(methods)
+      .map(([path, pathItemObject]) => {
+        // Extract path-item level parameters (per OpenAPI spec, these apply to all operations under this path)
+        const pathItemParams = pathItemObject.parameters || [];
+
+        return Object.entries(pathItemObject)
           .filter(([method, op]) => {
             return ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'].includes(
               method.toLowerCase()
             );
           })
           .map(([method, operationObject]) => {
+            const mergedParams = mergeParams(pathItemParams, operationObject.parameters || []);
+
             return {
               method: method,
               path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
               originalPath: path, // Keep original path for grouping
-              operationObject: operationObject,
+              operationObject: { ...operationObject, parameters: mergedParams },
               global: {
                 server: '{{baseUrl}}',
                 security: securityConfig
-              }
+              },
+              servers: operationObject.servers || pathItemObject.servers || null
             };
           });
       })
@@ -1271,7 +1366,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
       brunoCollection.items = groupRequestsByPath(allRequests, options);
     } else {
       // Default tag-based grouping
-      let [groups, ungroupedRequests] = groupRequestsByTags(allRequests);
+      let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
       let brunoFolders = groups.map((group) => {
         return {
           uid: uuid(),
@@ -1413,9 +1508,12 @@ export const openApiToBruno = (openApiSpecification, options = {}) => {
     }
 
     const collection = parseOpenApiCollection(openApiSpecification, options);
+
     const transformedCollection = transformItemsInCollection(collection);
+
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
     const validatedCollection = validateSchema(hydratedCollection);
+
     return validatedCollection;
   } catch (err) {
     console.error('Error converting OpenAPI to Bruno:', err);

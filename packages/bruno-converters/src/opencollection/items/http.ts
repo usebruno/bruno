@@ -127,7 +127,7 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
         body: fromOpenCollectionBody(example.request?.body) || null
       },
       response: example.response ? {
-        status: String(example.response.status || 200),
+        status: example.response.status || 200,
         statusText: example.response.statusText || 'OK',
         headers: fromOpenCollectionHeaders(example.response.headers as HttpRequestHeader[]) || [],
         body: example.response.body ? {

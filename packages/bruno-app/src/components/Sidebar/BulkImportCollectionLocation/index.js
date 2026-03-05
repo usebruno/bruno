@@ -133,7 +133,7 @@ export const BulkImportCollectionLocation = ({
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
   const defaultLocation = isDefaultWorkspace
-    ? get(preferences, 'general.defaultCollectionLocation', '')
+    ? get(preferences, 'general.defaultLocation', '')
     : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
 
   const [status, setStatus] = useState({});
@@ -839,7 +839,7 @@ export const BulkImportCollectionLocation = ({
 
                 {isMultipleImport && hasOpenApiSpec && (
                   <div>
-                    <div className="flex gap-4 items-center">
+                    <div className="flex gap-4 items-center mt-4">
                       <div>
                         <label htmlFor="groupingType" className="block font-semibold">
                           Folder arrangement

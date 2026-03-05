@@ -2,15 +2,19 @@
   "maximized": false,
   "lastOpenedCollections": ["{{projectRoot}}/tests/ssl/custom-ca-certs/collection"],
   "preferences": {
-		"request": {
-			"sslVerification": true,
-			"customCaCertificate": {
-				"enabled": true,
-				"filePath": "{{projectRoot}}/tests/ssl/custom-ca-certs/server/certs/ca-key.pem"
-			},
-			"keepDefaultCaCertificates": {
-				"enabled": true
-			}
-		}
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
+    "request": {
+      "sslVerification": true,
+      "customCaCertificate": {
+        "enabled": true,
+        "filePath": "{{projectRoot}}/tests/ssl/custom-ca-certs/server/certs/ca-key.pem"
+      },
+      "keepDefaultCaCertificates": {
+        "enabled": true
+      }
+    }
   }
 }

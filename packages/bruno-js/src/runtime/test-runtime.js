@@ -7,6 +7,7 @@ const { createBruTestResultMethods } = require('../utils/results');
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const { SANDBOX } = require('../utils/sandbox');
 
 class TestRuntime {
   constructor(props) {
@@ -34,6 +35,7 @@ class TestRuntime {
     const promptVariables = request?.promptVariables || {};
     const assertionResults = request?.assertionResults || [];
     const certsAndProxyConfig = request?.certsAndProxyConfig;
+    const scriptPath = request?.pathname;
     const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -85,19 +87,21 @@ class TestRuntime {
     let scriptError = null;
 
     try {
-      if (this.runtime === 'nodevm') {
+      if (this.runtime === SANDBOX.NODEVM) {
         await runScriptInNodeVm({
           script: testsFile,
           context,
           collectionPath,
-          scriptingConfig
+          scriptingConfig,
+          scriptPath
         });
       } else {
         // default runtime is `quickjs`
         await executeQuickJsVmAsync({
           script: testsFile,
           context: context,
-          collectionPath
+          collectionPath,
+          scriptPath
         });
       }
     } catch (error) {

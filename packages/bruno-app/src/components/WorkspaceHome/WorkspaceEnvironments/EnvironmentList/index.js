@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import usePrevious from 'hooks/usePrevious';
 import useOnClickOutside from 'hooks/useOnClickOutside';
+import useDebounce from 'hooks/useDebounce';
 import EnvironmentDetails from './EnvironmentDetails';
 import { IconDownload, IconUpload, IconSearch, IconPlus, IconCheck, IconX, IconFileAlert } from '@tabler/icons';
 import Button from 'ui/Button';
@@ -20,6 +21,7 @@ import {
   createWorkspaceDotEnvFile,
   deleteWorkspaceDotEnvFile
 } from 'providers/ReduxStore/slices/workspaces/actions';
+import { setEnvVarSearchQuery, setEnvVarSearchExpanded } from 'providers/ReduxStore/slices/app';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import classnames from 'classnames';
@@ -39,9 +41,15 @@ const EnvironmentList = ({
 }) => {
   const dispatch = useDispatch();
   const globalEnvs = useSelector((state) => state?.globalEnvironments?.globalEnvironments);
+  const envSearchQuery = useSelector((state) => state.app.envVarSearch?.global?.query ?? '');
+  const isEnvSearchExpanded = useSelector((state) => state.app.envVarSearch?.global?.expanded ?? false);
+  const setEnvSearchQuery = (q) => dispatch(setEnvVarSearchQuery({ context: 'global', query: q }));
+  const setIsEnvSearchExpanded = (v) => dispatch(setEnvVarSearchExpanded({ context: 'global', expanded: v }));
 
   const [openImportModal, setOpenImportModal] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [isEnvListSearchExpanded, setIsEnvListSearchExpanded] = useState(false);
+  const envListSearchInputRef = useRef(null);
   const [isCreatingInline, setIsCreatingInline] = useState(false);
   const [renamingEnvUid, setRenamingEnvUid] = useState(null);
   const [newEnvName, setNewEnvName] = useState('');
@@ -63,6 +71,9 @@ const EnvironmentList = ({
   const [dotEnvNameError, setDotEnvNameError] = useState('');
   const dotEnvInputRef = useRef(null);
   const dotEnvCreateContainerRef = useRef(null);
+
+  const debouncedEnvSearchQuery = useDebounce(envSearchQuery, 300);
+  const envSearchInputRef = useRef(null);
 
   const dotEnvFiles = useSelector((state) => {
     const ws = state.workspaces.workspaces.find((w) => w.uid === workspace?.uid);
@@ -493,6 +504,12 @@ const EnvironmentList = ({
           setIsModified={setIsModified}
           originalEnvironmentVariables={originalEnvironmentVariables}
           collection={collection}
+          searchQuery={envSearchQuery}
+          setSearchQuery={setEnvSearchQuery}
+          isSearchExpanded={isEnvSearchExpanded}
+          setIsSearchExpanded={setIsEnvSearchExpanded}
+          debouncedSearchQuery={debouncedEnvSearchQuery}
+          searchInputRef={envSearchInputRef}
         />
       );
     }
@@ -525,20 +542,6 @@ const EnvironmentList = ({
         )}
 
         <div className="sidebar">
-          <div className="sidebar-header">
-            <h2 className="title">Variables</h2>
-          </div>
-
-          <div className="search-container">
-            <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              className="search-input"
-            />
-          </div>
 
           <div className="sections-container">
             <CollapsibleSection
@@ -547,6 +550,19 @@ const EnvironmentList = ({
               onToggle={() => setEnvironmentsExpanded(!environmentsExpanded)}
               actions={(
                 <>
+                  <button
+                    type="button"
+                    className={`btn-action ${isEnvListSearchExpanded ? 'active' : ''}`}
+                    onClick={() => {
+                      const next = !isEnvListSearchExpanded;
+                      setIsEnvListSearchExpanded(next);
+                      if (!next) setSearchText('');
+                      else setTimeout(() => envListSearchInputRef.current?.focus(), 50);
+                    }}
+                    title="Search environments"
+                  >
+                    <IconSearch size={14} strokeWidth={1.5} />
+                  </button>
                   <button type="button" className="btn-action" onClick={() => handleCreateEnvClick()} title="Create environment">
                     <IconPlus size={14} strokeWidth={1.5} />
                   </button>
@@ -559,6 +575,28 @@ const EnvironmentList = ({
                 </>
               )}
             >
+              {isEnvListSearchExpanded && (
+                <div className="env-list-search">
+                  <IconSearch size={13} strokeWidth={1.5} className="env-list-search-icon" />
+                  <input
+                    ref={envListSearchInputRef}
+                    type="text"
+                    placeholder="Search environments..."
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    className="env-list-search-input"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                  />
+                  {searchText && (
+                    <button className="env-list-search-clear" title="Clear search" onClick={() => setSearchText('')} onMouseDown={(e) => e.preventDefault()}>
+                      <IconX size={12} strokeWidth={1.5} />
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="environments-list">
                 {filteredEnvironments.map((env) => (
                   <div

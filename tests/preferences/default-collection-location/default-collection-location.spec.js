@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 
-test.describe('Default Collection Location Feature', () => {
+test.describe('Default Location Feature', () => {
   test('Should hydrate the default location from preferences', async ({ pageWithUserData: page }) => {
     // open preferences tab
     await page.locator('.preferences-button').click();
@@ -12,7 +12,7 @@ test.describe('Default Collection Location Feature', () => {
     await page.getByRole('tab', { name: 'General' }).click();
 
     // verify the default location is pre-filled
-    const defaultLocationInput = page.locator('.default-collection-location-input');
+    const defaultLocationInput = page.locator('.default-location-input');
     await expect(defaultLocationInput).toHaveValue('/tmp/bruno-collections');
   });
 
@@ -27,7 +27,7 @@ test.describe('Default Collection Location Feature', () => {
     await page.getByRole('tab', { name: 'General' }).click();
 
     // set a default location (readonly input, remove readonly then fill)
-    const defaultLocationInput = page.locator('.default-collection-location-input');
+    const defaultLocationInput = page.locator('.default-location-input');
     await defaultLocationInput.evaluate((el) => {
       const input = el;
       input.removeAttribute('readonly');
@@ -43,6 +43,11 @@ test.describe('Default Collection Location Feature', () => {
     // test Create Collection modal
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
+
+    // Wait for inline creator to appear, then click the cog button to open advanced modal
+    const inlineCreator = page.locator('.inline-collection-creator');
+    await inlineCreator.waitFor({ state: 'visible', timeout: 5000 });
+    await inlineCreator.locator('.cog-btn').click();
 
     // Wait for modal to be visible
     await page.locator('.bruno-modal').waitFor({ state: 'visible' });
@@ -91,7 +96,7 @@ test.describe('Default Collection Location Feature', () => {
     await page.getByRole('tab', { name: 'General' }).click();
 
     // clear the default location field (readonly input, remove readonly then clear)
-    const defaultLocationInput = page.locator('.default-collection-location-input');
+    const defaultLocationInput = page.locator('.default-location-input');
     await defaultLocationInput.evaluate((el) => {
       const input = el;
       input.removeAttribute('readonly');

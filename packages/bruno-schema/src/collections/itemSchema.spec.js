@@ -15,6 +15,40 @@ describe('Item Schema Validation', () => {
     expect(isValid).toBeTruthy();
   });
 
+  it('item schema must validate tag regex rules', async () => {
+    const validItem = {
+      uid: uuid(),
+      name: 'A Folder',
+      type: 'folder',
+      tags: ['tag_1', 'Äiti-123 test']
+    };
+
+    const isValid = await itemSchema.validate(validItem);
+    expect(isValid).toBeTruthy();
+
+    let invalidItem = {
+      uid: uuid(),
+      name: 'A Folder',
+      type: 'folder',
+      tags: [' invalid-tag']
+    };
+
+    await expect(itemSchema.validate(invalidItem)).rejects.toThrow(
+      'tag must contain only letters, numbers, spaces, hyphens, or underscores'
+    );
+
+    invalidItem = {
+      uid: uuid(),
+      name: 'A Folder',
+      type: 'folder',
+      tags: ['tag🔥name']
+    };
+
+    await expect(itemSchema.validate(invalidItem)).rejects.toThrow(
+      'tag must contain only letters, numbers, spaces, hyphens, or underscores'
+    );
+  });
+
   it('item schema must throw an error if name is missing', async () => {
     const item = {
       uid: uuid(),

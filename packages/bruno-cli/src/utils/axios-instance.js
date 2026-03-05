@@ -78,13 +78,34 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies, followRedi
   const instance = axios.create({
     proxy: false,
     maxRedirects: 0,
-    headers: {
-      'User-Agent': `bruno-runtime/${CLI_VERSION}`
-    }
+    headers: {}
   });
+
+  // Set User-Agent manually (using transformRequest to delete headers instead)
+  instance.defaults.headers.common = {
+    'User-Agent': `bruno-runtime/${CLI_VERSION}`
+  };
 
   instance.interceptors.request.use((config) => {
     config.headers['request-start-time'] = Date.now();
+
+    /**
+      Apply header deletions requested via req.deleteHeader() in pre-request scripts.
+      Using set(name, null) rather than delete(): the axios http adapter guards its
+      own defaults (User-Agent, Accept-Encoding) with set(..., false) which only
+      skips writing when the key already exists. delete() removes the key entirely,
+      so the guard misses and the adapter re-adds the default. null keeps the key
+      present (blocking the guard) while toJSON() omits null values from the wire.
+    */
+    const headersToDelete = config.__headersToDelete;
+    if (headersToDelete && Array.isArray(headersToDelete)) {
+      headersToDelete.forEach((headerName) => {
+        const lower = headerName.toLowerCase();
+        if (lower === 'host' || lower === 'connection') return;
+        config.headers.set(headerName, null);
+      });
+      delete config.__headersToDelete;
+    }
 
     // Add cookies to request if available and not disabled
     if (!disableCookies) {

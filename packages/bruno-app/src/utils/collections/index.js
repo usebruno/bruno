@@ -670,6 +670,19 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
 
+  // Transform examples to ensure status is a number
+  const transformExamples = (examples = []) => {
+    return map(examples, (example) => ({
+      ...example,
+      response: example.response ? {
+        ...example.response,
+        status: example.response.status !== undefined && example.response.status !== null
+          ? Number(example.response.status)
+          : null
+      } : example.response
+    }));
+  };
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
@@ -677,7 +690,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
     seq: _item.seq,
     settings: _item.settings,
     tags: _item.tags,
-    examples: _item.examples || [],
+    examples: transformExamples(_item.examples || []),
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -1501,7 +1514,7 @@ export const transformExampleToDraft = (example, newExample) => {
     exampleToDraft.description = newExample.description;
   }
   if (newExample.status) {
-    exampleToDraft.response.status = String(newExample.status);
+    exampleToDraft.response.status = Number(newExample.status);
   }
   if (newExample.statusText) {
     exampleToDraft.response.statusText = newExample.statusText;

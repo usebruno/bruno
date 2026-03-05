@@ -3,6 +3,8 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   font-weight: 400;
   font-size: ${(props) => props.theme.font.size.sm};
+  color: ${(props) => props.theme.text};
+  white-space: normal;
   background-color: ${(props) => props.theme.infoTip.bg};
   border: 1px solid ${(props) => props.theme.infoTip.border};
   box-shadow: ${(props) => props.theme.infoTip.boxShadow};

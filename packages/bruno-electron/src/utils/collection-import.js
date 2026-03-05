@@ -21,8 +21,10 @@ async function findUniqueFolderName(baseName, collectionLocation, counter = 0) {
 
 /**
  * Import a collection - shared logic used by both IPC handler and onboarding service
+ * @param {Object} options - Optional settings
+ * @param {boolean} options.skipOpenEvent - If true, don't send main:collection-opened event (caller will handle it)
  */
-async function importCollection(collection, collectionLocation, mainWindow, uniqueFolderName = null, format = DEFAULT_COLLECTION_FORMAT) {
+async function importCollection(collection, collectionLocation, mainWindow, uniqueFolderName = null, format = DEFAULT_COLLECTION_FORMAT, options = {}) {
   // Use provided unique folder name or use collection name
   let folderName = uniqueFolderName ? sanitizeName(uniqueFolderName) : sanitizeName(collection.name);
   let collectionPath = path.join(collectionLocation, folderName);
@@ -116,8 +118,11 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
   brunoConfig.size = size;
   brunoConfig.filesCount = filesCount;
 
-  mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
-  ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
+  // Send collection-opened event unless caller wants to handle it themselves (e.g., during onboarding)
+  if (!options.skipOpenEvent) {
+    mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+    ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
+  }
 
   // create folder and files based on collection
   await parseCollectionItems(collection.items, collectionPath);
