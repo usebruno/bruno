@@ -39,7 +39,7 @@ const Cache = () => {
   const formik = useFormik({
     initialValues: {
       httpHttpsAgents: {
-        enabled: get(preferences, 'cache.httpHttpsAgents.enabled', true)
+        enabled: get(preferences, 'cache.httpHttpsAgents.enabled', false)
       }
     },
     validationSchema: cacheSchema,
@@ -89,7 +89,7 @@ const Cache = () => {
   return (
     <StyledWrapper className="w-full">
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="section-title mt-6 mb-3">HTTP and HTTPS Agents Cache</div>
+        <div className="section-title mt-6 mb-3">Cache SSL Session</div>
 
         <div className="flex items-center my-2">
           <input
@@ -101,12 +101,12 @@ const Cache = () => {
             className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="httpHttpsAgents.enabled">
-            Enable HTTP/HTTPS agent caching
+            Enable SSL session caching
           </label>
         </div>
         <div className="text-xs mt-1 ml-6 opacity-70">
-          Reuses TLS sessions and connections across requests for better performance. Disable to create a fresh agent
-          for every request.
+          Reuses TLS sessions and connections across requests for faster handshakes. Disable to create a fresh connection for every
+          request.
         </div>
 
         <div className="mt-6">

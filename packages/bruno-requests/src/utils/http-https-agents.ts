@@ -96,7 +96,7 @@ type ConfigOptions = {
   shouldUseCustomCaCertificate: boolean;
   customCaCertificateFilePath?: string;
   shouldKeepDefaultCaCertificates: boolean;
-  disableHttpHttpsAgentsCache?: boolean;
+  cacheSslSession?: boolean;
 };
 
 type GetCertsAndProxyConfigParams = {
@@ -382,7 +382,7 @@ function createAgents({
   certsConfig,
   httpsAgentRequestFields,
   timeline,
-  disableCache = false
+  disableCache = true
 }: CreateAgentsParams): AgentResult {
   // Ensure TLS options are properly set
   const tlsOptions: TlsOptions = {
@@ -528,7 +528,7 @@ const getHttpHttpsAgents = async ({
     certsConfig,
     httpsAgentRequestFields,
     timeline,
-    disableCache: options.disableHttpHttpsAgentsCache
+    disableCache: !options.cacheSslSession
   });
 
   return { httpAgent, httpsAgent };

@@ -205,7 +205,7 @@ const runSingleRequest = async function (
         shouldUseCustomCaCertificate: !!options['cacert'],
         customCaCertificateFilePath: options['cacert'],
         shouldKeepDefaultCaCertificates: !options['ignoreTruststore'],
-        disableHttpHttpsAgentsCache: get(options, 'disableHttpHttpsAgentsCache', false)
+        cacheSslSession: get(options, 'cacheSslSession', false)
       },
       clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
       collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
@@ -349,7 +349,7 @@ const runSingleRequest = async function (
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
     const cachedSystemProxy = get(options, 'cachedSystemProxy', null);
-    const disableCache = get(options, 'disableHttpHttpsAgentsCache', false);
+    const disableCache = !get(options, 'cacheSslSession', false);
     const httpsAgentRequestFields = {};
 
     if (insecure) {
@@ -624,7 +624,7 @@ const runSingleRequest = async function (
             shouldUseCustomCaCertificate: !!options['cacert'],
             customCaCertificateFilePath: options['cacert'],
             shouldKeepDefaultCaCertificates: !options['ignoreTruststore'],
-            disableHttpHttpsAgentsCache: disableCache
+            cacheSslSession: !disableCache
           };
 
           const clientCertificates = get(brunoConfig, 'clientCertificates');

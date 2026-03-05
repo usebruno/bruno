@@ -109,7 +109,7 @@ const defaultPreferences = {
   },
   cache: {
     httpHttpsAgents: {
-      enabled: true
+      enabled: false
     }
   }
 };
@@ -362,7 +362,7 @@ const preferencesUtil = {
     return get(getPreferences(), 'display.zoomPercentage', 100);
   },
   isHttpHttpsAgentCachingEnabled: () => {
-    return get(getPreferences(), 'cache.httpHttpsAgents.enabled', true);
+    return get(getPreferences(), 'cache.httpHttpsAgents.enabled', false);
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);

@@ -98,6 +98,10 @@ const Preferences = () => {
             <IconKeyboard size={16} strokeWidth={1.5} />
             Keybindings
           </div>
+          <div className={getTabClassname('cache')} role="tab" onClick={() => setTab('cache')}>
+            <IconDatabase size={16} strokeWidth={1.5} />
+            Cache
+          </div>
           <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
             <IconZoomQuestion size={16} strokeWidth={1.5} />
             Support
@@ -105,10 +109,6 @@ const Preferences = () => {
           <div className={getTabClassname('beta')} role="tab" onClick={() => setTab('beta')}>
             <IconSquareLetterB size={16} strokeWidth={1.5} />
             Beta
-          </div>
-          <div className={getTabClassname('cache')} role="tab" onClick={() => setTab('cache')}>
-            <IconDatabase size={16} strokeWidth={1.5} />
-            Cache
           </div>
         </div>
         <section
