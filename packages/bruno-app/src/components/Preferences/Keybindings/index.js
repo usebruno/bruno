@@ -547,7 +547,6 @@ const Keybindings = () => {
                     onMouseLeave={() => setHoveredAction((prev) => (prev === action ? null : prev))}
                   >
                     <td data-testid={`keybinding-name-${action}`}>{row.name}</td>
-
                     <td>
                       <div className="keybinding-row">
                         <div className="shortcut-wrap">
