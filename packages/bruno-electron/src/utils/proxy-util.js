@@ -111,7 +111,7 @@ function setupProxyAgents({
   interpolationOptions,
   timeline
 }) {
-  const disableCache = !preferencesUtil.isHttpHttpsAgentCachingEnabled();
+  const disableCache = !preferencesUtil.isSslSessionCachingEnabled();
 
   // Ensure TLS options are properly set
   const tlsOptions = {

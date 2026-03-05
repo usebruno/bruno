@@ -45,8 +45,8 @@ const initialState = {
       interval: 1000
     },
     cache: {
-      httpHttpsAgents: {
-        enabled: true
+      sslSession: {
+        enabled: false
       }
     }
   },

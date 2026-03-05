@@ -12,7 +12,7 @@ import debounce from 'lodash/debounce';
 import get from 'lodash/get';
 
 const cacheSchema = Yup.object().shape({
-  httpHttpsAgents: Yup.object({
+  sslSession: Yup.object({
     enabled: Yup.boolean()
   })
 });
@@ -38,8 +38,8 @@ const Cache = () => {
 
   const formik = useFormik({
     initialValues: {
-      httpHttpsAgents: {
-        enabled: get(preferences, 'cache.httpHttpsAgents.enabled', false)
+      sslSession: {
+        enabled: get(preferences, 'cache.sslSession.enabled', false)
       }
     },
     validationSchema: cacheSchema,
@@ -82,8 +82,8 @@ const Cache = () => {
 
   const handleResetCache = () => {
     dispatch(clearHttpHttpsAgentCache())
-      .then(() => toast.success('Agent cache cleared'))
-      .catch(() => toast.error('Failed to clear agent cache'));
+      .then(() => toast.success('ssl session cache cleared'))
+      .catch(() => toast.error('Failed to clear ssl session cache'));
   };
 
   return (
@@ -93,14 +93,14 @@ const Cache = () => {
 
         <div className="flex items-center my-2">
           <input
-            id="httpHttpsAgents.enabled"
+            id="sslSession.enabled"
             type="checkbox"
-            name="httpHttpsAgents.enabled"
-            checked={formik.values.httpHttpsAgents.enabled}
+            name="sslSession.enabled"
+            checked={formik.values.sslSession.enabled}
             onChange={handleAgentCachingChange}
             className="mousetrap mr-0"
           />
-          <label className="block ml-2 select-none" htmlFor="httpHttpsAgents.enabled">
+          <label className="block ml-2 select-none" htmlFor="sslSession.enabled">
             Enable SSL session caching
           </label>
         </div>
@@ -110,7 +110,7 @@ const Cache = () => {
         </div>
 
         <div className="mt-6">
-          <button type="button" className="purge-button" onClick={handleResetCache}>
+          <button type="button" className="text-link cursor-pointer hover:underline" onClick={handleResetCache}>
             Clear
           </button>
         </div>
