@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { IconAlertCircle, IconRefresh } from '@tabler/icons';
 import get from 'lodash/get';
 import toast from 'react-hot-toast';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
+import { Tooltip } from 'react-tooltip';
 
 const formatBytes = (bytes) => {
   if (bytes === 0) return '0 B';
@@ -89,11 +91,10 @@ const Cache = () => {
 
   return (
     <StyledWrapper>
-      <div className="text-muted">
-        Bruno caches parsed collection files to speed up loading. Files are automatically reloaded when modified.
+      <div className="section-header">
+        <span>Cache</span>
       </div>
-
-      <div className="flex items-center mt-2">
+      <div className="flex max-w-xs items-center mt-2">
         <input
           id="cacheEnabled"
           type="checkbox"
@@ -101,12 +102,30 @@ const Cache = () => {
           onChange={handleToggleCache}
           className="mousetrap mr-0"
         />
-        <label className="block ml-2 select-none" htmlFor="cacheEnabled">
-          Enable File Cache
+        <label className="inline-flex items-center ml-2 select-none" htmlFor="cacheEnabled">
+          <span>Enable</span>
+          <span id="cache-tooltip" className="ml-2">
+            <IconAlertCircle size={16} className="tooltip-icon" />
+          </span>
+          <Tooltip
+            anchorId="cache-tooltip"
+            className="tooltip-mod font-normal"
+            html="Enabling cache will store copies of files you've opened for faster access later. <br/> It can be cleared anytime without affecting your original files."
+          />
         </label>
+        <Button
+          size="xs"
+          color="secondary"
+          className="ml-auto"
+          disabled={refreshing || !cacheEnabled}
+          loading={refreshing}
+          onClick={handleRefresh}
+        >
+          <IconRefresh size={16} strokeWidth={1.5} />
+        </Button>
       </div>
 
-      <table className={`cache-stats mt-4 ${!cacheEnabled ? 'opacity-50' : ''}`}>
+      <table className={`max-w-xs w-full cache-stats mt-4 ${!cacheEnabled ? 'opacity-50' : ''}`}>
         <tbody>
           <tr>
             <td className="label">Cached Files</td>
@@ -128,16 +147,6 @@ const Cache = () => {
           size="sm"
           variant="outline"
           color="secondary"
-          disabled={refreshing || !cacheEnabled}
-          loading={refreshing}
-          onClick={handleRefresh}
-        >
-          Refresh
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          color="secondary"
           disabled={clearing || !stats?.fileCount || !cacheEnabled}
           loading={clearing}
           onClick={handleClearCache}
@@ -146,9 +155,6 @@ const Cache = () => {
         </Button>
       </div>
 
-      {stats?.fileCount === 0 && cacheEnabled && (
-        <div className="text-muted">Cache is empty</div>
-      )}
     </StyledWrapper>
   );
 };

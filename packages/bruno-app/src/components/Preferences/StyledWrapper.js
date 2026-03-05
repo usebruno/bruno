@@ -17,6 +17,19 @@ const StyledWrapper = styled.div`
       cursor: pointer;
       transition: background-color 0.15s ease;
 
+      .beta-badge {
+        display: inline-block;
+        font-size: ${(props) => props.theme.font.size.xxs};
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        padding: 0.0625rem 0.25rem;
+        border-radius: 0.1875rem;
+        background-color: ${(props) => props.theme.colors.text.yellow};
+        color: ${(props) => props.theme.bg};
+        margin-left: auto;
+      }
+
       &:focus,
       &:active,
       &:focus-within,

@@ -13,7 +13,6 @@ const StyledWrapper = styled.div`
 
   table.cache-stats {
     border-collapse: collapse;
-    max-width: 16rem;
 
     td {
       padding: 0.375rem 0;

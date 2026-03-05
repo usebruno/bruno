@@ -126,6 +126,7 @@ const nordTheme = {
 
   font: {
     size: {
+      xxs: '0.563rem',
       xs: '0.6875rem',
       sm: '0.75rem',
       base: '0.8125rem',
