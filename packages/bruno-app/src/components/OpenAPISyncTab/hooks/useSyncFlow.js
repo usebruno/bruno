@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
-import { clearCollectionUpdate, setTabUiState, selectTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
+import { clearCollectionUpdate } from 'providers/ReduxStore/slices/openapi-sync';
 import { formatIpcError } from 'utils/common/error';
 
 const useSyncFlow = ({
@@ -9,9 +9,6 @@ const useSyncFlow = ({
   sourceUrl, setError, checkForUpdates
 }) => {
   const dispatch = useDispatch();
-  const tabUiState = useSelector(selectTabUiState(collection.uid));
-  const viewMode = tabUiState.viewMode || 'tabs';
-  const setViewMode = (mode) => dispatch(setTabUiState({ collectionUid: collection.uid, viewMode: mode }));
 
   const [pendingSyncMode, setPendingSyncMode] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -80,7 +77,6 @@ const useSyncFlow = ({
         endpointDecisions: decisions
       });
 
-      setViewMode('tabs');
       setPendingSyncMode(null);
 
       dispatch(clearCollectionUpdate({ collectionUid: collection.uid }));
@@ -100,17 +96,6 @@ const useSyncFlow = ({
     }
   };
 
-  // View/modal transition handlers
-  const enterReviewMode = () => {
-    setPendingSyncMode('sync');
-    setViewMode('review');
-  };
-
-  const handleGoBackFromReview = () => {
-    setViewMode('tabs');
-    setPendingSyncMode(null);
-  };
-
   const handleSyncNow = () => {
     if (!remoteDrift) return;
     setPendingSyncMode('sync');
@@ -119,7 +104,6 @@ const useSyncFlow = ({
 
   const handleApplySync = (selections) => {
     const mode = pendingSyncMode || 'sync';
-    setViewMode('tabs');
     setPendingSyncMode(null);
     performSync(selections, mode);
   };
@@ -154,8 +138,8 @@ const useSyncFlow = ({
   }, [remoteDrift]);
 
   return {
-    viewMode, isSyncing, showConfirmModal, confirmGroups,
-    enterReviewMode, handleSyncNow, handleGoBackFromReview,
+    isSyncing, showConfirmModal, confirmGroups,
+    handleSyncNow,
     handleApplySync, cancelConfirmModal, handleConfirmModalSync
   };
 };
