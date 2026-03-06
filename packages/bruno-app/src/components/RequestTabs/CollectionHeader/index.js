@@ -22,6 +22,7 @@ import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
 import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
 import CloseWorkspace from 'components/Sidebar/CloseWorkspace';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import ToolHint from 'components/ToolHint';
@@ -196,6 +197,15 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
       type: 'openapi-sync'
     }));
   };
+
+  // Build overflow menu items for the "..." dropdown
+  const overflowMenuItems = [
+    { id: 'variables', label: 'Variables', leftSection: IconEye, onClick: viewVariables },
+    { id: 'collection-settings', label: 'Collection Settings', leftSection: IconSettings, onClick: viewCollectionSettings },
+    ...(!hasOpenApiSyncConfigured
+      ? [{ id: 'openapi-sync', label: 'OpenAPI Sync', leftSection: OpenAPISyncIcon, onClick: viewOpenApiSync }]
+      : [])
+  ];
 
   // Workspace action handlers (only used when isScratchCollection is true)
   const handleRenameWorkspaceClick = () => {
@@ -450,36 +460,38 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
 
         {/* Right side: Actions (only for regular collections) */}
         {!isScratchCollection && (
-          <div className="flex flex-grow gap-1 items-center justify-end">
-            <ToolHint
-              text={hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI'}
-              toolhintId="OpenApiSyncToolhintId"
-              place="bottom"
-            >
-              <ActionIcon onClick={viewOpenApiSync} aria-label="OpenAPI" size="sm" className="relative">
-                <OpenAPISyncIcon size={16} />
-                {(hasOpenApiUpdates || hasOpenApiError) && (
-                  <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: hasOpenApiError ? theme.status.danger.text : theme.status.warning.text }} />
-                )}
-              </ActionIcon>
-            </ToolHint>
+          <div className="flex flex-grow gap-1.5 items-center justify-end">
+            {/* OpenAPI Sync - standalone only when configured */}
+            {hasOpenApiSyncConfigured && (
+              <ToolHint
+                text={hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI'}
+                toolhintId="OpenApiSyncToolhintId"
+                place="bottom"
+              >
+                <ActionIcon onClick={viewOpenApiSync} aria-label="OpenAPI" size="sm" className="relative">
+                  <OpenAPISyncIcon size={15} />
+                  {(hasOpenApiUpdates || hasOpenApiError) && (
+                    <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: hasOpenApiError ? theme.status.danger.text : theme.status.warning.text }} />
+                  )}
+                </ActionIcon>
+              </ToolHint>
+            )}
+            {/* Runner - always visible */}
             <ToolHint text="Runner" toolhintId="RunnerToolhintId" place="bottom">
               <ActionIcon onClick={handleRun} aria-label="Runner" size="sm">
                 <IconRun size={16} strokeWidth={1.5} />
               </ActionIcon>
             </ToolHint>
-            <ToolHint text="Variables" toolhintId="VariablesToolhintId">
-              <ActionIcon onClick={viewVariables} aria-label="Variables" size="sm">
-                <IconEye size={16} strokeWidth={1.5} />
-              </ActionIcon>
-            </ToolHint>
-            <ToolHint text="Collection Settings" toolhintId="CollectionSettingsToolhintId">
-              <ActionIcon onClick={viewCollectionSettings} aria-label="Collection Settings" size="sm">
-                <IconSettings size={16} strokeWidth={1.5} />
-              </ActionIcon>
-            </ToolHint>
+            {/* JS Sandbox Mode - always visible */}
             <JsSandboxMode collection={collection} />
-            <span className="ml-2">
+            {/* Overflow menu */}
+            <MenuDropdown items={overflowMenuItems} placement="bottom-end">
+              <ActionIcon label="More actions" size="sm" style={{ border: `1px solid ${theme.border.border1}`, borderRadius: theme.border.radius.base, width: 24, marginRight: 4, marginLeft: 4 }}>
+                <IconDots size={16} strokeWidth={1.5} />
+              </ActionIcon>
+            </MenuDropdown>
+            {/* Environment Selector - always visible */}
+            <span>
               <EnvironmentSelector collection={collection} />
             </span>
           </div>

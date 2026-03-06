@@ -1,9 +1,8 @@
 import { useState, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { v4 as uuid } from 'uuid';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { IconLoader2, IconClock } from '@tabler/icons';
-import { selectTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
 import OpenAPISyncHeader from './OpenAPISyncHeader';
@@ -38,9 +37,6 @@ const OpenAPISyncTab = ({ collection }) => {
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
   const isConfigured = !!openApiSyncConfig?.sourceUrl;
 
-  const tabUiState = useSelector(selectTabUiState(collection.uid));
-  const viewMode = tabUiState.viewMode || 'tabs';
-
   const handleViewSpec = () => {
     dispatch(addTab({
       uid: uuid(),
@@ -61,6 +57,14 @@ const OpenAPISyncTab = ({ collection }) => {
     ? (specDrift?.added?.length || 0) + (specDrift?.modified?.length || 0) + (specDrift?.removed?.length || 0)
     : (remoteDrift?.modified?.length || 0) + (remoteDrift?.missing?.length || 0);
 
+  const syncStatus = (() => {
+    if (isLoading) return 'loading';
+    if (error) return 'not-in-sync';
+    if (!hasDriftData) return null;
+    if (collectionChangesCount > 0 || specUpdatesCount > 0) return 'not-in-sync';
+    return 'in-sync';
+  })();
+
   const syncTabs = useMemo(() => [
     { key: 'overview', label: 'Overview' },
     {
@@ -76,7 +80,7 @@ const OpenAPISyncTab = ({ collection }) => {
   ], [collectionChangesCount, specUpdatesCount]);
 
   return (
-    <StyledWrapper className={`flex flex-col h-full relative px-4 pt-4 overflow-auto ${viewMode === 'review' ? ' review-active' : ''}`}>
+    <StyledWrapper className="flex flex-col h-full relative px-4 pt-4 overflow-auto">
       <div className="sync-page max-w-screen-xl">
 
         {/* Setup form when not configured */}
@@ -96,6 +100,7 @@ const OpenAPISyncTab = ({ collection }) => {
               collection={collection}
               spec={storedSpec || specDrift?.newSpec}
               sourceUrl={sourceUrl}
+              syncStatus={syncStatus}
               onViewSpec={handleViewSpec}
               onOpenSettings={() => setShowSettingsModal(true)}
               onOpenDisconnect={() => setShowDisconnectModal(true)}

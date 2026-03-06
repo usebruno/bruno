@@ -63,9 +63,17 @@ const shouldUseProxy = (url, proxyBypass) => {
 };
 
 /**
- * Patched version of HttpsProxyAgent to get around a bug that ignores
- * options like ca and rejectUnauthorized when upgrading the socket to TLS:
- * https://github.com/TooTallNate/proxy-agents/issues/194
+ * Options that should be forwarded from the constructor to the target TLS upgrade.
+ */
+const TARGET_TLS_OPTIONS = ['cert', 'key', 'pfx', 'passphrase', 'rejectUnauthorized', 'secureContext'];
+
+/**
+ * Patched version of HttpsProxyAgent that correctly handles TLS options for
+ * both the proxy connection and the target server connection.
+ *
+ * The upstream HttpsProxyAgent (https://github.com/TooTallNate/proxy-agents/issues/194)
+ * ignores constructor options when upgrading the tunneled socket to TLS for the
+ * target server. This patch forwards the relevant TLS options to the target upgrade.
  */
 class PatchedHttpsProxyAgent extends HttpsProxyAgent {
   constructor(proxy, opts) {
@@ -74,8 +82,17 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
   }
 
   async connect(req, opts) {
-    const combinedOpts = { ...this.constructorOpts, ...opts };
-    return super.connect(req, combinedOpts);
+    const targetOpts = { ...opts };
+
+    if (this.constructorOpts) {
+      for (const key of TARGET_TLS_OPTIONS) {
+        if (key in this.constructorOpts) {
+          targetOpts[key] = this.constructorOpts[key];
+        }
+      }
+    }
+
+    return super.connect(req, targetOpts);
   }
 }
 

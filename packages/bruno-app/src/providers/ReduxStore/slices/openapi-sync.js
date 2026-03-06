@@ -8,7 +8,7 @@ const initialState = {
   pollingEnabled: true,
   // Last poll timestamp
   lastPollTime: null,
-  // Map of collectionUid -> { activeTab, viewMode, expandedSections, expandedRows }
+  // Map of collectionUid -> { activeTab, expandedSections, expandedRows }
   tabUiState: {}
 };
 

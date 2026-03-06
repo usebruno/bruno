@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   min-height: 0;
-  height: 100%;
+  max-height: calc(100% - 30px);
 
   display: flex;
   flex-direction: column;
@@ -17,7 +17,6 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 14px;
   }
 
   .reset-all-btn {
@@ -43,6 +42,20 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
+  }
+
+  .keybinding-row .edit-btn,
+  .keybinding-row .reset-btn {
+    flex-shrink: 0;
+  }
+
+  .button-placeholder {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .keybinding-row:hover .edit-btn {
@@ -117,23 +130,13 @@ const StyledWrapper = styled.div`
     opacity: 1;
   }
 
-  .kb-tooltip {
-    border-radius: 8px;
-    padding: 6px 8px;
-    font-size: 12px;
-    line-height: 1.2;
-    max-width: 320px;
-    white-space: normal;
-  }
-
-  .kb-tooltip--error {
-    color: ${(props) => props.theme.colors?.text?.red || '#ef4444'};
+  .tooltip-mod.tooltip-mod--error{
+     color: ${(props) => props.theme.status.danger.text} !important;
   }
 
   .table-container {
-    flex: 1 1 auto;
+    margin-bottom: 24px;
     min-height: 0;
-    max-height: 650px;
     overflow-y: auto;
 
     border-radius: 8px;
@@ -170,9 +173,7 @@ const StyledWrapper = styled.div`
     top: 0;
     z-index: 5;
 
-    background: ${(props) => props.theme.background};
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: ${(props) => props.theme.background.base};
 
     color: ${(props) => props.theme.table.thead.color};
     font-size: ${(props) => props.theme.font.size.base};
