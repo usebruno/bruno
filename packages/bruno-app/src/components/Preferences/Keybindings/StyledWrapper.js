@@ -47,8 +47,6 @@ const StyledWrapper = styled.div`
 
   .keybinding-row .edit-btn,
   .keybinding-row .reset-btn {
-    width: 20px;
-    height: 20px;
     flex-shrink: 0;
   }
 
@@ -148,6 +146,7 @@ const StyledWrapper = styled.div`
 
   .table-container {
     flex: 1 1 auto;
+    margin-bottom:10px;
     min-height: 0;
     margin-bottom: 10px;
     max-height: 650px;
