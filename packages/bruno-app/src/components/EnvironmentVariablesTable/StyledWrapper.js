@@ -94,6 +94,13 @@ const Wrapper = styled.div`
 
   .tooltip-mod {
     max-width: 200px !important;
+    z-index: 10000 !important;
+    position: fixed !important;
+  }
+
+  .react-tooltip {
+    z-index: 10000 !important;
+    position: fixed !important;
   }
 
   .name-cell-wrapper {
@@ -135,6 +142,7 @@ const Wrapper = styled.div`
     padding: 0;
     border-radius: 4px;
     transition: all 0.15s ease;
+    min-width: 0; /* Prevent flex item from overflowing */
 
     &:focus {
       outline: none !important;

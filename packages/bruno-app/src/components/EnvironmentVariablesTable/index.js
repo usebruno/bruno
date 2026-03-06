@@ -253,7 +253,13 @@ const EnvironmentVariablesTable = ({
     return (
       <span>
         <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
-        <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
+        <Tooltip
+          className="tooltip-mod"
+          anchorId={id}
+          html={meta.error || ''}
+          place="top"
+          style={{ zIndex: 10000 }}
+        />
       </span>
     );
   };
