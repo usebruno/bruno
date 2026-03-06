@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
-import { useDispatch } from 'react-redux';
+import { useState, useMemo, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { v4 as uuid } from 'uuid';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { IconLoader2, IconClock } from '@tabler/icons';
+import { setTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
+import { IconClock } from '@tabler/icons';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
 import OpenAPISyncHeader from './OpenAPISyncHeader';
@@ -47,7 +48,10 @@ const OpenAPISyncTab = ({ collection }) => {
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const activeTab = useSelector((state) => state.openapiSync?.tabUiState?.[collection.uid]?.activeTab) || 'overview';
+  const setActiveTab = useCallback((tab) => {
+    dispatch(setTabUiState({ collectionUid: collection.uid, activeTab: tab }));
+  }, [dispatch, collection.uid]);
 
   const hasDriftData = collectionDrift && !collectionDrift.noStoredSpec;
   const collectionChangesCount = hasDriftData
@@ -133,12 +137,7 @@ const OpenAPISyncTab = ({ collection }) => {
 
             {activeTab === 'collection-changes' && (
               <div className="sync-tab-content">
-                {isDriftLoading && !collectionDrift && (
-                  <div className="state-message">
-                    <IconLoader2 size={24} className="animate-spin" />
-                    <span>Checking collection status...</span>
-                  </div>
-                )}
+
                 {collectionDrift && !collectionDrift.noStoredSpec ? (
                   <CollectionStatusSection
                     collection={collection}

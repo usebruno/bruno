@@ -50,7 +50,7 @@ const SUMMARY_CARDS = [
   }
 ];
 
-const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, remoteDrift, onTabSelect, error, isLoading, fileNotFound, onOpenSettings }) => {
+const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, remoteDrift, onTabSelect, error, fileNotFound, onOpenSettings }) => {
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
 
   const reduxError = useSelector((state) => state.openapiSync?.collectionUpdates?.[collection.uid]?.error);
@@ -119,14 +119,6 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
         buttons: ['open-settings']
       };
     }
-    if (isLoading) {
-      return {
-        variant: 'muted',
-        title: 'Checking for updates...',
-        subtitle: null,
-        buttons: []
-      };
-    }
     if (specDrift?.storedSpecMissing && !lastSyncDate) {
       return {
         variant: 'warning',
@@ -175,7 +167,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
     //   buttons: []
     // };
     return null;
-  }, [activeError, isLoading, fileNotFound, hasDriftData, hasSpecUpdates, hasCollectionChanges, specDrift?.storedSpecMissing, lastSyncDate]);
+  }, [activeError, fileNotFound, hasDriftData, hasSpecUpdates, hasCollectionChanges, specDrift?.storedSpecMissing, lastSyncDate]);
 
   return (
     <div className="overview-section">
