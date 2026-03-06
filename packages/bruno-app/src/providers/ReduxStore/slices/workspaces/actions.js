@@ -11,7 +11,7 @@ import {
   setWorkspaceScratchCollection
 } from '../workspaces';
 import { showHomePage } from '../app';
-import { setRestoringSnapshot, setSnapshotRestoreMessage, enableSnapshotSave, markInitialLoadComplete, setPendingWorkspaceRestore, clearPendingWorkspaceRestore } from '../app';
+import { setSnapshotRestoreMessage, markInitialLoadComplete, setPendingWorkspaceRestore, clearPendingWorkspaceRestore } from '../app';
 import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent, selectEnvironment, mountCollection } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus, setCollectionCollapsed } from '../collections';
 import { clearCollectionState } from '../openapi-sync';
@@ -292,7 +292,7 @@ export const switchWorkspace = (workspaceUid) => {
     await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
 
     const pendingRestore = getState().app.pendingWorkspaceRestores[workspace.pathname];
-    const isRestoring = getState().app.isRestoringSnapshot;
+    const isRestoring = getState().app.snapshotRestoreMessage;
 
     if (pendingRestore) {
       if (isRestoring) {
@@ -1090,12 +1090,10 @@ const restoreDevTools = (dispatch, devTools) => {
 export const restoreAppSnapshot = () => {
   return async (dispatch, getState) => {
     const finalize = () => {
-      dispatch(setRestoringSnapshot(false));
-      dispatch(enableSnapshotSave());
+      dispatch(setSnapshotRestoreMessage(null));
     };
 
     try {
-      dispatch(setRestoringSnapshot(true));
       dispatch(setSnapshotRestoreMessage('Initializing...'));
 
       await waitForInitialLoad(getState);

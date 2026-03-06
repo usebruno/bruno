@@ -82,7 +82,7 @@ export default function Main() {
   const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
   const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
-  const isRestoringSnapshot = useSelector((state) => state.app.isRestoringSnapshot);
+  const snapshotRestoreMessage = useSelector((state) => state.app.snapshotRestoreMessage);
   const saveTransientRequestModals = useSelector((state) => state.collections.saveTransientRequestModals);
   const mainSectionRef = useRef(null);
   const [showRosettaBanner, setShowRosettaBanner] = useState(false);
@@ -114,15 +114,15 @@ export default function Main() {
 
   useEffect(() => {
     if (mainSectionRef.current) {
-      const appState = isRestoringSnapshot ? 'loading' : 'loaded';
+      const appState = snapshotRestoreMessage ? 'loading' : 'loaded';
       mainSectionRef.current.setAttribute('data-app-state', appState);
     }
-  }, [isRestoringSnapshot]);
+  }, [snapshotRestoreMessage]);
 
   return (
     // <ErrorCapture>
     <div id="main-container" className="flex flex-col h-screen max-h-screen overflow-hidden">
-      {isRestoringSnapshot && <AppLoader />}
+      {snapshotRestoreMessage && <AppLoader />}
       <AppTitleBar />
       {showRosettaBanner ? (
         <Portal>

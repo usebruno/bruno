@@ -16,9 +16,7 @@ const initialState = {
   isGlobalEnvironmentSettingsModalOpen: false,
   activePreferencesTab: 'general',
   isInitialLoadComplete: false,
-  isRestoringSnapshot: false,
   snapshotRestoreMessage: null,
-  snapshotSaveEnabled: false,
   pendingWorkspaceRestores: {},
   preferences: {
     request: {
@@ -160,17 +158,8 @@ export const appSlice = createSlice({
     setClipboard: (state, action) => {
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
     },
-    setRestoringSnapshot: (state, action) => {
-      state.isRestoringSnapshot = action.payload;
-      if (!action.payload) {
-        state.snapshotRestoreMessage = null;
-      }
-    },
     setSnapshotRestoreMessage: (state, action) => {
       state.snapshotRestoreMessage = action.payload;
-    },
-    enableSnapshotSave: (state) => {
-      state.snapshotSaveEnabled = true;
     },
     markInitialLoadComplete: (state) => {
       state.isInitialLoadComplete = true;
@@ -235,9 +224,7 @@ export const {
   removeGitOperationProgress,
   setGitVersion,
   setClipboard,
-  setRestoringSnapshot,
   setSnapshotRestoreMessage,
-  enableSnapshotSave,
   markInitialLoadComplete,
   setPendingWorkspaceRestore,
   clearPendingWorkspaceRestore,

@@ -83,9 +83,10 @@ export const snapshotMiddleware = ({ getState }) => {
     const result = next(action);
 
     const state = getState();
-    const { snapshotSaveEnabled } = state.app;
+    const { snapshotRestoreMessage } = state.app;
 
-    if (!snapshotSaveEnabled) {
+    // Don't save while restoring (message is set during restore)
+    if (snapshotRestoreMessage) {
       return result;
     }
 
