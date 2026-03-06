@@ -41,7 +41,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
     };
 
     if (defaultLocation) {
-      window.ipcRenderer?.invoke('renderer:find-unique-folder-name', 'untitled collection', defaultLocation)
+      window.ipcRenderer?.invoke('renderer:find-unique-folder-name', 'Untitled Collection', defaultLocation)
         ?.then((name) => focusAndSelect(name))
         ?.catch(() => focusAndSelect());
     } else {
@@ -126,7 +126,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
             ref={inputRef}
             type="text"
             className="inline-collection-input"
-            defaultValue="untitled collection"
+            defaultValue="Untitled Collection"
             onKeyDown={handleKeyDown}
             autoComplete="off"
             autoCorrect="off"
