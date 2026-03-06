@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   min-height: 0;
-  height: 100%;
+  max-height: calc(100% - 30px);
 
   display: flex;
   flex-direction: column;
@@ -17,7 +17,6 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 12px;
   }
 
   .reset-all-btn {
@@ -42,7 +41,7 @@ const StyledWrapper = styled.div`
   .keybinding-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
 
   .keybinding-row .edit-btn,
@@ -131,25 +130,13 @@ const StyledWrapper = styled.div`
     opacity: 1;
   }
 
-  .tooltip-mod {
-    border-radius: 8px;
-    padding: 6px 8px;
-    font-size: 12px;
-    line-height: 1.2;
-    max-width: 320px;
-    white-space: normal;
-    z-index: 100;
-    background-color: ${(props) => props.theme.tooltip?.bg || props.theme.sidebar.bg} !important;
-    color: ${(props) => props.theme.tooltip?.text || props.theme.text} !important;
-    border: 1px solid ${(props) => props.theme.tooltip?.border || props.theme.border.border0};
+  .tooltip-mod.tooltip-mod--error{
+     color: ${(props) => props.theme.status.danger.text} !important;
   }
 
   .table-container {
-    flex: 1 1 auto;
-    margin-bottom:10px;
+    margin-bottom: 24px;
     min-height: 0;
-    margin-bottom: 10px;
-    max-height: 650px;
     overflow-y: auto;
 
     border-radius: 8px;

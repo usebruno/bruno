@@ -497,13 +497,6 @@ const Keybindings = () => {
 
   return (
     <StyledWrapper className="w-full">
-      <Tooltip
-        id="kb-editing-error-tooltip"
-        place="bottom-start"
-        opacity={1}
-        className="kb-tooltip kb-tooltip--error"
-      />
-
       <div className="section-header">
         <span>Keybindings</span>
         {hasDirtyRows && (
@@ -560,7 +553,12 @@ const Keybindings = () => {
                             value={renderValue(action)}
                             readOnly={!isEditing}
                             onKeyDown={(e) => handleKeyDown(action, e)}
-                            onKeyUp={(e) => handleKeyUp(action, e)}
+                            onKeyUp={(e) => {
+                              if (hasError) {
+                                return stopEditing(action);
+                              }
+                              handleKeyUp(action, e);
+                            }}
                             onBlur={() => {
                               // If there's an error, reset to original value instead of keeping invalid state
                               if (isEditing && hasError) {
