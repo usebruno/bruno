@@ -171,7 +171,7 @@ const Keybindings = () => {
   // ✏️ which row is allowed to edit (pencil clicked)
   const [editingAction, setEditingAction] = useState(null);
 
-  //  hover tracking (for showing pencil/refresh only on hover row)
+  //  hover tracking (for showing pencil/reset only on hover row)
   const [hoveredAction, setHoveredAction] = useState(null);
 
   // Recording state
@@ -527,7 +527,7 @@ const Keybindings = () => {
                 const isDirty = isRowDirty(action);
 
                 const showPencil = isHovered && !isEditing && !isDirty;
-                const showRefresh = isDirty && !isEditing;
+                const showReset = isDirty && !isEditing;
                 const hasError = Boolean(errorByAction[action]?.message);
                 const errorMessage = errorByAction[action]?.message;
                 const inputId = `kb-input-${action}`;
@@ -582,7 +582,7 @@ const Keybindings = () => {
                           )}
                         </div>
 
-                        {showRefresh ? (
+                        {showReset ? (
                           <button
                             type="button"
                             className="reset-btn"
