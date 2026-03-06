@@ -1672,6 +1672,137 @@ export const newWsRequest = (params) => (dispatch, getState) => {
   });
 };
 
+export const newMqttRequest = (params) => (dispatch, getState) => {
+  const { requestName, filename, requestUrl, collectionUid, itemUid, isTransient = false } = params;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const tempDirectory = isTransient ? state.collections.tempDirectories?.[collectionUid] : null;
+
+    const item = {
+      uid: uuid(),
+      name: requestName,
+      filename,
+      type: 'mqtt-request',
+      isTransient: isTransient,
+      request: {
+        url: requestUrl || '',
+        publish: {
+          topic: '',
+          qos: 0,
+          retain: false,
+          payload: {
+            type: 'json',
+            content: '{}'
+          }
+        },
+        subscriptions: [],
+        settings: {
+          clientId: '',
+          mqttVersion: '5.0',
+          keepAlive: 60,
+          cleanSession: true,
+          connectTimeout: 30000,
+          username: null,
+          password: null,
+          ssl: {
+            enabled: false,
+            caCert: null,
+            clientCert: null,
+            clientKey: null
+          },
+          v5Properties: null
+        },
+        script: {
+          req: null,
+          res: null
+        },
+        vars: {
+          req: [],
+          res: []
+        },
+        assertions: [],
+        tests: null,
+        docs: null
+      }
+    };
+
+    const resolvedFilename = resolveRequestFilename(filename, collection.format);
+
+    if (isTransient) {
+      const allItems = flattenItems(collection.items);
+      const transientRequests = filter(
+        allItems,
+        (i) => isItemARequest(i) && i.pathname && i.pathname.startsWith(tempDirectory)
+      );
+      const reqWithSameNameExists = find(transientRequests, (i) => trim(i.filename) === trim(resolvedFilename));
+
+      if (reqWithSameNameExists) {
+        return reject(new Error('Duplicate request names are not allowed under the same folder'));
+      }
+
+      const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
+      item.seq = items.length + 1;
+      const fullName = path.join(tempDirectory, resolvedFilename);
+      const { ipcRenderer } = window;
+      ipcRenderer
+        .invoke('renderer:new-request', fullName, item)
+        .then(() => {
+          dispatch(
+            insertTaskIntoQueue({
+              uid: uuid(),
+              type: 'OPEN_REQUEST',
+              collectionUid,
+              itemPathname: fullName,
+              preview: false
+            })
+          );
+          resolve();
+        })
+        .catch(reject);
+    } else {
+      const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
+
+      if (!parentItem) {
+        return reject(new Error('Parent item not found'));
+      }
+
+      const reqWithSameNameExists = find(
+        parentItem.items,
+        (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
+      );
+
+      if (reqWithSameNameExists) {
+        return reject(new Error('Duplicate request names are not allowed under the same folder'));
+      }
+
+      const items = filter(parentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
+      item.seq = items.length + 1;
+      const fullName = path.join(parentItem.pathname, resolvedFilename);
+      const { ipcRenderer } = window;
+      ipcRenderer
+        .invoke('renderer:new-request', fullName, item)
+        .then(() => {
+          dispatch(
+            insertTaskIntoQueue({
+              uid: uuid(),
+              type: 'OPEN_REQUEST',
+              collectionUid,
+              itemPathname: fullName
+            })
+          );
+          resolve();
+        })
+        .catch(reject);
+    }
+  });
+};
+
 export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);

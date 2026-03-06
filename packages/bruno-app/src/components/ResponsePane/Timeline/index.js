@@ -44,6 +44,17 @@ const getEffectiveAuthSource = (collection, item) => {
 };
 
 const Timeline = ({ collection, item }) => {
+  // MQTT requests use the Messages tab for their timeline, not this component
+  if (item.type === 'mqtt-request') {
+    return (
+      <StyledWrapper className="pb-4 w-full flex flex-grow flex-col">
+        <div className="text-sm text-gray-500 p-4 text-center">
+          MQTT messages are shown in the Messages tab.
+        </div>
+      </StyledWrapper>
+    );
+  }
+
   // Get the effective auth source if auth mode is inherit
   const authSource = getEffectiveAuthSource(collection, item);
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
