@@ -1072,13 +1072,14 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       const existingOtherParams = item.draft.request.params?.filter((p) => p.type !== 'query') || [];
-      const newQueryParams = map(params, ({ uid, name = '', value = '', description = '', type = 'query', enabled = true }) => ({
+      const newQueryParams = map(params, ({ uid, name = '', value = '', description = '', type = 'query', enabled = true, decorators }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
         type,
-        enabled
+        enabled,
+        ...(decorators && decorators.length > 0 ? { decorators } : {})
       }));
 
       item.draft.request.params = [...newQueryParams, ...existingOtherParams];

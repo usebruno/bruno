@@ -1,14 +1,19 @@
-import type { HttpRequestParam as BrunoHttpRequestParam } from '@usebruno/schema-types/requests/http';
+import type { HttpRequestParam as BrunoHttpRequestParam, Decorator } from '@usebruno/schema-types/requests/http';
 import type { HttpRequestParam } from '@opencollection/types/requests/http';
 import { uuid, ensureString } from '../../../utils';
 
-export const toOpenCollectionParams = (params: BrunoHttpRequestParam[] | null | undefined): HttpRequestParam[] | undefined => {
+// Extended type to include decorators (not in @opencollection/types yet)
+interface HttpRequestParamWithDecorators extends HttpRequestParam {
+  decorators?: Decorator[];
+}
+
+export const toOpenCollectionParams = (params: BrunoHttpRequestParam[] | null | undefined): HttpRequestParamWithDecorators[] | undefined => {
   if (!params?.length) {
     return undefined;
   }
 
-  const ocParams = params.map((param: BrunoHttpRequestParam): HttpRequestParam => {
-    const ocParam: HttpRequestParam = {
+  const ocParams = params.map((param: BrunoHttpRequestParam): HttpRequestParamWithDecorators => {
+    const ocParam: HttpRequestParamWithDecorators = {
       name: param.name || '',
       value: param.value || '',
       type: param.type
@@ -22,18 +27,23 @@ export const toOpenCollectionParams = (params: BrunoHttpRequestParam[] | null | 
       ocParam.disabled = true;
     }
 
+    // Include decorators if present
+    if (param.decorators?.length) {
+      ocParam.decorators = param.decorators;
+    }
+
     return ocParam;
   });
 
   return ocParams.length ? ocParams : undefined;
 };
 
-export const toBrunoParams = (params: HttpRequestParam[] | null | undefined): BrunoHttpRequestParam[] | undefined => {
+export const toBrunoParams = (params: HttpRequestParamWithDecorators[] | null | undefined): BrunoHttpRequestParam[] | undefined => {
   if (!params?.length) {
     return undefined;
   }
 
-  const brunoParams = params.map((param: HttpRequestParam): BrunoHttpRequestParam => {
+  const brunoParams = params.map((param: HttpRequestParamWithDecorators): BrunoHttpRequestParam => {
     const brunoParam: BrunoHttpRequestParam = {
       uid: uuid(),
       name: ensureString(param.name),
@@ -48,6 +58,11 @@ export const toBrunoParams = (params: HttpRequestParam[] | null | undefined): Br
       } else if (typeof param.description === 'object' && param.description.content?.trim().length) {
         brunoParam.description = param.description.content;
       }
+    }
+
+    // Include decorators if present
+    if (param.decorators?.length) {
+      brunoParam.decorators = param.decorators;
     }
 
     return brunoParam;

@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   div.title {
-    color: ${(props) => props.theme.colors.text.subtext0};
+    color: ${(props) => props.theme.colors?.text?.subtext0 || props.theme.table.thead.color};
   }
   table {
     width: 100%;
@@ -54,6 +54,28 @@ const Wrapper = styled.div`
     cursor: pointer;
     position: relative;
     top: 1px;
+  }
+
+  /* Decorated Input Styles */
+  select.choices-dropdown {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: inherit;
+    color: inherit;
+    font-size: inherit;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+
+    &:focus {
+      border-color: ${(props) => props.theme.input?.focusBorder || props.theme.input?.border?.active};
+    }
+
+    &.error {
+      border-color: ${(props) => props.theme.colors?.text?.danger || '#dc3545'};
+    }
   }
 `;
 

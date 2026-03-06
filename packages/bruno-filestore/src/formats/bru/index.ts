@@ -92,8 +92,9 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
         ])
       });
     } else {
-      // For HTTP and GraphQL
+      // For HTTP and GraphQL - decorators are now inline in params
       (transformedJson.request as any).params = _.get(json, 'params', []);
+
       transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
       transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
     }
@@ -155,7 +156,10 @@ export const stringifyBruRequest = (json: any): string => {
         auth: _.get(json, 'request.auth.mode', 'none'),
         body: _.get(json, 'request.body.mode', 'none')
       };
+
+      // Params include decorators inline - serializer handles them
       bruJson.params = _.get(json, 'request.params', []);
+
       bruJson.body = _.get(json, 'request.body', {
         mode: 'json',
         json: '{}'
