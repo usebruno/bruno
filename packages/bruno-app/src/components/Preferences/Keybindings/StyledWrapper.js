@@ -14,7 +14,6 @@ const StyledWrapper = styled.div`
   -ms-overflow-style: none;
 
   .section-header {
-    width: 60%;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -148,7 +147,6 @@ const StyledWrapper = styled.div`
   }
 
   .table-container {
-    max-width: 60%;
     flex: 1 1 auto;
     min-height: 0;
     margin-bottom: 10px;
