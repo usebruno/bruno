@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 
 import StyledWrapper from './StyledWrapper';
-import { IconRefresh, IconPencil } from '@tabler/icons';
+import { IconReload, IconPencil } from '@tabler/icons';
 import { isMacOS } from 'utils/common/platform';
 
 import { savePreferences } from 'providers/ReduxStore/slices/app';
@@ -171,7 +171,7 @@ const Keybindings = () => {
   // ✏️ which row is allowed to edit (pencil clicked)
   const [editingAction, setEditingAction] = useState(null);
 
-  //  hover tracking (for showing pencil/refresh only on hover row)
+  //  hover tracking (for showing pencil/reset only on hover row)
   const [hoveredAction, setHoveredAction] = useState(null);
 
   // Recording state
@@ -280,7 +280,7 @@ const Keybindings = () => {
         ...(preferences?.keyBindings || {}),
         [action]: {
           ...(preferences?.keyBindings?.[action] || {}),
-          name: preferences?.keyBindings?.[action]?.name || action,
+          name: preferences?.keyBindings?.[action]?.name || DEFAULT_KEY_BINDINGS?.[action]?.name || action,
           [os]: nextKeys
         }
       }
@@ -497,13 +497,6 @@ const Keybindings = () => {
 
   return (
     <StyledWrapper className="w-full">
-      <Tooltip
-        id="kb-editing-error-tooltip"
-        place="bottom-start"
-        opacity={1}
-        className="kb-tooltip kb-tooltip--error"
-      />
-
       <div className="section-header">
         <span>Keybindings</span>
         {hasDirtyRows && (
@@ -513,8 +506,7 @@ const Keybindings = () => {
             onClick={resetAllKeybindings}
             title="Reset all keybindings to default"
           >
-            <IconRefresh size={12} stroke={1} />
-
+            <IconReload size={14} stroke={1} />
           </button>
         )}
       </div>
@@ -535,7 +527,7 @@ const Keybindings = () => {
                 const isDirty = isRowDirty(action);
 
                 const showPencil = isHovered && !isEditing && !isDirty;
-                const showRefresh = isDirty && !isEditing;
+                const showReset = isDirty && !isEditing;
                 const hasError = Boolean(errorByAction[action]?.message);
                 const errorMessage = errorByAction[action]?.message;
                 const inputId = `kb-input-${action}`;
@@ -548,7 +540,6 @@ const Keybindings = () => {
                     onMouseLeave={() => setHoveredAction((prev) => (prev === action ? null : prev))}
                   >
                     <td data-testid={`keybinding-name-${action}`}>{row.name}</td>
-
                     <td>
                       <div className="keybinding-row">
                         <div className="shortcut-wrap">
@@ -562,7 +553,12 @@ const Keybindings = () => {
                             value={renderValue(action)}
                             readOnly={!isEditing}
                             onKeyDown={(e) => handleKeyDown(action, e)}
-                            onKeyUp={(e) => handleKeyUp(action, e)}
+                            onKeyUp={(e) => {
+                              if (hasError) {
+                                return stopEditing(action);
+                              }
+                              handleKeyUp(action, e);
+                            }}
                             onBlur={() => {
                               // If there's an error, reset to original value instead of keeping invalid state
                               if (isEditing && hasError) {
@@ -581,12 +577,12 @@ const Keybindings = () => {
                               opacity={1}
                               isOpen={true}
                               content={errorMessage}
-                              className="kb-tooltip kb-tooltip--error"
+                              className="tooltip-mod tooltip-mod--error"
                             />
                           )}
                         </div>
 
-                        {showRefresh && (
+                        {showReset ? (
                           <button
                             type="button"
                             className="reset-btn"
@@ -594,10 +590,10 @@ const Keybindings = () => {
                             onClick={() => resetRowToDefault(action)}
                             title="Reset to default"
                           >
-                            <IconRefresh size={12} stroke={1} />
+                            <IconReload size={14} stroke={1} />
                           </button>
-                        )}
-                        {showPencil && (
+                        ) : null}
+                        {showPencil ? (
                           <button
                             type="button"
                             className="edit-btn"
@@ -605,9 +601,9 @@ const Keybindings = () => {
                             onClick={() => startEditing(action)}
                             title="Edit shortcut"
                           >
-                            <IconPencil size={12} stroke={1.5} />
+                            <IconPencil size={14} stroke={1.5} />
                           </button>
-                        )}
+                        ) : null}
                       </div>
                     </td>
                   </tr>
