@@ -498,7 +498,7 @@ export const createCollectionInWorkspace = (collectionName, collectionFolderName
       throw new Error('Workspace not found');
     }
 
-    const projectCollectionLocation = `${currentWorkspace.pathname}/collections`;
+    const projectCollectionLocation = path.join(currentWorkspace.pathname, 'collections');
 
     return await dispatch(createCollection(collectionName, collectionFolderName, projectCollectionLocation, {
       workspaceId: currentWorkspace.pathname

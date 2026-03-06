@@ -44,7 +44,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   const isDefaultWorkspace = activeWorkspace?.type === 'default';
   const defaultCollectionLocation = isDefaultWorkspace
     ? get(preferences, 'general.defaultLocation', '')
-    : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
+    : (activeWorkspace?.pathname ? path.join(activeWorkspace.pathname, 'collections') : '');
 
   const availableCollections = useMemo(() => {
     if (!isScratchCollection || !activeWorkspace) return [];
