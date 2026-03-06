@@ -156,6 +156,20 @@ describe('Url Utils - parsePathParams', () => {
     expect(params).toEqual([]);
   });
 
+  it('should NOT treat colons in datetime values as path parameters', () => {
+    const params = parsePathParams(
+      'https://api10.successfactors.com/odata/v2/EmpJob(seqNumber=1L,startDate=datetime\'2021-08-29T00:00:00\',userId=\'213668\')'
+    );
+    expect(params).toEqual([]);
+  });
+
+  it('should still parse named path params in OData segments with datetime values', () => {
+    const params = parsePathParams(
+      'https://example.com/odata/EmpJob(startDate=datetime\'2021-08-29T00:00:00\',userId=:userId)'
+    );
+    expect(params).toEqual([{ name: 'userId', value: '' }]);
+  });
+
   it('should NOT treat embedded colons as path parameters (regression fix)', () => {
     // This test case reproduces the bug reported in issue #5805
     const params = parsePathParams('/start/1:2:AHLS-HASD/form');

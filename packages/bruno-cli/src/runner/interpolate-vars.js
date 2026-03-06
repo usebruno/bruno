@@ -147,7 +147,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         // 2. EntitySet(Key1=value1,Key2=value2)
         // 3. Function(param=value)
         if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(path)) {
-          const paramRegex = /[:](\w+)/g;
+          const paramRegex = /[:]([a-zA-Z_]\w*)/g;
           let match;
           let result = path;
           while ((match = paramRegex.exec(path))) {
