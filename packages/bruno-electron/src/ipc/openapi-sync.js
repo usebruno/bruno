@@ -1307,10 +1307,10 @@ const registerOpenAPISyncIpc = (mainWindow) => {
               const content = await stringifyRequestViaWorker(mergedRequest, { format: existingFile.fileFormat });
               await writeFile(existingFile.filePath, content);
             } else {
-              // Truly new — create file as before
+              // Truly new — create file in the appropriate folder
               let targetFolder = collectionPath;
-              if (endpoint.tags?.length > 0 && groupBy === 'tags') {
-                targetFolder = await ensureTagFolder(collectionPath, endpoint.tags[0], format);
+              if (result.folderName && groupBy === 'tags') {
+                targetFolder = await ensureTagFolder(collectionPath, result.folderName, format);
               }
 
               const requestContent = await stringifyRequestViaWorker(newItem, { format });

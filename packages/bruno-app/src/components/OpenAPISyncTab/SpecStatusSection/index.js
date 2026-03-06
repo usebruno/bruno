@@ -32,9 +32,6 @@ const SpecStatusSection = ({
   const lastSyncedAt = openApiSyncConfig?.lastSyncDate;
 
   const bannerState = useMemo(() => {
-    if (isLoading) {
-      return { variant: 'muted', message: 'Checking for updates...', actions: [] };
-    }
     if (fileNotFound) {
       return { variant: 'danger', message: `Source file not found at ${sourceUrl}`, actions: ['open-settings'] };
     }

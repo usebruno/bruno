@@ -27,13 +27,6 @@ const useOpenAPISync = (collection) => {
 
   const isConfigured = !!openApiSyncConfig?.sourceUrl;
 
-  // Clear Redux state when the sync tab is closed (unmount)
-  useEffect(() => {
-    return () => {
-      dispatch(clearCollectionState({ collectionUid: collection.uid }));
-    };
-  }, [collection.uid]);
-
   // Flatten collection items including nested items in folders
   const allHttpItems = useMemo(() => {
     return flattenItems(collection?.items || []).filter((item) => item.type === 'http-request');
