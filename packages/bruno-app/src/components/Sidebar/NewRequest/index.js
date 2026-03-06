@@ -317,9 +317,15 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
             className="bruno-form"
             onSubmit={formik.handleSubmit}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                formik.handleSubmit();
+              if (e.key === 'Enter' && !e.defaultPrevented) {
+                const isTextInput
+                  = ['input', 'textarea'].includes(e.target.tagName.toLowerCase())
+                    || e.target.isContentEditable;
+
+                if (!isTextInput) {
+                  e.preventDefault();
+                  formik.handleSubmit();
+                }
               }
             }}
           >
