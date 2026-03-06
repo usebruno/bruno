@@ -1,4 +1,4 @@
-const { parseBruFileMeta } = require('../../src/utils/collection');
+const { parseBruFileMeta, mergeAuth } = require('../../src/utils/collection');
 
 describe('parseBruFileMeta', () => {
   test('parses valid meta block correctly', () => {
@@ -285,4 +285,134 @@ describe('parseBruFileMeta', () => {
       }
     });
   });
+});
+
+describe('mergeAuth', () => {
+  const basicAuth = () => ({
+    mode: 'basic',
+    basic: { username: 'USER', password: 'PASS' }
+  });
+  const oauth2 = () => ({
+    mode: 'oauth2',
+    oauth2: {
+      grantType: 'client_credentials',
+      clientId: 'CLIENT_ID',
+      clientSecret: 'CLIENT_SECRET'
+    }
+  });
+
+  it.each([
+    {
+      description: 'no auth inherited from collection',
+      collectionAuth: { mode: 'none' },
+      rootFolderAuth: { mode: 'inherit' },
+      subfolderAuth: { mode: 'inherit' },
+      requestAuth: { mode: 'inherit' },
+      expectedRequestAuth: { mode: 'none' },
+      expectedOauth2Credentials: undefined
+    },
+    {
+      description: 'basic auth inherited from collection',
+      collectionAuth: basicAuth(),
+      rootFolderAuth: { mode: 'inherit' },
+      subfolderAuth: { mode: 'inherit' },
+      requestAuth: { mode: 'inherit' },
+      expectedRequestAuth: basicAuth(),
+      expectedOauth2Credentials: undefined
+    },
+    {
+      description: 'no auth directly on request',
+      collectionAuth: basicAuth(),
+      rootFolderAuth: { mode: 'inherit' },
+      subfolderAuth: { mode: 'inherit' },
+      requestAuth: { mode: 'none' },
+      expectedRequestAuth: { mode: 'none' },
+      expectedOauth2Credentials: undefined
+    },
+    {
+      description: 'no auth inherited from subfolder',
+      collectionAuth: basicAuth(),
+      rootFolderAuth: { mode: 'inherit' },
+      subfolderAuth: { mode: 'none' },
+      requestAuth: { mode: 'inherit' },
+      expectedRequestAuth: { mode: 'none' },
+      expectedOauth2Credentials: undefined
+    },
+    {
+      description: 'no auth inherited from root folder',
+      collectionAuth: basicAuth(),
+      rootFolderAuth: { mode: 'none' },
+      subfolderAuth: { mode: 'inherit' },
+      requestAuth: { mode: 'inherit' },
+      expectedRequestAuth: { mode: 'none' },
+      expectedOauth2Credentials: undefined
+    },
+    {
+      description: 'oauth2 inherited from collection',
+      collectionAuth: oauth2(),
+      rootFolderAuth: { mode: 'inherit' },
+      subfolderAuth: { mode: 'inherit' },
+      requestAuth: { mode: 'inherit' },
+      expectedRequestAuth: oauth2(),
+      expectedOauth2Credentials: { folderUid: null, itemUid: null, mode: 'oauth2' }
+    },
+    {
+      description: 'oauth2 inherited from subfolder',
+      collectionAuth: basicAuth(),
+      rootFolderAuth: { mode: 'inherit' },
+      subfolderAuth: oauth2(),
+      requestAuth: { mode: 'inherit' },
+      expectedRequestAuth: oauth2(),
+      expectedOauth2Credentials: { folderUid: 'subfolder', itemUid: null, mode: 'oauth2' }
+    },
+    {
+      description: 'oauth2 directly on request',
+      collectionAuth: basicAuth(),
+      rootFolderAuth: { mode: 'inherit' },
+      subfolderAuth: { mode: 'inherit' },
+      requestAuth: oauth2(),
+      expectedRequestAuth: oauth2(),
+      expectedOauth2Credentials: undefined
+    }
+  ])(
+    'auth inheritance through folders : $description',
+    ({
+      collectionAuth,
+      rootFolderAuth,
+      subfolderAuth,
+      requestAuth,
+      expectedRequestAuth,
+      expectedOauth2Credentials
+    }) => {
+      const httpRequest = {
+        uid: 'request-one',
+        type: 'http-request',
+        request: { auth: requestAuth }
+      };
+      const subfolder = {
+        uid: 'subfolder',
+        type: 'folder',
+        root: { request: { auth: subfolderAuth } },
+        items: [httpRequest]
+      };
+      const rootFolder = {
+        uid: 'root-folder',
+        type: 'folder',
+        root: { request: { auth: rootFolderAuth } },
+        items: [subfolder]
+      };
+      const collection = {
+        uid: 'my-collection',
+        items: [rootFolder],
+        root: { request: { auth: collectionAuth } }
+      };
+      const request = httpRequest.request;
+      const requestTreePath = [rootFolder, subfolder, httpRequest];
+
+      mergeAuth(collection, request, requestTreePath);
+
+      expect(request.auth).toEqual(expectedRequestAuth);
+      expect(request.oauth2Credentials).toEqual(expectedOauth2Credentials);
+    }
+  );
 });
