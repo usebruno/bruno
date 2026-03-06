@@ -240,6 +240,79 @@ describe('node-vm sandbox', () => {
       // Nested module should successfully access the additional root
       expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
     });
+
+    it('should resolve npm module from additionalContextRoots node_modules', async () => {
+      const additionalRoot = path.join(testDir, 'shared');
+      fs.mkdirSync(additionalRoot);
+
+      // Create a fake npm module inside shared/node_modules
+      const sharedNodeModulesDir = path.join(additionalRoot, 'node_modules', 'shared-package');
+      fs.mkdirSync(sharedNodeModulesDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(sharedNodeModulesDir, 'index.js'),
+        'module.exports = { fromShared: true, version: "1.0.0" };'
+      );
+
+      const script = `
+        const pkg = require('shared-package');
+        bru.setVar('fromShared', pkg.fromShared);
+        bru.setVar('version', pkg.version);
+      `;
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const scriptingConfig = {
+        additionalContextRoots: [additionalRoot]
+      };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('fromShared', true);
+      expect(context.bru.setVar).toHaveBeenCalledWith('version', '1.0.0');
+    });
+
+    it('should resolve npm module required by a shared script in additionalContextRoots', async () => {
+      const additionalRoot = path.join(testDir, 'shared');
+      fs.mkdirSync(additionalRoot);
+
+      // Create an npm dependency inside shared/node_modules
+      const sharedNodeModulesDir = path.join(additionalRoot, 'node_modules', 'shared-util');
+      fs.mkdirSync(sharedNodeModulesDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(sharedNodeModulesDir, 'index.js'),
+        'module.exports = { parse: function(s) { return JSON.parse(s); } };'
+      );
+
+      // Create a shared script that requires the npm module
+      fs.writeFileSync(
+        path.join(additionalRoot, 'parser.js'),
+        'const sharedUtil = require("shared-util"); module.exports = { parse: sharedUtil.parse };'
+      );
+
+      // Collection script requires the shared local script, which internally
+      // requires an npm package from the shared root's node_modules
+      const script = `
+        const parser = require('../shared/parser');
+        const result = parser.parse('{"ok":true}');
+        bru.setVar('result', result.ok);
+      `;
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const scriptingConfig = {
+        additionalContextRoots: [additionalRoot]
+      };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
+    });
   });
 
   describe('createCustomRequire - npm modules', () => {
