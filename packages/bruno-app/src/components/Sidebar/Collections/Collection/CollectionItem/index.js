@@ -57,6 +57,7 @@ import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
+import { REQUEST_TYPES } from 'utils/common/constants';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
@@ -100,7 +101,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const isFolder = isItemAFolder(item);
 
   // Check if request has examples (only for HTTP requests)
-  const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
+  const hasExamples = isItemARequest(item) && item.type === REQUEST_TYPES.HTTP_REQUEST && item.examples && item.examples.length > 0;
 
   const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
 
@@ -405,7 +406,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onClick: () => setRenameItemModalOpen(true)
       }
     );
-    if (!isFolder && isItemARequest(item) && !(item.type === 'http-request' || item.type === 'graphql-request')) {
+    if (!isFolder && isItemARequest(item) && !(item.type === REQUEST_TYPES.HTTP_REQUEST || item.type === REQUEST_TYPES.GRAPHQL_REQUEST)) {
       items.push({
         id: 'run',
         leftSection: IconPlayerPlay,
@@ -416,7 +417,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       });
     }
 
-    if (!isFolder && (item.type === 'http-request' || item.type === 'graphql-request')) {
+    if (!isFolder && (item.type === REQUEST_TYPES.HTTP_REQUEST || item.type === REQUEST_TYPES.GRAPHQL_REQUEST)) {
       items.push({
         id: 'generate-code',
         leftSection: IconCode,
@@ -425,7 +426,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       });
     }
 
-    if (!isFolder && isItemARequest(item) && item.type === 'http-request') {
+    if (!isFolder && isItemARequest(item) && item.type === REQUEST_TYPES.HTTP_REQUEST) {
       items.push({
         id: 'create-example',
         leftSection: ExampleIcon,

@@ -4,6 +4,7 @@ import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
+import { REQUEST_TYPES } from 'utils/common/constants';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -851,7 +852,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type) && !item.items;
+  return item.hasOwnProperty('request') && [REQUEST_TYPES.HTTP_REQUEST, REQUEST_TYPES.GRAPHQL_REQUEST, REQUEST_TYPES.GRPC_REQUEST, REQUEST_TYPES.WS_REQUEST].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {
@@ -1080,7 +1081,7 @@ export const hasExampleChanges = (_item, exampleUid) => {
 };
 
 export const getDefaultRequestPaneTab = (item) => {
-  if (item.type === 'http-request') {
+  if (item.type === REQUEST_TYPES.HTTP_REQUEST) {
     // If no params are enabled and body mode is set, default to 'body' tab
     // This provides better UX for POST/PUT requests with a body
     const request = item.draft?.request || item.request;
@@ -1094,11 +1095,11 @@ export const getDefaultRequestPaneTab = (item) => {
     return 'params';
   }
 
-  if (item.type === 'graphql-request') {
+  if (item.type === REQUEST_TYPES.GRAPHQL_REQUEST) {
     return 'query';
   }
 
-  if (['ws-request', 'grpc-request'].includes(item.type)) {
+  if ([REQUEST_TYPES.WS_REQUEST, REQUEST_TYPES.GRPC_REQUEST].includes(item.type)) {
     return 'body';
   }
 };
@@ -1485,7 +1486,7 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
     });
   }
 
-  const requestTypes = ['http-request', 'graphql-request'];
+  const requestTypes = [REQUEST_TYPES.HTTP_REQUEST, REQUEST_TYPES.GRAPHQL_REQUEST];
   requestItems = requestItems.filter((request) => requestTypes.includes(request.type) && !request.isTransient);
 
   if (tags && tags.include && tags.exclude) {

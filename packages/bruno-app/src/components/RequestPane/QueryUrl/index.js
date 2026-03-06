@@ -23,6 +23,7 @@ import { hasRequestChanges } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import toast from 'react-hot-toast';
+import { REQUEST_TYPES } from 'utils/common/constants';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
@@ -160,7 +161,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
 
   const handleHttpPaste = useCallback((event) => {
     // Only enable curl paste detection for HTTP requests
-    if (item.type !== 'http-request') {
+    if (item.type !== REQUEST_TYPES.HTTP_REQUEST) {
       return;
     }
 
@@ -385,7 +386,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           theme={storedTheme}
           onChange={(newValue) => onUrlChange(newValue)}
           onRun={handleRun}
-          onPaste={item.type === 'http-request' ? handleHttpPaste : item.type === 'graphql-request' ? handleGraphqlPaste : null}
+          onPaste={item.type === REQUEST_TYPES.HTTP_REQUEST ? handleHttpPaste : item.type === REQUEST_TYPES.GRAPHQL_REQUEST ? handleGraphqlPaste : null}
           collection={collection}
           highlightPathParams={true}
           item={item}
