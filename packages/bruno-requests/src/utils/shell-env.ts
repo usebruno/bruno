@@ -28,6 +28,10 @@ const fetchShellEnv = async (): Promise<Record<string, string>> => {
  */
 export const initializeShellEnv = async (): Promise<Record<string, string>> => {
   const shellEnvVars = await fetchShellEnv();
-  Object.assign(process.env, shellEnvVars);
+  for (const [key, value] of Object.entries(shellEnvVars)) {
+    if (!(key in process.env)) {
+      process.env[key] = value;
+    }
+  }
   return shellEnvVars;
 };
