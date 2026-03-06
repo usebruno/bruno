@@ -7,7 +7,7 @@
       "hasSeenWelcomeModal": true
     },
     "general": {
-      "defaultLocation": "/tmp/bruno-collections"
+      "defaultLocation": "{{projectRoot}}/tests/preferences/default-collection-location"
     }
   }
 }

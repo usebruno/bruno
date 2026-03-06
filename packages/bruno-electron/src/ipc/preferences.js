@@ -1,3 +1,4 @@
+const fs = require('fs');
 const { ipcMain, nativeTheme } = require('electron');
 const { getPreferences, savePreferences } = require('../store/preferences');
 const { getGitVersion } = require('../utils/git');
@@ -20,7 +21,7 @@ const registerPreferencesIpc = (mainWindow) => {
     const preferences = getPreferences();
 
     // Set the default location if it hasn't been set by the user
-    if (!preferences.general?.defaultLocation) {
+    if (!preferences.general?.defaultLocation || !fs.existsSync(preferences.general.defaultLocation)) {
       preferences.general ??= {};
       preferences.general.defaultLocation = resolveDefaultLocation();
       await savePreferences(preferences);
