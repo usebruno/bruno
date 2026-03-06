@@ -1,12 +1,5 @@
 import { z } from 'zod';
 
-/**
- * Snapshot Schema v1
- *
- * This is the initial versioned schema for app snapshots.
- * It captures the UI state that should be restored on app restart.
- */
-
 const tabRequestSchema = z.object({
   tab: z.string().nullable(),
   width: z.number(),
@@ -20,9 +13,9 @@ const tabResponseSchema = z.object({
 });
 
 const tabSchema = z.object({
-  type: z.enum(['preferences', 'runner', 'variables', 'collection', 'environment', 'global-environment', 'item']),
+  type: z.string(),
+  uid: z.string(),
   permanent: z.boolean(),
-  itemPath: z.string().optional(),
   layout: z.enum(['vertical', 'horizontal']).optional(),
   request: tabRequestSchema.optional(),
   response: tabResponseSchema.optional()
@@ -52,9 +45,6 @@ const extrasSchema = z.object({
   devTools: devToolsSchema
 });
 
-/**
- * The complete v1 snapshot schema
- */
 export const schema = z.object({
   version: z.literal(1),
   activeWorkspacePathname: z.string().nullable(),
@@ -63,12 +53,5 @@ export const schema = z.object({
   extras: extrasSchema
 });
 
-/**
- * Migration function from v1 to v2
- * Returns null since v1 is currently the latest version.
- * When v2 is created, implement the migration logic here.
- *
- * @param {object} snapshot - A valid v1 snapshot
- * @returns {object} A valid v2 snapshot
- */
+// Migration to next version (implement when v2 is created)
 export const migrate = null;

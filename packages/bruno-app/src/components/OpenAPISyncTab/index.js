@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import { v4 as uuid } from 'uuid';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { IconLoader2, IconClock } from '@tabler/icons';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
@@ -39,7 +38,7 @@ const OpenAPISyncTab = ({ collection }) => {
 
   const handleViewSpec = () => {
     dispatch(addTab({
-      uid: uuid(),
+      uid: `${collection.uid}-openapi-spec`,
       collectionUid: collection.uid,
       type: 'openapi-spec'
     }));

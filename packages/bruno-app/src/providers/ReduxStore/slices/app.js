@@ -17,7 +17,7 @@ const initialState = {
   activePreferencesTab: 'general',
   isInitialLoadComplete: false,
   snapshotRestoreMessage: null,
-  pendingWorkspaceRestores: {},
+  deferredWorkspaceSnapshots: {},
   preferences: {
     request: {
       sslVerification: true,
@@ -164,13 +164,13 @@ export const appSlice = createSlice({
     markInitialLoadComplete: (state) => {
       state.isInitialLoadComplete = true;
     },
-    setPendingWorkspaceRestore: (state, action) => {
-      const { workspacePathname, restoreData } = action.payload;
-      state.pendingWorkspaceRestores[workspacePathname] = restoreData;
+    setDeferredWorkspaceSnapshot: (state, action) => {
+      const { workspacePathname, snapshotData } = action.payload;
+      state.deferredWorkspaceSnapshots[workspacePathname] = snapshotData;
     },
-    clearPendingWorkspaceRestore: (state, action) => {
+    clearDeferredWorkspaceSnapshot: (state, action) => {
       const { workspacePathname } = action.payload;
-      delete state.pendingWorkspaceRestores[workspacePathname];
+      delete state.deferredWorkspaceSnapshots[workspacePathname];
     },
     setEnvVarSearchQuery: (state, { payload: { context, query } }) => {
       if (!state.envVarSearch[context]) return;
@@ -226,8 +226,8 @@ export const {
   setClipboard,
   setSnapshotRestoreMessage,
   markInitialLoadComplete,
-  setPendingWorkspaceRestore,
-  clearPendingWorkspaceRestore,
+  setDeferredWorkspaceSnapshot,
+  clearDeferredWorkspaceSnapshot,
   setEnvVarSearchQuery,
   setEnvVarSearchExpanded,
   setIsCreatingCollection

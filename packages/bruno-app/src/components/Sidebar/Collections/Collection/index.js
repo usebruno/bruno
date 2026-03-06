@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import classnames from 'classnames';
-import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
 import {
@@ -82,7 +81,7 @@ const Collection = ({ collection, searchText }) => {
     ensureCollectionIsMounted();
     dispatch(
       addTab({
-        uid: uuid(),
+        uid: `${collection.uid}-openapi-sync`,
         collectionUid: collection.uid,
         type: 'openapi-sync'
       })
@@ -92,7 +91,7 @@ const Collection = ({ collection, searchText }) => {
   const handleRun = () => {
     dispatch(
       addTab({
-        uid: uuid(),
+        uid: `${collection.uid}-collection-runner`,
         collectionUid: collection.uid,
         type: 'collection-runner'
       })

@@ -11,7 +11,7 @@ import {
   setWorkspaceScratchCollection
 } from '../workspaces';
 import { showHomePage } from '../app';
-import { setSnapshotRestoreMessage, markInitialLoadComplete, setPendingWorkspaceRestore, clearPendingWorkspaceRestore } from '../app';
+import { setSnapshotRestoreMessage, markInitialLoadComplete, setDeferredWorkspaceSnapshot, clearDeferredWorkspaceSnapshot } from '../app';
 import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent, selectEnvironment, mountCollection } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus, setCollectionCollapsed } from '../collections';
 import { clearCollectionState } from '../openapi-sync';
@@ -21,7 +21,7 @@ import { openConsole, closeConsole, setActiveTab, setDevtoolsHeight } from '../l
 import { normalizePath } from 'utils/common/path';
 import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
-import { buildRestoreSequence, restoreTabsForCollection } from 'utils/app-snapshot/restore';
+import { restoreTabsForCollection, deserializeDevTools, loadAndMigrateSnapshot } from 'utils/app-snapshot';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections';
 import { waitForMountComplete } from 'utils/collection-mount';
 import { isWorkspaceHydrated, markWorkspaceHydrated } from 'utils/workspace-hydration';
@@ -291,15 +291,15 @@ export const switchWorkspace = (workspaceUid) => {
     const scratchCollection = await dispatch(mountScratchCollection(workspaceUid));
     await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
 
-    const pendingRestore = getState().app.pendingWorkspaceRestores[workspace.pathname];
+    const deferredSnapshot = getState().app.deferredWorkspaceSnapshots[workspace.pathname];
     const isRestoring = getState().app.snapshotRestoreMessage;
 
-    if (pendingRestore) {
+    if (deferredSnapshot) {
       if (isRestoring) {
         dispatch(setSnapshotRestoreMessage('Loading collections...'));
       }
-      await restoreWorkspaceState(dispatch, getState, pendingRestore.collections);
-      dispatch(clearPendingWorkspaceRestore({ workspacePathname: workspace.pathname }));
+      await restoreWorkspaceState(dispatch, getState, deferredSnapshot.collections);
+      dispatch(clearDeferredWorkspaceSnapshot({ workspacePathname: workspace.pathname }));
     } else if (!isWorkspaceHydrated(workspaceUid) && scratchCollection?.uid) {
       const overviewTabUid = `${scratchCollection.uid}-overview`;
       const environmentsTabUid = `${scratchCollection.uid}-environments`;
@@ -1089,25 +1089,24 @@ const restoreDevTools = (dispatch, devTools) => {
 
 export const restoreAppSnapshot = () => {
   return async (dispatch, getState) => {
-    const finalize = () => {
-      dispatch(setSnapshotRestoreMessage(null));
-    };
+    const finalize = () => dispatch(setSnapshotRestoreMessage(null));
 
     try {
       dispatch(setSnapshotRestoreMessage('Initializing...'));
-
       await waitForInitialLoad(getState);
 
-      const snapshot = await ipcRenderer.invoke('renderer:get-app-snapshot');
-      if (!snapshot) return finalize();
+      const rawSnapshot = await ipcRenderer.invoke('renderer:get-app-snapshot');
+      if (!rawSnapshot) return finalize();
 
-      const restoreActions = buildRestoreSequence(snapshot, getState());
-      if (!restoreActions) {
-        console.warn('[app-snapshot] Failed to build restore sequence');
+      let snapshot;
+      try {
+        snapshot = loadAndMigrateSnapshot(rawSnapshot);
+      } catch (error) {
+        console.error('[app-snapshot] Failed to load snapshot:', error.message);
         return finalize();
       }
 
-      restoreDevTools(dispatch, restoreActions.devTools);
+      restoreDevTools(dispatch, deserializeDevTools(snapshot.extras?.devTools));
 
       const snapshotWorkspaces = snapshot.workspaces || [];
       const snapshotCollections = snapshot.collections || [];
@@ -1118,9 +1117,9 @@ export const restoreAppSnapshot = () => {
         );
 
         if (workspaceCollections.length) {
-          dispatch(setPendingWorkspaceRestore({
+          dispatch(setDeferredWorkspaceSnapshot({
             workspacePathname: snapshotWorkspace.pathname,
-            restoreData: { collections: workspaceCollections }
+            snapshotData: { collections: workspaceCollections }
           }));
         }
       }
@@ -1134,11 +1133,11 @@ export const restoreAppSnapshot = () => {
             dispatch(setSnapshotRestoreMessage('Switching workspace...'));
             await dispatch(switchWorkspace(targetWorkspace.uid));
           } else {
-            const pendingRestore = getState().app.pendingWorkspaceRestores[targetWorkspacePathname];
-            if (pendingRestore) {
+            const deferredSnapshot = getState().app.deferredWorkspaceSnapshots[targetWorkspacePathname];
+            if (deferredSnapshot) {
               dispatch(setSnapshotRestoreMessage('Loading collections...'));
-              await restoreWorkspaceState(dispatch, getState, pendingRestore.collections);
-              dispatch(clearPendingWorkspaceRestore({ workspacePathname: targetWorkspacePathname }));
+              await restoreWorkspaceState(dispatch, getState, deferredSnapshot.collections);
+              dispatch(clearDeferredWorkspaceSnapshot({ workspacePathname: targetWorkspacePathname }));
             }
             markWorkspaceHydrated(targetWorkspace.uid);
           }

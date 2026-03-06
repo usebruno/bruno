@@ -1,118 +1,70 @@
-import path from 'utils/common/path';
-import { findItemInCollection } from 'utils/collections';
+import { findItemInCollection, isScratchCollection } from 'utils/collections';
 import { CURRENT_VERSION, validateSnapshot, safeValidateSnapshot, loadAndMigrateSnapshot } from './schema';
 
-// Re-export schema utilities for external use
 export { CURRENT_VERSION, validateSnapshot, safeValidateSnapshot, loadAndMigrateSnapshot };
 
-/**
- * Tab type mapping from Redux to schema format
- */
-const TAB_TYPE_TO_SCHEMA = {
-  'preferences': 'preferences',
-  'collection-runner': 'runner',
-  'variables': 'variables',
-  'collection-settings': 'collection',
-  'environment-settings': 'environment',
-  'global-environment-settings': 'global-environment',
-  'folder-settings': 'item',
-  'request': 'item',
-  'http-request': 'item',
-  'graphql-request': 'item',
-  'grpc-request': 'item',
-  'ws-request': 'item'
-};
-
-/**
- * Get the relative item path from collection root
- * e.g., /Users/me/api-collection/requests/users/get.bru -> requests/users/get.bru
- */
-export const getRelativeItemPath = (itemPathname, collectionPathname) => {
-  if (!itemPathname || !collectionPathname) {
-    return null;
-  }
-
-  // Normalize paths and get relative path
-  const normalizedItem = path.normalize(itemPathname);
-  const normalizedCollection = path.normalize(collectionPathname);
-
-  if (normalizedItem.startsWith(normalizedCollection)) {
-    let relativePath = normalizedItem.slice(normalizedCollection.length);
-    // Remove leading separator
-    if (relativePath.startsWith(path.sep) || relativePath.startsWith('/')) {
-      relativePath = relativePath.slice(1);
-    }
-    return relativePath;
-  }
-
-  return null;
-};
-
-/**
- * Serialize a single tab to schema format
- */
 export const serializeTab = (tab, collection, preferences) => {
-  const schemaType = TAB_TYPE_TO_SCHEMA[tab.type] || 'item';
-
-  const serialized = {
-    type: schemaType,
-    permanent: !tab.preview
-  };
-
-  // For item tabs, include the relative item path and pane states
-  if (schemaType === 'item') {
-    const item = findItemInCollection(collection, tab.uid);
-    if (item) {
-      serialized.itemPath = getRelativeItemPath(item.pathname, collection.pathname);
-
-      // Store layout orientation (from global preferences)
-      const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
-      serialized.layout = isVerticalLayout ? 'vertical' : 'horizontal';
-
-      // Store request pane state
-      serialized.request = {
+  const item = findItemInCollection(collection, tab.uid);
+  if (item) {
+    return {
+      type: tab.type,
+      uid: tab.uid,
+      permanent: !tab.preview,
+      layout: preferences?.layout?.responsePaneOrientation === 'vertical' ? 'vertical' : 'horizontal',
+      request: {
         tab: tab.requestPaneTab || null,
         width: tab.requestPaneWidth || 0,
         height: tab.requestPaneHeight || 0
-      };
-
-      // Store response pane state
-      serialized.response = {
+      },
+      response: {
         tab: tab.responsePaneTab || 'response',
         format: tab.responseFormat || null,
         preview: tab.responseViewTab === 'preview'
-      };
-    } else {
-      return null;
-    }
+      }
+    };
   }
-
-  return serialized;
-};
-
-/**
- * Serialize DevTools state
- */
-export const serializeDevTools = (logsState, devtoolsHeight) => {
   return {
-    open: logsState.isConsoleOpen || false,
-    tab: logsState.activeTab || 'console',
-    height: devtoolsHeight || 300
+    type: tab.type,
+    uid: tab.uid,
+    permanent: !tab.preview
   };
 };
 
-const isScratchCollection = (collection, workspaces) => {
-  if (workspaces.some((w) => w.scratchCollectionUid === collection.uid)) {
-    return true;
-  }
-  const pathname = collection.pathname || '';
-  return pathname.includes('/tmp/transient/') || pathname.includes('bruno-scratch');
+export const serializeDevTools = (logsState, devtoolsHeight) => ({
+  open: logsState.isConsoleOpen || false,
+  tab: logsState.activeTab || 'console',
+  height: devtoolsHeight || 300
+});
+
+export const deserializeTab = (tabSchema, collection) => {
+  const { type, uid, permanent, request, response } = tabSchema;
+
+  return {
+    type,
+    uid,
+    collectionUid: collection.uid,
+    preview: !permanent,
+    ...(type === 'folder-settings' && { folderUid: uid }),
+    ...(request?.tab !== undefined && { requestPaneTab: request.tab }),
+    ...(request?.width !== undefined && { requestPaneWidth: request.width }),
+    ...(request?.height !== undefined && { requestPaneHeight: request.height }),
+    ...(response?.tab !== undefined && { responsePaneTab: response.tab }),
+    ...(response?.format !== undefined && { responseFormat: response.format }),
+    ...(response?.preview !== undefined && { responseViewTab: response.preview ? 'preview' : 'editor' })
+  };
 };
 
-/**
- * Serialize the entire app snapshot from Redux state
- * Preserves pending workspace restores for workspaces that haven't been visited yet
- */
+export const deserializeDevTools = (schema) => ({
+  isConsoleOpen: schema?.open ?? false,
+  activeTab: schema?.tab ?? 'console',
+  devtoolsHeight: schema?.height ?? 300
+});
+
+export const restoreTabsForCollection = (collection, tabSchemas) => {
+  if (!collection || !tabSchemas?.length) return [];
+  return tabSchemas.map((schema) => deserializeTab(schema, collection)).filter(Boolean);
+};
+
 export const serializeAppSnapshot = (state) => {
   const { collections: collectionsState, tabs: tabsState, workspaces: workspacesState, logs: logsState, app: appState, preferences } = state;
   const collections = collectionsState.collections || [];
@@ -120,123 +72,66 @@ export const serializeAppSnapshot = (state) => {
   const activeTabUid = tabsState.activeTabUid;
   const workspaces = workspacesState.workspaces || [];
   const activeWorkspaceUid = workspacesState.activeWorkspaceUid;
-  const pendingWorkspaceRestores = appState.pendingWorkspaceRestores || {};
+  const deferredSnapshots = appState.deferredWorkspaceSnapshots || {};
 
-  // Filter out scratch/transient collections
-  const persistableCollections = collections.filter(
-    (collection) => !isScratchCollection(collection, workspaces)
-  );
+  const scratchCollectionUids = new Set(collections.filter((c) => isScratchCollection(c, workspaces)).map((c) => c.uid));
+  const nonScratchCollections = collections.filter((c) => !scratchCollectionUids.has(c.uid));
 
-  // Build a map of collectionUid -> tabs (excluding scratch collection tabs)
-  const scratchCollectionUids = new Set(
-    collections
-      .filter((c) => isScratchCollection(c, workspaces))
-      .map((c) => c.uid)
-  );
-
+  // Group tabs by collection (excluding scratch collections)
   const tabsByCollection = {};
-  tabs.forEach((tab) => {
-    // Skip tabs for scratch collections
-    if (scratchCollectionUids.has(tab.collectionUid)) {
-      return;
-    }
-    if (!tabsByCollection[tab.collectionUid]) {
-      tabsByCollection[tab.collectionUid] = [];
-    }
-    tabsByCollection[tab.collectionUid].push(tab);
-  });
+  for (const tab of tabs) {
+    if (scratchCollectionUids.has(tab.collectionUid)) continue;
+    (tabsByCollection[tab.collectionUid] ??= []).push(tab);
+  }
 
-  // Serialize collections from current state (only persistable ones)
-  const serializedCollections = persistableCollections.map((collection) => {
+  // Serialize mounted collections
+  const serializedCollections = nonScratchCollections.map((collection) => {
     const collectionTabs = tabsByCollection[collection.uid] || [];
-
-    // Serialize tabs for this collection
-    const serializedTabs = collectionTabs
-      .map((tab) => serializeTab(tab, collection, preferences))
-      .filter(Boolean); // Remove nulls (tabs that couldn't be serialized)
-
-    // Find active tab index for this collection
-    let activeTabIndex = 0;
-    if (activeTabUid) {
-      const activeTabIdx = collectionTabs.findIndex((t) => t.uid === activeTabUid);
-      if (activeTabIdx !== -1) {
-        activeTabIndex = activeTabIdx;
-      }
-    }
+    const serializedTabs = collectionTabs.map((tab) => serializeTab(tab, collection, preferences)).filter(Boolean);
+    const activeIdx = activeTabUid ? collectionTabs.findIndex((t) => t.uid === activeTabUid) : -1;
 
     return {
       pathname: collection.pathname,
       isMounted: collection.mountStatus === 'mounted',
       isOpen: !collection.collapsed,
-      environment: collection.activeEnvironmentUid
-        ? collection.environments?.find((e) => e.uid === collection.activeEnvironmentUid)?.name || null
-        : null,
+      environment: collection.environments?.find((e) => e.uid === collection.activeEnvironmentUid)?.name ?? null,
       tabs: serializedTabs,
-      activeTabIndex: serializedTabs.length > 0 ? activeTabIndex : 0
+      activeTabIndex: activeIdx !== -1 ? activeIdx : 0
     };
   });
 
-  // Collect all serialized collection pathnames for deduplication
-  const serializedCollectionPaths = new Set(serializedCollections.map((c) => c.pathname));
+  // Merge deferred collections (from inactive workspaces) that aren't already serialized
+  const serializedPaths = new Set(serializedCollections.map((c) => c.pathname));
+  const deferredCollections = Object.values(deferredSnapshots)
+    .flatMap((snapshot) => snapshot.collections || [])
+    .filter((col) => !serializedPaths.has(col.pathname));
 
-  // Add collections from pending workspace restores (for workspaces not yet visited)
-  const pendingCollections = [];
-  Object.values(pendingWorkspaceRestores).forEach((restoreData) => {
-    if (restoreData.collections) {
-      restoreData.collections.forEach((col) => {
-        // Only add if not already in serialized collections
-        if (!serializedCollectionPaths.has(col.pathname)) {
-          pendingCollections.push(col);
-          serializedCollectionPaths.add(col.pathname);
-        }
-      });
-    }
-  });
-
-  // Combine current state collections with pending restore collections
-  const allSerializedCollections = [...serializedCollections, ...pendingCollections];
+  const allCollections = [...serializedCollections, ...deferredCollections];
 
   // Serialize workspaces
   const serializedWorkspaces = workspaces.map((workspace) => {
-    // Check if this workspace has pending restore data
-    const pendingRestore = pendingWorkspaceRestores[workspace.pathname];
-
-    if (pendingRestore && pendingRestore.collections) {
-      // Use the pending restore data for this workspace
+    const deferred = deferredSnapshots[workspace.pathname];
+    if (deferred?.collections) {
       return {
         pathname: workspace.pathname,
-        collections: pendingRestore.collections.map((c) => ({
-          ...c,
-          isMounted: false // Mark as not mounted since it's pending
-        }))
+        collections: deferred.collections.map((c) => ({ ...c, isMounted: false }))
       };
     }
 
-    // Get collection pathnames that belong to this workspace
-    const workspaceCollectionPaths = (workspace.collections || []).map((c) => c.path);
-
-    // Find which collections are open in this workspace (exist in Redux state)
-    // The isMounted flag is already set correctly based on mountStatus
-    const workspaceCollections = serializedCollections.filter((sc) =>
-      workspaceCollectionPaths.includes(sc.pathname)
-    );
-
+    const workspacePaths = (workspace.collections || []).map((c) => c.path);
     return {
       pathname: workspace.pathname,
-      collections: workspaceCollections
+      collections: serializedCollections.filter((c) => workspacePaths.includes(c.pathname))
     };
   });
 
-  // Get devtools height from logs state
-  const devtoolsHeight = logsState.devtoolsHeight || 300;
-
   return {
     version: CURRENT_VERSION,
-    activeWorkspacePathname: workspaces.find((w) => w.uid === activeWorkspaceUid)?.pathname || null,
+    activeWorkspacePathname: workspaces.find((w) => w.uid === activeWorkspaceUid)?.pathname ?? null,
     workspaces: serializedWorkspaces,
-    collections: allSerializedCollections,
+    collections: allCollections,
     extras: {
-      devTools: serializeDevTools(logsState, devtoolsHeight)
+      devTools: serializeDevTools(logsState, logsState.devtoolsHeight || 300)
     }
   };
 };

@@ -19,7 +19,6 @@ import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction } from 'p
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
 import Dropdown from 'components/Dropdown';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -163,7 +162,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const handleRun = () => {
     dispatch(
       addTab({
-        uid: uuid(),
+        uid: `${collection.uid}-collection-runner`,
         collectionUid: collection.uid,
         type: 'collection-runner'
       })
@@ -173,7 +172,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const viewVariables = () => {
     dispatch(
       addTab({
-        uid: uuid(),
+        uid: `${collection.uid}-variables`,
         collectionUid: collection.uid,
         type: 'variables'
       })
@@ -192,7 +191,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
 
   const viewOpenApiSync = () => {
     dispatch(addTab({
-      uid: uuid(),
+      uid: `${collection.uid}-openapi-sync`,
       collectionUid: collection.uid,
       type: 'openapi-sync'
     }));
