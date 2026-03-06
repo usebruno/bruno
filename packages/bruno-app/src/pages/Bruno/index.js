@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import classnames from 'classnames';
 import ManageWorkspace from 'components/ManageWorkspace';
 import RequestTabs from 'components/RequestTabs';
@@ -112,13 +112,6 @@ export default function Main() {
     };
   }, [dispatch]);
 
-  useEffect(() => {
-    if (mainSectionRef.current) {
-      const appState = snapshotRestoreMessage ? 'loading' : 'loaded';
-      mainSectionRef.current.setAttribute('data-app-state', appState);
-    }
-  }, [snapshotRestoreMessage]);
-
   return (
     // <ErrorCapture>
     <div id="main-container" className="flex flex-col h-screen max-h-screen overflow-hidden">
@@ -140,7 +133,6 @@ export default function Main() {
       <div
         ref={mainSectionRef}
         className="flex-1 min-h-0 flex"
-        data-app-state="loading"
         style={{
           height: isConsoleOpen ? `calc(100vh - 60px - ${isConsoleOpen ? '300px' : '0px'})` : 'calc(100vh - 60px)'
         }}
