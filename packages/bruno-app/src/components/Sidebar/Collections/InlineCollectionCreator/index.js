@@ -93,8 +93,6 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
     } catch (e) {
       toast.error(multiLineMsg('An error occurred while creating the collection', formatIpcError(e)));
       setIsCreating(false);
-      // Delay focus until the input field becomes enabled
-      setTimeout(() => inputRef.current?.focus(), 10);
     }
   }, [isCreating, defaultLocation, dispatch, onCancel, onComplete]);
 
