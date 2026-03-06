@@ -1,6 +1,7 @@
 const rollup = require('rollup');
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
+const json = require('@rollup/plugin-json');
 const fs = require('fs');
 const { terser } = require('rollup-plugin-terser');
 
@@ -13,6 +14,7 @@ const bundleLibraries = async () => {
     import atob from "atob";
     import * as cryptoJs from 'crypto-js';
     import tv4 from "tv4";
+    import Ajv from "ajv";
     globalThis.expect = expect;
     globalThis.assert = assert;
     globalThis.moment = moment;
@@ -20,6 +22,7 @@ const bundleLibraries = async () => {
     globalThis.atob = atob;
     globalThis.Buffer = Buffer;
     globalThis.tv4 = tv4;
+    globalThis.Ajv = Ajv;
     globalThis.requireObject = {
       ...(globalThis.requireObject || {}),
       'chai': { expect, assert },
@@ -28,7 +31,8 @@ const bundleLibraries = async () => {
       'btoa': btoa,
       'atob': atob,
       'crypto-js': cryptoJs,
-      'tv4': tv4
+      'tv4': tv4,
+      'ajv': Ajv
     };
 `;
 
@@ -56,6 +60,7 @@ const bundleLibraries = async () => {
           browser: false
         }),
         commonjs(),
+        json(),
         terser()
       ]
     },
