@@ -18,7 +18,13 @@ import get from 'lodash/get';
  *   description: 'Enable Node VM runtime for JavaScript execution in Developer Mode'
  * }
  */
-const BETA_FEATURES = [];
+const BETA_FEATURES = [
+  {
+    id: 'jsonBase64Preview',
+    label: 'JSON Base64 Preview',
+    description: 'Enable binary previews from Base64 fields inside JSON responses'
+  }
+];
 
 const Beta = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);

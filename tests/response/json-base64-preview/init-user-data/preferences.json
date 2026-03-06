@@ -1,0 +1,9 @@
+{
+  "maximized": false,
+  "beta": {
+    "jsonBase64Preview": true
+  },
+  "lastOpenedCollections": [
+    "{{projectRoot}}/tests/response/json-base64-preview/fixtures/collection"
+  ]
+}
