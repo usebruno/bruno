@@ -1,10 +1,13 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+const DEFAULT_DEVTOOLS_HEIGHT = 300;
+
 const initialState = {
   logs: [],
   debugErrors: [],
   isConsoleOpen: false,
   activeTab: 'console',
+  devtoolsHeight: DEFAULT_DEVTOOLS_HEIGHT,
   filters: {
     info: true,
     warn: true,
@@ -118,6 +121,9 @@ export const logsSlice = createSlice({
     },
     clearSelectedError: (state) => {
       state.selectedError = null;
+    },
+    setDevtoolsHeight: (state, action) => {
+      state.devtoolsHeight = action.payload;
     }
   }
 });
@@ -137,7 +143,8 @@ export const {
   setSelectedRequest,
   clearSelectedRequest,
   setSelectedError,
-  clearSelectedError
+  clearSelectedError,
+  setDevtoolsHeight
 } = logsSlice.actions;
 
 export default logsSlice.reducer;

@@ -12,13 +12,13 @@
 
 const requestUids = new Map();
 const exampleUids = new Map();
-const { uuid } = require('../utils/common');
+const { generateUidBasedOnHash } = require('../utils/common');
 
 const getRequestUid = (pathname) => {
   let uid = requestUids.get(pathname);
 
   if (!uid) {
-    uid = uuid();
+    uid = generateUidBasedOnHash(pathname);
     requestUids.set(pathname, uid);
   }
 
@@ -39,11 +39,12 @@ const deleteRequestUid = (pathname) => {
 };
 
 const getExampleUid = (pathname, index) => {
-  let uid = exampleUids.get(`${pathname}-${index}`);
+  const key = `${pathname}-${index}`;
+  let uid = exampleUids.get(key);
 
   if (!uid) {
-    uid = uuid();
-    exampleUids.set(`${pathname}-${index}`, uid);
+    uid = generateUidBasedOnHash(key);
+    exampleUids.set(key, uid);
   }
 
   return uid;

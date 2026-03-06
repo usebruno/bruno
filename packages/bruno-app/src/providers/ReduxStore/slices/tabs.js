@@ -61,8 +61,10 @@ export const tabsSlice = createSlice({
           uid,
           collectionUid,
           requestPaneWidth: null,
+          requestPaneHeight: null,
           requestPaneTab: requestPaneTab || defaultRequestPaneTab,
           responsePaneTab: 'response',
+          responsePaneScrollPosition: null,
           responseFormat: null,
           responseViewTab: null,
           scriptPaneTab: null,
@@ -83,6 +85,7 @@ export const tabsSlice = createSlice({
         uid,
         collectionUid,
         requestPaneWidth: null,
+        requestPaneHeight: null,
         requestPaneTab: requestPaneTab || defaultRequestPaneTab,
         responsePaneTab: 'response',
         responsePaneScrollPosition: null,
@@ -260,6 +263,44 @@ export const tabsSlice = createSlice({
       tabs.splice(targetIdx, 0, moved);
 
       state.tabs = tabs;
+    },
+    restoreTabs: (state, action) => {
+      const { tabs, activeTabUid } = action.payload;
+
+      tabs.forEach((tab) => {
+        const existingTab = find(state.tabs, (t) => t.uid === tab.uid);
+        if (!existingTab) {
+          let defaultRequestPaneTab = 'params';
+          if (tab.type === 'grpc-request' || tab.type === 'ws-request') {
+            defaultRequestPaneTab = 'body';
+          } else if (tab.type === 'graphql-request') {
+            defaultRequestPaneTab = 'query';
+          }
+
+          state.tabs.push({
+            uid: tab.uid,
+            collectionUid: tab.collectionUid,
+            requestPaneWidth: tab.requestPaneWidth !== undefined ? tab.requestPaneWidth : null,
+            requestPaneHeight: tab.requestPaneHeight !== undefined ? tab.requestPaneHeight : null,
+            requestPaneTab: tab.requestPaneTab !== undefined ? tab.requestPaneTab : defaultRequestPaneTab,
+            responsePaneTab: tab.responsePaneTab !== undefined ? tab.responsePaneTab : 'response',
+            responsePaneScrollPosition: null,
+            responseFormat: tab.responseFormat !== undefined ? tab.responseFormat : null,
+            responseViewTab: tab.responseViewTab !== undefined ? tab.responseViewTab : null,
+            scriptPaneTab: null,
+            type: tab.type || 'request',
+            preview: tab.preview !== undefined ? tab.preview : true,
+            ...(tab.folderUid ? { folderUid: tab.folderUid } : {})
+          });
+        }
+      });
+
+      if (activeTabUid) {
+        const tabExists = state.tabs.some((t) => t.uid === activeTabUid);
+        if (tabExists) {
+          state.activeTabUid = activeTabUid;
+        }
+      }
     }
   }
 });
@@ -279,7 +320,8 @@ export const {
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
-  reorderTabs
+  reorderTabs,
+  restoreTabs
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

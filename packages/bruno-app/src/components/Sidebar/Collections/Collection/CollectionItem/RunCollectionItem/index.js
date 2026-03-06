@@ -1,6 +1,5 @@
 import React from 'react';
 import get from 'lodash/get';
-import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -27,7 +26,7 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
   const onSubmit = (recursive) => {
     dispatch(
       addTab({
-        uid: uuid(),
+        uid: `${collection.uid}-collection-runner`,
         collectionUid: collection.uid,
         type: 'collection-runner'
       })
@@ -42,7 +41,7 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
     e.preventDefault();
     dispatch(
       addTab({
-        uid: uuid(),
+        uid: `${collection.uid}-collection-runner`,
         collectionUid: collection.uid,
         type: 'collection-runner'
       })

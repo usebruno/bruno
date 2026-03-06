@@ -15,6 +15,9 @@ const initialState = {
   isEnvironmentSettingsModalOpen: false,
   isGlobalEnvironmentSettingsModalOpen: false,
   activePreferencesTab: 'general',
+  isInitialLoadComplete: false,
+  snapshotRestoreMessage: null,
+  deferredWorkspaceSnapshots: {},
   preferences: {
     request: {
       sslVerification: true,
@@ -60,7 +63,7 @@ const initialState = {
   gitOperationProgress: {},
   gitVersion: null,
   clipboard: {
-    hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
+    hasCopiedItems: false
   },
   systemProxyVariables: {},
   envVarSearch: {
@@ -153,8 +156,21 @@ export const appSlice = createSlice({
       state.gitVersion = action.payload;
     },
     setClipboard: (state, action) => {
-      // Update clipboard UI state
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
+    },
+    setSnapshotRestoreMessage: (state, action) => {
+      state.snapshotRestoreMessage = action.payload;
+    },
+    markInitialLoadComplete: (state) => {
+      state.isInitialLoadComplete = true;
+    },
+    setDeferredWorkspaceSnapshot: (state, action) => {
+      const { workspacePathname, snapshotData } = action.payload;
+      state.deferredWorkspaceSnapshots[workspacePathname] = snapshotData;
+    },
+    clearDeferredWorkspaceSnapshot: (state, action) => {
+      const { workspacePathname } = action.payload;
+      delete state.deferredWorkspaceSnapshots[workspacePathname];
     },
     setEnvVarSearchQuery: (state, { payload: { context, query } }) => {
       if (!state.envVarSearch[context]) return;
@@ -208,6 +224,10 @@ export const {
   removeGitOperationProgress,
   setGitVersion,
   setClipboard,
+  setSnapshotRestoreMessage,
+  markInitialLoadComplete,
+  setDeferredWorkspaceSnapshot,
+  clearDeferredWorkspaceSnapshot,
   setEnvVarSearchQuery,
   setEnvVarSearchExpanded,
   setIsCreatingCollection

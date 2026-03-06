@@ -1,16 +1,17 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { darken } from 'polished';
 import Console from './Console';
 import { useTheme } from 'providers/Theme';
+import { setDevtoolsHeight } from 'providers/ReduxStore/slices/logs';
 
 const MIN_DEVTOOLS_HEIGHT = 150;
 const MAX_DEVTOOLS_HEIGHT = window.innerHeight * 0.7;
-const DEFAULT_DEVTOOLS_HEIGHT = 300;
 
 const Devtools = ({ mainSectionRef }) => {
+  const dispatch = useDispatch();
   const isDevtoolsOpen = useSelector((state) => state.logs.isConsoleOpen);
-  const [devtoolsHeight, setDevtoolsHeight] = useState(DEFAULT_DEVTOOLS_HEIGHT);
+  const devtoolsHeight = useSelector((state) => state.logs.devtoolsHeight);
   const [isResizingDevtools, setIsResizingDevtools] = useState(false);
   const { theme } = useTheme();
 
@@ -31,13 +32,13 @@ const Devtools = ({ mainSectionRef }) => {
     // Calculate new devtools height - expanding upward from bottom
     const newHeight = windowHeight - mouseY - statusBarHeight;
     const clampedHeight = Math.min(MAX_DEVTOOLS_HEIGHT, Math.max(MIN_DEVTOOLS_HEIGHT, newHeight));
-    setDevtoolsHeight(clampedHeight);
+    dispatch(setDevtoolsHeight(clampedHeight));
 
     // Update main section height
     if (mainSectionRef.current) {
       mainSectionRef.current.style.height = `calc(100vh - 22px - ${clampedHeight}px)`;
     }
-  }, [isResizingDevtools, mainSectionRef]);
+  }, [isResizingDevtools, mainSectionRef, dispatch]);
 
   const handleDevtoolsResizeEnd = useCallback(() => {
     setIsResizingDevtools(false);
