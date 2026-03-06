@@ -1690,42 +1690,51 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
 
-          switch (item.draft.request.body.mode) {
-            case 'json': {
-              item.draft.request.body.json = action.payload.content;
-              break;
-            }
-            case 'text': {
-              item.draft.request.body.text = action.payload.content;
-              break;
-            }
-            case 'xml': {
-              item.draft.request.body.xml = action.payload.content;
-              break;
-            }
-            case 'sparql': {
-              item.draft.request.body.sparql = action.payload.content;
-              break;
-            }
-            case 'file': {
-              item.draft.request.body.file = action.payload.content;
-              break;
-            }
-            case 'formUrlEncoded': {
-              item.draft.request.body.formUrlEncoded = action.payload.content;
-              break;
-            }
-            case 'multipartForm': {
-              item.draft.request.body.multipartForm = action.payload.content;
-              break;
-            }
-            case 'grpc': {
-              item.draft.request.body.grpc = action.payload.content;
-              break;
-            }
-            case 'ws': {
-              item.draft.request.body.ws = action.payload.content;
-              break;
+          const contentType = action.payload.contentType;
+          if (contentType === 'mqtt-publish') {
+            item.draft.request.publish = action.payload.content;
+          } else if (contentType === 'mqtt-subscriptions') {
+            item.draft.request.subscriptions = action.payload.content;
+          } else if (contentType === 'mqtt-settings') {
+            item.draft.request.settings = action.payload.content;
+          } else {
+            switch (item.draft.request.body.mode) {
+              case 'json': {
+                item.draft.request.body.json = action.payload.content;
+                break;
+              }
+              case 'text': {
+                item.draft.request.body.text = action.payload.content;
+                break;
+              }
+              case 'xml': {
+                item.draft.request.body.xml = action.payload.content;
+                break;
+              }
+              case 'sparql': {
+                item.draft.request.body.sparql = action.payload.content;
+                break;
+              }
+              case 'file': {
+                item.draft.request.body.file = action.payload.content;
+                break;
+              }
+              case 'formUrlEncoded': {
+                item.draft.request.body.formUrlEncoded = action.payload.content;
+                break;
+              }
+              case 'multipartForm': {
+                item.draft.request.body.multipartForm = action.payload.content;
+                break;
+              }
+              case 'grpc': {
+                item.draft.request.body.grpc = action.payload.content;
+                break;
+              }
+              case 'ws': {
+                item.draft.request.body.ws = action.payload.content;
+                break;
+              }
             }
           }
         }
@@ -3475,6 +3484,147 @@ export const collectionsSlice = createSlice({
       }
     },
 
+    runMqttRequestEvent: (state, action) => {
+      const { itemUid, collectionUid, eventType, eventData } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      if (eventType === 'request') {
+        item.requestSent = eventData;
+        item.requestSent.timestamp = Date.now();
+        item.response = {
+          ...initiatedWsResponse,
+          statusText: 'CONNECTING'
+        };
+      }
+
+      if (!collection.timeline) {
+        collection.timeline = [];
+      }
+
+      collection.timeline.push({
+        type: 'request',
+        eventType: eventType,
+        collectionUid: collection.uid,
+        folderUid: null,
+        itemUid: item.uid,
+        timestamp: Date.now(),
+        data: {
+          request: eventData || item.requestSent || item.request,
+          timestamp: Date.now(),
+          eventData: eventData
+        }
+      });
+    },
+    mqttResponseReceived: (state, action) => {
+      const { itemUid, collectionUid, eventType, eventData } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      const currentResponse = item.response || initiatedWsResponse;
+      const timestamp = item?.requestSent?.timestamp;
+      let updatedResponse = {
+        ...currentResponse,
+        isError: false,
+        error: '',
+        duration: Date.now() - (timestamp || Date.now())
+      };
+
+      switch (eventType) {
+        case 'message': {
+          const topicLabel = eventData.topic ? `[${eventData.topic}] ` : '';
+          const payloadStr = typeof eventData.payload === 'object'
+            ? JSON.stringify(eventData.payload)
+            : String(eventData.payload || '');
+          updatedResponse.responses ||= [];
+          updatedResponse.responses.push({
+            type: eventData.direction === 'incoming' ? 'incoming' : 'outgoing',
+            message: payloadStr,
+            topic: eventData.topic,
+            qos: eventData.qos,
+            retain: eventData.retain,
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
+          });
+          break;
+        }
+
+        case 'open':
+          updatedResponse.status = 'CONNECTED';
+          updatedResponse.statusText = 'CONNECTED';
+          updatedResponse.statusCode = 0;
+          updatedResponse.responses ||= [];
+          updatedResponse.responses.push({
+            message: 'Connected to broker',
+            type: 'info',
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
+          });
+          break;
+
+        case 'close':
+          updatedResponse.status = 'CLOSED';
+          updatedResponse.statusText = 'DISCONNECTED';
+          updatedResponse.statusCode = 0;
+          updatedResponse.responses ||= [];
+          updatedResponse.responses.push({
+            message: 'Disconnected from broker',
+            type: 'info',
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
+          });
+          break;
+
+        case 'error': {
+          const errorDetails = eventData.error || eventData.message;
+          updatedResponse.isError = true;
+          updatedResponse.error = errorDetails || 'MQTT error occurred';
+          updatedResponse.status = 'ERROR';
+          updatedResponse.statusText = 'ERROR';
+          updatedResponse.responses ||= [];
+          updatedResponse.responses.push({
+            type: 'error',
+            message: errorDetails || 'MQTT error occurred',
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
+          });
+          break;
+        }
+
+        case 'subscribe-ack':
+          updatedResponse.responses ||= [];
+          updatedResponse.responses.push({
+            message: `Subscribed to ${eventData.topic} (QoS ${eventData.qos})`,
+            type: 'info',
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
+          });
+          break;
+
+        case 'connecting':
+          updatedResponse.status = 'CONNECTING';
+          updatedResponse.statusText = 'CONNECTING';
+          break;
+      }
+
+      item.response = updatedResponse;
+    },
+    mqttUpdateResponseSortOrder: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if (item && item.response) {
+          item.response.sortOrder = item.response.sortOrder ? -item.response.sortOrder : -1;
+        }
+      }
+    },
+
     addTransientDirectory: (state, action) => {
       state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
     },
@@ -3690,6 +3840,9 @@ export const {
   runWsRequestEvent,
   wsResponseReceived,
   wsUpdateResponseSortOrder,
+  runMqttRequestEvent,
+  mqttResponseReceived,
+  mqttUpdateResponseSortOrder,
 
   /* Response Example Actions - Start */
   addResponseExample,

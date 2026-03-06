@@ -718,6 +718,21 @@ export const transformRequestToSaveToFilesystem = (item) => {
     delete itemToSave.request.params;
   }
 
+  if (_item.type === 'mqtt-request') {
+    itemToSave.request = {
+      url: _item.request.url,
+      publish: _item.request.publish,
+      subscriptions: _item.request.subscriptions,
+      settings: _item.request.settings,
+      script: _item.request.script,
+      vars: _item.request.vars,
+      assertions: _item.request.assertions,
+      tests: _item.request.tests,
+      docs: _item.request.docs
+    };
+    return itemToSave;
+  }
+
   // Only process params for non-gRPC requests
   if (!['grpc-request', 'ws-request'].includes(_item.type)) {
     each(_item.request.params, (param) => {
@@ -851,7 +866,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type) && !item.items;
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'mqtt-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {
@@ -1100,6 +1115,10 @@ export const getDefaultRequestPaneTab = (item) => {
 
   if (['ws-request', 'grpc-request'].includes(item.type)) {
     return 'body';
+  }
+
+  if (item.type === 'mqtt-request') {
+    return 'publish';
   }
 };
 
