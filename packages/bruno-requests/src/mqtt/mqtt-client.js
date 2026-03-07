@@ -123,8 +123,6 @@ class MqttClient {
 
       client = mqtt.connect(parsedUrl.fullUrl, mqttOptions);
 
-      this.#setupEventHandlers(client, requestId, collectionUid);
-
       // Wait for the connection to be established before returning
       // so callers (e.g. auto-subscribe) can rely on client.connected === true
       await new Promise((resolve, reject) => {
@@ -141,6 +139,7 @@ class MqttClient {
       });
 
       this.activeConnections.set(requestId, { collectionUid, client });
+      this.#setupEventHandlers(client, requestId, collectionUid);
 
       return client;
     } catch (error) {
@@ -283,7 +282,7 @@ class MqttClient {
    * Close all connections for a collection
    */
   closeForCollection(collectionUid) {
-    for (const [, meta] of this.activeConnections) {
+    for (const [, meta] of [...this.activeConnections]) {
       if (meta.collectionUid === collectionUid) {
         meta.client.end(true);
       }

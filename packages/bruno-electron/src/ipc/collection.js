@@ -26,6 +26,7 @@ const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { wsClient } = require('../ipc/network/ws-event-handlers');
+const { mqttClient } = require('../ipc/network/mqtt-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 
 const {
@@ -1115,6 +1116,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       if (wsClient) {
         wsClient.closeForCollection(collectionUid);
+      }
+      if (mqttClient) {
+        mqttClient.closeForCollection(collectionUid);
       }
     }
 

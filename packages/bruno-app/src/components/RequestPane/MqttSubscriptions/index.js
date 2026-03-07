@@ -26,10 +26,15 @@ const MqttSubscriptions = ({ item, collection }) => {
     updateSubscriptions([...subscriptions, { topic: '', qos: 0, enabled: false }]);
   }, [subscriptions, updateSubscriptions]);
 
-  const removeSubscription = useCallback((index) => {
+  const removeSubscription = useCallback(async (index) => {
     const sub = subscriptions[index];
     if (sub.enabled && sub.topic) {
-      unsubscribeMqtt(item.uid, collection.uid, sub.topic).catch((err) => console.warn('Failed to unsubscribe during removal:', err?.message));
+      try {
+        await unsubscribeMqtt(item.uid, collection.uid, sub.topic);
+      } catch (err) {
+        toast.error('Failed to unsubscribe: ' + (err?.message || 'unknown error'));
+        return;
+      }
     }
     const newSubs = subscriptions.filter((_, i) => i !== index);
     updateSubscriptions(newSubs);
@@ -132,6 +137,7 @@ const MqttSubscriptions = ({ item, collection }) => {
 
           <button
             className="remove-btn p-1"
+            aria-label="Remove subscription"
             onClick={() => removeSubscription(index)}
             title="Remove subscription"
           >
