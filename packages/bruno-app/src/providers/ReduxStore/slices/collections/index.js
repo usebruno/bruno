@@ -911,6 +911,12 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.url = action.payload.url;
+
+          // MQTT requests don't use params/query/path parsing
+          if (item.type === 'mqtt-request') {
+            return;
+          }
+
           item.draft.request.params = item?.draft?.request?.params ?? [];
           item.request.params = item?.request?.params ?? [];
 

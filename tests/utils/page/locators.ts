@@ -207,6 +207,29 @@ export const buildGrpcCommonLocators = (page: Page) => ({
   }
 });
 
+export const buildMqttCommonLocators = (page: Page) => ({
+  ...buildCommonLocators(page),
+  connectionControls: {
+    connect: () => page.getByTestId('mqtt-connect-button'),
+    disconnect: () => page.getByTestId('mqtt-disconnect-button')
+  },
+  publish: {
+    button: () => page.getByTestId('mqtt-publish-button')
+  },
+  subscribe: {
+    addButton: () => page.getByTestId('mqtt-add-subscription')
+  },
+  auth: {
+    clientIdInput: () => page.getByTestId('mqtt-auth-client-id'),
+    usernameInput: () => page.getByTestId('mqtt-auth-username'),
+    passwordInput: () => page.getByTestId('mqtt-auth-password')
+  },
+  messages: () => page.locator('.ws-message'),
+  toolbar: {
+    clearResponse: () => page.getByTestId('response-clear-btn')
+  }
+});
+
 /**
  * Builds locators for sandbox mode settings
  * @param page - The Playwright page object

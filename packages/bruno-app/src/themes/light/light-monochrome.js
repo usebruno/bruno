@@ -226,7 +226,8 @@ const lightMonochromeTheme = {
 
     grpc: '#525252',
     ws: '#737373',
-    gql: '#404040'
+    gql: '#404040',
+    mqtt: '#616161'
   },
 
   requestTabPanel: {

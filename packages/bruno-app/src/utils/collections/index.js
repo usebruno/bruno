@@ -734,7 +734,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
   }
 
   // Only process params for non-gRPC requests
-  if (!['grpc-request', 'ws-request'].includes(_item.type)) {
+  if (!['grpc-request', 'ws-request', 'mqtt-request'].includes(_item.type)) {
     each(_item.request.params, (param) => {
       itemToSave.request.params.push({
         uid: param.uid,

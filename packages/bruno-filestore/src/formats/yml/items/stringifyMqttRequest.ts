@@ -67,6 +67,7 @@ const stringifyMqttRequest = (item: BrunoItem): string => {
       if (settings.ssl) {
         mqtt.settings.ssl = {
           enabled: settings.ssl.enabled ?? false,
+          rejectUnauthorized: settings.ssl.rejectUnauthorized ?? true,
           caCert: settings.ssl.caCert || '',
           clientCert: settings.ssl.clientCert || '',
           clientKey: settings.ssl.clientKey || ''

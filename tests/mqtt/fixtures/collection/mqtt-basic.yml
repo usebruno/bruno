@@ -1,0 +1,32 @@
+info:
+  name: mqtt-basic
+  type: mqtt
+  seq: 1
+
+mqtt:
+  url: mqtt://test.mosquitto.org:1883
+  publish:
+    topic: bruno/e2e/test
+    qos: 0
+    retain: false
+    payload:
+      type: json
+      data: '{"hello": "world"}'
+  subscriptions:
+    - topic: bruno/e2e/test
+      qos: 0
+      enabled: true
+  settings:
+    clientId: ""
+    mqttVersion: "5.0"
+    keepAlive: 60
+    cleanSession: true
+    connectTimeout: 30000
+    username: ""
+    password: ""
+    ssl:
+      enabled: false
+      rejectUnauthorized: true
+      caCert: ""
+      clientCert: ""
+      clientKey: ""

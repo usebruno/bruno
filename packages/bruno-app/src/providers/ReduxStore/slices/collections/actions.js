@@ -1712,6 +1712,7 @@ export const newMqttRequest = (params) => (dispatch, getState) => {
           password: null,
           ssl: {
             enabled: false,
+            rejectUnauthorized: true,
             caCert: null,
             clientCert: null,
             clientKey: null

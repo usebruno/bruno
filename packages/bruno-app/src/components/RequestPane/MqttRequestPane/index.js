@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useRef } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import Documentation from 'components/Documentation/index';
 import Vars from 'components/RequestPane/Vars';
 import Assertions from 'components/RequestPane/Assertions';
@@ -11,6 +11,7 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import MqttPublish from '../MqttPublish/index';
 import MqttSubscriptions from '../MqttSubscriptions/index';
+import MqttAuth from '../MqttAuth/index';
 import MqttSettingsPane from '../MqttSettingsPane/index';
 import StyledWrapper from './StyledWrapper';
 
@@ -45,6 +46,7 @@ const MqttRequestPane = ({ item, collection }) => {
         label: 'Subscribe',
         indicator: activeSubsCount > 0 ? <sup className="ml-[.125rem] font-medium">{activeSubsCount}</sup> : null
       },
+      { key: 'auth', label: 'Auth', indicator: null },
       { key: 'settings', label: 'Settings', indicator: null },
       { key: 'script', label: 'Script', indicator: null },
       { key: 'vars', label: 'Vars', indicator: null },
@@ -60,6 +62,8 @@ const MqttRequestPane = ({ item, collection }) => {
         return <MqttPublish item={item} collection={collection} />;
       case 'subscribe':
         return <MqttSubscriptions item={item} collection={collection} />;
+      case 'auth':
+        return <MqttAuth item={item} collection={collection} />;
       case 'settings':
         return <MqttSettingsPane item={item} collection={collection} />;
       case 'script':

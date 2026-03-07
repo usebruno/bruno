@@ -6,29 +6,40 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { connectMqtt, disconnectMqtt, getMqttConnectionStatus } from 'utils/network/index';
 import { useTheme } from 'providers/Theme';
 import toast from 'react-hot-toast';
+import StyledWrapper from './StyledWrapper';
+
+const CONNECTION_STATUS = {
+  CONNECTING: 'connecting',
+  CONNECTED: 'connected',
+  DISCONNECTED: 'disconnected'
+};
+
+const useMqttConnectionStatus = (requestId) => {
+  const [connectionStatus, setConnectionStatus] = useState(CONNECTION_STATUS.DISCONNECTED);
+  useEffect(() => {
+    const checkConnectionStatus = async () => {
+      try {
+        const result = await getMqttConnectionStatus(requestId);
+        setConnectionStatus(result?.status ?? CONNECTION_STATUS.DISCONNECTED);
+      } catch (e) {
+        // ignore
+      }
+    };
+    checkConnectionStatus();
+    const interval = setInterval(checkConnectionStatus, 2000);
+    return () => clearInterval(interval);
+  }, [requestId]);
+  return connectionStatus;
+};
 
 const MqttQueryUrl = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
-  const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  const { theme } = useTheme();
+  const connectionStatus = useMqttConnectionStatus(item.uid);
 
   const itemUid = item.uid;
   const collectionUid = collection.uid;
   const url = item.draft ? item.draft.request?.url : item.request?.url;
-
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const result = await getMqttConnectionStatus(itemUid);
-        if (result?.status) {
-          setConnectionStatus(result.status);
-        }
-      } catch (e) {
-        // ignore
-      }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [itemUid]);
 
   const handleUrlChange = useCallback((e) => {
     dispatch(requestUrlChanged({ itemUid, collectionUid, url: e.target.value }));
@@ -56,13 +67,17 @@ const MqttQueryUrl = ({ item, collection }) => {
     dispatch(saveRequest(itemUid, collectionUid));
   }, [dispatch, itemUid, collectionUid]);
 
-  const isConnected = connectionStatus === 'connected';
-  const isConnecting = connectionStatus === 'connecting';
+  const isConnected = connectionStatus === CONNECTION_STATUS.CONNECTED;
+  const isConnecting = connectionStatus === CONNECTION_STATUS.CONNECTING;
 
-  const statusColor = isConnected ? '#2ecc71' : isConnecting ? '#f39c12' : '#95a5a6';
+  const statusColor = isConnected
+    ? theme.colors.text.green
+    : isConnecting
+      ? theme.colors.text.yellow
+      : theme.colors.text.subtext0;
 
   return (
-    <div className="flex items-center w-full gap-2">
+    <StyledWrapper className="flex items-center w-full gap-2">
       <div className="flex items-center gap-1.5">
         <div
           className="rounded-full"
@@ -75,7 +90,7 @@ const MqttQueryUrl = ({ item, collection }) => {
       </div>
 
       <input
-        className="flex-1 px-3 py-1.5 text-sm border rounded outline-none"
+        className="url-input flex-1 px-3 py-1.5 text-sm border rounded outline-none"
         type="text"
         value={url || ''}
         onChange={handleUrlChange}
@@ -84,17 +99,19 @@ const MqttQueryUrl = ({ item, collection }) => {
 
       {isConnected ? (
         <button
-          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-red-500 rounded hover:bg-red-600"
+          className="disconnect-btn flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded"
           onClick={handleDisconnect}
+          data-testid="mqtt-disconnect-button"
         >
           <IconPlugConnectedX size={16} />
           Disconnect
         </button>
       ) : (
         <button
-          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700"
+          className="connect-btn flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded"
           onClick={handleConnect}
           disabled={isConnecting}
+          data-testid="mqtt-connect-button"
         >
           <IconPlugConnected size={16} />
           {isConnecting ? 'Connecting...' : 'Connect'}
@@ -102,13 +119,14 @@ const MqttQueryUrl = ({ item, collection }) => {
       )}
 
       <button
-        className="px-3 py-1.5 text-sm border rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+        className="save-btn px-3 py-1.5 text-sm border rounded"
         onClick={handleSave}
         title="Save"
+        data-testid="mqtt-save-button"
       >
         Save
       </button>
-    </div>
+    </StyledWrapper>
   );
 };
 

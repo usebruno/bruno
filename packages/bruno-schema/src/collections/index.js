@@ -527,6 +527,7 @@ const mqttRequestSchema = Yup.object({
     password: Yup.string().nullable(),
     ssl: Yup.object({
       enabled: Yup.boolean().required(),
+      rejectUnauthorized: Yup.boolean().nullable(),
       caCert: Yup.string().nullable(),
       clientCert: Yup.string().nullable(),
       clientKey: Yup.string().nullable()

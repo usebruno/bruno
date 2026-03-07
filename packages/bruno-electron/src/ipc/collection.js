@@ -1177,7 +1177,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         // Recursive function to parse the collection items and create files/folders
         const parseCollectionItems = async (items = [], currentPath) => {
           await Promise.all(items.map(async (item) => {
-            if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
+            if (['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'mqtt-request'].includes(item.type)) {
               let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
               const content = await stringifyRequestViaWorker(item, { format });
               const filePath = path.join(currentPath, sanitizedFilename);

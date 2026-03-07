@@ -1,14 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import classnames from 'classnames';
-import { useDispatch, useSelector } from 'react-redux';
-import find from 'lodash/find';
+import { useSelector } from 'react-redux';
 import { IconArrowUpRight, IconArrowDownLeft, IconInfoCircle, IconExclamationCircle, IconChevronRight, IconChevronDown, IconTrash } from '@tabler/icons';
 import { Virtuoso } from 'react-virtuoso';
 import CodeEditor from 'components/CodeEditor/index';
 import { useTheme } from 'providers/Theme';
 import Placeholder from '../Placeholder';
 import ResponseClear from '../ResponseClear';
-import StyledWrapper from '../WsResponsePane/StyledWrapper';
+import StyledWrapper from './StyledWrapper';
 
 const parseContent = (content) => {
   if (typeof content === 'object') {
@@ -94,7 +93,7 @@ const MqttMessageItem = memo(({ message, isOpen, onToggle }) => {
             <TypeIcon type={message.type} />
           </span>
           {message.topic && (
-            <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 shrink-0 max-w-[200px] truncate" title={message.topic}>
+            <span className="topic-badge text-xs font-mono px-1.5 py-0.5 rounded shrink-0 max-w-[200px] truncate" title={message.topic}>
               {message.topic}
             </span>
           )}
@@ -135,7 +134,6 @@ const MqttMessageItem = memo(({ message, isOpen, onToggle }) => {
 });
 
 const MqttResponsePane = ({ item, collection }) => {
-  const dispatch = useDispatch();
   const response = item.response || {};
   const messages = Array.isArray(response.responses) ? response.responses : [];
   const [openMessages, setOpenMessages] = useState(new Set());
@@ -191,29 +189,29 @@ const MqttResponsePane = ({ item, collection }) => {
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium uppercase">Messages</span>
           {messages.length > 0 && (
-            <span className="text-xs text-gray-500">({messages.length})</span>
+            <span className="muted-text text-xs">({messages.length})</span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {response.statusText && (
             <span className={classnames('text-xs font-medium', {
-              'text-green-600': response.statusText === 'CONNECTED',
-              'text-red-500': response.statusText === 'ERROR' || response.statusText === 'DISCONNECTED',
-              'text-yellow-500': response.statusText === 'CONNECTING'
+              'status-connected': response.statusText === 'CONNECTED',
+              'status-error': response.statusText === 'ERROR' || response.statusText === 'DISCONNECTED',
+              'status-connecting': response.statusText === 'CONNECTING'
             })}
             >
               {response.statusText}
             </span>
           )}
           {response.duration !== undefined && (
-            <span className="text-xs text-gray-500">{(response.duration / 1000).toFixed(1)}s</span>
+            <span className="muted-text text-xs">{(response.duration / 1000).toFixed(1)}s</span>
           )}
           <ResponseClear item={item} collection={collection} />
         </div>
       </div>
       <section className="flex flex-col flex-grow px-4 h-0">
         {messages.length === 0 ? (
-          <div className="text-sm text-gray-500 text-center py-8">No messages yet. Connect to a broker and subscribe to topics.</div>
+          <div className="muted-text text-sm text-center py-8">No messages yet. Connect to a broker and subscribe to topics.</div>
         ) : (
           <Virtuoso
             ref={virtuosoRef}

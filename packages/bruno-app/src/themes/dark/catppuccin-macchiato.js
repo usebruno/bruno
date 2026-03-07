@@ -238,7 +238,8 @@ const catppuccinMacchiatoTheme = {
 
     grpc: colors.SKY,
     ws: colors.MAUVE,
-    gql: colors.PINK
+    gql: colors.PINK,
+    mqtt: colors.TEAL
   },
 
   requestTabPanel: {

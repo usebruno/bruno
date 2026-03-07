@@ -1,7 +1,8 @@
 import React, { useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
-import get from 'lodash/get';
+import FilePickerEditor from 'components/FilePickerEditor';
+import StyledWrapper from './StyledWrapper';
 
 const MqttSettingsPane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -33,47 +34,10 @@ const MqttSettingsPane = ({ item, collection }) => {
   const isMqtt5 = settings?.mqttVersion === '5.0';
 
   return (
-    <div className="flex flex-col gap-6 pt-2 px-1 overflow-auto">
-      {/* Connection */}
-      <section>
-        <h3 className="text-xs font-semibold uppercase mb-3 text-gray-500">Connection</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium mb-1">Client ID</label>
-            <input
-              className="w-full px-2 py-1.5 text-sm border rounded outline-none"
-              type="text"
-              value={settings?.clientId || ''}
-              onChange={(e) => updateSettings({ clientId: e.target.value })}
-              placeholder="Auto-generated if empty"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium mb-1">Username</label>
-            <input
-              className="w-full px-2 py-1.5 text-sm border rounded outline-none"
-              type="text"
-              value={settings?.username || ''}
-              onChange={(e) => updateSettings({ username: e.target.value })}
-              placeholder="Optional"
-            />
-          </div>
-          <div className="col-span-2">
-            <label className="block text-xs font-medium mb-1">Password</label>
-            <input
-              className="w-full px-2 py-1.5 text-sm border rounded outline-none"
-              type="password"
-              value={settings?.password || ''}
-              onChange={(e) => updateSettings({ password: e.target.value })}
-              placeholder="Optional"
-            />
-          </div>
-        </div>
-      </section>
-
+    <StyledWrapper className="flex flex-col gap-6 pt-2 px-1 overflow-auto">
       {/* Protocol */}
       <section>
-        <h3 className="text-xs font-semibold uppercase mb-3 text-gray-500">Protocol</h3>
+        <h3 className="section-title text-xs font-semibold uppercase mb-3">Protocol</h3>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium mb-1">MQTT Version</label>
@@ -121,7 +85,7 @@ const MqttSettingsPane = ({ item, collection }) => {
 
       {/* TLS / Certificates */}
       <section>
-        <h3 className="text-xs font-semibold uppercase mb-3 text-gray-500">TLS / Certificates</h3>
+        <h3 className="section-title text-xs font-semibold uppercase mb-3">TLS / Certificates</h3>
         <div className="flex flex-col gap-3">
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
@@ -132,36 +96,43 @@ const MqttSettingsPane = ({ item, collection }) => {
             Enable SSL/TLS
           </label>
           {settings?.ssl?.enabled && (
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <label className="block text-xs font-medium mb-1">CA Certificate</label>
+            <div className="flex flex-col gap-3">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input
-                  className="w-full px-2 py-1.5 text-sm border rounded outline-none"
-                  type="text"
-                  value={settings?.ssl?.caCert || ''}
-                  onChange={(e) => updateSsl({ caCert: e.target.value })}
-                  placeholder="Path to CA certificate file"
+                  type="checkbox"
+                  checked={settings?.ssl?.rejectUnauthorized ?? true}
+                  onChange={(e) => updateSsl({ rejectUnauthorized: e.target.checked })}
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">Client Certificate</label>
-                <input
-                  className="w-full px-2 py-1.5 text-sm border rounded outline-none"
-                  type="text"
-                  value={settings?.ssl?.clientCert || ''}
-                  onChange={(e) => updateSsl({ clientCert: e.target.value })}
-                  placeholder="Path to client certificate file"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">Client Key</label>
-                <input
-                  className="w-full px-2 py-1.5 text-sm border rounded outline-none"
-                  type="text"
-                  value={settings?.ssl?.clientKey || ''}
-                  onChange={(e) => updateSsl({ clientKey: e.target.value })}
-                  placeholder="Path to client key file"
-                />
+                Validate server certificate
+              </label>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="block text-xs font-medium mb-1">CA Certificate</label>
+                  <FilePickerEditor
+                    value={settings?.ssl?.caCert || ''}
+                    onChange={(filePath) => updateSsl({ caCert: filePath })}
+                    collection={collection}
+                    isSingleFilePicker={true}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Client Certificate</label>
+                  <FilePickerEditor
+                    value={settings?.ssl?.clientCert || ''}
+                    onChange={(filePath) => updateSsl({ clientCert: filePath })}
+                    collection={collection}
+                    isSingleFilePicker={true}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Client Key</label>
+                  <FilePickerEditor
+                    value={settings?.ssl?.clientKey || ''}
+                    onChange={(filePath) => updateSsl({ clientKey: filePath })}
+                    collection={collection}
+                    isSingleFilePicker={true}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -171,7 +142,7 @@ const MqttSettingsPane = ({ item, collection }) => {
       {/* MQTT 5.0 Properties */}
       {isMqtt5 && (
         <section>
-          <h3 className="text-xs font-semibold uppercase mb-3 text-gray-500">MQTT 5.0 Properties</h3>
+          <h3 className="section-title text-xs font-semibold uppercase mb-3">MQTT 5.0 Properties</h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium mb-1">Session Expiry Interval</label>
@@ -220,7 +191,7 @@ const MqttSettingsPane = ({ item, collection }) => {
           </div>
         </section>
       )}
-    </div>
+    </StyledWrapper>
   );
 };
 

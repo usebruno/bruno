@@ -26,6 +26,7 @@ export interface MqttV5Properties {
 
 export interface MqttSslConfig {
   enabled: boolean;
+  rejectUnauthorized?: boolean;
   caCert?: string | null;
   clientCert?: string | null;
   clientKey?: string | null;

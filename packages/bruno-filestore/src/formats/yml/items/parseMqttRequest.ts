@@ -35,6 +35,7 @@ const parseMqttRequest = (ocRequest: any): BrunoItem => {
       password: mqtt?.settings?.password || null,
       ssl: {
         enabled: mqtt?.settings?.ssl?.enabled ?? false,
+        rejectUnauthorized: mqtt?.settings?.ssl?.rejectUnauthorized ?? true,
         caCert: mqtt?.settings?.ssl?.caCert || null,
         clientCert: mqtt?.settings?.ssl?.clientCert || null,
         clientKey: mqtt?.settings?.ssl?.clientKey || null

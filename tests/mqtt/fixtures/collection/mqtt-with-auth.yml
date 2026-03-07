@@ -1,0 +1,27 @@
+info:
+  name: mqtt-with-auth
+  type: mqtt
+  seq: 2
+mqtt:
+  url: mqtt://test.mosquitto.org:1883
+  publish:
+    topic: bruno/e2e/auth-test
+    qos: 0
+    retain: false
+    payload:
+      type: json
+      data: '{"auth": "test"}'
+  settings:
+    clientId: bruno-e2e-auth-test
+    mqttVersion: "5.0"
+    keepAlive: 60
+    cleanSession: true
+    connectTimeout: 30000
+    username: test-user
+    password: test-pass
+    ssl:
+      enabled: false
+      rejectUnauthorized: true
+      caCert: ""
+      clientCert: ""
+      clientKey: ""

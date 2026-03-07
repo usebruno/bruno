@@ -103,7 +103,7 @@ class MqttClient {
       if (settings.ssl?.clientKey) {
         mqttOptions.key = fs.readFileSync(settings.ssl.clientKey);
       }
-      mqttOptions.rejectUnauthorized = !!settings.ssl?.caCert;
+      mqttOptions.rejectUnauthorized = settings.ssl?.rejectUnauthorized ?? !!(settings.ssl?.caCert);
     }
 
     try {
@@ -117,6 +117,21 @@ class MqttClient {
       this.activeConnections.set(requestId, { collectionUid, client });
 
       this.#setupEventHandlers(client, requestId, collectionUid);
+
+      // Wait for the connection to be established before returning
+      // so callers (e.g. auto-subscribe) can rely on client.connected === true
+      await new Promise((resolve, reject) => {
+        const onConnect = () => {
+          client.removeListener('error', onError);
+          resolve();
+        };
+        const onError = (err) => {
+          client.removeListener('connect', onConnect);
+          reject(err);
+        };
+        client.once('connect', onConnect);
+        client.once('error', onError);
+      });
 
       return client;
     } catch (error) {

@@ -2,9 +2,9 @@ import React, { useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { publishMqtt } from 'utils/network/index';
-import get from 'lodash/get';
 import toast from 'react-hot-toast';
 import CodeEditor from 'components/CodeEditor';
+import StyledWrapper from './StyledWrapper';
 
 const MqttPublish = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -40,7 +40,7 @@ const MqttPublish = ({ item, collection }) => {
   const codeMirrorMode = payloadType === 'json' ? 'application/json' : payloadType === 'xml' ? 'application/xml' : 'text/plain';
 
   return (
-    <div className="flex flex-col h-full gap-3 pt-2">
+    <StyledWrapper className="flex flex-col h-full gap-3 pt-2">
       <div className="flex items-center gap-3 px-1">
         <div className="flex-1">
           <label className="block text-xs font-medium mb-1">Topic</label>
@@ -94,8 +94,9 @@ const MqttPublish = ({ item, collection }) => {
         <div className="flex-1" />
 
         <button
-          className="px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
+          className="publish-btn px-3 py-1 text-sm font-medium rounded"
           onClick={handlePublish}
+          data-testid="mqtt-publish-button"
         >
           Publish
         </button>
@@ -105,11 +106,11 @@ const MqttPublish = ({ item, collection }) => {
         <CodeEditor
           collection={collection}
           value={payloadContent}
-          onChange={(val) => updatePublish({ payload: { type: payloadType, content: val } })}
+          onEdit={(val) => updatePublish({ payload: { type: payloadType, content: val } })}
           mode={codeMirrorMode}
         />
       </div>
-    </div>
+    </StyledWrapper>
   );
 };
 
