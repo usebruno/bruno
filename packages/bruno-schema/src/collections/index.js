@@ -539,6 +539,10 @@ const mqttRequestSchema = Yup.object({
       topicAliasMaximum: Yup.number().integer().min(0).nullable(),
       userProperties: Yup.array().of(keyValueSchema).nullable()
     }).noUnknown(true).strict().nullable()
+      .when('mqttVersion', {
+        is: '5.0',
+        otherwise: (schema) => schema.transform(() => null).nullable()
+      })
   }).noUnknown(true).strict().required(),
   script: Yup.object({
     req: Yup.string().nullable(),

@@ -49,6 +49,10 @@ class MqttClient {
 
     const parsedUrl = getParsedMqttUrlObject(url);
 
+    if (!parsedUrl.fullUrl) {
+      throw new Error('Invalid MQTT broker URL');
+    }
+
     const mqttOptions = {
       clientId: settings.clientId || `bruno-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
       protocolVersion: settings.mqttVersion === '5.0' ? 5 : 4,
@@ -105,18 +109,19 @@ class MqttClient {
       if (settings.ssl?.clientKey) {
         mqttOptions.key = fs.readFileSync(settings.ssl.clientKey);
       }
-      mqttOptions.rejectUnauthorized = settings.ssl?.rejectUnauthorized ?? !!(settings.ssl?.caCert);
+      if (typeof settings.ssl?.rejectUnauthorized === 'boolean') {
+        mqttOptions.rejectUnauthorized = settings.ssl.rejectUnauthorized;
+      }
     }
 
+    let client;
     try {
       this.eventCallback('main:mqtt:connecting', requestId, collectionUid, {
         timestamp: Date.now(),
         seq: seq.next(requestId, collectionUid)
       });
 
-      const client = mqtt.connect(parsedUrl.fullUrl, mqttOptions);
-
-      this.activeConnections.set(requestId, { collectionUid, client });
+      client = mqtt.connect(parsedUrl.fullUrl, mqttOptions);
 
       this.#setupEventHandlers(client, requestId, collectionUid);
 
@@ -135,8 +140,14 @@ class MqttClient {
         client.once('error', onError);
       });
 
+      this.activeConnections.set(requestId, { collectionUid, client });
+
       return client;
     } catch (error) {
+      if (client) {
+        client.removeAllListeners();
+        client.end(true);
+      }
       console.error('Error creating MQTT connection:', error);
       this.eventCallback('main:mqtt:error', requestId, collectionUid, {
         error: error.message,
@@ -239,8 +250,6 @@ class MqttClient {
     const connectionMeta = this.activeConnections.get(requestId);
     if (connectionMeta?.client) {
       connectionMeta.client.end(true);
-      this.activeConnections.delete(requestId);
-      seq.clean(requestId);
     }
   }
 
@@ -274,11 +283,9 @@ class MqttClient {
    * Close all connections for a collection
    */
   closeForCollection(collectionUid) {
-    for (const [requestId, meta] of this.activeConnections) {
+    for (const [, meta] of this.activeConnections) {
       if (meta.collectionUid === collectionUid) {
         meta.client.end(true);
-        this.activeConnections.delete(requestId);
-        seq.clean(requestId);
       }
     }
   }
@@ -294,15 +301,23 @@ class MqttClient {
 
     client.on('message', (topic, payload, packet) => {
       let message;
+      let binary = false;
       try {
         message = JSON.parse(payload.toString());
       } catch {
-        message = payload.toString();
+        const decoded = payload.toString('utf-8');
+        if (Buffer.from(decoded, 'utf-8').equals(payload)) {
+          message = decoded;
+        } else {
+          message = payload.toString('base64');
+          binary = true;
+        }
       }
 
       this.eventCallback('main:mqtt:message', requestId, collectionUid, {
         topic,
         payload: message,
+        binary,
         qos: packet.qos,
         retain: packet.retain,
         direction: 'incoming',

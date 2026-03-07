@@ -29,7 +29,7 @@ const MqttSubscriptions = ({ item, collection }) => {
   const removeSubscription = useCallback((index) => {
     const sub = subscriptions[index];
     if (sub.enabled && sub.topic) {
-      unsubscribeMqtt(item.uid, collection.uid, sub.topic).catch(() => {});
+      unsubscribeMqtt(item.uid, collection.uid, sub.topic).catch((err) => console.warn('Failed to unsubscribe during removal:', err?.message));
     }
     const newSubs = subscriptions.filter((_, i) => i !== index);
     updateSubscriptions(newSubs);
