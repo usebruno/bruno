@@ -21,6 +21,7 @@ const {
   DEFAULT_COLLECTION_FORMAT
 } = require('@usebruno/filestore');
 const { dotenvToJson } = require('@usebruno/lang');
+const { utils } = require('@usebruno/common');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
@@ -671,22 +672,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       const dotEnvPath = path.join(collectionPathname, filename);
-
-      // Convert variables array to .env format
-      const content = variables
-        .filter((v) => v.name && v.name.trim() !== '')
-        .map((v) => {
-          const value = v.value || '';
-          // If value contains newlines or special characters, wrap in quotes
-          if (value.includes('\n') || value.includes('"') || value.includes('\'') || value.includes('\\')) {
-            // Escape backslashes first, then double quotes
-            const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-            return `${v.name}="${escapedValue}"`;
-          }
-          return `${v.name}=${value}`;
-        })
-        .join('\n');
-
+      const content = utils.jsonToDotenv(variables);
       await writeFile(dotEnvPath, content);
 
       return { success: true };
