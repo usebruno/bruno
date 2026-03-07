@@ -533,10 +533,10 @@ const mqttRequestSchema = Yup.object({
       clientKey: Yup.string().nullable()
     }).noUnknown(true).strict().required(),
     v5Properties: Yup.object({
-      sessionExpiryInterval: Yup.number().nullable(),
-      receiveMaximum: Yup.number().nullable(),
-      maximumPacketSize: Yup.number().nullable(),
-      topicAliasMaximum: Yup.number().nullable(),
+      sessionExpiryInterval: Yup.number().integer().min(0).nullable(),
+      receiveMaximum: Yup.number().integer().min(1).nullable(),
+      maximumPacketSize: Yup.number().integer().min(1).nullable(),
+      topicAliasMaximum: Yup.number().integer().min(0).nullable(),
       userProperties: Yup.array().of(keyValueSchema).nullable()
     }).noUnknown(true).strict().nullable()
   }).noUnknown(true).strict().required(),

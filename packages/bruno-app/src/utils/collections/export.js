@@ -57,6 +57,10 @@ export const transformItem = (items = []) => {
       if (item.type === 'ws-request') {
         item.type = 'ws';
       }
+
+      if (item.type === 'mqtt-request') {
+        item.type = 'mqtt';
+      }
     }
 
     each(get(item, 'examples'), (example) => {
@@ -68,6 +72,8 @@ export const transformItem = (items = []) => {
         example.type = 'grpc';
       } else if (example.type === 'ws-request') {
         example.type = 'ws';
+      } else if (example.type === 'mqtt-request') {
+        example.type = 'mqtt';
       }
     });
 

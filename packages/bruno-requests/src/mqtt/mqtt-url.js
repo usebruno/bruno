@@ -7,11 +7,12 @@ export const getParsedMqttUrlObject = (url) => {
   const addProtocolIfMissing = (str) => {
     if (str.includes('://')) return str;
 
-    if (str.includes('localhost') || str.includes('127.0.0.1')) {
-      return `mqtt://${str}`;
+    // Use mqtts:// only when port 8883 is explicitly specified
+    if (/:8883(\/|$)/.test(str)) {
+      return `mqtts://${str}`;
     }
 
-    return `mqtts://${str}`;
+    return `mqtt://${str}`;
   };
 
   if (!url) return { host: '', port: 1883, fullUrl: '' };

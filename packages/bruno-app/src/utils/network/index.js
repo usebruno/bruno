@@ -353,8 +353,9 @@ export const connectMqtt = async (item, collection, environment, runtimeVariable
 
 export const publishMqtt = async (item, collection, environment, runtimeVariables) => {
   const { ipcRenderer } = window;
+  const request = item.draft ? item.draft : item;
   return ipcRenderer.invoke('renderer:mqtt:publish', {
-    item,
+    item: request,
     collection,
     environment,
     runtimeVariables

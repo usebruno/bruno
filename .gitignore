@@ -59,7 +59,7 @@ bruno.iml
 CLAUDE.md
 AGENTS.md
 *.plan.md
-openspec/
+/openspec/
 
 # packages dist
 packages/bruno-filestore/dist

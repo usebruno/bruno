@@ -101,7 +101,7 @@ const MqttSubscriptions = ({ item, collection }) => {
           <select
             className="px-2 py-1 text-sm border rounded outline-none"
             value={sub.qos}
-            onChange={(e) => updateSubscription(index, { qos: parseInt(e.target.value) })}
+            onChange={(e) => updateSubscription(index, { qos: parseInt(e.target.value, 10) })}
             disabled={sub.enabled}
           >
             <option value={0}>QoS 0</option>

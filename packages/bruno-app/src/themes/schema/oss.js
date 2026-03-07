@@ -331,7 +331,7 @@ export const ossSchema = {
         gql: { type: 'string' },
         mqtt: { type: 'string' }
       },
-      required: ['methods', 'grpc', 'ws', 'gql', 'mqtt'],
+      required: ['methods', 'grpc', 'ws', 'gql'],
       additionalProperties: false
     },
 

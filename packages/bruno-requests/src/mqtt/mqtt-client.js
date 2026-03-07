@@ -15,8 +15,10 @@ const createSequencer = () => {
     if (requestId in seq) {
       if (collectionId) {
         delete seq[requestId][collectionId];
-      }
-      if (!Object.keys(seq[requestId]).length) {
+        if (!Object.keys(seq[requestId]).length) {
+          delete seq[requestId];
+        }
+      } else {
         delete seq[requestId];
       }
     }

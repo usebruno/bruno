@@ -9,8 +9,6 @@ const {
   mergeVars
 } = require('../../utils/collection');
 const { getProcessEnvVars } = require('../../store/process-env');
-const { interpolateString } = require('./interpolate-string');
-
 const prepareMqttRequest = (item, collection, environment, runtimeVariables) => {
   const request = item.draft ? item.draft.request : item.request;
   const brunoConfig = collection.draft?.brunoConfig

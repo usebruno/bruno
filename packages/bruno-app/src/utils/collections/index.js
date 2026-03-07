@@ -312,7 +312,22 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         examples: copyExamples(si.examples || [])
       };
 
-      if (si.request) {
+      if (si.request && si.type === 'mqtt-request') {
+        di.request = {
+          url: si.request.url,
+          body: { mode: 'none', content: '' },
+          headers: [],
+          params: { queryParams: [], pathParams: [] },
+          publish: si.request.publish,
+          subscriptions: si.request.subscriptions,
+          settings: si.request.settings,
+          script: si.request.script,
+          vars: si.request.vars,
+          assertions: si.request.assertions,
+          tests: si.request.tests,
+          docs: si.request.docs
+        };
+      } else if (si.request) {
         di.request = {
           url: si.request.url,
           method: si.request.method,
