@@ -1,8 +1,6 @@
 import React, { useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
-import { publishMqtt } from 'utils/network/index';
-import toast from 'react-hot-toast';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 
@@ -26,16 +24,6 @@ const MqttPublish = ({ item, collection }) => {
       contentType: 'mqtt-publish'
     }));
   }, [dispatch, item, collection.uid]);
-
-  const handlePublish = useCallback(async () => {
-    try {
-      const environment = collection.environments?.find((e) => e.uid === collection.activeEnvironmentUid);
-      const runtimeVariables = collection.runtimeVariables || {};
-      await publishMqtt(item, collection, environment, runtimeVariables);
-    } catch (err) {
-      toast.error(err.message || 'Failed to publish');
-    }
-  }, [item, collection]);
 
   const codeMirrorMode = payloadType === 'json' ? 'application/json' : payloadType === 'xml' ? 'application/xml' : 'text/plain';
 
@@ -92,14 +80,6 @@ const MqttPublish = ({ item, collection }) => {
         </select>
 
         <div className="flex-1" />
-
-        <button
-          className="publish-btn px-3 py-1 text-sm font-medium rounded"
-          onClick={handlePublish}
-          data-testid="mqtt-publish-button"
-        >
-          Publish
-        </button>
       </div>
 
       <div className="flex-1 px-1 overflow-hidden">
