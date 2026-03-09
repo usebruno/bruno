@@ -55,6 +55,7 @@ const EnvironmentVariablesTable = ({
   const { storedTheme, theme } = useTheme();
   const valueMatchBg = theme?.colors?.accent ? `${theme.colors.accent}1a` : undefined;
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
