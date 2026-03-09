@@ -6,12 +6,14 @@ import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
 import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
+import { hasInvalidVariableNames } from 'utils/common/regex';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
+import toast from 'react-hot-toast';
 
 const SaveRequestsModal = ({ onClose }) => {
   const MAX_UNSAVED_ITEMS_TO_SHOW = 5;
@@ -118,6 +120,13 @@ const SaveRequestsModal = ({ onClose }) => {
       const requestDrafts = allDrafts.filter((d) => isItemARequest(d));
       const collectionEnvironmentDrafts = allDrafts.filter((d) => d.type === 'collection-environment');
       const globalEnvironmentDrafts = allDrafts.filter((d) => d.type === 'global-environment');
+
+      const allEnvironmentDrafts = [...collectionEnvironmentDrafts, ...globalEnvironmentDrafts];
+      const hasInvalidEnvDraft = allEnvironmentDrafts.some((draft) => hasInvalidVariableNames(draft.variables));
+      if (hasInvalidEnvDraft) {
+        toast.error('Please fix validation errors before saving');
+        return;
+      }
 
       // Save all collection drafts
       if (collectionDrafts.length > 0) {
