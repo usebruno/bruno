@@ -12,6 +12,32 @@ const hasLength = (str) => {
   return str.length > 0;
 };
 
+const ODATA_PATH_PARAM_REGEX = /(^|[=(,'"`]):([A-Za-z_]\w*)\b/g;
+
+const decodeODataSegment = (segment) => {
+  try {
+    return decodeURIComponent(segment);
+  } catch (error) {
+    return segment;
+  }
+};
+
+const getODataPathParamNames = (segment) => {
+  const names = [];
+  const decodedSegment = decodeODataSegment(segment);
+  let match;
+
+  while ((match = ODATA_PATH_PARAM_REGEX.exec(decodedSegment))) {
+    if (match[2]) {
+      names.push(match[2]);
+    }
+  }
+
+  ODATA_PATH_PARAM_REGEX.lastIndex = 0;
+
+  return names;
+};
+
 export const parsePathParams = (url) => {
   let uri = url.slice();
 
@@ -49,17 +75,12 @@ export const parsePathParams = (url) => {
     // 1. EntitySet('key') or EntitySet(key)
     // 2. EntitySet(Key1=value1,Key2=value2)
     // 3. Function(param=value)
-    if (!/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
+    if (!/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(decodeODataSegment(segment))) {
       return;
     }
 
-    const paramRegex = /[:](\w+)/g;
-    let match;
-    while ((match = paramRegex.exec(segment))) {
-      if (!match[1]) continue;
-
-      let name = match[1].replace(/[')"`]+$/, '');
-      name = name.replace(/^[('"`]+/, '');
+    const paramNames = getODataPathParamNames(segment);
+    for (const name of paramNames) {
       if (name && !foundParams.has(name)) {
         foundParams.add(name);
       }
@@ -115,23 +136,18 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
         // 1. EntitySet('key') or EntitySet(key)
         // 2. EntitySet(Key1=value1,Key2=value2)
         // 3. Function(param=value)
-        if (!/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
+        if (!/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(decodeODataSegment(segment))) {
           return segment;
         }
 
-        const regex = /[:](\w+)/g;
-        let match;
         let result = segment;
-        while ((match = regex.exec(segment))) {
-          if (!match[1]) continue;
-
-          let name = match[1].replace(/[')"`]+$/, '');
-          name = name.replace(/^[('"`]+/, '');
+        const paramNames = getODataPathParamNames(segment);
+        for (const name of paramNames) {
           if (!name) continue;
 
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
           if (pathParam) {
-            result = result.replace(':' + match[1], pathParam.value);
+            result = result.replace(`:${name}`, pathParam.value);
           }
         }
         return result;
