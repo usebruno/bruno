@@ -1,6 +1,7 @@
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
+const crypto = require('crypto');
 const qs = require('qs');
 const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
@@ -69,6 +70,111 @@ const getJsSandboxRuntime = (collection) => {
 const hasStreamHeaders = (headers) => {
   const headerSplit = (headers.get('content-type') ?? '').split(';').map((d) => d.trim());
   return headerSplit.indexOf('text/event-stream') > -1;
+};
+
+const getAuthorizationHeaderKey = (headers = {}) => {
+  return Object.keys(headers).find((headerName) => headerName.toLowerCase() === 'authorization');
+};
+
+const setAuthorizationHeader = ({ request, headerValue, sourceLabel }) => {
+  const existingHeaderKey = getAuthorizationHeaderKey(request.headers || {});
+  if (existingHeaderKey) {
+    throw new Error(
+      `Multiple Authorization sources detected (${sourceLabel} and existing header). Remove duplicate Authorization configuration.`
+    );
+  }
+
+  request.headers['Authorization'] = headerValue;
+};
+
+const computeTokenHash = (token = '') => {
+  if (!token || typeof token !== 'string') {
+    return null;
+  }
+
+  return crypto.createHash('sha256').update(token).digest('hex');
+};
+
+const buildAuthDiagnostics = (request) => {
+  const authHeaderKey = getAuthorizationHeaderKey(request.headers || {});
+  const authHeaderPresent = Boolean(authHeaderKey);
+  const authHeaderValue = authHeaderPresent ? request.headers[authHeaderKey] : '';
+  const bearerMatch = typeof authHeaderValue === 'string' ? authHeaderValue.match(/^\s*Bearer\s+(.+)$/i) : null;
+  const tokenCandidate = bearerMatch?.[1] || request?.oauth2Credentials?.credentials?.access_token || request?.oauth2Credentials?.credentials?.id_token || '';
+
+  return {
+    tokenHash: computeTokenHash(tokenCandidate),
+    tokenSource: request?.oauth2Credentials?.tokenCacheSource || 'n/a',
+    cacheKeyFingerprint: request?.oauth2Credentials?.cacheKeyFingerprint || null,
+    authHeaderPresent
+  };
+};
+
+const TOKEN_EXPIRY_SKEW_MS = 30 * 1000;
+
+const decodeJwtPayload = (token = '') => {
+  if (!token || typeof token !== 'string') {
+    return null;
+  }
+
+  const tokenParts = token.split('.');
+  if (tokenParts.length < 2) {
+    return null;
+  }
+
+  try {
+    const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const paddedPayload = base64Payload.padEnd(base64Payload.length + ((4 - (base64Payload.length % 4)) % 4), '=');
+    const decodedPayload = Buffer.from(paddedPayload, 'base64').toString('utf8');
+    return safeParseJSON(decodedPayload);
+  } catch (error) {
+    return null;
+  }
+};
+
+const isOauthCredentialsExpired = (credentials = {}) => {
+  const tokenCandidate = credentials?.access_token || credentials?.id_token;
+  if (!tokenCandidate) {
+    return true;
+  }
+
+  if (credentials?.expires_in && credentials?.created_at) {
+    const expiryTime = credentials.created_at + credentials.expires_in * 1000;
+    return Date.now() >= (expiryTime - TOKEN_EXPIRY_SKEW_MS);
+  }
+
+  const jwtPayload = decodeJwtPayload(tokenCandidate);
+  if (jwtPayload?.exp && Number.isFinite(jwtPayload.exp)) {
+    return Date.now() >= (jwtPayload.exp * 1000 - TOKEN_EXPIRY_SKEW_MS);
+  }
+
+  return false;
+};
+
+const getReusableInMemoryOauthState = ({ request, requestCopy }) => {
+  const inMemory = request?.oauth2Credentials;
+  const currentCredentials = inMemory?.credentials;
+  if (!currentCredentials || isOauthCredentialsExpired(currentCredentials)) {
+    return null;
+  }
+
+  const requestedCredentialsId = requestCopy?.oauth2?.credentialsId;
+  if (requestedCredentialsId && inMemory?.credentialsId && requestedCredentialsId !== inMemory.credentialsId) {
+    return null;
+  }
+
+  return {
+    credentials: currentCredentials,
+    url: inMemory?.url || requestCopy?.oauth2?.accessTokenUrl,
+    credentialsId: inMemory?.credentialsId || requestedCredentialsId,
+    debugInfo: inMemory?.debugInfo,
+    cacheKeyFingerprint: inMemory?.cacheKeyFingerprint,
+    tokenCacheSource: 'in-memory',
+    authDiagnostics: {
+      ...buildAuthDiagnostics(request),
+      tokenSource: 'in-memory'
+    }
+  };
 };
 
 const promisifyStream = async (stream, abortController, closeOnFirst) => {
@@ -215,16 +321,18 @@ const configureRequest = async (
       });
     }
 
-    let credentials, credentialsId, oauth2Url, debugInfo;
+    let credentials, credentialsId, oauth2Url, debugInfo, cacheKeyFingerprint, tokenCacheSource, authDiagnostics;
     switch (grantType) {
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
-        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo, cacheKeyFingerprint, tokenCacheSource, authDiagnostics } = getReusableInMemoryOauthState({ request, requestCopy }) || await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, cacheKeyFingerprint, tokenCacheSource, authDiagnostics, folderUid: request.oauth2Credentials?.folderUid };
         {
           const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+({ credentials, url: oauth2Url, credentialsId, debugInfo, cacheKeyFingerprint, tokenCacheSource, authDiagnostics } = getReusableInMemoryOauthState({ request, requestCopy }) || await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
+  const headerValue = tokenHeaderPrefix ? `${tokenHeaderPrefix} ${tokenValue}` : `${tokenValue}`;
+            setAuthorizationHeader({ request, headerValue, sourceLabel: 'oauth2 auth mode' });
           } else if (tokenValue) {
             try {
               const url = new URL(request.url);
@@ -241,7 +349,9 @@ const configureRequest = async (
         {
           const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+({ credentials, url: oauth2Url, credentialsId, debugInfo, cacheKeyFingerprint, tokenCacheSource, authDiagnostics } = getReusableInMemoryOauthState({ request, requestCopy }) || await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
+  const headerValue = tokenHeaderPrefix ? `${tokenHeaderPrefix} ${tokenValue}` : `${tokenValue}`;
+            setAuthorizationHeader({ request, headerValue, sourceLabel: 'oauth2 auth mode' });
           } else if (tokenValue) {
             try {
               const url = new URL(request.url);
@@ -258,7 +368,9 @@ const configureRequest = async (
         {
           const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+({ credentials, url: oauth2Url, credentialsId, debugInfo, cacheKeyFingerprint, tokenCacheSource, authDiagnostics } = getReusableInMemoryOauthState({ request, requestCopy }) || await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
+  const headerValue = tokenHeaderPrefix ? `${tokenHeaderPrefix} ${tokenValue}` : `${tokenValue}`;
+            setAuthorizationHeader({ request, headerValue, sourceLabel: 'oauth2 auth mode' });
           } else if (tokenValue) {
             try {
               const url = new URL(request.url);
@@ -270,12 +382,14 @@ const configureRequest = async (
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
-        ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
-        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
+        ({ credentials, url: oauth2Url, credentialsId, debugInfo, cacheKeyFingerprint, tokenCacheSource, authDiagnostics } = getReusableInMemoryOauthState({ request, requestCopy }) || await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, cacheKeyFingerprint, tokenCacheSource, authDiagnostics, folderUid: request.oauth2Credentials?.folderUid };
         {
           const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+({ credentials, url: oauth2Url, credentialsId, debugInfo, cacheKeyFingerprint, tokenCacheSource, authDiagnostics } = getReusableInMemoryOauthState({ request, requestCopy }) || await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
+  const headerValue = tokenHeaderPrefix ? `${tokenHeaderPrefix} ${tokenValue}` : `${tokenValue}`;
+            setAuthorizationHeader({ request, headerValue, sourceLabel: 'oauth2 auth mode' });
           } else if (tokenValue) {
             try {
               const url = new URL(request.url);
@@ -849,6 +963,7 @@ const registerNetworkIpc = (mainWindow) => {
         headers: headersSent,
         data: requestData,
         dataBuffer: requestDataBuffer,
+        authDiagnostics: buildAuthDiagnostics(request),
         timestamp: Date.now()
       };
 
@@ -868,7 +983,8 @@ const registerNetworkIpc = (mainWindow) => {
           collectionUid,
           credentialsId: request?.oauth2Credentials?.credentialsId,
           ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
-          debugInfo: request?.oauth2Credentials?.debugInfo
+ debugInfo: request?.oauth2Credentials?.debugInfo,
+          authDiagnostics: request?.oauth2Credentials?.authDiagnostics || buildAuthDiagnostics(request)
         });
 
         const { credentialsId, credentials } = request.oauth2Credentials;
@@ -1547,7 +1663,8 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionUid,
                 credentialsId: request?.oauth2Credentials?.credentialsId,
                 ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
-                debugInfo: request?.oauth2Credentials?.debugInfo
+       debugInfo: request?.oauth2Credentials?.debugInfo,
+          authDiagnostics: request?.oauth2Credentials?.authDiagnostics || buildAuthDiagnostics(request)
               });
 
               const { credentialsId, credentials } = request.oauth2Credentials;

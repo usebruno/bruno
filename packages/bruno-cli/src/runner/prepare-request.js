@@ -12,6 +12,20 @@ const { getFormattedOauth2Credentials } = require('../utils/oauth2');
 
 const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
+const getAuthorizationHeaderKey = (headers = {}) => {
+  return Object.keys(headers).find((headerName) => headerName.toLowerCase() === 'authorization');
+};
+
+const ensureNoAuthorizationConflict = (headers, sourceLabel) => {
+  const existingAuthorizationHeader = getAuthorizationHeaderKey(headers);
+  if (existingAuthorizationHeader) {
+    throw new Error(
+      `Multiple Authorization sources detected (${sourceLabel} and existing header). Remove duplicate Authorization configuration.`
+    );
+  }
+};
+
+
 const prepareRequest = async (item = {}, collection = {}) => {
   const request = item?.request;
   const brunoConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig', {}) : get(collection, 'brunoConfig', {});

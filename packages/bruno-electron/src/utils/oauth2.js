@@ -9,14 +9,103 @@ const { preferencesUtil } = require('../store/preferences');
 const qs = require('qs');
 
 const BRUNO_OAUTH2_CALLBACK_URL = 'https://oauth.usebruno.com/callback';
+const TOKEN_EXPIRY_SKEW_MS = 30 * 1000;
 
 const oauth2Store = new Oauth2Store();
 
-const persistOauth2Credentials = ({ collectionUid, url, credentials, credentialsId }) => {
-  if (credentials?.error || !credentials?.access_token) return;
+const getTokenHash = (token = '') => {
+  if (!token || typeof token !== 'string') {
+    return null;
+  }
+
+  return crypto.createHash('sha256').update(token).digest('hex');
+};
+
+const decodeJwtPayload = (token = '') => {
+  if (!token || typeof token !== 'string') {
+    return null;
+  }
+
+  const tokenParts = token.split('.');
+  if (tokenParts.length < 2) {
+    return null;
+  }
+
+  try {
+    const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const paddedPayload = base64Payload.padEnd(base64Payload.length + ((4 - (base64Payload.length % 4)) % 4), '=');
+    const decodedPayload = Buffer.from(paddedPayload, 'base64').toString('utf8');
+    return safeParseJSON(decodedPayload);
+  } catch (error) {
+    return null;
+  }
+};
+
+const getAdditionalParameterValue = (additionalParameters = {}, parameterName = '') => {
+  const normalizedName = (parameterName || '').toLowerCase();
+  if (!normalizedName) {
+    return '';
+  }
+
+  const allParams = [
+    ...(additionalParameters.authorization || []),
+    ...(additionalParameters.token || []),
+    ...(additionalParameters.refresh || [])
+  ];
+
+  const matched = allParams.find((param) =>
+    param?.enabled !== false
+    && typeof param?.name === 'string'
+    && param.name.toLowerCase() === normalizedName
+  );
+
+  return matched?.value || '';
+};
+
+const buildOauthCacheKeyFingerprint = ({ collectionUid, oAuth = {} }) => {
+  const additionalParameters = oAuth.additionalParameters || {};
+  const normalizeAdditionalParams = (params = []) => {
+    if (!Array.isArray(params)) {
+      return [];
+    }
+
+    return params
+      .filter((param) => param?.enabled !== false)
+      .map((param) => ({
+        name: param?.name || '',
+        value: param?.value || '',
+        sendIn: param?.sendIn || ''
+      }))
+      .sort((a, b) => `${a.name}:${a.sendIn}`.localeCompare(`${b.name}:${b.sendIn}`));
+  };
+
+  const fingerprintSource = {
+    workspaceId: collectionUid,
+    credentialsId: oAuth.credentialsId || '',
+    clientId: oAuth.clientId || '',
+    scope: oAuth.scope || '',
+    tokenEndpoint: oAuth.accessTokenUrl || ''
+  };
+
+  return crypto.createHash('sha256').update(safeStringifyJSON(fingerprintSource)).digest('hex');
+};
+
+const buildAuthDiagnostics = ({ credentials, cacheKeyFingerprint, tokenSource }) => {
+  const tokenValue = credentials?.access_token || credentials?.id_token || '';
+  return {
+    tokenHash: getTokenHash(tokenValue),
+    tokenSource,
+    cacheKeyFingerprint,
+    authHeaderPresent: false
+  };
+};
+
+const persistOauth2Credentials = ({ collectionUid, url, credentials, credentialsId, cacheKeyFingerprint }) => {
+  if (credentials?.error || (!credentials?.access_token && !credentials?.id_token)) return;
   const enhancedCredentials = {
     ...credentials,
-    created_at: Date.now()
+    created_at: Date.now(),
+    cache_key_fingerprint: cacheKeyFingerprint
   };
   oauth2Store.updateCredentialsForCollection({ collectionUid, url, credentials: enhancedCredentials, credentialsId });
 };
@@ -39,14 +128,25 @@ const getStoredOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
 };
 
 const isTokenExpired = (credentials) => {
-  if (!credentials?.access_token) {
+  const tokenCandidate = credentials?.access_token || credentials?.id_token;
+  if (!tokenCandidate) {
     return true;
   }
+
   if (!credentials?.expires_in || !credentials.created_at) {
+    const jwtPayload = decodeJwtPayload(tokenCandidate);
+    if (jwtPayload?.exp && Number.isFinite(jwtPayload.exp)) {
+      return Date.now() >= (jwtPayload.exp * 1000 - TOKEN_EXPIRY_SKEW_MS);
+    }
     return false;
   }
+
   const expiryTime = credentials.created_at + credentials.expires_in * 1000;
-  return Date.now() > expiryTime;
+  return Date.now() >= (expiryTime - TOKEN_EXPIRY_SKEW_MS);
+};
+
+const getStoredOauth2CredentialsForFingerprint = ({ collectionUid, url, credentialsId }) => {
+  return getStoredOauth2Credentials({ collectionUid, url, credentialsId });
 };
 
 const safeParseJSONBuffer = (data) => {
@@ -155,6 +255,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     autoFetchToken,
     additionalParameters
   } = oAuth;
+  const cacheKeyFingerprint = buildOauthCacheKeyFingerprint({ collectionUid, oAuth });
   const effectiveCallbackUrl = callbackUrl && callbackUrl.length ? callbackUrl : BRUNO_OAUTH2_CALLBACK_URL;
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
@@ -196,20 +297,20 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   }
 
   if (!forceFetch) {
-    const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+    const storedCredentials = getStoredOauth2CredentialsForFingerprint({ collectionUid, url, credentialsId, cacheKeyFingerprint });
 
     if (storedCredentials) {
       // Token exists
       if (!isTokenExpired(storedCredentials)) {
         // Token is valid, use it
-        return { collectionUid, url, credentials: storedCredentials, credentialsId };
+        return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
       } else {
         // Token is expired
         if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
             const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig: certsAndProxyConfigForRefreshUrl });
-            return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
+            return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'refreshed', authDiagnostics: buildAuthDiagnostics({ credentials: refreshedCredentialsData.credentials, cacheKeyFingerprint, tokenSource: 'refreshed' }) };
           } catch (error) {
             // Refresh failed
             clearOauth2Credentials({ collectionUid, url, credentialsId });
@@ -217,7 +318,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
               // Proceed to fetch new token
             } else {
               // Proceed with expired token
-              return { collectionUid, url, credentials: storedCredentials, credentialsId };
+              return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
             }
           }
         } else if (autoRefreshToken && !storedCredentials.refresh_token) {
@@ -227,14 +328,14 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
             clearOauth2Credentials({ collectionUid, url, credentialsId });
           } else {
             // Proceed with expired token
-            return { collectionUid, url, credentials: storedCredentials, credentialsId };
+            return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
           }
         } else if (!autoRefreshToken && autoFetchToken) {
           // Proceed to fetch new token
           clearOauth2Credentials({ collectionUid, url, credentialsId });
         } else {
           // Proceed with expired token
-          return { collectionUid, url, credentials: storedCredentials, credentialsId };
+          return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
         }
       }
     } else {
@@ -243,7 +344,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
         // Proceed to fetch new token
       } else {
         // Proceed without token
-        return { collectionUid, url, credentials: storedCredentials, credentialsId };
+        return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
       }
     }
   }
@@ -295,8 +396,8 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     }
 
     debugInfo.data.push(requestDetails);
-    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
-    return { collectionUid, url, credentials, credentialsId, debugInfo };
+    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId, cacheKeyFingerprint });
+    return { collectionUid, url, credentials, credentialsId, debugInfo, cacheKeyFingerprint, tokenCacheSource: 'refreshed', authDiagnostics: buildAuthDiagnostics({ credentials, cacheKeyFingerprint, tokenSource: 'refreshed' }) };
   } catch (error) {
     return Promise.reject(error);
   }
@@ -383,6 +484,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     autoFetchToken,
     additionalParameters
   } = oAuth;
+  const cacheKeyFingerprint = buildOauthCacheKeyFingerprint({ collectionUid, oAuth });
 
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
@@ -406,27 +508,27 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   }
 
   if (!forceFetch) {
-    const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+    const storedCredentials = getStoredOauth2CredentialsForFingerprint({ collectionUid, url, credentialsId, cacheKeyFingerprint });
 
     if (storedCredentials) {
       // Token exists
       if (!isTokenExpired(storedCredentials)) {
         // Token is valid, use it
-        return { collectionUid, url, credentials: storedCredentials, credentialsId };
+        return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
       } else {
         // Token is expired
         if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
             const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig: certsAndProxyConfigForRefreshUrl });
-            return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
+            return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'refreshed', authDiagnostics: buildAuthDiagnostics({ credentials: refreshedCredentialsData.credentials, cacheKeyFingerprint, tokenSource: 'refreshed' }) };
           } catch (error) {
             clearOauth2Credentials({ collectionUid, url, credentialsId });
             if (autoFetchToken) {
               // Proceed to fetch new token
             } else {
               // Proceed with expired token
-              return { collectionUid, url, credentials: storedCredentials, credentialsId };
+              return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
             }
           }
         } else if (autoRefreshToken && !storedCredentials.refresh_token) {
@@ -435,14 +537,14 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
             clearOauth2Credentials({ collectionUid, url, credentialsId });
           } else {
             // Proceed with expired token
-            return { collectionUid, url, credentials: storedCredentials, credentialsId };
+            return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
           }
         } else if (!autoRefreshToken && autoFetchToken) {
           // Proceed to fetch new token
           clearOauth2Credentials({ collectionUid, url, credentialsId });
         } else {
           // Proceed with expired token
-          return { collectionUid, url, credentials: storedCredentials, credentialsId };
+          return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
         }
       }
     } else {
@@ -451,7 +553,7 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
         // Proceed to fetch new token
       } else {
         // Proceed without token
-        return { collectionUid, url, credentials: storedCredentials, credentialsId };
+        return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
       }
     }
   }
@@ -489,8 +591,8 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   try {
     const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig: certsAndProxyConfigForTokenUrl });
     debugInfo.data.push(requestDetails);
-    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
-    return { collectionUid, url, credentials, credentialsId, debugInfo };
+    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId, cacheKeyFingerprint });
+    return { collectionUid, url, credentials, credentialsId, debugInfo, cacheKeyFingerprint, tokenCacheSource: 'refreshed', authDiagnostics: buildAuthDiagnostics({ credentials, cacheKeyFingerprint, tokenSource: 'refreshed' }) };
   } catch (error) {
     return Promise.reject(safeStringifyJSON(error?.response?.data));
   }
@@ -513,6 +615,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     autoFetchToken,
     additionalParameters
   } = oAuth;
+  const cacheKeyFingerprint = buildOauthCacheKeyFingerprint({ collectionUid, oAuth });
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
   // Validate required fields
@@ -553,27 +656,27 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   }
 
   if (!forceFetch) {
-    const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+    const storedCredentials = getStoredOauth2CredentialsForFingerprint({ collectionUid, url, credentialsId, cacheKeyFingerprint });
 
     if (storedCredentials) {
       // Token exists
       if (!isTokenExpired(storedCredentials)) {
         // Token is valid, use it
-        return { collectionUid, url, credentials: storedCredentials, credentialsId };
+        return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
       } else {
         // Token is expired
         if (autoRefreshToken && storedCredentials.refresh_token) {
           // Try to refresh token
           try {
             const refreshedCredentialsData = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig: certsAndProxyConfigForRefreshUrl });
-            return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId };
+            return { collectionUid, url, credentials: refreshedCredentialsData.credentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'refreshed', authDiagnostics: buildAuthDiagnostics({ credentials: refreshedCredentialsData.credentials, cacheKeyFingerprint, tokenSource: 'refreshed' }) };
           } catch (error) {
             clearOauth2Credentials({ collectionUid, url, credentialsId });
             if (autoFetchToken) {
               // Proceed to fetch new token
             } else {
               // Proceed with expired token
-              return { collectionUid, url, credentials: storedCredentials, credentialsId };
+              return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
             }
           }
         } else if (autoRefreshToken && !storedCredentials.refresh_token) {
@@ -583,14 +686,14 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
             clearOauth2Credentials({ collectionUid, url, credentialsId });
           } else {
             // Proceed with expired token
-            return { collectionUid, url, credentials: storedCredentials, credentialsId };
+            return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
           }
         } else if (!autoRefreshToken && autoFetchToken) {
           // Proceed to fetch new token
           clearOauth2Credentials({ collectionUid, url, credentialsId });
         } else {
           // Proceed with expired token
-          return { collectionUid, url, credentials: storedCredentials, credentialsId };
+          return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
         }
       }
     } else {
@@ -599,7 +702,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
         // Proceed to fetch new token
       } else {
         // Proceed without token
-        return { collectionUid, url, credentials: storedCredentials, credentialsId };
+        return { collectionUid, url, credentials: storedCredentials, credentialsId, cacheKeyFingerprint, tokenCacheSource: 'cache', authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' }) };
       }
     }
   }
@@ -639,8 +742,8 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   try {
     const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig: certsAndProxyConfigForTokenUrl });
     debugInfo.data.push(requestDetails);
-    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
-    return { collectionUid, url, credentials, credentialsId, debugInfo };
+    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId, cacheKeyFingerprint });
+    return { collectionUid, url, credentials, credentialsId, debugInfo, cacheKeyFingerprint, tokenCacheSource: 'refreshed', authDiagnostics: buildAuthDiagnostics({ credentials, cacheKeyFingerprint, tokenSource: 'refreshed' }) };
   } catch (error) {
     return Promise.reject(safeStringifyJSON(error?.response?.data));
   }
@@ -648,14 +751,25 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
 
 const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyConfig }) => {
   const oAuth = get(requestCopy, 'oauth2', {});
+  const cacheKeyFingerprint = buildOauthCacheKeyFingerprint({ collectionUid, oAuth });
   const { clientId, clientSecret, credentialsId, credentialsPlacement, additionalParameters } = oAuth;
-  const url = oAuth.refreshTokenUrl ? oAuth.refreshTokenUrl : oAuth.accessTokenUrl;
+  const refreshUrl = oAuth.refreshTokenUrl ? oAuth.refreshTokenUrl : oAuth.accessTokenUrl;
+  const accessTokenUrl = oAuth.accessTokenUrl;
 
-  const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+  // Credentials are typically stored under access token URL; fallback to refresh URL when needed.
+  const credentials
+    = getStoredOauth2CredentialsForFingerprint({ collectionUid, url: accessTokenUrl, credentialsId, cacheKeyFingerprint })
+      || getStoredOauth2CredentialsForFingerprint({ collectionUid, url: refreshUrl, credentialsId, cacheKeyFingerprint });
+
   if (!credentials?.refresh_token) {
-    clearOauth2Credentials({ collectionUid, url, credentialsId });
+    if (accessTokenUrl) {
+      clearOauth2Credentials({ collectionUid, url: accessTokenUrl, credentialsId });
+    }
+    if (refreshUrl && refreshUrl !== accessTokenUrl) {
+      clearOauth2Credentials({ collectionUid, url: refreshUrl, credentialsId });
+    }
     // Proceed without token
-    return { collectionUid, url, credentials: null, credentialsId };
+    return { collectionUid, url: refreshUrl, credentials: null, credentialsId };
   } else {
     const data = {
       grant_type: 'refresh_token',
@@ -677,7 +791,7 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       const secret = clientSecret ?? '';
       axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
     }
-    axiosRequestConfig.url = url;
+    axiosRequestConfig.url = refreshUrl;
     axiosRequestConfig.responseType = 'arraybuffer';
     if (additionalParameters?.refresh?.length) {
       applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.refresh);
@@ -688,15 +802,25 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig });
       debugInfo.data.push(requestDetails);
       if (!credentials || credentials?.error) {
-        clearOauth2Credentials({ collectionUid, url, credentialsId });
-        return { collectionUid, url, credentials: null, credentialsId, debugInfo };
+        if (accessTokenUrl) {
+          clearOauth2Credentials({ collectionUid, url: accessTokenUrl, credentialsId });
+        }
+        if (refreshUrl && refreshUrl !== accessTokenUrl) {
+          clearOauth2Credentials({ collectionUid, url: refreshUrl, credentialsId });
+        }
+        return { collectionUid, url: refreshUrl, credentials: null, credentialsId, debugInfo };
       }
-      credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
-      return { collectionUid, url, credentials, credentialsId, debugInfo };
+      credentials && persistOauth2Credentials({ collectionUid, url: accessTokenUrl || refreshUrl, credentials, credentialsId, cacheKeyFingerprint });
+      return { collectionUid, url: refreshUrl, credentials, credentialsId, debugInfo, cacheKeyFingerprint, tokenCacheSource: 'refreshed', authDiagnostics: buildAuthDiagnostics({ credentials, cacheKeyFingerprint, tokenSource: 'refreshed' }) };
     } catch (error) {
-      clearOauth2Credentials({ collectionUid, url, credentialsId });
+      if (accessTokenUrl) {
+        clearOauth2Credentials({ collectionUid, url: accessTokenUrl, credentialsId });
+      }
+      if (refreshUrl && refreshUrl !== accessTokenUrl) {
+        clearOauth2Credentials({ collectionUid, url: refreshUrl, credentialsId });
+      }
       // Proceed without token
-      return { collectionUid, url, credentials: null, credentialsId, debugInfo };
+      return { collectionUid, url: refreshUrl, credentials: null, credentialsId, debugInfo };
     }
   }
 };
@@ -748,6 +872,7 @@ const applyAdditionalParameters = (requestCopy, data, params = []) => {
 
 const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceFetch = false }) => {
   const { oauth2 = {} } = request;
+  const cacheKeyFingerprint = buildOauthCacheKeyFingerprint({ collectionUid, oAuth: oauth2 });
   const {
     authorizationUrl,
     clientId,
@@ -783,10 +908,11 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   // Check if we already have valid credentials
   if (!forceFetch) {
     try {
-      const storedCredentials = getStoredOauth2Credentials({
+      const storedCredentials = getStoredOauth2CredentialsForFingerprint({
         collectionUid,
         url: authorizationUrl,
-        credentialsId
+        credentialsId,
+        cacheKeyFingerprint
       });
 
       if (storedCredentials) {
@@ -797,7 +923,10 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
             collectionUid,
             credentials: storedCredentials,
             url: authorizationUrl,
-            credentialsId
+            credentialsId,
+            cacheKeyFingerprint,
+            tokenCacheSource: 'cache',
+            authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' })
           };
         } else {
           // Token is expired - unlike other grant types, implicit flow doesn't support refresh tokens
@@ -810,7 +939,10 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
               collectionUid,
               credentials: storedCredentials,
               url: authorizationUrl,
-              credentialsId
+              credentialsId,
+              cacheKeyFingerprint,
+              tokenCacheSource: 'cache',
+              authDiagnostics: buildAuthDiagnostics({ credentials: storedCredentials, cacheKeyFingerprint, tokenSource: 'cache' })
             };
           }
         }
@@ -898,7 +1030,8 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
       collectionUid,
       url: authorizationUrl,
       credentials,
-      credentialsId
+      credentialsId,
+      cacheKeyFingerprint
     });
 
     return {
@@ -906,7 +1039,10 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
       credentials,
       url: authorizationUrl,
       credentialsId,
-      debugInfo
+      debugInfo,
+      cacheKeyFingerprint,
+      tokenCacheSource: 'refreshed',
+      authDiagnostics: buildAuthDiagnostics({ credentials, cacheKeyFingerprint, tokenSource: 'refreshed' })
     };
   } catch (error) {
     return {
@@ -947,6 +1083,7 @@ module.exports = {
   clearOauth2Credentials,
   clearOauth2CredentialsByCredentialsId,
   getStoredOauth2Credentials,
+  buildOauthCacheKeyFingerprint,
   getOAuth2TokenUsingAuthorizationCode,
   getOAuth2TokenUsingClientCredentials,
   getOAuth2TokenUsingPasswordCredentials,
