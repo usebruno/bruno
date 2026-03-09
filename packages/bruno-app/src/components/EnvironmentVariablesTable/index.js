@@ -358,6 +358,7 @@ const EnvironmentVariablesTable = ({
     onSave(cloneDeep(variablesToSave))
       .then(() => {
         toast.success('Changes saved successfully');
+        onDraftClear?.();
         const newValues = [
           ...variablesToSave,
           {
@@ -376,7 +377,7 @@ const EnvironmentVariablesTable = ({
         console.error(error);
         toast.error('An error occurred while saving the changes');
       });
-  }, [formik.values, environment.variables, onSave, setIsModified]);
+  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified]);
 
   const handleReset = useCallback(() => {
     const originalVars = environment.variables || [];
