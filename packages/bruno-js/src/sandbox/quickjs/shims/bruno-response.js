@@ -1,8 +1,38 @@
 const { marshallToVm } = require('../utils');
 
+const toHostQueryArg = (vm, arg) => {
+  if (vm.typeof(arg) === 'function') {
+    return (item) => {
+      const itemVm = marshallToVm(item, vm);
+      const result = vm.callFunction(arg, vm.global, itemVm);
+
+      itemVm.dispose();
+
+      if (result.error) {
+        const error = vm.dump(result.error);
+        result.error.dispose();
+        throw error;
+      }
+
+      const value = vm.dump(result.value);
+      result.value.dispose();
+
+      return value;
+    };
+  }
+
+  return vm.dump(arg);
+};
+
 const addBrunoResponseShimToContext = (vm, res) => {
-  let resFn = vm.newFunction('res', function (exprStr) {
-    return marshallToVm(res(vm.dump(exprStr)), vm);
+  let resFn = vm.newFunction('res', function (exprStr, ...queryArgs) {
+    try {
+      const nativeArgs = queryArgs.map((arg) => toHostQueryArg(vm, arg));
+      return marshallToVm(res(vm.dump(exprStr), ...nativeArgs), vm);
+    } finally {
+      exprStr?.dispose?.();
+      queryArgs.forEach((arg) => arg?.dispose?.());
+    }
   });
 
   const status = marshallToVm(res?.status, vm);
