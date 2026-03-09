@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import { useState } from 'react';
 import { Tooltip as ReactInfotip } from 'react-tooltip';
 
-const QueryResultFilter = ({ filter, onChange, mode }) => {
+const QueryResultFilter = ({ filter, onChange, mode, filterType, onFilterTypeChange }) => {
   const inputRef = useRef(null);
   const [isExpanded, toggleExpand] = useState(false);
 
@@ -19,9 +19,19 @@ const QueryResultFilter = ({ filter, onChange, mode }) => {
     }
   };
 
+  const handleFilterTypeChange = (type) => {
+    if (type === filterType) return;
+    onFilterTypeChange(type);
+    // Clear input when switching filter type
+    onChange({ target: { value: '' } });
+    if (inputRef?.current) {
+      inputRef.current.value = '';
+    }
+  };
+
   const infotipText = useMemo(() => {
     if (mode.includes('json')) {
-      return 'Filter with JSONPath';
+      return filterType === 'jq' ? 'Filter with jq' : 'Filter with JSONPath';
     }
 
     if (mode.includes('xml')) {
@@ -29,11 +39,11 @@ const QueryResultFilter = ({ filter, onChange, mode }) => {
     }
 
     return null;
-  }, [mode]);
+  }, [mode, filterType]);
 
   const placeholderText = useMemo(() => {
     if (mode.includes('json')) {
-      return '$.store.books..author';
+      return filterType === 'jq' ? '.store.books[].author' : '$.store.books..author';
     }
 
     if (mode.includes('xml')) {
@@ -41,13 +51,29 @@ const QueryResultFilter = ({ filter, onChange, mode }) => {
     }
 
     return null;
-  }, [mode]);
+  }, [mode, filterType]);
 
   return (
     <div
       className="response-filter absolute bottom-2 w-full justify-end right-0 flex flex-row items-center gap-2 py-4 px-2 pointer-events-none"
     >
       {infotipText && !isExpanded && <ReactInfotip anchorId="request-filter-icon" html={infotipText} />}
+      {isExpanded && mode.includes('json') && (
+        <div className="filter-type-toggle flex items-center pointer-events-auto">
+          <button
+            className={`toggle-btn ${filterType === 'jsonpath' ? 'active' : ''}`}
+            onClick={() => handleFilterTypeChange('jsonpath')}
+          >
+            JSONPath
+          </button>
+          <button
+            className={`toggle-btn ${filterType === 'jq' ? 'active' : ''}`}
+            onClick={() => handleFilterTypeChange('jq')}
+          >
+            jq
+          </button>
+        </div>
+      )}
       <input
         ref={inputRef}
         type="text"
