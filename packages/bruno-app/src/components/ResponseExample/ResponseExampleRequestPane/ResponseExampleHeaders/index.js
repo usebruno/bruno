@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import get from 'lodash/get';
 import { moveResponseExampleRequestHeader, setResponseExampleRequestHeaders } from 'providers/ReduxStore/slices/collections';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import SingleLineEditor from 'components/SingleLineEditor';
 import BulkEditor from 'components/BulkEditor';
@@ -15,7 +16,17 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const exampleHeadersWidths = focusedTab?.tableColumnWidths?.['example-headers'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const headers = useMemo(() => {
     return item.draft
@@ -132,6 +143,9 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
     <StyledWrapper className="w-full mt-4">
       <div className="mb-3 title text-xs font-bold">Headers</div>
       <EditableTable
+        tableId="example-headers"
+        columnWidths={exampleHeadersWidths}
+        onColumnWidthsChange={handleColumnWidthsChange}
         columns={columns}
         rows={headers || []}
         onChange={handleHeadersChange}

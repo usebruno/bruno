@@ -60,7 +60,8 @@ export const tabsSlice = createSlice({
         state.tabs[state.tabs.length - 1] = {
           uid,
           collectionUid,
-          requestPaneWidth: null,
+          requestPaneWidth: lastTab.requestPaneWidth ?? null,
+          requestPaneHeight: lastTab.requestPaneHeight ?? null,
           requestPaneTab: requestPaneTab || defaultRequestPaneTab,
           responsePaneTab: 'response',
           responseFormat: null,
@@ -88,7 +89,13 @@ export const tabsSlice = createSlice({
         responsePaneScrollPosition: null,
         responseFormat: null,
         responseViewTab: null,
+        responseFilter: null,
+        responseFilterExpanded: false,
+        timelineExpandedItems: {},
+        gqlDocsOpen: false,
+        tableColumnWidths: {},
         scriptPaneTab: null,
+        docsEditing: false,
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
@@ -173,6 +180,59 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.responseViewTab = action.payload.responseViewTab;
+      }
+    },
+    updateResponseFilter: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseFilter = action.payload.responseFilter;
+      }
+    },
+    updateResponseFilterExpanded: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseFilterExpanded = action.payload.responseFilterExpanded;
+      }
+    },
+    updateDocsEditing: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.docsEditing = action.payload.docsEditing;
+      }
+    },
+    updateTimelineExpandedItems: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        const { index, isExpanded } = action.payload;
+        if (!tab.timelineExpandedItems) {
+          tab.timelineExpandedItems = {};
+        }
+        if (isExpanded) {
+          tab.timelineExpandedItems[index] = true;
+        } else {
+          delete tab.timelineExpandedItems[index];
+        }
+      }
+    },
+    updateGqlDocsOpen: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.gqlDocsOpen = action.payload.gqlDocsOpen;
+      }
+    },
+    updateTableColumnWidths: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        if (!tab.tableColumnWidths) {
+          tab.tableColumnWidths = {};
+        }
+        tab.tableColumnWidths[action.payload.tableId] = action.payload.widths;
       }
     },
     updateScriptPaneTab: (state, action) => {
@@ -275,6 +335,12 @@ export const {
   updateResponsePaneScrollPosition,
   updateResponseFormat,
   updateResponseViewTab,
+  updateResponseFilter,
+  updateResponseFilterExpanded,
+  updateDocsEditing,
+  updateTimelineExpandedItems,
+  updateGqlDocsOpen,
+  updateTableColumnWidths,
   updateScriptPaneTab,
   closeTabs,
   closeAllCollectionTabs,

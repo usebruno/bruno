@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab } from 'providers/ReduxStore/slices/tabs';
+import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab, updateResponseFilter, updateResponseFilterExpanded, updateTimelineExpandedItems } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
 import Placeholder from './Placeholder';
@@ -168,6 +168,10 @@ const ResponsePane = ({ item, collection }) => {
             key={item.filename}
             selectedFormat={selectedFormat}
             selectedTab={selectedViewTab}
+            filter={focusedTab?.responseFilter}
+            filterExpanded={focusedTab?.responseFilterExpanded}
+            onFilterChange={(value) => dispatch(updateResponseFilter({ uid: activeTabUid, responseFilter: value }))}
+            onFilterExpandChange={(expanded) => dispatch(updateResponseFilterExpanded({ uid: activeTabUid, responseFilterExpanded: expanded }))}
           />
         );
       }
@@ -175,7 +179,7 @@ const ResponsePane = ({ item, collection }) => {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item} />;
+        return <Timeline collection={collection} item={item} timelineExpandedItems={focusedTab?.timelineExpandedItems || {}} activeTabUid={activeTabUid} />;
       }
       case 'tests': {
         return (
@@ -312,6 +316,8 @@ const ResponsePane = ({ item, collection }) => {
               <Timeline
                 collection={collection}
                 item={item}
+                timelineExpandedItems={focusedTab?.timelineExpandedItems || {}}
+                activeTabUid={activeTabUid}
               />
             ) : null
           ) : (

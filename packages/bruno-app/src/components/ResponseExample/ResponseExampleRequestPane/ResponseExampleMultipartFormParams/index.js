@@ -1,10 +1,11 @@
 import React, { useMemo, useCallback } from 'react';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { IconUpload, IconX, IconFile } from '@tabler/icons';
 import { updateResponseExampleMultipartFormParams } from 'providers/ReduxStore/slices/collections';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import EditableTable from 'components/EditableTable';
@@ -16,6 +17,16 @@ import { isWindowsOS } from 'utils/common/platform';
 const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, editMode = false }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const multipartFormWidths = focusedTab?.tableColumnWidths?.['example-multipart-form'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const params = useMemo(() => {
     return item.draft
@@ -258,6 +269,9 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
   return (
     <StyledWrapper className="w-full mt-4">
       <EditableTable
+        tableId="example-multipart-form"
+        columnWidths={multipartFormWidths}
+        onColumnWidthsChange={handleColumnWidthsChange}
         columns={columns}
         rows={params || []}
         onChange={handleParamsChange}

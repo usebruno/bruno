@@ -1,8 +1,9 @@
 import React, { useMemo, useCallback } from 'react';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { updateResponseExampleFormUrlEncodedParams } from 'providers/ReduxStore/slices/collections';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
@@ -10,6 +11,16 @@ import StyledWrapper from './StyledWrapper';
 const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, editMode = false }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const formUrlEncodedWidths = focusedTab?.tableColumnWidths?.['example-form-url-encoded'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const params = useMemo(() => {
     return item.draft
@@ -87,6 +98,9 @@ const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, edi
   return (
     <StyledWrapper className="w-full mt-4">
       <EditableTable
+        tableId="example-form-url-encoded"
+        columnWidths={formUrlEncodedWidths}
+        onColumnWidthsChange={handleColumnWidthsChange}
         columns={columns}
         rows={params || []}
         onChange={handleParamsChange}

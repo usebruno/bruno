@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateResponsePaneTab, updateTimelineExpandedItems } from 'providers/ReduxStore/slices/tabs';
 import Overlay from '../Overlay';
 import Placeholder from '../Placeholder';
 import GrpcResponseHeaders from './GrpcResponseHeaders';
@@ -82,7 +82,7 @@ const GrpcResponsePane = ({ item, collection }) => {
         return <ResponseTrailers trailers={response.trailers} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item} />;
+        return <Timeline collection={collection} item={item} timelineExpandedItems={focusedTab?.timelineExpandedItems || {}} activeTabUid={activeTabUid} />;
       }
       default: {
         return <div>404 | Not found</div>;
@@ -152,7 +152,7 @@ const GrpcResponsePane = ({ item, collection }) => {
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {!item?.response ? (
           focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
-            <Timeline collection={collection} item={item} />
+            <Timeline collection={collection} item={item} timelineExpandedItems={focusedTab?.timelineExpandedItems || {}} activeTabUid={activeTabUid} />
           ) : null
         ) : (
           <>{getTabPanel(focusedTab.responsePaneTab)}</>

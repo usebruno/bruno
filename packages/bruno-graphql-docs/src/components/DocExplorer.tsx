@@ -24,7 +24,7 @@ type NavStackItem = {
 
 const initialNav: NavStackItem = {
   name: 'Schema',
-  title: 'Documentation Explorer'
+  title: 'Documentation Explorer 2424'
 };
 
 type DocExplorerProps = {
@@ -87,7 +87,7 @@ export class DocExplorer extends React.Component<DocExplorerProps, DocExplorerSt
     } else if (!schema) {
       // Schema is null when it explicitly does not exist, typically due to
       // an error during introspection.
-      content = <div className="error-container">{'No Schema Available'}</div>;
+      content = <div className="error-container">{'No Schema Available Sorry...'}</div>;
     } else if (navItem.search) {
       content = (
         <SearchResults
@@ -122,7 +122,7 @@ export class DocExplorer extends React.Component<DocExplorerProps, DocExplorerSt
 
     return (
       <div className="graphql-docs-container">
-        <section className="doc-explorer" key={navItem.name} aria-label="Documentation Explorer">
+        <section className="doc-explorer" key={navItem.name} aria-label="Documentation Explorer 123">
           <div className="doc-explorer-title-bar">
             {prevName && (
               <button
@@ -140,7 +140,7 @@ export class DocExplorer extends React.Component<DocExplorerProps, DocExplorerSt
             {shouldSearchBoxAppear && (
               <SearchBox
                 value={navItem.search}
-                placeholder={`Search ${navItem.name}...`}
+                placeholder={`Search 123 ${navItem.name}...`}
                 onSearch={this.handleSearch}
               />
             )}
