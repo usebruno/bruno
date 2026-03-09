@@ -32,6 +32,8 @@ async function runScriptInNodeVm({
     return;
   }
 
+  let pmApiWarnings = [];
+
   try {
     // Compute allowed context roots for security validation
     const additionalContextRoots = get(scriptingConfig, 'additionalContextRoots', []);
@@ -44,6 +46,7 @@ async function runScriptInNodeVm({
 
     // Build the script context with Bruno objects and globals
     const scriptContext = buildScriptContext(context, scriptingConfig);
+    pmApiWarnings = scriptContext.__pmApiWarnings;
 
     // Create truly isolated context - scriptContext becomes the global object
     // Scripts can ONLY access what's explicitly in scriptContext
@@ -121,9 +124,56 @@ async function runScriptInNodeVm({
     } finally {
       Error.prepareStackTrace = originalPrepareStackTrace;
     }
+
+    return { pmApiWarnings };
   } catch (error) {
+    error.pmApiWarnings = pmApiWarnings;
     throw new ScriptError(error, script);
   }
+}
+
+/**
+ * Creates a Proxy that records warnings for any untranslated Postman API usage.
+ * Returns undefined and collects accessed API paths into the warnings array.
+ */
+function createPmProxy(baseName, warningsArray) {
+  return new Proxy(function () {}, {
+    get(target, prop) {
+      if (typeof prop === 'symbol') return undefined;
+      const fullPath = baseName + '.' + prop;
+      recordPmWarning(fullPath, warningsArray);
+      return createPmProxy(fullPath, warningsArray);
+    },
+    apply(target, thisArg, args) {
+      recordPmWarning(baseName, warningsArray);
+      return undefined;
+    },
+    construct(target, args) {
+      recordPmWarning(baseName, warningsArray);
+      return {};
+    },
+    set(target, prop, value) {
+      recordPmWarning(baseName + '.' + prop, warningsArray);
+      return true;
+    },
+    has(target, prop) {
+      return false;
+    },
+    ownKeys(target) {
+      return [];
+    }
+  });
+}
+
+function recordPmWarning(path, warningsArray) {
+  // Already recorded
+  if (warningsArray.includes(path)) return;
+  // A deeper path is already recorded — this is just an intermediate access
+  if (warningsArray.some((w) => w.startsWith(path + '.'))) return;
+  // Remove any shallower prefixes that this path supersedes
+  const filtered = warningsArray.filter((w) => !path.startsWith(w + '.'));
+  warningsArray.length = 0;
+  warningsArray.push(...filtered, path);
 }
 
 /**
@@ -133,6 +183,8 @@ async function runScriptInNodeVm({
  * @returns {Object} Script context object
  */
 function buildScriptContext(context, scriptingConfig) {
+  const pmApiWarnings = [];
+
   const scriptContext = {
     ...context,
 
@@ -147,8 +199,15 @@ function buildScriptContext(context, scriptingConfig) {
       safeGlobals
         .filter((key) => global[key] !== undefined)
         .map((key) => [key, global[key]])
-    )
+    ),
+
+    // Warnings array for untranslated Postman API usage
+    __pmApiWarnings: pmApiWarnings
   };
+
+  // Proxy-based guards for untranslated Postman APIs
+  scriptContext.pm = createPmProxy('pm', pmApiWarnings);
+  scriptContext.postman = createPmProxy('postman', pmApiWarnings);
 
   // Add TypedArrays from host for compatibility with host APIs (TextEncoder, crypto, etc.)
   mixinTypedArrays(scriptContext);

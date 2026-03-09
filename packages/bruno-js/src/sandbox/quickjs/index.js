@@ -5,6 +5,8 @@ const addBrunoResponseShimToContext = require('./shims/bruno-response');
 const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
 const addLocalModuleLoaderShimToContext = require('./shims/local-module');
+const addPmProxyShimToContext = require('./shims/pm-proxy');
+const { extractPmApiWarnings } = require('./shims/pm-proxy');
 const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscripten');
 
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
@@ -65,6 +67,7 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
+    addPmProxyShimToContext(vm);
 
     Object.entries(variables)?.forEach(([key, value]) => {
       vm.setProp(vm.global, key, marshallToVm(value, vm));
@@ -157,6 +160,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     await addLibraryShimsToContext(vm);
 
     test && __brunoTestResults && addTestShimToContext(vm, __brunoTestResults);
+    addPmProxyShimToContext(vm);
 
     const script = wrapScriptInClosure(externalScript, SANDBOX.QUICKJS);
 
@@ -166,8 +170,10 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     promiseHandle.dispose();
     const resolvedHandle = vm.unwrapResult(resolvedResult);
     resolvedHandle.dispose();
+
+    const pmApiWarnings = extractPmApiWarnings(vm);
     // vm.dispose();
-    return;
+    return { pmApiWarnings };
   } catch (error) {
     error.__isQuickJS = true;
     throw error;

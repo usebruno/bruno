@@ -18,6 +18,7 @@ import StatusDot from 'components/StatusDot';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import AuthMode from '../Auth/AuthMode/index';
+import { hasActiveWarningsForLocations } from 'utils/warnings';
 
 const TAB_CONFIG = [
   { key: 'params', label: 'Params' },
@@ -89,6 +90,23 @@ const HttpRequestPane = ({ item, collection }) => {
   const indicators = useMemo(() => {
     const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
     const hasTestError = item.testScriptErrorMessage;
+    const hasScriptWarning = hasActiveWarningsForLocations(item, ['pre-request-script', 'post-response-script']);
+    const hasTestWarning = hasActiveWarningsForLocations(item, ['tests']);
+
+    const hasScript = script.req || script.res;
+    const hasTests = tests?.length > 0;
+
+    const getScriptIndicator = () => {
+      if (hasScriptWarning) return <StatusDot type="warning" />;
+      if (!hasScript) return null;
+      return hasScriptError ? <StatusDot type="error" /> : <StatusDot />;
+    };
+
+    const getTestIndicator = () => {
+      if (hasTestWarning) return <StatusDot type="warning" />;
+      if (!hasTests) return null;
+      return hasTestError ? <StatusDot type="error" /> : <StatusDot />;
+    };
 
     return {
       params: activeCounts.params > 0 ? <sup className="font-medium">{activeCounts.params}</sup> : null,
@@ -96,13 +114,13 @@ const HttpRequestPane = ({ item, collection }) => {
       headers: activeCounts.headers > 0 ? <sup className="font-medium">{activeCounts.headers}</sup> : null,
       auth: auth.mode !== 'none' ? <StatusDot /> : null,
       vars: activeCounts.vars > 0 ? <sup className="font-medium">{activeCounts.vars}</sup> : null,
-      script: (script.req || script.res) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null,
+      script: getScriptIndicator(),
       assert: activeCounts.assertions > 0 ? <sup className="font-medium">{activeCounts.assertions}</sup> : null,
-      tests: tests?.length > 0 ? (hasTestError ? <StatusDot type="error" /> : <StatusDot />) : null,
+      tests: getTestIndicator(),
       docs: docs?.length > 0 ? <StatusDot /> : null,
       settings: tags?.length > 0 ? <StatusDot /> : null
     };
-  }, [activeCounts, body.mode, auth.mode, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, tags]);
+  }, [activeCounts, body.mode, auth.mode, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, item.warnings, item.dismissedWarningRules, tests, docs, tags]);
 
   const allTabs = useMemo(
     () => TAB_CONFIG.map(({ key, label }) => ({ key, label, indicator: indicators[key] })),

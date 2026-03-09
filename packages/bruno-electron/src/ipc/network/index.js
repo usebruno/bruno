@@ -447,12 +447,14 @@ const registerNetworkIpc = (mainWindow) => {
     channel, // 'main:run-request-event' | 'main:run-folder-event'
     basePayload, // request-level or runner-level identifiers
     scriptType, // 'pre-request' | 'post-response' | 'test'
-    error // optional Error
+    error, // optional Error
+    pmApiWarnings // optional string[] of accessed pm/postman API paths
   }) => {
     mainWindow.webContents.send(channel, {
       type: `${scriptType}-script-execution`,
       ...basePayload,
-      errorMessage: error ? (error.message || `An error occurred in ${scriptType.replace('-', ' ')} script`) : null
+      errorMessage: error ? (error.message || `An error occurred in ${scriptType.replace('-', ' ')} script`) : null,
+      pmApiWarnings: pmApiWarnings?.length ? pmApiWarnings : null
     });
   };
 
@@ -816,7 +818,8 @@ const registerNetworkIpc = (mainWindow) => {
         channel: 'main:run-request-event',
         basePayload: { requestUid, collectionUid, itemUid: item.uid },
         scriptType: 'pre-request',
-        error: preRequestError
+        error: preRequestError,
+        pmApiWarnings: preRequestScriptResult?.pmApiWarnings
       });
 
       if (preRequestError) {
@@ -996,7 +999,8 @@ const registerNetworkIpc = (mainWindow) => {
           channel: 'main:run-request-event',
           basePayload: { requestUid, collectionUid, itemUid: item.uid },
           scriptType: 'post-response',
-          error: postResponseError
+          error: postResponseError,
+          pmApiWarnings: postResponseScriptResult?.pmApiWarnings
         });
 
         // run assertions
@@ -1089,7 +1093,8 @@ const registerNetworkIpc = (mainWindow) => {
             channel: 'main:run-request-event',
             basePayload: { requestUid, collectionUid, itemUid: item.uid },
             scriptType: 'test',
-            error: testError
+            error: testError,
+            pmApiWarnings: testResults?.pmApiWarnings
           });
 
           const domainsWithCookiesTest = await getDomainsWithCookies();
@@ -1463,7 +1468,8 @@ const registerNetworkIpc = (mainWindow) => {
               channel: 'main:run-folder-event',
               basePayload: eventData,
               scriptType: 'pre-request',
-              error: preRequestError
+              error: preRequestError,
+              pmApiWarnings: preRequestScriptResult?.pmApiWarnings
             });
 
             const domainsWithCookiesPreRequest = await getDomainsWithCookies();
@@ -1691,7 +1697,8 @@ const registerNetworkIpc = (mainWindow) => {
               channel: 'main:run-folder-event',
               basePayload: eventData,
               scriptType: 'post-response',
-              error: postResponseError
+              error: postResponseError,
+              pmApiWarnings: postResponseScriptResult?.pmApiWarnings
             });
 
             const domainsWithCookiesPostResponse = await getDomainsWithCookies();
@@ -1803,7 +1810,8 @@ const registerNetworkIpc = (mainWindow) => {
                 channel: 'main:run-folder-event',
                 basePayload: eventData,
                 scriptType: 'test',
-                error: testError
+                error: testError,
+                pmApiWarnings: testResults?.pmApiWarnings
               });
 
               const domainsWithCookiesTest = await getDomainsWithCookies();

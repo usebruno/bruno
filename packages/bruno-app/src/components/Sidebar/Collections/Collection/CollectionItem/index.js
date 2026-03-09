@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
@@ -18,7 +18,8 @@ import {
   IconTrash,
   IconSettings,
   IconInfoCircle,
-  IconTerminal2
+  IconTerminal2,
+  IconAlertTriangle
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -57,8 +58,11 @@ import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
+import { getActiveWarnings } from 'utils/warnings';
+import { useTheme } from 'styled-components';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
+  const theme = useTheme();
   const { dropdownContainerRef } = useSidebarAccordion();
   const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
   const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
@@ -747,6 +751,20 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>
+              {(() => {
+                const active = getActiveWarnings(item);
+                if (active.length > 0) {
+                  return (
+                    <span
+                      className="ml-1 flex items-center"
+                      title={`${active.length} warning${active.length > 1 ? 's' : ''}`}
+                    >
+                      <IconAlertTriangle size={14} strokeWidth={2} style={{ color: theme.colors.text.warning }} />
+                    </span>
+                  );
+                }
+                return null;
+              })()}
             </div>
           </div>
           <div className="pr-2">

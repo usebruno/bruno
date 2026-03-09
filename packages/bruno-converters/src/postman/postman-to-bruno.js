@@ -821,7 +821,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
       const { default: scriptTranslationWorker } = await import('../workers/postman-translator-worker');
       const translatedScripts = await scriptTranslationWorker(scriptMap);
 
-      // Apply translated scripts to all items in the collection
+      // Apply translated scripts and warnings to all items in the collection
       const applyScriptsToItems = (items) => {
         items.forEach((item) => {
           if (item.type === 'folder') {
@@ -834,8 +834,9 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
                 item.root.request.tests = '';
               }
 
-              const script = translatedScripts.get(item.uid).request?.script?.req;
-              const tests = translatedScripts.get(item.uid).request?.script?.res;
+              const translated = translatedScripts.get(item.uid);
+              const script = translated.request?.script?.req;
+              const tests = translated.request?.script?.res;
 
               item.root.request.script.req = script && script.length > 0 ? script : '';
               item.root.request.script.res = tests && tests.length > 0 ? tests : '';
@@ -854,8 +855,9 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
                 item.request.tests = '';
               }
 
-              const script = translatedScripts.get(item.uid).request?.script?.req;
-              const tests = translatedScripts.get(item.uid).request?.script?.res;
+              const translated = translatedScripts.get(item.uid);
+              const script = translated.request?.script?.req;
+              const tests = translated.request?.script?.res;
 
               item.request.script.req = script && script.length > 0 ? script : '';
               item.request.script.res = tests && tests.length > 0 ? tests : '';
@@ -909,6 +911,7 @@ const postmanToBruno = async (postmanCollection, { useWorkers = false } = {}) =>
     // Apply backward compatibility transformation for string status to number
     const statusTransformedCollection = transformExampleStatusInCollection(hydratedCollection);
     const validatedCollection = validateSchema(statusTransformedCollection);
+
     return validatedCollection;
   } catch (err) {
     console.log(err);

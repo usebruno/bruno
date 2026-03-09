@@ -70,6 +70,9 @@ class ScriptRuntime {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
+    // Collected pm API warnings from script execution
+    let pmApiWarnings = [];
+
     // Helper to build the result object for pre-request scripts
     // Extracted to avoid duplication across runtime branches
     const buildRequestScriptResult = () => ({
@@ -82,7 +85,8 @@ class ScriptRuntime {
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
-      stopExecution: bru.stopExecution
+      stopExecution: bru.stopExecution,
+      pmApiWarnings
     });
 
     // Track script errors to attach partial results before re-throwing
@@ -92,14 +96,16 @@ class ScriptRuntime {
 
     if (this.runtime === SANDBOX.NODEVM) {
       try {
-        await runScriptInNodeVm({
+        const vmResult = await runScriptInNodeVm({
           script,
           context,
           collectionPath,
           scriptingConfig,
           scriptPath
         });
+        pmApiWarnings = vmResult?.pmApiWarnings || [];
       } catch (error) {
+        pmApiWarnings = error.pmApiWarnings || [];
         scriptError = error;
       }
 
@@ -115,12 +121,13 @@ class ScriptRuntime {
 
     // default runtime is `quickjs`
     try {
-      await executeQuickJsVmAsync({
+      const vmResult = await executeQuickJsVmAsync({
         script: script,
         context: context,
         collectionPath,
         scriptPath
       });
+      pmApiWarnings = vmResult?.pmApiWarnings || [];
     } catch (error) {
       scriptError = error;
     }
@@ -191,6 +198,9 @@ class ScriptRuntime {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
+    // Collected pm API warnings from script execution
+    let pmApiWarnings = [];
+
     // Helper to build the result object for post-response scripts
     // Extracted to avoid duplication across runtime branches
     const buildResponseScriptResult = () => ({
@@ -203,7 +213,8 @@ class ScriptRuntime {
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
-      stopExecution: bru.stopExecution
+      stopExecution: bru.stopExecution,
+      pmApiWarnings
     });
 
     // Track script errors to attach partial results before re-throwing
@@ -213,14 +224,16 @@ class ScriptRuntime {
 
     if (this.runtime === SANDBOX.NODEVM) {
       try {
-        await runScriptInNodeVm({
+        const vmResult = await runScriptInNodeVm({
           script,
           context,
           collectionPath,
           scriptingConfig,
           scriptPath
         });
+        pmApiWarnings = vmResult?.pmApiWarnings || [];
       } catch (error) {
+        pmApiWarnings = error.pmApiWarnings || [];
         scriptError = error;
       }
 
@@ -236,12 +249,13 @@ class ScriptRuntime {
 
     // default runtime is `quickjs`
     try {
-      await executeQuickJsVmAsync({
+      const vmResult = await executeQuickJsVmAsync({
         script: script,
         context: context,
         collectionPath,
         scriptPath
       });
+      pmApiWarnings = vmResult?.pmApiWarnings || [];
     } catch (error) {
       scriptError = error;
     }

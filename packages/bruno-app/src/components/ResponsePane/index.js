@@ -13,6 +13,7 @@ import Timeline from './Timeline';
 import TestResults from './TestResults';
 import TestResultsLabel from './TestResultsLabel';
 import ScriptError from './ScriptError';
+import ScriptWarning from './ScriptWarning';
 import ScriptErrorIcon from './ScriptErrorIcon';
 import StyledWrapper from './StyledWrapper';
 import ResponsePaneActions from './ResponsePaneActions';
@@ -34,6 +35,7 @@ const ResponsePane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
+  const [showScriptWarningCard, setShowScriptWarningCard] = useState(false);
   const rightContentRef = useRef(null);
 
   const response = item.response || {};
@@ -91,6 +93,12 @@ const ResponsePane = ({ item, collection }) => {
     }
   }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage, item?.testScriptErrorMessage]);
 
+  useEffect(() => {
+    if (item?.preRequestScriptWarnings?.length || item?.postResponseScriptWarnings?.length || item?.testScriptWarnings?.length) {
+      setShowScriptWarningCard(true);
+    }
+  }, [item?.preRequestScriptWarnings, item?.postResponseScriptWarnings, item?.testScriptWarnings]);
+
   const selectTab = (tab) => {
     dispatch(
       updateResponsePaneTab({
@@ -117,6 +125,7 @@ const ResponsePane = ({ item, collection }) => {
   const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
 
   const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
+  const hasScriptWarnings = item?.preRequestScriptWarnings?.length || item?.postResponseScriptWarnings?.length || item?.testScriptWarnings?.length;
 
   const allTabs = useMemo(() => {
     return [
@@ -300,10 +309,16 @@ const ResponsePane = ({ item, collection }) => {
         }}
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {hasScriptError && showScriptErrorCard && (
+        {hasScriptError && showScriptErrorCard && focusedTab?.responsePaneTab === 'response' && (
           <ScriptError
             item={item}
             onClose={() => setShowScriptErrorCard(false)}
+          />
+        )}
+        {hasScriptWarnings && showScriptWarningCard && focusedTab?.responsePaneTab === 'response' && (
+          <ScriptWarning
+            item={item}
+            onClose={() => setShowScriptWarningCard(false)}
           />
         )}
         <div className="flex-1 overflow-y-auto">

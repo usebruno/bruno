@@ -2938,6 +2938,9 @@ export const collectionsSlice = createSlice({
       item.preRequestScriptErrorMessage = null;
       item.postResponseScriptErrorMessage = null;
       item.testScriptErrorMessage = null;
+      item.preRequestScriptWarnings = null;
+      item.postResponseScriptWarnings = null;
+      item.testScriptWarnings = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -2951,14 +2954,17 @@ export const collectionsSlice = createSlice({
 
           if (type === 'pre-request-script-execution') {
             item.preRequestScriptErrorMessage = action.payload.errorMessage;
+            item.preRequestScriptWarnings = action.payload.pmApiWarnings;
           }
 
           if (type === 'post-response-script-execution') {
             item.postResponseScriptErrorMessage = action.payload.errorMessage;
+            item.postResponseScriptWarnings = action.payload.pmApiWarnings;
           }
 
           if (type === 'test-script-execution') {
             item.testScriptErrorMessage = action.payload.errorMessage;
+            item.testScriptWarnings = action.payload.pmApiWarnings;
           }
 
           if (type === 'request-queued') {
@@ -3089,16 +3095,19 @@ export const collectionsSlice = createSlice({
         if (type === 'post-response-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.postResponseScriptErrorMessage = action.payload.errorMessage;
+          item.postResponseScriptWarnings = action.payload.pmApiWarnings;
         }
 
         if (type === 'test-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.testScriptErrorMessage = action.payload.errorMessage;
+          item.testScriptWarnings = action.payload.pmApiWarnings;
         }
 
         if (type === 'pre-request-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.preRequestScriptErrorMessage = action.payload.errorMessage;
+          item.preRequestScriptWarnings = action.payload.pmApiWarnings;
         }
       }
     },
@@ -3495,6 +3504,75 @@ export const collectionsSlice = createSlice({
     clearAllSaveTransientRequestModals: (state) => {
       state.saveTransientRequestModals = [];
     },
+    /* Warning Actions */
+    setItemWarnings: (state, action) => {
+      const { collectionUid, itemUid, warnings } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      // Special case: collection root warnings
+      if (itemUid === collectionUid) {
+        collection.warnings = warnings;
+        collection.dismissedWarningRules = [];
+        return;
+      }
+
+      const item = findItemInCollection(collection, itemUid);
+      if (item) {
+        item.warnings = warnings;
+        item.dismissedWarningRules = [];
+      }
+    },
+    setCollectionWarnings: (state, action) => {
+      const { collectionUid, warningsMap } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      // Handle collection root
+      if (warningsMap[collectionUid]) {
+        collection.warnings = warningsMap[collectionUid];
+        collection.dismissedWarningRules = [];
+      } else if (collection.warnings) {
+        delete collection.warnings;
+        delete collection.dismissedWarningRules;
+      }
+
+      // Walk full tree
+      const walkItems = (items) => {
+        if (!items) return;
+        for (const item of items) {
+          if (warningsMap[item.uid]) {
+            item.warnings = warningsMap[item.uid];
+            item.dismissedWarningRules = [];
+          } else if (item.warnings) {
+            delete item.warnings;
+            delete item.dismissedWarningRules;
+          }
+          if (item.items) walkItems(item.items);
+        }
+      };
+      walkItems(collection.items);
+    },
+    dismissItemWarnings: (state, action) => {
+      const { collectionUid, itemUid, ruleIds, location } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const target = itemUid === collectionUid ? collection : findItemInCollection(collection, itemUid);
+      if (!target) return;
+
+      if (!target.dismissedWarningRules) {
+        target.dismissedWarningRules = [];
+      }
+
+      const ids = ruleIds || (target.warnings || []).filter((w) => !location || w.location === location).map((w) => w.ruleId);
+      ids.forEach((ruleId) => {
+        const key = location ? `${ruleId}:${location}` : ruleId;
+        if (!target.dismissedWarningRules.includes(key)) {
+          target.dismissedWarningRules.push(key);
+        }
+      });
+    },
     /* Response Example Actions */
     addResponseExample: exampleReducers.addResponseExample,
     cloneResponseExample: exampleReducers.cloneResponseExample,
@@ -3727,7 +3805,10 @@ export const {
   addTransientDirectory,
   addSaveTransientRequestModal,
   removeSaveTransientRequestModal,
-  clearAllSaveTransientRequestModals
+  clearAllSaveTransientRequestModals,
+  setItemWarnings,
+  setCollectionWarnings,
+  dismissItemWarnings
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
