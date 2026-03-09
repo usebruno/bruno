@@ -29,9 +29,6 @@ const EventTypeNames = {
 const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, item, isExpanded, onToggleExpand }) => {
   const [localIsCollapsed, setLocalIsCollapsed] = useState(true);
 
-  // Use props if provided (Redux), otherwise fallback to local state
-  // isCollapsed = true means content is shown (expanded state)
-  // When isExpanded is true, we want isCollapsed to be true (content shown)
   const isCollapsed = isExpanded !== undefined ? isExpanded : localIsCollapsed;
   const toggleCollapse = () => {
     if (onToggleExpand) {

@@ -13,9 +13,6 @@ const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2
   const [localIsCollapsed, setLocalIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('request');
 
-  // Use props if provided (Redux), otherwise fallback to local state
-  // isCollapsed = true means content is shown (expanded state)
-  // When isExpanded is true, we want isCollapsed to be true (content shown)
   const isCollapsed = isExpanded !== undefined ? isExpanded : localIsCollapsed;
   const toggleCollapse = () => {
     if (onToggleExpand) {
