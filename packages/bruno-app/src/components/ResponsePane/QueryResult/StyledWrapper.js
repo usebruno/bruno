@@ -58,6 +58,35 @@ const StyledWrapper = styled.div`
         outline: none;
       }
     }
+
+    .filter-type-toggle {
+      flex-shrink: 0;
+
+      .toggle-btn {
+        font-size: 11px;
+        padding: 2px 8px;
+        border: solid 1px ${(props) => props.theme.border.border2};
+        background: transparent;
+        color: ${(props) => props.theme.colors.text.muted};
+        cursor: pointer;
+        white-space: nowrap;
+
+        &:first-child {
+          border-radius: 4px 0 0 4px;
+        }
+
+        &:last-child {
+          border-radius: 0 4px 4px 0;
+          border-left: none;
+        }
+
+        &.active {
+          background-color: ${(props) => props.theme.background.base};
+          color: ${(props) => props.theme.colors.text.yellow};
+          border-color: ${(props) => props.theme.colors.text.yellow};
+        }
+      }
+    }
   }
 `;
 
