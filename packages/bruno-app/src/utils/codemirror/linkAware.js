@@ -1,6 +1,9 @@
 import LinkifyIt from 'linkify-it';
 import { isMacOS } from 'utils/common/platform';
 import { debounce } from 'lodash';
+
+const URL_CONTINUATION_RE = /^[A-Za-z0-9\-._~:/?#[\]@!$&'()*+,;=%]$/;
+const TRAILING_URL_PUNCTUATION_RE = /[.,!?;:]+$/;
 /**
  * Gets the visible line range using scroll info and lineAtHeight
  * @param {Object} editor - The CodeMirror editor instance
@@ -65,7 +68,8 @@ function markUrls(editor, linkify, linkClass, linkHint) {
       while ((varMatch = variablePattern.exec(lineContent)) !== null) {
         variablePatterns.push({ start: varMatch.index, end: varMatch.index + varMatch[0].length });
       }
-      matches.forEach(({ index, lastIndex, url }) => {
+      matches.forEach((rawMatch) => {
+        const { index, lastIndex, url } = extendUrlMatch(lineContent, rawMatch);
         const isInVariable = variablePatterns.some(
           ({ start, end }) => index < end && lastIndex > start
         );
@@ -90,6 +94,52 @@ function markUrls(editor, linkify, linkClass, linkHint) {
       });
     }
   });
+}
+
+function extendUrlMatch(lineContent, match) {
+  if (!needsParenthesisExtension(match)) {
+    return match;
+  }
+
+  let end = match.lastIndex;
+  while (end < lineContent.length && URL_CONTINUATION_RE.test(lineContent[end])) {
+    end += 1;
+  }
+
+  const extendedRaw = trimExtendedUrl(lineContent.slice(match.index, end));
+
+  return {
+    ...match,
+    raw: extendedRaw,
+    text: extendedRaw,
+    url: extendedRaw,
+    lastIndex: match.index + extendedRaw.length
+  };
+}
+
+function needsParenthesisExtension(match) {
+  const candidate = match?.raw || match?.text || match?.url || '';
+  const opens = (candidate.match(/\(/g) || []).length;
+  const closes = (candidate.match(/\)/g) || []).length;
+
+  return opens > closes;
+}
+
+function trimExtendedUrl(value) {
+  let trimmed = value.replace(TRAILING_URL_PUNCTUATION_RE, '');
+
+  while (hasExtraClosingParen(trimmed)) {
+    trimmed = trimmed.slice(0, -1);
+  }
+
+  return trimmed;
+}
+
+function hasExtraClosingParen(value) {
+  const opens = (value.match(/\(/g) || []).length;
+  const closes = (value.match(/\)/g) || []).length;
+
+  return closes > opens && value.endsWith(')');
 }
 
 /**
