@@ -140,7 +140,7 @@ export class DocExplorer extends React.Component<DocExplorerProps, DocExplorerSt
             {shouldSearchBoxAppear && (
               <SearchBox
                 value={navItem.search}
-                placeholder={`Search 123 ${navItem.name}...`}
+                placeholder={`Search ${navItem.name}...`}
                 onSearch={this.handleSearch}
               />
             )}
