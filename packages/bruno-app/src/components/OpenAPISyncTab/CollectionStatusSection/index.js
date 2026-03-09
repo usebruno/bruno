@@ -5,7 +5,8 @@ import {
   IconTrash,
   IconArrowBackUp,
   IconExternalLink,
-  IconClock
+  IconClock,
+  IconInfoCircle
 } from '@tabler/icons';
 import moment from 'moment';
 import Button from 'ui/Button';
@@ -106,6 +107,13 @@ const CollectionStatusSection = ({
               </Button>
             </div>
           )}
+        </div>
+      )}
+
+      {hasDrift && (
+        <div className="sync-info-notice mt-4">
+          <IconInfoCircle size={14} className="sync-info-icon" />
+          <span><span className="whats-updated-title">What's tracked:</span> Changes to URL, parameters, headers, body and auth compared to the synced spec. Your variables, scripts, tests, assertions, settings etc. are not tracked here.</span>
         </div>
       )}
 

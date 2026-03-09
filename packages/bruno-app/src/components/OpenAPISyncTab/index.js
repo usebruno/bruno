@@ -85,7 +85,7 @@ const OpenAPISyncTab = ({ collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 pt-4 overflow-auto">
-      <div className="sync-page max-w-screen-xl">
+      <div className="sync-page w-full">
 
         {/* Setup form when not configured */}
         {!isConfigured && (
@@ -93,6 +93,8 @@ const OpenAPISyncTab = ({ collection }) => {
             sourceUrl={sourceUrl}
             setSourceUrl={setSourceUrl}
             isLoading={isLoading}
+            error={error}
+            setError={setError}
             onConnect={handleConnect}
           />
         )}
@@ -148,7 +150,7 @@ const OpenAPISyncTab = ({ collection }) => {
                     lastSyncDate={openApiSyncConfig?.lastSyncDate}
                     onOpenEndpoint={openEndpointInTab}
                   />
-                ) : !isDriftLoading && (
+                ) : !isDriftLoading && !isLoading && (
                   <>
                     <div className="spec-update-banner warning">
                       <div className="banner-left">

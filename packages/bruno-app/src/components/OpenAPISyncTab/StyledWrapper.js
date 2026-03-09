@@ -68,6 +68,12 @@ const StyledWrapper = styled.div`
     margin: 0.5rem 0 0 0;
   }
 
+  .setup-error {
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.danger};
+    margin: 0.5rem 0 0 0;
+  }
+
   .setup-features {
     display: flex;
     flex-direction: column;
@@ -137,6 +143,7 @@ const StyledWrapper = styled.div`
       align-items: center;
       gap: 6px;
       font-size: 11px;
+      margin-top: 0.35rem;
 
       .spec-url-value {
         font-family: monospace;
@@ -339,6 +346,14 @@ const StyledWrapper = styled.div`
       font-size: 13px;
       font-weight: 500;
       color: ${(props) => props.theme.text};
+
+      svg {
+        opacity: 0.3;
+      }
+
+      &:hover svg {
+        opacity: 0.6;
+      }
     }
   }
 
@@ -522,6 +537,7 @@ const StyledWrapper = styled.div`
 
   .sync-summary-cards {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
   }
 

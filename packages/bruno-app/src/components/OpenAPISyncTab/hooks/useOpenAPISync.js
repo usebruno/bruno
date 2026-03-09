@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import { addTab, focusTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { clearCollectionState, setCollectionUpdate } from 'providers/ReduxStore/slices/openapi-sync';
+import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
+import { isValidUrl } from 'utils/url/index';
 import { flattenItems } from 'utils/collections/index';
 import { formatIpcError } from 'utils/common/error';
 
@@ -193,7 +195,8 @@ const useOpenAPISync = (collection) => {
   }, [httpItemCount, isConfigured]);
 
   const handleConnect = async () => {
-    if (!sourceUrl.trim()) {
+    const trimmedUrl = sourceUrl.trim();
+    if (!trimmedUrl) {
       setError('Please enter a URL or select a file');
       return;
     }
@@ -203,13 +206,27 @@ const useOpenAPISync = (collection) => {
     setFileNotFound(false);
 
     try {
+      // Validate it's a valid OpenAPI spec before proceeding (URL only; files are validated at picker)
+      if (isValidUrl(trimmedUrl)) {
+        try {
+          const { specType } = await fetchAndValidateApiSpecFromUrl({ url: trimmedUrl });
+          if (specType !== 'openapi') {
+            setError('The URL does not point to a valid OpenAPI specification');
+            return;
+          }
+        } catch {
+          setError('The URL does not point to a valid OpenAPI specification');
+          return;
+        }
+      }
+
       const { ipcRenderer } = window;
 
       // Validate the spec first
       const result = await ipcRenderer.invoke('renderer:compare-openapi-specs', {
         collectionUid: collection.uid,
         collectionPath: collection.pathname,
-        sourceUrl: sourceUrl.trim(),
+        sourceUrl: trimmedUrl,
         environmentContext: {
           activeEnvironmentUid: collection.activeEnvironmentUid,
           environments: collection.environments,
@@ -228,7 +245,7 @@ const useOpenAPISync = (collection) => {
       await ipcRenderer.invoke('renderer:update-openapi-sync-config', {
         collectionPath: collection.pathname,
         config: {
-          sourceUrl: sourceUrl.trim(),
+          sourceUrl: trimmedUrl,
           groupBy: 'tags',
           autoCheck: true,
           autoCheckInterval: 5
@@ -253,7 +270,7 @@ const useOpenAPISync = (collection) => {
           await ipcRenderer.invoke('renderer:save-openapi-spec', {
             collectionPath: collection.pathname,
             specContent: result.newSpecContent || JSON.stringify(result.newSpec, null, 2),
-            sourceUrl: sourceUrl.trim()
+            sourceUrl: trimmedUrl
           });
         }
       }
@@ -304,6 +321,23 @@ const useOpenAPISync = (collection) => {
   const handleSaveSettings = async ({ sourceUrl: newUrl, autoCheck, autoCheckInterval }) => {
     try {
       const { ipcRenderer } = window;
+      const sourceUrlChanged = newUrl !== openApiSyncConfig?.sourceUrl;
+
+      // Validate the spec before saving if source URL changed (URL only; files are validated at picker)
+      if (sourceUrlChanged && isValidUrl(newUrl)) {
+        let specType;
+        try {
+          ({ specType } = await fetchAndValidateApiSpecFromUrl({ url: newUrl }));
+        } catch {
+          toast.error('The URL does not point to a valid OpenAPI specification');
+          throw new Error('Invalid OpenAPI specification');
+        }
+        if (specType !== 'openapi') {
+          toast.error('The URL does not point to a valid OpenAPI specification');
+          throw new Error('Invalid OpenAPI specification');
+        }
+      }
+
       await ipcRenderer.invoke('renderer:update-openapi-sync-config', {
         collectionPath: collection.pathname,
         oldSourceUrl: openApiSyncConfig?.sourceUrl,
