@@ -672,15 +672,26 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const dotEnvPath = path.join(collectionPathname, filename);
 
+      const needsQuoting = (value) => {
+        return (
+          value.includes('\n')
+          || value.includes('"')
+          || value.includes('\'')
+          || value.includes('\\')
+          || value.includes('#')
+          || /^\s|\s$/.test(value)
+        );
+      };
+
       // Convert variables array to .env format
       const content = variables
         .filter((v) => v.name && v.name.trim() !== '')
         .map((v) => {
           const value = v.value || '';
-          // If value contains newlines or special characters, wrap in quotes
-          if (value.includes('\n') || value.includes('"') || value.includes('\'') || value.includes('\\')) {
+          // Quote values that dotenv would otherwise trim or treat as comments.
+          if (needsQuoting(value)) {
             // Escape backslashes first, then double quotes
-            const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+            const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
             return `${v.name}="${escapedValue}"`;
           }
           return `${v.name}=${value}`;
