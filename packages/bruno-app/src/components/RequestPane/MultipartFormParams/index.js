@@ -129,13 +129,13 @@ const MultipartFormParams = ({ item, collection }) => {
 
         if (fileName) {
           return (
-            <div className="flex items-center file-value-cell">
-              <IconFile size={16} className="text-muted mr-1" />
-              <span className="file-name flex-1 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
+            <div className="flex w-full min-w-0 items-center file-value-cell">
+              <IconFile size={16} className="text-muted mr-1 shrink-0" />
+              <span className="file-name flex-1 min-w-0 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
                 {fileName}
               </span>
               <button
-                className="clear-file-btn ml-1"
+                className="clear-file-btn ml-1 shrink-0"
                 onClick={() => handleClearFile(row)}
                 title="Remove file"
               >
@@ -162,7 +162,7 @@ const MultipartFormParams = ({ item, collection }) => {
             </div>
             {!hasTextValue && !isLastEmptyRow && (
               <button
-                className="upload-btn ml-1"
+                className="upload-btn ml-1 shrink-0"
                 onClick={() => handleBrowseFiles(row, onChange)}
                 title="Select file"
               >

@@ -24,9 +24,16 @@ const Wrapper = styled.div`
   }
 
   .file-value-cell {
+    width: 100%;
+    min-width: 0;
     padding: 4px 0;
 
     .file-name {
+      display: block;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       font-size: 12px;
       color: ${(props) => props.theme.text};
     }
