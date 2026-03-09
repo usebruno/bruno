@@ -13,13 +13,14 @@ import StatusBadge from 'ui/StatusBadge';
 import ActionIcon from 'ui/ActionIcon/index';
 import MenuDropdown from 'ui/MenuDropdown';
 import Help from 'components/Help';
+import { isHttpUrl } from 'utils/url/index';
 
 const OpenAPISyncHeader = ({
   collection, spec, sourceUrl, syncStatus, onViewSpec,
   onOpenSettings, onOpenDisconnect,
   onCheck, isLoading
 }) => {
-  const sourceIsLocal = !sourceUrl?.startsWith('http');
+  const sourceIsLocal = !isHttpUrl(sourceUrl);
   const canCheck = !!sourceUrl?.trim();
 
   const title = spec?.info?.title || 'Unknown API';

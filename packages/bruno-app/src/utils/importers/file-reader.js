@@ -6,9 +6,9 @@ import { BrunoError } from 'utils/common/error';
  * Throws with a user-friendly message on parse failure.
  */
 export const parseFileAsJsonOrYaml = async (file) => {
-  const text = await file.text();
   try {
-    if (file.name.endsWith('.json')) {
+    const text = await file.text();
+    if (file.name.toLowerCase().endsWith('.json')) {
       return JSON.parse(text);
     }
     const parsed = jsyaml.load(text);

@@ -5,7 +5,7 @@ import { addTab, focusTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { clearCollectionState, setCollectionUpdate } from 'providers/ReduxStore/slices/openapi-sync';
 import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
-import { isValidUrl } from 'utils/url/index';
+import { isHttpUrl } from 'utils/url/index';
 import { flattenItems } from 'utils/collections/index';
 import { formatIpcError } from 'utils/common/error';
 
@@ -207,7 +207,7 @@ const useOpenAPISync = (collection) => {
 
     try {
       // Validate it's a valid OpenAPI spec before proceeding (URL only; files are validated at picker)
-      if (isValidUrl(trimmedUrl)) {
+      if (isHttpUrl(trimmedUrl)) {
         try {
           const { specType } = await fetchAndValidateApiSpecFromUrl({ url: trimmedUrl });
           if (specType !== 'openapi') {
@@ -319,24 +319,26 @@ const useOpenAPISync = (collection) => {
 
   // Save connection settings from the modal
   const handleSaveSettings = async ({ sourceUrl: newUrl, autoCheck, autoCheckInterval }) => {
+    const sourceUrlChanged = newUrl !== openApiSyncConfig?.sourceUrl;
+
+    // Validate the spec before saving if source URL changed (URL only; files are validated at picker)
+    // Kept outside try-catch so validation errors propagate to the caller and the modal stays open
+    if (sourceUrlChanged && isHttpUrl(newUrl)) {
+      let specType;
+      try {
+        ({ specType } = await fetchAndValidateApiSpecFromUrl({ url: newUrl }));
+      } catch {
+        toast.error('The URL does not point to a valid OpenAPI specification');
+        throw new Error('Invalid OpenAPI specification');
+      }
+      if (specType !== 'openapi') {
+        toast.error('The URL does not point to a valid OpenAPI specification');
+        throw new Error('Invalid OpenAPI specification');
+      }
+    }
+
     try {
       const { ipcRenderer } = window;
-      const sourceUrlChanged = newUrl !== openApiSyncConfig?.sourceUrl;
-
-      // Validate the spec before saving if source URL changed (URL only; files are validated at picker)
-      if (sourceUrlChanged && isValidUrl(newUrl)) {
-        let specType;
-        try {
-          ({ specType } = await fetchAndValidateApiSpecFromUrl({ url: newUrl }));
-        } catch {
-          toast.error('The URL does not point to a valid OpenAPI specification');
-          throw new Error('Invalid OpenAPI specification');
-        }
-        if (specType !== 'openapi') {
-          toast.error('The URL does not point to a valid OpenAPI specification');
-          throw new Error('Invalid OpenAPI specification');
-        }
-      }
 
       await ipcRenderer.invoke('renderer:update-openapi-sync-config', {
         collectionPath: collection.pathname,

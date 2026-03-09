@@ -71,19 +71,19 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
                 style={{ display: 'none' }}
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
-                  if (file) {
-                    setError(null);
-                    try {
-                      const data = await parseFileAsJsonOrYaml(file);
-                      if (!isOpenApiSpec(data)) {
-                        setError('The selected file is not a valid OpenAPI specification');
-                        return;
-                      }
-                      const filePath = window.ipcRenderer.getFilePath(file);
-                      if (filePath) setSourceUrl(filePath);
-                    } catch (err) {
-                      setError(err.message || 'Failed to read the selected file');
+                  if (!file) return;
+                  setError(null);
+                  setSourceUrl('');
+                  try {
+                    const data = await parseFileAsJsonOrYaml(file);
+                    if (!isOpenApiSpec(data)) {
+                      setError('The selected file is not a valid OpenAPI specification');
+                      return;
                     }
+                    const filePath = window.ipcRenderer.getFilePath(file);
+                    if (filePath) setSourceUrl(filePath);
+                  } catch (err) {
+                    setError(err.message || 'Failed to read the selected file');
                   }
                 }}
               />

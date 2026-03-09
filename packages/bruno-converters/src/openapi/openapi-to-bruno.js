@@ -732,10 +732,12 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
 
         // Create a temporary parameter object for getParameterEntries
         // Enrich property with parent example context if property lacks its own example
+        // Use child-level example only; drop parent-level example/examples to avoid
+        // object-level values leaking into scalar child parameters
         const propSchema = (prop.example === undefined && schemaExample[propName] !== undefined)
           ? { ...prop, example: schemaExample[propName] }
           : prop;
-        const tempParam = { ...param, name: propName, schema: propSchema, required: isRequired };
+        const tempParam = { ...param, example: undefined, examples: undefined, name: propName, schema: propSchema, required: isRequired };
         const entries = getParameterEntries(tempParam);
 
         entries.forEach((entry) => {
