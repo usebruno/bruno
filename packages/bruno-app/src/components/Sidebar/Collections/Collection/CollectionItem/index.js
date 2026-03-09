@@ -483,6 +483,33 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     return items;
   };
 
+  const handleCopyItem = useCallback(() => {
+    dispatch(copyRequest(item));
+    const itemType = isFolder ? 'Folder' : 'Request';
+    toast.success(`${itemType} copied`);
+  }, [dispatch, item, isFolder]);
+
+  const handlePasteItem = useCallback(() => {
+    // Determine target folder: if item is a folder, paste into it; otherwise paste into parent folder
+    let targetFolderUid = item.uid;
+    if (!isFolder) {
+      const parentFolder = findParentItemInCollection(collection, item.uid);
+      targetFolderUid = parentFolder ? parentFolder.uid : null;
+    }
+
+    dispatch(pasteItem(collectionUid, targetFolderUid))
+      .then(() => {
+        toast.success('Item pasted successfully');
+      })
+      .catch((err) => {
+        toast.error(err ? err.message : 'An error occurred while pasting the item');
+      });
+  }, [dispatch, collection, item, isFolder, collectionUid]);
+
+  // Update refs whenever handlers change
+  copyHandlerRef.current = handleCopyItem;
+  pasteHandlerRef.current = handlePasteItem;
+
   const className = classnames('flex flex-col w-full', {
     'is-sidebar-dragging': isSidebarDragging
   });
@@ -591,33 +618,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       );
     }
   };
-
-  const handleCopyItem = useCallback(() => {
-    dispatch(copyRequest(item));
-    const itemType = isFolder ? 'Folder' : 'Request';
-    toast.success(`${itemType} copied`);
-  }, [dispatch, item, isFolder]);
-
-  const handlePasteItem = useCallback(() => {
-    // Determine target folder: if item is a folder, paste into it; otherwise paste into parent folder
-    let targetFolderUid = item.uid;
-    if (!isFolder) {
-      const parentFolder = findParentItemInCollection(collection, item.uid);
-      targetFolderUid = parentFolder ? parentFolder.uid : null;
-    }
-
-    dispatch(pasteItem(collectionUid, targetFolderUid))
-      .then(() => {
-        toast.success('Item pasted successfully');
-      })
-      .catch((err) => {
-        toast.error(err ? err.message : 'An error occurred while pasting the item');
-      });
-  }, [dispatch, collection, item, isFolder, collectionUid]);
-
-  // Update refs whenever handlers change
-  copyHandlerRef.current = handleCopyItem;
-  pasteHandlerRef.current = handlePasteItem;
 
   // Keyboard shortcuts handler
   const handleKeyDown = (e) => {
