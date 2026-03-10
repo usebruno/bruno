@@ -7,7 +7,7 @@ import StyledWrapper from './StyledWrapper';
 const MIN_COLUMN_WIDTH = 80;
 
 const EditableTable = ({
-  tableId,
+  tableId, // Not being used kept to maintain uniqueness & pass similar in onColumnWidthsChange
   columns,
   rows,
   onChange,
