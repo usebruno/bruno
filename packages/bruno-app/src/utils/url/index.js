@@ -90,6 +90,15 @@ export const isValidUrl = (url) => {
   }
 };
 
+export const isHttpUrl = (url) => {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 export const interpolateUrl = ({ url, variables }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;

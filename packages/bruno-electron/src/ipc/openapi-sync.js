@@ -40,6 +40,19 @@ const isYamlContent = (content) => {
 };
 
 /**
+ * Pretty-print JSON content for readable diffs. YAML content is returned as-is.
+ */
+const prettyPrintSpec = (content) => {
+  if (!content) return '';
+  try {
+    const parsed = JSON.parse(content);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return content;
+  }
+};
+
+/**
  * Generate an MD5 hash of a parsed OpenAPI spec for quick change detection.
  */
 const generateSpecHash = (spec) => {
@@ -400,12 +413,15 @@ const cleanupSpecFilesForCollection = (collectionPath) => {
 
 /**
  * Merge spec params/headers with existing user values.
- * For each spec item, preserves the user's value and enabled state if a matching name exists.
+ * Matches by name + value to correctly handle enum-expanded params (multiple entries with same name).
+ * Only preserves the user's enabled state; values come from the spec.
  */
 const mergeWithUserValues = (specItems, existingItems) => {
   return specItems?.map((specItem) => {
-    const existing = (existingItems || []).find((e) => e.name === specItem.name);
-    return existing ? { ...specItem, value: existing.value, enabled: existing.enabled } : specItem;
+    const existing = (existingItems || []).find(
+      (e) => e.name === specItem.name && e.value === specItem.value
+    );
+    return existing ? { ...specItem, enabled: existing.enabled } : specItem;
   });
 };
 
@@ -447,10 +463,16 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false } =
 /**
  * Ensure a tag-based folder exists in the collection directory.
  * Creates the folder and its folder.bru/folder.yml file if missing.
- * Returns the resolved target folder path (falls back to collectionPath on path traversal).
+ * Returns the resolved target folder path (falls back to collectionPath on reserved/traversal names).
  */
+const RESERVED_FOLDER_NAMES = ['node_modules', '.git', 'environments'];
+
 const ensureTagFolder = async (collectionPath, folderName, format) => {
   const safeFolderName = sanitizeName(folderName);
+  if (RESERVED_FOLDER_NAMES.some((r) => r.toLowerCase() === safeFolderName.toLowerCase())) {
+    console.warn(`[OpenAPI Sync] Tag "${folderName}" sanitizes to reserved folder name "${safeFolderName}", placing requests in collection root`);
+    return collectionPath;
+  }
   const targetFolder = path.join(collectionPath, safeFolderName);
   if (!isPathInsideCollection(targetFolder, collectionPath)) {
     console.error(`[OpenAPI Sync] Path traversal blocked in folder name: ${folderName}`);
@@ -741,13 +763,15 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 
       // Generate unified diff for text diff view
       const { createTwoFilesPatch } = require('diff');
+      const prettyStored = prettyPrintSpec(storedContent);
+      const prettyNew = prettyPrintSpec(newSpecContent);
       const totalLines = Math.max(
-        (storedContent || '').split('\n').length,
-        newSpecContent.split('\n').length
+        prettyStored.split('\n').length,
+        prettyNew.split('\n').length
       );
       const unifiedDiff = createTwoFilesPatch(
         correctSpecFilename, correctSpecFilename,
-        storedContent || '', newSpecContent,
+        prettyStored, prettyNew,
         'Current Spec', 'New Spec',
         { context: totalLines }
       );
