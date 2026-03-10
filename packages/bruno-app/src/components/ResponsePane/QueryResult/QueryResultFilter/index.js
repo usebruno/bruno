@@ -84,7 +84,7 @@ const QueryResultFilter = ({ filter, onChange, mode, filterType, onFilterTypeCha
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        className={`block ml-14 p-2 py-1 transition-all duration-200 ease-in-out border border-gray-300 rounded-md ${
+        className={`block ${isExpanded && mode.includes('json') ? 'ml-0' : 'ml-14'} p-2 py-1 transition-all duration-200 ease-in-out border border-gray-300 rounded-md ${
           isExpanded ? 'w-full opacity-100 pointer-events-auto' : 'w-[0] opacity-0'
         }`}
         onChange={onChange}
