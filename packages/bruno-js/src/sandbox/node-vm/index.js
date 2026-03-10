@@ -133,6 +133,17 @@ async function runScriptInNodeVm({
 }
 
 /**
+ * JS introspection properties accessed by console.log, JSON.stringify, async/await, etc.
+ * These should not trigger "unsupported Postman API" warnings.
+ */
+const JS_INTROSPECTION_PROPS = new Set([
+  'toString', 'toJSON', 'valueOf', 'then',
+  'constructor', 'prototype', 'name', 'length',
+  'caller', 'arguments', 'apply', 'call', 'bind',
+  'inspect', 'nodeType'
+]);
+
+/**
  * Creates a Proxy that records warnings for any untranslated Postman API usage.
  * Returns undefined and collects accessed API paths into the warnings array.
  */
@@ -140,6 +151,7 @@ function createPmProxy(baseName, warningsArray) {
   return new Proxy(function () {}, {
     get(target, prop) {
       if (typeof prop === 'symbol') return undefined;
+      if (JS_INTROSPECTION_PROPS.has(prop)) return undefined;
       const fullPath = baseName + '.' + prop;
       recordPmWarning(fullPath, warningsArray);
       return createPmProxy(fullPath, warningsArray);

@@ -104,6 +104,41 @@ describe('pm/postman proxy guard', () => {
       expect(result.pmApiWarnings).toContain('pm.vault.get');
     });
 
+    it('should not warn for JS introspection properties like toString, toJSON, name', async () => {
+      const script = `
+        var a = pm.toString;
+        var b = pm.toJSON;
+        var c = pm.valueOf;
+        var d = pm.name;
+        var e = pm.length;
+        var f = pm.then;
+        var g = pm.constructor;
+      `;
+      const scriptRuntime = new ScriptRuntime({ runtime });
+
+      const result = await scriptRuntime.runRequestScript(
+        script, { ...baseRequest }, {}, {}, '.', null, process.env
+      );
+
+      expect(result.pmApiWarnings).toEqual([]);
+    });
+
+    it('should not warn for introspection on nested pm properties', async () => {
+      const script = `
+        var x = pm.environment;
+        var y = x.toString;
+        var z = x.toJSON;
+      `;
+      const scriptRuntime = new ScriptRuntime({ runtime });
+
+      const result = await scriptRuntime.runRequestScript(
+        script, { ...baseRequest }, {}, {}, '.', null, process.env
+      );
+
+      // Only pm.environment should be warned, not pm.environment.toString/toJSON
+      expect(result.pmApiWarnings).toEqual(['pm.environment']);
+    });
+
     it('should deduplicate warnings for repeated access of the same pm path', async () => {
       const script = `
         pm.vault.get('a');

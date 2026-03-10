@@ -217,6 +217,16 @@ const ResponsiveTabs = ({
   const visibleTabs = visibleTabKeys.map((key) => tabs.find((t) => t.key === key)).filter(Boolean);
   const overflowTabs = overflowTabKeys.map((key) => tabs.find((t) => t.key === key)).filter(Boolean);
 
+  // Determine if any overflow tab has a warning or error indicator
+  const overflowIndicatorType = useMemo(() => {
+    let hasWarning = false;
+    for (const tab of overflowTabs) {
+      if (tab.indicatorType === 'error') return 'error';
+      if (tab.indicatorType === 'warning') hasWarning = true;
+    }
+    return hasWarning ? 'warning' : null;
+  }, [overflowTabs]);
+
   // Convert overflow tabs to MenuDropdown items format
   const overflowMenuItems = useMemo(() => {
     return overflowTabs.map((tab) => ({
@@ -263,6 +273,9 @@ const ResponsiveTabs = ({
           >
             <div className="more-tabs select-none flex items-center cursor-pointer gap-1">
               <IconChevronsRight size={18} strokeWidth={2} />
+              {overflowIndicatorType && (
+                <span className={`overflow-badge overflow-badge-${overflowIndicatorType}`} />
+              )}
             </div>
           </MenuDropdown>
         )}

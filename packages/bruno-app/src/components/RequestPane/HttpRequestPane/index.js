@@ -108,6 +108,18 @@ const HttpRequestPane = ({ item, collection }) => {
       return hasTestError ? <StatusDot type="error" /> : <StatusDot />;
     };
 
+    const getScriptIndicatorType = () => {
+      if (hasScriptWarning) return 'warning';
+      if (hasScriptError) return 'error';
+      return null;
+    };
+
+    const getTestIndicatorType = () => {
+      if (hasTestWarning) return 'warning';
+      if (hasTestError) return 'error';
+      return null;
+    };
+
     return {
       params: activeCounts.params > 0 ? <sup className="font-medium">{activeCounts.params}</sup> : null,
       body: body.mode !== 'none' ? <StatusDot /> : null,
@@ -118,12 +130,19 @@ const HttpRequestPane = ({ item, collection }) => {
       assert: activeCounts.assertions > 0 ? <sup className="font-medium">{activeCounts.assertions}</sup> : null,
       tests: getTestIndicator(),
       docs: docs?.length > 0 ? <StatusDot /> : null,
-      settings: tags?.length > 0 ? <StatusDot /> : null
+      settings: tags?.length > 0 ? <StatusDot /> : null,
+      scriptType: getScriptIndicatorType(),
+      testsType: getTestIndicatorType()
     };
   }, [activeCounts, body.mode, auth.mode, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, item.warnings, item.dismissedWarningRules, tests, docs, tags]);
 
   const allTabs = useMemo(
-    () => TAB_CONFIG.map(({ key, label }) => ({ key, label, indicator: indicators[key] })),
+    () => TAB_CONFIG.map(({ key, label }) => ({
+      key,
+      label,
+      indicator: indicators[key],
+      indicatorType: indicators[`${key}Type`] || null
+    })),
     [indicators]
   );
 

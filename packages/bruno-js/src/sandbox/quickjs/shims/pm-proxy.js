@@ -18,10 +18,18 @@ const addPmProxyShimToContext = (vm) => {
         globalThis.__pmApiWarnings.push(path);
       }
 
+      var JS_INTROSPECTION_PROPS = {
+        'toString':1, 'toJSON':1, 'valueOf':1, 'then':1,
+        'constructor':1, 'prototype':1, 'name':1, 'length':1,
+        'caller':1, 'arguments':1, 'apply':1, 'call':1, 'bind':1,
+        'inspect':1, 'nodeType':1
+      };
+
       function createPmProxy(baseName) {
         return new Proxy(function() {}, {
           get(target, prop) {
             if (typeof prop === 'symbol') return undefined;
+            if (prop in JS_INTROSPECTION_PROPS) return undefined;
             var fullPath = baseName + '.' + prop;
             recordPmWarning(fullPath);
             return createPmProxy(fullPath);

@@ -12,11 +12,31 @@ const StyledWrapper = styled.div`
     }
 
     .more-tabs {
+      position: relative;
+      padding-right: 4px;
       color: ${(props) => props.theme.colors.text.subtext0} !important;
       border-bottom: solid 2px transparent;
 
       &:hover {
         color: ${(props) => props.theme.tabs.active.color} !important;
+      }
+
+      .overflow-badge {
+        position: absolute;
+        top: 2px;
+        right: 0;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        pointer-events: none;
+      }
+
+      .overflow-badge-warning {
+        background-color: ${(props) => props.theme.colors.text.warning};
+      }
+
+      .overflow-badge-error {
+        background-color: ${(props) => props.theme.colors.text.danger};
       }
     }
 
