@@ -32,90 +32,112 @@ jest.mock('../../src/utils/form-data', () => ({
 
 const { makeAxiosInstance } = require('../../src/ipc/network/axios-instance');
 
+function createStubAdapter() {
+  let capturedConfig = null;
+
+  const adapter = (config) => {
+    capturedConfig = config;
+    return Promise.resolve({
+      data: {},
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config
+    });
+  };
+
+  adapter.getConfig = () => capturedConfig;
+
+  return adapter;
+}
+
 describe('axios-instance: DNS lookup behavior (GitHub #7343)', () => {
   let axiosInstance;
-  let requestInterceptor;
 
   beforeEach(() => {
     axiosInstance = makeAxiosInstance();
-    // Get the request interceptor
-    requestInterceptor = axiosInstance.interceptors.request.handlers[0];
   });
 
   test('should set custom lookup function for localhost URLs', async () => {
-    const config = {
+    const stubAdapter = createStubAdapter();
+
+    await axiosInstance({
       url: 'http://localhost:3000/api/test',
       method: 'get',
-      headers: {}
-    };
+      adapter: stubAdapter
+    });
 
-    const result = await requestInterceptor.fulfilled(config);
-
-    expect(result.lookup).toBeDefined();
-    expect(typeof result.lookup).toBe('function');
+    const config = stubAdapter.getConfig();
+    expect(config.lookup).toBeDefined();
+    expect(typeof config.lookup).toBe('function');
   });
 
   test('should set custom lookup function for 127.0.0.1 URLs', async () => {
-    const config = {
+    const stubAdapter = createStubAdapter();
+
+    await axiosInstance({
       url: 'http://127.0.0.1:8080/api/test',
       method: 'get',
-      headers: {}
-    };
+      adapter: stubAdapter
+    });
 
-    const result = await requestInterceptor.fulfilled(config);
-
-    expect(result.lookup).toBeDefined();
-    expect(typeof result.lookup).toBe('function');
+    const config = stubAdapter.getConfig();
+    expect(config.lookup).toBeDefined();
+    expect(typeof config.lookup).toBe('function');
   });
 
   test('should set custom lookup function for ::1 (IPv6 localhost) URLs', async () => {
-    const config = {
+    const stubAdapter = createStubAdapter();
+
+    await axiosInstance({
       url: 'http://[::1]:8080/api/test',
       method: 'get',
-      headers: {}
-    };
+      adapter: stubAdapter
+    });
 
-    const result = await requestInterceptor.fulfilled(config);
-
-    expect(result.lookup).toBeDefined();
-    expect(typeof result.lookup).toBe('function');
+    const config = stubAdapter.getConfig();
+    expect(config.lookup).toBeDefined();
+    expect(typeof config.lookup).toBe('function');
   });
 
   test('should set custom lookup function for *.localhost domains (RFC 6761)', async () => {
-    const config = {
+    const stubAdapter = createStubAdapter();
+
+    await axiosInstance({
       url: 'http://api.localhost:3000/test',
       method: 'get',
-      headers: {}
-    };
+      adapter: stubAdapter
+    });
 
-    const result = await requestInterceptor.fulfilled(config);
-
-    expect(result.lookup).toBeDefined();
-    expect(typeof result.lookup).toBe('function');
+    const config = stubAdapter.getConfig();
+    expect(config.lookup).toBeDefined();
+    expect(typeof config.lookup).toBe('function');
   });
 
   test('should NOT set custom lookup for external domains', async () => {
-    const config = {
+    const stubAdapter = createStubAdapter();
+
+    await axiosInstance({
       url: 'https://api.example.com/test',
       method: 'get',
-      headers: {}
-    };
+      adapter: stubAdapter
+    });
 
-    const result = await requestInterceptor.fulfilled(config);
-
-    expect(result.lookup).toBeUndefined();
+    const config = stubAdapter.getConfig();
+    expect(config.lookup).toBeUndefined();
   });
 
   test('should NOT set custom lookup for httpbin.org', async () => {
-    const config = {
+    const stubAdapter = createStubAdapter();
+
+    await axiosInstance({
       url: 'https://httpbin.org/get',
       method: 'get',
-      headers: {}
-    };
+      adapter: stubAdapter
+    });
 
-    const result = await requestInterceptor.fulfilled(config);
-
-    expect(result.lookup).toBeUndefined();
+    const config = stubAdapter.getConfig();
+    expect(config.lookup).toBeUndefined();
   });
 
   test('should clear inherited lookup when URL changes from localhost to external domain', async () => {
@@ -123,33 +145,35 @@ describe('axios-instance: DNS lookup behavior (GitHub #7343)', () => {
     // 1. Original request to localhost sets lookup
     // 2. Redirect spreads config including lookup
     // 3. New request to external domain should clear the lookup
-    const configWithInheritedLookup = {
-      url: 'https://external-auth-provider.com/oauth/authorize',
-      method: 'get',
-      headers: {},
-      lookup: (_hostname, _options, callback) => {
-        // This is the localhost lookup that was inherited
-        callback(null, '127.0.0.1', 4);
-      }
+    const stubAdapter = createStubAdapter();
+    const inheritedLookup = (_hostname, _options, callback) => {
+      callback(null, '127.0.0.1', 4);
     };
 
-    const result = await requestInterceptor.fulfilled(configWithInheritedLookup);
+    await axiosInstance({
+      url: 'https://external-auth-provider.com/oauth/authorize',
+      method: 'get',
+      adapter: stubAdapter,
+      lookup: inheritedLookup // Simulates inherited lookup from redirect
+    });
 
+    const config = stubAdapter.getConfig();
     // The lookup should be cleared for external domains
-    expect(result.lookup).toBeUndefined();
+    expect(config.lookup).toBeUndefined();
   });
 
   test('should preserve lookup functionality when redirecting localhost to localhost', async () => {
-    const config = {
+    const stubAdapter = createStubAdapter();
+
+    await axiosInstance({
       url: 'http://localhost:3182/redirected',
       method: 'get',
-      headers: {}
-    };
+      adapter: stubAdapter
+    });
 
-    const result = await requestInterceptor.fulfilled(config);
-
+    const config = stubAdapter.getConfig();
     // Should have lookup set for localhost
-    expect(result.lookup).toBeDefined();
-    expect(typeof result.lookup).toBe('function');
+    expect(config.lookup).toBeDefined();
+    expect(typeof config.lookup).toBe('function');
   });
 });
