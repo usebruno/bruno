@@ -11,6 +11,7 @@ export interface DotenvVariable {
  *
  * Values containing special characters are wrapped in double quotes:
  * - newlines (\n): would break the line-based format
+ * - carriage returns (\r): would break Windows CRLF handling
  * - double quotes ("): need escaping
  * - single quotes ('): need escaping
  * - backslashes (\): need escaping
@@ -26,9 +27,9 @@ export const jsonToDotenv = (variables: DotenvVariable[]): string => {
     .map((v) => {
       const value = v.value || '';
       // If value contains special characters, wrap in quotes
-      if (value.includes('\n') || value.includes('"') || value.includes('\'') || value.includes('\\') || value.includes('#')) {
-        // Escape backslashes first, then double quotes, then newlines
-        const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      if (value.includes('\n') || value.includes('\r') || value.includes('"') || value.includes('\'') || value.includes('\\') || value.includes('#')) {
+        // Escape backslashes first, then double quotes, then carriage returns, then newlines
+        const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '\\r').replace(/\n/g, '\\n');
         return `${v.name}="${escapedValue}"`;
       }
       return `${v.name}=${value}`;

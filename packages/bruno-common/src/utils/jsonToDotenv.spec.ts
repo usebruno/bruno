@@ -80,6 +80,18 @@ describe('jsonToDotenv', () => {
       const output = jsonToDotenv(variables);
       expect(output).toBe('PATH="C:\\\\Users\\\\name"');
     });
+
+    test('it should quote and escape values containing carriage returns', () => {
+      const variables = [{ name: 'CR_VALUE', value: 'line1\rline2' }];
+      const output = jsonToDotenv(variables);
+      expect(output).toBe('CR_VALUE="line1\\rline2"');
+    });
+
+    test('it should quote and escape values containing CRLF (Windows line endings)', () => {
+      const variables = [{ name: 'CRLF_VALUE', value: 'line1\r\nline2' }];
+      const output = jsonToDotenv(variables);
+      expect(output).toBe('CRLF_VALUE="line1\\r\\nline2"');
+    });
   });
 
   describe('round-trip with dotenvToJson', () => {
