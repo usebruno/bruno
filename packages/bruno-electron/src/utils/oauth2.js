@@ -397,7 +397,20 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 
     debugInfo.data.push(requestDetails);
     credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId, cacheKeyFingerprint });
-    return { collectionUid, url, credentials, credentialsId, debugInfo, cacheKeyFingerprint, tokenCacheSource: 'refreshed', authDiagnostics: buildAuthDiagnostics({ credentials, cacheKeyFingerprint, tokenSource: 'refreshed' }) };
+    return {
+      collectionUid,
+      url,
+      credentials,
+      credentialsId,
+      debugInfo,
+      cacheKeyFingerprint,
+      tokenCacheSource: 'token_url',
+      authDiagnostics: buildAuthDiagnostics({
+        credentials,
+        cacheKeyFingerprint,
+        tokenSource: 'token_url'
+      })
+    };
   } catch (error) {
     return Promise.reject(error);
   }
