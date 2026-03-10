@@ -77,13 +77,16 @@ const StyledWrapper = styled.div`
 
         &:last-child {
           border-radius: 0 4px 4px 0;
-          border-left: none;
+          margin-left: -1px;
         }
 
         &.active {
           background-color: ${(props) => props.theme.background.base};
           color: ${(props) => props.theme.colors.text.yellow};
           border-color: ${(props) => props.theme.colors.text.yellow};
+          font-weight: 600;
+          position: relative;
+          z-index: 1;
         }
       }
     }
