@@ -983,7 +983,7 @@ const registerNetworkIpc = (mainWindow) => {
           collectionUid,
           credentialsId: request?.oauth2Credentials?.credentialsId,
           ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
- debugInfo: request?.oauth2Credentials?.debugInfo,
+          debugInfo: request?.oauth2Credentials?.debugInfo,
           authDiagnostics: request?.oauth2Credentials?.authDiagnostics || buildAuthDiagnostics(request)
         });
 
