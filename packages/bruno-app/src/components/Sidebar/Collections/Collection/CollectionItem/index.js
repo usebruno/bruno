@@ -754,10 +754,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               {(() => {
                 const active = getActiveWarnings(item);
                 if (active.length > 0) {
+                  const locationLabels = {
+                    'pre-request-script': 'pre-request script',
+                    'post-response-script': 'post-response script',
+                    'tests': 'tests'
+                  };
+                  const lines = active.map((w) => {
+                    const lastColon = w.message.lastIndexOf(': ');
+                    const api = lastColon !== -1 ? w.message.slice(lastColon + 2) : w.message;
+                    const loc = locationLabels[w.location] || w.location;
+                    return `• ${api} (${loc})`;
+                  });
+                  const tooltip = `Unsupported Postman APIs:\n${lines.join('\n')}`;
                   return (
                     <span
                       className="ml-1 flex items-center"
-                      title={`${active.length} warning${active.length > 1 ? 's' : ''}`}
+                      title={tooltip}
                     >
                       <IconAlertTriangle size={14} strokeWidth={2} style={{ color: theme.colors.text.warning }} />
                     </span>

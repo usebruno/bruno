@@ -41,7 +41,7 @@ const makeWarning = (locationLabel, api) => ({
   severity: 'warning',
   dismissible: true,
   location: LOCATION_MAP[locationLabel],
-  message: `Untranslated Postman API in ${locationLabel}: ${api}`
+  message: `Unsupported Postman API in ${locationLabel}: ${api}`
 });
 
 /**

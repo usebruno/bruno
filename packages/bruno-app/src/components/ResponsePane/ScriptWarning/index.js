@@ -2,7 +2,8 @@ import React from 'react';
 import WarningBanner from 'ui/WarningBanner';
 
 const formatWarnings = (paths) => {
-  return paths.map((p) => `"${p}" is a Postman API that is not supported in Bruno.`).join('\n');
+  const bullets = paths.map((p) => `  • ${p}`).join('\n');
+  return `The following Postman APIs were not automatically converted during import and are not supported in Bruno:\n\n${bullets}\n\nYou may need to find an alternative approach for this functionality.`;
 };
 
 const ScriptWarning = ({ item, onClose }) => {

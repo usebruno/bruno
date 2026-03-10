@@ -65,6 +65,19 @@ warningsMiddleware.startListening({
     if (itemUid) {
       const item = findItemInCollection(collection, itemUid);
       if (item) {
+        // Skip validation for items that failed to parse — script fields are unreliable.
+        // Clear any stale warnings so the warning icon doesn't overlap the parse-error icon.
+        if (item.partial || item.error) {
+          if (item.warnings?.length) {
+            listenerApi.dispatch(setItemWarnings({
+              collectionUid,
+              itemUid: item.uid,
+              warnings: []
+            }));
+          }
+          return;
+        }
+
         const newWarnings = validateItem(item);
         if (!isEqual(newWarnings, item.warnings || [])) {
           listenerApi.dispatch(setItemWarnings({

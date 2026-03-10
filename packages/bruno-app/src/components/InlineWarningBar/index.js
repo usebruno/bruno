@@ -40,7 +40,7 @@ const InlineWarningBar = ({ item, collectionUid, location }) => {
         <div className="inline-warning-content">
           <IconAlertTriangle size={14} className="inline-warning-icon" />
           <span className="inline-warning-text">
-            {warnings.length} untranslated Postman API{warnings.length > 1 ? 's' : ''}: {summary}
+            {warnings.length} unsupported Postman API{warnings.length > 1 ? 's' : ''}: {summary}
           </span>
         </div>
         <button onClick={handleDismiss} className="inline-warning-dismiss" title="Dismiss warnings">

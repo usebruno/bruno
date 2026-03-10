@@ -45,9 +45,12 @@ export const validateCollection = (collection, rules = allRules) => {
     if (!items || !Array.isArray(items)) return;
 
     for (const item of items) {
-      const itemWarnings = validateItem(item, rules);
-      if (itemWarnings.length > 0) {
-        warningsMap[item.uid] = itemWarnings;
+      // Skip items that failed to parse — script fields are unreliable
+      if (!item.partial && !item.error) {
+        const itemWarnings = validateItem(item, rules);
+        if (itemWarnings.length > 0) {
+          warningsMap[item.uid] = itemWarnings;
+        }
       }
       if (item.type === 'folder' && item.items) {
         walkItems(item.items);
