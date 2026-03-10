@@ -157,6 +157,8 @@ const QueryResult = ({
       return;
     }
     let cancelled = false;
+    setJqResult(null);
+    setJqError(null);
     runJqFilter(data, filter)
       .then((result) => {
         if (!cancelled) {
@@ -277,6 +279,7 @@ const QueryResult = ({
                 mode={codeMirrorMode}
                 filterType={filterType}
                 onFilterTypeChange={setFilterType}
+                jqError={jqError}
               />
             )}
           </div>
