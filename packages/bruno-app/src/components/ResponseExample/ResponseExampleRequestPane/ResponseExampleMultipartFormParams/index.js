@@ -271,7 +271,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
       <EditableTable
         tableId="example-multipart-form"
         columnWidths={multipartFormWidths}
-        onColumnWidthsChange={handleColumnWidthsChange}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('example-multipart-form', widths)}
         columns={columns}
         rows={params || []}
         onChange={handleParamsChange}

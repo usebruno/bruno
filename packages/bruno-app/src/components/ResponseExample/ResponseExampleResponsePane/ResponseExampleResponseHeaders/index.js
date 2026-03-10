@@ -183,7 +183,7 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
       <EditableTable
         tableId="example-response-headers"
         columnWidths={responseHeadersWidths}
-        onColumnWidthsChange={handleColumnWidthsChange}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('example-response-headers', widths)}
         columns={columns}
         rows={headers || []}
         onChange={handleHeadersChange}

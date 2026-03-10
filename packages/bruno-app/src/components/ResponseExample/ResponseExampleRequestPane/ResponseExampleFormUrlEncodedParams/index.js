@@ -100,7 +100,7 @@ const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, edi
       <EditableTable
         tableId="example-form-url-encoded"
         columnWidths={formUrlEncodedWidths}
-        onColumnWidthsChange={handleColumnWidthsChange}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('example-form-url-encoded', widths)}
         columns={columns}
         rows={params || []}
         onChange={handleParamsChange}

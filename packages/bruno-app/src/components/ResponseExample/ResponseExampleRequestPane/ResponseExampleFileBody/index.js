@@ -193,7 +193,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
       <EditableTable
         tableId="example-file-body"
         columnWidths={fileBodyWidths}
-        onColumnWidthsChange={handleColumnWidthsChange}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('example-file-body', widths)}
         columns={columns}
         rows={params || []}
         onChange={handleParamsChange}
