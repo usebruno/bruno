@@ -18,7 +18,13 @@ import get from 'lodash/get';
  *   description: 'Enable Node VM runtime for JavaScript execution in Developer Mode'
  * }
  */
-const BETA_FEATURES = [];
+const BETA_FEATURES = [
+  {
+    id: 'openapi-sync',
+    label: 'OpenAPI Sync',
+    description: 'Synchronize your Bruno collection with an OpenAPI specification. Detect drift, review changes, and sync with a single click.'
+  }
+];
 
 const Beta = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -45,6 +51,7 @@ const Beta = ({ close }) => {
   const betaSchema = generateValidationSchema();
 
   const formik = useFormik({
+    enableReinitialize: true,
     initialValues: generateInitialValues(),
     validationSchema: betaSchema,
     onSubmit: async (values) => {
