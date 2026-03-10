@@ -90,10 +90,15 @@ const resolveRadius = (props) => {
 /**
  * Size presets — derived from existing badge patterns in the codebase.
  *
+ * - xs: 9px font, minimal padding (inline labels, tab badges)
  * - sm: 10px font, compact padding (matches .conflict-badge, .source-tag, .required-badge)
  * - md: theme xs font, wider padding (matches .deprecated-tag, .changes-tag, .context-pill)
  */
 const sizeStyles = {
+  xs: css`
+    font-size: 9px;
+    padding: 0.0625rem 0.25rem;
+  `,
   sm: css`
     font-size: 10px;
     padding: 0.125rem 0.375rem;
