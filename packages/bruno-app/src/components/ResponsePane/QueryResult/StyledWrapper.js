@@ -59,6 +59,23 @@ const StyledWrapper = styled.div`
       }
     }
 
+    .jq-error {
+      position: absolute;
+      bottom: 100%;
+      right: 0;
+      margin-bottom: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      color: ${(props) => props.theme.colors.text.danger};
+      background-color: ${(props) => props.theme.background.base};
+      border: solid 1px ${(props) => props.theme.colors.text.danger};
+      border-radius: ${(props) => props.theme.border.radius.sm};
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
     .filter-type-toggle {
       flex-shrink: 0;
 
@@ -66,7 +83,7 @@ const StyledWrapper = styled.div`
         font-size: 11px;
         padding: 2px 8px;
         border: solid 1px ${(props) => props.theme.border.border2};
-        background: transparent;
+        background-color: ${(props) => props.theme.background.mantle};
         color: ${(props) => props.theme.colors.text.muted};
         cursor: pointer;
         white-space: nowrap;

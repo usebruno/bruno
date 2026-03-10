@@ -2,7 +2,7 @@ import { IconFilter, IconX } from '@tabler/icons';
 import React, { useMemo, useRef, useState } from 'react';
 import { Tooltip as ReactInfotip } from 'react-tooltip';
 
-const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, mode, filterType, onFilterTypeChange }) => {
+const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, mode, filterType, onFilterTypeChange, jqError }) => {
   const inputRef = useRef(null);
   const [isExpanded, setIsExpanded] = useState(filterExpanded || false);
 
@@ -101,6 +101,9 @@ const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, m
       <div className="text-gray-500 cursor-pointer pointer-events-auto" id="request-filter-icon" onClick={handleFilterClick}>
         {isExpanded ? <IconX size={20} strokeWidth={1.5} /> : <IconFilter size={20} strokeWidth={1.5} />}
       </div>
+      {isExpanded && jqError && (
+        <div className="jq-error pointer-events-auto">{jqError}</div>
+      )}
     </div>
   );
 };
