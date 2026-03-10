@@ -93,7 +93,7 @@ const QueryResultFilter = ({ filter, onChange, mode, filterType, onFilterTypeCha
         {isExpanded ? <IconX size={20} strokeWidth={1.5} /> : <IconFilter size={20} strokeWidth={1.5} />}
       </div>
       {isExpanded && jqError && (
-        <div className="jq-error pointer-events-auto">{jqError}</div>
+        <div className="jq-error pointer-events-auto" title={jqError}>{jqError}</div>
       )}
     </div>
   );
