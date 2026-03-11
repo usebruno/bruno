@@ -155,6 +155,56 @@ describe('Bruno Cookie Jar Wrapper - API Examples', () => {
     });
   });
 
+  describe('Callback mode does not return a Promise', () => {
+    // tough-cookie's createPromiseCallback() returns a never-resolving Promise when
+    // a callback is provided. The wrapper must NOT propagate that Promise, otherwise
+    // `await jar.getCookie(url, name, cb)` hangs forever (blocks the Node VM runner).
+    test('getCookie with callback returns void, not a Promise', () => {
+      jar.setCookie(testUrl, 'x', '1');
+      const ret = jar.getCookie(testUrl, 'x', () => {});
+      expect(ret).toBeUndefined();
+    });
+
+    test('getCookies with callback returns void, not a Promise', () => {
+      const ret = jar.getCookies(testUrl, () => {});
+      expect(ret).toBeUndefined();
+    });
+
+    test('hasCookie with callback returns void, not a Promise', () => {
+      const ret = jar.hasCookie(testUrl, 'x', () => {});
+      expect(ret).toBeUndefined();
+    });
+
+    test('clear with callback returns void, not a Promise', () => {
+      const ret = jar.clear(() => {});
+      expect(ret).toBeUndefined();
+    });
+
+    test('deleteCookies with callback returns void, not a Promise', () => {
+      const ret = jar.deleteCookies(testUrl, () => {});
+      expect(ret).toBeUndefined();
+    });
+
+    test('deleteCookie with callback returns void, not a Promise', () => {
+      const ret = jar.deleteCookie(testUrl, 'x', () => {});
+      expect(ret).toBeUndefined();
+    });
+
+    test('getCookie with callback can be safely awaited without hanging', async () => {
+      await jar.setCookie(testUrl, 'token', 'abc');
+
+      let callbackData: any = null;
+      // This would hang forever before the fix if getCookie returned tough-cookie's Promise
+      await jar.getCookie(testUrl, 'token', (_err, cookie) => {
+        callbackData = cookie;
+      });
+
+      expect(callbackData).not.toBeNull();
+      expect(callbackData.key).toBe('token');
+      expect(callbackData.value).toBe('abc');
+    });
+  });
+
   describe('Error Handling', () => {
     test('setCookie handles missing URL', async () => {
       await expect(jar.setCookie('', 'name', 'value')).rejects.toThrow('URL is required');
