@@ -56,6 +56,30 @@ const BOUND_ACTIONS = [
 ];
 
 /**
+ * Check if the event is a native editing shortcut (copy, cut, paste, select all, undo, redo)
+ * These should allow default browser behavior in input fields as they are using mousetrap class everywhere
+ */
+function isNativeEditingShortcut(e) {
+  const key = e.key?.toLowerCase();
+  const ctrl = e.ctrlKey || e.metaKey; // Ctrl on Windows/Linux, Cmd on Mac
+  const shift = e.shiftKey;
+
+  // Copy (C), Cut (X), Paste (V), Select All (A), Undo (Z), Redo (Y or Shift+Z)
+  if (ctrl && !shift && (key === 'c' || key === 'x' || key === 'v' || key === 'a' || key === 'z')) {
+    return true;
+  }
+  // Redo: Ctrl+Shift+Z or Ctrl+Y
+  if (ctrl && shift && key === 'z') {
+    return true;
+  }
+  if (ctrl && key === 'y') {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Bind a single hotkey action using Mousetrap.
  * Reads from merged defaults + user preferences via getKeyBindingsForActionAllOS.
  */
@@ -64,19 +88,15 @@ function bindHotkey(action, handler, userKeyBindings) {
   if (!combos?.length) return;
 
   Mousetrap.bind([...combos], (e) => {
-    // Allow default browser behavior for input, textarea, select, and contenteditable elements
-    // This ensures copy/paste (Ctrl+C/V) works in input fields
+    // Check if we're in an input field with 'mousetrap' class
     const target = e.target || e.srcElement;
-    const tagName = target?.tagName?.toLowerCase();
-    const isInputField
-      = tagName === 'input'
-        || tagName === 'textarea'
-        || tagName === 'select'
-        || target?.isContentEditable
-        || target?.classList?.contains('mousetrap');
+    const hasMousetrapClass = target?.classList?.contains('mousetrap');
 
-    if (isInputField) {
-      return true; // Allow default behavior (copy/paste) in input fields
+    // Only allow default behavior for native editing shortcuts in elements with 'mousetrap' class
+    // This ensures copy/cut/paste/select-all/undo/redo work normally in input fields
+    // Other Bruno shortcuts (save, send, etc.) will still work
+    if (hasMousetrapClass && isNativeEditingShortcut(e)) {
+      return true; // Allow default browser behavior
     }
 
     e?.preventDefault?.();
