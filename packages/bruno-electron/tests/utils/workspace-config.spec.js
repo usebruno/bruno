@@ -150,16 +150,27 @@ describe('renameWorkspace', () => {
   });
 
   test('handles case-insensitive rename on same folder', async () => {
+    const testDir = path.join(parentDir, 'CaSe_TeSt');
+    fs.mkdirSync(testDir);
+    const isCaseInsensitive = fs.existsSync(path.join(parentDir, 'case_test'));
+    fs.rmSync(testDir, { recursive: true });
+
     // Create workspace with lowercase name
     const lowerPath = createWorkspace('myworkspace', 'myworkspace');
 
-    // Rename to different case - should only update config, not rename folder
+    // Rename to different case
     const result = await renameWorkspace(lowerPath, 'MyWorkspace');
 
-    // On case-insensitive filesystems, paths are considered same
-    // So we just update the config without renaming
-    expect(result.newWorkspacePath).toBeNull();
-    expect(getWorkspaceName(lowerPath)).toBe('MyWorkspace');
+    if (isCaseInsensitive) {
+      // On case-insensitive filesystems (macOS, Windows), paths are same
+      expect(result.newWorkspacePath).toBeNull();
+      expect(getWorkspaceName(lowerPath)).toBe('MyWorkspace');
+    } else {
+      // On case-sensitive filesystems (Linux), folder is actually renamed
+      expect(result.newWorkspacePath).toBe(path.join(parentDir, 'MyWorkspace'));
+      expect(fs.existsSync(result.newWorkspacePath)).toBe(true);
+      expect(getWorkspaceName(result.newWorkspacePath)).toBe('MyWorkspace');
+    }
   });
 
   test('preserves workspace.yml content after rename', async () => {

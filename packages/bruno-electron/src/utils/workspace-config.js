@@ -582,7 +582,17 @@ const renameWorkspace = async (workspacePath, newName) => {
     }
 
     fs.renameSync(workspacePath, newWorkspacePath);
-    await updateWorkspaceName(newWorkspacePath, newName);
+
+    try {
+      await updateWorkspaceName(newWorkspacePath, newName);
+    } catch (error) {
+      try {
+        fs.renameSync(newWorkspacePath, workspacePath);
+      } catch (rollbackError) {
+        console.error('Failed to rollback workspace folder rename:', rollbackError);
+      }
+      throw error;
+    }
 
     return { newWorkspacePath };
   }
