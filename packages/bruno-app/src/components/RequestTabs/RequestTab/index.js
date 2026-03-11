@@ -162,6 +162,13 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     menuDropdownRef.current?.show();
   };
 
+  // Prevent the browser's autoscroll (triggered on middle-button mousedown)
+  const handleMouseDown = (e) => {
+    if (e.button === 1) {
+      e.preventDefault();
+    }
+  };
+
   const handleMouseUp = (e) => {
     if (e.button === 1) {
       e.preventDefault();
@@ -251,6 +258,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return (
       <StyledWrapper
         className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
+        onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
       >
         {showConfirmCollectionClose && tab.type === 'collection-settings' && (
@@ -438,6 +446,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return (
       <StyledWrapper
         className="flex items-center justify-between tab-container"
+        onMouseDown={handleMouseDown}
         onMouseUp={(e) => {
           if (e.button === 1) {
             e.preventDefault();
@@ -494,6 +503,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
+        onMouseDown={handleMouseDown}
         onMouseUp={(e) => {
           if (!hasChanges) return handleMouseUp(e);
 
