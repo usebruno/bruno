@@ -52,6 +52,9 @@ bruno.iml
 .claude
 .codex
 
+.agents
+.agent
+skills-lock.json
 # Playwright
 /blob-report/
 

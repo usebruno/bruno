@@ -1,12 +1,15 @@
 const { marshallToVm } = require('../utils');
 
+// Marshal a QuickJS query argument to a host-compatible value.
+// Function handles are wrapped as native callbacks; other values are dumped as-is.
+// Safe because @usebruno/query's get() invokes filters synchronously,
+// so the borrowed arg handle is still valid.
 const toHostQueryArg = (vm, arg) => {
   if (vm.typeof(arg) === 'function') {
     return (item) => {
-      const itemVm = marshallToVm(item, vm);
-      const result = vm.callFunction(arg, vm.global, itemVm);
-
-      itemVm.dispose();
+      const itemHandle = marshallToVm(item, vm);
+      const result = vm.callFunction(arg, vm.global, itemHandle);
+      itemHandle.dispose();
 
       if (result.error) {
         const error = vm.dump(result.error);
@@ -16,7 +19,6 @@ const toHostQueryArg = (vm, arg) => {
 
       const value = vm.dump(result.value);
       result.value.dispose();
-
       return value;
     };
   }
@@ -26,13 +28,8 @@ const toHostQueryArg = (vm, arg) => {
 
 const addBrunoResponseShimToContext = (vm, res) => {
   let resFn = vm.newFunction('res', function (exprStr, ...queryArgs) {
-    try {
-      const nativeArgs = queryArgs.map((arg) => toHostQueryArg(vm, arg));
-      return marshallToVm(res(vm.dump(exprStr), ...nativeArgs), vm);
-    } finally {
-      exprStr?.dispose?.();
-      queryArgs.forEach((arg) => arg?.dispose?.());
-    }
+    const nativeArgs = queryArgs.map((arg) => toHostQueryArg(vm, arg));
+    return marshallToVm(res(vm.dump(exprStr), ...nativeArgs), vm);
   });
 
   const status = marshallToVm(res?.status, vm);
