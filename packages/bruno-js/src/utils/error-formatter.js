@@ -64,6 +64,38 @@ const findScriptBlockStartLine = (filePath, scriptType, cache = null) => {
   return result;
 };
 
+/** Find the 1-indexed last content line of a script block in a .bru file (excludes closing }) */
+const findScriptBlockEndLine = (filePath, scriptType, cache = null) => {
+  if (!filePath.endsWith('.bru')) return null;
+
+  const cacheKey = `bru-end:${filePath}:${scriptType}`;
+  if (cache?.has(cacheKey)) return cache.get(cacheKey);
+
+  const content = readFile(filePath, cache);
+  if (!content) return null;
+
+  const pattern = BLOCK_PATTERNS[scriptType];
+  if (!pattern) return null;
+
+  const lines = content.split('\n');
+  let inBlock = false;
+  let result = null;
+  for (let i = 0; i < lines.length; i++) {
+    if (!inBlock && pattern.test(lines[i])) {
+      inBlock = true;
+      continue;
+    }
+    if (inBlock && /^\}/.test(lines[i])) {
+      // i is the 0-indexed line of `}`, so the last content line is 1-indexed i
+      result = i;
+      break;
+    }
+  }
+
+  if (cache) cache.set(cacheKey, result);
+  return result;
+};
+
 /** Find the 1-indexed line where a script block's content starts in a .yml file */
 const findYmlScriptBlockStartLine = (filePath, scriptType, cache = null) => {
   if (!filePath.endsWith('.yml') && !filePath.endsWith('.yaml')) return null;
@@ -93,6 +125,51 @@ const findYmlScriptBlockStartLine = (filePath, scriptType, cache = null) => {
             const codeNode = item.get('code', true);
             if (codeNode && codeNode.range) {
               result = lineCounter.linePos(codeNode.range[0]).line + 1;
+              break;
+            }
+          }
+        }
+        if (result) break;
+      }
+    }
+  } catch {
+    // invalid YAML
+  }
+
+  if (cache) cache.set(cacheKey, result);
+  return result;
+};
+
+/** Find the 1-indexed last content line of a script block in a .yml file */
+const findYmlScriptBlockEndLine = (filePath, scriptType, cache = null) => {
+  if (!filePath.endsWith('.yml') && !filePath.endsWith('.yaml')) return null;
+
+  const cacheKey = `yml-end:${filePath}:${scriptType}`;
+  if (cache?.has(cacheKey)) return cache.get(cacheKey);
+
+  const content = readFile(filePath, cache);
+  if (!content) return null;
+
+  const ymlType = SCRIPT_TYPE_TO_YML[scriptType];
+  if (!ymlType) return null;
+
+  let result = null;
+  try {
+    const lineCounter = new YAML.LineCounter();
+    const doc = YAML.parseDocument(content, { lineCounter });
+
+    const scriptPaths = [['runtime', 'scripts'], ['request', 'scripts']];
+    for (const scriptPath of scriptPaths) {
+      const scripts = doc.getIn(scriptPath, true);
+      if (YAML.isSeq(scripts)) {
+        for (const item of scripts.items) {
+          if (!YAML.isMap(item)) continue;
+          if (item.get('type') === ymlType) {
+            const codeNode = item.get('code', true);
+            if (codeNode && codeNode.range) {
+              // range[1] is the end offset; go back 1 to get the last content character
+              const endOffset = Math.max(codeNode.range[1] - 1, codeNode.range[0]);
+              result = lineCounter.linePos(endOffset).line;
               break;
             }
           }
@@ -420,7 +497,9 @@ module.exports = {
   adjustLineNumber,
   resolveSegmentError,
   findScriptBlockStartLine,
+  findScriptBlockEndLine,
   findYmlScriptBlockStartLine,
+  findYmlScriptBlockEndLine,
   adjustStackTrace,
   getErrorTypeName
 };

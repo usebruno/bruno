@@ -9,7 +9,7 @@ const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, SCRIPT_TYPES } = require('@usebruno/js');
-const { parseErrorLocation, adjustLineNumber, resolveSegmentError, getSourceContext, adjustStackTrace, getErrorTypeName, findScriptBlockStartLine, findYmlScriptBlockStartLine } = require('@usebruno/js/src/utils/error-formatter');
+const { parseErrorLocation, adjustLineNumber, resolveSegmentError, getSourceContext, adjustStackTrace, getErrorTypeName, findScriptBlockStartLine, findScriptBlockEndLine, findYmlScriptBlockStartLine, findYmlScriptBlockEndLine } = require('@usebruno/js/src/utils/error-formatter');
 const { encodeUrl } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
@@ -484,11 +484,20 @@ const registerNetworkIpc = (mainWindow) => {
       // Compute block-relative line numbers for the desktop UI.
       // Users edit scripts in a CodeMirror editor starting at line 1,
       // so show lines relative to the script block, not absolute .bru file lines.
-      const blockStartLine = sourceFile.endsWith('.bru')
+      const isBru = sourceFile.endsWith('.bru');
+      const isYml = sourceFile.endsWith('.yml') || sourceFile.endsWith('.yaml');
+
+      const blockStartLine = isBru
         ? findScriptBlockStartLine(sourceFile, scriptType, cache)
-        : (sourceFile.endsWith('.yml') || sourceFile.endsWith('.yaml'))
-            ? findYmlScriptBlockStartLine(sourceFile, scriptType, cache)
-            : null;
+        : isYml
+          ? findYmlScriptBlockStartLine(sourceFile, scriptType, cache)
+          : null;
+
+      const blockEndLine = isBru
+        ? findScriptBlockEndLine(sourceFile, scriptType, cache)
+        : isYml
+          ? findYmlScriptBlockEndLine(sourceFile, scriptType, cache)
+          : null;
 
       const blockOffset = blockStartLine ? blockStartLine - 1 : 0;
 
@@ -497,7 +506,10 @@ const registerNetworkIpc = (mainWindow) => {
         filePath: displayPath,
         errorLine: sourceLine - blockOffset,
         lines: context.lines
-          .filter((l) => l.lineNumber - blockOffset >= 1)
+          .filter((l) => {
+            const rel = l.lineNumber - blockOffset;
+            return rel >= 1 && (!blockEndLine || l.lineNumber <= blockEndLine);
+          })
           .map((l) => ({
             lineNumber: l.lineNumber - blockOffset,
             content: l.content,
