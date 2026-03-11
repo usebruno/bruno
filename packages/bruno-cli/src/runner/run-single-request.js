@@ -559,7 +559,7 @@ const runSingleRequest = async function (
       // if `data` is of string type - return as-is (assumes already encoded)
     }
 
-    if (contentTypeHeader && contentTypeHeader.startsWith('multipart/')) {
+    if (contentTypeHeader && request.headers[contentTypeHeader].startsWith('multipart/')) {
       if (!isFormData(request?.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
