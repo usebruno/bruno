@@ -2,7 +2,7 @@ import React, { useRef, useCallback, useMemo } from 'react';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
 import { find, get } from 'lodash';
-import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
@@ -83,8 +83,18 @@ const HttpRequestPane = ({ item, collection }) => {
   const selectTab = useCallback(
     (tabKey) => {
       dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: tabKey }));
+
+      if (tabKey === 'script') {
+        const hasPreReqWarning = hasActiveWarningsForLocations(item, ['pre-request-script']);
+        const hasPostResWarning = hasActiveWarningsForLocations(item, ['post-response-script']);
+        if (hasPreReqWarning) {
+          dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: 'pre-request' }));
+        } else if (hasPostResWarning) {
+          dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: 'post-response' }));
+        }
+      }
     },
-    [dispatch, item.uid]
+    [dispatch, item.uid, item.warnings, item.dismissedWarningRules]
   );
 
   const indicators = useMemo(() => {

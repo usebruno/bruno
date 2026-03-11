@@ -27,6 +27,7 @@ describe('validateItem', () => {
     expect(warnings[0].location).toBe('pre-request-script');
     expect(warnings[0].message).toContain('pre-request script');
     expect(warnings[0].message).toContain('pm.vault.get');
+    expect(warnings[0].line).toBe(1);
   });
 
   it('should detect postman.* in post-response script', () => {
@@ -44,6 +45,7 @@ describe('validateItem', () => {
     expect(warnings[0].location).toBe('post-response-script');
     expect(warnings[0].message).toContain('post-response script');
     expect(warnings[0].message).toContain('postman.setNextRequest');
+    expect(warnings[0].line).toBe(1);
   });
 
   it('should detect pm.* in tests field', () => {
@@ -177,6 +179,55 @@ describe('validateItem', () => {
       }
     };
     expect(validateItem(item)).toEqual([]);
+  });
+
+  it('should report correct line numbers for multi-line scripts', () => {
+    const item = {
+      type: 'http-request',
+      request: {
+        script: {
+          req: 'const x = 1;\nconst y = 2;\npm.vault.get("secret");\nconst z = 3;\npm.iterationData.get("key");',
+          res: ''
+        }
+      }
+    };
+    const warnings = validateItem(item);
+    expect(warnings.length).toBe(2);
+    expect(warnings[0].message).toContain('pm.vault.get');
+    expect(warnings[0].line).toBe(3);
+    expect(warnings[1].message).toContain('pm.iterationData.get');
+    expect(warnings[1].line).toBe(5);
+  });
+
+  it('should report line 1 for API on first line', () => {
+    const item = {
+      type: 'http-request',
+      request: {
+        script: {
+          req: 'pm.vault.get("secret");\nconst x = 1;',
+          res: ''
+        }
+      }
+    };
+    const warnings = validateItem(item);
+    expect(warnings.length).toBe(1);
+    expect(warnings[0].line).toBe(1);
+  });
+
+  it('should report correct line numbers with comments on earlier lines', () => {
+    const item = {
+      type: 'http-request',
+      request: {
+        script: {
+          req: '// pm.vault.get("ignored")\nconst x = 1;\npm.cookies.get("key");',
+          res: ''
+        }
+      }
+    };
+    const warnings = validateItem(item);
+    expect(warnings.length).toBe(1);
+    expect(warnings[0].message).toContain('pm.cookies.get');
+    expect(warnings[0].line).toBe(3);
   });
 });
 

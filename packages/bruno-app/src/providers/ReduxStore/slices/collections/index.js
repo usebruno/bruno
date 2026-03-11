@@ -2938,6 +2938,9 @@ export const collectionsSlice = createSlice({
       item.preRequestScriptErrorMessage = null;
       item.postResponseScriptErrorMessage = null;
       item.testScriptErrorMessage = null;
+      item.preRequestScriptErrorContext = null;
+      item.postResponseScriptErrorContext = null;
+      item.testScriptErrorContext = null;
       item.preRequestScriptWarnings = null;
       item.postResponseScriptWarnings = null;
       item.testScriptWarnings = null;
@@ -2954,16 +2957,19 @@ export const collectionsSlice = createSlice({
 
           if (type === 'pre-request-script-execution') {
             item.preRequestScriptErrorMessage = action.payload.errorMessage;
+            item.preRequestScriptErrorContext = action.payload.errorContext || null;
             item.preRequestScriptWarnings = action.payload.pmApiWarnings;
           }
 
           if (type === 'post-response-script-execution') {
             item.postResponseScriptErrorMessage = action.payload.errorMessage;
+            item.postResponseScriptErrorContext = action.payload.errorContext || null;
             item.postResponseScriptWarnings = action.payload.pmApiWarnings;
           }
 
           if (type === 'test-script-execution') {
             item.testScriptErrorMessage = action.payload.errorMessage;
+            item.testScriptErrorContext = action.payload.errorContext || null;
             item.testScriptWarnings = action.payload.pmApiWarnings;
           }
 
@@ -3095,18 +3101,21 @@ export const collectionsSlice = createSlice({
         if (type === 'post-response-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.postResponseScriptErrorMessage = action.payload.errorMessage;
+          item.postResponseScriptErrorContext = action.payload.errorContext || null;
           item.postResponseScriptWarnings = action.payload.pmApiWarnings;
         }
 
         if (type === 'test-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.testScriptErrorMessage = action.payload.errorMessage;
+          item.testScriptErrorContext = action.payload.errorContext || null;
           item.testScriptWarnings = action.payload.pmApiWarnings;
         }
 
         if (type === 'pre-request-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.preRequestScriptErrorMessage = action.payload.errorMessage;
+          item.preRequestScriptErrorContext = action.payload.errorContext || null;
           item.preRequestScriptWarnings = action.payload.pmApiWarnings;
         }
       }

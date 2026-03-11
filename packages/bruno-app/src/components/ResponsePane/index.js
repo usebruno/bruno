@@ -15,6 +15,7 @@ import TestResultsLabel from './TestResultsLabel';
 import ScriptError from './ScriptError';
 import ScriptWarning from './ScriptWarning';
 import ScriptErrorIcon from './ScriptErrorIcon';
+import ScriptWarningIcon from './ScriptWarningIcon';
 import StyledWrapper from './StyledWrapper';
 import ResponsePaneActions from './ResponsePaneActions';
 import QueryResultTypeSelector from './QueryResult/QueryResultTypeSelector/index';
@@ -35,7 +36,9 @@ const ResponsePane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
-  const [showScriptWarningCard, setShowScriptWarningCard] = useState(false);
+  const [showPreRequestWarning, setShowPreRequestWarning] = useState(false);
+  const [showPostResponseWarning, setShowPostResponseWarning] = useState(false);
+  const [showTestWarning, setShowTestWarning] = useState(false);
   const rightContentRef = useRef(null);
 
   const response = item.response || {};
@@ -93,12 +96,6 @@ const ResponsePane = ({ item, collection }) => {
     }
   }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage, item?.testScriptErrorMessage]);
 
-  useEffect(() => {
-    if (item?.preRequestScriptWarnings?.length || item?.postResponseScriptWarnings?.length || item?.testScriptWarnings?.length) {
-      setShowScriptWarningCard(true);
-    }
-  }, [item?.preRequestScriptWarnings, item?.postResponseScriptWarnings, item?.testScriptWarnings]);
-
   const selectTab = (tab) => {
     dispatch(
       updateResponsePaneTab({
@@ -126,6 +123,10 @@ const ResponsePane = ({ item, collection }) => {
 
   const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
   const hasScriptWarnings = item?.preRequestScriptWarnings?.length || item?.postResponseScriptWarnings?.length || item?.testScriptWarnings?.length;
+  const anyWarningVisible
+    = (showPreRequestWarning && item?.preRequestScriptWarnings?.length)
+      || (showPostResponseWarning && item?.postResponseScriptWarnings?.length)
+      || (showTestWarning && item?.testScriptWarnings?.length);
 
   const allTabs = useMemo(() => {
     return [
@@ -243,6 +244,16 @@ const ResponsePane = ({ item, collection }) => {
           onClick={() => setShowScriptErrorCard(true)}
         />
       )}
+      {hasScriptWarnings && !anyWarningVisible && (
+        <ScriptWarningIcon
+          itemUid={item.uid}
+          onClick={() => {
+            setShowPreRequestWarning(true);
+            setShowPostResponseWarning(true);
+            setShowTestWarning(true);
+          }}
+        />
+      )}
       {focusedTab?.responsePaneTab === 'response' && item?.response && !(item.response?.stream ?? false) ? (
         <>
           {/* Result View Tabs (Visualizations + Response Format) */}
@@ -315,10 +326,16 @@ const ResponsePane = ({ item, collection }) => {
             onClose={() => setShowScriptErrorCard(false)}
           />
         )}
-        {hasScriptWarnings && showScriptWarningCard && focusedTab?.responsePaneTab === 'response' && (
+        {hasScriptWarnings && (showPreRequestWarning || showPostResponseWarning || showTestWarning) && focusedTab?.responsePaneTab === 'response' && (
           <ScriptWarning
             item={item}
-            onClose={() => setShowScriptWarningCard(false)}
+            collection={collection}
+            showPreRequest={showPreRequestWarning}
+            showPostResponse={showPostResponseWarning}
+            showTest={showTestWarning}
+            onClosePreRequest={() => setShowPreRequestWarning(false)}
+            onClosePostResponse={() => setShowPostResponseWarning(false)}
+            onCloseTest={() => setShowTestWarning(false)}
           />
         )}
         <div className="flex-1 overflow-y-auto">

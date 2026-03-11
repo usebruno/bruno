@@ -13,20 +13,36 @@ const stripCommentsAndStrings = (code) => {
 };
 
 /**
+ * Compute the 1-based line number for a given character index in code.
+ */
+const getLineNumber = (code, index) => {
+  let line = 1;
+  for (let i = 0; i < index && i < code.length; i++) {
+    if (code[i] === '\n') line++;
+  }
+  return line;
+};
+
+/**
  * Detect remaining untranslated pm/postman API calls in code.
- * Returns an array of unique API strings like ["pm.vault", "pm.iterationData.get"].
+ * Returns an array of { api, line } objects with unique APIs.
  */
 const detectUntranslatedApis = (code) => {
   if (!code || typeof code !== 'string') return [];
   const strippedCode = stripCommentsAndStrings(code);
-  const apis = [];
+  const seen = new Set();
+  const results = [];
   PM_PATTERN.lastIndex = 0;
   let match;
   while ((match = PM_PATTERN.exec(strippedCode)) !== null) {
     const api = match[0].trim();
-    if (!apis.includes(api)) apis.push(api);
+    if (!seen.has(api)) {
+      seen.add(api);
+      const apiStart = match.index + (match[0].length - match[0].trimStart().length);
+      results.push({ api, line: getLineNumber(code, apiStart) });
+    }
   }
-  return apis;
+  return results;
 };
 
 const LOCATION_MAP = {
@@ -35,13 +51,14 @@ const LOCATION_MAP = {
   'tests': 'tests'
 };
 
-const makeWarning = (locationLabel, api) => ({
+const makeWarning = (locationLabel, api, line) => ({
   type: 'untranslated-api',
   ruleId: 'untranslated-pm-api',
   severity: 'warning',
   dismissible: true,
   location: LOCATION_MAP[locationLabel],
-  message: `Unsupported Postman API in ${locationLabel}: ${api}`
+  message: `Unsupported Postman API in ${locationLabel}: ${api}`,
+  line
 });
 
 /**
@@ -52,17 +69,17 @@ const checkScripts = (script, tests) => {
   const warnings = [];
 
   if (script) {
-    detectUntranslatedApis(script.req).forEach((api) => {
-      warnings.push(makeWarning('pre-request script', api));
+    detectUntranslatedApis(script.req).forEach(({ api, line }) => {
+      warnings.push(makeWarning('pre-request script', api, line));
     });
 
-    detectUntranslatedApis(script.res).forEach((api) => {
-      warnings.push(makeWarning('post-response script', api));
+    detectUntranslatedApis(script.res).forEach(({ api, line }) => {
+      warnings.push(makeWarning('post-response script', api, line));
     });
   }
 
-  detectUntranslatedApis(tests).forEach((api) => {
-    warnings.push(makeWarning('tests', api));
+  detectUntranslatedApis(tests).forEach(({ api, line }) => {
+    warnings.push(makeWarning('tests', api, line));
   });
 
   return warnings;

@@ -8,6 +8,8 @@ import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
 import { flattenItems, isItemARequest } from 'utils/collections';
+import InlineWarningBar from 'components/InlineWarningBar';
+import { hasActiveWarningsForLocations } from 'utils/warnings';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 
@@ -78,6 +80,19 @@ const Script = ({ collection }) => {
   const hasPreRequestScriptError = items.some((i) => isItemARequest(i) && i.preRequestScriptErrorMessage);
   const hasPostResponseScriptError = items.some((i) => isItemARequest(i) && i.postResponseScriptErrorMessage);
 
+  const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
+  const hasPostResponseScript = responseScript && responseScript.trim().length > 0;
+
+  const getSubTabDotType = (hasScript, hasError, locations) => {
+    if (hasActiveWarningsForLocations(collection, locations)) return 'warning';
+    if (!hasScript) return null;
+    if (hasError) return 'error';
+    return 'default';
+  };
+
+  const preRequestDotType = getSubTabDotType(hasPreRequestScript, hasPreRequestScriptError, ['pre-request-script']);
+  const postResponseDotType = getSubTabDotType(hasPostResponseScript, hasPostResponseScriptError, ['post-response-script']);
+
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">
@@ -88,19 +103,16 @@ const Script = ({ collection }) => {
         <TabsList>
           <TabsTrigger value="pre-request">
             Pre Request
-            {requestScript && requestScript.trim().length > 0 && (
-              <StatusDot type={hasPreRequestScriptError ? 'error' : 'default'} />
-            )}
+            {preRequestDotType && <StatusDot type={preRequestDotType} />}
           </TabsTrigger>
           <TabsTrigger value="post-response">
             Post Response
-            {responseScript && responseScript.trim().length > 0 && (
-              <StatusDot type={hasPostResponseScriptError ? 'error' : 'default'} />
-            )}
+            {postResponseDotType && <StatusDot type={postResponseDotType} />}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pre-request" className="mt-2">
+          <InlineWarningBar item={collection} collectionUid={collection.uid} location="pre-request-script" />
           <CodeEditor
             ref={preRequestEditorRef}
             collection={collection}
@@ -116,6 +128,7 @@ const Script = ({ collection }) => {
         </TabsContent>
 
         <TabsContent value="post-response" className="mt-2">
+          <InlineWarningBar item={collection} collectionUid={collection.uid} location="post-response-script" />
           <CodeEditor
             ref={postResponseEditorRef}
             collection={collection}

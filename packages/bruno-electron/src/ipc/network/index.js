@@ -8,7 +8,8 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, SCRIPT_TYPES } = require('@usebruno/js');
+const { parseErrorLocation, adjustLineNumber, resolveSegmentError, getSourceContext, adjustStackTrace, getErrorTypeName } = require('@usebruno/js/src/utils/error-formatter');
 const { encodeUrl } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
@@ -443,18 +444,77 @@ const registerNetworkIpc = (mainWindow) => {
     });
   };
 
+  const buildErrorContext = (error, scriptType, itemPathname, collectionPath, scriptMetadata) => {
+    if (!error) return null;
+
+    try {
+      const cache = new Map();
+      const metadata = error.scriptMetadata || scriptMetadata;
+      const parsed = parseErrorLocation(error);
+      if (!parsed) return null;
+
+      const { filePath } = parsed;
+      const adjustedLine = adjustLineNumber(filePath, parsed.line, parsed.isQuickJS, scriptType, cache, metadata);
+
+      let sourceFile = filePath;
+      let sourceLine = adjustedLine;
+      let displayPath = itemPathname ? path.relative(collectionPath, itemPathname) : filePath;
+
+      // Handle collection/folder script segments
+      if (adjustedLine === null) {
+        const segmentResult = resolveSegmentError(parsed, metadata, scriptType, cache);
+        if (!segmentResult) return null;
+        sourceFile = segmentResult.filePath;
+        sourceLine = segmentResult.line;
+        displayPath = segmentResult.displayPath || path.relative(collectionPath, segmentResult.filePath);
+      }
+
+      const context = getSourceContext(sourceFile, sourceLine, 3, cache);
+      if (!context) return null;
+
+      const errorType = getErrorTypeName(error);
+      let stack = null;
+      if (error.stack) {
+        stack = adjustStackTrace(error.stack, scriptType, cache, metadata, parsed.isQuickJS);
+        // Extract only the stack frames (skip the first line which is the error message)
+        const stackLines = stack.split('\n').slice(1).filter((l) => l.trim().startsWith('at'));
+        stack = stackLines.length ? stackLines.map((l) => `    ${l.trim()}`).join('\n') : null;
+      }
+
+      return {
+        errorType,
+        filePath: displayPath,
+        errorLine: sourceLine,
+        lines: context.lines.map((l) => ({
+          lineNumber: l.lineNumber,
+          content: l.content,
+          isError: l.isError
+        })),
+        stack
+      };
+    } catch {
+      return null;
+    }
+  };
+
   const notifyScriptExecution = ({
     channel, // 'main:run-request-event' | 'main:run-folder-event'
     basePayload, // request-level or runner-level identifiers
     scriptType, // 'pre-request' | 'post-response' | 'test'
     error, // optional Error
-    pmApiWarnings // optional string[] of accessed pm/postman API paths
+    pmApiWarnings, // optional string[] of accessed pm/postman API paths
+    itemPathname, // optional path to the item file
+    collectionPath, // optional path to the collection root
+    scriptMetadata // optional metadata for line mapping
   }) => {
+    const errorContext = error ? buildErrorContext(error, scriptType, itemPathname, collectionPath, scriptMetadata) : null;
+
     mainWindow.webContents.send(channel, {
       type: `${scriptType}-script-execution`,
       ...basePayload,
       errorMessage: error ? (error.message || `An error occurred in ${scriptType.replace('-', ' ')} script`) : null,
-      pmApiWarnings: pmApiWarnings?.length ? pmApiWarnings : null
+      pmApiWarnings: pmApiWarnings?.length ? pmApiWarnings : null,
+      errorContext
     });
   };
 
@@ -819,7 +879,10 @@ const registerNetworkIpc = (mainWindow) => {
         basePayload: { requestUid, collectionUid, itemUid: item.uid },
         scriptType: 'pre-request',
         error: preRequestError,
-        pmApiWarnings: preRequestScriptResult?.pmApiWarnings
+        pmApiWarnings: preRequestScriptResult?.pmApiWarnings,
+        itemPathname: item.pathname,
+        collectionPath,
+        scriptMetadata: request.script?.reqMetadata
       });
 
       if (preRequestError) {
@@ -1000,7 +1063,10 @@ const registerNetworkIpc = (mainWindow) => {
           basePayload: { requestUid, collectionUid, itemUid: item.uid },
           scriptType: 'post-response',
           error: postResponseError,
-          pmApiWarnings: postResponseScriptResult?.pmApiWarnings
+          pmApiWarnings: postResponseScriptResult?.pmApiWarnings,
+          itemPathname: item.pathname,
+          collectionPath,
+          scriptMetadata: request.script?.resMetadata
         });
 
         // run assertions
@@ -1094,7 +1160,10 @@ const registerNetworkIpc = (mainWindow) => {
             basePayload: { requestUid, collectionUid, itemUid: item.uid },
             scriptType: 'test',
             error: testError,
-            pmApiWarnings: testResults?.pmApiWarnings
+            pmApiWarnings: testResults?.pmApiWarnings,
+            itemPathname: item.pathname,
+            collectionPath,
+            scriptMetadata: request.testsMetadata
           });
 
           const domainsWithCookiesTest = await getDomainsWithCookies();
@@ -1469,7 +1538,10 @@ const registerNetworkIpc = (mainWindow) => {
               basePayload: eventData,
               scriptType: 'pre-request',
               error: preRequestError,
-              pmApiWarnings: preRequestScriptResult?.pmApiWarnings
+              pmApiWarnings: preRequestScriptResult?.pmApiWarnings,
+              itemPathname: item.pathname,
+              collectionPath,
+              scriptMetadata: request.script?.reqMetadata
             });
 
             const domainsWithCookiesPreRequest = await getDomainsWithCookies();
@@ -1698,7 +1770,10 @@ const registerNetworkIpc = (mainWindow) => {
               basePayload: eventData,
               scriptType: 'post-response',
               error: postResponseError,
-              pmApiWarnings: postResponseScriptResult?.pmApiWarnings
+              pmApiWarnings: postResponseScriptResult?.pmApiWarnings,
+              itemPathname: item.pathname,
+              collectionPath,
+              scriptMetadata: request.script?.resMetadata
             });
 
             const domainsWithCookiesPostResponse = await getDomainsWithCookies();
@@ -1811,7 +1886,10 @@ const registerNetworkIpc = (mainWindow) => {
                 basePayload: eventData,
                 scriptType: 'test',
                 error: testError,
-                pmApiWarnings: testResults?.pmApiWarnings
+                pmApiWarnings: testResults?.pmApiWarnings,
+                itemPathname: item.pathname,
+                collectionPath,
+                scriptMetadata: request.testsMetadata
               });
 
               const domainsWithCookiesTest = await getDomainsWithCookies();
