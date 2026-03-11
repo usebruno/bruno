@@ -122,12 +122,16 @@ describe('renameWorkspace', () => {
   });
 
   test('only updates config when folder name stays the same', async () => {
-    // Rename to different display name but same folder name (after sanitization)
-    const result = await renameWorkspace(workspacePath, 'Untitled Workspace');
+    // Create workspace where folder name matches sanitized target but display name differs
+    const sameFolderPath = createWorkspace('My-Project', 'Old Name');
+
+    // Rename to name that sanitizes to same folder name
+    const result = await renameWorkspace(sameFolderPath, 'My:Project');
 
     expect(result.newWorkspacePath).toBeNull();
-    expect(fs.existsSync(workspacePath)).toBe(true);
-    expect(getWorkspaceName(workspacePath)).toBe('Untitled Workspace');
+    expect(fs.existsSync(sameFolderPath)).toBe(true);
+    // Verify config was actually updated
+    expect(getWorkspaceName(sameFolderPath)).toBe('My:Project');
   });
 
   test('sanitizes special characters in folder name', async () => {
@@ -174,7 +178,7 @@ describe('renameWorkspace', () => {
   });
 
   test('preserves workspace.yml content after rename', async () => {
-    // Add some collections to the workspace
+    // Add collections, specs, and other fields to the workspace
     const configPath = path.join(workspacePath, 'workspace.yml');
     const content = [
       'opencollection: 1.0.0',
@@ -184,8 +188,13 @@ describe('renameWorkspace', () => {
       'collections:',
       '  - name: "API"',
       '    path: "collections/api"',
+      '    remote: "https://github.com/example/api"',
       'specs:',
-      'docs: \'Some documentation\''
+      '  - name: "OpenAPI"',
+      '    path: "specs/openapi.yaml"',
+      'docs: \'Some documentation\'',
+      '',
+      'activeEnvironmentUid: env_123'
     ].join('\n');
     fs.writeFileSync(configPath, content);
 
@@ -195,9 +204,17 @@ describe('renameWorkspace', () => {
     const newContent = fs.readFileSync(newConfigPath, 'utf8');
     const config = yaml.load(newContent);
 
+    // Verify all fields are preserved
+    expect(config.opencollection).toBe('1.0.0');
     expect(config.info.name).toBe('My Project');
+    expect(config.info.type).toBe('workspace');
     expect(config.collections).toHaveLength(1);
     expect(config.collections[0].name).toBe('API');
+    expect(config.collections[0].path).toBe('collections/api');
+    expect(config.collections[0].remote).toBe('https://github.com/example/api');
+    expect(config.specs).toHaveLength(1);
+    expect(config.specs[0]).toEqual({ name: 'OpenAPI', path: 'specs/openapi.yaml' });
     expect(config.docs).toBe('Some documentation');
+    expect(config.activeEnvironmentUid).toBe('env_123');
   });
 });
