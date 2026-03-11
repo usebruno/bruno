@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
-const { writeFile, validateName, isValidCollectionDirectory } = require('./filesystem');
+const { writeFile, validateName, isValidCollectionDirectory, sanitizeName } = require('./filesystem');
 const { generateUidBasedOnHash } = require('./common');
 const { withLock, getWorkspaceLockKey } = require('./workspace-lock');
 
@@ -563,6 +563,34 @@ const getWorkspaceUid = (workspacePath) => {
   return generateUidBasedOnHash(workspacePath);
 };
 
+/**
+ * Renames a workspace folder and updates the workspace.yml config.
+ * @param {string} workspacePath - Current absolute path to the workspace folder
+ * @param {string} newName - New name for the workspace
+ * @returns {Promise<{newWorkspacePath: string|null}>} - New path if folder was renamed, null otherwise
+ */
+const renameWorkspace = async (workspacePath, newName) => {
+  const parentDir = path.dirname(workspacePath);
+  const newFolderName = sanitizeName(newName);
+  const newWorkspacePath = path.join(parentDir, newFolderName);
+
+  const pathsAreSame = path.normalize(workspacePath).toLowerCase() === path.normalize(newWorkspacePath).toLowerCase();
+
+  if (!pathsAreSame) {
+    if (fs.existsSync(newWorkspacePath)) {
+      throw new Error(`A folder named "${newFolderName}" already exists at this location`);
+    }
+
+    fs.renameSync(workspacePath, newWorkspacePath);
+    await updateWorkspaceName(newWorkspacePath, newName);
+
+    return { newWorkspacePath };
+  }
+
+  await updateWorkspaceName(workspacePath, newName);
+  return { newWorkspacePath: null };
+};
+
 module.exports = {
   makeRelativePath,
   normalizeCollectionEntry,
@@ -585,5 +613,6 @@ module.exports = {
   getWorkspaceUid,
   writeWorkspaceFileAtomic,
   isValidCollectionEntry,
-  isValidSpecEntry
+  isValidSpecEntry,
+  renameWorkspace
 };
