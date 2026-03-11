@@ -29,6 +29,7 @@ import ToolHint from 'components/ToolHint';
 import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
 import ActionIcon from 'ui/ActionIcon';
 import { getRevealInFolderLabel } from 'utils/common/platform';
+import { normalizePath } from 'utils/common/path';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
@@ -116,7 +117,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     if (isScratch) return false;
 
     const workspaceCollectionPaths = currentWorkspace?.collections?.map((wc) => wc.path) || [];
-    return workspaceCollectionPaths.some((wcPath) => c.pathname === wcPath);
+    return workspaceCollectionPaths.some((wcPath) => normalizePath(c.pathname) === normalizePath(wcPath));
   });
 
   // Count tabs for the current collection
