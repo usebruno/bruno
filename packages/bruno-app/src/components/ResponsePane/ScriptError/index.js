@@ -1,11 +1,90 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import { IconX, IconChevronDown, IconChevronRight } from '@tabler/icons';
 import ErrorBanner from 'ui/ErrorBanner';
 import CodeSnippet from 'components/CodeSnippet';
+import { getTreePathFromCollectionToItem } from 'utils/collections';
+import { addTab, focusTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
 
-const ScriptErrorCard = ({ title, message, errorContext, onClose }) => {
+/**
+ * Classify the error source from errorContext.filePath.
+ * Returns { sourceType, label, sourceUid? } or null if filePath is missing.
+ */
+const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
+  if (!filePath) return null;
+
+  // Collection level
+  if (filePath === 'collection.bru' || /\.ya?ml$/.test(filePath)) {
+    return { sourceType: 'collection', label: 'Collection Script' };
+  }
+
+  // Folder level
+  if (filePath === 'folder.bru' || filePath.endsWith('/folder.bru')) {
+    const info = { sourceType: 'folder', label: 'Folder Script' };
+
+    // Try to find the folder UID and name from the tree path
+    if (getTreePath && collection && item) {
+      const collectionPathname = collection.pathname || '';
+      const treePath = getTreePath(collection, item);
+      if (treePath?.length) {
+        for (const node of treePath) {
+          if (node?.type === 'folder') {
+            const folderRelPath = node.pathname
+              ? (node.pathname.startsWith(collectionPathname)
+                  ? node.pathname.slice(collectionPathname.length).replace(/^\//, '') + '/folder.bru'
+                  : 'folder.bru')
+              : 'folder.bru';
+            if (folderRelPath === filePath) {
+              info.sourceUid = node.uid;
+              info.label = `Folder: ${node.name}`;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    return info;
+  }
+
+  // Request level
+  return { sourceType: 'request', label: 'Request Script' };
+};
+
+const ScriptErrorCard = ({ title, message, errorContext, item, collection, scriptPhase, onClose }) => {
+  const dispatch = useDispatch();
   const [showStack, setShowStack] = useState(false);
+
+  const sourceInfo = getErrorSourceInfo(
+    errorContext?.filePath,
+    item,
+    collection,
+    getTreePathFromCollectionToItem
+  );
+
+  const handleNavigate = useCallback(() => {
+    if (!sourceInfo) return;
+
+    const settingsTab = scriptPhase === 'test' ? 'tests' : 'script';
+
+    if (sourceInfo.sourceType === 'collection') {
+      dispatch(addTab({ uid: collection.uid, collectionUid: collection.uid, type: 'collection-settings' }));
+      dispatch(updateSettingsSelectedTab({ collectionUid: collection.uid, tab: settingsTab }));
+    } else if (sourceInfo.sourceType === 'folder') {
+      dispatch(addTab({ uid: sourceInfo.sourceUid, collectionUid: collection.uid, type: 'folder-settings' }));
+      dispatch(updatedFolderSettingsSelectedTab({ collectionUid: collection.uid, folderUid: sourceInfo.sourceUid, tab: settingsTab }));
+    } else if (sourceInfo.sourceType === 'request') {
+      dispatch(focusTab({ uid: item.uid }));
+      if (scriptPhase === 'test') {
+        dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: 'tests' }));
+      } else {
+        dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: 'script' }));
+        dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: scriptPhase }));
+      }
+    }
+  }, [dispatch, collection, item, scriptPhase, sourceInfo]);
 
   if (!errorContext) {
     return <ErrorBanner errors={[{ title, message }]} onClose={onClose} />;
@@ -22,8 +101,19 @@ const ScriptErrorCard = ({ title, message, errorContext, onClose }) => {
             </div>
           )}
         </div>
-        {errorContext.filePath && (
-          <div className="script-error-file">{errorContext.filePath}</div>
+        {(sourceInfo || errorContext.filePath) && (
+          <div className="script-error-source-label">
+            {sourceInfo && <span>{sourceInfo.label}</span>}
+            {errorContext.filePath && (
+              <span
+                className="script-error-file-path"
+                onClick={sourceInfo ? handleNavigate : undefined}
+                title={sourceInfo ? `Open ${errorContext.filePath}` : undefined}
+              >
+                {errorContext.filePath}
+              </span>
+            )}
+          </div>
         )}
         <CodeSnippet lines={errorContext.lines} variant="error" />
         <div className="script-error-message">
@@ -48,7 +138,7 @@ const ScriptErrorCard = ({ title, message, errorContext, onClose }) => {
   );
 };
 
-const ScriptError = ({ item, onClose }) => {
+const ScriptError = ({ item, collection, onClose }) => {
   const preRequestError = item?.preRequestScriptErrorMessage;
   const postResponseError = item?.postResponseScriptErrorMessage;
   const testScriptError = item?.testScriptErrorMessage;
@@ -77,6 +167,9 @@ const ScriptError = ({ item, onClose }) => {
           title="Pre-Request Script Error"
           message={preRequestError}
           errorContext={preRequestContext}
+          item={item}
+          collection={collection}
+          scriptPhase="pre-request"
           onClose={onClose}
         />
       )}
@@ -85,6 +178,9 @@ const ScriptError = ({ item, onClose }) => {
           title="Post-Response Script Error"
           message={postResponseError}
           errorContext={postResponseContext}
+          item={item}
+          collection={collection}
+          scriptPhase="post-response"
           onClose={onClose}
         />
       )}
@@ -93,6 +189,9 @@ const ScriptError = ({ item, onClose }) => {
           title="Test Script Error"
           message={testScriptError}
           errorContext={testContext}
+          item={item}
+          collection={collection}
+          scriptPhase="test"
           onClose={onClose}
         />
       )}

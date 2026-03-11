@@ -38,10 +38,32 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.danger};
   }
 
-  .script-error-file {
+  .script-error-source-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: ${(props) => props.theme.font.size.xs};
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .script-error-file-path {
     font-family: monospace;
     font-size: ${(props) => props.theme.font.size.xs};
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
     color: ${(props) => props.theme.colors.text.muted};
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.15s, text-decoration 0.15s;
+
+    &:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
   }
 
   .script-error-message {

@@ -2,6 +2,8 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
 import ScriptError from './index';
 
 const theme = {
@@ -12,12 +14,26 @@ const theme = {
   colors: { text: { danger: '#ef4444', warning: '#f59e0b', muted: '#999' } }
 };
 
-const renderWithTheme = (component) => {
+const mockStore = configureStore({
+  reducer: {
+    tabs: (state = { tabs: [], activeTabUid: null }) => state,
+    collections: (state = { collections: [] }) => state
+  }
+});
+
+const renderWithProviders = (component) => {
   return render(
-    <ThemeProvider theme={theme}>
-      {component}
-    </ThemeProvider>
+    <Provider store={mockStore}>
+      <ThemeProvider theme={theme}>
+        {component}
+      </ThemeProvider>
+    </Provider>
   );
+};
+
+const mockCollection = {
+  uid: 'col-1',
+  pathname: '/home/user/collection'
 };
 
 const mockErrorContext = {
@@ -34,7 +50,7 @@ const mockErrorContext = {
 
 describe('ScriptError', () => {
   it('should render nothing when no errors', () => {
-    const { container } = renderWithTheme(<ScriptError item={{}} onClose={jest.fn()} />);
+    const { container } = renderWithProviders(<ScriptError item={{}} collection={mockCollection} onClose={jest.fn()} />);
     expect(container.firstChild).toBeNull();
   });
 
@@ -42,7 +58,7 @@ describe('ScriptError', () => {
     const item = {
       preRequestScriptErrorMessage: 'something broke'
     };
-    renderWithTheme(<ScriptError item={item} onClose={jest.fn()} />);
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
     expect(screen.getByText('Pre-Request Script Error')).toBeInTheDocument();
     expect(screen.getByText('something broke')).toBeInTheDocument();
   });
@@ -52,7 +68,7 @@ describe('ScriptError', () => {
       preRequestScriptErrorMessage: 'undefinedVar is not defined',
       preRequestScriptErrorContext: mockErrorContext
     };
-    const { container } = renderWithTheme(<ScriptError item={item} onClose={jest.fn()} />);
+    const { container } = renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
     expect(screen.getByText('Pre-Request Script Error')).toBeInTheDocument();
     expect(container.querySelector('.code-snippet')).toBeInTheDocument();
   });
@@ -62,7 +78,7 @@ describe('ScriptError', () => {
       preRequestScriptErrorMessage: 'undefinedVar is not defined',
       preRequestScriptErrorContext: mockErrorContext
     };
-    const { container } = renderWithTheme(<ScriptError item={item} onClose={jest.fn()} />);
+    const { container } = renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
     expect(container.querySelector('.highlighted-error')).toBeInTheDocument();
   });
 
@@ -71,17 +87,58 @@ describe('ScriptError', () => {
       preRequestScriptErrorMessage: 'undefinedVar is not defined',
       preRequestScriptErrorContext: mockErrorContext
     };
-    renderWithTheme(<ScriptError item={item} onClose={jest.fn()} />);
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
     expect(screen.getByText('ReferenceError: undefinedVar is not defined')).toBeInTheDocument();
   });
 
-  it('should show file path', () => {
+  it('should show file path with source label', () => {
     const item = {
       preRequestScriptErrorMessage: 'undefinedVar is not defined',
       preRequestScriptErrorContext: mockErrorContext
     };
-    renderWithTheme(<ScriptError item={item} onClose={jest.fn()} />);
+    const { container } = renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
+    expect(container.querySelector('.script-error-file-path')).toBeInTheDocument();
     expect(screen.getByText('echo json.bru')).toBeInTheDocument();
+    expect(screen.getByText('Request Script')).toBeInTheDocument();
+  });
+
+  it('should show "Collection Script" label for collection-level errors', () => {
+    const item = {
+      preRequestScriptErrorMessage: 'collection error',
+      preRequestScriptErrorContext: {
+        ...mockErrorContext,
+        filePath: 'collection.bru'
+      }
+    };
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
+    expect(screen.getByText('Collection Script')).toBeInTheDocument();
+    expect(screen.getByText('collection.bru')).toBeInTheDocument();
+  });
+
+  it('should show "Folder Script" label for folder-level errors', () => {
+    const item = {
+      preRequestScriptErrorMessage: 'folder error',
+      preRequestScriptErrorContext: {
+        ...mockErrorContext,
+        filePath: 'subfolder/folder.bru'
+      }
+    };
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
+    expect(screen.getByText('Folder Script')).toBeInTheDocument();
+    expect(screen.getByText('subfolder/folder.bru')).toBeInTheDocument();
+  });
+
+  it('should show "Request Script" label for request-level errors', () => {
+    const item = {
+      postResponseScriptErrorMessage: 'request error',
+      postResponseScriptErrorContext: {
+        ...mockErrorContext,
+        filePath: 'my-request.bru'
+      }
+    };
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
+    expect(screen.getByText('Request Script')).toBeInTheDocument();
+    expect(screen.getByText('my-request.bru')).toBeInTheDocument();
   });
 
   it('should toggle stack trace visibility', () => {
@@ -89,7 +146,7 @@ describe('ScriptError', () => {
       preRequestScriptErrorMessage: 'undefinedVar is not defined',
       preRequestScriptErrorContext: mockErrorContext
     };
-    renderWithTheme(<ScriptError item={item} onClose={jest.fn()} />);
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
 
     // Stack should be hidden by default
     expect(screen.queryByText(/at echo json\.bru/)).not.toBeInTheDocument();
@@ -111,7 +168,7 @@ describe('ScriptError', () => {
       preRequestScriptErrorMessage: 'error',
       preRequestScriptErrorContext: mockErrorContext
     };
-    const { container } = renderWithTheme(<ScriptError item={item} onClose={onClose} />);
+    const { container } = renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={onClose} />);
     const closeButton = container.querySelector('.close-button');
     fireEvent.click(closeButton);
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -127,7 +184,7 @@ describe('ScriptError', () => {
         errorType: 'TypeError'
       }
     };
-    renderWithTheme(<ScriptError item={item} onClose={jest.fn()} />);
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
     expect(screen.getByText('Pre-Request Script Error')).toBeInTheDocument();
     expect(screen.getByText('Test Script Error')).toBeInTheDocument();
     expect(screen.getByText('ReferenceError: pre error')).toBeInTheDocument();
