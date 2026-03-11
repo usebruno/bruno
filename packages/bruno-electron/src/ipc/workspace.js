@@ -16,7 +16,6 @@ const {
   readWorkspaceConfig,
   writeWorkspaceConfig,
   validateWorkspaceConfig,
-  updateWorkspaceName,
   updateWorkspaceDocs,
   addCollectionToWorkspace,
   removeCollectionFromWorkspace,
@@ -25,7 +24,8 @@ const {
   normalizeCollectionEntry,
   validateWorkspacePath,
   validateWorkspaceDirectory,
-  getWorkspaceUid
+  getWorkspaceUid,
+  renameWorkspace
 } = require('../utils/workspace-config');
 
 const { isValidCollectionDirectory } = require('../utils/filesystem');
@@ -270,7 +270,20 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
   ipcMain.handle('renderer:rename-workspace', async (event, workspacePath, newName) => {
     try {
-      await updateWorkspaceName(workspacePath, newName);
+      const result = await renameWorkspace(workspacePath, newName);
+
+      if (result.newWorkspacePath) {
+        if (workspaceWatcher) {
+          workspaceWatcher.removeWatcher(workspacePath);
+          workspaceWatcher.addWatcher(mainWindow, result.newWorkspacePath);
+        }
+
+        lastOpenedWorkspaces.remove(workspacePath);
+        lastOpenedWorkspaces.add(result.newWorkspacePath);
+
+        return { success: true, newWorkspacePath: result.newWorkspacePath };
+      }
+
       return { success: true };
     } catch (error) {
       throw error;
