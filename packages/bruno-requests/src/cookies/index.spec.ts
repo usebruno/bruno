@@ -190,6 +190,19 @@ describe('Bruno Cookie Jar Wrapper - API Examples', () => {
       expect(ret).toBeUndefined();
     });
 
+    test('validation-error paths with callback return void, not the callback return value', () => {
+      // If the wrapper did `return callback(error)`, the caller would receive
+      // whatever the callback returns — which could be a truthy value or a Promise.
+      // All validation-error callback paths must return void (undefined).
+      const spy = () => 'leaked!' as any;
+
+      expect(jar.getCookie('', '', spy)).toBeUndefined();
+      expect(jar.getCookies('', spy)).toBeUndefined();
+      expect(jar.hasCookie('', '', spy)).toBeUndefined();
+      expect(jar.deleteCookies('', spy)).toBeUndefined();
+      expect(jar.deleteCookie('', '', spy)).toBeUndefined();
+    });
+
     test('getCookie with callback can be safely awaited without hanging', async () => {
       await jar.setCookie(testUrl, 'token', 'abc');
 

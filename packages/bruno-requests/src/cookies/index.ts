@@ -189,7 +189,9 @@ const cookieJarWrapper = () => {
     ) {
       if (!url || !cookieName) {
         const error = new Error('URL and cookie name are required');
-        if (callback) return callback(error);
+        if (callback) {
+          callback(error); return;
+        }
         return Promise.reject(error);
       }
 
@@ -225,7 +227,9 @@ const cookieJarWrapper = () => {
     ) {
       if (!url || !cookieName) {
         const error = new Error('URL and cookie name are required');
-        if (callback) return callback(error);
+        if (callback) {
+          callback(error); return;
+        }
         return Promise.reject(error);
       }
 
@@ -251,7 +255,9 @@ const cookieJarWrapper = () => {
     getCookies: function (url: string, callback?: (err: Error | null | undefined, cookies?: Cookie[]) => void) {
       if (!url) {
         const error = new Error('URL is required');
-        if (callback) return callback(error);
+        if (callback) {
+          callback(error); return;
+        }
         return Promise.reject(error);
       }
 
@@ -417,7 +423,9 @@ const cookieJarWrapper = () => {
     deleteCookies: function (url: string, callback?: (err?: Error | undefined) => void) {
       if (!url) {
         const error = new Error('URL is required');
-        if (callback) return callback(error);
+        if (callback) {
+          callback(error); return;
+        }
         return Promise.reject(error);
       }
 
@@ -468,7 +476,9 @@ const cookieJarWrapper = () => {
     deleteCookie: function (url: string, cookieName: string, callback?: (err?: Error | undefined) => void) {
       if (!url || !cookieName) {
         const error = new Error('URL and cookie name are required');
-        if (callback) return callback(error);
+        if (callback) {
+          callback(error); return;
+        }
         return Promise.reject(error);
       }
 
@@ -503,7 +513,8 @@ const cookieJarWrapper = () => {
 
       if (callback) {
         // Callback mode
-        return executeDelete(callback);
+        executeDelete(callback);
+        return;
       }
 
       // Promise mode
