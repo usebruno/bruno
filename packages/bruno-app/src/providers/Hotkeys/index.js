@@ -64,6 +64,21 @@ function bindHotkey(action, handler, userKeyBindings) {
   if (!combos?.length) return;
 
   Mousetrap.bind([...combos], (e) => {
+    // Allow default browser behavior for input, textarea, select, and contenteditable elements
+    // This ensures copy/paste (Ctrl+C/V) works in input fields
+    const target = e.target || e.srcElement;
+    const tagName = target?.tagName?.toLowerCase();
+    const isInputField
+      = tagName === 'input'
+        || tagName === 'textarea'
+        || tagName === 'select'
+        || target?.isContentEditable
+        || target?.classList?.contains('mousetrap');
+
+    if (isInputField) {
+      return true; // Allow default behavior (copy/paste) in input fields
+    }
+
     e?.preventDefault?.();
     handler(e);
     return false;
