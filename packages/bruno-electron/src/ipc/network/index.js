@@ -9,7 +9,7 @@ const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, SCRIPT_TYPES } = require('@usebruno/js');
-const { parseErrorLocation, adjustLineNumber, resolveSegmentError, getSourceContext, adjustStackTrace, getErrorTypeName } = require('@usebruno/js/src/utils/error-formatter');
+const { parseErrorLocation, adjustLineNumber, resolveSegmentError, getSourceContext, adjustStackTrace, getErrorTypeName, findScriptBlockStartLine, findYmlScriptBlockStartLine } = require('@usebruno/js/src/utils/error-formatter');
 const { encodeUrl } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
@@ -481,15 +481,28 @@ const registerNetworkIpc = (mainWindow) => {
         stack = stackLines.length ? stackLines.map((l) => `    ${l.trim()}`).join('\n') : null;
       }
 
+      // Compute block-relative line numbers for the desktop UI.
+      // Users edit scripts in a CodeMirror editor starting at line 1,
+      // so show lines relative to the script block, not absolute .bru file lines.
+      const blockStartLine = sourceFile.endsWith('.bru')
+        ? findScriptBlockStartLine(sourceFile, scriptType, cache)
+        : (sourceFile.endsWith('.yml') || sourceFile.endsWith('.yaml'))
+            ? findYmlScriptBlockStartLine(sourceFile, scriptType, cache)
+            : null;
+
+      const blockOffset = blockStartLine ? blockStartLine - 1 : 0;
+
       return {
         errorType,
         filePath: displayPath,
-        errorLine: sourceLine,
-        lines: context.lines.map((l) => ({
-          lineNumber: l.lineNumber,
-          content: l.content,
-          isError: l.isError
-        })),
+        errorLine: sourceLine - blockOffset,
+        lines: context.lines
+          .filter((l) => l.lineNumber - blockOffset >= 1)
+          .map((l) => ({
+            lineNumber: l.lineNumber - blockOffset,
+            content: l.content,
+            isError: l.isError
+          })),
         stack
       };
     } catch {
