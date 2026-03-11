@@ -17,7 +17,7 @@ import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { newFolder, closeTabs, mountCollection, createCollection, browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import { resolveRequestFilename } from 'utils/common/platform';
-import path from 'utils/common/path';
+import path, { normalizePath } from 'utils/common/path';
 import { transformRequestToSaveToFilesystem, findCollectionByUid, findItemInCollection, areItemsLoading } from 'utils/collections';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import { itemSchema } from '@usebruno/schema';
@@ -50,7 +50,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     if (!isScratchCollection || !activeWorkspace) return [];
 
     return (activeWorkspace.collections || []).map((wc) => {
-      const fullCollection = allCollections.find((c) => c.pathname === wc.path);
+      const fullCollection = allCollections.find((c) => normalizePath(c.pathname) === normalizePath(wc.path));
       // Use stable deterministic UID based on path to avoid duplicate Redux entries
       const stableUid = wc.path ? `pending-${wc.path.replace(/[^a-zA-Z0-9]/g, '-')}` : uuid();
       return fullCollection || { ...wc, uid: stableUid, mountStatus: 'unmounted' };
