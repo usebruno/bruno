@@ -79,7 +79,11 @@ const normalizeGrpcResponseWithNulls = (data, fields) => {
   }
 
   const isObject = data && typeof data === 'object' && !Array.isArray(data);
-  const normalized = isObject ? { ...data } : {};
+  if (!isObject) {
+    return data;
+  }
+
+  const normalized = { ...data };
 
   fields.forEach((field) => {
     const key = field.name;
