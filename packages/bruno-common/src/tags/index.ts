@@ -1,6 +1,6 @@
 /**
- * Normalizes a tags value to an array of strings.
- * The BRU parser may return a single string when only one tag is defined.
+ * Normalizes a tags value from the BRU parser to an array of strings.
+ * The BRU parser may return tags as a string (single tag or comma-separated list) or as an array.
  */
 const toTagsArray = (tags: string | string[] | undefined | null): string[] => {
   if (!tags) return [];
