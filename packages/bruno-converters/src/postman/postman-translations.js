@@ -111,31 +111,27 @@ const processRegexReplacement = (code) => {
       code = code.replace(regex, replacement);
     }
   }
-  if ((code.includes('pm.') || code.includes('postman.'))) {
-    code = code.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
-  }
   return code;
 };
 
 const postmanTranslation = (script, options = {}) => {
   let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
+  let translatedScript;
 
   try {
-    let translatedCode = translateCode(modifiedScript);
-    if ((translatedCode.includes('pm.') || translatedCode.includes('postman.'))) {
-      translatedCode = translatedCode.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
-    }
-    return translatedCode;
+    translatedScript = translateCode(modifiedScript);
   } catch (e) {
     console.warn('Error in postman translation:', e);
 
     try {
-      return processRegexReplacement(modifiedScript);
+      translatedScript = processRegexReplacement(modifiedScript);
     } catch (e) {
       console.warn('Error in postman translation:', e);
-      return modifiedScript;
+      translatedScript = modifiedScript;
     }
   }
+
+  return translatedScript;
 };
 
 export default postmanTranslation;

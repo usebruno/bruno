@@ -300,10 +300,11 @@ const ResponsePane = ({ item, collection }) => {
         }}
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {hasScriptError && showScriptErrorCard && (
+        {hasScriptError && showScriptErrorCard && focusedTab?.responsePaneTab === 'response' && (
           <ScriptError
             item={item}
             onClose={() => setShowScriptErrorCard(false)}
+            collection={collection}
           />
         )}
         <div className="flex-1 overflow-y-auto">

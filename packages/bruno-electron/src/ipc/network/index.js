@@ -8,7 +8,8 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, SCRIPT_TYPES } = require('@usebruno/js');
+const { parseErrorLocation, adjustLineNumber, resolveSegmentError, getSourceContext, adjustStackTrace, getErrorTypeName, findScriptBlockStartLine, findScriptBlockEndLine, findYmlScriptBlockStartLine, findYmlScriptBlockEndLine } = require('@usebruno/js/src/utils/error-formatter');
 const { encodeUrl } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
@@ -443,16 +444,100 @@ const registerNetworkIpc = (mainWindow) => {
     });
   };
 
+  const buildErrorContext = (error, scriptType, itemPathname, collectionPath, scriptMetadata) => {
+    if (!error) return null;
+
+    try {
+      const cache = new Map();
+      const metadata = error.scriptMetadata || scriptMetadata;
+      const parsed = parseErrorLocation(error);
+      if (!parsed) return null;
+
+      const { filePath } = parsed;
+      const adjustedLine = adjustLineNumber(filePath, parsed.line, parsed.isQuickJS, scriptType, cache, metadata);
+
+      let sourceFile = filePath;
+      let sourceLine = adjustedLine;
+      let displayPath = itemPathname ? path.relative(collectionPath, itemPathname) : filePath;
+
+      // Handle collection/folder script segments
+      if (adjustedLine === null) {
+        const segmentResult = resolveSegmentError(parsed, metadata, scriptType, cache);
+        if (!segmentResult) return null;
+        sourceFile = segmentResult.filePath;
+        sourceLine = segmentResult.line;
+        displayPath = segmentResult.displayPath || path.relative(collectionPath, segmentResult.filePath);
+      }
+
+      const context = getSourceContext(sourceFile, sourceLine, 3, cache);
+      if (!context) return null;
+
+      const errorType = getErrorTypeName(error);
+      let stack = null;
+      if (error.stack) {
+        stack = adjustStackTrace(error.stack, scriptType, cache, metadata, parsed.isQuickJS);
+        // Extract only the stack frames (skip the first line which is the error message)
+        const stackLines = stack.split('\n').slice(1).filter((l) => l.trim().startsWith('at'));
+        stack = stackLines.length ? stackLines.map((l) => `    ${l.trim()}`).join('\n') : null;
+      }
+
+      // Compute block-relative line numbers for the desktop UI.
+      // Users edit scripts in a CodeMirror editor starting at line 1,
+      // so show lines relative to the script block, not absolute .bru file lines.
+      const isBru = sourceFile.endsWith('.bru');
+      const isYml = sourceFile.endsWith('.yml') || sourceFile.endsWith('.yaml');
+
+      const blockStartLine = isBru
+        ? findScriptBlockStartLine(sourceFile, scriptType, cache)
+        : isYml
+          ? findYmlScriptBlockStartLine(sourceFile, scriptType, cache)
+          : null;
+
+      const blockEndLine = isBru
+        ? findScriptBlockEndLine(sourceFile, scriptType, cache)
+        : isYml
+          ? findYmlScriptBlockEndLine(sourceFile, scriptType, cache)
+          : null;
+
+      const blockOffset = blockStartLine ? blockStartLine - 1 : 0;
+
+      return {
+        errorType,
+        filePath: displayPath,
+        errorLine: sourceLine - blockOffset,
+        lines: context.lines
+          .filter((l) => {
+            const rel = l.lineNumber - blockOffset;
+            return rel >= 1 && (!blockEndLine || l.lineNumber <= blockEndLine);
+          })
+          .map((l) => ({
+            lineNumber: l.lineNumber - blockOffset,
+            content: l.content,
+            isError: l.isError
+          })),
+        stack
+      };
+    } catch {
+      return null;
+    }
+  };
+
   const notifyScriptExecution = ({
     channel, // 'main:run-request-event' | 'main:run-folder-event'
     basePayload, // request-level or runner-level identifiers
     scriptType, // 'pre-request' | 'post-response' | 'test'
-    error // optional Error
+    error, // optional Error
+    itemPathname, // optional path to the item file
+    collectionPath, // optional path to the collection root
+    scriptMetadata // optional metadata for line mapping
   }) => {
+    const errorContext = error ? buildErrorContext(error, scriptType, itemPathname, collectionPath, scriptMetadata) : null;
+
     mainWindow.webContents.send(channel, {
       type: `${scriptType}-script-execution`,
       ...basePayload,
-      errorMessage: error ? (error.message || `An error occurred in ${scriptType.replace('-', ' ')} script`) : null
+      errorMessage: error ? (error.message || `An error occurred in ${scriptType.replace('-', ' ')} script`) : null,
+      errorContext
     });
   };
 
@@ -816,7 +901,10 @@ const registerNetworkIpc = (mainWindow) => {
         channel: 'main:run-request-event',
         basePayload: { requestUid, collectionUid, itemUid: item.uid },
         scriptType: 'pre-request',
-        error: preRequestError
+        error: preRequestError,
+        itemPathname: item.pathname,
+        collectionPath,
+        scriptMetadata: request.script?.reqMetadata
       });
 
       if (preRequestError) {
@@ -996,7 +1084,10 @@ const registerNetworkIpc = (mainWindow) => {
           channel: 'main:run-request-event',
           basePayload: { requestUid, collectionUid, itemUid: item.uid },
           scriptType: 'post-response',
-          error: postResponseError
+          error: postResponseError,
+          itemPathname: item.pathname,
+          collectionPath,
+          scriptMetadata: request.script?.resMetadata
         });
 
         // run assertions
@@ -1089,7 +1180,10 @@ const registerNetworkIpc = (mainWindow) => {
             channel: 'main:run-request-event',
             basePayload: { requestUid, collectionUid, itemUid: item.uid },
             scriptType: 'test',
-            error: testError
+            error: testError,
+            itemPathname: item.pathname,
+            collectionPath,
+            scriptMetadata: request.testsMetadata
           });
 
           const domainsWithCookiesTest = await getDomainsWithCookies();
@@ -1463,7 +1557,10 @@ const registerNetworkIpc = (mainWindow) => {
               channel: 'main:run-folder-event',
               basePayload: eventData,
               scriptType: 'pre-request',
-              error: preRequestError
+              error: preRequestError,
+              itemPathname: item.pathname,
+              collectionPath,
+              scriptMetadata: request.script?.reqMetadata
             });
 
             const domainsWithCookiesPreRequest = await getDomainsWithCookies();
@@ -1691,7 +1788,10 @@ const registerNetworkIpc = (mainWindow) => {
               channel: 'main:run-folder-event',
               basePayload: eventData,
               scriptType: 'post-response',
-              error: postResponseError
+              error: postResponseError,
+              itemPathname: item.pathname,
+              collectionPath,
+              scriptMetadata: request.script?.resMetadata
             });
 
             const domainsWithCookiesPostResponse = await getDomainsWithCookies();
@@ -1803,7 +1903,10 @@ const registerNetworkIpc = (mainWindow) => {
                 channel: 'main:run-folder-event',
                 basePayload: eventData,
                 scriptType: 'test',
-                error: testError
+                error: testError,
+                itemPathname: item.pathname,
+                collectionPath,
+                scriptMetadata: request.testsMetadata
               });
 
               const domainsWithCookiesTest = await getDomainsWithCookies();
