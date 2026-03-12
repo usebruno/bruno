@@ -125,6 +125,7 @@ class ScriptRuntime {
         script: script,
         context: context,
         collectionPath,
+        scriptingConfig,
         scriptPath
       });
       pmApiWarnings = vmResult?.pmApiWarnings || [];
@@ -253,6 +254,7 @@ class ScriptRuntime {
         script: script,
         context: context,
         collectionPath,
+        scriptingConfig,
         scriptPath
       });
       pmApiWarnings = vmResult?.pmApiWarnings || [];

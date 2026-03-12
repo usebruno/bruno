@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import get from 'lodash/get';
+import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateCollectionRequestScript, updateCollectionResponseScript } from 'providers/ReduxStore/slices/collections';
-import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings, updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
@@ -72,6 +73,15 @@ const Script = ({ collection }) => {
     );
   };
 
+  const postmanCompatibility = get(collection, 'brunoConfig.scripts.postmanCompatibility', false);
+
+  const handlePostmanCompatibilityChange = (e) => {
+    const brunoConfig = cloneDeep(collection.brunoConfig);
+    if (!brunoConfig.scripts) brunoConfig.scripts = {};
+    brunoConfig.scripts.postmanCompatibility = e.target.checked;
+    dispatch(updateBrunoConfig(brunoConfig, collection.uid));
+  };
+
   const handleSave = () => {
     dispatch(saveCollectionSettings(collection.uid));
   };
@@ -97,6 +107,23 @@ const Script = ({ collection }) => {
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">
         Write pre and post-request scripts that will run before and after any request in this collection is sent.
+      </div>
+
+      <div className="flex items-center gap-2 mb-4">
+        <input
+          type="checkbox"
+          id="postmanCompat"
+          className="cursor-pointer"
+          checked={postmanCompatibility}
+          onChange={handlePostmanCompatibilityChange}
+        />
+        <label htmlFor="postmanCompat" className="cursor-pointer select-none text-sm">
+          Enable Postman Compatibility
+        </label>
+      </div>
+      <div className="text-xs mb-4 text-muted">
+        When enabled, scripts can use pm.* and postman.* APIs (with migration warnings).
+        When disabled, these APIs are not available.
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

@@ -776,6 +776,15 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
     version: '1',
     items: [],
     environments: [],
+    brunoConfig: {
+      version: '1',
+      name: collection.info.name || 'Untitled Collection',
+      type: 'collection',
+      ignore: ['node_modules', '.git'],
+      scripts: {
+        postmanCompatibility: true
+      }
+    },
     root: {
       docs: transformDescription(collection.info.description),
       meta: {

@@ -218,8 +218,10 @@ function buildScriptContext(context, scriptingConfig) {
   };
 
   // Proxy-based guards for untranslated Postman APIs
-  scriptContext.pm = createPmProxy('pm', pmApiWarnings);
-  scriptContext.postman = createPmProxy('postman', pmApiWarnings);
+  if (scriptingConfig?.postmanCompatibility) {
+    scriptContext.pm = createPmProxy('pm', pmApiWarnings);
+    scriptContext.postman = createPmProxy('postman', pmApiWarnings);
+  }
 
   // Add TypedArrays from host for compatibility with host APIs (TextEncoder, crypto, etc.)
   mixinTypedArrays(scriptContext);

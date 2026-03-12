@@ -93,7 +93,7 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   }
 };
 
-const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext, collectionPath, scriptPath }) => {
+const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext, collectionPath, scriptingConfig, scriptPath }) => {
   if (!externalScript?.length || typeof externalScript !== 'string') {
     return externalScript;
   }
@@ -160,7 +160,10 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     await addLibraryShimsToContext(vm);
 
     test && __brunoTestResults && addTestShimToContext(vm, __brunoTestResults);
-    addPmProxyShimToContext(vm);
+
+    if (scriptingConfig?.postmanCompatibility) {
+      addPmProxyShimToContext(vm);
+    }
 
     const script = wrapScriptInClosure(externalScript, SANDBOX.QUICKJS);
 
@@ -171,7 +174,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     const resolvedHandle = vm.unwrapResult(resolvedResult);
     resolvedHandle.dispose();
 
-    const pmApiWarnings = extractPmApiWarnings(vm);
+    const pmApiWarnings = scriptingConfig?.postmanCompatibility ? extractPmApiWarnings(vm) : [];
     // vm.dispose();
     return { pmApiWarnings };
   } catch (error) {

@@ -21,7 +21,7 @@ describe('pm/postman proxy guard', () => {
       const scriptRuntime = new ScriptRuntime({ runtime });
 
       const result = await scriptRuntime.runRequestScript(
-        script, { ...baseRequest }, {}, {}, '.', null, process.env
+        script, { ...baseRequest }, {}, {}, '.', null, process.env, { postmanCompatibility: true }
       );
 
       expect(result.pmApiWarnings).toEqual(
@@ -34,7 +34,7 @@ describe('pm/postman proxy guard', () => {
       const scriptRuntime = new ScriptRuntime({ runtime });
 
       const result = await scriptRuntime.runRequestScript(
-        script, { ...baseRequest }, {}, {}, '.', null, process.env
+        script, { ...baseRequest }, {}, {}, '.', null, process.env, { postmanCompatibility: true }
       );
 
       expect(result.pmApiWarnings).toEqual(
@@ -47,7 +47,7 @@ describe('pm/postman proxy guard', () => {
       const scriptRuntime = new ScriptRuntime({ runtime });
 
       const result = await scriptRuntime.runRequestScript(
-        script, { ...baseRequest }, {}, {}, '.', null, process.env
+        script, { ...baseRequest }, {}, {}, '.', null, process.env, { postmanCompatibility: true }
       );
 
       expect(result.pmApiWarnings).toEqual(
@@ -70,7 +70,8 @@ describe('pm/postman proxy guard', () => {
         {},
         '.',
         null,
-        process.env
+        process.env,
+        { postmanCompatibility: true }
       );
 
       expect(result.results).toHaveLength(1);
@@ -85,7 +86,7 @@ describe('pm/postman proxy guard', () => {
       const scriptRuntime = new ScriptRuntime({ runtime });
 
       const result = await scriptRuntime.runRequestScript(
-        script, { ...baseRequest }, {}, {}, '.', null, process.env
+        script, { ...baseRequest }, {}, {}, '.', null, process.env, { postmanCompatibility: true }
       );
 
       expect(result.pmApiWarnings).toEqual([]);
@@ -96,7 +97,7 @@ describe('pm/postman proxy guard', () => {
       const scriptRuntime = new ScriptRuntime({ runtime });
 
       const result = await scriptRuntime.runRequestScript(
-        script, { ...baseRequest }, {}, {}, '.', null, process.env
+        script, { ...baseRequest }, {}, {}, '.', null, process.env, { postmanCompatibility: true }
       );
 
       // Should only have the deepest path, not "pm.vault"
@@ -117,7 +118,7 @@ describe('pm/postman proxy guard', () => {
       const scriptRuntime = new ScriptRuntime({ runtime });
 
       const result = await scriptRuntime.runRequestScript(
-        script, { ...baseRequest }, {}, {}, '.', null, process.env
+        script, { ...baseRequest }, {}, {}, '.', null, process.env, { postmanCompatibility: true }
       );
 
       expect(result.pmApiWarnings).toEqual([]);
@@ -132,7 +133,7 @@ describe('pm/postman proxy guard', () => {
       const scriptRuntime = new ScriptRuntime({ runtime });
 
       const result = await scriptRuntime.runRequestScript(
-        script, { ...baseRequest }, {}, {}, '.', null, process.env
+        script, { ...baseRequest }, {}, {}, '.', null, process.env, { postmanCompatibility: true }
       );
 
       // Only pm.environment should be warned, not pm.environment.toString/toJSON
@@ -147,7 +148,7 @@ describe('pm/postman proxy guard', () => {
       const scriptRuntime = new ScriptRuntime({ runtime });
 
       const result = await scriptRuntime.runRequestScript(
-        script, { ...baseRequest }, {}, {}, '.', null, process.env
+        script, { ...baseRequest }, {}, {}, '.', null, process.env, { postmanCompatibility: true }
       );
 
       const vaultGetCount = result.pmApiWarnings.filter((w) => w === 'pm.vault.get').length;

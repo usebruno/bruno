@@ -103,6 +103,7 @@ class TestRuntime {
           script: testsFile,
           context: context,
           collectionPath,
+          scriptingConfig,
           scriptPath
         });
         pmApiWarnings = vmResult?.pmApiWarnings || [];
