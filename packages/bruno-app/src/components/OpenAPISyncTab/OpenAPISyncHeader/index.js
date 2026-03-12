@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   IconCopy,
   IconDotsVertical,
@@ -22,6 +23,18 @@ const OpenAPISyncHeader = ({
 }) => {
   const sourceIsLocal = !isHttpUrl(sourceUrl);
   const canCheck = !!sourceUrl?.trim();
+
+  // Resolve relative file paths to absolute for display
+  const [displayPath, setDisplayPath] = useState(sourceUrl);
+  useEffect(() => {
+    if (sourceIsLocal && sourceUrl) {
+      window.ipcRenderer.invoke('renderer:resolve-path', sourceUrl, collection.pathname)
+        .then((resolved) => setDisplayPath(resolved))
+        .catch(() => setDisplayPath(sourceUrl));
+    } else {
+      setDisplayPath(sourceUrl);
+    }
+  }, [sourceUrl, sourceIsLocal, collection.pathname]);
 
   const title = spec?.info?.title || 'Unknown API';
   const version = spec?.info?.version || '-';
@@ -111,7 +124,7 @@ const OpenAPISyncHeader = ({
             type="button"
             onClick={revealInFolder}
           >
-            {sourceUrl}
+            {displayPath}
           </button>
         ) : (
           <a
