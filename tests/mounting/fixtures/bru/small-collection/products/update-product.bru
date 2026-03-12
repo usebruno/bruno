@@ -1,0 +1,22 @@
+meta {
+  name: update-product
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{host}}/products/:id
+  body: json
+  auth: none
+}
+
+params:path {
+  id: 1
+}
+
+body:json {
+  {
+    "name": "Updated Product",
+    "price": 29.99
+  }
+}
