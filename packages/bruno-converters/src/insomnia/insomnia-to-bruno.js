@@ -34,7 +34,11 @@ const addSuffixToDuplicateName = (item, index, allItems) => {
 const regexVariable = new RegExp('{{.*?}}', 'g');
 
 const normalizeVariables = (value) => {
-  value = value != null ? String(value) : '';
+  value = value == null
+    ? ''
+    : value instanceof Date
+      ? value.toISOString()
+      : String(value);
   const variables = value.match(regexVariable) || [];
   each(variables, (variable) => {
     value = value.replace(variable, variable.replace('_.', '').replaceAll(' ', ''));

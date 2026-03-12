@@ -1,0 +1,158 @@
+{
+    "type": "collection.insomnia.rest/5.0",
+    "schema_version": "5.1",
+    "name": "Find CodelistItems with Key",
+    "meta": {
+        "id": "wrk_a2353c0f796a43bd8901ef6a4280b94c",
+        "created": 1761043010923,
+        "modified": 1761043010923,
+        "description": ""
+    },
+    "collection": [
+        {
+            "name": "Find CodelistItems with Key",
+            "meta": {
+                "id": "fld_29e440481bb64e6bae90a3339bd2802e",
+                "created": 1761043010925,
+                "modified": 1761043010925,
+                "sortKey": -1761043003270,
+                "description": ""
+            },
+            "children": [
+                {
+                    "url": "http://proddev61:31582/referencedata/api/verifyCodelistItem",
+                    "name": "VerifyCodeListItem",
+                    "meta": {
+                        "id": "req_a32657bbd7304fd590e71b8d26928741",
+                        "created": 1761043010926,
+                        "modified": 1761043010926,
+                        "isPrivate": false,
+                        "description": "",
+                        "sortKey": -1761043003269
+                    },
+                    "method": "GET",
+                    "parameters": [
+                        {
+                            "name": "referenceDate",
+                            "value": "2023-01-01T00:00:00.000Z",
+                            "disabled": true
+                        },
+                        {
+                            "name": "codelistKey",
+                            "value": "CL144",
+                            "disabled": false
+                        },
+                        {
+                            "name": "itemCode",
+                            "value": "IT ARS",
+                            "disabled": false
+                        }
+                    ],
+                    "settings": {
+                        "renderRequestBody": true,
+                        "encodeUrl": true,
+                        "followRedirects": "global",
+                        "cookies": {
+                            "send": true,
+                            "store": true
+                        },
+                        "rebuildPath": true
+                    }
+                },
+                {
+                    "url": "https://qa2-ermis.pd.athens.intrasoft-intl.private/customs-api/referencedata/api/codelistItems",
+                    "name": "Get codelist items by key",
+                    "meta": {
+                        "id": "req_ba67702641e045078bff1d91bee0262d",
+                        "created": 1761043010927,
+                        "modified": 1761043010927,
+                        "isPrivate": false,
+                        "description": "",
+                        "sortKey": -1761043003268
+                    },
+                    "method": "GET",
+                    "parameters": [
+                        {
+                            "name": "referenceDate",
+                            "value": "2023-01-01T00:00:00.000Z",
+                            "disabled": true
+                        },
+                        {
+                            "name": "codelistKey",
+                            "value": "10200",
+                            "disabled": false
+                        }
+                    ],
+                    "authentication": {
+                        "type": "bearer",
+                        "disabled": false,
+                        "token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI3UmtzYXhMY0FwT2NBWVdaM1FiRjhqT194WXZPWUtaSEZ5Vzktc1lOLTB3In0.eyJleHAiOjE3NDI4NDM4NTksImlhdCI6MTc0MjgyOTQ1OSwianRpIjoiYWMyYzZlNDMtYzM4ZC00MGFmLThlMzEtOGZiMDUzYzkyMTU2IiwiaXNzIjoiaHR0cHM6Ly9xYTItZXJtaXMucGQuYXRoZW5zLmludHJhc29mdC1pbnRsLnByaXZhdGUvYXV0aC9yZWFsbXMvY3dtIiwiYXVkIjpbInJlYWxtLW1hbmFnZW1lbnQiLCJhY2NvdW50Il0sInN1YiI6IjVmYzQ4Mjg2LTIyYmYtNDg0OC04Y2E1LWRjZDE2NWRhNjgxZiIsInR5cCI6IkJlYXJlciIsImF6cCI6ImN3bS13ZWItdWkiLCJzZXNzaW9uX3N0YXRlIjoiYzliODEwOTQtOTE4Yi00ZTNlLWI5NWMtZjE3OGFlMzY4MDIzIiwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIlZpZXdTeXN0ZW1QYXJhbWV0ZXJBZG1pbiIsIlZpZXdCdXNpbmVzc1J1bGVVc2VyIiwiQ29udHJvbFVzZXIiLCJBc3NpZ25lZFRhc2tzVXNlciIsIlVzZXJUYXNrc1JlcG9ydFVzZXIiLCJJbnZhbGlkYXRlRGVjbGFyYXRpb25Vc2VyIiwiV29ya1Rhc2tzUmVwb3J0VXNlciIsIk15VGFza3NVc2VyIiwiVmlld0RlY2xhcmF0aW9uVXNlciIsIkNyZWF0ZURlY2xhcmF0aW9uVXNlciIsIkNvdmVyYWdlVXNlciIsIkRlY2xhcmF0aW9uUHJvY2Vzc2luZ1JlcG9ydFVzZXIiLCJSZXBvcnRVc2VyIiwiRGV0ZXJtaW5lQ3VzdG9tc1Bvc2l0aW9uVXNlciIsIk1vZGlmeURlY2xhcmF0aW9uVXNlciIsIkN1c3RvbXNPZmZpY2VVc2VyIiwiSGFuZGxlUGF5bWVudHNNYW51YWxDYXNoVXNlciIsIm9mZmxpbmVfYWNjZXNzIiwiQ29udHJvbFRhc2tVc2VyIiwiVGFyaWZmTW9kaWZpY2F0aW9uVXNlciIsIk9wZW5UYXNrc1VzZXIiLCJDdXN0b21zRGVidE1vZGlmaWNhdGlvblVzZXIiLCJDb3JyZWN0RGVjbGFyYXRpb25Vc2VyIiwiQ3VzdG9tc1Bvc2l0aW9uVXNlciIsInVtYV9hdXRob3JpemF0aW9uIiwiSGFuZGxlUGF5bWVudHNDb3ZlcmFnZVVzZXIiLCJDdXN0b21zRGVidFVzZXIiLCJPdmVyZHVlU2VydmljZVJlcG9ydFVzZXIiLCJWaWV3RGVjbGFyYXRpb25EYXRhVXNlciIsIkVudGVyRGVjbGFyYXRpb25Vc2VyIiwiQ2xhaW1UYXNrVXNlciIsIkhhbmRsZUV4dGVybmFsbHlVc2VyIiwiQ3VzdG9tc1Bvc2l0aW9uQ09SQWRkaXRpb25hbE1lc3NhZ2VVc2VyIiwiRGVjbGFyYXRpb25zUmVwb3J0VXNlciIsIlZpZXdNZXNzYWdlU3RvcmVVc2VyIiwiQW1lbmREZWNsYXJhdGlvblVzZXIiLCJDdXN0b21zUG9zaXRpb25JTlZBZGRpdGlvbmFsTWVzc2FnZVVzZXIiLCJUcmFuc2ZlclRhc2tVc2VyIiwiU3VwZXJ2aXNvclVzZXIiLCJBdXRob3JpemF0aW9uTWFwcGluZ0FkbWluIiwiU3BlY2lhbFByb2NlZHVyZXNNYW5hZ2VyIiwiVXBkYXRlQnVzaW5lc3NSdWxlVXNlciIsIkFkZFJlbWFya1VzZXIiLCJQcmVzZW50RGVjbGFyYXRpb25Vc2VyIiwiVXBkYXRlU3lzdGVtUGFyYW1ldGVyQWRtaW4iLCJQcmludERlY2xhcmF0aW9uVXNlciIsIkNyZWF0ZVZlcmJhbERlY2xhcmF0aW9uVXNlciJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy1yZWFsbSIsInZpZXctdXNlcnMiLCJxdWVyeS1ncm91cHMiLCJxdWVyeS11c2VycyJdfSwiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJtaWNyb3Byb2ZpbGUtand0IGVtYWlsIHByb2ZpbGUiLCJzaWQiOiJjOWI4MTA5NC05MThiLTRlM2UtYjk1Yy1mMTc4YWUzNjgwMjMiLCJ1cG4iOiJhZG1pbi1hcHAiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInJvbGVzIjpbIlZpZXdTeXN0ZW1QYXJhbWV0ZXJBZG1pbiIsIlZpZXdCdXNpbmVzc1J1bGVVc2VyIiwiQ29udHJvbFVzZXIiLCJBc3NpZ25lZFRhc2tzVXNlciIsIlVzZXJUYXNrc1JlcG9ydFVzZXIiLCJJbnZhbGlkYXRlRGVjbGFyYXRpb25Vc2VyIiwiV29ya1Rhc2tzUmVwb3J0VXNlciIsIk15VGFza3NVc2VyIiwiVmlld0RlY2xhcmF0aW9uVXNlciIsIkNyZWF0ZURlY2xhcmF0aW9uVXNlciIsIkNvdmVyYWdlVXNlciIsIkRlY2xhcmF0aW9uUHJvY2Vzc2luZ1JlcG9ydFVzZXIiLCJSZXBvcnRVc2VyIiwiRGV0ZXJtaW5lQ3VzdG9tc1Bvc2l0aW9uVXNlciIsIk1vZGlmeURlY2xhcmF0aW9uVXNlciIsIkN1c3RvbXNPZmZpY2VVc2VyIiwiSGFuZGxlUGF5bWVudHNNYW51YWxDYXNoVXNlciIsIm9mZmxpbmVfYWNjZXNzIiwiQ29udHJvbFRhc2tVc2VyIiwiVGFyaWZmTW9kaWZpY2F0aW9uVXNlciIsIk9wZW5UYXNrc1VzZXIiLCJDdXN0b21zRGVidE1vZGlmaWNhdGlvblVzZXIiLCJDb3JyZWN0RGVjbGFyYXRpb25Vc2VyIiwiQ3VzdG9tc1Bvc2l0aW9uVXNlciIsInVtYV9hdXRob3JpemF0aW9uIiwiSGFuZGxlUGF5bWVudHNDb3ZlcmFnZVVzZXIiLCJDdXN0b21zRGVidFVzZXIiLCJPdmVyZHVlU2VydmljZVJlcG9ydFVzZXIiLCJWaWV3RGVjbGFyYXRpb25EYXRhVXNlciIsIkVudGVyRGVjbGFyYXRpb25Vc2VyIiwiQ2xhaW1UYXNrVXNlciIsIkhhbmRsZUV4dGVybmFsbHlVc2VyIiwiQ3VzdG9tc1Bvc2l0aW9uQ09SQWRkaXRpb25hbE1lc3NhZ2VVc2VyIiwiRGVjbGFyYXRpb25zUmVwb3J0VXNlciIsIlZpZXdNZXNzYWdlU3RvcmVVc2VyIiwiQW1lbmREZWNsYXJhdGlvblVzZXIiLCJDdXN0b21zUG9zaXRpb25JTlZBZGRpdGlvbmFsTWVzc2FnZVVzZXIiLCJUcmFuc2ZlclRhc2tVc2VyIiwiU3VwZXJ2aXNvclVzZXIiLCJBdXRob3JpemF0aW9uTWFwcGluZ0FkbWluIiwiU3BlY2lhbFByb2NlZHVyZXNNYW5hZ2VyIiwiVXBkYXRlQnVzaW5lc3NSdWxlVXNlciIsIkFkZFJlbWFya1VzZXIiLCJQcmVzZW50RGVjbGFyYXRpb25Vc2VyIiwiVXBkYXRlU3lzdGVtUGFyYW1ldGVyQWRtaW4iLCJQcmludERlY2xhcmF0aW9uVXNlciIsIkNyZWF0ZVZlcmJhbERlY2xhcmF0aW9uVXNlciJdLCJncm91cHMiOlsiVmlld1N5c3RlbVBhcmFtZXRlckFkbWluIiwiVmlld0J1c2luZXNzUnVsZVVzZXIiLCJDb250cm9sVXNlciIsIkFzc2lnbmVkVGFza3NVc2VyIiwiVXNlclRhc2tzUmVwb3J0VXNlciIsIkludmFsaWRhdGVEZWNsYXJhdGlvblVzZXIiLCJXb3JrVGFza3NSZXBvcnRVc2VyIiwiTXlUYXNrc1VzZXIiLCJWaWV3RGVjbGFyYXRpb25Vc2VyIiwiQ3JlYXRlRGVjbGFyYXRpb25Vc2VyIiwiQ292ZXJhZ2VVc2VyIiwiRGVjbGFyYXRpb25Qcm9jZXNzaW5nUmVwb3J0VXNlciIsIlJlcG9ydFVzZXIiLCJEZXRlcm1pbmVDdXN0b21zUG9zaXRpb25Vc2VyIiwiTW9kaWZ5RGVjbGFyYXRpb25Vc2VyIiwiQ3VzdG9tc09mZmljZVVzZXIiLCJIYW5kbGVQYXltZW50c01hbnVhbENhc2hVc2VyIiwib2ZmbGluZV9hY2Nlc3MiLCJDb250cm9sVGFza1VzZXIiLCJUYXJpZmZNb2RpZmljYXRpb25Vc2VyIiwiT3BlblRhc2tzVXNlciIsIkN1c3RvbXNEZWJ0TW9kaWZpY2F0aW9uVXNlciIsIkNvcnJlY3REZWNsYXJhdGlvblVzZXIiLCJDdXN0b21zUG9zaXRpb25Vc2VyIiwidW1hX2F1dGhvcml6YXRpb24iLCJIYW5kbGVQYXltZW50c0NvdmVyYWdlVXNlciIsIkN1c3RvbXNEZWJ0VXNlciIsIk92ZXJkdWVTZXJ2aWNlUmVwb3J0VXNlciIsIlZpZXdEZWNsYXJhdGlvbkRhdGFVc2VyIiwiRW50ZXJEZWNsYXJhdGlvblVzZXIiLCJDbGFpbVRhc2tVc2VyIiwiSGFuZGxlRXh0ZXJuYWxseVVzZXIiLCJDdXN0b21zUG9zaXRpb25DT1JBZGRpdGlvbmFsTWVzc2FnZVVzZXIiLCJEZWNsYXJhdGlvbnNSZXBvcnRVc2VyIiwiVmlld01lc3NhZ2VTdG9yZVVzZXIiLCJBbWVuZERlY2xhcmF0aW9uVXNlciIsIkN1c3RvbXNQb3NpdGlvbklOVkFkZGl0aW9uYWxNZXNzYWdlVXNlciIsIlRyYW5zZmVyVGFza1VzZXIiLCJTdXBlcnZpc29yVXNlciIsIkF1dGhvcml6YXRpb25NYXBwaW5nQWRtaW4iLCJTcGVjaWFsUHJvY2VkdXJlc01hbmFnZXIiLCJVcGRhdGVCdXNpbmVzc1J1bGVVc2VyIiwiQWRkUmVtYXJrVXNlciIsIlByZXNlbnREZWNsYXJhdGlvblVzZXIiLCJVcGRhdGVTeXN0ZW1QYXJhbWV0ZXJBZG1pbiIsIlByaW50RGVjbGFyYXRpb25Vc2VyIiwiQ3JlYXRlVmVyYmFsRGVjbGFyYXRpb25Vc2VyIiwiVmlld1N5c3RlbVBhcmFtZXRlckFkbWluIiwiVmlld0J1c2luZXNzUnVsZVVzZXIiLCJDb250cm9sVXNlciIsIkFzc2lnbmVkVGFza3NVc2VyIiwiVXNlclRhc2tzUmVwb3J0VXNlciIsIkludmFsaWRhdGVEZWNsYXJhdGlvblVzZXIiLCJXb3JrVGFza3NSZXBvcnRVc2VyIiwiTXlUYXNrc1VzZXIiLCJWaWV3RGVjbGFyYXRpb25Vc2VyIiwiQ3JlYXRlRGVjbGFyYXRpb25Vc2VyIiwiQ292ZXJhZ2VVc2VyIiwiRGVjbGFyYXRpb25Qcm9jZXNzaW5nUmVwb3J0VXNlciIsIlJlcG9ydFVzZXIiLCJEZXRlcm1pbmVDdXN0b21zUG9zaXRpb25Vc2VyIiwiTW9kaWZ5RGVjbGFyYXRpb25Vc2VyIiwiQ3VzdG9tc09mZmljZVVzZXIiLCJIYW5kbGVQYXltZW50c01hbnVhbENhc2hVc2VyIiwib2ZmbGluZV9hY2Nlc3MiLCJDb250cm9sVGFza1VzZXIiLCJUYXJpZmZNb2RpZmljYXRpb25Vc2VyIiwiT3BlblRhc2tzVXNlciIsIkN1c3RvbXNEZWJ0TW9kaWZpY2F0aW9uVXNlciIsIkNvcnJlY3REZWNsYXJhdGlvblVzZXIiLCJDdXN0b21zUG9zaXRpb25Vc2VyIiwidW1hX2F1dGhvcml6YXRpb24iLCJIYW5kbGVQYXltZW50c0NvdmVyYWdlVXNlciIsIkN1c3RvbXNEZWJ0VXNlciIsIk92ZXJkdWVTZXJ2aWNlUmVwb3J0VXNlciIsIlZpZXdEZWNsYXJhdGlvbkRhdGFVc2VyIiwiRW50ZXJEZWNsYXJhdGlvblVzZXIiLCJDbGFpbVRhc2tVc2VyIiwiSGFuZGxlRXh0ZXJuYWxseVVzZXIiLCJDdXN0b21zUG9zaXRpb25DT1JBZGRpdGlvbmFsTWVzc2FnZVVzZXIiLCJEZWNsYXJhdGlvbnNSZXBvcnRVc2VyIiwiVmlld01lc3NhZ2VTdG9yZVVzZXIiLCJBbWVuZERlY2xhcmF0aW9uVXNlciIsIkN1c3RvbXNQb3NpdGlvbklOVkFkZGl0aW9uYWxNZXNzYWdlVXNlciIsIlRyYW5zZmVyVGFza1VzZXIiLCJTdXBlcnZpc29yVXNlciIsIkF1dGhvcml6YXRpb25NYXBwaW5nQWRtaW4iLCJTcGVjaWFsUHJvY2VkdXJlc01hbmFnZXIiLCJVcGRhdGVCdXNpbmVzc1J1bGVVc2VyIiwiQWRkUmVtYXJrVXNlciIsIlByZXNlbnREZWNsYXJhdGlvblVzZXIiLCJVcGRhdGVTeXN0ZW1QYXJhbWV0ZXJBZG1pbiIsIlByaW50RGVjbGFyYXRpb25Vc2VyIiwiQ3JlYXRlVmVyYmFsRGVjbGFyYXRpb25Vc2VyIl0sInByZWZlcnJlZF91c2VybmFtZSI6ImFkbWluLWFwcCJ9.UxHIpj-Q8wpskM-SZuW2i9B8izfc16T0p9VPpvQv12K8Jfx7OFbhG0wXiSlFj-Hjeo7oSiTbdjFsKKS16J-py8qjcIEmtK8OWxLtgGfFHCDQrdOPLIS0yjh0ICVHwFz4lGdH9bYyMwi8rVeU1vBypjfX8AaPfn5MAkw0hh_86fY9IUdDmwOz3qkcc_LKb6NG-lSUf8pq98hEW5M4NvjRDJP1GAYoBGv2a8ELSZ1nIe_MOauLoOM7f3-AB_MJSgkQGR-nznGch2rRw3cQWcPFrOzjTWifQ5HaRjSqmxrKRjBwxojAXnMqcyaSd4_FFhFs4QVoBQWKq9Zh8bOyaCe7jg",
+                        "prefix": ""
+                    },
+                    "settings": {
+                        "renderRequestBody": true,
+                        "encodeUrl": true,
+                        "followRedirects": "global",
+                        "cookies": {
+                            "send": true,
+                            "store": true
+                        },
+                        "rebuildPath": true
+                    }
+                },
+                {
+                    "url": "ermishf001:31582/referencedata/api/codelistItems",
+                    "name": "Get codelist items by regime and key",
+                    "meta": {
+                        "id": "req_0b427b807685434ba874c2fc7199e4c5",
+                        "created": 1761043010929,
+                        "modified": 1761043010929,
+                        "isPrivate": false,
+                        "description": "",
+                        "sortKey": -1761043003267
+                    },
+                    "method": "GET",
+                    "parameters": [
+                        {
+                            "name": "codelistKey",
+                            "value": "11023",
+                            "disabled": false
+                        },
+                        {
+                            "name": "referenceDate",
+                            "value": "2023-01-01T00:00:00.000Z",
+                            "disabled": true
+                        }
+                    ],
+                    "settings": {
+                        "renderRequestBody": true,
+                        "encodeUrl": true,
+                        "followRedirects": "global",
+                        "cookies": {
+                            "send": true,
+                            "store": true
+                        },
+                        "rebuildPath": true
+                    }
+                }
+            ]
+        }
+    ],
+    "cookieJar": {
+        "name": "Default Jar",
+        "meta": {
+            "id": "jar_c0d12d48fa956cdba649e7078496373efe7a1ee3",
+            "created": 1761043010933,
+            "modified": 1761043010933
+        }
+    },
+    "environments": {
+        "name": "Base Environment",
+        "meta": {
+            "id": "env_c0d12d48fa956cdba649e7078496373efe7a1ee3",
+            "created": 1761043010930,
+            "modified": 1761043010930,
+            "isPrivate": false
+        }
+    }
+}
