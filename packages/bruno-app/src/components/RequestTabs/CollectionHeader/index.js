@@ -59,6 +59,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const openingAdvancedRef = useRef(false);
   const clickedOutsideRef = useRef(false);
   const handleSaveRef = useRef(null);
+  const tempWorkspaceUidRef = useRef(null);
+  const isSavingRef = useRef(false);
 
   const onSwitcherCreate = (ref) => (switcherRef.current = ref);
   const onWorkspaceActionsCreate = (ref) => (workspaceActionsRef.current = ref);
@@ -282,6 +284,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     clickedOutsideRef.current = false;
 
     if (openingAdvancedRef.current) return;
+    if (isSavingRef.current) return;
 
     const trimmedName = workspaceNameInput?.trim();
     if (!trimmedName) {
@@ -305,6 +308,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     const uid = currentWorkspace?.uid;
     if (!uid) return;
 
+    isSavingRef.current = true;
+
     if (currentWorkspace?.isCreating) {
       dispatch(confirmWorkspaceCreation(uid, trimmedName))
         .then(() => {
@@ -315,6 +320,9 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         })
         .catch((err) => {
           toast.error(err?.message || 'An error occurred while creating the workspace');
+        })
+        .finally(() => {
+          isSavingRef.current = false;
         });
     } else {
       dispatch(renameWorkspaceAction(uid, workspaceNameInput))
@@ -327,6 +335,9 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         .catch((err) => {
           toast.error(err?.message || 'An error occurred while renaming the workspace');
           setWorkspaceNameError(err?.message || 'Failed to rename workspace');
+        })
+        .finally(() => {
+          isSavingRef.current = false;
         });
     }
   };
@@ -350,8 +361,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
       handleCancelWorkspaceRename();
     }
   };
-
-  const tempWorkspaceUidRef = useRef(null);
 
   const handleOpenAdvancedCreate = () => {
     openingAdvancedRef.current = true;

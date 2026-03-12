@@ -674,7 +674,7 @@ test.describe('Create Workspace', () => {
   });
 
   test.describe('Temp Workspace Isolation', () => {
-    test('should not show temp workspace in manage workspaces list', async ({ launchElectronApp, createTmpDir }) => {
+    test('should exclude temp workspace from duplicate name validation in advanced modal', async ({ launchElectronApp, createTmpDir }) => {
       const wsLocation = await createTmpDir('ws-location-no-temp');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
