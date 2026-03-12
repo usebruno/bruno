@@ -12,7 +12,7 @@ const toTagsArray = (tags: string | string[] | undefined | null): string[] => {
 };
 
 /**
- * A request should be included if it has at least one tag that is included and no tags that are excluded
+ * Determines whether a request should be included based on its tags: if no includeTags are provided, all requests are included (unless excluded); otherwise, it must have at least one included tag and no excluded tags.
  * @param requestTags Tags of the request (string or array — BRU parser may return either)
  * @param includeTags Tags to include
  * @param excludeTags Tags to exclude
