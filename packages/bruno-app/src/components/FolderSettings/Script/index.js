@@ -21,8 +21,7 @@ const Script = ({ collection, folder }) => {
   const responseScript = folder.draft ? get(folder, 'draft.request.script.res', '') : get(folder, 'root.request.script.res', '');
 
   const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const focusedTab = find(tabs, (t) => t.uid === folder.uid);
   const scriptPaneTab = focusedTab?.scriptPaneTab;
 
   // Default to post-response if pre-request script is empty (only when scriptPaneTab is null/undefined)
