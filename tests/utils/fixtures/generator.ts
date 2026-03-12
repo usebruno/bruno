@@ -385,6 +385,156 @@ export async function generateCollectionPair(
 }
 
 /**
+ * Item definition for sorting test collections
+ */
+export interface SortingTestItem {
+  /** Name of the request */
+  name: string;
+  /** Sequence number (omit to test alphabetical sorting) */
+  seq?: number;
+  /** HTTP method (default: GET) */
+  method?: typeof HTTP_METHODS[number];
+}
+
+/**
+ * Options for generating a sorting test collection
+ */
+export interface SortingTestCollectionOptions {
+  /** Name of the collection */
+  name: string;
+  /** Items to generate with specific names and sequences */
+  items: SortingTestItem[];
+  /** Collection format */
+  format: CollectionFormat;
+}
+
+/**
+ * Generate a collection specifically for sorting tests.
+ * Allows specifying exact item names and sequence numbers.
+ */
+export async function generateSortingTestCollection(
+  options: SortingTestCollectionOptions
+): Promise<GeneratedCollection> {
+  const { name, items, format } = options;
+
+  // Create temp directory
+  const tempDir = await fs.promises.mkdtemp(
+    path.join(os.tmpdir(), 'bruno-test-sorting-')
+  );
+
+  try {
+    // Generate collection root files
+    await generateCollectionRoot(tempDir, name, format);
+
+    // Create each request with specified name and sequence
+    for (const item of items) {
+      await createSortingTestRequest(tempDir, item, format);
+    }
+
+    return {
+      path: tempDir,
+      cleanup: async () => {
+        await fs.promises.rm(tempDir, { recursive: true, force: true });
+      },
+      name,
+      requestCount: items.length,
+      folderCount: 0,
+      format
+    };
+  } catch (error) {
+    await fs.promises.rm(tempDir, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+/**
+ * Create a request file for sorting tests with specific name and sequence
+ */
+async function createSortingTestRequest(
+  basePath: string,
+  item: SortingTestItem,
+  format: CollectionFormat
+): Promise<void> {
+  const { name, seq, method = 'GET' } = item;
+  const ext = format === 'bru' ? 'bru' : 'yml';
+  const filePath = path.join(basePath, `${name}.${ext}`);
+
+  if (format === 'bru') {
+    const seqLine = seq !== undefined ? `\n  seq: ${seq}` : '';
+    const content = `meta {
+  name: ${name}
+  type: http${seqLine}
+}
+
+${method.toLowerCase()} {
+  url: {{host}}/api/${name.toLowerCase().replace(/\s+/g, '-')}
+  body: none
+  auth: none
+}
+`;
+    await fs.promises.writeFile(filePath, content);
+  } else {
+    const seqLine = seq !== undefined ? `\n  seq: ${seq}` : '';
+    const content = `info:
+  name: ${name}
+  type: http${seqLine}
+
+http:
+  method: ${method}
+  url: "{{host}}/api/${name.toLowerCase().replace(/\s+/g, '-')}"
+`;
+    await fs.promises.writeFile(filePath, content);
+  }
+}
+
+/**
+ * Set up a sorting test fixture with collection and user data directory
+ */
+export async function setupSortingTestFixture(
+  options: SortingTestCollectionOptions
+): Promise<TestFixture> {
+  const collection = await generateSortingTestCollection(options);
+
+  const userDataPath = await fs.promises.mkdtemp(
+    path.join(os.tmpdir(), 'bruno-test-userdata-')
+  );
+
+  try {
+    const preferences = {
+      lastOpenedCollections: [collection.path],
+      preferences: {
+        onboarding: {
+          hasLaunchedBefore: true,
+          hasSeenWelcomeModal: true
+        }
+      }
+    };
+
+    await fs.promises.writeFile(
+      path.join(userDataPath, 'preferences.json'),
+      JSON.stringify(preferences, null, 2)
+    );
+
+    return {
+      collection,
+      userDataPath,
+      cleanup: async () => {
+        await Promise.all([
+          collection.cleanup(),
+          fs.promises.rm(userDataPath, { recursive: true, force: true })
+        ]);
+      }
+    };
+  } catch (error) {
+    await Promise.all([
+      collection.cleanup(),
+      fs.promises.rm(userDataPath, { recursive: true, force: true })
+    ]);
+    throw error;
+  }
+}
+
+/**
  * Options for setting up a test fixture
  */
 export interface TestFixtureOptions extends GenerateCollectionOptions {

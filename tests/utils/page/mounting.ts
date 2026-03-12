@@ -151,9 +151,6 @@ export const waitForCollectionMount = async (
 
     // Wait for the loading spinner to disappear
     await expect(locators.collection.loadingSpinner(collectionName)).not.toBeVisible({ timeout });
-
-    // Additional stabilization: wait a short time for any pending item updates
-    await page.waitForTimeout(100);
   });
 };
 
@@ -231,8 +228,10 @@ export const getCollectionTreeStructure = async (
     const isExpanded = await locators.collection.isExpanded(collectionName);
     if (!isExpanded) {
       await collectionRow.click();
-      await page.waitForTimeout(100);
     }
+
+    // Wait for collection to finish mounting after expansion
+    await waitForCollectionMount(page, collectionName);
 
     // Collection structure:
     // StyledWrapper > [collection-row, children-wrapper > inner-container > items]

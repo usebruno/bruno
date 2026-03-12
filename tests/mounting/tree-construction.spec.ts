@@ -30,6 +30,10 @@ for (const format of formats) {
       if (page) {
         await closeAllCollections(page);
       }
+      if (app) {
+        await app.context().close();
+        await app.close();
+      }
       if (fixture) {
         await fixture.cleanup();
       }

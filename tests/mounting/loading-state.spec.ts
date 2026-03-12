@@ -35,7 +35,13 @@ for (const format of formats) {
         await closeAllCollections(page);
       }
 
-      // Cleanup generated files (app closing is handled by launchElectronApp fixture)
+      // Close the app to release file locks
+      if (app) {
+        await app.context().close();
+        await app.close();
+      }
+
+      // Cleanup generated files
       if (fixture) {
         await fixture.cleanup();
       }
