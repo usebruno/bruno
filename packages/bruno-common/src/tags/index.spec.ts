@@ -61,6 +61,10 @@ describe('isRequestTagsIncluded', () => {
     expect(result).toBe(true);
   });
 
+  it('should not include request when requestTags is undefined and includeTags is non-empty', () => {
+    const result = isRequestTagsIncluded(undefined, ['smoke'], []);
+    expect(result).toBe(false);
+  });
   it('should handle requestTags as null without crashing', () => {
     const result = isRequestTagsIncluded(null, [], ['ignore']);
     expect(result).toBe(true);
