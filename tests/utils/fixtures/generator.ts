@@ -79,15 +79,16 @@ export async function generateCollection(
 
     // Distribute requests across folders
     const requestsPerLocation = distributeRequests(requestCount, folders);
-    let requestIndex = 0;
+    let globalIndex = 0;
 
     for (const [folderPath, count] of Object.entries(requestsPerLocation)) {
       for (let i = 0; i < count; i++) {
         const method = mixedMethods
-          ? HTTP_METHODS[requestIndex % HTTP_METHODS.length]
+          ? HTTP_METHODS[globalIndex % HTTP_METHODS.length]
           : 'GET';
-        await createRequest(tempDir, folderPath, requestIndex, method, format);
-        requestIndex++;
+        // Pass per-folder index (i) for naming, global index for method cycling
+        await createRequest(tempDir, folderPath, i, method, format);
+        globalIndex++;
       }
     }
 
@@ -192,6 +193,8 @@ variables:
 
 /**
  * Generate folder structure paths
+ * Folder names include parent prefix for verifiable parent-child relationships
+ * Uses short names: F1, F1-F1, F1-F1-F1 to avoid OS filename length limits
  */
 function generateFolderStructure(
   depth: number,
@@ -203,18 +206,19 @@ function generateFolderStructure(
 
   const folders: string[] = [''];
 
-  function addFolders(currentPath: string, currentDepth: number): void {
+  function addFolders(currentPath: string, parentName: string, currentDepth: number): void {
     if (currentDepth >= depth) return;
 
     for (let i = 0; i < foldersPerLevel; i++) {
-      const folderName = `folder-${currentDepth + 1}-${i + 1}`;
+      // Short folder name with parent prefix: F1, F1-F1, F1-F1-F1
+      const folderName = parentName ? `${parentName}-F${i + 1}` : `F${i + 1}`;
       const newPath = currentPath ? `${currentPath}/${folderName}` : folderName;
       folders.push(newPath);
-      addFolders(newPath, currentDepth + 1);
+      addFolders(newPath, folderName, currentDepth + 1);
     }
   }
 
-  addFolders('', 0);
+  addFolders('', '', 0);
   return folders;
 }
 
@@ -280,15 +284,19 @@ function distributeRequests(
 
 /**
  * Create a request file
+ * Request names include parent folder prefix for verifiable parent-child relationships
+ * Uses short names: R1, F1-R1, F1-F1-R1 to avoid OS filename length limits
  */
 async function createRequest(
   basePath: string,
   folderPath: string,
-  index: number,
+  indexInFolder: number,
   method: typeof HTTP_METHODS[number],
   format: CollectionFormat
 ): Promise<void> {
-  const requestName = `request-${index + 1}`;
+  // Get parent folder name from path (e.g., "F1/F1-F1" -> "F1-F1")
+  const parentName = folderPath ? path.basename(folderPath) : '';
+  const requestName = parentName ? `${parentName}-R${indexInFolder + 1}` : `R${indexInFolder + 1}`;
   const ext = format === 'bru' ? 'bru' : 'yml';
   const fullFolderPath = folderPath
     ? path.join(basePath, folderPath)
@@ -304,11 +312,11 @@ async function createRequest(
     let content = `meta {
   name: ${requestName}
   type: http
-  seq: ${(index % 100) + 1}
+  seq: ${(indexInFolder % 100) + 1}
 }
 
 ${method.toLowerCase()} {
-  url: {{host}}/api/resource/${index + 1}
+  url: {{host}}/api/resource/${indexInFolder + 1}
   body: ${hasBody ? 'json' : 'none'}
   auth: none
 }
@@ -318,8 +326,8 @@ ${method.toLowerCase()} {
       content += `
 body:json {
   {
-    "id": ${index + 1},
-    "name": "Resource ${index + 1}",
+    "id": ${indexInFolder + 1},
+    "name": "Resource ${indexInFolder + 1}",
     "timestamp": "${new Date().toISOString()}"
   }
 }
@@ -331,11 +339,11 @@ body:json {
     let content = `info:
   name: ${requestName}
   type: http
-  seq: ${(index % 100) + 1}
+  seq: ${(indexInFolder % 100) + 1}
 
 http:
   method: ${method}
-  url: "{{host}}/api/resource/${index + 1}"
+  url: "{{host}}/api/resource/${indexInFolder + 1}"
 `;
 
     if (hasBody) {
@@ -343,8 +351,8 @@ http:
     mode: json
     json: |
       {
-        "id": ${index + 1},
-        "name": "Resource ${index + 1}",
+        "id": ${indexInFolder + 1},
+        "name": "Resource ${indexInFolder + 1}",
         "timestamp": "${new Date().toISOString()}"
       }
 `;
