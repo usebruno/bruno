@@ -46,7 +46,7 @@ const defaultPreferences = {
     responsePaneOrientation: 'horizontal'
   },
   beta: {
-    'openapi-sync': true
+    'openapi-sync': false
   },
   onboarding: {
     hasLaunchedBefore: false,
