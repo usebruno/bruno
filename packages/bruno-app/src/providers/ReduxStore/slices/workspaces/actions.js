@@ -524,38 +524,21 @@ const handleWorkspaceAction = async (action, workspaceUid, ...args) => {
 export const renameWorkspaceAction = (workspaceUid, newName) => {
   return async (dispatch, getState) => {
     try {
-      const { workspaces, activeWorkspaceUid } = getState().workspaces;
+      const { workspaces } = getState().workspaces;
       const workspace = workspaces.find((w) => w.uid === workspaceUid);
 
       if (!workspace) {
         throw new Error('Workspace not found');
       }
 
-      const result = await ipcRenderer.invoke('renderer:rename-workspace', workspace.pathname, newName);
+      await handleWorkspaceAction((...args) => ipcRenderer.invoke('renderer:rename-workspace', ...args),
+        workspace.pathname,
+        newName);
 
-      if (result.newWorkspacePath) {
-        const { generateUidBasedOnHash } = await import('utils/common');
-        const newWorkspaceUid = generateUidBasedOnHash(result.newWorkspacePath);
-        const wasActive = activeWorkspaceUid === workspaceUid;
-
-        dispatch(removeWorkspace(workspaceUid));
-
-        dispatch(createWorkspace({
-          ...workspace,
-          uid: newWorkspaceUid,
-          name: newName,
-          pathname: result.newWorkspacePath
-        }));
-
-        if (wasActive) {
-          dispatch(setActiveWorkspace(newWorkspaceUid));
-        }
-      } else {
-        dispatch(updateWorkspace({
-          uid: workspaceUid,
-          name: newName
-        }));
-      }
+      dispatch(updateWorkspace({
+        uid: workspaceUid,
+        name: newName
+      }));
     } catch (error) {
       throw error;
     }
