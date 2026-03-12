@@ -67,18 +67,20 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
   const handleNavigate = () => {
     if (!sourceInfo) return;
 
-    const settingsTab = scriptPhase === 'test' ? 'tests' : 'script';
+    // CollectionSettings expects 'tests', FolderSettings expects 'test'
+    const collectionSettingsTab = scriptPhase === 'test' ? 'tests' : 'script';
+    const folderSettingsTab = scriptPhase === 'test' ? 'test' : 'script';
 
     if (sourceInfo.sourceType === 'collection') {
       dispatch(addTab({ uid: collection.uid, collectionUid: collection.uid, type: 'collection-settings' }));
-      dispatch(updateSettingsSelectedTab({ collectionUid: collection.uid, tab: settingsTab }));
-      if (settingsTab === 'script') {
+      dispatch(updateSettingsSelectedTab({ collectionUid: collection.uid, tab: collectionSettingsTab }));
+      if (collectionSettingsTab === 'script') {
         dispatch(updateScriptPaneTab({ uid: collection.uid, scriptPaneTab: scriptPhase }));
       }
     } else if (sourceInfo.sourceType === 'folder') {
       dispatch(addTab({ uid: sourceInfo.sourceUid, collectionUid: collection.uid, type: 'folder-settings' }));
-      dispatch(updatedFolderSettingsSelectedTab({ collectionUid: collection.uid, folderUid: sourceInfo.sourceUid, tab: settingsTab }));
-      if (settingsTab === 'script') {
+      dispatch(updatedFolderSettingsSelectedTab({ collectionUid: collection.uid, folderUid: sourceInfo.sourceUid, tab: folderSettingsTab }));
+      if (folderSettingsTab === 'script') {
         dispatch(updateScriptPaneTab({ uid: sourceInfo.sourceUid, scriptPaneTab: scriptPhase }));
       }
     } else if (sourceInfo.sourceType === 'request') {
