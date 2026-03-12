@@ -8,10 +8,11 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, parseErrorLocation, adjustLineNumber, resolveSegmentError, getSourceContext, adjustStackTrace, getErrorTypeName, findScriptBlockStartLine, findScriptBlockEndLine, findYmlScriptBlockStartLine, findYmlScriptBlockEndLine } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const { encodeUrl } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
+const { buildErrorContext } = require('./build-error-context');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
@@ -441,84 +442,6 @@ const registerNetworkIpc = (mainWindow) => {
       type,
       args
     });
-  };
-
-  const buildErrorContext = (error, scriptType, itemPathname, collectionPath, scriptMetadata) => {
-    if (!error) return null;
-
-    try {
-      const cache = new Map();
-      const metadata = error.scriptMetadata || scriptMetadata;
-      const parsed = parseErrorLocation(error);
-      if (!parsed) return null;
-
-      const { filePath } = parsed;
-      const adjustedLine = adjustLineNumber(filePath, parsed.line, parsed.isQuickJS, scriptType, cache, metadata);
-
-      let sourceFile = filePath;
-      let sourceLine = adjustedLine;
-      let displayPath = itemPathname ? path.relative(collectionPath, itemPathname) : filePath;
-
-      // Handle collection/folder script segments
-      if (adjustedLine === null) {
-        const segmentResult = resolveSegmentError(parsed, metadata, scriptType, cache);
-        if (!segmentResult) return null;
-        sourceFile = segmentResult.filePath;
-        sourceLine = segmentResult.line;
-        displayPath = segmentResult.displayPath || path.relative(collectionPath, segmentResult.filePath);
-      }
-
-      const context = getSourceContext(sourceFile, sourceLine, 3, cache);
-      if (!context) return null;
-
-      const errorType = getErrorTypeName(error);
-      let stack = null;
-      if (error.stack) {
-        stack = adjustStackTrace(error.stack, scriptType, cache, metadata, parsed.isQuickJS);
-        // Extract only the stack frames (skip the first line which is the error message)
-        const stackLines = stack.split('\n').slice(1).filter((l) => l.trim().startsWith('at'));
-        stack = stackLines.length ? stackLines.map((l) => `    ${l.trim()}`).join('\n') : null;
-      }
-
-      // Compute block-relative line numbers for the desktop UI.
-      // Users edit scripts in a CodeMirror editor starting at line 1,
-      // so show lines relative to the script block, not absolute .bru file lines.
-      const isBru = sourceFile.endsWith('.bru');
-      const isYml = sourceFile.endsWith('.yml') || sourceFile.endsWith('.yaml');
-
-      const blockStartLine = isBru
-        ? findScriptBlockStartLine(sourceFile, scriptType, cache)
-        : isYml
-          ? findYmlScriptBlockStartLine(sourceFile, scriptType, cache)
-          : null;
-
-      const blockEndLine = isBru
-        ? findScriptBlockEndLine(sourceFile, scriptType, cache)
-        : isYml
-          ? findYmlScriptBlockEndLine(sourceFile, scriptType, cache)
-          : null;
-
-      const blockOffset = blockStartLine ? blockStartLine - 1 : 0;
-
-      return {
-        errorType,
-        filePath: displayPath,
-        errorLine: sourceLine - blockOffset,
-        lines: context.lines
-          .filter((l) => {
-            const rel = l.lineNumber - blockOffset;
-            return rel >= 1 && (!blockEndLine || l.lineNumber <= blockEndLine);
-          })
-          .map((l) => ({
-            lineNumber: l.lineNumber - blockOffset,
-            content: l.content,
-            isError: l.isError
-          })),
-        stack
-      };
-    } catch {
-      return null;
-    }
   };
 
   const notifyScriptExecution = ({
