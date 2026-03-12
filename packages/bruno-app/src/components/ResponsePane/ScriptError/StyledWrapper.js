@@ -92,7 +92,7 @@ const StyledWrapper = styled.div`
 
   .script-error-stack {
     font-family: monospace;
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     line-height: 1.4;
     color: ${(props) => props.theme.colors.text.muted};
     white-space: pre-wrap;

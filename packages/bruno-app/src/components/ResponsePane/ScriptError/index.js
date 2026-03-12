@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { IconX, IconChevronDown, IconChevronRight } from '@tabler/icons';
 import ErrorBanner from 'ui/ErrorBanner';
@@ -64,7 +64,7 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
     getTreePathFromCollectionToItem
   );
 
-  const handleNavigate = useCallback(() => {
+  const handleNavigate = () => {
     if (!sourceInfo) return;
 
     const settingsTab = scriptPhase === 'test' ? 'tests' : 'script';
@@ -84,7 +84,7 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
         dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: scriptPhase }));
       }
     }
-  }, [dispatch, collection, item, scriptPhase, sourceInfo]);
+  };
 
   if (!errorContext) {
     return <ErrorBanner errors={[{ title, message }]} onClose={onClose} />;
