@@ -1,4 +1,4 @@
-import { Page } from '../../../playwright';
+import { Page, Locator } from '../../../playwright';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
@@ -205,6 +205,41 @@ export const buildGrpcCommonLocators = (page: Page) => ({
     responseItems: () => page.locator('[data-testid^="grpc-response-item-"]'),
     tabCount: () => page.getByRole('tab', { name: 'Response' }).getByTestId('grpc-tab-response-count')
   }
+});
+
+/**
+ * Builds locators for script error display elements
+ * @param page - The Playwright page object
+ * @returns Object with locators for script error elements
+ */
+export const buildScriptErrorLocators = (page: Page) => ({
+  /** All error cards on the page */
+  cards: () => page.getByTestId('script-error-card'),
+  /** Nth error card (0-indexed) */
+  card: (index?: number) => {
+    const cards = page.getByTestId('script-error-card');
+    return index !== undefined ? cards.nth(index) : cards.first();
+  },
+  /** Error title within a card */
+  title: (card?: Locator) => (card ?? page).getByTestId('script-error-title'),
+  /** Close button within a card */
+  closeButton: (card?: Locator) => (card ?? page).getByTestId('script-error-close'),
+  /** Source label within a card */
+  sourceLabel: (card?: Locator) => (card ?? page).getByTestId('script-error-source-label'),
+  /** File path link within a card */
+  filePath: (card?: Locator) => (card ?? page).getByTestId('script-error-file-path'),
+  /** Error message within a card */
+  message: (card?: Locator) => (card ?? page).getByTestId('script-error-message'),
+  /** Code snippet within a card */
+  codeSnippet: (card?: Locator) => (card ?? page).getByTestId('code-snippet'),
+  /** Error-highlighted code line within a card */
+  errorLine: (card?: Locator) => (card ?? page).getByTestId('code-line-error'),
+  /** Stack trace toggle within a card */
+  stackToggle: (card?: Locator) => (card ?? page).getByTestId('script-error-stack-toggle'),
+  /** Stack trace content within a card */
+  stack: (card?: Locator) => (card ?? page).getByTestId('script-error-stack'),
+  /** ScriptErrorIcon (the red alert button shown when card is dismissed) */
+  errorIcon: () => page.getByTestId('script-error-icon')
 });
 
 /**

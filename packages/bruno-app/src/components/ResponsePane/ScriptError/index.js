@@ -108,21 +108,22 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
 
   return (
     <StyledWrapper>
-      <div className="script-error-card">
+      <div className="script-error-card" data-testid="script-error-card">
         <div className="script-error-header">
-          <div className="error-title">{title}</div>
+          <div className="error-title" data-testid="script-error-title">{title}</div>
           {onClose && (
-            <div className="close-button flex-shrink-0 cursor-pointer" onClick={onClose}>
+            <div className="close-button flex-shrink-0 cursor-pointer" data-testid="script-error-close" onClick={onClose}>
               <IconX size={16} strokeWidth={1.5} />
             </div>
           )}
         </div>
         {(sourceInfo || errorContext.filePath) && (
-          <div className="script-error-source-label">
+          <div className="script-error-source-label" data-testid="script-error-source-label">
             {sourceInfo && <span>{sourceInfo.label}</span>}
             {errorContext.filePath && (
               <span
                 className="script-error-file-path"
+                data-testid="script-error-file-path"
                 onClick={canNavigate ? handleNavigate : undefined}
                 title={canNavigate ? `Open ${errorContext.filePath}` : undefined}
               >
@@ -132,20 +133,21 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
           </div>
         )}
         <CodeSnippet lines={errorContext.lines} variant="error" />
-        <div className="script-error-message">
+        <div className="script-error-message" data-testid="script-error-message">
           {errorContext.errorType}: {message}
         </div>
         {errorContext.stack && (
           <div>
             <div
               className="script-error-stack-toggle"
+              data-testid="script-error-stack-toggle"
               onClick={() => setShowStack(!showStack)}
             >
               {showStack ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
               <span>{showStack ? 'Hide' : 'Show'} stack trace</span>
             </div>
             {showStack && (
-              <pre className="script-error-stack">{errorContext.stack}</pre>
+              <pre className="script-error-stack" data-testid="script-error-stack">{errorContext.stack}</pre>
             )}
           </div>
         )}

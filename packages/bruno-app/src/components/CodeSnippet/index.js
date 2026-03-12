@@ -7,6 +7,7 @@ const renderLine = (line, highlightClass) => {
     <div
       key={line.lineNumber}
       className={`code-line ${isHighlighted ? highlightClass : ''}`}
+      data-testid={isHighlighted ? 'code-line-error' : 'code-line'}
     >
       <span className="code-line-number">{line.lineNumber}</span>
       <span className="code-line-content">
@@ -22,7 +23,7 @@ const CodeSnippet = ({ lines, hunks, variant = 'error' }) => {
   if (hunks?.length) {
     return (
       <StyledWrapper>
-        <div className="code-snippet">
+        <div className="code-snippet" data-testid="code-snippet">
           {hunks.map((hunk, idx) => (
             <React.Fragment key={idx}>
               {hunk.hasSeparatorBefore && (
@@ -43,7 +44,7 @@ const CodeSnippet = ({ lines, hunks, variant = 'error' }) => {
 
   return (
     <StyledWrapper>
-      <div className="code-snippet">
+      <div className="code-snippet" data-testid="code-snippet">
         {lines.map((line) => renderLine(line, highlightClass))}
       </div>
     </StyledWrapper>

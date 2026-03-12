@@ -11,6 +11,7 @@ const ScriptErrorIcon = ({ itemUid, onClick, className }) => {
       <div
         id={toolhintId}
         className={classnames('cursor-pointer ml-2', className)}
+        data-testid="script-error-icon"
         onClick={onClick}
       >
         <div className="flex items-center text-red-400">
