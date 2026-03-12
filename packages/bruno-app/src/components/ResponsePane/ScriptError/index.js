@@ -15,14 +15,13 @@ import StyledWrapper from './StyledWrapper';
 const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
   if (!filePath) return null;
 
-  // Collection level
-  if (filePath === 'collection.bru' || /\.ya?ml$/.test(filePath)) {
-    return { sourceType: 'collection', label: 'Collection Script' };
-  }
+  const isFolderFile = /(?:^|\/)folder\.(?:bru|ya?ml)$/.test(filePath);
+  const isCollectionFile = filePath === 'collection.bru' || /^opencollection\.ya?ml$/.test(filePath);
 
-  // Folder level
-  if (filePath === 'folder.bru' || filePath.endsWith('/folder.bru')) {
+  // Folder level (check before collection to avoid folder.yml matching as collection)
+  if (isFolderFile) {
     const info = { sourceType: 'folder', label: 'Folder Script' };
+    const folderFileName = filePath.split('/').pop();
 
     // Try to find the folder UID and name from the tree path
     if (getTreePath && collection && item) {
@@ -33,9 +32,9 @@ const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
           if (node?.type === 'folder') {
             const folderRelPath = node.pathname
               ? (node.pathname.startsWith(collectionPathname)
-                  ? node.pathname.slice(collectionPathname.length).replace(/^\//, '') + '/folder.bru'
-                  : 'folder.bru')
-              : 'folder.bru';
+                  ? node.pathname.slice(collectionPathname.length).replace(/^\//, '') + '/' + folderFileName
+                  : folderFileName)
+              : folderFileName;
             if (folderRelPath === filePath) {
               info.sourceUid = node.uid;
               info.label = `Folder: ${node.name}`;
@@ -47,6 +46,11 @@ const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
     }
 
     return info;
+  }
+
+  // Collection level
+  if (isCollectionFile) {
+    return { sourceType: 'collection', label: 'Collection Script' };
   }
 
   // Request level
