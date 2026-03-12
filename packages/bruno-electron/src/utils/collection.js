@@ -1,4 +1,4 @@
-const { get, each, find, compact, isString, filter } = require('lodash');
+const { get, each, find, isString, filter } = require('lodash');
 const fs = require('fs');
 const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');

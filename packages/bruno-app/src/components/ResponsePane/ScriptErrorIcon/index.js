@@ -1,15 +1,16 @@
 import React from 'react';
+import classnames from 'classnames';
 import { IconAlertCircle } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
 
-const ScriptErrorIcon = ({ itemUid, onClick, className = '' }) => {
+const ScriptErrorIcon = ({ itemUid, onClick, className }) => {
   const toolhintId = `script-error-icon-${itemUid}`;
 
   return (
     <>
       <div
         id={toolhintId}
-        className={`cursor-pointer ml-2 ${className}`.trim()}
+        className={classnames('cursor-pointer ml-2', className)}
         onClick={onClick}
       >
         <div className="flex items-center text-red-400">

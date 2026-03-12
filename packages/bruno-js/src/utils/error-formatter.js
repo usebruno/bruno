@@ -86,7 +86,7 @@ const findScriptBlockEndLine = (filePath, scriptType, cache = null) => {
       continue;
     }
     if (inBlock && /^\}/.test(lines[i])) {
-      // i is the 0-indexed line of `}`, so the last content line is 1-indexed i
+      // `}` is at 0-indexed i, so the last content line before it is (i-1), which equals 1-indexed i
       result = i;
       break;
     }
