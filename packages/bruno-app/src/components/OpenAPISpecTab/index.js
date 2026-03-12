@@ -3,6 +3,19 @@ import { IconLoader2, IconCloud } from '@tabler/icons';
 import SpecViewer from 'components/ApiSpecPanel/SpecViewer';
 import StyledWrapper from 'components/ApiSpecPanel/StyledWrapper';
 
+/**
+ * Pretty-print JSON content for readable display. YAML content is returned as-is.
+ */
+const prettyPrintSpec = (content) => {
+  if (!content) return content;
+  try {
+    const parsed = JSON.parse(content);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return content;
+  }
+};
+
 const OpenAPISpecTab = ({ collection }) => {
   const [specContent, setSpecContent] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,14 +50,14 @@ const OpenAPISpecTab = ({ collection }) => {
             }
           });
           if (fetchResult.content) {
-            setSpecContent(fetchResult.content);
+            setSpecContent(prettyPrintSpec(fetchResult.content));
             setIsRemote(true);
             return;
           }
         }
         setError(result.error);
       } else {
-        setSpecContent(result.content);
+        setSpecContent(prettyPrintSpec(result.content));
       }
     } catch (err) {
       setError(err.message || 'Failed to read spec file');
