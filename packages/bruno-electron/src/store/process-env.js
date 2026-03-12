@@ -15,6 +15,7 @@
 const dotEnvVars = {};
 const workspaceDotEnvVars = {};
 const collectionWorkspaceMap = {};
+const environmentDotEnvVars = {};
 
 // collectionUid is a hash based on the collection path
 const getProcessEnvVars = (collectionUid) => {
@@ -52,6 +53,31 @@ const clearCollectionWorkspace = (collectionUid) => {
   delete collectionWorkspaceMap[collectionUid];
 };
 
+const setEnvironmentDotEnvVars = (workspacePath, environmentName, data) => {
+  const key = `${workspacePath}::${environmentName}`;
+  environmentDotEnvVars[key] = data;
+};
+
+const getEnvironmentDotEnvVars = (workspacePath, environmentName) => {
+  const key = `${workspacePath}::${environmentName}`;
+  return environmentDotEnvVars[key] || {};
+};
+
+const clearEnvironmentDotEnvVars = (workspacePath, environmentName) => {
+  if (environmentName) {
+    const key = `${workspacePath}::${environmentName}`;
+    delete environmentDotEnvVars[key];
+  } else {
+    // Clear all env dotenvs for this workspace
+    const prefix = `${workspacePath}::`;
+    Object.keys(environmentDotEnvVars).forEach((key) => {
+      if (key.startsWith(prefix)) {
+        delete environmentDotEnvVars[key];
+      }
+    });
+  }
+};
+
 module.exports = {
   getProcessEnvVars,
   setDotEnvVars,
@@ -59,5 +85,8 @@ module.exports = {
   setWorkspaceDotEnvVars,
   clearWorkspaceDotEnvVars,
   setCollectionWorkspace,
-  clearCollectionWorkspace
+  clearCollectionWorkspace,
+  setEnvironmentDotEnvVars,
+  getEnvironmentDotEnvVars,
+  clearEnvironmentDotEnvVars
 };

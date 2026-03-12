@@ -30,7 +30,7 @@ import {
   workspaceOpenedEvent,
   workspaceConfigUpdatedEvent
 } from 'providers/ReduxStore/slices/workspaces/actions';
-import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
+import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables, setEnvironmentDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
 import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
@@ -255,6 +255,19 @@ const useIpcEvents = () => {
       }
     });
 
+    const removeEnvironmentDotEnvListener = ipcRenderer.on('main:environment-dotenv-file-update', (val) => {
+      const { workspaceUid, environmentName, variables, exists, filename } = val;
+      if (workspaceUid) {
+        dispatch(setEnvironmentDotEnvVariables({
+          workspaceUid,
+          environmentName,
+          variables,
+          exists,
+          filename
+        }));
+      }
+    });
+
     const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => {
       console[val.type](...val.args);
       dispatch(addLog({
@@ -356,6 +369,7 @@ const useIpcEvents = () => {
       removeProcessEnvUpdatesListener();
       removeWorkspaceDotEnvUpdatesListener();
       removeDotEnvFileUpdateListener();
+      removeEnvironmentDotEnvListener();
       removeConsoleLogListener();
       removeConfigUpdatesListener();
       removeShowPreferencesListener();

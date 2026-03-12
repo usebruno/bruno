@@ -441,6 +441,21 @@ const handler = async function (argv) {
         console.error(chalk.red(`Failed to parse Environment file: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
       }
+
+      // Load per-environment .env file (environments/{envName}.env) if it exists
+      const envDotEnvPath = path.join(collectionPath, 'environments', `${env}.env`);
+      if (fs.existsSync(envDotEnvPath)) {
+        try {
+          const dotEnvContent = fs.readFileSync(envDotEnvPath, 'utf8');
+          const dotEnvVars = parseDotEnv(dotEnvContent);
+          // Merge dotenv vars into environment variables (dotenv overrides yml values)
+          forOwn(dotEnvVars, (value, key) => {
+            envVars[key] = value;
+          });
+        } catch (err) {
+          console.error(chalk.red(`Failed to parse environment dotenv file: ${err.message}`));
+        }
+      }
     }
 
     let globalEnvVars = {};
@@ -495,6 +510,21 @@ const handler = async function (argv) {
       } catch (err) {
         console.error(chalk.red(`Failed to parse global environment: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+      }
+
+      // Load per-environment .env file (environments/{envName}.env) for global env if it exists
+      const globalEnvDotEnvPath = path.join(workspacePath, 'environments', `${globalEnv}.env`);
+      if (fs.existsSync(globalEnvDotEnvPath)) {
+        try {
+          const dotEnvContent = fs.readFileSync(globalEnvDotEnvPath, 'utf8');
+          const dotEnvVars = parseDotEnv(dotEnvContent);
+          // Merge dotenv vars into global environment variables (dotenv overrides yml values)
+          forOwn(dotEnvVars, (value, key) => {
+            globalEnvVars[key] = value;
+          });
+        } catch (err) {
+          console.error(chalk.red(`Failed to parse global environment dotenv file: ${err.message}`));
+        }
       }
     }
 

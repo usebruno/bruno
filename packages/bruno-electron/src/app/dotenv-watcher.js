@@ -2,10 +2,18 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const { parseDotEnv } = require('@usebruno/filestore');
-const { setDotEnvVars, clearDotEnvVars, setWorkspaceDotEnvVars, clearWorkspaceDotEnvVars } = require('../store/process-env');
+const {
+  setDotEnvVars, clearDotEnvVars,
+  setWorkspaceDotEnvVars, clearWorkspaceDotEnvVars,
+  setEnvironmentDotEnvVars, clearEnvironmentDotEnvVars
+} = require('../store/process-env');
 
 const isDotEnvFile = (filename) => {
   return filename === '.env' || filename.startsWith('.env.');
+};
+
+const isEnvironmentDotEnvFile = (filename) => {
+  return filename.endsWith('.env') && filename !== '.env' && !filename.startsWith('.env.');
 };
 
 const parseVariablesToArray = (envObject) => {
@@ -89,10 +97,67 @@ const createUnlinkHandler = (win, options) => (pathname) => {
   }
 };
 
+const createEnvironmentFileHandler = (win, options) => (pathname) => {
+  const { workspacePath, workspaceUid } = options;
+  const filename = path.basename(pathname);
+
+  if (!isEnvironmentDotEnvFile(filename)) {
+    return;
+  }
+
+  const environmentName = filename.slice(0, -'.env'.length);
+
+  try {
+    const content = fs.readFileSync(pathname, 'utf8');
+    const jsonData = parseDotEnv(content);
+
+    setEnvironmentDotEnvVars(workspacePath, environmentName, jsonData);
+
+    const variables = parseVariablesToArray(jsonData);
+
+    if (!win.isDestroyed()) {
+      win.webContents.send('main:environment-dotenv-file-update', {
+        workspaceUid,
+        workspacePath,
+        environmentName,
+        filename,
+        variables,
+        exists: true
+      });
+    }
+  } catch (err) {
+    console.error(`Error processing environment dotenv file ${pathname}:`, err);
+  }
+};
+
+const createEnvironmentUnlinkHandler = (win, options) => (pathname) => {
+  const { workspacePath, workspaceUid } = options;
+  const filename = path.basename(pathname);
+
+  if (!isEnvironmentDotEnvFile(filename)) {
+    return;
+  }
+
+  const environmentName = filename.slice(0, -'.env'.length);
+  clearEnvironmentDotEnvVars(workspacePath, environmentName);
+
+  if (!win.isDestroyed()) {
+    win.webContents.send('main:environment-dotenv-file-update', {
+      workspaceUid,
+      workspacePath,
+      environmentName,
+      filename,
+      variables: [],
+      exists: false
+    });
+  }
+};
+
 class DotEnvWatcher {
   constructor() {
     this.collectionWatchers = new Map();
     this.workspaceWatchers = new Map();
+    this.environmentWatchers = new Map();
   }
 
   addCollectionWatcher(win, collectionPath, collectionUid) {
@@ -180,6 +245,41 @@ class DotEnvWatcher {
     });
 
     this.workspaceWatchers.set(workspacePath, watcher);
+
+    // Watch environments/ directory for per-environment .env files
+    const environmentsDir = path.join(workspacePath, 'environments');
+    if (fs.existsSync(environmentsDir)) {
+      if (this.environmentWatchers.has(workspacePath)) {
+        this.environmentWatchers.get(workspacePath).close();
+      }
+
+      const envDotEnvWatcher = chokidar.watch(environmentsDir, {
+        ...DEFAULT_WATCHER_OPTIONS,
+        disableGlobbing: true,
+        awaitWriteFinish: {
+          stabilityThreshold: 80,
+          pollInterval: 250
+        }
+      });
+
+      const handleEnvFile = createEnvironmentFileHandler(win, {
+        workspacePath,
+        workspaceUid
+      });
+      const handleEnvUnlink = createEnvironmentUnlinkHandler(win, {
+        workspacePath,
+        workspaceUid
+      });
+
+      envDotEnvWatcher.on('add', handleEnvFile);
+      envDotEnvWatcher.on('change', handleEnvFile);
+      envDotEnvWatcher.on('unlink', handleEnvUnlink);
+      envDotEnvWatcher.on('error', (err) => {
+        console.error(`Environment dotenv watcher error for ${environmentsDir}:`, err);
+      });
+
+      this.environmentWatchers.set(workspacePath, envDotEnvWatcher);
+    }
   }
 
   removeWorkspaceWatcher(workspacePath) {
@@ -188,6 +288,12 @@ class DotEnvWatcher {
       this.workspaceWatchers.delete(workspacePath);
     }
     clearWorkspaceDotEnvVars(workspacePath);
+
+    if (this.environmentWatchers.has(workspacePath)) {
+      this.environmentWatchers.get(workspacePath).close();
+      this.environmentWatchers.delete(workspacePath);
+    }
+    clearEnvironmentDotEnvVars(workspacePath);
   }
 
   hasWorkspaceWatcher(workspacePath) {
@@ -204,6 +310,11 @@ class DotEnvWatcher {
       watcher.close();
     }
     this.workspaceWatchers.clear();
+
+    for (const [path, watcher] of this.environmentWatchers) {
+      watcher.close();
+    }
+    this.environmentWatchers.clear();
   }
 }
 
