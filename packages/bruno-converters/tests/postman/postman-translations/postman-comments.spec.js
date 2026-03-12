@@ -19,7 +19,7 @@ describe('postmanTranslations - comment handling', () => {
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should leave non-translated pm commands as-is for runtime proxy handling', () => {
+  test('should leave non-translated pm commands as-is', () => {
     const inputScript = 'pm.test(\'random test\', () => pm.vault.get(secretPath));';
     const expectedOutput = 'test(\'random test\', () => pm.vault.get(secretPath));';
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
