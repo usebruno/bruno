@@ -1,0 +1,8 @@
+info:
+  name: get-users
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{host}}/users"

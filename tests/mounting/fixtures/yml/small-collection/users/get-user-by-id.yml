@@ -1,0 +1,12 @@
+info:
+  name: get-user-by-id
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{host}}/users/:id"
+  params:
+    path:
+      - name: id
+        value: "1"
