@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   div.tabs {
     padding: 12px;
-    min-width: 180px;
+    min-width: 160px;
 
     div.tab {
       display: flex;
@@ -38,7 +38,7 @@ const StyledWrapper = styled.div`
   }
 
   section.tab-panel {
-    max-height: calc(100% - 24px);
+    min-height: 70vh;
     overflow-y: auto;
     flex-grow: 1;
     padding: 12px;
