@@ -19,6 +19,7 @@ import Themes from './Themes';
 import Proxy from './ProxySettings';
 import Display from './Display';
 import Keybindings from './Keybindings';
+import Keybindings2 from './Keybindings2';
 import Beta from './Beta';
 
 import StyledWrapper from './StyledWrapper';
@@ -57,7 +58,8 @@ const Preferences = () => {
       }
 
       case 'keybindings': {
-        return <Keybindings />;
+        // return <Keybindings />;
+        return <Keybindings2 />;
       }
 
       case 'beta': {

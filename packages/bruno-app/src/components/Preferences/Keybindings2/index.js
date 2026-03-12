@@ -7,7 +7,7 @@ import { IconReload, IconPencil, IconLock } from '@tabler/icons';
 import { isMacOS } from 'utils/common/platform';
 
 import { savePreferences } from 'providers/ReduxStore/slices/app';
-import { DEFAULT_KEY_BINDINGS } from 'providers/Hotkeys/keyMappings.js';
+import { DEFAULT_KEY_BINDINGS, KEY_BINDING_SECTIONS } from 'providers/Hotkeys/keyMappings.js';
 import { Tooltip } from 'react-tooltip';
 
 const SEP = '+bind+';
@@ -169,22 +169,29 @@ const Keybindings = () => {
     return merged;
   }, [preferences?.keyBindings]);
 
-  // Build table rows for the current OS only and skip hidden bindings.
-  const keyMapping = useMemo(() => {
-    const out = {};
+  // Build grouped rows for current OS only and skip hidden bindings.
+  const groupedKeyMappings = useMemo(() => {
+    return KEY_BINDING_SECTIONS.map((section) => {
+      const rows = Object.entries(section.bindings || {})
+        .map(([action]) => {
+          const binding = keyBindings[action];
+          if (!binding?.[os] || binding.hidden) return null;
 
-    for (const [action, binding] of Object.entries(keyBindings)) {
-      if (binding?.[os] && !binding.hidden) {
-        out[action] = {
-          name: binding.name,
-          keys: binding[os],
-          readOnly: binding.readOnly,
-          displayValue: binding.displayValue
-        };
-      }
-    }
+          return {
+            action,
+            name: binding.name,
+            keys: binding[os],
+            readOnly: binding.readOnly,
+            displayValue: binding.displayValue
+          };
+        })
+        .filter(Boolean);
 
-    return out;
+      return {
+        heading: section.heading,
+        rows
+      };
+    }).filter((section) => section.rows.length > 0);
   }, [keyBindings, os]);
 
   // editingAction:
@@ -529,15 +536,15 @@ const Keybindings = () => {
   };
 
   const renderValue = (action) => {
-    const row = keyMapping[action];
+    const binding = keyBindings[action];
 
     // Use displayValue for special combined labels when present.
-    if (row?.displayValue) {
-      if (typeof row.displayValue === 'string') {
-        return row.displayValue;
+    if (binding?.displayValue) {
+      if (typeof binding.displayValue === 'string') {
+        return binding.displayValue;
       }
 
-      return row.displayValue[os] || row.displayValue.mac || row.displayValue.windows;
+      return binding.displayValue[os] || binding.displayValue.mac || binding.displayValue.windows;
     }
 
     const arr
@@ -565,127 +572,135 @@ const Keybindings = () => {
         )}
       </div>
 
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Command</th>
-              <th>Keybinding</th>
-            </tr>
-          </thead>
+      <div className="tables-container">
+        {groupedKeyMappings.length > 0 ? (
+          groupedKeyMappings.map((section) => (
+            <div className="group-block" key={section.heading}>
+              <div className="group-heading">{section.heading}</div>
 
-          <tbody>
-            {keyMapping ? (
-              Object.entries(keyMapping).map(([action, row]) => {
-                const isEditing = editingAction === action;
-                const isHovered = hoveredAction === action;
-                const isDirty = isRowDirty(action);
-                const isReadOnly = row?.readOnly === true;
+              <div className="table-container">
+                <table>
+                  {/* <thead>
+                    <tr>
+                      <th>Command</th>
+                      <th>Keybinding</th>
+                    </tr>
+                  </thead> */}
 
-                const showPencil = isHovered && !isEditing && !isDirty && !isReadOnly;
-                const showRefresh = isDirty && !isEditing;
-                const showLock = isHovered && isReadOnly && !isEditing;
+                  <tbody>
+                    {section.rows.map((row) => {
+                      const { action } = row;
+                      const isEditing = editingAction === action;
+                      const isHovered = hoveredAction === action;
+                      const isDirty = isRowDirty(action);
+                      const isReadOnly = row?.readOnly === true;
 
-                const hasError = Boolean(errorByAction[action]?.message);
-                const errorMessage = errorByAction[action]?.message;
-                const inputId = `kb-input-${action}`;
+                      const showPencil = isHovered && !isEditing && !isDirty && !isReadOnly;
+                      const showRefresh = isDirty && !isEditing;
+                      const showLock = isHovered && isReadOnly && !isEditing;
 
-                return (
-                  <tr
-                    key={action}
-                    data-testid={`keybinding-row-${action}`}
-                    onMouseEnter={() => setHoveredAction(action)}
-                    onMouseLeave={() => setHoveredAction((prev) => (prev === action ? null : prev))}
-                  >
-                    <td data-testid={`keybinding-name-${action}`}>{row.name}</td>
+                      const hasError = Boolean(errorByAction[action]?.message);
+                      const errorMessage = errorByAction[action]?.message;
+                      const inputId = `kb-input-${action}`;
 
-                    <td>
-                      <div className="keybinding-row">
-                        <div className="shortcut-wrap">
-                          <input
-                            id={inputId}
-                            ref={(el) => {
-                              if (el) inputRefs.current[action] = el;
-                            }}
-                            data-testid={`keybinding-input-${action}`}
-                            className={`shortcut-input ${hasError ? 'shortcut-input--error' : ''}`}
-                            value={renderValue(action)}
-                            disabled={isReadOnly}
-                            readOnly={!isEditing || isReadOnly}
-                            onKeyDown={(e) => (isReadOnly ? null : handleKeyDown(action, e))}
-                            onKeyUp={(e) => (isReadOnly ? null : handleKeyUp(action, e))}
-                            onBlur={() => {
-                              // If the user blurs with an invalid draft, discard it and restore persisted value.
-                              if (isEditing && hasError) {
-                                cancelEditing(action);
-                              } else if (isEditing) {
-                                stopEditing(action);
-                              }
-                            }}
-                            spellCheck={false}
-                          />
+                      return (
+                        <tr
+                          key={action}
+                          data-testid={`keybinding-row-${action}`}
+                          onMouseEnter={() => setHoveredAction(action)}
+                          onMouseLeave={() =>
+                            setHoveredAction((prev) => (prev === action ? null : prev))}
+                        >
+                          <td data-testid={`keybinding-name-${action}`}>{row.name}</td>
 
-                          {isEditing && hasError && (
-                            <Tooltip
-                              id={`kb-editing-error-tooltip-${action}`}
-                              anchorSelect={`#${inputId}`}
-                              place="bottom-start"
-                              opacity={1}
-                              isOpen={true}
-                              content={errorMessage}
-                              className="tooltip-mod tooltip-mod--error"
-                            />
-                          )}
-                        </div>
+                          <td>
+                            <div className="keybinding-row">
+                              <div className="shortcut-wrap">
+                                <input
+                                  id={inputId}
+                                  ref={(el) => {
+                                    if (el) inputRefs.current[action] = el;
+                                  }}
+                                  data-testid={`keybinding-input-${action}`}
+                                  className={`shortcut-input ${hasError ? 'shortcut-input--error' : ''}`}
+                                  value={renderValue(action)}
+                                  disabled={isReadOnly}
+                                  readOnly={!isEditing || isReadOnly}
+                                  onKeyDown={(e) => (isReadOnly ? null : handleKeyDown(action, e))}
+                                  onKeyUp={(e) => (isReadOnly ? null : handleKeyUp(action, e))}
+                                  onBlur={() => {
+                                    // If the user blurs with an invalid draft, discard it and restore persisted value.
+                                    if (isEditing && hasError) {
+                                      cancelEditing(action);
+                                    } else if (isEditing) {
+                                      stopEditing(action);
+                                    }
+                                  }}
+                                  spellCheck={false}
+                                />
 
-                        <div className="button-placeholder">
-                          {showRefresh && (
-                            <button
-                              type="button"
-                              className="reset-btn"
-                              data-testid={`keybinding-reset-${action}`}
-                              onClick={() => resetRowToDefault(action)}
-                              title="Reset to default"
-                            >
-                              <IconReload size={14} stroke={1.5} />
-                            </button>
-                          )}
+                                {isEditing && hasError && (
+                                  <Tooltip
+                                    id={`kb-editing-error-tooltip-${action}`}
+                                    anchorSelect={`#${inputId}`}
+                                    place="bottom-start"
+                                    opacity={1}
+                                    isOpen={true}
+                                    content={errorMessage}
+                                    className="tooltip-mod tooltip-mod--error"
+                                  />
+                                )}
+                              </div>
 
-                          {showPencil && (
-                            <button
-                              type="button"
-                              className="edit-btn"
-                              data-testid={`keybinding-edit-${action}`}
-                              onClick={() => startEditing(action)}
-                              title="Edit shortcut"
-                            >
-                              <IconPencil size={14} stroke={1.5} />
-                            </button>
-                          )}
+                              <div className="button-placeholder">
+                                {showRefresh && (
+                                  <button
+                                    type="button"
+                                    className="reset-btn"
+                                    data-testid={`keybinding-reset-${action}`}
+                                    onClick={() => resetRowToDefault(action)}
+                                    title="Reset to default"
+                                  >
+                                    <IconReload size={14} stroke={1.5} />
+                                  </button>
+                                )}
 
-                          {showLock && (
-                            <button
-                              type="button"
-                              className="edit-btn"
-                              data-testid={`keybinding-locked-${action}`}
-                              title="Read-only shortcut"
-                            >
-                              <IconLock size={14} stroke={1.5} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan="2">No key bindings available</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                                {showPencil && (
+                                  <button
+                                    type="button"
+                                    className="edit-btn"
+                                    data-testid={`keybinding-edit-${action}`}
+                                    onClick={() => startEditing(action)}
+                                    title="Edit shortcut"
+                                  >
+                                    <IconPencil size={14} stroke={1.5} />
+                                  </button>
+                                )}
+
+                                {showLock && (
+                                  <button
+                                    type="button"
+                                    className="edit-btn"
+                                    data-testid={`keybinding-locked-${action}`}
+                                    title="Read-only shortcut"
+                                  >
+                                    <IconLock size={14} stroke={1.5} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="empty-state">No key bindings available</div>
+        )}
       </div>
     </StyledWrapper>
   );
