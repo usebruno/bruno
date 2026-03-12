@@ -1,7 +1,7 @@
 const { cloneDeep, each, get } = require('lodash');
 const interpolateVars = require('./interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
-const { getProcessEnvVars } = require('../../store/process-env');
+const { getProcessEnvVars, getEnvironmentDotEnvVars } = require('../../store/process-env');
 const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingAuthorizationCode } = require('../../utils/oauth2');
 const { setAuthHeaders } = require('./prepare-request');
 const { getCertsAndProxyConfig } = require('./cert-utils');
@@ -144,6 +144,15 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
 
   const processEnvVars = getProcessEnvVars(collection.uid);
   const envVars = getEnvVars(environment);
+  // Merge per-environment dotenv variables (override .yml env vars)
+  const envDotEnvVars = collection.workspacePath && environment?.name
+    ? getEnvironmentDotEnvVars(collection.workspacePath, environment.name)
+    : {};
+  if (Object.keys(envDotEnvVars).length > 0) {
+    const envName = envVars.__name__;
+    Object.assign(envVars, envDotEnvVars);
+    envVars.__name__ = envName;
+  }
 
   let grpcRequest = {
     uid: item.uid,

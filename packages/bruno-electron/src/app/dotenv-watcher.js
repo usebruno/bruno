@@ -249,37 +249,65 @@ class DotEnvWatcher {
     // Watch environments/ directory for per-environment .env files
     const environmentsDir = path.join(workspacePath, 'environments');
     if (fs.existsSync(environmentsDir)) {
-      if (this.environmentWatchers.has(workspacePath)) {
-        this.environmentWatchers.get(workspacePath).close();
-      }
-
-      const envDotEnvWatcher = chokidar.watch(environmentsDir, {
-        ...DEFAULT_WATCHER_OPTIONS,
-        disableGlobbing: true,
-        awaitWriteFinish: {
-          stabilityThreshold: 80,
-          pollInterval: 250
-        }
-      });
-
-      const handleEnvFile = createEnvironmentFileHandler(win, {
-        workspacePath,
-        workspaceUid
-      });
-      const handleEnvUnlink = createEnvironmentUnlinkHandler(win, {
-        workspacePath,
-        workspaceUid
-      });
-
-      envDotEnvWatcher.on('add', handleEnvFile);
-      envDotEnvWatcher.on('change', handleEnvFile);
-      envDotEnvWatcher.on('unlink', handleEnvUnlink);
-      envDotEnvWatcher.on('error', (err) => {
-        console.error(`Environment dotenv watcher error for ${environmentsDir}:`, err);
-      });
-
-      this.environmentWatchers.set(workspacePath, envDotEnvWatcher);
+      this._startEnvironmentWatcher(win, workspacePath, workspaceUid, environmentsDir);
     }
+
+    // Lazily create env watcher when environments/ directory is created after workspace open
+    const dirWatcher = chokidar.watch(workspacePath, {
+      ignoreInitial: true,
+      persistent: true,
+      ignorePermissionErrors: true,
+      depth: 1,
+      disableGlobbing: true
+    });
+
+    dirWatcher.on('addDir', (dirPath) => {
+      if (path.basename(dirPath) === 'environments' && path.dirname(dirPath) === workspacePath) {
+        if (!this.environmentWatchers.has(workspacePath)) {
+          this._startEnvironmentWatcher(win, workspacePath, workspaceUid, dirPath);
+        }
+      }
+    });
+
+    // Store dir watcher for cleanup — reuse the workspace watcher's lifecycle
+    const originalClose = watcher.close.bind(watcher);
+    watcher.close = () => {
+      dirWatcher.close();
+      return originalClose();
+    };
+  }
+
+  _startEnvironmentWatcher(win, workspacePath, workspaceUid, environmentsDir) {
+    if (this.environmentWatchers.has(workspacePath)) {
+      this.environmentWatchers.get(workspacePath).close();
+    }
+
+    const envDotEnvWatcher = chokidar.watch(environmentsDir, {
+      ...DEFAULT_WATCHER_OPTIONS,
+      disableGlobbing: true,
+      awaitWriteFinish: {
+        stabilityThreshold: 80,
+        pollInterval: 250
+      }
+    });
+
+    const handleEnvFile = createEnvironmentFileHandler(win, {
+      workspacePath,
+      workspaceUid
+    });
+    const handleEnvUnlink = createEnvironmentUnlinkHandler(win, {
+      workspacePath,
+      workspaceUid
+    });
+
+    envDotEnvWatcher.on('add', handleEnvFile);
+    envDotEnvWatcher.on('change', handleEnvFile);
+    envDotEnvWatcher.on('unlink', handleEnvUnlink);
+    envDotEnvWatcher.on('error', (err) => {
+      console.error(`Environment dotenv watcher error for ${environmentsDir}:`, err);
+    });
+
+    this.environmentWatchers.set(workspacePath, envDotEnvWatcher);
   }
 
   removeWorkspaceWatcher(workspacePath) {

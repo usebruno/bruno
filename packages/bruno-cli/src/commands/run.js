@@ -449,9 +449,13 @@ const handler = async function (argv) {
           const dotEnvContent = fs.readFileSync(envDotEnvPath, 'utf8');
           const dotEnvVars = parseDotEnv(dotEnvContent);
           // Merge dotenv vars into environment variables (dotenv overrides yml values)
+          const savedName = envVars.__name__;
           forOwn(dotEnvVars, (value, key) => {
             envVars[key] = value;
           });
+          if (savedName !== undefined) {
+            envVars.__name__ = savedName;
+          }
         } catch (err) {
           console.error(chalk.red(`Failed to parse environment dotenv file: ${err.message}`));
         }
@@ -519,9 +523,13 @@ const handler = async function (argv) {
           const dotEnvContent = fs.readFileSync(globalEnvDotEnvPath, 'utf8');
           const dotEnvVars = parseDotEnv(dotEnvContent);
           // Merge dotenv vars into global environment variables (dotenv overrides yml values)
+          const savedGlobalName = globalEnvVars.__name__;
           forOwn(dotEnvVars, (value, key) => {
             globalEnvVars[key] = value;
           });
+          if (savedGlobalName !== undefined) {
+            globalEnvVars.__name__ = savedGlobalName;
+          }
         } catch (err) {
           console.error(chalk.red(`Failed to parse global environment dotenv file: ${err.message}`));
         }
