@@ -9,6 +9,8 @@ import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
+import InlineWarningBar from 'components/InlineWarningBar';
+import { hasActiveWarningsForLocations } from 'utils/warnings';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -73,6 +75,16 @@ const Script = ({ item, collection }) => {
   const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
   const hasPostResponseScript = responseScript && responseScript.trim().length > 0;
 
+  const getSubTabDotType = (hasScript, hasError, locations) => {
+    if (hasActiveWarningsForLocations(item, locations)) return 'warning';
+    if (!hasScript) return null;
+    if (hasError) return 'error';
+    return 'default';
+  };
+
+  const preRequestDotType = getSubTabDotType(hasPreRequestScript, item.preRequestScriptErrorMessage, ['pre-request-script']);
+  const postResponseDotType = getSubTabDotType(hasPostResponseScript, item.postResponseScriptErrorMessage, ['post-response-script']);
+
   const onScriptTabChange = (tab) => {
     dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: tab }));
   };
@@ -83,19 +95,16 @@ const Script = ({ item, collection }) => {
         <TabsList>
           <TabsTrigger value="pre-request">
             Pre Request
-            {hasPreRequestScript && (
-              <StatusDot type={item.preRequestScriptErrorMessage ? 'error' : 'default'} />
-            )}
+            {preRequestDotType && <StatusDot type={preRequestDotType} />}
           </TabsTrigger>
           <TabsTrigger value="post-response">
             Post Response
-            {hasPostResponseScript && (
-              <StatusDot type={item.postResponseScriptErrorMessage ? 'error' : 'default'} />
-            )}
+            {postResponseDotType && <StatusDot type={postResponseDotType} />}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pre-request" className="mt-2" dataTestId="pre-request-script-editor">
+          <InlineWarningBar item={item} collectionUid={collection.uid} location="pre-request-script" />
           <CodeEditor
             ref={preRequestEditorRef}
             collection={collection}
@@ -112,6 +121,7 @@ const Script = ({ item, collection }) => {
         </TabsContent>
 
         <TabsContent value="post-response" className="mt-2" dataTestId="post-response-script-editor">
+          <InlineWarningBar item={item} collectionUid={collection.uid} location="post-response-script" />
           <CodeEditor
             ref={postResponseEditorRef}
             collection={collection}

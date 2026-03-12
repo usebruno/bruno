@@ -20,7 +20,8 @@ import {
   IconSettings,
   IconTerminal2,
   IconFolder,
-  IconBook
+  IconBook,
+  IconAlertTriangle
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
@@ -50,12 +51,15 @@ import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
+import { getActiveWarnings } from 'utils/warnings';
+import { useTheme } from 'styled-components';
 
 // Delay before showing empty collection state (ms)
 // This prevents flicker from race condition between loading state and item batch updates
 const EMPTY_STATE_DELAY_MS = 300;
 
 const Collection = ({ collection, searchText }) => {
+  const theme = useTheme();
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
@@ -516,6 +520,17 @@ const Collection = ({ collection, searchText }) => {
           <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
             {collection.name}
           </div>
+          {!isLoading && (() => {
+            const active = getActiveWarnings(collection);
+            if (active.length > 0) {
+              return (
+                <span className="flex items-center mx-1" title={`${active.length} warning${active.length > 1 ? 's' : ''}`}>
+                  <IconAlertTriangle size={14} strokeWidth={2} style={{ color: theme.colors.text.warning }} />
+                </span>
+              );
+            }
+            return null;
+          })()}
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
         <div>

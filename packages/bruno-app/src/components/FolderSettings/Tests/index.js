@@ -5,6 +5,7 @@ import CodeEditor from 'components/CodeEditor';
 import { updateFolderTests } from 'providers/ReduxStore/slices/collections';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
+import InlineWarningBar from 'components/InlineWarningBar';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 
@@ -30,6 +31,7 @@ const Tests = ({ collection, folder }) => {
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">These tests will run any time a request in this collection is sent.</div>
+      <InlineWarningBar item={folder} collectionUid={collection.uid} location="tests" />
       <CodeEditor
         collection={collection}
         value={tests || ''}

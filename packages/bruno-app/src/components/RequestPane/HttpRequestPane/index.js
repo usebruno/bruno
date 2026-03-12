@@ -2,7 +2,7 @@ import React, { useRef, useCallback, useMemo } from 'react';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
 import { find, get } from 'lodash';
-import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
@@ -18,6 +18,7 @@ import StatusDot from 'components/StatusDot';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import AuthMode from '../Auth/AuthMode/index';
+import { hasActiveWarningsForLocations } from 'utils/warnings';
 
 const TAB_CONFIG = [
   { key: 'params', label: 'Params' },
@@ -82,13 +83,52 @@ const HttpRequestPane = ({ item, collection }) => {
   const selectTab = useCallback(
     (tabKey) => {
       dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: tabKey }));
+
+      if (tabKey === 'script') {
+        const hasPreReqWarning = hasActiveWarningsForLocations(item, ['pre-request-script']);
+        const hasPostResWarning = hasActiveWarningsForLocations(item, ['post-response-script']);
+        if (hasPreReqWarning) {
+          dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: 'pre-request' }));
+        } else if (hasPostResWarning) {
+          dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: 'post-response' }));
+        }
+      }
     },
-    [dispatch, item.uid]
+    [dispatch, item.uid, item.warnings, item.dismissedWarningRules]
   );
 
   const indicators = useMemo(() => {
     const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
     const hasTestError = item.testScriptErrorMessage;
+    const hasScriptWarning = hasActiveWarningsForLocations(item, ['pre-request-script', 'post-response-script']);
+    const hasTestWarning = hasActiveWarningsForLocations(item, ['tests']);
+
+    const hasScript = script.req || script.res;
+    const hasTests = tests?.length > 0;
+
+    const getScriptIndicator = () => {
+      if (hasScriptWarning) return <StatusDot type="warning" />;
+      if (!hasScript) return null;
+      return hasScriptError ? <StatusDot type="error" /> : <StatusDot />;
+    };
+
+    const getTestIndicator = () => {
+      if (hasTestWarning) return <StatusDot type="warning" />;
+      if (!hasTests) return null;
+      return hasTestError ? <StatusDot type="error" /> : <StatusDot />;
+    };
+
+    const getScriptIndicatorType = () => {
+      if (hasScriptWarning) return 'warning';
+      if (hasScriptError) return 'error';
+      return null;
+    };
+
+    const getTestIndicatorType = () => {
+      if (hasTestWarning) return 'warning';
+      if (hasTestError) return 'error';
+      return null;
+    };
 
     return {
       params: activeCounts.params > 0 ? <sup className="font-medium">{activeCounts.params}</sup> : null,
@@ -96,16 +136,23 @@ const HttpRequestPane = ({ item, collection }) => {
       headers: activeCounts.headers > 0 ? <sup className="font-medium">{activeCounts.headers}</sup> : null,
       auth: auth.mode !== 'none' ? <StatusDot /> : null,
       vars: activeCounts.vars > 0 ? <sup className="font-medium">{activeCounts.vars}</sup> : null,
-      script: (script.req || script.res) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null,
+      script: getScriptIndicator(),
       assert: activeCounts.assertions > 0 ? <sup className="font-medium">{activeCounts.assertions}</sup> : null,
-      tests: tests?.length > 0 ? (hasTestError ? <StatusDot type="error" /> : <StatusDot />) : null,
+      tests: getTestIndicator(),
       docs: docs?.length > 0 ? <StatusDot /> : null,
-      settings: tags?.length > 0 ? <StatusDot /> : null
+      settings: tags?.length > 0 ? <StatusDot /> : null,
+      scriptType: getScriptIndicatorType(),
+      testsType: getTestIndicatorType()
     };
-  }, [activeCounts, body.mode, auth.mode, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, tags]);
+  }, [activeCounts, body.mode, auth.mode, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, item.warnings, item.dismissedWarningRules, tests, docs, tags]);
 
   const allTabs = useMemo(
-    () => TAB_CONFIG.map(({ key, label }) => ({ key, label, indicator: indicators[key] })),
+    () => TAB_CONFIG.map(({ key, label }) => ({
+      key,
+      label,
+      indicator: indicators[key],
+      indicatorType: indicators[`${key}Type`] || null
+    })),
     [indicators]
   );
 

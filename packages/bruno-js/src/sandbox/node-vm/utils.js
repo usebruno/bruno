@@ -46,6 +46,7 @@ class ScriptError extends Error {
     this.script = script;
     this.stack = error.stack;
     this.__callSites = error.__callSites || null;
+    this.pmApiWarnings = error.pmApiWarnings || [];
   }
 }
 

@@ -5,6 +5,7 @@ import CodeEditor from 'components/CodeEditor';
 import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
+import InlineWarningBar from 'components/InlineWarningBar';
 
 const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -27,18 +28,21 @@ const Tests = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <CodeEditor
-      collection={collection}
-      value={tests || ''}
-      theme={displayedTheme}
-      font={get(preferences, 'font.codeFont', 'default')}
-      fontSize={get(preferences, 'font.codeFontSize')}
-      onEdit={onEdit}
-      mode="javascript"
-      onRun={onRun}
-      onSave={onSave}
-      showHintsFor={['req', 'res', 'bru']}
-    />
+    <div className="flex flex-col h-full">
+      <InlineWarningBar item={item} collectionUid={collection.uid} location="tests" />
+      <CodeEditor
+        collection={collection}
+        value={tests || ''}
+        theme={displayedTheme}
+        font={get(preferences, 'font.codeFont', 'default')}
+        fontSize={get(preferences, 'font.codeFontSize')}
+        onEdit={onEdit}
+        mode="javascript"
+        onRun={onRun}
+        onSave={onSave}
+        showHintsFor={['req', 'res', 'bru']}
+      />
+    </div>
   );
 };
 

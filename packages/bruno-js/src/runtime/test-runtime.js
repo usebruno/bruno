@@ -85,26 +85,31 @@ class TestRuntime {
     }
 
     let scriptError = null;
+    let pmApiWarnings = [];
 
     try {
       if (this.runtime === SANDBOX.NODEVM) {
-        await runScriptInNodeVm({
+        const vmResult = await runScriptInNodeVm({
           script: testsFile,
           context,
           collectionPath,
           scriptingConfig,
           scriptPath
         });
+        pmApiWarnings = vmResult?.pmApiWarnings || [];
       } else {
         // default runtime is `quickjs`
-        await executeQuickJsVmAsync({
+        const vmResult = await executeQuickJsVmAsync({
           script: testsFile,
           context: context,
           collectionPath,
+          scriptingConfig,
           scriptPath
         });
+        pmApiWarnings = vmResult?.pmApiWarnings || [];
       }
     } catch (error) {
+      pmApiWarnings = error.pmApiWarnings || [];
       scriptError = error;
     }
 
@@ -116,7 +121,8 @@ class TestRuntime {
       persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
-      nextRequestName: bru.nextRequest
+      nextRequestName: bru.nextRequest,
+      pmApiWarnings
     };
 
     if (scriptError) {

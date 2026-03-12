@@ -13,12 +13,13 @@ import apiSpecReducer from './slices/apiSpec';
 import openapiSyncReducer from './slices/openapi-sync';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
 import { autosaveMiddleware } from './middlewares/autosave/middleware';
+import warningsMiddleware from './middlewares/warnings/middleware';
 
 const isDevEnv = () => {
   return import.meta.env.MODE === 'development';
 };
 
-let middleware = [tasksMiddleware.middleware, draftDetectMiddleware, autosaveMiddleware];
+let middleware = [tasksMiddleware.middleware, warningsMiddleware.middleware, draftDetectMiddleware, autosaveMiddleware];
 if (isDevEnv()) {
   middleware = [...middleware, debugMiddleware.middleware];
 }

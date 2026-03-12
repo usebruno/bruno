@@ -1,10 +1,10 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  .script-error-card {
+  .script-warning-card {
     background-color: ${(props) => props.theme.background.base};
     border: solid 1px ${(props) => props.theme.border.border2};
-    border-left: 4px solid ${(props) => props.theme.colors.text.danger};
+    border-left: 4px solid ${(props) => props.theme.colors.text.warning};
     border-radius: ${(props) => props.theme.border.radius.base};
     padding: 0.75rem 1rem;
     display: flex;
@@ -14,7 +14,7 @@ const StyledWrapper = styled.div`
     overflow-y: auto;
   }
 
-  .script-error-header {
+  .script-warning-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -33,12 +33,12 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .error-title {
+  .warning-title {
     font-weight: 500;
-    color: ${(props) => props.theme.colors.text.danger};
+    color: ${(props) => props.theme.colors.text.warning};
   }
 
-  .script-error-source-label {
+  .script-warning-source-label {
     display: flex;
     align-items: baseline;
     gap: 0.5rem;
@@ -47,9 +47,11 @@ const StyledWrapper = styled.div`
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: ${(props) => props.theme.colors.text.muted};
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
   }
 
-  .script-error-file-path {
+  .script-warning-file-path {
     font-family: monospace;
     font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 400;
@@ -66,39 +68,14 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .script-error-message {
+  .script-warning-summary {
     font-family: monospace;
     font-size: ${(props) => props.theme.font.size.xs};
+    font-weight: 500;
     line-height: 1.25rem;
     white-space: pre-wrap;
     word-break: break-all;
-    color: ${(props) => props.theme.colors.text.danger};
-    font-weight: 500;
-  }
-
-  .script-error-stack-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    cursor: pointer;
-    font-size: ${(props) => props.theme.font.size.xs};
-    color: ${(props) => props.theme.colors.text.muted};
-    user-select: none;
-
-    &:hover {
-      color: ${(props) => props.theme.text};
-    }
-  }
-
-  .script-error-stack {
-    font-family: monospace;
-    font-size: 11px;
-    line-height: 1.4;
-    color: ${(props) => props.theme.colors.text.muted};
-    white-space: pre-wrap;
-    word-break: break-all;
-    margin: 0;
-    padding: 0.25rem 0;
+    color: ${(props) => props.theme.colors.text.warning};
   }
 `;
 
