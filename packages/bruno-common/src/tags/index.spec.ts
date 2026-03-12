@@ -69,4 +69,9 @@ describe('isRequestTagsIncluded', () => {
     const result = isRequestTagsIncluded(null, [], ['ignore']);
     expect(result).toBe(true);
   });
+
+  it('should handle requestTags as a comma-separated string', () => {
+    const result = isRequestTagsIncluded('smoke, api', ['smoke'], []);
+    expect(result).toBe(true);
+  });
 });
