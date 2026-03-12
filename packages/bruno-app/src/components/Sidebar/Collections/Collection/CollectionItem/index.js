@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
@@ -69,20 +69,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
-  const preferences = useSelector((state) => state.app.preferences);
-  const userKeyBindings = preferences?.keyBindings || {};
-  const hasCustomCopyBinding = !!userKeyBindings?.copyItem;
-  const hasCustomPasteBinding = !!userKeyBindings?.pasteItem;
-  const hasCustomRenameBinding = !!userKeyBindings?.renameItem;
   const dispatch = useDispatch();
 
   // We use a single ref for drag and drop.
   const ref = useRef(null);
   const menuDropdownRef = useRef(null);
-
-  // Refs to store current handler references for event listeners (avoid stale closures)
-  const copyHandlerRef = useRef(null);
-  const pasteHandlerRef = useRef(null);
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
@@ -129,52 +120,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       }
     }
   }, [isTabForItemActive]);
-
-  // Listen for clone-item-open event from Hotkeys provider
-  const isFocusedRef = useRef(isKeyboardFocused);
-  isFocusedRef.current = isKeyboardFocused;
-
-  useEffect(() => {
-    const handleCloneItemOpen = () => {
-      // Only open modal if this item is keyboard focused
-      if (isFocusedRef.current) {
-        setCloneItemModalOpen(true);
-      }
-    };
-
-    const handleCopyItemOpen = () => {
-      // Copy item to clipboard if this item is keyboard focused
-      if (isFocusedRef.current && copyHandlerRef.current) {
-        copyHandlerRef.current();
-      }
-    };
-
-    const handlePasteItemOpen = () => {
-      // Paste item from clipboard if this item is keyboard focused
-      if (isFocusedRef.current && pasteHandlerRef.current) {
-        pasteHandlerRef.current();
-      }
-    };
-
-    const handleRenameItemOpen = () => {
-      // Rename item if this item is keyboard focused
-      if (isFocusedRef.current) {
-        setRenameItemModalOpen(true);
-      }
-    };
-
-    window.addEventListener('clone-item-open', handleCloneItemOpen);
-    window.addEventListener('copy-item-open', handleCopyItemOpen);
-    window.addEventListener('paste-item-open', handlePasteItemOpen);
-    window.addEventListener('rename-item-open', handleRenameItemOpen);
-
-    return () => {
-      window.removeEventListener('clone-item-open', handleCloneItemOpen);
-      window.removeEventListener('copy-item-open', handleCopyItemOpen);
-      window.removeEventListener('paste-item-open', handlePasteItemOpen);
-      window.removeEventListener('rename-item-open', handleRenameItemOpen);
-    };
-  }, []);
 
   const determineDropType = (monitor) => {
     const hoverBoundingRect = ref.current?.getBoundingClientRect();
@@ -483,33 +428,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     return items;
   };
 
-  const handleCopyItem = useCallback(() => {
-    dispatch(copyRequest(item));
-    const itemType = isFolder ? 'Folder' : 'Request';
-    toast.success(`${itemType} copied`);
-  }, [dispatch, item, isFolder]);
-
-  const handlePasteItem = useCallback(() => {
-    // Determine target folder: if item is a folder, paste into it; otherwise paste into parent folder
-    let targetFolderUid = item.uid;
-    if (!isFolder) {
-      const parentFolder = findParentItemInCollection(collection, item.uid);
-      targetFolderUid = parentFolder ? parentFolder.uid : null;
-    }
-
-    dispatch(pasteItem(collectionUid, targetFolderUid))
-      .then(() => {
-        toast.success('Item pasted successfully');
-      })
-      .catch((err) => {
-        toast.error(err ? err.message : 'An error occurred while pasting the item');
-      });
-  }, [dispatch, collection, item, isFolder, collectionUid]);
-
-  // Update refs whenever handlers change
-  copyHandlerRef.current = handleCopyItem;
-  pasteHandlerRef.current = handlePasteItem;
-
   const className = classnames('flex flex-col w-full', {
     'is-sidebar-dragging': isSidebarDragging
   });
@@ -619,25 +537,52 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   };
 
+  const handleCopyItem = () => {
+    dispatch(copyRequest(item));
+    const itemType = isFolder ? 'Folder' : 'Request';
+    toast.success(`${itemType} copied`);
+  };
+
+  const handlePasteItem = () => {
+    // Determine target folder: if item is a folder, paste into it; otherwise paste into parent folder
+    let targetFolderUid = item.uid;
+    if (!isFolder) {
+      const parentFolder = findParentItemInCollection(collection, item.uid);
+      targetFolderUid = parentFolder ? parentFolder.uid : null;
+    }
+
+    dispatch(pasteItem(collectionUid, targetFolderUid))
+      .then(() => {
+        toast.success('Item pasted successfully');
+      })
+      .catch((err) => {
+        toast.error(err ? err.message : 'An error occurred while pasting the item');
+      });
+  };
+
   // Keyboard shortcuts handler
   const handleKeyDown = (e) => {
     // Detect Mac by checking both metaKey and platform
     const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
     const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
 
-    // Only use default handler if no custom keybinding is set for copy/paste
-    if (!hasCustomCopyBinding && isModifierPressed && e.key.toLowerCase() === 'c') {
-      e.preventDefault();
-      e.stopPropagation();
-      if (copyHandlerRef.current) copyHandlerRef.current();
-    } else if (!hasCustomPasteBinding && isModifierPressed && e.key.toLowerCase() === 'v') {
-      e.preventDefault();
-      e.stopPropagation();
-      if (pasteHandlerRef.current) pasteHandlerRef.current();
-    } else if (!hasCustomRenameBinding && e.key === 'F2') {
+    const [macRenameKey, winRenameKey] = getKeyBindingsForActionAllOS('renameItem');
+    const renameKey = isMac ? macRenameKey : winRenameKey;
+
+    // Only trigger rename if no modifier keys are pressed (allow Cmd+Enter for run request)
+    const hasModifier = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+    if (e.key.toLowerCase() === renameKey && !hasModifier) {
       e.preventDefault();
       e.stopPropagation();
       setRenameItemModalOpen(true);
+    } else if (isModifierPressed && e.key.toLowerCase() === 'c') {
+      e.preventDefault();
+      e.stopPropagation();
+      handleCopyItem();
+    } else if (isModifierPressed && e.key.toLowerCase() === 'v') {
+      e.preventDefault();
+      e.stopPropagation();
+      handlePasteItem();
     }
   };
 
