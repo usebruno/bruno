@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   .code-snippet {
@@ -17,12 +18,12 @@ const StyledWrapper = styled.div`
   }
 
   .code-line.highlighted-error {
-    background-color: rgba(239, 68, 68, 0.1);
+    background-color: ${(props) => rgba(props.theme.colors.text.danger, 0.1)};
     border-left: 3px solid ${(props) => props.theme.colors.text.danger};
   }
 
   .code-line.highlighted-warning {
-    background-color: rgba(245, 158, 11, 0.1);
+    background-color: ${(props) => rgba(props.theme.colors.text.warning, 0.1)};
     border-left: 3px solid ${(props) => props.theme.colors.text.warning};
   }
 
