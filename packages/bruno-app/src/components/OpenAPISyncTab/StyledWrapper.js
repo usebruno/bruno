@@ -970,7 +970,7 @@ const StyledWrapper = styled.div`
         &.type-local-only { background: ${(props) => props.theme.colors.text.muted}; }
         &.type-in-sync { background: ${(props) => props.theme.colors.text.green}; }
         &.type-conflict { background: ${(props) => props.theme.colors.text.danger}; }
-        &.type-spec-modified { background: ${(props) => props.theme.colors.text.info}; }
+        &.type-spec-modified { background: ${(props) => props.theme.colors.text.warning}; }
         &.type-collection-drift { background: ${(props) => props.theme.colors.text.warning}; }
       }
 
@@ -988,8 +988,8 @@ const StyledWrapper = styled.div`
         height: 1.25rem;
         padding: 0 0.3rem;
         font-size: ${(props) => props.theme.font.size.xs};
-        color: ${(props) => props.theme.colors.text.subtext0};
-        background: ${(props) => props.theme.background.surface0};
+        color: ${(props) => props.theme.colors.text.subtext1};
+        background: ${(props) => props.theme.background.surface1};
         border-radius: 999px;
       }
 

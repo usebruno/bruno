@@ -275,7 +275,7 @@ const SyncReviewPage = ({
                   title="Updated in Spec"
                   type="spec-modified"
                   endpoints={specUpdatedEndpoints}
-                  defaultExpanded={hasConflicts}
+                  defaultExpanded={true}
                   expandableLayout
                   subtitle="The spec has updates for these endpoints"
                   headerExtra={conflictCount > 0 ? (
@@ -311,7 +311,7 @@ const SyncReviewPage = ({
                   title="New in Spec"
                   type="added"
                   endpoints={specAddedEndpoints}
-                  defaultExpanded={false}
+                  defaultExpanded={true}
                   expandableLayout
                   subtitle="New endpoints from the spec"
                   collectionUid={collectionUid}
@@ -335,7 +335,7 @@ const SyncReviewPage = ({
                   title="Removed from Spec"
                   type="removed"
                   endpoints={specRemovedEndpoints}
-                  defaultExpanded={false}
+                  defaultExpanded={true}
                   expandableLayout
                   subtitle="These endpoints are in your collection but not in the spec"
                   collectionUid={collectionUid}
