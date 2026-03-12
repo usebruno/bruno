@@ -84,7 +84,7 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
                       try {
                         const data = await parseFileAsJsonOrYaml(file);
                         if (!isOpenApiSpec(data)) {
-                          toast.error('The selected file is not a valid OpenAPI specification');
+                          toast.error('The selected file is not a valid OpenAPI 3.x specification');
                           return;
                         }
                         const path = window.ipcRenderer.getFilePath(file);

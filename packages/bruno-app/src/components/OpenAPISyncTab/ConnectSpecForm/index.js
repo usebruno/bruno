@@ -77,7 +77,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
                   try {
                     const data = await parseFileAsJsonOrYaml(file);
                     if (!isOpenApiSpec(data)) {
-                      setError('The selected file is not a valid OpenAPI specification');
+                      setError('The selected file is not a valid OpenAPI 3.x specification');
                       return;
                     }
                     const filePath = window.ipcRenderer.getFilePath(file);
