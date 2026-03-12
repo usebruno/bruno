@@ -10,8 +10,7 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    max-height: 300px;
-    overflow-y: auto;
+    overflow-y: visible;
   }
 
   .script-error-header {

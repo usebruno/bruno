@@ -300,7 +300,7 @@ const ResponsePane = ({ item, collection }) => {
         }}
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {hasScriptError && showScriptErrorCard && focusedTab?.responsePaneTab === 'response' && (
+        {hasScriptError && showScriptErrorCard && (
           <ScriptError
             item={item}
             onClose={() => setShowScriptErrorCard(false)}

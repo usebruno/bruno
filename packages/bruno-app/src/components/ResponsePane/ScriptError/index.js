@@ -68,6 +68,10 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
     getTreePathFromCollectionToItem
   );
 
+  const canNavigate = sourceInfo
+    && collection?.uid
+    && (sourceInfo.sourceType !== 'folder' || sourceInfo.sourceUid);
+
   const handleNavigate = () => {
     if (!sourceInfo) return;
 
@@ -81,7 +85,7 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
       if (collectionSettingsTab === 'script') {
         dispatch(updateScriptPaneTab({ uid: collection.uid, scriptPaneTab: scriptPhase }));
       }
-    } else if (sourceInfo.sourceType === 'folder') {
+    } else if (sourceInfo.sourceType === 'folder' && sourceInfo.sourceUid) {
       dispatch(addTab({ uid: sourceInfo.sourceUid, collectionUid: collection.uid, type: 'folder-settings' }));
       dispatch(updatedFolderSettingsSelectedTab({ collectionUid: collection.uid, folderUid: sourceInfo.sourceUid, tab: folderSettingsTab }));
       if (folderSettingsTab === 'script') {
@@ -119,8 +123,8 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
             {errorContext.filePath && (
               <span
                 className="script-error-file-path"
-                onClick={sourceInfo ? handleNavigate : undefined}
-                title={sourceInfo ? `Open ${errorContext.filePath}` : undefined}
+                onClick={canNavigate ? handleNavigate : undefined}
+                title={canNavigate ? `Open ${errorContext.filePath}` : undefined}
               >
                 {errorContext.filePath}
               </span>
@@ -169,11 +173,11 @@ const ScriptError = ({ item, collection, onClose }) => {
     if (preRequestError) errors.push({ title: 'Pre-Request Script Error', message: preRequestError });
     if (postResponseError) errors.push({ title: 'Post-Response Script Error', message: postResponseError });
     if (testScriptError) errors.push({ title: 'Test Script Error', message: testScriptError });
-    return <ErrorBanner errors={errors} onClose={onClose} className="mt-4 mb-2" />;
+    return <ErrorBanner errors={errors} onClose={onClose} className="mb-2" />;
   }
 
   return (
-    <div className="mt-4 mb-2 flex flex-col gap-2">
+    <div className="mb-2 flex flex-col gap-2">
       {preRequestError && (
         <ScriptErrorCard
           title="Pre-Request Script Error"
