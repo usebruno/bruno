@@ -203,7 +203,7 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
                 <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
                   Cancel
                 </Button>
-                <Button type="submit" data-testid="collection-item-clone">
+                <Button type="submit">
                   Clone
                 </Button>
               </div>

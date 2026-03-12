@@ -450,7 +450,7 @@ const createFolder = async (
     }
 
     await locators.dropdown.item('New Folder').click();
-    await page.getByTestId('new-folder-input').fill(folderName);
+    await page.getByPlaceholder('Folder Name').fill(folderName);
     await locators.modal.button('Create').click();
     await expect(locators.sidebar.folder(folderName)).toBeVisible();
   });
