@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { v4 as uuid } from 'uuid';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { setTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
-import { IconClock } from '@tabler/icons';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
 import OpenAPISyncHeader from './OpenAPISyncHeader';
@@ -140,38 +139,16 @@ const OpenAPISyncTab = ({ collection }) => {
             {activeTab === 'collection-changes' && (
               <div className="sync-tab-content">
 
-                {collectionDrift && !collectionDrift.noStoredSpec ? (
-                  <CollectionStatusSection
-                    collection={collection}
-                    collectionDrift={collectionDrift}
-                    reloadDrift={reloadDrift}
-                    specDrift={specDrift}
-                    storedSpec={storedSpec}
-                    lastSyncDate={openApiSyncConfig?.lastSyncDate}
-                    onOpenEndpoint={openEndpointInTab}
-                  />
-                ) : !isDriftLoading && !isLoading && (
-                  <>
-                    <div className="spec-update-banner warning">
-                      <div className="banner-left">
-                        <div className="status-dot warning" />
-                        <span className="banner-title">
-                          {openApiSyncConfig?.lastSyncDate
-                            ? 'Last synced spec is required to show collection changes. Restore the latest spec from the source to track future changes..'
-                            : 'Collection changes will be available after the initial sync'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="sync-review-empty-state mt-5">
-                      <IconClock size={40} className="empty-state-icon" />
-                      <h4>{openApiSyncConfig?.lastSyncDate ? 'Last Synced Spec missing from storage' : 'Waiting for initial sync'}</h4>
-                      <p>{openApiSyncConfig?.lastSyncDate
-                        ? 'Restore the latest spec from the source to track future changes..'
-                        : 'Once you sync your collection with the spec, changes will appear here.'}
-                      </p>
-                    </div>
-                  </>
-                )}
+                <CollectionStatusSection
+                  collection={collection}
+                  collectionDrift={collectionDrift}
+                  reloadDrift={reloadDrift}
+                  specDrift={specDrift}
+                  storedSpec={storedSpec}
+                  lastSyncDate={openApiSyncConfig?.lastSyncDate}
+                  onOpenEndpoint={openEndpointInTab}
+                  isLoading={isDriftLoading || isLoading}
+                />
               </div>
             )}
 

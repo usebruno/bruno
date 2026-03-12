@@ -6,14 +6,14 @@ import {
   IconArrowBackUp,
   IconExternalLink,
   IconClock,
-  IconInfoCircle
+  IconInfoCircle,
+  IconLoader2
 } from '@tabler/icons';
 import moment from 'moment';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
 import Modal from 'components/Modal';
 import EndpointChangeSection from '../EndpointChangeSection';
-import EndpointItem from '../EndpointChangeSection/EndpointItem';
 import ExpandableEndpointRow from '../EndpointChangeSection/ExpandableEndpointRow';
 import useEndpointActions from '../hooks/useEndpointActions';
 
@@ -24,7 +24,8 @@ const CollectionStatusSection = ({
   specDrift,
   storedSpec,
   lastSyncDate,
-  onOpenEndpoint
+  onOpenEndpoint,
+  isLoading
 }) => {
   const {
     pendingAction, setPendingAction,
@@ -39,7 +40,8 @@ const CollectionStatusSection = ({
   } = useEndpointActions(collection, collectionDrift, reloadDrift);
 
   const spec = storedSpec || specDrift?.newSpec;
-  const hasDrift = !!collectionDrift && (collectionDrift.modified?.length > 0
+  const hasStoredSpec = collectionDrift && !collectionDrift.noStoredSpec;
+  const hasDrift = hasStoredSpec && (collectionDrift.modified?.length > 0
     || collectionDrift.missing?.length > 0
     || collectionDrift.localOnly?.length > 0);
 
@@ -211,6 +213,33 @@ const CollectionStatusSection = ({
             )}
           />
         </div>
+      ) : isLoading ? (
+        <div className="sync-review-empty-state mt-5">
+          <IconLoader2 size={40} className="empty-state-icon animate-spin" />
+          <h4>Checking for updates</h4>
+          <p>Comparing your collection with the last synced spec...</p>
+        </div>
+      ) : !hasStoredSpec ? (
+        <>
+          <div className="spec-update-banner warning">
+            <div className="banner-left">
+              <div className="status-dot warning" />
+              <span className="banner-title">
+                {lastSyncDate
+                  ? 'Last synced spec is required to show collection changes. Restore the latest spec from the source to track future changes..'
+                  : 'Collection changes will be available after the initial sync'}
+              </span>
+            </div>
+          </div>
+          <div className="sync-review-empty-state mt-5">
+            <IconClock size={40} className="empty-state-icon" />
+            <h4>{lastSyncDate ? 'Last Synced Spec missing from storage' : 'Waiting for initial sync'}</h4>
+            <p>{lastSyncDate
+              ? 'Restore the latest spec from the source to track future changes..'
+              : 'Once you sync your collection with the spec, changes will appear here.'}
+            </p>
+          </div>
+        </>
       ) : (
         <div className="sync-review-empty-state mt-5">
           <IconCheck size={40} className="empty-state-icon" />

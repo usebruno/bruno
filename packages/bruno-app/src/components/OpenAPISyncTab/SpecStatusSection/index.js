@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import {
   IconCheck,
-  IconRefresh
+  IconRefresh,
+  IconLoader2
 } from '@tabler/icons';
 import moment from 'moment';
 import Button from 'ui/Button';
@@ -123,7 +124,7 @@ const SpecStatusSection = ({
             Restore Spec File
           </Button>
         </div>
-      ) : remoteDrift && (
+      ) : (
         <div className="mt-5">
           <SyncReviewPage
             specDrift={specDrift}
@@ -133,6 +134,7 @@ const SpecStatusSection = ({
             collectionUid={collection.uid}
             newSpec={specDrift?.newSpec}
             isSyncing={isSyncing}
+            isLoading={isLoading}
             onApplySync={handleApplySync}
           />
         </div>
