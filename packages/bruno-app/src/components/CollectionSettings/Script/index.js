@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import get from 'lodash/get';
+import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateCollectionRequestScript, updateCollectionResponseScript } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
@@ -18,26 +20,25 @@ const Script = ({ collection }) => {
   const requestScript = collection.draft?.root ? get(collection, 'draft.root.request.script.req', '') : get(collection, 'root.request.script.req', '');
   const responseScript = collection.draft?.root ? get(collection, 'draft.root.request.script.res', '') : get(collection, 'root.request.script.res', '');
 
-  // Default to post-response if pre-request script is empty
-  const getInitialTab = () => {
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const scriptPaneTab = focusedTab?.scriptPaneTab;
+
+  // Default to post-response if pre-request script is empty (only when scriptPaneTab is null/undefined)
+  const getDefaultTab = () => {
     const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
     return hasPreRequestScript ? 'pre-request' : 'post-response';
   };
 
-  const [activeTab, setActiveTab] = useState(getInitialTab);
-  const prevCollectionUidRef = useRef(collection.uid);
+  const activeTab = scriptPaneTab || getDefaultTab();
+
+  const setActiveTab = (tab) => {
+    dispatch(updateScriptPaneTab({ uid: collection.uid, scriptPaneTab: tab }));
+  };
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-
-  // Update active tab only when switching to a different collection
-  useEffect(() => {
-    if (prevCollectionUidRef.current !== collection.uid) {
-      prevCollectionUidRef.current = collection.uid;
-      const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
-      setActiveTab(hasPreRequestScript ? 'pre-request' : 'post-response');
-    }
-  }, [collection.uid, requestScript]);
 
   // Refresh CodeMirror when tab becomes visible
   useEffect(() => {

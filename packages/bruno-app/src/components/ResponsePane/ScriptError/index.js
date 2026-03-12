@@ -72,9 +72,15 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
     if (sourceInfo.sourceType === 'collection') {
       dispatch(addTab({ uid: collection.uid, collectionUid: collection.uid, type: 'collection-settings' }));
       dispatch(updateSettingsSelectedTab({ collectionUid: collection.uid, tab: settingsTab }));
+      if (settingsTab === 'script') {
+        dispatch(updateScriptPaneTab({ uid: collection.uid, scriptPaneTab: scriptPhase }));
+      }
     } else if (sourceInfo.sourceType === 'folder') {
       dispatch(addTab({ uid: sourceInfo.sourceUid, collectionUid: collection.uid, type: 'folder-settings' }));
       dispatch(updatedFolderSettingsSelectedTab({ collectionUid: collection.uid, folderUid: sourceInfo.sourceUid, tab: settingsTab }));
+      if (settingsTab === 'script') {
+        dispatch(updateScriptPaneTab({ uid: sourceInfo.sourceUid, scriptPaneTab: scriptPhase }));
+      }
     } else if (sourceInfo.sourceType === 'request') {
       dispatch(focusTab({ uid: item.uid }));
       if (scriptPhase === 'test') {
