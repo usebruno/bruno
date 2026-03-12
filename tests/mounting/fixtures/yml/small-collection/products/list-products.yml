@@ -1,8 +1,0 @@
-info:
-  name: list-products
-  type: http
-  seq: 1
-
-http:
-  method: GET
-  url: "{{host}}/products"

@@ -1,6 +1,0 @@
-name: prod
-variables:
-  - name: host
-    value: https://api.example.com
-  - name: apiKey
-    value: prod-api-key-67890

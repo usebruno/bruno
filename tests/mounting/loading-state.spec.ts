@@ -1,58 +1,66 @@
-import { test, expect } from '../../playwright';
-import {
-  openCollectionFromPath,
-  waitForCollectionMount,
-  isCollectionLoading
-} from '../utils/page';
-import { closeAllCollections } from '../utils/page';
-import * as path from 'path';
+import { test, expect, ElectronApplication, Page } from '../../playwright';
+import { setupTestFixture, TestFixture } from '../utils/fixtures';
+import { isCollectionLoading, closeAllCollections } from '../utils/page';
 
 const formats = ['bru', 'yml'] as const;
 
 for (const format of formats) {
   test.describe(`[${format}] Loading State`, () => {
-    const fixturePath = path.join(__dirname, `fixtures/${format}/small-collection`);
+    let fixture: TestFixture;
+    let app: ElectronApplication;
+    let page: Page;
 
-    test.afterEach(async ({ page }) => {
-      await closeAllCollections(page);
+    test.beforeAll(async ({ launchElectronApp }) => {
+      // Set up test fixture (collection + user data)
+      fixture = await setupTestFixture({
+        name: 'Test Collection',
+        requestCount: 10,
+        depth: 2,
+        foldersPerLevel: 2,
+        format,
+        environmentCount: 2
+      });
+
+      // Launch app with the prepared user data
+      app = await launchElectronApp({ userDataPath: fixture.userDataPath });
+      page = await app.firstWindow();
+
+      // Wait for app to be ready
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
     });
 
-    test('should show loading spinner when collection mount starts', async ({
-      page,
-      electronApp
-    }) => {
-      // Open collection and immediately check for loading state
-      await openCollectionFromPath(page, electronApp, fixturePath);
+    test.afterAll(async () => {
+      // Close collections before app teardown
+      if (page) {
+        await closeAllCollections(page);
+      }
 
-      // The collection should appear in the sidebar
-      const collectionRow = page.getByTestId('sidebar-collection-row').filter({
-        has: page.locator('#sidebar-collection-name', { hasText: 'Small Collection' })
-      });
-      await expect(collectionRow).toBeVisible({ timeout: 10000 });
-
-      // Wait for mount to complete
-      await waitForCollectionMount(page, 'Small Collection');
+      // Cleanup generated files (app closing is handled by launchElectronApp fixture)
+      if (fixture) {
+        await fixture.cleanup();
+      }
     });
 
-    test('should hide loading spinner when collection mount completes', async ({
-      page,
-      electronApp
-    }) => {
-      // Open collection
-      await openCollectionFromPath(page, electronApp, fixturePath);
-
-      // Wait for mount to complete
-      await waitForCollectionMount(page, 'Small Collection');
-
-      // Verify loading spinner is gone
+    test('collection should be mounted and visible in sidebar', async () => {
+      // Collection should be in the sidebar
       const collectionRow = page.getByTestId('sidebar-collection-row').filter({
-        has: page.locator('#sidebar-collection-name', { hasText: 'Small Collection' })
+        has: page.locator('#sidebar-collection-name', { hasText: 'Test Collection' })
       });
+      await expect(collectionRow).toBeVisible({ timeout: 30000 });
+    });
+
+    test('mounting spinner should not be visible for loaded collections', async () => {
+      const collectionRow = page.getByTestId('sidebar-collection-row').filter({
+        has: page.locator('#sidebar-collection-name', { hasText: 'Test Collection' })
+      });
+      await expect(collectionRow).toBeVisible({ timeout: 30000 });
+
+      // Loading spinner should not be visible
       const loadingSpinner = collectionRow.locator('.animate-spin');
       await expect(loadingSpinner).not.toBeVisible();
 
-      // Verify collection is no longer in loading state
-      const loading = await isCollectionLoading(page, 'Small Collection');
+      // Verify via helper
+      const loading = await isCollectionLoading(page, 'Test Collection');
       expect(loading).toBe(false);
     });
   });

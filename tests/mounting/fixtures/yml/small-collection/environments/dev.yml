@@ -1,6 +1,0 @@
-name: dev
-variables:
-  - name: host
-    value: https://api.dev.example.com
-  - name: apiKey
-    value: dev-api-key-12345
