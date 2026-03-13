@@ -79,17 +79,6 @@ const WSAuth = ({ item, collection }) => {
       case 'apikey': {
         return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
-      case 'oauth1': {
-        return (
-          <>
-            <div className="flex flex-row w-full gap-2">
-              <div>
-                OAuth 1.0 not <strong>yet</strong> supported by WebSockets. Using no auth instead.
-              </div>
-            </div>
-          </>
-        );
-      }
       case 'oauth2': {
         return (
           <>
