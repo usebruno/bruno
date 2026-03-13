@@ -203,6 +203,7 @@ export default class QueryEditor extends React.Component {
       this.editor.off('change', this._onEdit);
       this.editor.off('keyup', this._onKeyUp);
       this.editor.off('hasCompletion', this._onHasCompletion);
+      this.editor.off('beforeChange', this._onBeforeChange);
       // Remove the CodeMirror DOM element so React 18 Strict Mode's
       // unmount-remount cycle doesn't leave an orphaned instance behind.
       const wrapper = this.editor.getWrapperElement();

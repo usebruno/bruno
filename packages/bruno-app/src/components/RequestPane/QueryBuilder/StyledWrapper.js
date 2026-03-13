@@ -90,11 +90,17 @@ const StyledWrapper = styled.div`
   .root-type-node {
     display: flex;
     align-items: center;
+    width: 100%;
     padding: 6px 8px;
     cursor: pointer;
     font-size: 13px;
+    background: none;
+    border: none;
+    outline: none;
+    text-align: left;
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       background: ${(props) => props.theme.background.surface0};
     }
 
@@ -129,8 +135,10 @@ const StyledWrapper = styled.div`
     font-size: 13px;
     line-height: 1.4;
     min-width: 0;
+    outline: none;
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       background: ${(props) => props.theme.background.surface0};
     }
 
@@ -209,6 +217,11 @@ const StyledWrapper = styled.div`
       opacity: 0.5;
       margin-right: 2px;
       cursor: pointer;
+      background: none;
+      border: none;
+      outline: none;
+      padding: 0;
+      color: inherit;
     }
 
     .input-object-chevron-spacer {
@@ -295,6 +308,11 @@ const StyledWrapper = styled.div`
   .list-arg-remove {
     cursor: pointer;
     opacity: 0.4;
+    background: none;
+    border: none;
+    outline: none;
+    padding: 0;
+    color: inherit;
 
     &:hover {
       opacity: 1;

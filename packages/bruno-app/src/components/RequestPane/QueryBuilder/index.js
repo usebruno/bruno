@@ -150,7 +150,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
 
           return (
             <div key={rootType}>
-              <div className="root-type-node" onClick={() => toggleRootType(rootType)}>
+              <button type="button" className="root-type-node" onClick={() => toggleRootType(rootType)} aria-expanded={isExpanded}>
                 <span className="field-chevron">
                   {isExpanded ? (
                     <IconChevronDown size={14} strokeWidth={2} />
@@ -160,7 +160,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
                 </span>
                 <span className="root-type-name">{rootType}</span>
                 <span className="root-type-count">{(rootFieldsByType[rootType] || []).length}</span>
-              </div>
+              </button>
               {isExpanded && (
                 fields.length > 0 ? (
                   <QueryBuilderTree

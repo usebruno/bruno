@@ -1,46 +1,84 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo, useRef, useEffect } from 'react';
 import { IconChevronRight, IconChevronDown, IconTrash, IconInfoCircle } from '@tabler/icons';
+import { nanoid } from 'nanoid';
 import { getInputObjectFields } from 'utils/graphql/queryBuilder';
 
 const ListArgValueInput = ({ values, onChange, field, indent }) => {
-  const items = Array.isArray(values) ? values : (values ? [values] : []);
+  const [items, setItems] = useState(() => {
+    const vals = Array.isArray(values) ? values : (values ? [values] : []);
+    return vals.map((v) => ({ id: nanoid(), value: v }));
+  });
+  const lastExternalRef = useRef(values);
+  const focusIdRef = useRef(null);
+  const listRef = useRef(null);
 
-  const handleItemChange = (index, newValue) => {
-    const next = [...items];
-    next[index] = newValue;
-    onChange(next);
+  // Sync internal items when values prop changes externally (e.g. editor edits)
+  if (values !== lastExternalRef.current) {
+    lastExternalRef.current = values;
+    const vals = Array.isArray(values) ? values : (values ? [values] : []);
+    const currentValues = items.map((i) => i.value);
+    // Only re-sync if the values actually differ (avoid overwriting on our own onChange)
+    if (JSON.stringify(vals) !== JSON.stringify(currentValues)) {
+      setItems(vals.map((v) => ({ id: nanoid(), value: v })));
+    }
+  }
+
+  const syncItems = (nextItems) => {
+    setItems(nextItems);
+    onChange(nextItems.map((item) => item.value));
+  };
+
+  const handleItemChange = (id, newValue) => {
+    syncItems(items.map((item) => (item.id === id ? { ...item, value: newValue } : item)));
   };
 
   const handleAdd = (newValue) => {
     if (newValue === '' || newValue === undefined) return;
-    onChange([...items, newValue]);
+    const id = nanoid();
+    focusIdRef.current = id;
+    syncItems([...items, { id, value: newValue }]);
   };
 
-  const handleRemove = (index) => {
-    onChange(items.filter((_, i) => i !== index));
+  const handleRemove = (id) => {
+    syncItems(items.filter((item) => item.id !== id));
   };
+
+  useEffect(() => {
+    if (focusIdRef.current && listRef.current) {
+      const row = listRef.current.querySelector(`[data-item-id="${focusIdRef.current}"] input`);
+      if (row) {
+        row.focus();
+        // Place cursor at end
+        const len = row.value.length;
+        row.setSelectionRange(len, len);
+      }
+      focusIdRef.current = null;
+    }
+  });
 
   return (
-    <>
-      {items.map((item, i) => (
-        <div key={i} className="arg-row" style={{ paddingLeft: indent }} onClick={(e) => e.stopPropagation()}>
-          <ArgValueInput value={item} onChange={(v) => handleItemChange(i, v)} field={field} />
-          <span
+    <div ref={listRef}>
+      {items.map((item) => (
+        <div key={item.id} data-item-id={item.id} className="arg-row" style={{ paddingLeft: indent }} onClick={(e) => e.stopPropagation()}>
+          <ArgValueInput value={item.value} onChange={(v) => handleItemChange(item.id, v)} field={field} />
+          <button
+            type="button"
             className="list-arg-remove"
             onClick={(e) => {
               e.stopPropagation();
-              handleRemove(i);
+              handleRemove(item.id);
             }}
+            aria-label="Remove item"
           >
             <IconTrash size={13} strokeWidth={1.5} />
-          </span>
+          </button>
         </div>
       ))}
       <div className="arg-row" style={{ paddingLeft: indent }} onClick={(e) => e.stopPropagation()}>
         <ArgValueInput value="" onChange={handleAdd} field={field} />
         <span className="list-arg-remove-spacer" />
       </div>
-    </>
+    </div>
   );
 };
 
@@ -85,7 +123,7 @@ const InputObjectFields = ({ namedType, parentKey, fieldPath, indent, argValues,
     const fieldKey = `${parentKey}.${field.name}`;
     const isEnabled = enabledArgs ? enabledArgs.has(fieldKey) : false;
     const isExpanded = expandedFields.has(field.name);
-    const value = argValues.get(fieldKey) || '';
+    const value = argValues.get(fieldKey) ?? '';
 
     const toggleExpand = (e) => {
       e.stopPropagation();
@@ -104,13 +142,13 @@ const InputObjectFields = ({ namedType, parentKey, fieldPath, indent, argValues,
       <React.Fragment key={field.name}>
         <div className="arg-row" style={{ paddingLeft: indent }} onClick={isExpandable ? toggleExpand : (e) => e.stopPropagation()}>
           {isExpandable ? (
-            <span className="field-chevron input-object-chevron" onClick={toggleExpand}>
+            <button type="button" className="field-chevron input-object-chevron" onClick={toggleExpand} aria-label={isExpanded ? 'Collapse' : 'Expand'}>
               {isExpanded ? (
                 <IconChevronDown size={12} strokeWidth={2} />
               ) : (
                 <IconChevronRight size={12} strokeWidth={2} />
               )}
-            </span>
+            </button>
           ) : (
             <span className="input-object-chevron-spacer" />
           )}
@@ -200,7 +238,19 @@ const FieldNode = ({
   // Union member type row (e.g. "... on Human")
   if (field.isUnionMember) {
     return (
-      <div className="field-node" onClick={handleExpand}>
+      <div
+        className="field-node"
+        role="treeitem"
+        aria-expanded={isExpanded}
+        onClick={handleExpand}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleExpand(e);
+          }
+        }}
+        tabIndex={0}
+      >
         <span className="field-indent" style={{ width: indent }} />
         <span className="field-chevron">
           {isExpanded ? (
@@ -227,7 +277,19 @@ const FieldNode = ({
 
   return (
     <>
-      <div className="field-node" onClick={handleExpand}>
+      <div
+        className="field-node"
+        role="treeitem"
+        aria-expanded={!field.isLeaf && !isCircular ? isExpanded : undefined}
+        onClick={handleExpand}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleExpand(e);
+          }
+        }}
+        tabIndex={0}
+      >
         <span className="field-indent" style={{ width: indent }} />
         <span className="field-chevron">
           {!field.isLeaf && !isCircular ? (
@@ -259,7 +321,7 @@ const FieldNode = ({
           {field.args.map((arg) => {
             const argKey = `${field.path}.${arg.name}`;
             const isArgEnabled = enabledArgs ? enabledArgs.has(argKey) : false;
-            const argValue = argValues.get(argKey) || '';
+            const argValue = argValues.get(argKey) ?? '';
 
             // List of input objects: show unsupported message
             if (arg.isList && arg.isInputObject) {
@@ -368,7 +430,20 @@ const InputObjectArgRow = ({ arg, argKey, fieldPath, isArgEnabled, sectionIndent
 
   return (
     <>
-      <div className="arg-row" style={{ paddingLeft: sectionIndent + 8 }} onClick={toggleExpand}>
+      <div
+        className="arg-row"
+        style={{ paddingLeft: sectionIndent + 8 }}
+        onClick={toggleExpand}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleExpand(e);
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-expanded={isExpanded}
+      >
         <span className="field-chevron input-object-chevron">
           {isExpanded ? (
             <IconChevronDown size={12} strokeWidth={2} />
@@ -422,7 +497,20 @@ const ListArgRow = ({ arg, fieldPath, isArgEnabled, argValue, sectionIndent, onT
 
   return (
     <>
-      <div className="arg-row" style={{ paddingLeft: sectionIndent + 8 }} onClick={toggleExpand}>
+      <div
+        className="arg-row"
+        style={{ paddingLeft: sectionIndent + 8 }}
+        onClick={toggleExpand}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleExpand(e);
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-expanded={isExpanded}
+      >
         <span className="field-chevron input-object-chevron">
           {isExpanded ? (
             <IconChevronDown size={12} strokeWidth={2} />

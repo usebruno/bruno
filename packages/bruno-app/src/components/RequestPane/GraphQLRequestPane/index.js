@@ -18,6 +18,7 @@ import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
 import { useTheme } from 'providers/Theme';
+import StyledWrapper from './StyledWrapper';
 import { updateRequestGraphqlQuery, updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Documentation from 'components/Documentation/index';
@@ -229,9 +230,11 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
                   startDrag(variablesDraggingRef);
                 }}
               />
-              <div
+              <button
+                type="button"
                 className="variables-header"
                 onClick={() => dispatch(updateVariablesPaneOpen({ uid: item.uid, variablesPaneOpen: !variablesOpen }))}
+                aria-expanded={variablesOpen}
               >
                 <span className="variables-chevron">
                   {variablesOpen ? (
@@ -241,7 +244,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
                   )}
                 </span>
                 <span>Variables</span>
-              </div>
+              </button>
               {variablesOpen && (
                 <div className="flex-1 min-h-0 relative">
                   <GraphQLVariables item={item} variables={variables} collection={collection} />
@@ -329,7 +332,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
   ) : null;
 
   return (
-    <div className="flex flex-col h-full relative">
+    <StyledWrapper className="flex flex-col h-full relative">
       <ResponsiveTabs
         tabs={allTabs}
         activeTab={requestPaneTab}
@@ -364,7 +367,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
         )}
         <HeightBoundContainer style={{ minWidth: 200 }}>{tabPanel}</HeightBoundContainer>
       </section>
-    </div>
+    </StyledWrapper>
   );
 };
 
