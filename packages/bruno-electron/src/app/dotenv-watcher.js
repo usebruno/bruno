@@ -127,6 +127,17 @@ const createEnvironmentFileHandler = (win, options) => (pathname) => {
     }
   } catch (err) {
     console.error(`Error processing environment dotenv file ${pathname}:`, err);
+    clearEnvironmentDotEnvVars(workspacePath, environmentName);
+    if (!win.isDestroyed()) {
+      win.webContents.send('main:environment-dotenv-file-update', {
+        workspaceUid,
+        workspacePath,
+        environmentName,
+        filename,
+        variables: [],
+        exists: false
+      });
+    }
   }
 };
 

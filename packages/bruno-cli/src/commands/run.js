@@ -451,7 +451,9 @@ const handler = async function (argv) {
           // Merge dotenv vars into environment variables (dotenv overrides yml values)
           const savedName = envVars.__name__;
           forOwn(dotEnvVars, (value, key) => {
-            envVars[key] = value;
+            if (key !== '__proto__' && key !== 'constructor' && key !== 'prototype') {
+              envVars[key] = value;
+            }
           });
           if (savedName !== undefined) {
             envVars.__name__ = savedName;
@@ -525,7 +527,9 @@ const handler = async function (argv) {
           // Merge dotenv vars into global environment variables (dotenv overrides yml values)
           const savedGlobalName = globalEnvVars.__name__;
           forOwn(dotEnvVars, (value, key) => {
-            globalEnvVars[key] = value;
+            if (key !== '__proto__' && key !== 'constructor' && key !== 'prototype') {
+              globalEnvVars[key] = value;
+            }
           });
           if (savedGlobalName !== undefined) {
             globalEnvVars.__name__ = savedGlobalName;

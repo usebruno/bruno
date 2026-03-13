@@ -28,6 +28,7 @@ const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecurs
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars, getEnvironmentDotEnvVars } = require('../../store/process-env');
+const { safeMergeEnvDotEnvVars } = require('../../utils/env-dotenv-merge');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
 const { isRequestTagsIncluded } = require('@usebruno/common');
@@ -363,11 +364,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const envDotEnvVars = collection.workspacePath && environment?.name
       ? getEnvironmentDotEnvVars(collection.workspacePath, environment.name)
       : {};
-    if (Object.keys(envDotEnvVars).length > 0) {
-      const envName = envVars.__name__;
-      Object.assign(envVars, envDotEnvVars);
-      envVars.__name__ = envName;
-    }
+    safeMergeEnvDotEnvVars(envVars, envDotEnvVars);
 
     const globalEnvironmentVars = collection.globalEnvironmentVariables;
     const folderVars = resolvedRequest.folderVariables;
@@ -1191,11 +1188,7 @@ const registerNetworkIpc = (mainWindow) => {
     const envDotEnvVars = collection.workspacePath && environment?.name
       ? getEnvironmentDotEnvVars(collection.workspacePath, environment.name)
       : {};
-    if (Object.keys(envDotEnvVars).length > 0) {
-      const envName = envVars.__name__;
-      Object.assign(envVars, envDotEnvVars);
-      envVars.__name__ = envName;
-    }
+    safeMergeEnvDotEnvVars(envVars, envDotEnvVars);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const response = await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
     if (response.stream) {
@@ -1274,11 +1267,7 @@ const registerNetworkIpc = (mainWindow) => {
       const envDotEnvVars = collection.workspacePath && environment?.name
         ? getEnvironmentDotEnvVars(collection.workspacePath, environment.name)
         : {};
-      if (Object.keys(envDotEnvVars).length > 0) {
-        const envName = envVars.__name__;
-        Object.assign(envVars, envDotEnvVars);
-        envVars.__name__ = envName;
-      }
+      safeMergeEnvDotEnvVars(envVars, envDotEnvVars);
       const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
       let currentAbortController;

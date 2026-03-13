@@ -9,8 +9,8 @@
  *
  * Priority (highest to lowest): collection .env > workspace .env > OS process.env
  *
- * Per-environment dotenv variables are loaded from .env.<environment-name> files
- * in the workspace root. These override environment (.yml) variables at request time.
+ * Per-environment dotenv variables are loaded from environments/<environment-name>.env
+ * files in the workspace root. These override environment (.yml) variables at request time.
  *
  * Multiple collections can be opened in the same electron app.
  * Each collection's .env file can have different values for the same process.env variable.
@@ -61,6 +61,23 @@ const getWorkspacePath = (collectionUid) => {
   return collectionWorkspaceMap[collectionUid];
 };
 
+/**
+ * Fallback lookup: find a workspace path that is a parent of the given collection path.
+ * Used when collectionWorkspaceMap has not been populated yet (race condition).
+ */
+const findWorkspacePathByCollectionPath = (collectionPath) => {
+  if (!collectionPath) return undefined;
+  const path = require('path');
+  const normalizedCollectionPath = path.resolve(collectionPath);
+  for (const workspacePath of Object.values(collectionWorkspaceMap)) {
+    const normalizedWorkspacePath = path.resolve(workspacePath);
+    if (normalizedCollectionPath.startsWith(normalizedWorkspacePath + path.sep) || normalizedCollectionPath === normalizedWorkspacePath) {
+      return workspacePath;
+    }
+  }
+  return undefined;
+};
+
 const setEnvironmentDotEnvVars = (workspacePath, environmentName, data) => {
   const key = `${workspacePath}::${environmentName}`;
   environmentDotEnvVars[key] = data;
@@ -95,6 +112,7 @@ module.exports = {
   setCollectionWorkspace,
   clearCollectionWorkspace,
   getWorkspacePath,
+  findWorkspacePathByCollectionPath,
   setEnvironmentDotEnvVars,
   getEnvironmentDotEnvVars,
   clearEnvironmentDotEnvVars

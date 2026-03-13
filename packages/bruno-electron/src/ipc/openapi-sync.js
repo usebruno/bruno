@@ -14,7 +14,8 @@ const {
 const { openApiToBruno } = require('@usebruno/converters');
 const { writeFile, sanitizeName, getCollectionFormat } = require('../utils/filesystem');
 const { getEnvVars } = require('../utils/collection');
-const { getProcessEnvVars, getEnvironmentDotEnvVars, getWorkspacePath } = require('../store/process-env');
+const { getProcessEnvVars, getEnvironmentDotEnvVars, getWorkspacePath, findWorkspacePathByCollectionPath } = require('../store/process-env');
+const { safeMergeEnvDotEnvVars } = require('../utils/env-dotenv-merge');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const { makeAxiosInstance } = require('./network/axios-instance');
 const jsyaml = require('js-yaml');
@@ -183,15 +184,11 @@ const fetchSpecFromSource = async ({ collectionUid, collectionPath, sourceUrl, e
     const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
     const envVars = getEnvVars(environment);
     // Merge per-environment dotenv variables (override .yml env vars)
-    const workspacePath = getWorkspacePath(collectionUid);
+    const workspacePath = getWorkspacePath(collectionUid) || findWorkspacePathByCollectionPath(collectionPath);
     const envDotEnvVars = workspacePath && environment?.name
       ? getEnvironmentDotEnvVars(workspacePath, environment.name)
       : {};
-    if (Object.keys(envDotEnvVars).length > 0) {
-      const envName = envVars.__name__;
-      Object.assign(envVars, envDotEnvVars);
-      envVars.__name__ = envName;
-    }
+    safeMergeEnvDotEnvVars(envVars, envDotEnvVars);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = await getCertsAndProxyConfig({
       collectionUid,

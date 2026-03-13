@@ -67,6 +67,7 @@ const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars, getEnvironmentDotEnvVars } = require('../store/process-env');
+const { safeMergeEnvDotEnvVars } = require('../utils/env-dotenv-merge');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
@@ -1630,11 +1631,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const envDotEnvVars = collection.workspacePath && environment?.name
           ? getEnvironmentDotEnvVars(collection.workspacePath, environment.name)
           : {};
-        if (Object.keys(envDotEnvVars).length > 0) {
-          const envName = envVars.__name__;
-          Object.assign(envVars, envDotEnvVars);
-          envVars.__name__ = envName;
-        }
+        safeMergeEnvDotEnvVars(envVars, envDotEnvVars);
         const processEnvVars = getProcessEnvVars(collectionUid);
         const partialItem = { uid: itemUid };
         const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
@@ -1770,11 +1767,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const envDotEnvVars = collection.workspacePath && environment?.name
           ? getEnvironmentDotEnvVars(collection.workspacePath, environment.name)
           : {};
-        if (Object.keys(envDotEnvVars).length > 0) {
-          const envName = envVars.__name__;
-          Object.assign(envVars, envDotEnvVars);
-          envVars.__name__ = envName;
-        }
+        safeMergeEnvDotEnvVars(envVars, envDotEnvVars);
         const processEnvVars = getProcessEnvVars(collectionUid);
         const partialItem = { uid: itemUid };
         const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
