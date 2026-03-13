@@ -8,11 +8,12 @@ import { parseFileAsJsonOrYaml } from 'utils/importers/file-reader';
 
 const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, onClose }) => {
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
-  const isUrl = isHttpUrl(sourceUrl);
+  const normalizedSourceUrl = (sourceUrl || '').trim();
+  const isUrl = isHttpUrl(normalizedSourceUrl);
   const initialMode = isUrl ? 'url' : 'file';
   const [mode, setMode] = useState(initialMode);
-  const [url, setUrl] = useState(isUrl ? (sourceUrl || '') : '');
-  const [filePath, setFilePath] = useState(isUrl ? '' : sourceUrl);
+  const [url, setUrl] = useState(isUrl ? normalizedSourceUrl : '');
+  const [filePath, setFilePath] = useState(isUrl ? '' : normalizedSourceUrl);
   const [autoCheck, setAutoCheck] = useState(openApiSyncConfig?.autoCheck !== false);
   const [checkInterval, setCheckInterval] = useState(openApiSyncConfig?.autoCheckInterval || 5);
   const [isSaving, setIsSaving] = useState(false);
