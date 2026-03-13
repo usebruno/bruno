@@ -421,7 +421,6 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
-  if (!fs.existsSync(collectionPath)) return;
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
@@ -553,60 +552,66 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const unlink = (win, pathname, collectionUid, collectionPath) => {
-  if (!fs.existsSync(collectionPath)) return;
-  console.log(`watcher unlink: ${pathname}`);
+  try {
+    console.log(`watcher unlink: ${pathname}`);
 
-  if (isEnvironmentsFolder(pathname, collectionPath)) {
-    return unlinkEnvironmentFile(win, pathname, collectionUid);
-  }
-
-  const format = getCollectionFormat(collectionPath);
-  if (hasRequestExtension(pathname, format)) {
-    const basename = path.basename(pathname);
-    const dirname = path.dirname(pathname);
-
-    if (basename === 'opencollection.yml' && path.normalize(dirname) === path.normalize(collectionPath)) {
-      return;
+    if (isEnvironmentsFolder(pathname, collectionPath)) {
+      return unlinkEnvironmentFile(win, pathname, collectionUid);
     }
 
-    const file = {
-      meta: {
-        collectionUid,
-        pathname,
-        name: basename
+    const format = getCollectionFormat(collectionPath);
+    if (hasRequestExtension(pathname, format)) {
+      const basename = path.basename(pathname);
+      const dirname = path.dirname(pathname);
+
+      if (basename === 'opencollection.yml' && path.normalize(dirname) === path.normalize(collectionPath)) {
+        return;
       }
-    };
-    win.webContents.send('main:collection-tree-updated', 'unlink', file);
+
+      const file = {
+        meta: {
+          collectionUid,
+          pathname,
+          name: basename
+        }
+      };
+      win.webContents.send('main:collection-tree-updated', 'unlink', file);
+    }
+  } catch (err) {
+    console.error(`Error processing unlink event for: ${pathname}`, err);
   }
 };
 
 const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
-  if (!fs.existsSync(collectionPath)) return;
-  const envDirectory = path.join(collectionPath, 'environments');
+  try {
+    const envDirectory = path.join(collectionPath, 'environments');
 
-  if (path.normalize(pathname) === path.normalize(envDirectory)) {
-    return;
-  }
-
-  const format = getCollectionFormat(collectionPath);
-  const folderFilePath = path.join(pathname, `folder.${format}`);
-
-  let name = path.basename(pathname);
-
-  if (fs.existsSync(folderFilePath)) {
-    let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
-    let folderData = await parseFolder(folderFileContent, { format });
-    name = folderData?.meta?.name || name;
-  }
-
-  const directory = {
-    meta: {
-      collectionUid,
-      pathname,
-      name
+    if (path.normalize(pathname) === path.normalize(envDirectory)) {
+      return;
     }
-  };
-  win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
+
+    const format = getCollectionFormat(collectionPath);
+    const folderFilePath = path.join(pathname, `folder.${format}`);
+
+    let name = path.basename(pathname);
+
+    if (fs.existsSync(folderFilePath)) {
+      let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
+      let folderData = await parseFolder(folderFileContent, { format });
+      name = folderData?.meta?.name || name;
+    }
+
+    const directory = {
+      meta: {
+        collectionUid,
+        pathname,
+        name
+      }
+    };
+    win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
+  } catch (err) {
+    console.error(`Error processing unlinkDir event for: ${pathname}`, err);
+  }
 };
 
 const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {

@@ -158,6 +158,14 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
         (c) => normalizePath(c.pathname) === normalizedCollectionPath
       );
 
+      // Remove collection from the watcher
+      // When deleting files, stop the collection watcher first to prevent
+      // chokidar from firing events on a directory that's being removed
+      if (deleteFiles && collection) {
+        const workspaceId = workspace.pathname || workspace.uid || 'default';
+        await ipcRenderer.invoke('renderer:remove-collection', collection.pathname, collection.uid, workspaceId);
+      }
+
       await ipcRenderer.invoke('renderer:remove-collection-from-workspace',
         workspaceUid,
         workspace.pathname,
