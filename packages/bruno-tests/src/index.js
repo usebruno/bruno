@@ -74,4 +74,8 @@ setupGraphQL(app).then(() => {
   server.listen(port, function () {
     console.log(`Testbench started on port: ${port}`);
   });
-});
+})
+  .catch((error) => {
+    console.error('Failed to initialize GraphQL', error);
+    process.exit(1);
+  });
