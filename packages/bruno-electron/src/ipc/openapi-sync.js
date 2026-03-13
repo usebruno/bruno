@@ -1316,35 +1316,8 @@ const registerOpenAPISyncIpc = (mainWindow) => {
         }
       }
 
-      if (addNewRequests && diff.added?.length > 0 && newCollection) {
-        for (const endpoint of diff.added) {
-          const normalizedPath = normalizeUrlPath(endpoint.path);
-          const result = findItemInCollection(newCollection.items, endpoint.method, endpoint.path);
-          const newItem = result?.item;
-
-          if (newItem) {
-            // Check if endpoint already exists in collection (prevents overwriting user customizations)
-            const existingFile = findRequestFileOnDisk(collectionPath, endpoint.method.toUpperCase(), normalizedPath);
-
-            if (existingFile) {
-              const mergedRequest = mergeSpecIntoRequest(existingFile.request, newItem);
-              const content = await stringifyRequestViaWorker(mergedRequest, { format: existingFile.fileFormat });
-              await writeFile(existingFile.filePath, content);
-            } else {
-              // Truly new — create file in the appropriate folder
-              let targetFolder = collectionPath;
-              if (result.folderName && groupBy === 'tags') {
-                targetFolder = await ensureTagFolder(collectionPath, result.folderName, format);
-              }
-
-              const requestContent = await stringifyRequestViaWorker(newItem, { format });
-              const sanitizedFilename = `${sanitizeName(newItem.name || path.basename(newItem.filename || '', `.${format}`))}.${format}`;
-              await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
-            }
-          }
-        }
-      }
-
+      // Remove endpoints before adding new ones to avoid filename collisions
+      // (e.g., when a path is renamed but the summary stays the same, both generate the same filename)
       if (removeDeletedRequests && diff.removed?.length > 0) {
         const findAndRemoveRequest = (dirPath) => {
           if (!fs.existsSync(dirPath)) return;
@@ -1389,6 +1362,8 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       }
 
       // Remove local-only endpoints (endpoints in collection but not in spec)
+      // Verify file content before deleting — the file may have been modified by the user
+      // between the drift scan and sync execution, making the pre-computed filePath stale.
       if (localOnlyToRemove?.length > 0) {
         for (const endpoint of localOnlyToRemove) {
           if (endpoint.filePath) {
@@ -1398,7 +1373,49 @@ const registerOpenAPISyncIpc = (mainWindow) => {
               continue;
             }
             if (fs.existsSync(fullPath)) {
-              fs.unlinkSync(fullPath);
+              try {
+                const fileFormat = fullPath.endsWith('.yml') || fullPath.endsWith('.yaml') ? 'yml' : 'bru';
+                const content = fs.readFileSync(fullPath, 'utf8');
+                const parsed = parseRequest(content, { format: fileFormat });
+                if (parsed?.request) {
+                  const fileMethod = parsed.request.method?.toUpperCase();
+                  const fileUrlPath = normalizeUrlPath(parsed.request.url);
+                  if (fileMethod === endpoint.method && fileUrlPath === endpoint.path) {
+                    fs.unlinkSync(fullPath);
+                  }
+                }
+              } catch (err) {
+                console.error(`[OpenAPI Sync] Error verifying file before removal ${endpoint.filePath}:`, err);
+              }
+            }
+          }
+        }
+      }
+
+      if (addNewRequests && diff.added?.length > 0 && newCollection) {
+        for (const endpoint of diff.added) {
+          const normalizedPath = normalizeUrlPath(endpoint.path);
+          const result = findItemInCollection(newCollection.items, endpoint.method, endpoint.path);
+          const newItem = result?.item;
+
+          if (newItem) {
+            // Check if endpoint already exists in collection (prevents overwriting user customizations)
+            const existingFile = findRequestFileOnDisk(collectionPath, endpoint.method.toUpperCase(), normalizedPath);
+
+            if (existingFile) {
+              const mergedRequest = mergeSpecIntoRequest(existingFile.request, newItem);
+              const content = await stringifyRequestViaWorker(mergedRequest, { format: existingFile.fileFormat });
+              await writeFile(existingFile.filePath, content);
+            } else {
+              // Truly new — create file in the appropriate folder
+              let targetFolder = collectionPath;
+              if (result.folderName && groupBy === 'tags') {
+                targetFolder = await ensureTagFolder(collectionPath, result.folderName, format);
+              }
+
+              const requestContent = await stringifyRequestViaWorker(newItem, { format });
+              const sanitizedFilename = `${sanitizeName(newItem.name || path.basename(newItem.filename || '', `.${format}`))}.${format}`;
+              await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
             }
           }
         }

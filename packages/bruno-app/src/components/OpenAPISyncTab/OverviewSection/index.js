@@ -1,23 +1,13 @@
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
+import { selectStoredSpecMeta } from 'providers/ReduxStore/slices/openapi-sync';
+import { getTotalRequestCountInCollection } from 'utils/collections/';
+import { countEndpoints } from '../utils';
 import moment from 'moment';
 import { IconCheck } from '@tabler/icons';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
 import Help from 'components/Help';
-
-const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace'];
-
-const countEndpoints = (spec) => {
-  if (!spec?.paths) return null;
-  let count = 0;
-  for (const path of Object.values(spec.paths)) {
-    for (const key of Object.keys(path)) {
-      if (HTTP_METHODS.includes(key.toLowerCase())) count++;
-    }
-  }
-  return count;
-};
 
 const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
 
@@ -54,23 +44,22 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
 
   const reduxError = useSelector((state) => state.openapiSync?.collectionUpdates?.[collection.uid]?.error);
+  const specMeta = useSelector(selectStoredSpecMeta(collection.uid));
   const activeError = error || reduxError;
 
-  const version = storedSpec?.info?.version;
-  const endpointCount = countEndpoints(storedSpec);
+  const version = storedSpec?.info?.version ?? specMeta?.version;
+  const endpointCount = countEndpoints(storedSpec) ?? specMeta?.endpointCount ?? null;
   const lastSyncDate = openApiSyncConfig?.lastSyncDate;
   const groupBy = openApiSyncConfig?.groupBy || 'tags';
   const autoCheckEnabled = openApiSyncConfig?.autoCheck !== false;
   const autoCheckInterval = openApiSyncConfig?.autoCheckInterval || 5;
 
   // Endpoint Summary counts
-  // Total/In Sync: always compare against remote spec
+  // Total: from collection items in Redux; In Sync: from remote spec comparison
   // Changed/Conflicts: compare against stored spec in AppData (0 on initial sync)
   const hasDriftData = collectionDrift && !collectionDrift.noStoredSpec;
 
-  const totalInCollection = remoteDrift
-    ? (remoteDrift.inSync?.length || 0) + (remoteDrift.modified?.length || 0) + (remoteDrift.localOnly?.length || 0)
-    : null;
+  const totalInCollection = getTotalRequestCountInCollection(collection);
 
   const inSyncCount = remoteDrift
     ? (remoteDrift.inSync?.length || 0)
@@ -131,7 +120,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
       return {
         variant: 'warning',
         title: 'Last synced spec not found',
-        subtitle: 'The last synced spec is missing in the storage. Restore the latest spec from the source to track future changes..',
+        subtitle: 'The last synced spec is missing in the storage. Restore the latest spec from the source to track future changes.',
         buttons: ['restore']
       };
     }

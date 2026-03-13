@@ -573,6 +573,7 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
     if (isEnvironmentsFolder(pathname, collectionPath)) {
       return unlinkEnvironmentFile(win, pathname, collectionUid);
     }
+    console.log(`watcher unlink: ${pathname}`);
 
     const format = getCollectionFormat(collectionPath);
     if (hasRequestExtension(pathname, format)) {

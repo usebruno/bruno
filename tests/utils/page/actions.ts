@@ -324,6 +324,42 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
 };
 
 /**
+ * Delete a collection permanently from disk via the workspace overview page
+ * @param page - The page object
+ * @param collectionName - The name of the collection to delete
+ * @returns void
+ */
+const deleteCollectionFromOverview = async (page: Page, collectionName: string) => {
+  await test.step(`Delete collection "${collectionName}" from workspace overview`, async () => {
+    // Navigate to workspace overview
+    await page.locator('.home-button').click();
+    const overviewTab = page.locator('.request-tab').filter({ hasText: 'Overview' });
+    await overviewTab.click();
+
+    // Find the collection card and open its menu
+    const collectionCard = page.locator('.collection-card').filter({ hasText: collectionName });
+    await collectionCard.waitFor({ state: 'visible', timeout: 5000 });
+    await collectionCard.locator('.collection-menu').click();
+
+    // Click Delete from the dropdown
+    await page.locator('.dropdown-item').filter({ hasText: 'Delete' }).click();
+
+    // Wait for delete confirmation modal
+    const deleteModal = page.locator('.bruno-modal').filter({ hasText: 'Delete Collection' });
+    await deleteModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Type 'delete' to confirm
+    await deleteModal.locator('#delete-confirm-input').fill('delete');
+
+    // Click the Delete button
+    await deleteModal.getByRole('button', { name: 'Delete', exact: true }).click();
+
+    // Wait for modal to close
+    await deleteModal.waitFor({ state: 'hidden', timeout: 10000 });
+  });
+};
+
+/**
  * Import a collection from a file
  * @param page - The page object
  * @param filePath - The path to the collection file to import
@@ -1020,6 +1056,7 @@ export {
   createTransientRequest,
   fillRequestUrl,
   deleteRequest,
+  deleteCollectionFromOverview,
   importCollection,
   removeCollection,
   createFolder,

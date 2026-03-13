@@ -6,7 +6,7 @@ import {
   IconArrowRight,
   IconArrowsDiff,
   IconInfoCircle,
-  IconRefresh
+  IconLoader2
 } from '@tabler/icons';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
@@ -73,6 +73,7 @@ const SyncReviewPage = ({
   collectionUid,
   newSpec,
   isSyncing,
+  isLoading,
   onApplySync
 }) => {
   const dispatch = useDispatch();
@@ -250,9 +251,19 @@ const SyncReviewPage = ({
       <div className="sync-review-body">
         {!hasRemoteUpdates ? (
           <div className="sync-review-empty-state">
-            <IconRefresh size={40} className="empty-state-icon" />
-            <h4>No updates from the spec</h4>
-            <p>The collection matches the latest spec. Nothing to sync.</p>
+            {isLoading ? (
+              <>
+                <IconLoader2 size={40} className="empty-state-icon animate-spin" />
+                <h4>Checking for updates</h4>
+                <p>Comparing your last synced spec with the latest spec...</p>
+              </>
+            ) : (
+              <>
+                <IconCheck size={40} className="empty-state-icon" />
+                <h4>No updates from the spec</h4>
+                <p>The spec endpoints have not been updated since the last sync.</p>
+              </>
+            )}
           </div>
         ) : (
           <div className="endpoints-review-sections">
@@ -264,7 +275,7 @@ const SyncReviewPage = ({
                   title="Updated in Spec"
                   type="spec-modified"
                   endpoints={specUpdatedEndpoints}
-                  defaultExpanded={hasConflicts}
+                  defaultExpanded={true}
                   expandableLayout
                   subtitle="The spec has updates for these endpoints"
                   headerExtra={conflictCount > 0 ? (
@@ -300,7 +311,7 @@ const SyncReviewPage = ({
                   title="New in Spec"
                   type="added"
                   endpoints={specAddedEndpoints}
-                  defaultExpanded={false}
+                  defaultExpanded={true}
                   expandableLayout
                   subtitle="New endpoints from the spec"
                   collectionUid={collectionUid}
@@ -324,7 +335,7 @@ const SyncReviewPage = ({
                   title="Removed from Spec"
                   type="removed"
                   endpoints={specRemovedEndpoints}
-                  defaultExpanded={false}
+                  defaultExpanded={true}
                   expandableLayout
                   subtitle="These endpoints are in your collection but not in the spec"
                   collectionUid={collectionUid}
