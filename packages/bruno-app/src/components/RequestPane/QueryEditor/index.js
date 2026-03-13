@@ -136,18 +136,18 @@ export default class QueryEditor extends React.Component {
             this.props.onMergeQuery();
           }
         },
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-            return false;
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-            return false;
-          }
-        },
+        // 'Cmd-S': () => {
+        //   if (this.props.onSave) {
+        //     this.props.onSave();
+        //     return false;
+        //   }
+        // },
+        // 'Ctrl-S': () => {
+        //   if (this.props.onSave) {
+        //     this.props.onSave();
+        //     return false;
+        //   }
+        // },
         'Cmd-F': 'findPersistent',
         'Ctrl-F': 'findPersistent'
       }

@@ -55,16 +55,16 @@ class MultiLineEditor extends Component {
             this.props.onRun();
           }
         },
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
+        // 'Cmd-S': () => {
+        //   if (this.props.onSave) {
+        //     this.props.onSave();
+        //   }
+        // },
+        // 'Ctrl-S': () => {
+        //   if (this.props.onSave) {
+        //     this.props.onSave();
+        //   }
+        // },
         'Cmd-F': () => {},
         'Ctrl-F': () => {},
         // Tabbing disabled to make tabindex work

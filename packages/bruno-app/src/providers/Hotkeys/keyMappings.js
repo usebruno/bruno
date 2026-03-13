@@ -92,7 +92,6 @@ export const KEY_BINDING_SECTIONS = [
     bindings: {
       sidebarSearch: { mac: 'command+bind+f', windows: 'ctrl+bind+f', name: 'Search Sidebar' },
       renameItem: { mac: 'command+bind+r', windows: 'ctrl+bind+r', name: 'Rename Item' },
-      resetZoom: { mac: 'command+bind+0', windows: 'ctrl+bind+0', name: 'Reset Zoom' },
       copyItem: { mac: 'command+bind+c', windows: 'ctrl+bind+c', name: 'Copy Item' },
       pasteItem: { mac: 'command+bind+v', windows: 'ctrl+bind+v', name: 'Paste Item' },
       cloneItem: { mac: 'command+bind+d', windows: 'ctrl+bind+d', name: 'Clone Item' }
@@ -172,6 +171,7 @@ export const getKeyBindingsForOS = (os) => {
 
 /**
  * Merges default key bindings with user preferences.
+ * Uses KEY_BINDING_SECTIONS as the source of truth for defaults.
  *
  * @param {Object} userKeyBindings - User's custom key bindings from preferences (preferences.keyBindings)
  * @returns {Object} Merged key bindings object
@@ -179,16 +179,21 @@ export const getKeyBindingsForOS = (os) => {
 export const getMergedKeyBindings = (userKeyBindings) => {
   const merged = {};
 
-  // Start with defaults
-  for (const [action, binding] of Object.entries(DEFAULT_KEY_BINDINGS)) {
-    merged[action] = { ...binding };
+  // Start with defaults from KEY_BINDING_SECTIONS (source of truth)
+  for (const section of KEY_BINDING_SECTIONS) {
+    for (const [action, binding] of Object.entries(section.bindings || {})) {
+      merged[action] = { ...binding };
+    }
   }
 
   // Override with user preferences
   if (userKeyBindings && typeof userKeyBindings === 'object') {
     for (const [action, binding] of Object.entries(userKeyBindings)) {
       if (merged[action]) {
-        merged[action] = { ...merged[action], ...binding };
+        merged[action] = {
+          ...merged[action],
+          ...binding
+        };
       }
     }
   }
@@ -223,5 +228,6 @@ export const getKeyBindingsForActionAllOS = (action, userKeyBindings) => {
     if (combo) combos.push(combo);
   }
 
+  console.log('[keyMappings] getKeyBindingsForActionAllOS:', action, '->', combos);
   return combos.length > 0 ? combos : null;
 };

@@ -241,6 +241,20 @@ export const tabsSlice = createSlice({
         console.error('Tab not found!');
       }
     },
+    requestCloseConfirmation: (state, action) => {
+      const { uid } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.showCloseConfirmation = true;
+      }
+    },
+    clearCloseConfirmation: (state, action) => {
+      const { uid } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.showCloseConfirmation = false;
+      }
+    },
     reorderTabs: (state, action) => {
       const { direction, sourceUid, targetUid } = action.payload;
       const tabs = state.tabs;
@@ -287,7 +301,9 @@ export const {
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
-  reorderTabs
+  reorderTabs,
+  requestCloseConfirmation,
+  clearCloseConfirmation
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

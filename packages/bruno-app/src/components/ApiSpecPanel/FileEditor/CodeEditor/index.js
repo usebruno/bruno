@@ -57,16 +57,16 @@ export default class CodeEditor extends React.Component {
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
+        // 'Cmd-S': () => {
+        //   if (this.props.onSave) {
+        //     this.props.onSave();
+        //   }
+        // },
+        // 'Ctrl-S': () => {
+        //   if (this.props.onSave) {
+        //     this.props.onSave();
+        //   }
+        // },
         'Cmd-F': 'findPersistent',
         'Ctrl-F': 'findPersistent',
         'Cmd-H': 'replace',

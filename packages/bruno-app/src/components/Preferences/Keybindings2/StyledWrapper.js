@@ -4,6 +4,8 @@ const StyledWrapper = styled.div`
   min-height: 0;
   max-height: calc(100% - 30px);
 
+  max-width: 80%;
+
   display: flex;
   flex-direction: column;
 
@@ -17,26 +19,26 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
   }
 
-  .reset-all-btn {
+  .section-actions {
     display: flex;
     align-items: center;
-    background: transparent;
-    border: 1px solid ${(props) => props.theme.table.border};
-    border-radius: 6px;
-    padding: 4px 4px;
-    cursor: pointer;
-    color: ${(props) => props.theme.text};
-    font-size: 12px;
-    font-weight: 500;
-    transition: all 0.2s ease;
+    gap: 10px;
+    flex-shrink: 0;
+  }
 
-    &:hover {
-      background: ${(props) => props.theme.button.secondary.hoverBg};
-      border-color: ${(props) => props.theme.button.secondary.hoverBorder};
-    }
+  .section-actions-divider {
+    width: 1px;
+    height: 18px;
+    background: ${(props) => props.theme.input.border};
+    opacity: 0.9;
+  }
+
+  .section-divider {
+    height: 1px;  
+    background: ${(props) => props.theme.input.border};
+    margin: 10px 0;
   }
 
   .tables-container {
@@ -60,8 +62,7 @@ const StyledWrapper = styled.div`
   }
 
   .group-heading {
-    font-size: ${(props) => props.theme.font.size.sm};
-    font-weight: 600;
+    font-size: 12px;
     color: ${(props) => props.theme.text};
     margin-bottom: 8px;
     padding-left: 2px;
@@ -93,10 +94,19 @@ const StyledWrapper = styled.div`
 
   td {
     padding: 6px 10px;
-    font-size: ${(props) => props.theme.font.size.sm};
+    font-size: 12px;
     border-top: 1px solid ${(props) => props.theme.table.border};
     border-left: 1px solid ${(props) => props.theme.table.border};
     border-right: 1px solid ${(props) => props.theme.table.border};
+    background: transparent;
+    transition: background 0.15s ease;
+  }
+
+  tbody tr:hover td {
+    background: ${(props) =>
+      props.theme.table.hoverBg
+      || props.theme.button.secondary.hoverBg
+      || props.theme.background.highlight};
   }
 
   .keybinding-row {
@@ -132,37 +142,43 @@ const StyledWrapper = styled.div`
   }
 
   .shortcut-input {
-    width: 200px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 24px;
+    min-width: 200px;
     max-width: 200px;
     flex-shrink: 0;
-
-    caret-color: ${(props) => props.theme.table.input.color};
-
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    border: none;
     outline: none;
-    background: transparent;
-
-    font-family: monospace;
-    color: ${(props) => props.theme.table.input.color};
     cursor: pointer;
-
-    &:hover {
-      opacity: 0.85;
-    }
-
-    &:focus {
-      opacity: 1;
-    }
-
-    &::placeholder {
-      opacity: 0.5;
-    }
   }
 
+  .shortcut-input--readonly {
+    cursor: default;
+  }
+
+  .shortcut-text {
+    font-family: monospace;
+    color: ${(props) => props.theme.table.input.color};
+  }
+
+  .keycap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 4px;
+    border: 1px solid ${(props) => props.theme.input.border};
+    background: ${(props) => props.theme.background.base};
+    color: ${(props) => props.theme.table.input.color};
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+  }
+    
   .edit-btn {
     background: transparent;
     border: none;
