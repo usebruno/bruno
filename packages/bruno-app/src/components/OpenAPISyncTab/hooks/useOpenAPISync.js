@@ -3,11 +3,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { addTab, focusTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { getDefaultRequestPaneTab } from 'utils/collections';
-import { clearCollectionState, setCollectionUpdate } from 'providers/ReduxStore/slices/openapi-sync';
+import { clearCollectionState, setCollectionUpdate, setStoredSpecMeta } from 'providers/ReduxStore/slices/openapi-sync';
 import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
 import { isHttpUrl } from 'utils/url/index';
 import { flattenItems } from 'utils/collections/index';
 import { formatIpcError } from 'utils/common/error';
+import { countEndpoints } from '../utils';
 
 const useOpenAPISync = (collection) => {
   const dispatch = useDispatch();
@@ -28,6 +29,18 @@ const useOpenAPISync = (collection) => {
   const tabs = useSelector((state) => state.tabs.tabs);
 
   const isConfigured = !!openApiSyncConfig?.sourceUrl;
+
+  const updateStoredSpec = (spec) => {
+    setStoredSpec(spec);
+    if (spec) {
+      dispatch(setStoredSpecMeta({
+        collectionUid: collection.uid,
+        title: spec.info?.title || null,
+        version: spec.info?.version || null,
+        endpointCount: countEndpoints(spec)
+      }));
+    }
+  };
 
   // Flatten collection items including nested items in folders
   const allHttpItems = useMemo(() => {
@@ -113,6 +126,7 @@ const useOpenAPISync = (collection) => {
     setFileNotFound(false);
     setSpecDrift(null);
     setRemoteDrift(null);
+    setCollectionDrift(null);
 
     try {
       const { ipcRenderer } = window;
@@ -136,7 +150,7 @@ const useOpenAPISync = (collection) => {
 
       setSpecDrift(result);
       if (result.storedSpec) {
-        setStoredSpec(result.storedSpec);
+        updateStoredSpec(result.storedSpec);
       }
 
       // Update Redux store so toolbar status stays in sync
@@ -211,11 +225,11 @@ const useOpenAPISync = (collection) => {
         try {
           const { specType } = await fetchAndValidateApiSpecFromUrl({ url: trimmedUrl });
           if (specType !== 'openapi') {
-            setError('The URL does not point to a valid OpenAPI specification');
+            setError('The URL does not point to a valid OpenAPI 3.x specification');
             return;
           }
         } catch {
-          setError('The URL does not point to a valid OpenAPI specification');
+          setError('The URL does not point to a valid OpenAPI 3.x specification');
           return;
         }
       }
@@ -328,11 +342,11 @@ const useOpenAPISync = (collection) => {
       try {
         ({ specType } = await fetchAndValidateApiSpecFromUrl({ url: newUrl }));
       } catch {
-        toast.error('The URL does not point to a valid OpenAPI specification');
+        toast.error('The URL does not point to a valid OpenAPI 3.x specification');
         throw new Error('Invalid OpenAPI specification');
       }
       if (specType !== 'openapi') {
-        toast.error('The URL does not point to a valid OpenAPI specification');
+        toast.error('The URL does not point to a valid OpenAPI 3.x specification');
         throw new Error('Invalid OpenAPI specification');
       }
     }

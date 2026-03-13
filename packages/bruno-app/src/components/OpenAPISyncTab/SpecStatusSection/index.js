@@ -4,7 +4,6 @@ import {
   IconCheck,
   IconRefresh
 } from '@tabler/icons';
-import moment from 'moment';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
 import ConfirmSyncModal from '../ConfirmSyncModal';
@@ -123,7 +122,7 @@ const SpecStatusSection = ({
             Restore Spec File
           </Button>
         </div>
-      ) : remoteDrift && (
+      ) : (
         <div className="mt-5">
           <SyncReviewPage
             specDrift={specDrift}
@@ -133,6 +132,7 @@ const SpecStatusSection = ({
             collectionUid={collection.uid}
             newSpec={specDrift?.newSpec}
             isSyncing={isSyncing}
+            isLoading={isLoading}
             onApplySync={handleApplySync}
           />
         </div>
