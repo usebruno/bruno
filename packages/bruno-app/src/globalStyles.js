@@ -187,11 +187,10 @@ const GlobalStyle = createGlobalStyle`
 
 
   // scrollbar styling
-  // the below media query target non-macos devices
-  // (macos scrollbar styling is the ideal style reference)
+  // the below media query targets non-touch devices
   @media not all and (pointer: coarse) {
     * {
-      scrollbar-color: ${(props) => props.theme.scrollbar.color};
+      scrollbar-color: ${(props) => props.theme.scrollbar.color} transparent;
     }
 
     *::-webkit-scrollbar {
