@@ -40,7 +40,7 @@ const CreateWorkspace = ({ onClose }) => {
           if (!value) return true;
 
           return !workspaces.some((w) =>
-            w.name.toLowerCase() === value.toLowerCase());
+            !w.isCreating && w.name && w.name.toLowerCase() === value.toLowerCase());
         }),
       workspaceFolderName: Yup.string()
         .min(1, 'Must be at least 1 character')

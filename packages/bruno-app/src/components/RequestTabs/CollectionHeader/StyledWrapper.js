@@ -72,19 +72,46 @@ const StyledWrapper = styled.div`
     padding: 4px 8px;
   }
 
+  .workspace-input-wrapper {
+    display: flex;
+    align-items: center;
+    border: 1px solid ${(props) => props.theme.input.border};
+    border-radius: 3px;
+    background: ${(props) => props.theme.input.bg};
+    min-width: 150px;
+
+    &:focus-within {
+      border-color: ${(props) => props.theme.input.focusBorder};
+    }
+  }
+
   .workspace-name-input {
     font-size: 14px;
     font-weight: 500;
     padding: 2px 6px;
-    border: 1px solid ${(props) => props.theme.input.border};
-    border-radius: 3px;
-    background: ${(props) => props.theme.input.bg};
+    border: none;
+    background: transparent;
     color: ${(props) => props.theme.text};
     outline: none;
-    min-width: 150px;
+    flex: 1;
+    min-width: 0;
+  }
 
-    &:focus {
-      border-color: ${(props) => props.theme.input.focusBorder};
+  .cog-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 22px;
+    height: 100%;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: ${(props) => props.theme.text};
+    opacity: 0.5;
+
+    &:hover {
+      opacity: 1;
     }
   }
 
