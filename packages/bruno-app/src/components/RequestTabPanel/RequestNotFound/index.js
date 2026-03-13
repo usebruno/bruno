@@ -33,7 +33,7 @@ const RequestNotFound = ({ itemUid }) => {
   const errors = [
     {
       title: 'Request no longer exists',
-      message: 'This can happen when the .bru file associated with this request was deleted on your filesystem.'
+      message: 'This can happen when the file associated with this request was deleted on your filesystem.'
     }
   ];
 
