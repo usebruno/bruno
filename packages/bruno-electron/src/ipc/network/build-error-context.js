@@ -18,7 +18,9 @@ const buildErrorContext = (error, scriptType, itemPathname, collectionPath, scri
 
   try {
     const cache = new Map();
-    const metadata = error.scriptMetadata || scriptMetadata;
+    const metadata = (error.scriptMetadata && Object.keys(error.scriptMetadata).length > 0)
+      ? error.scriptMetadata
+      : scriptMetadata;
     const parsed = parseErrorLocation(error);
     if (!parsed) return null;
 
@@ -70,23 +72,28 @@ const buildErrorContext = (error, scriptType, itemPathname, collectionPath, scri
 
     const blockOffset = blockStartLine ? blockStartLine - 1 : 0;
 
+    const filteredLines = context.lines
+      .filter((l) => {
+        const rel = l.lineNumber - blockOffset;
+        return rel >= 1 && (!blockEndLine || l.lineNumber <= blockEndLine);
+      })
+      .map((l) => ({
+        lineNumber: l.lineNumber - blockOffset,
+        content: l.content,
+        isError: l.isError
+      }));
+
+    if (filteredLines.length === 0) return null;
+
     return {
       errorType,
       filePath: displayPath,
       errorLine: sourceLine - blockOffset,
-      lines: context.lines
-        .filter((l) => {
-          const rel = l.lineNumber - blockOffset;
-          return rel >= 1 && (!blockEndLine || l.lineNumber <= blockEndLine);
-        })
-        .map((l) => ({
-          lineNumber: l.lineNumber - blockOffset,
-          content: l.content,
-          isError: l.isError
-        })),
+      lines: filteredLines,
       stack
     };
-  } catch {
+  } catch (e) {
+    console.warn('buildErrorContext failed:', e);
     return null;
   }
 };
