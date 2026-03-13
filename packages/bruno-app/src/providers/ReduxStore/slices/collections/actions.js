@@ -529,6 +529,14 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
+    if (item.response?.stream?.running && item.cancelTokenUid) {
+      try {
+        await dispatch(cancelRequest(item.cancelTokenUid, item, collection));
+      } catch (err) {
+        console.error('Failed to cancel previous SSE connection:', err);
+      }
+    }
+
     let collectionCopy = cloneDeep(collection);
 
     const itemCopy = cloneDeep(item);
@@ -637,7 +645,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 };
 
 export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) => {
-  cancelNetworkRequest(cancelTokenUid)
+  return cancelNetworkRequest(cancelTokenUid)
     .then(() => {
       dispatch(
         requestCancelled({
