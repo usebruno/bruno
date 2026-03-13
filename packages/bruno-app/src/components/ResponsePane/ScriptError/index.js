@@ -84,6 +84,8 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
   const dispatch = useDispatch();
   const [showStack, setShowStack] = useState(false);
 
+  const displayFilePath = errorContext?.filePath ? normalizePath(errorContext.filePath) : null;
+
   const sourceInfo = getErrorSourceInfo(
     errorContext?.filePath,
     item,
@@ -150,10 +152,10 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
             </button>
           )}
         </div>
-        {(sourceInfo || errorContext.filePath) && (
+        {(sourceInfo || displayFilePath) && (
           <div className="script-error-source-label" data-testid="script-error-source-label">
             {sourceInfo && <span>{sourceInfo.label}</span>}
-            {errorContext.filePath && (
+            {displayFilePath && (
               <span
                 className={`script-error-file-path${canNavigate ? ' navigable' : ''}`}
                 data-testid="script-error-file-path"
@@ -161,9 +163,9 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
                 tabIndex={canNavigate ? 0 : undefined}
                 onClick={handleNavigate}
                 onKeyDown={handleNavigateKeyDown}
-                title={canNavigate ? `Open ${errorContext.filePath}` : undefined}
+                title={canNavigate ? `Open ${displayFilePath}` : undefined}
               >
-                <span>{errorContext.filePath}</span>
+                <span>{displayFilePath}</span>
                 {canNavigate && <IconExternalLink size={12} className="flex-shrink-0" />}
               </span>
             )}

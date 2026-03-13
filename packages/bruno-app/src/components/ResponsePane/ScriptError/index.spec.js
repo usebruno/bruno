@@ -207,6 +207,7 @@ describe('ScriptError', () => {
     };
     renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
     expect(screen.getByText('Folder')).toBeInTheDocument();
+    expect(screen.getByText('subfolder/folder.bru')).toBeInTheDocument();
   });
 
   it('should detect request-level errors with Windows backslash paths', () => {
@@ -219,6 +220,7 @@ describe('ScriptError', () => {
     };
     renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
     expect(screen.getByText('Request')).toBeInTheDocument();
+    expect(screen.getByText('subfolder/my-request.bru')).toBeInTheDocument();
   });
 
   it('should handle multiple errors with their own context', () => {
