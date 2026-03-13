@@ -71,6 +71,8 @@ const CollectionStatusSection = ({
         variant: 'muted',
         message: 'Collection has changes since last sync',
         badges: { modifiedCount, missingCount, localOnlyCount },
+        version,
+        lastSyncDate,
         actions: ['revert-all']
       };
     }
@@ -244,7 +246,7 @@ const CollectionStatusSection = ({
         <div className="sync-review-empty-state mt-5">
           <IconCheck size={40} className="empty-state-icon" />
           <h4>No changes in collection</h4>
-          <p>The collection matches the last synced spec. Nothing to review.</p>
+          <p>The collection endpoints match the last synced spec. Nothing to review.</p>
         </div>
       )}
       {/* Action confirmation modal */}

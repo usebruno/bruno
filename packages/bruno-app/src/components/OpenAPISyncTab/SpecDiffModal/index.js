@@ -47,8 +47,8 @@ const SpecDiffModal = ({ specDrift, onClose }) => {
     >
       <div className="spec-diff-modal">
         <div className="spec-diff-badges">
+          {modifiedCount > 0 && <StatusBadge status="warning">Updated: {modifiedCount}</StatusBadge>}
           {addedCount > 0 && <StatusBadge status="success">Added: {addedCount}</StatusBadge>}
-          {modifiedCount > 0 && <StatusBadge status="info">Updated: {modifiedCount}</StatusBadge>}
           {removedCount > 0 && <StatusBadge status="danger">Removed: {removedCount}</StatusBadge>}
           {versionLabel && <StatusBadge>{versionLabel}</StatusBadge>}
         </div>

@@ -510,6 +510,139 @@ const buildSpecItemsMap = (collectionItems) => {
 };
 
 /**
+ * Recursively extracts all key paths from a parsed JSON value (dot-notation).
+ * Used to compare JSON body structure/schema without comparing values.
+ */
+const extractJsonKeys = (obj, prefix = '') => {
+  const keys = [];
+  if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+    for (const key of Object.keys(obj)) {
+      const fullKey = prefix ? `${prefix}.${key}` : key;
+      keys.push(fullKey);
+      keys.push(...extractJsonKeys(obj[key], fullKey));
+    }
+  } else if (Array.isArray(obj) && obj.length > 0) {
+    // Only inspect first element (spec arrays always have one template item)
+    keys.push(...extractJsonKeys(obj[0], `${prefix}[]`));
+  }
+  return keys;
+};
+
+/**
+ * Compare two Bruno-format requests field-by-field.
+ * Returns { hasDiff, changes } where changes is an array of human-readable strings.
+ */
+const compareRequestFields = (specRequest, actualRequest) => {
+  // Compare parameters by name:type pairs (catches query<->path type changes)
+  const specParamKeys = (specRequest.params || []).map((p) => `${p.name}:${p.type || 'query'}`).sort();
+  const actualParamKeys = (actualRequest.params || []).map((p) => `${p.name}:${p.type || 'query'}`).sort();
+
+  // Compare headers (by name)
+  const specHeaderNames = (specRequest.headers || []).map((h) => h.name).sort();
+  const actualHeaderNames = (actualRequest.headers || []).map((h) => h.name).sort();
+
+  // Check for differences
+  const paramsDiff = JSON.stringify(specParamKeys) !== JSON.stringify(actualParamKeys);
+  const headersDiff = JSON.stringify(specHeaderNames) !== JSON.stringify(actualHeaderNames);
+
+  // Check body mode difference
+  const specBodyMode = specRequest.body?.mode || 'none';
+  const actualBodyMode = actualRequest.body?.mode || 'none';
+  const bodyDiff = specBodyMode !== actualBodyMode;
+
+  // Check auth mode difference
+  const specAuthMode = specRequest.auth?.mode || 'none';
+  const actualAuthMode = actualRequest.auth?.mode || 'none';
+  const authDiff = specAuthMode !== actualAuthMode;
+
+  // Check auth config differences when auth modes match
+  let authConfigDiff = false;
+  if (!authDiff && specAuthMode !== 'none' && specAuthMode !== 'inherit') {
+    if (specAuthMode === 'apikey') {
+      const specApikey = specRequest.auth?.apikey || {};
+      const actualApikey = actualRequest.auth?.apikey || {};
+      authConfigDiff = specApikey.key !== actualApikey.key || specApikey.placement !== actualApikey.placement;
+    } else if (specAuthMode === 'oauth2') {
+      const specOauth2 = specRequest.auth?.oauth2 || {};
+      const actualOauth2 = actualRequest.auth?.oauth2 || {};
+      const grantType = specOauth2.grantType || actualOauth2.grantType;
+      const commonFields = ['grantType', 'scope'];
+      const grantTypeFields = {
+        authorization_code: [...commonFields, 'authorizationUrl', 'accessTokenUrl'],
+        implicit: [...commonFields, 'authorizationUrl'],
+        password: [...commonFields, 'accessTokenUrl'],
+        client_credentials: [...commonFields, 'accessTokenUrl']
+      };
+      const fields = grantTypeFields[grantType] || commonFields;
+      authConfigDiff = fields.some((field) => specOauth2[field] !== actualOauth2[field]);
+    }
+  }
+
+  // Check form field names when body modes match and mode is form-based
+  let formFieldsDiff = false;
+  let specFormFieldNames = [];
+  let actualFormFieldNames = [];
+  if (!bodyDiff && (specBodyMode === 'formUrlEncoded' || specBodyMode === 'multipartForm')) {
+    if (specBodyMode === 'multipartForm') {
+      specFormFieldNames = (specRequest.body?.multipartForm || []).map((f) => `${f.name}:${f.type || 'text'}`).sort();
+      actualFormFieldNames = (actualRequest.body?.multipartForm || []).map((f) => `${f.name}:${f.type || 'text'}`).sort();
+    } else {
+      specFormFieldNames = (specRequest.body?.formUrlEncoded || []).map((f) => f.name).sort();
+      actualFormFieldNames = (actualRequest.body?.formUrlEncoded || []).map((f) => f.name).sort();
+    }
+    formFieldsDiff = JSON.stringify(specFormFieldNames) !== JSON.stringify(actualFormFieldNames);
+  }
+
+  // Check JSON body structure when both sides use json mode
+  let jsonBodyDiff = false;
+  if (!bodyDiff && specBodyMode === 'json') {
+    try {
+      const specJson = specRequest.body?.json ? JSON.parse(specRequest.body.json) : null;
+      const actualJson = actualRequest.body?.json ? JSON.parse(actualRequest.body.json) : null;
+      if (specJson !== null && actualJson !== null) {
+        const specKeys = extractJsonKeys(specJson).sort();
+        const actualKeys = extractJsonKeys(actualJson).sort();
+        jsonBodyDiff = JSON.stringify(specKeys) !== JSON.stringify(actualKeys);
+      } else if ((specJson === null) !== (actualJson === null)) {
+        jsonBodyDiff = true;
+      }
+    } catch (e) {
+      // Malformed JSON — skip structural comparison
+    }
+  }
+
+  const hasDiff = paramsDiff || headersDiff || bodyDiff || authDiff || authConfigDiff || formFieldsDiff || jsonBodyDiff;
+
+  const changes = [];
+  if (hasDiff) {
+    if (paramsDiff) {
+      const addedParams = actualParamKeys.filter((p) => !specParamKeys.includes(p));
+      const removedParams = specParamKeys.filter((p) => !actualParamKeys.includes(p));
+      if (addedParams.length) changes.push(`+${addedParams.length} params`);
+      if (removedParams.length) changes.push(`-${removedParams.length} params`);
+    }
+    if (headersDiff) {
+      const addedHeaders = actualHeaderNames.filter((h) => !specHeaderNames.includes(h));
+      const removedHeaders = specHeaderNames.filter((h) => !actualHeaderNames.includes(h));
+      if (addedHeaders.length) changes.push(`+${addedHeaders.length} headers`);
+      if (removedHeaders.length) changes.push(`-${removedHeaders.length} headers`);
+    }
+    if (bodyDiff) changes.push(`body: ${actualBodyMode}`);
+    if (authDiff) changes.push(`auth: ${actualAuthMode}`);
+    if (authConfigDiff) changes.push('auth config');
+    if (formFieldsDiff) {
+      const addedFields = actualFormFieldNames.filter((f) => !specFormFieldNames.includes(f));
+      const removedFields = specFormFieldNames.filter((f) => !actualFormFieldNames.includes(f));
+      if (addedFields.length) changes.push(`+${addedFields.length} form fields`);
+      if (removedFields.length) changes.push(`-${removedFields.length} form fields`);
+    }
+    if (jsonBodyDiff) changes.push('body schema');
+  }
+
+  return { hasDiff, changes };
+};
+
+/**
  * Load the stored spec for a collection and convert it to Bruno collection format.
  * Throws if no stored spec file exists.
  */
@@ -549,127 +682,49 @@ const registerOpenAPISyncIpc = (mainWindow) => {
     collectionUid, collectionPath, sourceUrl, environmentContext
   }) => {
     try {
-      // Get the title/name from the spec
-      const getSpecTitle = (spec) => {
-        return spec?.info?.title || null;
-      };
+      // Compare two OpenAPI specs by converting both to Bruno format and using field-level comparison.
+      // This ensures specDrift uses the same comparison sensitivity as collectionDrift/remoteDrift.
+      const compareSpecs = (oldSpec, newSpec, groupBy) => {
+        // Convert both specs to Bruno collection format
+        const oldBruno = oldSpec ? openApiToBruno(oldSpec, { groupBy }) : { items: [] };
+        const newBruno = newSpec ? openApiToBruno(newSpec, { groupBy }) : { items: [] };
 
-      const HTTP_METHODS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'];
-
-      const normalizePath = (pathStr) => {
-        return pathStr
-          .replace(/{([^}]+)}/g, ':$1')
-          .replace(/\/+/g, '/')
-          .replace(/\/$/, '');
-      };
-
-      const extractEndpoints = (spec) => {
-        const endpoints = [];
-        if (!spec || !spec.paths) return endpoints;
-
-        // Get base URL from servers
-        const baseUrl = spec.servers?.[0]?.url || '';
-
-        Object.entries(spec.paths).forEach(([pathStr, methods]) => {
-          if (!methods || typeof methods !== 'object') return;
-
-          Object.entries(methods).forEach(([method, operation]) => {
-            if (!HTTP_METHODS.includes(method.toLowerCase())) return;
-
-            // Extract parameters
-            const parameters = operation?.parameters || [];
-            const pathParams = parameters.filter((p) => p.in === 'path');
-            const queryParams = parameters.filter((p) => p.in === 'query');
-            const headerParams = parameters.filter((p) => p.in === 'header');
-
-            // Extract request body
-            const requestBody = operation?.requestBody;
-            const bodyContent = requestBody?.content;
-            const bodySchema = bodyContent?.['application/json']?.schema
-              || bodyContent?.['application/x-www-form-urlencoded']?.schema
-              || bodyContent?.['multipart/form-data']?.schema;
-            const bodyExample = bodyContent?.['application/json']?.example
-              || bodyContent?.['application/json']?.examples;
-
-            // Extract responses
-            const responses = operation?.responses || {};
-
-            endpoints.push({
-              id: `${method.toUpperCase()}:${normalizePath(pathStr)}`,
-              method: method.toUpperCase(),
-              path: pathStr,
-              normalizedPath: normalizePath(pathStr),
-              operationId: operation?.operationId || null,
-              summary: operation?.summary || null,
-              description: operation?.description || null,
-              tags: operation?.tags || [],
-              deprecated: operation?.deprecated || false,
-              // Detailed info for UI
-              details: {
-                parameters: {
-                  path: pathParams,
-                  query: queryParams,
-                  header: headerParams
-                },
-                requestBody: requestBody ? {
-                  required: requestBody.required || false,
-                  contentType: Object.keys(bodyContent || {})[0] || null,
-                  schema: bodySchema,
-                  example: bodyExample
-                } : null,
-                responses: Object.entries(responses).map(([code, resp]) => ({
-                  code,
-                  description: resp.description,
-                  schema: resp.content?.['application/json']?.schema
-                }))
-              },
-              // Hash for comparison (MD5 for quick change detection)
-              _hash: crypto.createHash('md5').update(JSON.stringify({
-                parameters,
-                requestBody: operation?.requestBody,
-                responses: operation?.responses
-              })).digest('hex')
-            });
-          });
-        });
-
-        return endpoints;
-      };
-
-      const compareSpecs = (oldSpec, newSpec) => {
-        const oldEndpoints = extractEndpoints(oldSpec);
-        const newEndpoints = extractEndpoints(newSpec);
-
-        const oldEndpointMap = new Map(oldEndpoints.map((ep) => [ep.id, ep]));
-        const newEndpointMap = new Map(newEndpoints.map((ep) => [ep.id, ep]));
+        // Build endpoint maps keyed by METHOD:normalizedPath
+        const oldItems = buildSpecItemsMap(oldBruno.items || []);
+        const newItems = buildSpecItemsMap(newBruno.items || []);
 
         const added = [];
         const removed = [];
         const modified = [];
         const unchanged = [];
 
-        newEndpoints.forEach((endpoint) => {
-          if (!oldEndpointMap.has(endpoint.id)) {
-            added.push(endpoint);
+        for (const [id, newItem] of newItems) {
+          const colonIndex = id.indexOf(':');
+          const method = id.substring(0, colonIndex);
+          const urlPath = id.substring(colonIndex + 1);
+
+          if (!oldItems.has(id)) {
+            added.push({ id, method, path: urlPath, name: newItem.name });
           } else {
-            const oldEndpoint = oldEndpointMap.get(endpoint.id);
-            // Check if endpoint was modified by comparing hashes
-            if (oldEndpoint._hash !== endpoint._hash) {
-              modified.push({
-                ...endpoint,
-                oldEndpoint: oldEndpoint
-              });
+            const oldItem = oldItems.get(id);
+            const { hasDiff, changes } = compareRequestFields(oldItem.request, newItem.request);
+            if (hasDiff) {
+              modified.push({ id, method, path: urlPath, name: newItem.name, changes: changes.join(', ') });
             } else {
-              unchanged.push(endpoint);
+              unchanged.push({ id, method, path: urlPath, name: newItem.name });
             }
           }
-        });
+        }
 
-        oldEndpoints.forEach((endpoint) => {
-          if (!newEndpointMap.has(endpoint.id)) {
-            removed.push(endpoint);
+        for (const [id] of oldItems) {
+          if (!newItems.has(id)) {
+            const colonIndex = id.indexOf(':');
+            const method = id.substring(0, colonIndex);
+            const urlPath = id.substring(colonIndex + 1);
+            const oldItem = oldItems.get(id);
+            removed.push({ id, method, path: urlPath, name: oldItem.name });
           }
-        });
+        }
 
         // Compare metadata (title, version, description)
         const oldTitle = oldSpec?.info?.title || null;
@@ -746,8 +801,8 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       }
 
       // Check for title/name changes
-      const storedTitle = getSpecTitle(storedSpec);
-      const newTitle = getSpecTitle(newSpec);
+      const storedTitle = storedSpec?.info?.title || null;
+      const newTitle = newSpec?.info?.title || null;
       const titleChanged = storedSpec && storedTitle && newTitle && storedTitle !== newTitle;
 
       // Generate hashes for quick change detection
@@ -755,7 +810,16 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       const remoteSpecHash = generateSpecHash(newSpec);
       const hasRemoteChanges = storedSpecHash !== remoteSpecHash;
 
-      const diff = compareSpecs(storedSpec, newSpec);
+      // Read groupBy from brunoConfig for consistent spec conversion
+      let groupBy = 'tags';
+      try {
+        const { brunoConfig } = loadBrunoConfig(collectionPath);
+        groupBy = brunoConfig?.openapi?.[0]?.groupBy || 'tags';
+      } catch (e) {
+        // Default to 'tags' if brunoConfig is not available
+      }
+
+      const diff = compareSpecs(storedSpec, newSpec, groupBy);
 
       // Detect remote spec format and determine correct filename
       const remoteIsYaml = isYamlContent(newSpecContent);
@@ -800,23 +864,6 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       throw error;
     }
   });
-
-  // Recursively extracts all key paths from a parsed JSON value (dot-notation).
-  // Used to compare JSON body structure/schema without comparing values.
-  const extractJsonKeys = (obj, prefix = '') => {
-    const keys = [];
-    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-      for (const key of Object.keys(obj)) {
-        const fullKey = prefix ? `${prefix}.${key}` : key;
-        keys.push(fullKey);
-        keys.push(...extractJsonKeys(obj[key], fullKey));
-      }
-    } else if (Array.isArray(obj) && obj.length > 0) {
-      // Only inspect first element (spec arrays always have one template item)
-      keys.push(...extractJsonKeys(obj[0], `${prefix}[]`));
-    }
-    return keys;
-  };
 
   // Collection Drift Detection - compare stored spec (converted to bru) vs actual .bru files
   ipcMain.handle('renderer:get-collection-drift', async (event, { collectionPath, brunoConfig: passedBrunoConfig, compareSpec }) => {
@@ -936,113 +983,9 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           });
         } else {
           // Compare key fields to detect drift
-          const specRequest = specItem.request;
+          const { hasDiff, changes } = compareRequestFields(specItem.request, actualRequest);
 
-          // Compare parameters by name:type pairs (catches query<->path type changes)
-          const specParamKeys = (specRequest.params || []).map((p) => `${p.name}:${p.type || 'query'}`).sort();
-          const actualParamKeys = (actualRequest.params || []).map((p) => `${p.name}:${p.type || 'query'}`).sort();
-
-          // Compare headers (by name)
-          const specHeaderNames = (specRequest.headers || []).map((h) => h.name).sort();
-          const actualHeaderNames = (actualRequest.headers || []).map((h) => h.name).sort();
-
-          // Check for differences
-          const paramsDiff = JSON.stringify(specParamKeys) !== JSON.stringify(actualParamKeys);
-          const headersDiff = JSON.stringify(specHeaderNames) !== JSON.stringify(actualHeaderNames);
-
-          // Check body mode difference
-          const specBodyMode = specRequest.body?.mode || 'none';
-          const actualBodyMode = actualRequest.body?.mode || 'none';
-          const bodyDiff = specBodyMode !== actualBodyMode;
-
-          // Check auth mode difference
-          const specAuthMode = specRequest.auth?.mode || 'none';
-          const actualAuthMode = actualRequest.auth?.mode || 'none';
-          const authDiff = specAuthMode !== actualAuthMode;
-
-          // Check auth config differences when auth modes match
-          let authConfigDiff = false;
-          if (!authDiff && specAuthMode !== 'none' && specAuthMode !== 'inherit') {
-            if (specAuthMode === 'apikey') {
-              const specApikey = specRequest.auth?.apikey || {};
-              const actualApikey = actualRequest.auth?.apikey || {};
-              authConfigDiff = specApikey.key !== actualApikey.key || specApikey.placement !== actualApikey.placement;
-            } else if (specAuthMode === 'oauth2') {
-              const specOauth2 = specRequest.auth?.oauth2 || {};
-              const actualOauth2 = actualRequest.auth?.oauth2 || {};
-              const grantType = specOauth2.grantType || actualOauth2.grantType;
-              const commonFields = ['grantType', 'scope'];
-              const grantTypeFields = {
-                authorization_code: [...commonFields, 'authorizationUrl', 'accessTokenUrl'],
-                implicit: [...commonFields, 'authorizationUrl'],
-                password: [...commonFields, 'accessTokenUrl'],
-                client_credentials: [...commonFields, 'accessTokenUrl']
-              };
-              const fields = grantTypeFields[grantType] || commonFields;
-              authConfigDiff = fields.some((field) => specOauth2[field] !== actualOauth2[field]);
-            }
-          }
-
-          // Check form field names when body modes match and mode is form-based
-          let formFieldsDiff = false;
-          let specFormFieldNames = [];
-          let actualFormFieldNames = [];
-          if (!bodyDiff && (specBodyMode === 'formUrlEncoded' || specBodyMode === 'multipartForm')) {
-            if (specBodyMode === 'multipartForm') {
-              // For multipartForm, compare name:type pairs to catch text<->file changes
-              specFormFieldNames = (specRequest.body?.multipartForm || []).map((f) => `${f.name}:${f.type || 'text'}`).sort();
-              actualFormFieldNames = (actualRequest.body?.multipartForm || []).map((f) => `${f.name}:${f.type || 'text'}`).sort();
-            } else {
-              // For formUrlEncoded, all fields are text — compare by name only
-              specFormFieldNames = (specRequest.body?.formUrlEncoded || []).map((f) => f.name).sort();
-              actualFormFieldNames = (actualRequest.body?.formUrlEncoded || []).map((f) => f.name).sort();
-            }
-            formFieldsDiff = JSON.stringify(specFormFieldNames) !== JSON.stringify(actualFormFieldNames);
-          }
-
-          // Check JSON body structure when both sides use json mode
-          let jsonBodyDiff = false;
-          if (!bodyDiff && specBodyMode === 'json') {
-            try {
-              const specJson = specRequest.body?.json ? JSON.parse(specRequest.body.json) : null;
-              const actualJson = actualRequest.body?.json ? JSON.parse(actualRequest.body.json) : null;
-              if (specJson !== null && actualJson !== null) {
-                const specKeys = extractJsonKeys(specJson).sort();
-                const actualKeys = extractJsonKeys(actualJson).sort();
-                jsonBodyDiff = JSON.stringify(specKeys) !== JSON.stringify(actualKeys);
-              } else if ((specJson === null) !== (actualJson === null)) {
-                jsonBodyDiff = true;
-              }
-            } catch (e) {
-              // Malformed JSON — skip structural comparison
-            }
-          }
-
-          if (paramsDiff || headersDiff || bodyDiff || authDiff || authConfigDiff || formFieldsDiff || jsonBodyDiff) {
-            const changes = [];
-            if (paramsDiff) {
-              const addedParams = actualParamKeys.filter((p) => !specParamKeys.includes(p));
-              const removedParams = specParamKeys.filter((p) => !actualParamKeys.includes(p));
-              if (addedParams.length) changes.push(`+${addedParams.length} params`);
-              if (removedParams.length) changes.push(`-${removedParams.length} params`);
-            }
-            if (headersDiff) {
-              const addedHeaders = actualHeaderNames.filter((h) => !specHeaderNames.includes(h));
-              const removedHeaders = specHeaderNames.filter((h) => !actualHeaderNames.includes(h));
-              if (addedHeaders.length) changes.push(`+${addedHeaders.length} headers`);
-              if (removedHeaders.length) changes.push(`-${removedHeaders.length} headers`);
-            }
-            if (bodyDiff) changes.push(`body: ${actualBodyMode}`);
-            if (authDiff) changes.push(`auth: ${actualAuthMode}`);
-            if (authConfigDiff) changes.push('auth config');
-            if (formFieldsDiff) {
-              const addedFields = actualFormFieldNames.filter((f) => !specFormFieldNames.includes(f));
-              const removedFields = specFormFieldNames.filter((f) => !actualFormFieldNames.includes(f));
-              if (addedFields.length) changes.push(`+${addedFields.length} form fields`);
-              if (removedFields.length) changes.push(`-${removedFields.length} form fields`);
-            }
-            if (jsonBodyDiff) changes.push('body schema');
-
+          if (hasDiff) {
             result.modified.push({
               id,
               method,

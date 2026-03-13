@@ -90,6 +90,7 @@ const useOpenAPISync = (collection) => {
 
   const prevItemCountRef = useRef(httpItemCount);
   const isDriftLoadingRef = useRef(false);
+  const specDriftRef = useRef(specDrift);
 
   const loadCollectionDrift = async ({ clear = false } = {}) => {
     if (isDriftLoadingRef.current && !clear) return;
@@ -328,8 +329,31 @@ const useOpenAPISync = (collection) => {
     }
   };
 
-  // Reload drift — passed to useEndpointActions so it can refresh after actions
-  const reloadDrift = () => loadCollectionDrift({ clear: true });
+  // Keep ref in sync so reloadDrift always reads the latest specDrift
+  specDriftRef.current = specDrift;
+
+  // Reload both drifts — passed to useEndpointActions so it can refresh after actions.
+  // Uses specDriftRef to avoid stale closure over specDrift state.
+  const reloadDrift = async () => {
+    await loadCollectionDrift({ clear: true });
+    // Refresh remoteDrift if we have a remote spec cached from the last check
+    const currentSpecDrift = specDriftRef.current;
+    if (currentSpecDrift?.newSpec) {
+      try {
+        const { ipcRenderer } = window;
+        const remoteComparison = await ipcRenderer.invoke('renderer:get-collection-drift', {
+          collectionPath: collection.pathname,
+          brunoConfig: collection.brunoConfig,
+          compareSpec: currentSpecDrift.newSpec
+        });
+        if (!remoteComparison.error) {
+          setRemoteDrift(remoteComparison);
+        }
+      } catch (err) {
+        console.error('Error reloading remote drift:', err);
+      }
+    }
+  };
 
   // Save connection settings from the modal
   const handleSaveSettings = async ({ sourceUrl: newUrl, autoCheck, autoCheckInterval }) => {
