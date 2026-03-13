@@ -197,6 +197,30 @@ describe('ScriptError', () => {
     expect(filePath).not.toHaveClass('navigable');
   });
 
+  it('should detect folder-level errors with Windows backslash paths', () => {
+    const item = {
+      preRequestScriptErrorMessage: 'folder error',
+      preRequestScriptErrorContext: {
+        ...mockErrorContext,
+        filePath: 'subfolder\\folder.bru'
+      }
+    };
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
+    expect(screen.getByText('Folder')).toBeInTheDocument();
+  });
+
+  it('should detect request-level errors with Windows backslash paths', () => {
+    const item = {
+      postResponseScriptErrorMessage: 'request error',
+      postResponseScriptErrorContext: {
+        ...mockErrorContext,
+        filePath: 'subfolder\\my-request.bru'
+      }
+    };
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
+    expect(screen.getByText('Request')).toBeInTheDocument();
+  });
+
   it('should handle multiple errors with their own context', () => {
     const item = {
       preRequestScriptErrorMessage: 'pre error',

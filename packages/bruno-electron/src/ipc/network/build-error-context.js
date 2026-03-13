@@ -1,4 +1,5 @@
 const path = require('path');
+const { posixifyPath } = require('../../utils/common');
 const {
   parseErrorLocation,
   adjustLineNumber,
@@ -26,7 +27,7 @@ const buildErrorContext = (error, scriptType, itemPathname, collectionPath, scri
 
     let sourceFile = filePath;
     let sourceLine = adjustedLine;
-    let displayPath = itemPathname ? path.relative(collectionPath, itemPathname) : filePath;
+    let displayPath = itemPathname ? posixifyPath(path.relative(collectionPath, itemPathname)) : filePath;
 
     // Handle collection/folder script segments
     if (adjustedLine === null) {
@@ -34,7 +35,7 @@ const buildErrorContext = (error, scriptType, itemPathname, collectionPath, scri
       if (!segmentResult) return null;
       sourceFile = segmentResult.filePath;
       sourceLine = segmentResult.line;
-      displayPath = segmentResult.displayPath || path.relative(collectionPath, segmentResult.filePath);
+      displayPath = segmentResult.displayPath || posixifyPath(path.relative(collectionPath, segmentResult.filePath));
     }
 
     const context = getSourceContext(sourceFile, sourceLine, 3, cache);

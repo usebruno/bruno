@@ -4,6 +4,7 @@ import { IconX, IconChevronDown, IconChevronRight, IconExternalLink } from '@tab
 import ErrorBanner from 'ui/ErrorBanner';
 import CodeSnippet from 'components/CodeSnippet';
 import { getTreePathFromCollectionToItem } from 'utils/collections';
+import { normalizePath } from 'utils/common/path';
 import { addTab, focusTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
@@ -33,26 +34,31 @@ import StyledWrapper from './StyledWrapper';
 const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
   if (!filePath) return null;
 
-  const isFolderFile = /(?:^|\/)folder\.(?:bru|ya?ml)$/.test(filePath);
-  const isCollectionFile = filePath === 'collection.bru' || /^opencollection\.ya?ml$/.test(filePath);
+  // Normalize backslashes to forward slashes for cross-platform compatibility.
+  // On Windows, path.relative() produces backslash separators, but the renderer
+  // logic and regexes expect forward slashes.
+  const normalizedPath = normalizePath(filePath);
+
+  const isFolderFile = /(?:^|\/)folder\.(?:bru|ya?ml)$/.test(normalizedPath);
+  const isCollectionFile = normalizedPath === 'collection.bru' || /^opencollection\.ya?ml$/.test(normalizedPath);
 
   // Folder level (check before collection to avoid folder.yml matching as collection)
   if (isFolderFile) {
     const info = { sourceType: 'folder', label: 'Folder' };
-    const folderFileName = filePath.split('/').pop();
+    const folderFileName = normalizedPath.split('/').pop();
 
     // Try to find the folder UID and name from the tree path
     if (getTreePath && collection && item) {
-      const collectionPathname = (collection.pathname || '').replace(/\/+$/, '');
+      const collectionPathname = normalizePath(collection.pathname || '');
       const treePath = getTreePath(collection, item);
       if (treePath?.length) {
         for (const node of treePath) {
           if (node?.type === 'folder') {
-            const nodePath = (node.pathname || '').replace(/\/+$/, '');
+            const nodePath = normalizePath(node.pathname || '');
             const folderRelPath = nodePath && nodePath.startsWith(collectionPathname)
               ? nodePath.slice(collectionPathname.length).replace(/^\//, '') + '/' + folderFileName
               : folderFileName;
-            if (folderRelPath === filePath) {
+            if (folderRelPath === normalizedPath) {
               info.sourceUid = node.uid;
               info.label = `Folder: ${node.name}`;
               break;

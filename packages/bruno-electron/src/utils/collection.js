@@ -1,7 +1,7 @@
 const { get, each, find, isString, filter } = require('lodash');
 const fs = require('fs');
 const { getRequestUid, getExampleUid } = require('../cache/requestUids');
-const { uuid } = require('./common');
+const { uuid, posixifyPath } = require('./common');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
@@ -230,7 +230,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       const folderRoot = i?.draft || i?.root;
       const folderSource = {
         filePath: path.join(i.pathname, config.folderFile),
-        displayPath: path.relative(collection.pathname, path.join(i.pathname, config.folderFile))
+        displayPath: posixifyPath(path.relative(collection.pathname, path.join(i.pathname, config.folderFile)))
       };
 
       let preReqScript = get(folderRoot, 'request.script.req', '');
