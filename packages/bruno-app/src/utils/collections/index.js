@@ -384,6 +384,25 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               domain: get(si.request, 'auth.ntlm.domain', '')
             };
             break;
+          case 'oauth1':
+            di.request.auth.oauth1 = {
+              consumerKey: get(si.request, 'auth.oauth1.consumerKey', ''),
+              consumerSecret: get(si.request, 'auth.oauth1.consumerSecret', ''),
+              accessToken: get(si.request, 'auth.oauth1.accessToken', ''),
+              tokenSecret: get(si.request, 'auth.oauth1.tokenSecret', ''),
+              callbackUrl: get(si.request, 'auth.oauth1.callbackUrl', ''),
+              verifier: get(si.request, 'auth.oauth1.verifier', ''),
+              signatureMethod: get(si.request, 'auth.oauth1.signatureMethod', 'HMAC-SHA1'),
+              privateKey: get(si.request, 'auth.oauth1.privateKey', ''),
+              privateKeyType: get(si.request, 'auth.oauth1.privateKeyType', 'text'),
+              timestamp: get(si.request, 'auth.oauth1.timestamp', ''),
+              nonce: get(si.request, 'auth.oauth1.nonce', ''),
+              version: get(si.request, 'auth.oauth1.version', '1.0'),
+              realm: get(si.request, 'auth.oauth1.realm', ''),
+              addParamsTo: get(si.request, 'auth.oauth1.addParamsTo', 'header'),
+              includeBodyHash: get(si.request, 'auth.oauth1.includeBodyHash', false)
+            };
+            break;
           case 'oauth2':
             let grantType = get(si.request, 'auth.oauth2.grantType', '');
             switch (grantType) {
@@ -919,6 +938,10 @@ export const humanizeRequestAuthMode = (mode) => {
     }
     case 'ntlm': {
       label = 'NTLM';
+      break;
+    }
+    case 'oauth1': {
+      label = 'OAuth 1.0';
       break;
     }
     case 'oauth2': {

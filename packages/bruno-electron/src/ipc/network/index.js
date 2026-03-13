@@ -1,6 +1,7 @@
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
+const { applyOAuth1ToRequest } = require('@usebruno/requests');
 const qs = require('qs');
 const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
@@ -156,6 +157,14 @@ const configureRequest = async (
   if (request.ntlmConfig) {
     axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
     delete request.ntlmConfig;
+  }
+
+  if (request.oauth1config) {
+    try {
+      applyOAuth1ToRequest(request, collectionPath);
+    } catch (error) {
+      throw new Error(`OAuth1 signing failed: ${error.message}`);
+    }
   }
 
   if (request.oauth2) {
