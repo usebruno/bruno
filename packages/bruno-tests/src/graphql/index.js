@@ -10,9 +10,21 @@ const setupGraphQL = async (app) => {
           name: String
           founder: String
         }
+        
+        input ICreate {
+          id: String!
+        }
+
+        type Message {
+          success: Boolean
+        }
 
         type Query {
           company: Company
+        }
+        
+        type Mutation {
+          create(payload: ICreate!): Message
         }
       `,
       resolvers: {
@@ -21,6 +33,11 @@ const setupGraphQL = async (app) => {
             ceo: 'Elon Musk',
             name: 'SpaceX',
             founder: 'Elon Musk'
+          })
+        },
+        Mutation: {
+          create: () => ({
+            success: true
           })
         }
       }
