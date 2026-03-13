@@ -130,7 +130,6 @@ const OpenAPISyncTab = ({ collection }) => {
                   onTabSelect={setActiveTab}
                   error={error}
                   isLoading={isLoading}
-                  fileNotFound={fileNotFound}
                   onOpenSettings={() => setShowSettingsModal(true)}
                 />
                 <p className="beta-feedback-inline">

@@ -28,8 +28,18 @@ import { setReviewDecision, setReviewDecisions, selectTabUiState } from 'provide
  *  - specRemovedEndpoints: removed from spec, still in collection
  */
 const categorizeEndpoints = (remoteDrift, specDrift, collectionDrift) => {
-  const specAddedEndpoints = remoteDrift.missing || [];
-  const specRemovedEndpoints = remoteDrift.localOnly || [];
+  // Only show endpoints as "New in Spec" if they were actually added to the spec
+  // (i.e., they appear in specDrift.added). Endpoints the user deleted locally that
+  // still exist in both stored and remote spec should not appear here — they belong
+  // in "Collection Changes" only.
+  const specAddedIds = new Set((specDrift?.added || []).map((ep) => ep.id));
+  const specAddedEndpoints = (remoteDrift.missing || []).filter((ep) => specAddedIds.has(ep.id));
+
+  // Only show endpoints as "Removed from Spec" if they were actually in the stored spec
+  // (i.e., they appear in specDrift.removed). Locally-added endpoints that were never in
+  // the spec should not appear here — they belong in "Collection Changes" only.
+  const specRemovedIds = new Set((specDrift?.removed || []).map((ep) => ep.id));
+  const specRemovedEndpoints = (remoteDrift.localOnly || []).filter((ep) => specRemovedIds.has(ep.id));
 
   // Build lookup sets to determine who changed each modified endpoint
   const specModifiedIds = new Set((specDrift?.modified || []).map((ep) => ep.id));
@@ -154,10 +164,7 @@ const SyncReviewPage = ({
 
     // Accepted — changes that will be applied
     addGroup('New endpoints to add', 'add', specAddedEndpoints.filter(isAccepted));
-    addGroup('Endpoints to update', 'update', [
-      ...specUpdatedEndpoints.filter(isAccepted),
-      ...localUpdatedEndpoints.filter(isAccepted)
-    ]);
+    addGroup('Endpoints to update', 'update', specUpdatedEndpoints.filter(isAccepted));
     addGroup('Endpoints to delete', 'remove', specRemovedEndpoints.filter(isAccepted));
 
     // Skipped — changes that will be preserved as-is
@@ -167,7 +174,7 @@ const SyncReviewPage = ({
     addGroup('Keeping current version (skipped updates)', 'keep', specUpdatedEndpoints.filter((ep) => !ep.conflict && isSkipped(ep)));
 
     return groups;
-  }, [specAddedEndpoints, specUpdatedEndpoints, localUpdatedEndpoints, specRemovedEndpoints, decisions]);
+  }, [specAddedEndpoints, specUpdatedEndpoints, specRemovedEndpoints, decisions]);
 
   const handleConfirmApply = () => {
     setShowConfirmation(false);
@@ -187,7 +194,6 @@ const SyncReviewPage = ({
 
     onApplySync({
       endpointDecisions: decisions,
-      removedIds: [],
       localOnlyIds,
       // Pass filtered categorized endpoints for performSync to construct the right backend diff
       newToCollection: filteredAddedEndpoints,

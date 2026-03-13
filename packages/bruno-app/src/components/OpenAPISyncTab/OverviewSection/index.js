@@ -6,7 +6,6 @@ import { countEndpoints } from '../utils';
 import moment from 'moment';
 import { IconCheck } from '@tabler/icons';
 import Button from 'ui/Button';
-import StatusBadge from 'ui/StatusBadge';
 import Help from 'components/Help';
 
 const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
@@ -40,7 +39,7 @@ const SUMMARY_CARDS = [
   }
 ];
 
-const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, remoteDrift, onTabSelect, error, fileNotFound, onOpenSettings }) => {
+const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, remoteDrift, onTabSelect, error, onOpenSettings }) => {
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
 
   const reduxError = useSelector((state) => state.openapiSync?.collectionUpdates?.[collection.uid]?.error);
@@ -48,6 +47,8 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   const activeError = error || reduxError;
 
   const version = storedSpec?.info?.version ?? specMeta?.version;
+  const newVersion = specDrift?.newVersion;
+  const hasVersionChange = version && newVersion && version !== newVersion;
   const endpointCount = countEndpoints(storedSpec) ?? specMeta?.endpointCount ?? null;
   const lastSyncDate = openApiSyncConfig?.lastSyncDate;
   const groupBy = openApiSyncConfig?.groupBy || 'tags';
@@ -89,7 +90,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   };
 
   const details = [
-    { label: 'Spec Version', value: version ? `v${version}` : '–' },
+    { label: 'Spec Version', value: hasVersionChange ? `v${version} → v${newVersion}` : version ? `v${version}` : '–' },
     { label: 'Endpoints in Spec', value: endpointCount != null ? endpointCount : '–' },
     { label: 'Last Synced At', value: lastSyncDate ? moment(lastSyncDate).fromNow() : '–', tooltip: lastSyncDate ? moment(lastSyncDate).format('MMMM D, YYYY [at] h:mm A') : undefined },
     { label: 'Folder Grouping', value: capitalize(groupBy) },
@@ -100,6 +101,10 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   const hasSpecUpdates = specUpdatesPending > 0;
 
   const bannerState = useMemo(() => {
+    const versionInfo = (specDrift?.storedVersion && specDrift?.newVersion && specDrift.storedVersion !== specDrift.newVersion)
+      ? ` (v${specDrift.storedVersion} → v${specDrift.newVersion})`
+      : '';
+
     if (activeError) {
       return {
         variant: 'danger',
@@ -128,7 +133,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
     if (hasSpecUpdates && hasCollectionChanges) {
       return {
         variant: 'warning',
-        title: 'The API spec has new updates and the collection has changes',
+        title: `The API spec has new updates${versionInfo} and the collection has changes`,
         subtitle: 'New or changed requests are available. Some collection changes may be overwritten.',
         buttons: ['sync', 'changes']
       };
@@ -136,7 +141,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
     if (hasSpecUpdates) {
       return {
         variant: 'warning',
-        title: 'The API spec has new updates',
+        title: `The API spec has new updates${versionInfo}`,
         subtitle: 'New or changed requests are available.',
         buttons: ['sync']
       };
@@ -156,7 +161,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
     //   buttons: []
     // };
     return null;
-  }, [activeError, fileNotFound, hasDriftData, hasSpecUpdates, hasCollectionChanges, specDrift?.storedSpecMissing, lastSyncDate]);
+  }, [activeError, hasDriftData, hasSpecUpdates, hasCollectionChanges, specDrift?.storedSpecMissing, specDrift?.storedVersion, specDrift?.newVersion, lastSyncDate]);
 
   return (
     <div className="overview-section">
@@ -168,12 +173,6 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
                 ? <IconCheck size={16} className="status-check-icon" />
                 : <div className={`status-dot ${bannerState.variant}`} />}
               <span className="banner-title">{bannerState.title}</span>
-              {bannerState.showBadge && (
-                <StatusBadge status="info" radius="full">{specUpdatesPending} {specUpdatesPending === 1 ? 'spec update' : 'spec updates'}</StatusBadge>
-              )}
-              {bannerState.showChangesBadge && (
-                <StatusBadge status="warning" radius="full">{changedInCollection} {changedInCollection === 1 ? 'collection change' : 'collection changes'}</StatusBadge>
-              )}
             </div>
             {bannerState.subtitle && (
               <p className="banner-subtitle">{bannerState.subtitle}</p>
@@ -199,6 +198,11 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
               {bannerState.buttons.includes('restore') && (
                 <Button size="sm" onClick={() => onTabSelect('spec-updates')}>
                   Restore Spec File
+                </Button>
+              )}
+              {bannerState.buttons.includes('spec-details') && (
+                <Button variant="outline" size="sm" onClick={() => onTabSelect('spec-updates')}>
+                  View Details
                 </Button>
               )}
               {bannerState.buttons.includes('open-settings') && (
