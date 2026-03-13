@@ -7,7 +7,8 @@ const {
   isWSLPath,
   normalizeAndResolvePath,
   sizeInMB,
-  getCollectionFormat
+  getCollectionFormat,
+  clearCollectionFormatCache
 } = require('../utils/filesystem');
 const {
   parseEnvironment,
@@ -48,12 +49,18 @@ const isEnvironmentsFolder = (pathname, collectionPath) => {
 
 const isFolderRootFile = (pathname, collectionPath) => {
   const basename = path.basename(pathname);
-  const format = getCollectionFormat(collectionPath);
 
-  if (format === 'yml') {
-    return basename === 'folder.yml';
-  } else if (format === 'bru') {
-    return basename === 'folder.bru';
+  try {
+    const format = getCollectionFormat(collectionPath);
+
+    if (format === 'yml') {
+      return basename === 'folder.yml';
+    } else if (format === 'bru') {
+      return basename === 'folder.bru';
+    }
+  } catch (err) {
+    // Collection config file may have been deleted, can't determine format
+    return false;
   }
 
   return false;
@@ -224,17 +231,17 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
   }
 
   if (isCollectionRootFile(pathname, collectionPath)) {
-    const format = getCollectionFormat(collectionPath);
-    const file = {
-      meta: {
-        collectionUid,
-        pathname,
-        name: path.basename(pathname),
-        collectionRoot: true
-      }
-    };
-
     try {
+      const format = getCollectionFormat(collectionPath);
+      const file = {
+        meta: {
+          collectionUid,
+          pathname,
+          name: path.basename(pathname),
+          collectionRoot: true
+        }
+      };
+
       let content = fs.readFileSync(pathname, 'utf8');
       let parsed = await parseCollection(content, { format });
 
@@ -297,127 +304,135 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     }
   }
 
-  const format = getCollectionFormat(collectionPath);
-  if (hasRequestExtension(pathname, format)) {
-    watcher.addFileToProcessing(collectionUid, pathname);
+  try {
+    const format = getCollectionFormat(collectionPath);
+    if (hasRequestExtension(pathname, format)) {
+      watcher.addFileToProcessing(collectionUid, pathname);
 
-    const file = {
-      meta: {
-        collectionUid,
-        pathname,
-        name: path.basename(pathname)
+      const file = {
+        meta: {
+          collectionUid,
+          pathname,
+          name: path.basename(pathname)
+        }
+      };
+
+      const fileStats = fs.statSync(pathname);
+      let content = fs.readFileSync(pathname, 'utf8');
+
+      // If worker thread is not used, we can directly parse the file
+      if (!useWorkerThread) {
+        try {
+          file.data = await parseRequest(content, { format });
+          file.partial = false;
+          file.loading = false;
+          file.size = sizeInMB(fileStats?.size);
+          hydrateRequestWithUuid(file.data, pathname);
+          win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        } catch (error) {
+          console.error(error);
+        } finally {
+          watcher.markFileAsProcessed(win, collectionUid, pathname);
+        }
+        return;
       }
-    };
 
-    const fileStats = fs.statSync(pathname);
-    let content = fs.readFileSync(pathname, 'utf8');
-
-    // If worker thread is not used, we can directly parse the file
-    if (!useWorkerThread) {
       try {
-        file.data = await parseRequest(content, { format });
-        file.partial = false;
+        // we need to send a partial file info to the UI
+        // so that the UI can display the file in the collection tree
+        file.data = {
+          name: path.basename(pathname),
+          type: 'http-request'
+        };
+
+        const metaJson = parseFileMeta(content, format);
+        file.data = metaJson;
+        file.partial = true;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
+
+        if (fileStats.size < MAX_FILE_SIZE) {
+          // This is to update the loading indicator in the UI
+          file.data = metaJson;
+          file.partial = false;
+          file.loading = true;
+          hydrateRequestWithUuid(file.data, pathname);
+          win.webContents.send('main:collection-tree-updated', 'addFile', file);
+
+          // This is to update the file info in the UI
+          file.data = await parseRequestViaWorker(content, {
+            format,
+            filename: pathname
+          });
+          file.partial = false;
+          file.loading = false;
+          hydrateRequestWithUuid(file.data, pathname);
+          win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        }
       } catch (error) {
-        console.error(error);
+        file.data = {
+          name: path.basename(pathname),
+          type: 'http-request'
+        };
+        file.error = {
+          message: error?.message
+        };
+        file.partial = true;
+        file.loading = false;
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
       } finally {
         watcher.markFileAsProcessed(win, collectionUid, pathname);
       }
-      return;
     }
-
-    try {
-      // we need to send a partial file info to the UI
-      // so that the UI can display the file in the collection tree
-      file.data = {
-        name: path.basename(pathname),
-        type: 'http-request'
-      };
-
-      const metaJson = parseFileMeta(content, format);
-      file.data = metaJson;
-      file.partial = true;
-      file.loading = false;
-      file.size = sizeInMB(fileStats?.size);
-      hydrateRequestWithUuid(file.data, pathname);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
-
-      if (fileStats.size < MAX_FILE_SIZE) {
-        // This is to update the loading indicator in the UI
-        file.data = metaJson;
-        file.partial = false;
-        file.loading = true;
-        hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
-
-        // This is to update the file info in the UI
-        file.data = await parseRequestViaWorker(content, {
-          format,
-          filename: pathname
-        });
-        file.partial = false;
-        file.loading = false;
-        hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
-      }
-    } catch (error) {
-      file.data = {
-        name: path.basename(pathname),
-        type: 'http-request'
-      };
-      file.error = {
-        message: error?.message
-      };
-      file.partial = true;
-      file.loading = false;
-      file.size = sizeInMB(fileStats?.size);
-      hydrateRequestWithUuid(file.data, pathname);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
-    } finally {
-      watcher.markFileAsProcessed(win, collectionUid, pathname);
-    }
+  } catch (err) {
+    console.error(`Error in add handler for ${pathname}:`, err);
   }
 };
 
 const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
-  const envDirectory = path.join(collectionPath, 'environments');
-
-  if (path.normalize(pathname) === path.normalize(envDirectory)) {
-    return;
-  }
-
-  let name = path.basename(pathname);
-  let seq;
-
-  const format = getCollectionFormat(collectionPath);
-  const folderFilePath = path.join(pathname, `folder.${format}`);
-
   try {
-    if (fs.existsSync(folderFilePath)) {
-      let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
-      let folderData = await parseFolder(folderFileContent, { format });
-      name = folderData?.meta?.name || name;
-      seq = folderData?.meta?.seq;
+    const envDirectory = path.join(collectionPath, 'environments');
+
+    if (path.normalize(pathname) === path.normalize(envDirectory)) {
+      return;
     }
+
+    let name = path.basename(pathname);
+    let seq;
+
+    const format = getCollectionFormat(collectionPath);
+    const folderFilePath = path.join(pathname, `folder.${format}`);
+
+    try {
+      if (fs.existsSync(folderFilePath)) {
+        let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
+        let folderData = await parseFolder(folderFileContent, { format });
+        name = folderData?.meta?.name || name;
+        seq = folderData?.meta?.seq;
+      }
+    } catch (error) {
+      console.error(`Error occured while parsing folder.${format} file`);
+      console.error(error);
+    }
+
+    const directory = {
+      meta: {
+        collectionUid,
+        pathname,
+        name,
+        seq,
+        uid: getRequestUid(pathname)
+      }
+    };
+
+    win.webContents.send('main:collection-tree-updated', 'addDir', directory);
   } catch (error) {
-    console.error(`Error occured while parsing folder.${format} file`);
-    console.error(error);
+    console.error(`Error in addDirectory handler for ${pathname}:`, error);
   }
-
-  const directory = {
-    meta: {
-      collectionUid,
-      pathname,
-      name,
-      seq,
-      uid: getRequestUid(pathname)
-    }
-  };
-
-  win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
@@ -522,9 +537,9 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     }
   }
 
-  const format = getCollectionFormat(collectionPath);
-  if (hasRequestExtension(pathname, format)) {
-    try {
+  try {
+    const format = getCollectionFormat(collectionPath);
+    if (hasRequestExtension(pathname, format)) {
       const file = {
         meta: {
           collectionUid,
@@ -545,65 +560,77 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
-    } catch (err) {
-      console.error(err);
     }
+  } catch (err) {
+    console.error(err);
   }
 };
 
 const unlink = (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher unlink: ${pathname}`);
 
-  if (isEnvironmentsFolder(pathname, collectionPath)) {
-    return unlinkEnvironmentFile(win, pathname, collectionUid);
-  }
-
-  const format = getCollectionFormat(collectionPath);
-  if (hasRequestExtension(pathname, format)) {
-    const basename = path.basename(pathname);
-    const dirname = path.dirname(pathname);
-
-    if (basename === 'opencollection.yml' && path.normalize(dirname) === path.normalize(collectionPath)) {
-      return;
+  try {
+    if (isEnvironmentsFolder(pathname, collectionPath)) {
+      return unlinkEnvironmentFile(win, pathname, collectionUid);
     }
 
-    const file = {
-      meta: {
-        collectionUid,
-        pathname,
-        name: basename
+    const format = getCollectionFormat(collectionPath);
+    if (hasRequestExtension(pathname, format)) {
+      const basename = path.basename(pathname);
+      const dirname = path.dirname(pathname);
+
+      if (basename === 'opencollection.yml' && path.normalize(dirname) === path.normalize(collectionPath)) {
+        return;
       }
-    };
-    win.webContents.send('main:collection-tree-updated', 'unlink', file);
+
+      const file = {
+        meta: {
+          collectionUid,
+          pathname,
+          name: basename
+        }
+      };
+      win.webContents.send('main:collection-tree-updated', 'unlink', file);
+    }
+  } catch (error) {
+    console.error(`Error in unlink handler for ${pathname}:`, error);
   }
 };
 
 const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
-  const envDirectory = path.join(collectionPath, 'environments');
+  try {
+    const envDirectory = path.join(collectionPath, 'environments');
 
-  if (path.normalize(pathname) === path.normalize(envDirectory)) {
-    return;
-  }
-
-  const format = getCollectionFormat(collectionPath);
-  const folderFilePath = path.join(pathname, `folder.${format}`);
-
-  let name = path.basename(pathname);
-
-  if (fs.existsSync(folderFilePath)) {
-    let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
-    let folderData = await parseFolder(folderFileContent, { format });
-    name = folderData?.meta?.name || name;
-  }
-
-  const directory = {
-    meta: {
-      collectionUid,
-      pathname,
-      name
+    if (path.normalize(pathname) === path.normalize(envDirectory)) {
+      return;
     }
-  };
-  win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
+
+    let name = path.basename(pathname);
+    const format = getCollectionFormat(collectionPath);
+    const folderFilePath = path.join(pathname, `folder.${format}`);
+
+    if (fs.existsSync(folderFilePath)) {
+      let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
+      let folderData = await parseFolder(folderFileContent, { format });
+      name = folderData?.meta?.name || name;
+    }
+
+    const directory = {
+      meta: {
+        collectionUid,
+        pathname,
+        name
+      }
+    };
+    win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
+
+    // Clear format cache when collection root is deleted
+    if (path.normalize(pathname) === path.normalize(collectionPath)) {
+      clearCollectionFormatCache(collectionPath);
+    }
+  } catch (error) {
+    console.error(`Error in unlinkDir handler for ${pathname}:`, error);
+  }
 };
 
 const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {

@@ -233,18 +233,33 @@ const generateUniqueName = (baseName, checkExists) => {
   return uniqueName;
 };
 
+const collectionFormatCache = new Map();
+
 const getCollectionFormat = (collectionPath) => {
+  const normalizedPath = path.normalize(collectionPath);
+
+  if (collectionFormatCache.has(normalizedPath)) {
+    return collectionFormatCache.get(normalizedPath);
+  }
+
   const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
   if (fs.existsSync(ocYmlPath)) {
+    collectionFormatCache.set(normalizedPath, 'yml');
     return 'yml';
   }
 
   const brunoJsonPath = path.join(collectionPath, 'bruno.json');
   if (fs.existsSync(brunoJsonPath)) {
+    collectionFormatCache.set(normalizedPath, 'bru');
     return 'bru';
   }
 
   throw new Error(`No collection configuration found at: ${collectionPath}`);
+};
+
+const clearCollectionFormatCache = (collectionPath) => {
+  const normalizedPath = path.normalize(collectionPath);
+  collectionFormatCache.delete(normalizedPath);
 };
 
 const validateName = (name) => {
@@ -537,6 +552,7 @@ module.exports = {
   isLargeFile,
   generateUniqueName,
   getCollectionFormat,
+  clearCollectionFormatCache,
   isDotEnvFile,
   isValidDotEnvFilename,
   isBrunoConfigFile,
