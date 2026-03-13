@@ -8,17 +8,19 @@ import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
 import { IconFlask } from '@tabler/icons';
 import get from 'lodash/get';
+import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
 
 /**
- * Add beta features here.
- * Example:
- * {
- *   id: 'nodevm',
- *   label: 'Node VM Runtime',
- *   description: 'Enable Node VM runtime for JavaScript execution in Developer Mode'
- * }
+ * UI metadata for beta features rendered in Preferences.
+ * IDs must match keys from utils/beta-features.js BETA_FEATURES.
  */
-const BETA_FEATURES = [];
+const BETA_FEATURES = [
+  {
+    id: BETA_FEATURE_IDS.OPENAPI_SYNC,
+    label: 'OpenAPI Sync',
+    description: 'Synchronize your Bruno collection with an OpenAPI specification. Detect drift, review changes, and sync with a single click.'
+  }
+];
 
 const Beta = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -45,6 +47,7 @@ const Beta = ({ close }) => {
   const betaSchema = generateValidationSchema();
 
   const formik = useFormik({
+    enableReinitialize: true,
     initialValues: generateInitialValues(),
     validationSchema: betaSchema,
     onSubmit: async (values) => {
@@ -61,7 +64,10 @@ const Beta = ({ close }) => {
     dispatch(
       savePreferences({
         ...preferences,
-        beta: newBetaPreferences
+        beta: {
+          ...preferences.beta,
+          ...newBetaPreferences
+        }
       })
     )
       .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));

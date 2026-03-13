@@ -2278,6 +2278,26 @@ const StyledWrapper = styled.div`
     gap: 0.5rem;
     flex-shrink: 0;
   }
+
+  .beta-feedback-inline {
+    margin-top: 2rem;
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.colors.text.muted};
+
+    .beta-feedback-link {
+      background: none;
+      border: none;
+      padding: 0;
+      color: ${(props) => props.theme.status.info.text};
+      cursor: pointer;
+      font-size: inherit;
+      text-decoration: underline;
+
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+  }
 `;
 
 export default StyledWrapper;

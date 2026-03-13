@@ -2,6 +2,7 @@ import React from 'react';
 import GradientCloseButton from './GradientCloseButton';
 import { IconVariable, IconSettings, IconRun, IconFolder, IconDatabase, IconWorld, IconHome, IconFileCode } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
+import StatusBadge from 'ui/StatusBadge/index';
 
 const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft }) => {
   const getTabInfo = (type, tabName) => {
@@ -90,7 +91,8 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <OpenAPISyncIcon size={14} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name">OpenAPI</span>
+            <span className="ml-1 tab-name mr-1">OpenAPI</span>
+            <StatusBadge status="info" size="xs">Beta</StatusBadge>
           </>
         );
       }
