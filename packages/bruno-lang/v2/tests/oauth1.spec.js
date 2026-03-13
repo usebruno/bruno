@@ -164,9 +164,9 @@ auth:oauth1 {
   verifier:
   signature_method: RSA-SHA1
   private_key: '''
-    -----BEGIN PRIVATE KEY-----
-    MIIEvQIBADANBgkqhkiG9w0BAQEFAASC
-    -----END PRIVATE KEY-----
+    -----BEGIN FAKE TEST KEY-----
+    TESTREPLACEMENTdGhpcyBpcyBub3QgYQ==
+    -----END FAKE TEST KEY-----
   '''
   timestamp:
   nonce:
@@ -180,9 +180,9 @@ auth:oauth1 {
     const result = bruToJson(input);
 
     expect(result.auth.oauth1.privateKeyType).toBe('text');
-    expect(result.auth.oauth1.privateKey).toContain('-----BEGIN PRIVATE KEY-----');
-    expect(result.auth.oauth1.privateKey).toContain('-----END PRIVATE KEY-----');
-    expect(result.auth.oauth1.privateKey).toContain('MIIEvQIBADANBgkqhkiG9w0BAQEFAASC');
+    expect(result.auth.oauth1.privateKey).toContain('-----BEGIN FAKE TEST KEY-----');
+    expect(result.auth.oauth1.privateKey).toContain('-----END FAKE TEST KEY-----');
+    expect(result.auth.oauth1.privateKey).toContain('TESTREPLACEMENTdGhpcyBpcyBub3QgYQ==');
   });
 
   it('should parse variable reference in private key as text type', () => {
@@ -425,9 +425,9 @@ auth:oauth1 {
   verifier:
   signature_method: RSA-SHA256
   private_key: '''
-    -----BEGIN RSA PRIVATE KEY-----
-    MIIBogIBAAJBALRiMLAH
-    -----END RSA PRIVATE KEY-----
+    -----BEGIN FAKE RSA TEST KEY-----
+    RkFLRUtFWXJlYWxrZXlkYXRhZm9ydGVz
+    -----END FAKE RSA TEST KEY-----
   '''
   timestamp:
   nonce:
@@ -441,9 +441,9 @@ auth:oauth1 {
     const result = collectionBruToJson(input);
 
     expect(result.auth.oauth1.privateKeyType).toBe('text');
-    expect(result.auth.oauth1.privateKey).toContain('-----BEGIN RSA PRIVATE KEY-----');
-    expect(result.auth.oauth1.privateKey).toContain('MIIBogIBAAJBALRiMLAH');
-    expect(result.auth.oauth1.privateKey).toContain('-----END RSA PRIVATE KEY-----');
+    expect(result.auth.oauth1.privateKey).toContain('-----BEGIN FAKE RSA TEST KEY-----');
+    expect(result.auth.oauth1.privateKey).toContain('RkFLRUtFWXJlYWxrZXlkYXRhZm9ydGVz');
+    expect(result.auth.oauth1.privateKey).toContain('-----END FAKE RSA TEST KEY-----');
   });
 });
 
@@ -526,7 +526,7 @@ describe('OAuth1 jsonToBru (request-level)', () => {
   });
 
   it('should serialize multiline private key with triple quotes', () => {
-    const pem = '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\n-----END PRIVATE KEY-----';
+    const pem = '-----BEGIN FAKE TEST KEY-----\nTESTREPLACEMENTdGhpcyBpcyBub3QgYQ==\nRkFLRUtFWXJlYWxrZXlkYXRhZm9ydGVz\n-----END FAKE TEST KEY-----';
 
     const json = {
       meta: { name: 'OAuth1 PEM', type: 'http', seq: 1 },
@@ -555,8 +555,8 @@ describe('OAuth1 jsonToBru (request-level)', () => {
     const bru = jsonToBru(json);
 
     expect(bru).toContain('private_key: \'\'\'');
-    expect(bru).toContain('-----BEGIN PRIVATE KEY-----');
-    expect(bru).toContain('-----END PRIVATE KEY-----');
+    expect(bru).toContain('-----BEGIN FAKE TEST KEY-----');
+    expect(bru).toContain('-----END FAKE TEST KEY-----');
   });
 
   it('should serialize empty optional fields', () => {
@@ -740,7 +740,7 @@ describe('OAuth1 round-trip (request-level)', () => {
   });
 
   it('should survive round-trip with multiline PEM private key', () => {
-    const pem = '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\nBKcwggSjAgEAAoIBAQCf/ioOwb6uGm01\n-----END PRIVATE KEY-----';
+    const pem = '-----BEGIN FAKE TEST KEY-----\nTESTREPLACEMENTdGhpcyBpcyBub3QgYQ==\nRkFLRUtFWXJlYWxrZXlkYXRhZm9ydGVz\n-----END FAKE TEST KEY-----';
 
     const json = {
       meta: { name: 'OAuth1 PEM RT', type: 'http', seq: '1' },
