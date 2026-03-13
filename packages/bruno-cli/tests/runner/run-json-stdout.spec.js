@@ -113,7 +113,7 @@ describe('run command json stdout reporter', () => {
     getCallStack.mockReturnValue([
       {
         name: 'request-1',
-        pathname: '/tmp/request-1.bru',
+        pathname: path.resolve(process.cwd(), 'request-1.bru'),
         request: {
           assertions: []
         },
