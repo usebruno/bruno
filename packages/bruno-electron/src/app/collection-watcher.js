@@ -553,13 +553,22 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
 const unlink = (win, pathname, collectionUid, collectionPath) => {
   try {
+    if (!fs.existsSync(collectionPath)) {
+      return;
+    }
     console.log(`watcher unlink: ${pathname}`);
 
     if (isEnvironmentsFolder(pathname, collectionPath)) {
       return unlinkEnvironmentFile(win, pathname, collectionUid);
     }
 
-    const format = getCollectionFormat(collectionPath);
+    let format;
+    try {
+      format = getCollectionFormat(collectionPath);
+    } catch (error) {
+      console.error(`Error getting collection format for: ${collectionPath}`, error);
+      return;
+    }
     if (hasRequestExtension(pathname, format)) {
       const basename = path.basename(pathname);
       const dirname = path.dirname(pathname);
@@ -584,13 +593,22 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
 
 const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   try {
+    if (!fs.existsSync(collectionPath)) {
+      return;
+    }
     const envDirectory = path.join(collectionPath, 'environments');
 
     if (path.normalize(pathname) === path.normalize(envDirectory)) {
       return;
     }
 
-    const format = getCollectionFormat(collectionPath);
+    let format;
+    try {
+      format = getCollectionFormat(collectionPath);
+    } catch (error) {
+      console.error(`Error getting collection format for: ${collectionPath}`, error);
+      return;
+    }
     const folderFilePath = path.join(pathname, `folder.${format}`);
 
     let name = path.basename(pathname);
