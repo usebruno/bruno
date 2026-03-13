@@ -2,13 +2,13 @@ import { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
 import Modal from 'components/Modal';
-import { isValidUrl } from 'utils/url/index';
+import { isHttpUrl } from 'utils/url/index';
 import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { parseFileAsJsonOrYaml } from 'utils/importers/file-reader';
 
 const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, onClose }) => {
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
-  const isUrl = isValidUrl(sourceUrl);
+  const isUrl = isHttpUrl(sourceUrl);
   const initialMode = isUrl ? 'url' : 'file';
   const [mode, setMode] = useState(initialMode);
   const [url, setUrl] = useState(isUrl ? (sourceUrl || '') : '');
@@ -21,7 +21,7 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
   const intervals = [5, 15, 30, 60];
 
   const effectiveSource = mode === 'file' ? filePath : url.trim();
-  const canSave = mode === 'file' ? !!effectiveSource : isValidUrl(effectiveSource.trim());
+  const canSave = mode === 'file' ? !!effectiveSource : isHttpUrl(effectiveSource.trim());
 
   const handleSave = async () => {
     setIsSaving(true);

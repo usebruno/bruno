@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { IconCheck } from '@tabler/icons';
 import Button from 'ui/Button';
-import { isValidUrl } from 'utils/url/index';
+import { isHttpUrl } from 'utils/url/index';
 import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { parseFileAsJsonOrYaml } from 'utils/importers/file-reader';
 
@@ -100,7 +100,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
           <Button
             type="submit"
             size="sm"
-            disabled={mode === 'url' ? !isValidUrl(sourceUrl.trim()) : !sourceUrl.trim()}
+            disabled={mode === 'url' ? !isHttpUrl(sourceUrl.trim()) : !sourceUrl.trim()}
             loading={isLoading}
           >
             Connect
