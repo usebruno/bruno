@@ -1,3 +1,12 @@
+/**
+ * Builds a structured error context object for the desktop UI's ScriptError component.
+ * Unlike formatErrorWithContext (bruno-js) which returns a formatted string for CLI output,
+ * this module returns a structured object with block-relative line numbers so the desktop
+ * editor can highlight errors relative to the script block (starting at line 1).
+ *
+ * Called from notifyScriptExecution in network/index.js for pre-request, post-response,
+ * and test script errors.
+ */
 const path = require('path');
 const { posixifyPath } = require('../../utils/common');
 const {
