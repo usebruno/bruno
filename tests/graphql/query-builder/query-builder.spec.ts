@@ -91,13 +91,13 @@ test.describe('GraphQL Query Builder', () => {
 
   test('Enable argument and set value', async ({ pageWithUserData: page }) => {
     await test.step('Expand "user" field to show arguments', async () => {
-      const userField = qb(page).locator('.field-node').filter({ hasText: /^user/ }).first();
+      const userField = qb(page).locator('.field-node').filter({ hasText: /^user\b/ }).first();
       await userField.click();
       await expect(qb(page).locator('.section-header').filter({ hasText: 'ARGUMENTS' }).first()).toBeVisible();
     });
 
     await test.step('Check the "user" field', async () => {
-      const userCheckbox = qb(page).locator('.field-node').filter({ hasText: /^user/ }).first().locator('.field-checkbox');
+      const userCheckbox = qb(page).locator('.field-node').filter({ hasText: /^user\b/ }).first().locator('.field-checkbox');
       await userCheckbox.check();
     });
 
@@ -235,7 +235,7 @@ test.describe('GraphQL Query Builder', () => {
     pageWithUserData: page
   }) => {
     await test.step('Set up "user" field with "id" argument via query builder', async () => {
-      const userField = qb(page).locator('.field-node').filter({ hasText: /^user/ }).first();
+      const userField = qb(page).locator('.field-node').filter({ hasText: /^user\b/ }).first();
       await expect(qb(page).locator('.section-header').filter({ hasText: 'ARGUMENTS' }).first()).toBeVisible();
 
       const userCheckbox = userField.locator('.field-checkbox');
