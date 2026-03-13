@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { IconLoader2, IconCloud } from '@tabler/icons';
+import fastJsonFormat from 'fast-json-format';
 import SpecViewer from 'components/ApiSpecPanel/SpecViewer';
 import StyledWrapper from 'components/ApiSpecPanel/StyledWrapper';
 
@@ -9,8 +10,7 @@ import StyledWrapper from 'components/ApiSpecPanel/StyledWrapper';
 const prettyPrintSpec = (content) => {
   if (!content) return content;
   try {
-    const parsed = JSON.parse(content);
-    return JSON.stringify(parsed, null, 2);
+    return fastJsonFormat(content);
   } catch {
     return content;
   }

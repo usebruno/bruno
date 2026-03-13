@@ -2214,7 +2214,7 @@ const StyledWrapper = styled.div`
     align-self: stretch;
     gap: 2px;
     padding: 2px;
-    background: ${(props) => props.theme.background.surface2};
+    background: ${(props) => props.theme.background.surface1};
     border-radius: ${(props) => props.theme.border.radius.md};
   }
 
@@ -2222,7 +2222,7 @@ const StyledWrapper = styled.div`
     padding: 0 0.65rem;
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
-    color: ${(props) => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.text};
     background: transparent;
     border: none;
     border-radius: calc(${(props) => props.theme.border.radius.md} - 3px);
