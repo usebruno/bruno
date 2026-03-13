@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import find from 'lodash/find';
-import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
+import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub, IconRoute } from '@tabler/icons';
 import Mousetrap from 'mousetrap';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
@@ -43,6 +43,18 @@ const StatusBar = () => {
       addTab({
         type: 'preferences',
         uid: collectionUid ? `${collectionUid}-preferences` : 'preferences',
+        collectionUid: collectionUid
+      })
+    );
+  };
+
+  const handleGuidesClick = () => {
+    const collectionUid = activeTab?.collectionUid || activeWorkspace?.scratchCollectionUid;
+
+    dispatch(
+      addTab({
+        type: 'guides',
+        uid: collectionUid ? `${collectionUid}-guides` : 'guides',
         collectionUid: collectionUid
       })
     );
@@ -121,6 +133,19 @@ const StatusBar = () => {
 
         <div className="status-bar-section">
           <div className="flex items-center gap-3">
+            <button
+              className="status-bar-button"
+              data-trigger="guides"
+              onClick={handleGuidesClick}
+              tabIndex={0}
+              aria-label="Open Guides"
+            >
+              <div className="console-button-content">
+                <IconRoute size={16} strokeWidth={1.5} aria-hidden="true" />
+                <span className="console-label">Guides</span>
+              </div>
+            </button>
+
             <button
               className="status-bar-button"
               data-trigger="search"

@@ -281,7 +281,7 @@ const ResponsePane = ({ item, collection }) => {
   ) : null;
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative">
+    <StyledWrapper className="flex flex-col h-full relative" data-onboarding="response-pane">
       <div className="px-4">
         <ResponsiveTabs
           tabs={allTabs}

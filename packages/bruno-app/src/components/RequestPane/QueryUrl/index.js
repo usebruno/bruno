@@ -376,6 +376,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       <div
         id="request-url"
         className="h-full w-full flex flex-row input-container overflow-auto"
+        data-onboarding="url-bar"
       >
         <SingleLineEditor
           ref={editorRef}
@@ -393,7 +394,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         />
 
       </div>
-      <div className="flex items-center h-full mx-2 gap-3 cursor-pointer" id="send-request" onClick={handleRun}>
+      <div className="flex items-center h-full mx-2 gap-3 cursor-pointer" id="send-request" data-onboarding="send-button" onClick={handleRun}>
         <div
           title="Generate Code"
           className="infotip"

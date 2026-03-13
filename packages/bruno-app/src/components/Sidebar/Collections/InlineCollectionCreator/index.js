@@ -88,12 +88,16 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
     setIsCreating(true);
     try {
       const folderName = sanitizeName(name);
+      // Dismiss the inline creator BEFORE the async IPC call completes.
+      // The collection gets added to Redux via the `main:collection-opened` IPC event,
+      // which can fire before this promise resolves. If `isCreatingCollection` is still
+      // true at that point, the Collections component re-renders InlineCollectionCreator
+      // alongside the real Collection row, causing a visual duplicate.
+      onComplete();
       await dispatch(createCollection(name, folderName, defaultLocation, { format: DEFAULT_COLLECTION_FORMAT }));
       toast.success('Collection created!');
-      onComplete();
     } catch (e) {
       toast.error(multiLineMsg('An error occurred while creating the collection', formatIpcError(e)));
-      setIsCreating(false);
     }
   }, [isCreating, defaultLocation, dispatch, onCancel, onComplete]);
 
@@ -121,7 +125,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
 
   return (
     <StyledWrapper>
-      <div className="inline-collection-creator" ref={containerRef}>
+      <div className="inline-collection-creator" ref={containerRef} data-onboarding="inline-collection-creator">
         <div className="input-wrapper">
           <input
             ref={inputRef}
@@ -134,6 +138,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
             autoCapitalize="off"
             spellCheck="false"
             disabled={isCreating}
+            data-onboarding="collection-name-input"
           />
           <button
             className="cog-btn"
@@ -155,6 +160,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
             onMouseDown={(e) => e.preventDefault()}
             title="Create"
             disabled={isCreating}
+            data-onboarding="collection-create-btn"
           >
             <IconCheck size={14} strokeWidth={2} />
           </button>
