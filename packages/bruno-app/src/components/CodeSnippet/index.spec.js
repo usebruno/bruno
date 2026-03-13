@@ -80,33 +80,44 @@ describe('CodeSnippet', () => {
       {
         hasSeparatorBefore: false,
         lines: [
-          { lineNumber: 1, content: 'const a = 1;', isHighlighted: false },
+          { lineNumber: 1, content: 'const a = true;', isHighlighted: false },
           { lineNumber: 2, content: 'pm.vault.get();', isHighlighted: true },
-          { lineNumber: 3, content: 'const b = 2;', isHighlighted: false }
+          { lineNumber: 3, content: 'const b = false;', isHighlighted: false }
         ]
       },
       {
         hasSeparatorBefore: true,
         lines: [
-          { lineNumber: 10, content: 'const x = 10;', isHighlighted: false },
+          { lineNumber: 10, content: 'const x = null;', isHighlighted: false },
           { lineNumber: 11, content: 'pm.cookies.jar();', isHighlighted: true },
-          { lineNumber: 12, content: 'const y = 11;', isHighlighted: false }
+          { lineNumber: 12, content: 'const y = undefined;', isHighlighted: false }
         ]
       }
     ];
 
     it('should render all lines from all hunks', () => {
       renderWithTheme(<CodeSnippet hunks={sampleHunks} variant="warning" />);
+      // line numbers
       expect(screen.getByText('1')).toBeInTheDocument();
       expect(screen.getByText('2')).toBeInTheDocument();
       expect(screen.getByText('10')).toBeInTheDocument();
       expect(screen.getByText('11')).toBeInTheDocument();
+      // content
+      expect(screen.getByText(/const a = true;/)).toBeInTheDocument();
+      expect(screen.getByText(/pm\.vault\.get\(\);/)).toBeInTheDocument();
+      expect(screen.getByText(/const x = null;/)).toBeInTheDocument();
+      expect(screen.getByText(/pm\.cookies\.jar\(\);/)).toBeInTheDocument();
     });
 
     it('should render separator between hunks when hasSeparatorBefore is true', () => {
       const { container } = renderWithTheme(<CodeSnippet hunks={sampleHunks} variant="warning" />);
       const separators = container.querySelectorAll('.code-line-separator');
       expect(separators).toHaveLength(1);
+      // separator should appear between the two hunks, not before the first
+      const allRows = container.querySelectorAll('.code-line, .code-line-separator');
+      const separatorIndex = Array.from(allRows).findIndex((el) => el.classList.contains('code-line-separator'));
+      // first hunk has 3 lines (indices 0-2), separator should be at index 3
+      expect(separatorIndex).toBe(3);
     });
 
     it('should render the ellipsis character in separator', () => {

@@ -20,8 +20,10 @@ const StyledWrapper = styled.div`
   }
 
   .close-button {
+    all: unset;
     opacity: 0.7;
     transition: opacity 0.2s;
+    cursor: pointer;
 
     &:hover {
       opacity: 1;
@@ -41,6 +43,8 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: baseline;
     gap: 0.5rem;
+    min-width: 0;
+    white-space: nowrap;
     font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 600;
     text-transform: uppercase;
@@ -49,19 +53,33 @@ const StyledWrapper = styled.div`
   }
 
   .script-error-file-path {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+    max-width: 100%;
     font-family: monospace;
     font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 400;
     text-transform: none;
     letter-spacing: normal;
     color: ${(props) => props.theme.colors.text.muted};
-    cursor: pointer;
     opacity: 0.8;
     transition: opacity 0.15s, text-decoration 0.15s;
 
-    &:hover {
-      opacity: 1;
-      text-decoration: underline;
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &.navigable {
+      cursor: pointer;
+
+      &:hover {
+        opacity: 1;
+        text-decoration: underline;
+      }
     }
   }
 
@@ -76,6 +94,7 @@ const StyledWrapper = styled.div`
   }
 
   .script-error-stack-toggle {
+    all: unset;
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;

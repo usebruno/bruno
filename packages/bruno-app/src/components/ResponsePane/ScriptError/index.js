@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { IconX, IconChevronDown, IconChevronRight } from '@tabler/icons';
+import { IconX, IconChevronDown, IconChevronRight, IconExternalLink } from '@tabler/icons';
 import ErrorBanner from 'ui/ErrorBanner';
 import CodeSnippet from 'components/CodeSnippet';
 import { getTreePathFromCollectionToItem } from 'utils/collections';
@@ -9,8 +9,26 @@ import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'pro
 import StyledWrapper from './StyledWrapper';
 
 /**
- * Classify the error source from errorContext.filePath.
- * Returns { sourceType, label, sourceUid? } or null if filePath is missing.
+ * Determines the source of a script error (request, folder, or collection)
+ * based on the filePath from the error context.
+ *
+ * Bruno executes scripts at three levels in order: collection -> folder -> request.
+ * When an error occurs, the filePath tells us which level it came from:
+ *
+ *   filePath: "echo json.bru"          -> request-level  -> { sourceType: 'request',    label: 'Request' }
+ *   filePath: "auth/folder.bru"        -> folder-level   -> { sourceType: 'folder',     label: 'Folder: auth', sourceUid: 'f1' }
+ *   filePath: "collection.bru"         -> collection-level -> { sourceType: 'collection', label: 'Collection' }
+ *
+ * For folder-level errors, this function walks the tree path from collection to
+ * the current item to match the folder by its relative path, resolving its UID
+ * and display name. If the folder can't be matched (e.g. missing tree data),
+ * it falls back to a generic "Folder" label without a sourceUid.
+ *
+ * @param {string|undefined} filePath - Relative path from errorContext (e.g. "subfolder/folder.bru")
+ * @param {object} item - The current request item
+ * @param {object} collection - The parent collection (needs .pathname for folder matching)
+ * @param {function} getTreePath - Function to get the tree path from collection root to item
+ * @returns {{ sourceType: string, label: string, sourceUid?: string } | null}
  */
 const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
   if (!filePath) return null;
@@ -20,20 +38,19 @@ const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
 
   // Folder level (check before collection to avoid folder.yml matching as collection)
   if (isFolderFile) {
-    const info = { sourceType: 'folder', label: 'Folder Script' };
+    const info = { sourceType: 'folder', label: 'Folder' };
     const folderFileName = filePath.split('/').pop();
 
     // Try to find the folder UID and name from the tree path
     if (getTreePath && collection && item) {
-      const collectionPathname = collection.pathname || '';
+      const collectionPathname = (collection.pathname || '').replace(/\/+$/, '');
       const treePath = getTreePath(collection, item);
       if (treePath?.length) {
         for (const node of treePath) {
           if (node?.type === 'folder') {
-            const folderRelPath = node.pathname
-              ? (node.pathname.startsWith(collectionPathname)
-                  ? node.pathname.slice(collectionPathname.length).replace(/^\//, '') + '/' + folderFileName
-                  : folderFileName)
+            const nodePath = (node.pathname || '').replace(/\/+$/, '');
+            const folderRelPath = nodePath && nodePath.startsWith(collectionPathname)
+              ? nodePath.slice(collectionPathname.length).replace(/^\//, '') + '/' + folderFileName
               : folderFileName;
             if (folderRelPath === filePath) {
               info.sourceUid = node.uid;
@@ -50,11 +67,11 @@ const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
 
   // Collection level
   if (isCollectionFile) {
-    return { sourceType: 'collection', label: 'Collection Script' };
+    return { sourceType: 'collection', label: 'Collection' };
   }
 
   // Request level
-  return { sourceType: 'request', label: 'Request Script' };
+  return { sourceType: 'request', label: 'Request' };
 };
 
 const ScriptErrorCard = ({ title, message, errorContext, item, collection, scriptPhase, onClose }) => {
@@ -70,10 +87,20 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
 
   const canNavigate = sourceInfo
     && collection?.uid
-    && (sourceInfo.sourceType !== 'folder' || sourceInfo.sourceUid);
+    && (sourceInfo.sourceType === 'collection'
+      || (sourceInfo.sourceType === 'folder' && sourceInfo.sourceUid)
+      || (sourceInfo.sourceType === 'request' && item?.uid));
+
+  const handleNavigateKeyDown = (e) => {
+    if (!canNavigate) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleNavigate();
+    }
+  };
 
   const handleNavigate = () => {
-    if (!sourceInfo) return;
+    if (!canNavigate) return;
 
     // CollectionSettings expects 'tests', FolderSettings expects 'test'
     const collectionSettingsTab = scriptPhase === 'test' ? 'tests' : 'script';
@@ -112,9 +139,9 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
         <div className="script-error-header">
           <div className="error-title" data-testid="script-error-title">{title}</div>
           {onClose && (
-            <div className="close-button flex-shrink-0 cursor-pointer" data-testid="script-error-close" onClick={onClose}>
+            <button className="close-button flex-shrink-0 cursor-pointer" data-testid="script-error-close" onClick={onClose} aria-label="Close error">
               <IconX size={16} strokeWidth={1.5} />
-            </div>
+            </button>
           )}
         </div>
         {(sourceInfo || errorContext.filePath) && (
@@ -122,30 +149,36 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
             {sourceInfo && <span>{sourceInfo.label}</span>}
             {errorContext.filePath && (
               <span
-                className="script-error-file-path"
+                className={`script-error-file-path${canNavigate ? ' navigable' : ''}`}
                 data-testid="script-error-file-path"
-                onClick={canNavigate ? handleNavigate : undefined}
+                role={canNavigate ? 'button' : undefined}
+                tabIndex={canNavigate ? 0 : undefined}
+                onClick={handleNavigate}
+                onKeyDown={handleNavigateKeyDown}
                 title={canNavigate ? `Open ${errorContext.filePath}` : undefined}
               >
-                {errorContext.filePath}
+                <span>{errorContext.filePath}</span>
+                {canNavigate && <IconExternalLink size={12} className="flex-shrink-0" />}
               </span>
             )}
           </div>
         )}
         <CodeSnippet lines={errorContext.lines} variant="error" />
         <div className="script-error-message" data-testid="script-error-message">
-          {errorContext.errorType}: {message}
+          {errorContext.errorType || 'Error'}: {message}
         </div>
         {errorContext.stack && (
           <div>
-            <div
+            <button
               className="script-error-stack-toggle"
               data-testid="script-error-stack-toggle"
               onClick={() => setShowStack(!showStack)}
+              aria-expanded={showStack}
+              aria-label={`${showStack ? 'Hide' : 'Show'} stack trace`}
             >
               {showStack ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
               <span>{showStack ? 'Hide' : 'Show'} stack trace</span>
-            </div>
+            </button>
             {showStack && (
               <pre className="script-error-stack" data-testid="script-error-stack">{errorContext.stack}</pre>
             )}

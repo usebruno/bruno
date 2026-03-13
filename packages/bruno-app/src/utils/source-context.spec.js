@@ -36,6 +36,12 @@ describe('findLineInSource', () => {
     const source = 'line one\npm.vault.get("a")\nother\npm.vault.get("b")';
     expect(findLineInSource(source, 'pm.vault.get')).toBe(2);
   });
+
+  it('should match partial/substring content within a line', () => {
+    const source = 'const getUserName = () => {};\nconst setUser = () => {};';
+    expect(findLineInSource(source, 'getUser')).toBe(1);
+    expect(findLineInSource(source, 'setUser')).toBe(2);
+  });
 });
 
 describe('getScriptContext', () => {
@@ -52,7 +58,6 @@ describe('getScriptContext', () => {
   it('should return correct context lines around the target line', () => {
     const result = getScriptContext(source, 4, 2);
     expect(result).not.toBeNull();
-    expect(result.highlightedLine).toBe(4);
     expect(result.lines).toHaveLength(5);
     expect(result.lines[0].lineNumber).toBe(2);
     expect(result.lines[2].lineNumber).toBe(4);
@@ -70,6 +75,7 @@ describe('getScriptContext', () => {
 
   it('should handle last line correctly', () => {
     const result = getScriptContext(source, 7, 2);
+    expect(result.lines).toHaveLength(3);
     expect(result.lines[result.lines.length - 1].lineNumber).toBe(7);
     expect(result.lines[result.lines.length - 1].isHighlighted).toBe(true);
   });
@@ -99,5 +105,17 @@ describe('getScriptContext', () => {
     const highlightedLines = result.lines.filter((l) => l.isHighlighted);
     expect(highlightedLines).toHaveLength(1);
     expect(highlightedLines[0].lineNumber).toBe(4);
+    const nonHighlightedLines = result.lines.filter((l) => !l.isHighlighted);
+    nonHighlightedLines.forEach((l) => {
+      expect(l.isHighlighted).toBe(false);
+    });
+  });
+
+  it('should return only the target line when contextLines is 0', () => {
+    const result = getScriptContext(source, 4, 0);
+    expect(result.lines).toHaveLength(1);
+    expect(result.lines[0].lineNumber).toBe(4);
+    expect(result.lines[0].isHighlighted).toBe(true);
+    expect(result.lines[0].content).toBe('pm.vault.get("secret");');
   });
 });

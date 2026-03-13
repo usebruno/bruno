@@ -1,6 +1,11 @@
 /**
  * Find the 1-indexed line number where `searchText` first appears in `source`.
  * Returns null if not found.
+ *
+ * Note: `source` is expected to be raw file content where escaped characters
+ * like `\n` inside strings are stored as literal characters (backslash + n),
+ * not as actual newline bytes. This ensures `split('\n')` only splits on real
+ * line breaks and not on escaped sequences within string literals.
  */
 const findLineInSource = (source, searchText) => {
   if (!source || !searchText) return null;
@@ -16,7 +21,7 @@ const findLineInSource = (source, searchText) => {
 
 /**
  * Extract context lines around `lineNumber` from `source`.
- * Returns { lines: [{ lineNumber, content, isHighlighted }], highlightedLine }
+ * Returns { lines: [{ lineNumber, content, isHighlighted }] }
  * Compatible with CodeSnippet component props.
  */
 const getScriptContext = (source, lineNumber, contextLines = 3) => {
@@ -37,7 +42,7 @@ const getScriptContext = (source, lineNumber, contextLines = 3) => {
     });
   }
 
-  return { lines: contextLinesArray, highlightedLine: lineNumber };
+  return { lines: contextLinesArray };
 };
 
 export { findLineInSource, getScriptContext };

@@ -99,7 +99,7 @@ describe('ScriptError', () => {
     const { container } = renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
     expect(container.querySelector('.script-error-file-path')).toBeInTheDocument();
     expect(screen.getByText('echo json.bru')).toBeInTheDocument();
-    expect(screen.getByText('Request Script')).toBeInTheDocument();
+    expect(screen.getByText('Request')).toBeInTheDocument();
   });
 
   it('should show "Collection Script" label for collection-level errors', () => {
@@ -111,7 +111,7 @@ describe('ScriptError', () => {
       }
     };
     renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
-    expect(screen.getByText('Collection Script')).toBeInTheDocument();
+    expect(screen.getByText('Collection')).toBeInTheDocument();
     expect(screen.getByText('collection.bru')).toBeInTheDocument();
   });
 
@@ -124,7 +124,7 @@ describe('ScriptError', () => {
       }
     };
     renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
-    expect(screen.getByText('Folder Script')).toBeInTheDocument();
+    expect(screen.getByText('Folder')).toBeInTheDocument();
     expect(screen.getByText('subfolder/folder.bru')).toBeInTheDocument();
   });
 
@@ -137,7 +137,7 @@ describe('ScriptError', () => {
       }
     };
     renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
-    expect(screen.getByText('Request Script')).toBeInTheDocument();
+    expect(screen.getByText('Request')).toBeInTheDocument();
     expect(screen.getByText('my-request.bru')).toBeInTheDocument();
   });
 
@@ -172,6 +172,29 @@ describe('ScriptError', () => {
     const closeButton = container.querySelector('.close-button');
     fireEvent.click(closeButton);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('should fallback to "Error" when errorType is missing', () => {
+    const item = {
+      preRequestScriptErrorMessage: 'something went wrong',
+      preRequestScriptErrorContext: {
+        ...mockErrorContext,
+        errorType: undefined
+      }
+    };
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
+    expect(screen.getByText('Error: something went wrong')).toBeInTheDocument();
+  });
+
+  it('should not show pointer cursor on non-navigable file path', () => {
+    const item = {
+      preRequestScriptErrorMessage: 'error',
+      preRequestScriptErrorContext: mockErrorContext
+    };
+    // No item.uid means request-level navigation is disabled
+    const { container } = renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
+    const filePath = container.querySelector('.script-error-file-path');
+    expect(filePath).not.toHaveClass('navigable');
   });
 
   it('should handle multiple errors with their own context', () => {
