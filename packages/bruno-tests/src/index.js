@@ -9,6 +9,7 @@ const multipartRouter = require('./multipart');
 const redirectRouter = require('./redirect');
 const mixRouter = require('./mix');
 const wsRouter = require('./ws');
+const sseRouter = require('./sse');
 
 const app = new express();
 const port = process.env.PORT || 8081;
@@ -48,6 +49,7 @@ app.use('/api/echo', echoRouter);
 app.use('/api/multipart', multipartRouter);
 app.use('/api/redirect', redirectRouter);
 app.use('/api/mix', mixRouter);
+app.use('/api/sse', sseRouter);
 
 app.get('/ping', function (req, res) {
   return res.send('pong');
