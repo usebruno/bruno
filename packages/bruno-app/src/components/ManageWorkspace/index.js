@@ -27,7 +27,8 @@ const ManageWorkspace = () => {
   const [deleteWorkspaceModal, setDeleteWorkspaceModal] = useState({ open: false, workspace: null });
 
   const sortedWorkspaces = useMemo(() => {
-    return sortWorkspaces(workspaces, preferences);
+    const persistedWorkspaces = workspaces.filter((w) => !w.isCreating);
+    return sortWorkspaces(persistedWorkspaces, preferences);
   }, [workspaces, preferences]);
 
   const handleBack = () => {
@@ -69,7 +70,6 @@ const ManageWorkspace = () => {
 
     try {
       await dispatch(createWorkspaceWithUniqueName(defaultLocation));
-      toast.success('Workspace created!');
     } catch (error) {
       toast.error(error?.message || 'Failed to create workspace');
     }

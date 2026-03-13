@@ -160,7 +160,6 @@ const AppTitleBar = () => {
 
     try {
       await dispatch(createWorkspaceWithUniqueName(defaultLocation));
-      toast.success('Workspace created!');
     } catch (error) {
       toast.error(error?.message || 'Failed to create workspace');
     }
