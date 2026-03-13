@@ -120,7 +120,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
       return {
         variant: 'warning',
         title: 'Last synced spec not found',
-        subtitle: 'The last synced spec is missing in the storage. Restore the latest spec from the source to track future changes..',
+        subtitle: 'The last synced spec is missing in the storage. Restore the latest spec from the source to track future changes.',
         buttons: ['restore']
       };
     }

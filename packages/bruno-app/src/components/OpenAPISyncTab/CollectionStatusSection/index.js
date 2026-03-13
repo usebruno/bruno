@@ -226,7 +226,7 @@ const CollectionStatusSection = ({
               <div className="status-dot warning" />
               <span className="banner-title">
                 {lastSyncDate
-                  ? 'Last synced spec is required to show collection changes. Restore the latest spec from the source to track future changes..'
+                  ? 'Last synced spec is required to show collection changes. Restore the latest spec from the source to track future changes.'
                   : 'Collection changes will be available after the initial sync'}
               </span>
             </div>
@@ -235,7 +235,7 @@ const CollectionStatusSection = ({
             <IconClock size={40} className="empty-state-icon" />
             <h4>{lastSyncDate ? 'Last Synced Spec missing from storage' : 'Waiting for initial sync'}</h4>
             <p>{lastSyncDate
-              ? 'Restore the latest spec from the source to track future changes..'
+              ? 'Restore the latest spec from the source to track future changes.'
               : 'Once you sync your collection with the spec, changes will appear here.'}
             </p>
           </div>

@@ -261,7 +261,7 @@ const SyncReviewPage = ({
               <>
                 <IconCheck size={40} className="empty-state-icon" />
                 <h4>No updates from the spec</h4>
-                <p>The spec endpoints has not been updated since the last sync.</p>
+                <p>The spec endpoints have not been updated since the last sync.</p>
               </>
             )}
           </div>

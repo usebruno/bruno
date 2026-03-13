@@ -2,10 +2,8 @@ import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import {
   IconCheck,
-  IconRefresh,
-  IconLoader2
+  IconRefresh
 } from '@tabler/icons';
-import moment from 'moment';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
 import ConfirmSyncModal from '../ConfirmSyncModal';
