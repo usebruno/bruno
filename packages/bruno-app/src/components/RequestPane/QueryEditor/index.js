@@ -11,11 +11,8 @@ import MD from 'markdown-it';
 import { format } from 'prettier/standalone';
 import prettierPluginGraphql from 'prettier/parser-graphql';
 import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
-import { IconWand } from '@tabler/icons';
-
 import onHasCompletion from './onHasCompletion';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 
@@ -206,16 +203,30 @@ export default class QueryEditor extends React.Component {
       this.editor.off('change', this._onEdit);
       this.editor.off('keyup', this._onKeyUp);
       this.editor.off('hasCompletion', this._onHasCompletion);
+      // Remove the CodeMirror DOM element so React 18 Strict Mode's
+      // unmount-remount cycle doesn't leave an orphaned instance behind.
+      const wrapper = this.editor.getWrapperElement();
+      if (wrapper && wrapper.parentNode) {
+        wrapper.parentNode.removeChild(wrapper);
+      }
       this.editor = null;
     }
   }
 
   beautifyRequestBody = () => {
     try {
-      const prettyQuery = format(this.props.value, {
+      if (!this.editor) return;
+      const currentValue = this.editor.getValue();
+      if (!currentValue || !currentValue.trim()) return;
+
+      // Add __typename placeholder to empty selection sets so prettier can parse it
+      const sanitized = currentValue.replace(/\{\s*\}/g, '{ __typename }');
+      let prettyQuery = format(sanitized, {
         parser: 'graphql',
         plugins: [prettierPluginGraphql]
       });
+      // Remove the placeholder __typename fields we added
+      prettyQuery = prettyQuery.replace(/^\s*__typename\n/gm, '');
 
       this.editor.setValue(prettyQuery);
       toast.success('Query prettified');
@@ -235,25 +246,15 @@ export default class QueryEditor extends React.Component {
 
   render() {
     return (
-      <>
-        <StyledWrapper
-          className="h-full w-full  flex flex-col relative graphiql-container"
-          aria-label="Query Editor"
-          font={this.props.font}
-          fontSize={this.props.fontSize}
-          ref={(node) => {
-            this._node = node;
-          }}
-        >
-          <button
-            className="btn-add-param text-link px-4 py-4 select-none absolute top-0 right-0 z-10"
-            onClick={this.beautifyRequestBody}
-            title="prettify"
-          >
-            <IconWand size={20} strokeWidth={1.5} />
-          </button>
-        </StyledWrapper>
-      </>
+      <StyledWrapper
+        className="h-full w-full flex flex-col relative graphiql-container"
+        aria-label="Query Editor"
+        font={this.props.font}
+        fontSize={this.props.fontSize}
+        ref={(node) => {
+          this._node = node;
+        }}
+      />
     );
   }
 
