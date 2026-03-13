@@ -14,6 +14,7 @@ import BasicAuth from 'components/RequestPane/Auth/BasicAuth';
 import BearerAuth from 'components/RequestPane/Auth/BearerAuth';
 import DigestAuth from 'components/RequestPane/Auth/DigestAuth';
 import NTLMAuth from 'components/RequestPane/Auth/NTLMAuth';
+import OAuth1 from 'components/RequestPane/Auth/OAuth1';
 import WsseAuth from 'components/RequestPane/Auth/WsseAuth';
 import ApiKeyAuth from 'components/RequestPane/Auth/ApiKeyAuth';
 import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
@@ -135,6 +136,17 @@ const Auth = ({ collection, folder }) => {
       case 'ntlm': {
         return (
           <NTLMAuth
+            collection={collection}
+            item={folder}
+            updateAuth={updateFolderAuth}
+            request={request}
+            save={() => handleSave()}
+          />
+        );
+      }
+      case 'oauth1': {
+        return (
+          <OAuth1
             collection={collection}
             item={folder}
             updateAuth={updateFolderAuth}

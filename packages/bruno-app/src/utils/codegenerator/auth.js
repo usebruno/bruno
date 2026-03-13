@@ -46,6 +46,29 @@ export const getAuthHeaders = (requestAuth, collection = null, item = null) => {
         ];
       }
       return [];
+    case 'oauth1': {
+      const oauth1Config = get(requestAuth, 'oauth1', {});
+      const addParamsTo = get(oauth1Config, 'addParamsTo', 'header');
+
+      // Only add Authorization header when params are sent via header
+      if (addParamsTo !== 'header') {
+        return [];
+      }
+
+      // Use actual config values where available; signature is computed at runtime
+      const consumerKey = get(oauth1Config, 'consumerKey', '<consumer_key>');
+      const token = get(oauth1Config, 'accessToken', '<access_token>');
+      const signatureMethod = get(oauth1Config, 'signatureMethod', 'HMAC-SHA1');
+      const oauthVersion = get(oauth1Config, 'version', '1.0');
+
+      return [
+        {
+          enabled: true,
+          name: 'Authorization',
+          value: `OAuth oauth_consumer_key="${consumerKey}", oauth_token="${token}", oauth_signature_method="${signatureMethod}", oauth_signature="<signature>", oauth_timestamp="<timestamp>", oauth_nonce="<nonce>", oauth_version="${oauthVersion}"`
+        }
+      ];
+    }
     case 'oauth2': {
       const oauth2Config = get(requestAuth, 'oauth2', {});
       const tokenPlacement = get(oauth2Config, 'tokenPlacement', 'header');
