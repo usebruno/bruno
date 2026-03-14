@@ -8,7 +8,6 @@ import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { flattenItems, isItemTransientRequest } from 'utils/collections';
 import filter from 'lodash/filter';
-import { get } from 'lodash';
 import { formatIpcError } from 'utils/common/error';
 
 const REQUEST_TYPES = {
@@ -55,10 +54,10 @@ const CreateTransientRequest = ({ collectionUid }) => {
   }, [collections, collectionUid]);
 
   const collectionPresets = useMemo(() => {
-    return get(collection, collection?.draft?.brunoConfig ? 'draft.brunoConfig.presets' : 'brunoConfig.presets', {
-      requestType: 'http',
-      requestUrl: ''
-    });
+    const presets = collection?.draft?.brunoConfig
+      ? collection.draft.brunoConfig.presets
+      : collection?.brunoConfig?.presets;
+    return presets || { requestType: 'http', requestUrl: '' };
   }, [collection]);
 
   const onDropdownCreate = (ref) => {

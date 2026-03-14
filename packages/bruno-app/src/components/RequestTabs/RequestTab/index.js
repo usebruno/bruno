@@ -24,6 +24,22 @@ import { closeWsConnection } from 'utils/network/index';
 import ExampleTab from '../ExampleTab';
 import toast from 'react-hot-toast';
 
+/**
+ * Shared handler for restoring closed transient request drafts
+ */
+const handleRestoreClosedDrafts = async (dispatch, collectionUid) => {
+  try {
+    const result = await dispatch(restoreClosedTransientRequests(collectionUid));
+    if (result.restored > 0) {
+      toast.success(`Restored ${result.restored} closed draft${result.restored > 1 ? 's' : ''}`);
+    } else {
+      toast.success('No closed drafts to restore');
+    }
+  } catch (err) {
+    toast.error('Failed to restore closed drafts');
+  }
+};
+
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow, dropdownContainerRef }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
@@ -597,19 +613,6 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     await handleCloseMultipleTabs(collectionRequestTabs);
   }
 
-  async function handleRestoreClosedDrafts() {
-    try {
-      const result = await dispatch(restoreClosedTransientRequests(collection.uid));
-      if (result.restored > 0) {
-        toast.success(`Restored ${result.restored} closed draft${result.restored > 1 ? 's' : ''}`);
-      } else {
-        toast.success('No closed drafts to restore');
-      }
-    } catch (err) {
-      toast.error('Failed to restore closed drafts');
-    }
-  }
-
   const menuItems = useMemo(() => [
     {
       id: 'new-request',
@@ -663,7 +666,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     {
       id: 'restore-closed-drafts',
       label: 'Restore Closed Drafts',
-      onClick: handleRestoreClosedDrafts
+      onClick: () => handleRestoreClosedDrafts(dispatch, collection.uid)
     }
   ], [currentTabUid, currentTabItem, hasOtherTabs, hasLeftTabs, hasRightTabs, collection, collectionRequestTabs, tabIndex, dispatch]);
 
@@ -706,24 +709,11 @@ function SpecialTabMenu({ menuDropdownRef, tabLabelRef, collection, dispatch, dr
     return tabLabelRef.current.getBoundingClientRect();
   };
 
-  async function handleRestoreClosedDrafts() {
-    try {
-      const result = await dispatch(restoreClosedTransientRequests(collection.uid));
-      if (result.restored > 0) {
-        toast.success(`Restored ${result.restored} closed draft${result.restored > 1 ? 's' : ''}`);
-      } else {
-        toast.success('No closed drafts to restore');
-      }
-    } catch (err) {
-      toast.error('Failed to restore closed drafts');
-    }
-  }
-
   const menuItems = [
     {
       id: 'restore-closed-drafts',
       label: 'Restore Closed Drafts',
-      onClick: handleRestoreClosedDrafts
+      onClick: () => handleRestoreClosedDrafts(dispatch, collection.uid)
     }
   ];
 

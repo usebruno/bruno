@@ -22,7 +22,8 @@ import {
   getAllVariables,
   transformRequestToSaveToFilesystem,
   transformCollectionRootToSave,
-  flattenItems
+  flattenItems,
+  getDefaultRequestPaneTab
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -182,7 +183,6 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
 export const saveRequestToCollection = (itemUid, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  const tempDirectory = state.collections.tempDirectories?.[collectionUid];
 
   if (!collection) {
     return;
@@ -194,9 +194,7 @@ export const saveRequestToCollection = (itemUid, collectionUid) => (dispatch, ge
     return;
   }
 
-  // Only open modal for transient requests
-  const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
-  if (isTransient) {
+  if (item.isTransient) {
     dispatch(addSaveTransientRequestModal({ item, collection }));
   }
 };
@@ -1524,7 +1522,9 @@ const REQUEST_TYPE_CONFIG = {
         file: []
       },
       vars: { req: [], res: [] },
+      script: { req: null, res: null },
       assertions: [],
+      tests: null,
       auth: { mode: 'inherit' }
     },
     settings: { encodeUrl: true }
@@ -1541,7 +1541,9 @@ const REQUEST_TYPE_CONFIG = {
         graphql: { query: '', variables: '' }
       },
       vars: { req: [], res: [] },
+      script: { req: null, res: null },
       assertions: [],
+      tests: null,
       auth: { mode: 'inherit' }
     },
     settings: { encodeUrl: true }
@@ -3128,7 +3130,6 @@ export const ensureActiveTabInCurrentWorkspace = () => (dispatch, getState) => {
 
 /**
  * Close tabs. Transient files are preserved on disk for later restoration.
- * Use discardTransientRequests to explicitly delete transient files.
  */
 export const closeTabs = ({ tabUids }) => async (dispatch) => {
   // Close the tabs
@@ -3157,12 +3158,12 @@ export const restoreClosedTransientRequests = (collectionUid) => async (dispatch
     }
 
     // Open tabs for each closed transient request
-    for (const request of closedRequests) {
+    for (const closedRequest of closedRequests) {
       dispatch(
         addTab({
-          uid: request.uid,
+          uid: closedRequest.uid,
           collectionUid,
-          requestPaneTab: 'params',
+          requestPaneTab: getDefaultRequestPaneTab(closedRequest.request),
           preview: false
         })
       );
