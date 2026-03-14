@@ -1262,8 +1262,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     headers,
     body,
     auth,
-    settings,
-    isTransient = false
+    settings
   } = params;
 
   return new Promise((resolve, reject) => {
@@ -1272,9 +1271,6 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
-
-    // Get temp directory if isTransient is true
-    const tempDirectory = isTransient ? state.collections.tempDirectories?.[collectionUid] : null;
 
     const parts = splitOnFirst(requestUrl, '?');
     const queryParams = parseQueryParams(parts[1]);
@@ -1296,7 +1292,6 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       type: requestType,
       name: requestName,
       filename,
-      isTransient: isTransient,
       request: {
         method: requestMethod,
         url: requestUrl,
@@ -1326,113 +1321,48 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       }
     };
 
-    // itemUid is null when we are creating a new request at the root level
-    // For transient requests, itemUid is always null
     const resolvedFilename = resolveRequestFilename(filename, collection.format);
 
-    if (isTransient) {
-      // Transient requests are always created in temp directory
-      // Check for duplicates only among other transient requests
-      const allItems = flattenItems(collection.items);
-      const transientRequests = filter(
-        allItems,
-        (i) => isItemARequest(i) && i.pathname && i.pathname.startsWith(tempDirectory)
-      );
-      const reqWithSameNameExists = find(transientRequests, (i) => trim(i.filename) === trim(resolvedFilename));
-      const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
-      item.seq = items.length + 1;
-
-      if (!reqWithSameNameExists) {
-        const fullName = path.join(tempDirectory, resolvedFilename);
-        const { ipcRenderer } = window;
-
-        ipcRenderer
-          .invoke('renderer:new-request', fullName, item)
-          .then(() => {
-            // task middleware will track this and open the new request in a new tab once request is created
-            dispatch(
-              insertTaskIntoQueue({
-                uid: uuid(),
-                type: 'OPEN_REQUEST',
-                collectionUid,
-                itemPathname: fullName,
-                preview: false
-              })
-            );
-            resolve();
-          })
-          .catch(reject);
-      } else {
-        return reject(new Error('Duplicate request names are not allowed under the same folder'));
-      }
-    } else if (!itemUid) {
-      // Regular request at root level
-      const reqWithSameNameExists = find(
-        collection.items,
-        (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
-      );
-      const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
-      item.seq = items.length + 1;
-
-      if (!reqWithSameNameExists) {
-        const fullName = path.join(collection.pathname, resolvedFilename);
-        const { ipcRenderer } = window;
-
-        ipcRenderer
-          .invoke('renderer:new-request', fullName, item)
-          .then(() => {
-            // task middleware will track this and open the new request in a new tab once request is created
-            dispatch(
-              insertTaskIntoQueue({
-                uid: uuid(),
-                type: 'OPEN_REQUEST',
-                collectionUid,
-                itemPathname: fullName
-              })
-            );
-            resolve();
-          })
-          .catch(reject);
-      } else {
-        return reject(new Error('Duplicate request names are not allowed under the same folder'));
-      }
-    } else {
-      const currentItem = findItemInCollection(collection, itemUid);
-      if (currentItem) {
-        const reqWithSameNameExists = find(
-          currentItem.items,
-          (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
-        );
-        const items = filter(currentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
-        item.seq = items.length + 1;
-        if (!reqWithSameNameExists) {
-          const fullName = path.join(currentItem.pathname, resolvedFilename);
-          const { ipcRenderer } = window;
-          ipcRenderer
-            .invoke('renderer:new-request', fullName, item)
-            .then(() => {
-              // task middleware will track this and open the new request in a new tab once request is created
-              dispatch(
-                insertTaskIntoQueue({
-                  uid: uuid(),
-                  type: 'OPEN_REQUEST',
-                  collectionUid,
-                  itemPathname: fullName
-                })
-              );
-              resolve();
-            })
-            .catch(reject);
-        } else {
-          return reject(new Error('Duplicate request names are not allowed under the same folder'));
-        }
-      }
+    // Determine parent item (folder or collection root)
+    const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
+    if (!parentItem) {
+      return reject(new Error('Parent item not found'));
     }
+
+    const reqWithSameNameExists = find(
+      parentItem.items,
+      (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
+    );
+
+    if (reqWithSameNameExists) {
+      return reject(new Error('Duplicate request names are not allowed under the same folder'));
+    }
+
+    const items = filter(parentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
+    item.seq = items.length + 1;
+
+    const fullName = path.join(parentItem.pathname, resolvedFilename);
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:new-request', fullName, item)
+      .then(() => {
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
+        );
+        resolve();
+      })
+      .catch(reject);
   });
 };
 
 export const newGrpcRequest = (params) => (dispatch, getState) => {
-  const { requestName, filename, requestUrl, collectionUid, body, auth, headers, itemUid, isTransient = false } = params;
+  const { requestName, filename, requestUrl, collectionUid, body, auth, headers, itemUid } = params;
 
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -1440,127 +1370,69 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
-
-    // Get temp directory if isTransient is true
-    const tempDirectory = isTransient ? state.collections.tempDirectories?.[collectionUid] : null;
-
-    // do we need to handle query, path params for grpc requests?
-    // skipping for now
 
     const item = {
       uid: uuid(),
       name: requestName,
       filename,
       type: 'grpc-request',
-      isTransient: isTransient,
       headers: headers ?? [],
       request: {
         url: requestUrl,
         body: body ?? {
           mode: 'grpc',
-          grpc: [
-            {
-              name: 'message 1',
-              content: '{}'
-            }
-          ]
+          grpc: [{ name: 'message 1', content: '{}' }]
         },
-        auth: auth ?? {
-          mode: 'inherit'
-        },
-        vars: {
-          req: [],
-          res: []
-        },
-        script: {
-          req: null,
-          res: null
-        },
+        auth: auth ?? { mode: 'inherit' },
+        vars: { req: [], res: [] },
+        script: { req: null, res: null },
         assertions: [],
         tests: null
       }
     };
 
-    // itemUid is null when we are creating a new request at the root level
-    // For transient requests, itemUid is always null
     const resolvedFilename = resolveRequestFilename(filename, collection.format);
 
-    if (isTransient) {
-      // Transient requests are always created in temp directory
-      // Check for duplicates only among other transient requests
-      const allItems = flattenItems(collection.items);
-      const transientRequests = filter(
-        allItems,
-        (i) => isItemARequest(i) && i.pathname && i.pathname.startsWith(tempDirectory)
-      );
-      const reqWithSameNameExists = find(transientRequests, (i) => trim(i.filename) === trim(resolvedFilename));
-
-      if (reqWithSameNameExists) {
-        return reject(new Error('Duplicate request names are not allowed under the same folder'));
-      }
-
-      const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
-      item.seq = items.length + 1;
-      const fullName = path.join(tempDirectory, resolvedFilename);
-      const { ipcRenderer } = window;
-      ipcRenderer
-        .invoke('renderer:new-request', fullName, item)
-        .then(() => {
-          // task middleware will track this and open the new request in a new tab once request is created
-          dispatch(
-            insertTaskIntoQueue({
-              uid: uuid(),
-              type: 'OPEN_REQUEST',
-              collectionUid,
-              itemPathname: fullName,
-              preview: false
-            })
-          );
-          resolve();
-        })
-        .catch(reject);
-    } else {
-      // Regular request (can be at root or in a folder)
-      const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
-
-      if (!parentItem) {
-        return reject(new Error('Parent item not found'));
-      }
-
-      const reqWithSameNameExists = find(
-        parentItem.items,
-        (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
-      );
-
-      if (reqWithSameNameExists) {
-        return reject(new Error('Duplicate request names are not allowed under the same folder'));
-      }
-
-      const items = filter(parentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
-      item.seq = items.length + 1;
-      const fullName = path.join(parentItem.pathname, resolvedFilename);
-      const { ipcRenderer } = window;
-      ipcRenderer
-        .invoke('renderer:new-request', fullName, item)
-        .then(() => {
-          // task middleware will track this and open the new request in a new tab once request is created
-          dispatch(
-            insertTaskIntoQueue({
-              uid: uuid(),
-              type: 'OPEN_REQUEST',
-              collectionUid,
-              itemPathname: fullName
-            })
-          );
-          resolve();
-        })
-        .catch(reject);
+    // Determine parent item (folder or collection root)
+    const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
+    if (!parentItem) {
+      return reject(new Error('Parent item not found'));
     }
+
+    const reqWithSameNameExists = find(
+      parentItem.items,
+      (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
+    );
+
+    if (reqWithSameNameExists) {
+      return reject(new Error('Duplicate request names are not allowed under the same folder'));
+    }
+
+    const items = filter(parentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
+    item.seq = items.length + 1;
+
+    const fullName = path.join(parentItem.pathname, resolvedFilename);
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:new-request', fullName, item)
+      .then(() => {
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
+        );
+        resolve();
+      })
+      .catch(reject);
   });
 };
 
 export const newWsRequest = (params) => (dispatch, getState) => {
-  const { requestName, requestMethod, filename, requestUrl, collectionUid, body, auth, headers, itemUid, isTransient = false } = params;
+  const { requestName, requestMethod, filename, requestUrl, collectionUid, body, auth, headers, itemUid } = params;
 
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -1569,15 +1441,11 @@ export const newWsRequest = (params) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
-    // Get temp directory if isTransient is true
-    const tempDirectory = isTransient ? state.collections.tempDirectories?.[collectionUid] : null;
-
     const item = {
       uid: uuid(),
       name: requestName,
       filename,
       type: 'ws-request',
-      isTransient: isTransient,
       headers: headers ?? [],
       request: {
         url: requestUrl,
@@ -1585,105 +1453,215 @@ export const newWsRequest = (params) => (dispatch, getState) => {
         params: [],
         body: body ?? {
           mode: 'ws',
-          ws: [
-            {
-              name: 'message 1',
-              type: 'json',
-              content: '{}'
-            }
-          ]
+          ws: [{ name: 'message 1', type: 'json', content: '{}' }]
         },
-        auth: auth ?? {
-          mode: 'inherit'
-        },
-        vars: {
-          req: [],
-          res: []
-        },
-        script: {
-          req: null,
-          res: null
-        },
+        auth: auth ?? { mode: 'inherit' },
+        vars: { req: [], res: [] },
+        script: { req: null, res: null },
         assertions: [],
         tests: null
       }
     };
 
-    // itemUid is null when we are creating a new request at the root level
-    // For transient requests, itemUid is always null
     const resolvedFilename = resolveRequestFilename(filename, collection.format);
 
-    if (isTransient) {
-      // Transient requests are always created in temp directory
-      // Check for duplicates only among other transient requests
-      const allItems = flattenItems(collection.items);
-      const transientRequests = filter(
-        allItems,
-        (i) => isItemARequest(i) && i.pathname && i.pathname.startsWith(tempDirectory)
-      );
-      const reqWithSameNameExists = find(transientRequests, (i) => trim(i.filename) === trim(resolvedFilename));
-
-      if (reqWithSameNameExists) {
-        return reject(new Error('Duplicate request names are not allowed under the same folder'));
-      }
-
-      const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
-      item.seq = items.length + 1;
-      const fullName = path.join(tempDirectory, resolvedFilename);
-      const { ipcRenderer } = window;
-      ipcRenderer
-        .invoke('renderer:new-request', fullName, item)
-        .then(() => {
-          // task middleware will track this and open the new request in a new tab once request is created
-          dispatch(
-            insertTaskIntoQueue({
-              uid: uuid(),
-              type: 'OPEN_REQUEST',
-              collectionUid,
-              itemPathname: fullName,
-              preview: false
-            })
-          );
-          resolve();
-        })
-        .catch(reject);
-    } else {
-      // Regular request (can be at root or in a folder)
-      const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
-
-      if (!parentItem) {
-        return reject(new Error('Parent item not found'));
-      }
-
-      const reqWithSameNameExists = find(
-        parentItem.items,
-        (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
-      );
-
-      if (reqWithSameNameExists) {
-        return reject(new Error('Duplicate request names are not allowed under the same folder'));
-      }
-
-      const items = filter(parentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
-      item.seq = items.length + 1;
-      const fullName = path.join(parentItem.pathname, resolvedFilename);
-      const { ipcRenderer } = window;
-      ipcRenderer
-        .invoke('renderer:new-request', fullName, item)
-        .then(() => {
-          // task middleware will track this and open the new request in a new tab once request is created
-          dispatch(
-            insertTaskIntoQueue({
-              uid: uuid(),
-              type: 'OPEN_REQUEST',
-              collectionUid,
-              itemPathname: fullName
-            })
-          );
-          resolve();
-        })
-        .catch(reject);
+    // Determine parent item (folder or collection root)
+    const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
+    if (!parentItem) {
+      return reject(new Error('Parent item not found'));
     }
+
+    const reqWithSameNameExists = find(
+      parentItem.items,
+      (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
+    );
+
+    if (reqWithSameNameExists) {
+      return reject(new Error('Duplicate request names are not allowed under the same folder'));
+    }
+
+    const items = filter(parentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
+    item.seq = items.length + 1;
+
+    const fullName = path.join(parentItem.pathname, resolvedFilename);
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:new-request', fullName, item)
+      .then(() => {
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
+        );
+        resolve();
+      })
+      .catch(reject);
+  });
+};
+
+/**
+ * Request type configurations for building transient request items
+ */
+const REQUEST_TYPE_CONFIG = {
+  'http-request': (url, body) => ({
+    request: {
+      method: 'GET',
+      url: url || '',
+      headers: [],
+      params: [],
+      body: body || {
+        mode: 'none',
+        json: null,
+        text: null,
+        xml: null,
+        sparql: null,
+        multipartForm: [],
+        formUrlEncoded: [],
+        file: []
+      },
+      vars: { req: [], res: [] },
+      assertions: [],
+      auth: { mode: 'inherit' }
+    },
+    settings: { encodeUrl: true }
+  }),
+
+  'graphql-request': (url, body) => ({
+    request: {
+      method: 'POST',
+      url: url || '',
+      headers: [],
+      params: [],
+      body: body || {
+        mode: 'graphql',
+        graphql: { query: '', variables: '' }
+      },
+      vars: { req: [], res: [] },
+      assertions: [],
+      auth: { mode: 'inherit' }
+    },
+    settings: { encodeUrl: true }
+  }),
+
+  'grpc-request': (url, body) => ({
+    headers: [],
+    request: {
+      url: url || '',
+      body: body || {
+        mode: 'grpc',
+        grpc: [{ name: 'message 1', content: '{}' }]
+      },
+      auth: { mode: 'inherit' },
+      vars: { req: [], res: [] },
+      script: { req: null, res: null },
+      assertions: [],
+      tests: null
+    }
+  }),
+
+  'ws-request': (url, body) => ({
+    headers: [],
+    request: {
+      url: url || '',
+      method: 'ws',
+      params: [],
+      body: body || {
+        mode: 'ws',
+        ws: [{ name: 'message 1', type: 'json', content: '{}' }]
+      },
+      auth: { mode: 'inherit' },
+      vars: { req: [], res: [] },
+      script: { req: null, res: null },
+      assertions: [],
+      tests: null
+    }
+  })
+};
+
+/**
+ * Build the item structure for a transient request based on its type
+ */
+const buildRequestItem = (type, { name, filename, url, body }) => {
+  const configFn = REQUEST_TYPE_CONFIG[type];
+  if (!configFn) {
+    throw new Error(`Unknown request type: ${type}`);
+  }
+
+  return {
+    uid: uuid(),
+    name,
+    filename,
+    type,
+    isTransient: true,
+    ...configFn(url, body)
+  };
+};
+
+/**
+ * Create a new transient request
+ * Transient requests are temporary requests stored in a temp directory
+ */
+export const newTransientRequest = (params) => (dispatch, getState) => {
+  const { type, requestName, filename, requestUrl, collectionUid, body } = params;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const tempDirectory = state.collections.tempDirectories?.[collectionUid];
+    if (!tempDirectory) {
+      return reject(new Error('Temp directory not found for collection'));
+    }
+
+    const item = buildRequestItem(type, {
+      name: requestName,
+      filename,
+      url: requestUrl,
+      body
+    });
+
+    const resolvedFilename = resolveRequestFilename(filename, collection.format);
+
+    // Check for duplicates among transient requests
+    const allItems = flattenItems(collection.items);
+    const transientRequests = filter(
+      allItems,
+      (i) => isItemARequest(i) && i.pathname && i.pathname.startsWith(tempDirectory)
+    );
+    const reqWithSameNameExists = find(transientRequests, (i) => trim(i.filename) === trim(resolvedFilename));
+
+    if (reqWithSameNameExists) {
+      return reject(new Error('Duplicate request names are not allowed'));
+    }
+
+    const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
+    item.seq = items.length + 1;
+
+    const fullName = path.join(tempDirectory, resolvedFilename);
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:new-request', fullName, item)
+      .then(() => {
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName,
+            preview: false
+          })
+        );
+        resolve();
+      })
+      .catch(reject);
   });
 };
 
