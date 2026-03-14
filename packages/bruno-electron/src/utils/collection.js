@@ -1,7 +1,7 @@
 const { get, each, find, compact, isString, filter } = require('lodash');
 const fs = require('fs');
 const { getRequestUid, getExampleUid } = require('../cache/requestUids');
-const { uuid } = require('./common');
+const { uuid, generateUidBasedOnHash } = require('./common');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
@@ -404,8 +404,10 @@ const parseFileMeta = (data, format = DEFAULT_COLLECTION_FORMAT) => {
 };
 
 const hydrateRequestWithUuid = (request, pathname) => {
-  request.uid = getRequestUid(pathname);
-  request.isTransient = transientManager.isTransientPath(pathname);
+  const isTransient = transientManager.isTransientPath(pathname);
+  // Use deterministic UIDs for transient requests so they persist across app restarts
+  request.uid = isTransient ? generateUidBasedOnHash(pathname) : getRequestUid(pathname);
+  request.isTransient = isTransient;
 
   const params = get(request, 'request.params', []);
   const headers = get(request, 'request.headers', []);

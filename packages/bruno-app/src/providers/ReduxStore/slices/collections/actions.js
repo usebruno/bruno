@@ -3149,49 +3149,50 @@ export const ensureActiveTabInCurrentWorkspace = () => (dispatch, getState) => {
 };
 
 /**
- * Close tabs and delete any transient request files from the filesystem.
- * This thunk wraps the closeTabs reducer to handle transient file cleanup automatically.
+ * Close tabs. Transient files are preserved on disk for later restoration.
+ * Use discardTransientRequests to explicitly delete transient files.
  */
-export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
-  const { ipcRenderer } = window;
-  const state = getState();
-  const collections = state.collections.collections;
-  const tempDirectories = state.collections.tempDirectories || {};
-
-  // Find transient items and group by temp directory before closing tabs
-  const transientByTempDir = {};
-  each(tabUids, (tabUid) => {
-    for (const collection of collections) {
-      const item = findItemInCollection(collection, tabUid);
-      if (item?.isTransient && item.pathname) {
-        const tempDir = tempDirectories[collection.uid];
-        if (tempDir) {
-          if (!transientByTempDir[tempDir]) {
-            transientByTempDir[tempDir] = [];
-          }
-          transientByTempDir[tempDir].push(item.pathname);
-        }
-        break;
-      }
-    }
-  });
-
-  // Close the tabs first
+export const closeTabs = ({ tabUids }) => async (dispatch) => {
+  // Close the tabs
   await dispatch(_closeTabs({ tabUids }));
 
-  // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: prefer any open in-workspace tab, then workspace overview if none.
-  // Dispatch is synchronous; state is already updated by _closeTabs above.
+  // Ensure active tab belongs to current workspace
   await dispatch(ensureActiveTabInCurrentWorkspace());
+};
 
-  // Delete transient files after tabs are closed
-  for (const [tempDir, filePaths] of Object.entries(transientByTempDir)) {
-    try {
-      const results = await ipcRenderer.invoke('renderer:delete-transient-requests', filePaths, tempDir);
-      if (results.errors?.length > 0) {
-        console.error('Errors deleting transient files:', results.errors);
-      }
-    } catch (err) {
-      console.error('Failed to delete transient request files:', err);
+/**
+ * Restore closed transient requests by listing transient files and opening them as tabs
+ */
+export const restoreClosedTransientRequests = (collectionUid) => async (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  const state = getState();
+  const tabs = state.tabs.tabs;
+
+  // Get UIDs of currently open tabs
+  const openTabUids = tabs.map((t) => t.uid);
+
+  try {
+    const closedRequests = await ipcRenderer.invoke('renderer:list-closed-transient-requests', collectionUid, openTabUids);
+
+    if (!closedRequests || closedRequests.length === 0) {
+      return { restored: 0 };
     }
+
+    // Open tabs for each closed transient request
+    for (const request of closedRequests) {
+      dispatch(
+        addTab({
+          uid: request.uid,
+          collectionUid,
+          requestPaneTab: 'params',
+          preview: false
+        })
+      );
+    }
+
+    return { restored: closedRequests.length };
+  } catch (err) {
+    console.error('Failed to restore closed transient requests:', err);
+    throw err;
   }
 };

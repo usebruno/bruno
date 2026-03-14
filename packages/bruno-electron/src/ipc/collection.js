@@ -441,6 +441,37 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  // List closed transient requests (files in transient directory not currently open)
+  ipcMain.handle('renderer:list-closed-transient-requests', async (event, collectionUid, openTabUids = []) => {
+    try {
+      const files = transientManager.listFiles(collectionUid);
+      const closedRequests = [];
+
+      for (const filePath of files) {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const format = filePath.endsWith('.yml') ? 'yml' : 'bru';
+        const request = parseRequest(content, { format });
+        const uid = generateUidBasedOnHash(filePath);
+
+        // Skip if this request is already open
+        if (openTabUids.includes(uid)) {
+          continue;
+        }
+
+        closedRequests.push({
+          uid,
+          pathname: filePath,
+          name: request.name || path.basename(filePath, path.extname(filePath)),
+          request
+        });
+      }
+
+      return closedRequests;
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // save multiple requests
   ipcMain.handle('renderer:save-multiple-requests', async (event, requestsToSave) => {
     try {
