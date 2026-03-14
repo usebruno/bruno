@@ -877,7 +877,7 @@ class CollectionWatcher {
     };
 
     const watcher = chokidar.watch(tempDirectoryPath, {
-      ignoreInitial: true, // Don't process existing files
+      ignoreInitial: false, // Process existing files for resurrection
       usePolling: isWSLPath(tempDirectoryPath) ? true : false,
       ignored,
       persistent: true,

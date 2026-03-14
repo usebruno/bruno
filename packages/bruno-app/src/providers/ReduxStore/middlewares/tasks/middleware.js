@@ -21,8 +21,11 @@ taskMiddleware.startListening({
   actionCreator: collectionAddFileEvent,
   effect: (action, listenerApi) => {
     const state = listenerApi.getState();
-    const collectionUid = get(action, 'payload.file.meta.collectionUid');
+    const file = get(action, 'payload.file');
+    const collectionUid = get(file, 'meta.collectionUid');
+    const isTransient = get(file, 'data.isTransient', false);
 
+    // Handle tasks in queue (for newly created requests)
     const openRequestTasks = filter(state.app.taskQueue, { type: taskTypes.OPEN_REQUEST });
     each(openRequestTasks, (task) => {
       if (collectionUid === task.collectionUid) {
@@ -48,6 +51,24 @@ taskMiddleware.startListening({
         );
       }
     });
+
+    // Auto-open tabs for resurrected transient requests
+    if (isTransient) {
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+      if (collection && collection.mountStatus === 'mounted') {
+        const item = findItemInCollectionByPathname(collection, file.meta.pathname);
+        if (item) {
+          listenerApi.dispatch(
+            addTab({
+              uid: item.uid,
+              collectionUid: collection.uid,
+              requestPaneTab: getDefaultRequestPaneTab(item),
+              preview: false
+            })
+          );
+        }
+      }
+    }
   }
 });
 
