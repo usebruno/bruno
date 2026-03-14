@@ -1251,7 +1251,6 @@ const StyledWrapper = styled.div`
   .disconnect-modal {
     .disconnect-message {
       font-size: ${(props) => props.theme.font.size.sm};
-      color: ${(props) => props.theme.colors.text.muted};
       line-height: 1.5;
       margin-bottom: 1.5rem;
     }

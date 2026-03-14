@@ -6,7 +6,7 @@ import { formatIpcError } from 'utils/common/error';
 
 const useSyncFlow = ({
   collection, specDrift, remoteDrift, collectionDrift,
-  sourceUrl, setError, checkForUpdates
+  setError, checkForUpdates
 }) => {
   const dispatch = useDispatch();
 
@@ -65,7 +65,6 @@ const useSyncFlow = ({
       await ipcRenderer.invoke('renderer:apply-openapi-sync', {
         collectionUid: collection.uid,
         collectionPath: collection.pathname,
-        sourceUrl: sourceUrl.trim(),
         addNewRequests: mode !== 'spec-only',
         removeDeletedRequests: localOnlyIds.length > 0,
         diff: filteredDiff,

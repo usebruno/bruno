@@ -26,7 +26,7 @@ const SpecStatusSection = ({
     handleSyncNow, handleApplySync, cancelConfirmModal, handleConfirmModalSync
   } = useSyncFlow({
     collection, specDrift, remoteDrift, collectionDrift,
-    sourceUrl, setError, checkForUpdates: onCheck
+    setError, checkForUpdates: onCheck
   });
 
   const lastSyncedAt = openApiSyncConfig?.lastSyncDate;

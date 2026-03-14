@@ -9,6 +9,7 @@ import StyledWrapper from 'components/ApiSpecPanel/StyledWrapper';
  */
 const prettyPrintSpec = (content) => {
   if (!content) return content;
+  if (content.trimStart()[0] !== '{') return content;
   try {
     return fastJsonFormat(content);
   } catch {
@@ -32,8 +33,7 @@ const OpenAPISpecTab = ({ collection }) => {
     try {
       const { ipcRenderer } = window;
       const result = await ipcRenderer.invoke('renderer:read-openapi-spec', {
-        collectionPath: collection.pathname,
-        sourceUrl
+        collectionPath: collection.pathname
       });
       if (result.error) {
         // Local file not found — fall back to fetching from remote URL
