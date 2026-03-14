@@ -143,7 +143,6 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
 export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  const tempDirectory = state.collections.tempDirectories?.[collectionUid];
   return new Promise((resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
@@ -153,12 +152,6 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
     const item = findItemInCollection(collectionCopy, itemUid);
     if (!item) {
       return reject(new Error('Not able to locate item'));
-    }
-
-    const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
-    if (isTransient) {
-      dispatch(addSaveTransientRequestModal({ item, collection }));
-      return reject();
     }
 
     const itemToSave = transformRequestToSaveToFilesystem(item);
@@ -184,6 +177,28 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
         reject(err);
       });
   });
+};
+
+export const saveRequestToCollection = (itemUid, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const tempDirectory = state.collections.tempDirectories?.[collectionUid];
+
+  if (!collection) {
+    return;
+  }
+
+  const collectionCopy = cloneDeep(collection);
+  const item = findItemInCollection(collectionCopy, itemUid);
+  if (!item) {
+    return;
+  }
+
+  // Only open modal for transient requests
+  const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
+  if (isTransient) {
+    dispatch(addSaveTransientRequestModal({ item, collection }));
+  }
 };
 
 export const saveMultipleRequests = (items) => (dispatch, getState) => {
