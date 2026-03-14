@@ -7,6 +7,7 @@ const archiver = require('archiver');
 const extractZip = require('extract-zip');
 const AdmZip = require('adm-zip');
 const { ipcMain, shell, dialog, app } = require('electron');
+const transientManager = require('../services/transient');
 const {
   parseRequest,
   stringifyRequest,
@@ -85,26 +86,11 @@ const MAX_COLLECTION_SIZE_IN_MB = 20;
 const MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB = 5;
 const MAX_COLLECTION_FILES_COUNT = 2000;
 
-// Get the base directory for transient request files (stored in app data directory)
-const getTransientDirectoryBase = () => {
-  return path.join(app.getPath('userData'), 'tmp', 'transient');
-};
-
-// Get the prefix used for transient collection directories
-const getTransientCollectionPrefix = () => {
-  return path.join(getTransientDirectoryBase(), 'bruno-');
-};
-
-// Get the prefix used for scratch collection directories
-const getTransientScratchPrefix = () => {
-  return path.join(getTransientDirectoryBase(), 'bruno-scratch-');
-};
-
-// Check if a path is within the transient directory
-const isTransientPath = (filePath) => {
-  const transientBase = getTransientDirectoryBase();
-  return filePath.startsWith(transientBase + path.sep) || filePath.startsWith(transientBase);
-};
+// Helper functions that delegate to the transient manager
+const getTransientDirectoryBase = () => transientManager.getBasePath();
+const getTransientCollectionPrefix = () => path.join(transientManager.getBasePath(), 'bruno-');
+const getTransientScratchPrefix = () => path.join(transientManager.getBasePath(), 'bruno-scratch-');
+const isTransientPath = (filePath) => transientManager.isTransientPath(filePath);
 
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
@@ -118,22 +104,8 @@ const findCollectionPathByItemPath = (filePath) => {
 
   if (isTransientPath(filePath) && index !== -1) {
     const transientDirPath = parts.slice(0, index + 1).join(path.sep);
-    const metadataPath = path.join(transientDirPath, 'metadata.json');
-    try {
-      const metadataContent = fs.readFileSync(metadataPath, 'utf8');
-      const metadata = JSON.parse(metadataContent);
-
-      if (metadata.type === 'scratch') {
-        return transientDirPath;
-      }
-
-      if (metadata.collectionPath) {
-        return metadata.collectionPath;
-      }
-    } catch (error) {
-      return null;
-    }
-    return null;
+    const info = transientManager.getCollectionInfo(transientDirPath);
+    return info ? info.collectionPath : null;
   }
 
   const allCollectionPaths = collectionWatcher.getAllWatcherPaths();
@@ -1947,21 +1919,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   ipcMain.handle('renderer:mount-collection', async (event, { collectionUid, collectionPathname, brunoConfig }) => {
-    let tempDirectoryPath = null;
-    try {
-      // Ensure the transient base directory exists
-      const transientBase = getTransientDirectoryBase();
-      if (!fs.existsSync(transientBase)) {
-        fs.mkdirSync(transientBase, { recursive: true });
-      }
-      tempDirectoryPath = fs.mkdtempSync(getTransientCollectionPrefix());
-      const metadata = {
-        collectionPath: collectionPathname
-      };
-      fs.writeFileSync(path.join(tempDirectoryPath, 'metadata.json'), JSON.stringify(metadata));
-    } catch (error) {
-      throw error;
-    }
+    // Get or create transient directory using the manager (reuses existing if available)
+    const format = getCollectionFormat(collectionPathname);
+    const tempDirectoryPath = transientManager.getOrCreateDirectory(collectionUid, collectionPathname, format);
+
     const {
       size,
       filesCount,

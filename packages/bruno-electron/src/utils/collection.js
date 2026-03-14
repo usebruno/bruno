@@ -6,6 +6,7 @@ const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
+const transientManager = require('../services/transient');
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
@@ -404,8 +405,7 @@ const parseFileMeta = (data, format = DEFAULT_COLLECTION_FORMAT) => {
 
 const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = getRequestUid(pathname);
-  const prefix = path.join(os.tmpdir(), 'bruno-');
-  request.isTransient = pathname.startsWith(prefix);
+  request.isTransient = transientManager.isTransientPath(pathname);
 
   const params = get(request, 'request.params', []);
   const headers = get(request, 'request.headers', []);

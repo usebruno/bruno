@@ -9,6 +9,7 @@ const {
   sizeInMB,
   getCollectionFormat
 } = require('../utils/filesystem');
+const transientManager = require('../services/transient');
 const {
   parseEnvironment,
   parseRequest,
@@ -853,17 +854,10 @@ class CollectionWatcher {
     }
   }
 
-  // Helper function to get collection path from temp directory metadata
+  // Helper function to get collection path from temp directory
   getCollectionPathFromTempDirectory(tempDirectoryPath) {
-    const metadataPath = path.join(tempDirectoryPath, 'metadata.json');
-    try {
-      const metadataContent = fs.readFileSync(metadataPath, 'utf8');
-      const metadata = JSON.parse(metadataContent);
-      return metadata.collectionPath;
-    } catch (error) {
-      console.error(`Error reading metadata from temp directory ${tempDirectoryPath}:`, error);
-      return null;
-    }
+    const info = transientManager.getCollectionInfo(tempDirectoryPath);
+    return info ? info.collectionPath : null;
   }
 
   // Add watcher for transient directory
