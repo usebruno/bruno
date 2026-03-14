@@ -115,7 +115,7 @@ const initialState = {
   collections: [],
   collectionSortOrder: 'default',
   activeConnections: [],
-  saveTransientRequestModals: []
+  saveTransientRequestModal: null
 };
 
 const initiatedGrpcResponse = {
@@ -3470,22 +3470,11 @@ export const collectionsSlice = createSlice({
       }
     },
 
-    addSaveTransientRequestModal: (state, action) => {
-      const { item, collection } = action.payload;
-      // Avoid duplicates - check if this item is already in the array
-      const exists = state.saveTransientRequestModals.some((modal) => modal.item.uid === item.uid);
-      if (!exists) {
-        state.saveTransientRequestModals.push({ item, collection });
-      }
+    setSaveTransientRequestModal: (state, action) => {
+      state.saveTransientRequestModal = action.payload;
     },
-    removeSaveTransientRequestModal: (state, action) => {
-      const { itemUid } = action.payload;
-      state.saveTransientRequestModals = state.saveTransientRequestModals.filter(
-        (modal) => modal.item.uid !== itemUid
-      );
-    },
-    clearAllSaveTransientRequestModals: (state) => {
-      state.saveTransientRequestModals = [];
+    clearSaveTransientRequestModal: (state) => {
+      state.saveTransientRequestModal = null;
     },
     /* Response Example Actions */
     addResponseExample: exampleReducers.addResponseExample,
@@ -3716,9 +3705,8 @@ export const {
   setResponseExampleRequestHeaders,
   setResponseExampleParams,
   /* Response Example Actions - End */
-  addSaveTransientRequestModal,
-  removeSaveTransientRequestModal,
-  clearAllSaveTransientRequestModals
+  setSaveTransientRequestModal,
+  clearSaveTransientRequestModal
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

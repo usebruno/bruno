@@ -60,7 +60,7 @@ import {
   updateFolderVar,
   addCollectionVar,
   updateCollectionVar,
-  addSaveTransientRequestModal,
+  setSaveTransientRequestModal,
   updatePathParam
 } from './index';
 
@@ -196,7 +196,7 @@ export const saveRequestToCollection = (itemUid, collectionUid) => async (dispat
   const { ipcRenderer } = window;
   const isTransient = await ipcRenderer.invoke('renderer:is-transient-path', item.pathname);
   if (isTransient) {
-    dispatch(addSaveTransientRequestModal({ item, collection }));
+    dispatch(setSaveTransientRequestModal({ item, collection }));
   }
 };
 
