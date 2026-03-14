@@ -9,7 +9,7 @@ import {
   setWorkspaceScratchCollection
 } from '../workspaces';
 import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent } from '../collections/actions';
-import { removeCollection, addTransientDirectory, updateCollectionMountStatus } from '../collections';
+import { removeCollection, updateCollectionMountStatus } from '../collections';
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
@@ -1029,11 +1029,6 @@ export const mountScratchCollection = (workspaceUid) => {
         workspaceUid,
         scratchCollectionUid,
         scratchTempDirectory: tempDirectoryPath
-      }));
-
-      dispatch(addTransientDirectory({
-        collectionUid: scratchCollectionUid,
-        pathname: tempDirectoryPath
       }));
 
       dispatch(updateCollectionMountStatus({ collectionUid: scratchCollectionUid, mountStatus: 'mounted' }));

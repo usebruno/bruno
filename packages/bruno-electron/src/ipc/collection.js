@@ -441,6 +441,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  // Check if a path is inside the transient directory
+  ipcMain.handle('renderer:is-transient-path', async (event, pathname) => {
+    return transientManager.isTransientPath(pathname);
+  });
+
+  // Get the transient directory path for a collection
+  ipcMain.handle('renderer:get-transient-directory', async (event, collectionUid) => {
+    return transientManager.getDirectoryPath(collectionUid);
+  });
+
   // List closed transient requests (files in transient directory not currently open)
   ipcMain.handle('renderer:list-closed-transient-requests', async (event, collectionUid, openTabUids = []) => {
     try {
@@ -1809,7 +1819,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           meta: {
             collectionUid,
             pathname,
-            name: path.basename(pathname)
+            name: path.basename(pathname),
+            isTransient: isTransientPath(pathname)
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
@@ -1833,7 +1844,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           meta: {
             collectionUid,
             pathname,
-            name: path.basename(pathname)
+            name: path.basename(pathname),
+            isTransient: isTransientPath(pathname)
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
@@ -1859,7 +1871,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           meta: {
             collectionUid,
             pathname,
-            name: path.basename(pathname)
+            name: path.basename(pathname),
+            isTransient: isTransientPath(pathname)
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
@@ -1883,7 +1896,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           meta: {
             collectionUid,
             pathname,
-            name: path.basename(pathname)
+            name: path.basename(pathname),
+            isTransient: isTransientPath(pathname)
           }
         };
         let bruContent = fs.readFileSync(pathname, 'utf8');
@@ -1909,7 +1923,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       meta: {
         collectionUid,
         pathname,
-        name: path.basename(pathname)
+        name: path.basename(pathname),
+        isTransient: isTransientPath(pathname)
       }
     };
 

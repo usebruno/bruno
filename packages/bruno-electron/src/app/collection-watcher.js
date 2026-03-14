@@ -280,7 +280,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         collectionUid,
         pathname,
         name: path.basename(pathname),
-        folderRoot: true
+        folderRoot: true,
+        isTransient: transientManager.isTransientPath(pathname)
       }
     };
 
@@ -306,7 +307,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       meta: {
         collectionUid,
         pathname,
-        name: path.basename(pathname)
+        name: path.basename(pathname),
+        isTransient: transientManager.isTransientPath(pathname)
       }
     };
 
@@ -414,7 +416,8 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
       pathname,
       name,
       seq,
-      uid: getRequestUid(pathname)
+      uid: getRequestUid(pathname),
+      isTransient: transientManager.isTransientPath(pathname)
     }
   };
 
@@ -505,7 +508,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
         collectionUid,
         pathname,
         name: path.basename(pathname),
-        folderRoot: true
+        folderRoot: true,
+        isTransient: transientManager.isTransientPath(pathname)
       }
     };
 
@@ -530,7 +534,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
         meta: {
           collectionUid,
           pathname,
-          name: path.basename(pathname)
+          name: path.basename(pathname),
+          isTransient: transientManager.isTransientPath(pathname)
         }
       };
 
