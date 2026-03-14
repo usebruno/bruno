@@ -5,7 +5,7 @@ import {
   IconTrash,
   IconArrowBackUp,
   IconExternalLink,
-  IconClock,
+  IconAlertTriangle,
   IconInfoCircle,
   IconLoader2
 } from '@tabler/icons';
@@ -25,7 +25,8 @@ const CollectionStatusSection = ({
   storedSpec,
   lastSyncDate,
   onOpenEndpoint,
-  isLoading
+  isLoading,
+  onTabSelect
 }) => {
   const {
     pendingAction, setPendingAction,
@@ -71,8 +72,6 @@ const CollectionStatusSection = ({
         variant: 'muted',
         message: 'Collection has changes since last sync',
         badges: { modifiedCount, missingCount, localOnlyCount },
-        version,
-        lastSyncDate,
         actions: ['revert-all']
       };
     }
@@ -117,7 +116,7 @@ const CollectionStatusSection = ({
       {hasDrift && (
         <div className="sync-info-notice mt-4">
           <IconInfoCircle size={14} className="sync-info-icon" />
-          <span><span className="whats-updated-title">What's tracked:</span> Changes to URL, parameters, headers, body and auth compared to the synced spec. Your variables, scripts, tests, assertions, settings etc. are not tracked here.</span>
+          <span><span className="whats-updated-title">What's tracked:</span> Changes to parameters, headers, body and auth compared to the synced spec. Your variables, scripts, tests, assertions, settings etc. are not tracked here.</span>
         </div>
       )}
 
@@ -222,26 +221,15 @@ const CollectionStatusSection = ({
           <p>Comparing your collection with the last synced spec...</p>
         </div>
       ) : !hasStoredSpec ? (
-        <>
-          <div className="spec-update-banner warning">
-            <div className="banner-left">
-              <div className="status-dot warning" />
-              <span className="banner-title">
-                {lastSyncDate
-                  ? 'Last synced spec is required to show collection changes. Restore the latest spec from the source to track future changes.'
-                  : 'Collection changes will be available after the initial sync'}
-              </span>
-            </div>
-          </div>
-          <div className="sync-review-empty-state mt-5">
-            <IconClock size={40} className="empty-state-icon" />
-            <h4>{lastSyncDate ? 'Last Synced Spec missing from storage' : 'Waiting for initial sync'}</h4>
-            <p>{lastSyncDate
-              ? 'Restore the latest spec from the source to track future changes.'
-              : 'Once you sync your collection with the spec, changes will appear here.'}
-            </p>
-          </div>
-        </>
+        <div className="sync-review-empty-state mt-5">
+          <IconAlertTriangle size={40} className="empty-state-icon" />
+          <h4>{lastSyncDate ? 'Cannot track collection changes' : 'Waiting for initial sync'}</h4>
+          <p>{lastSyncDate
+            ? 'The last synced spec is missing. Go to the \'Spec Updates\' tab to restore it, or sync the collection if updates are available to track future changes.'
+            : 'Once you sync your collection with the spec, local changes will appear here.'}
+          </p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => onTabSelect('spec-updates')}>Go to Spec Updates</Button>
+        </div>
       ) : (
         <div className="sync-review-empty-state mt-5">
           <IconCheck size={40} className="empty-state-icon" />

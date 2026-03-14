@@ -157,6 +157,7 @@ const OpenAPISyncTab = ({ collection }) => {
                   lastSyncDate={openApiSyncConfig?.lastSyncDate}
                   onOpenEndpoint={openEndpointInTab}
                   isLoading={isDriftLoading || isLoading}
+                  onTabSelect={setActiveTab}
                 />
               </div>
             )}

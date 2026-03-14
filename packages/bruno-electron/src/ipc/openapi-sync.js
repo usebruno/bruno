@@ -462,7 +462,12 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false } =
     return {
       ...existingRequest,
       request: {
-        ...specItem.request,
+        ...existingRequest.request,
+        url: specItem.request.url,
+        method: specItem.request.method,
+        body: specItem.request.body,
+        auth: specItem.request.auth,
+        docs: specItem.request.docs,
         params: mergedParams || [],
         headers: mergedHeaders || []
       }

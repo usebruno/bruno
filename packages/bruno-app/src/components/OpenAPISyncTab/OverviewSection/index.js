@@ -21,7 +21,7 @@ const SUMMARY_CARDS = [
     key: 'inSync',
     label: 'In Sync with Spec',
     color: 'green',
-    tooltip: 'Endpoints that currently match the latest spec'
+    tooltip: 'Endpoints that currently match the latest spec from the source'
   },
   {
     key: 'changed',
@@ -46,10 +46,8 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   const specMeta = useSelector(selectStoredSpecMeta(collection.uid));
   const activeError = error || reduxError;
 
-  const version = storedSpec?.info?.version ?? specMeta?.version;
-  const newVersion = specDrift?.newVersion;
-  const hasVersionChange = version && newVersion && version !== newVersion;
-  const endpointCount = countEndpoints(storedSpec) ?? specMeta?.endpointCount ?? null;
+  const version = specMeta?.version;
+  const endpointCount = specMeta?.endpointCount ?? null;
   const lastSyncDate = openApiSyncConfig?.lastSyncDate;
   const groupBy = openApiSyncConfig?.groupBy || 'tags';
   const autoCheckEnabled = openApiSyncConfig?.autoCheck !== false;
@@ -90,7 +88,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   };
 
   const details = [
-    { label: 'Spec Version', value: hasVersionChange ? `v${version} → v${newVersion}` : version ? `v${version}` : '–' },
+    { label: 'Spec Version', value: version ? `v${version}` : '–' },
     { label: 'Endpoints in Spec', value: endpointCount != null ? endpointCount : '–' },
     { label: 'Last Synced At', value: lastSyncDate ? moment(lastSyncDate).fromNow() : '–', tooltip: lastSyncDate ? moment(lastSyncDate).format('MMMM D, YYYY [at] h:mm A') : undefined },
     { label: 'Folder Grouping', value: capitalize(groupBy) },
@@ -121,19 +119,10 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
         buttons: ['review']
       };
     }
-    if (specDrift?.storedSpecMissing && lastSyncDate) {
-      return {
-        variant: 'warning',
-        title: 'Last synced spec not found',
-        subtitle: 'The last synced spec is missing in the storage. Restore the latest spec from the source to track future changes.',
-        buttons: ['restore']
-      };
-    }
-    if (!hasDriftData) return null;
     if (hasSpecUpdates && hasCollectionChanges) {
       return {
         variant: 'warning',
-        title: `The API spec has new updates${versionInfo} and the collection has changes`,
+        title: `OpenAPI spec has new updates${versionInfo} and the collection has changes`,
         subtitle: 'New or changed requests are available. Some collection changes may be overwritten.',
         buttons: ['sync', 'changes']
       };
@@ -141,11 +130,20 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
     if (hasSpecUpdates) {
       return {
         variant: 'warning',
-        title: `The API spec has new updates${versionInfo}`,
+        title: `OpenAPI spec has new updates${versionInfo}`,
         subtitle: 'New or changed requests are available.',
         buttons: ['sync']
       };
     }
+    if (specDrift?.storedSpecMissing && lastSyncDate) {
+      return {
+        variant: 'warning',
+        title: 'Last synced spec not found',
+        subtitle: 'The last synced spec is missing in the storage. Restore the latest spec from the source to track collection changes.',
+        buttons: ['restore']
+      };
+    }
+    if (!hasDriftData) return null;
     if (hasCollectionChanges) {
       return {
         variant: 'muted',
@@ -197,7 +195,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
               )}
               {bannerState.buttons.includes('restore') && (
                 <Button size="sm" onClick={() => onTabSelect('spec-updates')}>
-                  Restore Spec File
+                  View Details
                 </Button>
               )}
               {bannerState.buttons.includes('spec-details') && (

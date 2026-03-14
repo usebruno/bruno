@@ -120,6 +120,13 @@ const useSyncFlow = ({
     return new Set((specDrift?.removed || []).map((ep) => ep.id));
   }, [specDrift]);
 
+  const handleRestoreSpec = () => {
+    const localOnlyIds = (remoteDrift?.localOnly || [])
+      .filter((ep) => specRemovedIds.has(ep.id))
+      .map((ep) => ep.id);
+    performSync({ localOnlyIds, endpointDecisions: {} }, 'sync');
+  };
+
   const handleConfirmModalSync = () => {
     const localOnlyIds = (remoteDrift?.localOnly || [])
       .filter((ep) => specRemovedIds.has(ep.id))
@@ -149,7 +156,7 @@ const useSyncFlow = ({
 
   return {
     isSyncing, showConfirmModal, confirmGroups,
-    handleSyncNow,
+    handleSyncNow, handleRestoreSpec,
     handleApplySync, cancelConfirmModal, handleConfirmModalSync
   };
 };

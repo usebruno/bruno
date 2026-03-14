@@ -32,14 +32,12 @@ const useOpenAPISync = (collection) => {
 
   const updateStoredSpec = (spec) => {
     setStoredSpec(spec);
-    if (spec) {
-      dispatch(setStoredSpecMeta({
-        collectionUid: collection.uid,
-        title: spec.info?.title || null,
-        version: spec.info?.version || null,
-        endpointCount: countEndpoints(spec)
-      }));
-    }
+    dispatch(setStoredSpecMeta({
+      collectionUid: collection.uid,
+      title: spec?.info?.title || null,
+      version: spec?.info?.version || null,
+      endpointCount: spec ? countEndpoints(spec) : null
+    }));
   };
 
   // Flatten collection items including nested items in folders
@@ -149,9 +147,7 @@ const useOpenAPISync = (collection) => {
       }
 
       setSpecDrift(result);
-      if (result.storedSpec) {
-        updateStoredSpec(result.storedSpec);
-      }
+      updateStoredSpec(result.storedSpec || null);
 
       // Update Redux store so toolbar status stays in sync
       dispatch(setCollectionUpdate({

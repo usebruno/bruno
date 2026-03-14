@@ -3,7 +3,8 @@ import { useSelector } from 'react-redux';
 import {
   IconCheck,
   IconRefresh,
-  IconAlertTriangle
+  IconAlertTriangle,
+  IconClock
 } from '@tabler/icons';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
@@ -23,13 +24,19 @@ const SpecStatusSection = ({
 
   const {
     isSyncing, showConfirmModal, confirmGroups,
-    handleSyncNow, handleApplySync, cancelConfirmModal, handleConfirmModalSync
+    handleSyncNow, handleRestoreSpec, handleApplySync, cancelConfirmModal, handleConfirmModalSync
   } = useSyncFlow({
     collection, specDrift, remoteDrift, collectionDrift,
     setError, checkForUpdates: onCheck
   });
 
   const lastSyncedAt = openApiSyncConfig?.lastSyncDate;
+
+  const hasRemoteUpdates = remoteDrift && (
+    (remoteDrift.missing?.length || 0)
+    + (remoteDrift.modified?.length || 0)
+    + (remoteDrift.localOnly?.length || 0)
+  ) > 0;
 
   const bannerState = useMemo(() => {
     if (fileNotFound) {
@@ -41,13 +48,12 @@ const SpecStatusSection = ({
     if (!specDrift) {
       return null;
     }
-    if (specDrift.storedSpecMissing) {
-      if (!lastSyncedAt) {
-        return { variant: 'warning', message: 'Initial sync required — your collection differs from the spec', actions: [] };
-      }
-      return { variant: 'warning', message: 'Last synced spec not found — Restore the latest spec from the source to track future changes.', actions: [] };
+    if (specDrift.storedSpecMissing && !hasRemoteUpdates) {
+      return null;
     }
-    const hasEndpointUpdates = (specDrift.added?.length || 0) + (specDrift.modified?.length || 0) + (specDrift.removed?.length || 0) > 0;
+    const hasEndpointUpdates = specDrift.storedSpecMissing
+      ? hasRemoteUpdates
+      : (specDrift.added?.length || 0) + (specDrift.modified?.length || 0) + (specDrift.removed?.length || 0) > 0;
     if (hasEndpointUpdates) {
       const versionInfo = (specDrift.storedVersion && specDrift.newVersion && specDrift.storedVersion !== specDrift.newVersion)
         ? ` (v${specDrift.storedVersion} → v${specDrift.newVersion})`
@@ -63,7 +69,7 @@ const SpecStatusSection = ({
     //   lastChecked: lastCheckedAt ? moment(lastCheckedAt).fromNow() : 'just now'
     // };
     return null;
-  }, [fileNotFound, error, sourceUrl, specDrift, lastSyncedAt, storedSpec, lastCheckedAt]);
+  }, [fileNotFound, error, sourceUrl, specDrift, lastSyncedAt, storedSpec, lastCheckedAt, hasRemoteUpdates]);
   return (
     <>
       {bannerState && (
@@ -93,7 +99,7 @@ const SpecStatusSection = ({
             </div>
             <div className="banner-actions">
               {bannerState.actions.includes('quick-sync') && (
-                <Button size="xs" onClick={handleSyncNow}>Restore Spec File</Button>
+                <Button size="xs" onClick={handleRestoreSpec}>Restore Spec File</Button>
               )}
               {bannerState.actions.includes('open-settings') && (
                 <Button variant="ghost" size="sm" onClick={onOpenSettings}>
@@ -111,12 +117,12 @@ const SpecStatusSection = ({
           <h4>Unable to check for updates</h4>
           <p>Fix the connection issue above and check again.</p>
         </div>
-      ) : specDrift?.storedSpecMissing && openApiSyncConfig?.lastSyncDate ? (
+      ) : specDrift?.storedSpecMissing && openApiSyncConfig?.lastSyncDate && !hasRemoteUpdates ? (
         <div className="sync-review-empty-state mt-5">
-          <IconRefresh size={40} className="empty-state-icon" />
-          <h4>Last Synced Spec not found in storage</h4>
-          <p>The last synced spec is missing in the storage. Restore the latest spec from the source to track future changes.</p>
-          <Button className="mt-4" color="warning" onClick={handleSyncNow} loading={isSyncing}>
+          <IconCheck size={40} className="empty-state-icon" />
+          <h4>No updates from the spec</h4>
+          <p>The spec endpoints have not been updated since the last sync. You can restore the spec file to track local collection changes.</p>
+          <Button className="mt-4" color="warning" onClick={handleRestoreSpec} loading={isSyncing}>
             Restore Spec File
           </Button>
         </div>
