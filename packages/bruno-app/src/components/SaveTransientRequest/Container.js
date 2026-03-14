@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
 import SaveTransientRequest from './index';
+import StyledWrapper from './StyledWrapper';
 
 const SaveTransientRequestContainer = () => {
   const dispatch = useDispatch();
@@ -58,65 +59,64 @@ const SaveTransientRequestContainer = () => {
 
   // Show list of multiple modals
   return (
-    <Modal
-      size="md"
-      title="Unsaved Transient Requests"
-      hideFooter={true}
-      disableEscapeKey={true}
-      disableCloseOnOutsideClick={true}
-      handleCancel={handleCancel}
-    >
-      <div className="flex items-center">
-        <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
-        <h1 className="ml-2 text-lg font-medium">You have unsaved transient requests</h1>
-      </div>
-      <p className="mt-4">
-        You have <span className="font-medium">{modals.length}</span>{' '}
-        {pluralizeWord('request', modals.length)} that need to be saved.
-      </p>
-
-      <div className="mt-4">
-        <p className="text-sm font-medium mb-2">
-          Transient {pluralizeWord('Request', modals.length)} ({modals.length})
-        </p>
-        <p className="text-xs text-orange-600 mb-3">
-          These requests need to be saved before you can proceed.
-        </p>
-        <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
-          {modals.map((modal) => {
-            const { item, collection } = modal;
-            return (
-              <div
-                key={item.uid}
-                className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded border border-gray-200"
-              >
-                <div className="flex flex-col flex-1 min-w-0 mr-3">
-                  <span className="text-sm text-gray-700 truncate">{item.name}</span>
-                  <span className="text-xs text-gray-500 truncate">
-                    {collection.name}
-                  </span>
-                </div>
-                <Button
-                  color="primary"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleOpenSpecificModal(item.uid)}
-                  icon={<IconDeviceFloppy size={14} strokeWidth={1.5} />}
-                >
-                  Save
-                </Button>
-              </div>
-            );
-          })}
+    <StyledWrapper>
+      <Modal
+        size="md"
+        title="Unsaved Transient Requests"
+        hideFooter={true}
+        disableEscapeKey={true}
+        disableCloseOnOutsideClick={true}
+        handleCancel={handleCancel}
+      >
+        <div className="unsaved-requests-header">
+          <IconAlertTriangle size={32} strokeWidth={1.5} className="unsaved-requests-icon" />
+          <h1 className="unsaved-requests-title">You have unsaved transient requests</h1>
         </div>
-      </div>
+        <p className="unsaved-requests-description">
+          You have <span className="font-medium">{modals.length}</span>{' '}
+          {pluralizeWord('request', modals.length)} that need to be saved.
+        </p>
 
-      <div className="flex justify-end mt-6 pt-4 border-t">
-        <Button color="danger" onClick={handleDiscardAll}>
-          Discard All
-        </Button>
-      </div>
-    </Modal>
+        <div className="unsaved-requests-list-section">
+          <p className="unsaved-requests-list-title">
+            Transient {pluralizeWord('Request', modals.length)} ({modals.length})
+          </p>
+          <p className="unsaved-requests-list-subtitle">
+            These requests need to be saved before you can proceed.
+          </p>
+          <div className="unsaved-requests-list">
+            {modals.map((modal) => {
+              const { item, collection } = modal;
+              return (
+                <div key={item.uid} className="unsaved-request-item">
+                  <div className="unsaved-request-item-content">
+                    <span className="unsaved-request-item-name">{item.name}</span>
+                    <span className="unsaved-request-item-collection">
+                      {collection.name}
+                    </span>
+                  </div>
+                  <Button
+                    color="primary"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleOpenSpecificModal(item.uid)}
+                    icon={<IconDeviceFloppy size={14} strokeWidth={1.5} />}
+                  >
+                    Save
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="unsaved-requests-footer">
+          <Button color="danger" onClick={handleDiscardAll}>
+            Discard All
+          </Button>
+        </div>
+      </Modal>
+    </StyledWrapper>
   );
 };
 
