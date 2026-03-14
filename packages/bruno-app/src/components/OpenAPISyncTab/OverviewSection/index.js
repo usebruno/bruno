@@ -140,7 +140,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
         variant: 'warning',
         title: 'Last synced spec not found',
         subtitle: 'The last synced spec is missing in the storage. Restore the latest spec from the source to track collection changes.',
-        buttons: ['restore']
+        buttons: ['spec-details']
       };
     }
     if (!hasDriftData) return null;
@@ -193,14 +193,9 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
                   Review and Sync Collection
                 </Button>
               )}
-              {bannerState.buttons.includes('restore') && (
-                <Button size="sm" onClick={() => onTabSelect('spec-updates')}>
-                  View Details
-                </Button>
-              )}
               {bannerState.buttons.includes('spec-details') && (
                 <Button variant="outline" size="sm" onClick={() => onTabSelect('spec-updates')}>
-                  View Details
+                  Go to Spec Updates
                 </Button>
               )}
               {bannerState.buttons.includes('open-settings') && (
