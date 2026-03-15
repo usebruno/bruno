@@ -435,6 +435,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       await writeFile(targetPathname, finalContent);
+
+      // Delete the source file from transient directory
+      if (transientManager.isTransientPath(sourcePathname)) {
+        try {
+          await fs.promises.unlink(sourcePathname);
+        } catch (err) {
+          console.error(`Failed to delete transient file ${sourcePathname}:`, err.message);
+        }
+      }
+
       return { newPathname: targetPathname };
     } catch (error) {
       return Promise.reject(error);
