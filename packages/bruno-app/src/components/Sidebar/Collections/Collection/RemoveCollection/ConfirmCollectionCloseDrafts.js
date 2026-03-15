@@ -31,27 +31,18 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
   }, [activeCollection, collectionUid]);
 
   const handleSaveAll = () => {
-    if (drafts.length > 0) {
-      dispatch(saveMultipleRequests(drafts))
-        .then(() => {
-          dispatch(removeCollection(collectionUid))
-            .then(() => {
-              toast.success('Collection removed from workspace');
-              onClose();
-            })
-            .catch(() => toast.error('An error occurred while removing the collection'));
-        })
-        .catch(() => {
-          toast.error('Failed to save requests!');
-        });
-    } else {
-      dispatch(removeCollection(collectionUid))
-        .then(() => {
-          toast.success('Collection removed from workspace');
-          onClose();
-        })
-        .catch(() => toast.error('An error occurred while removing the collection'));
-    }
+    dispatch(saveMultipleRequests(drafts))
+      .then(() => {
+        dispatch(removeCollection(collectionUid))
+          .then(() => {
+            toast.success('Collection removed from workspace');
+            onClose();
+          })
+          .catch(() => toast.error('An error occurred while removing the collection'));
+      })
+      .catch(() => {
+        toast.error('Failed to save requests!');
+      });
   };
 
   const handleDiscardAll = () => {
