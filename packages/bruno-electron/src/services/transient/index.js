@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const { app } = require('electron');
 
 /**
@@ -69,7 +68,7 @@ class TransientRequestManager {
    * Get or create a transient directory for a collection.
    * If one already exists and is valid, reuse it.
    */
-  getOrCreateDirectory(collectionUid, collectionPath, format = 'bru') {
+  getOrCreateDirectory(collectionUid, collectionPath, format = 'yml') {
     const mapping = this.readMapping();
 
     // Check if we already have a valid mapping
@@ -84,9 +83,7 @@ class TransientRequestManager {
       fs.mkdirSync(basePath, { recursive: true });
     }
 
-    const dirName = 'bruno-' + crypto.randomBytes(8).toString('hex');
-    const transientDir = path.join(basePath, dirName);
-    fs.mkdirSync(transientDir, { recursive: true });
+    const transientDir = fs.mkdtempSync(path.join(basePath, 'bruno-'));
 
     // Update mapping
     mapping.collections[collectionUid] = {
@@ -125,7 +122,7 @@ class TransientRequestManager {
         return {
           collectionUid,
           collectionPath: entry.pathname,
-          format: entry.format || 'bru'
+          format: entry.format || 'yml'
         };
       }
     }
@@ -222,7 +219,7 @@ class TransientRequestManager {
     // Get format from mapping if not provided
     if (!format) {
       const mapping = this.readMapping();
-      format = mapping.collections[collectionUid]?.format || 'bru';
+      format = mapping.collections[collectionUid]?.format || 'yml';
     }
 
     const extension = format === 'yml' ? '.yml' : '.bru';
