@@ -601,6 +601,38 @@ describe('TransientRequestManager', () => {
     });
   });
 
+  describe('deleteDirectoryByPath', () => {
+    test('deletes directory when path matches', () => {
+      const transientDir = '/mock/userData/tmp/transient/bruno-abc123';
+      const mockMapping = {
+        collections: {
+          'uid-123': {
+            pathname: '/path/to/collection',
+            transientDir: transientDir,
+            format: 'bru'
+          }
+        }
+      };
+
+      jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify(mockMapping));
+      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+      jest.spyOn(fs, 'rmSync').mockImplementation(() => {});
+      jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+
+      const result = transientManager.deleteDirectoryByPath('/path/to/collection');
+
+      expect(result).toBe(true);
+    });
+
+    test('returns false when path not found', () => {
+      jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify({ collections: {} }));
+
+      const result = transientManager.deleteDirectoryByPath('/unknown/path');
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('cleanupOrphanedDirectories', () => {
     test('removes mappings where collection path no longer exists', () => {
       const mockMapping = {

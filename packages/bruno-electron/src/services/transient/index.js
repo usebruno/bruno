@@ -178,6 +178,22 @@ class TransientRequestManager {
   }
 
   /**
+   * Delete the transient directory for a collection by its path
+   */
+  deleteDirectoryByPath(collectionPath) {
+    const mapping = this.readMapping();
+    const normalizedPath = path.normalize(collectionPath);
+
+    for (const [uid, entry] of Object.entries(mapping.collections)) {
+      if (entry.pathname && path.normalize(entry.pathname) === normalizedPath) {
+        return this.deleteDirectory(uid);
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Clean up orphaned transient directories.
    * Removes directories where the collection no longer exists.
    */

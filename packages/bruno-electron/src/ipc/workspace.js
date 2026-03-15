@@ -27,6 +27,7 @@ const {
   validateWorkspaceDirectory,
   getWorkspaceUid
 } = require('../utils/workspace-config');
+const transientManager = require('../services/transient');
 
 const { isValidCollectionDirectory } = require('../utils/filesystem');
 
@@ -576,6 +577,9 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       if (deleteFiles && result.removedCollection && fs.existsSync(collectionPath)) {
         await fsExtra.remove(collectionPath);
       }
+
+      // Clean up transient directory for the removed collection
+      transientManager.deleteDirectoryByPath(collectionPath);
 
       const correctWorkspaceUid = getWorkspaceUid(workspacePath);
       const isDefault = correctWorkspaceUid === 'default';
