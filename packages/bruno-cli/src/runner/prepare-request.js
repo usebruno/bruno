@@ -356,7 +356,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     }
   }
 
-  if (request.body.mode === 'formUrlEncoded') {
+  if (request.body.mode === 'formUrlEncoded' || request.body.mode === 'form-urlencoded') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
     }
