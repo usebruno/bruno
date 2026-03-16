@@ -266,7 +266,7 @@ const loadBrunoConfig = (collectionPath) => {
   }
 
   // Resolve relative openapi sourceUrls to absolute so all callers get consistent paths
-  if (brunoConfig?.openapi) {
+  if (Array.isArray(brunoConfig?.openapi)) {
     brunoConfig.openapi = brunoConfig.openapi.map((entry) => ({
       ...entry,
       sourceUrl: resolveSourceUrl(collectionPath, entry.sourceUrl)
