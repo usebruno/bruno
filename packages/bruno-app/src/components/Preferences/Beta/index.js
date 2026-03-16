@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
@@ -73,16 +73,19 @@ const Beta = ({ close }) => {
       .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
   }, [dispatch, preferences]);
 
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
   const debouncedSave = useCallback(
     debounce((values) => {
       betaSchema.validate(values, { abortEarly: true })
         .then((validatedValues) => {
-          handleSave(validatedValues);
+          handleSaveRef.current(validatedValues);
         })
         .catch((error) => {
         });
     }, 500),
-    [handleSave, betaSchema]
+    [betaSchema]
   );
 
   // Auto-save when form values change
@@ -91,7 +94,7 @@ const Beta = ({ close }) => {
       debouncedSave(formik.values);
     }
     return () => {
-      debouncedSave.cancel();
+      debouncedSave.flush();
     };
   }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 
