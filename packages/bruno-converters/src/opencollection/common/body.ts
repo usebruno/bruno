@@ -90,13 +90,17 @@ export const fromOpenCollectionBody = (body: HttpRequestBody | GraphQLBody | und
         return {
           ...defaultBody,
           mode: 'formUrlEncoded',
-          formUrlEncoded: (formBody.data || []).map((field): BrunoKeyValue => ({
-            uid: uuid(),
-            name: field.name || '',
-            value: field.value || '',
-            description: typeof field.description === 'string' ? field.description : field.description?.content || null,
-            enabled: field.disabled !== true
-          }))
+          formUrlEncoded: (formBody.data || []).map((field): BrunoKeyValue => {
+            const entry: BrunoKeyValue = {
+              uid: uuid(),
+              name: field.name || '',
+              value: field.value || '',
+              enabled: field.disabled !== true
+            };
+            const desc = typeof field.description === 'string' ? field.description : field.description?.content;
+            if (desc && desc.trim().length) entry.description = desc;
+            return entry;
+          })
         };
       }
 
@@ -105,15 +109,19 @@ export const fromOpenCollectionBody = (body: HttpRequestBody | GraphQLBody | und
         return {
           ...defaultBody,
           mode: 'multipartForm',
-          multipartForm: (multipartBody.data || []).map((field): BrunoMultipartFormEntry => ({
-            uid: uuid(),
-            type: field.type || 'text',
-            name: field.name || '',
-            value: Array.isArray(field.value) ? field.value : (field.value || ''),
-            description: typeof field.description === 'string' ? field.description : field.description?.content || null,
-            contentType: null,
-            enabled: field.disabled !== true
-          }))
+          multipartForm: (multipartBody.data || []).map((field): BrunoMultipartFormEntry => {
+            const entry: BrunoMultipartFormEntry = {
+              uid: uuid(),
+              type: field.type || 'text',
+              name: field.name || '',
+              value: Array.isArray(field.value) ? field.value : (field.value || ''),
+              contentType: null,
+              enabled: field.disabled !== true
+            };
+            const desc = typeof field.description === 'string' ? field.description : field.description?.content;
+            if (desc && desc.trim().length) entry.description = desc;
+            return entry;
+          })
         };
       }
 

@@ -58,7 +58,7 @@ const EnvironmentVariablesTable = ({
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
   const [tableHeight, setTableHeight] = useState(MIN_H);
-  const [columnWidths, setColumnWidths] = useState({ name: '30%', value: 'auto' });
+  const [columnWidths, setColumnWidths] = useState({ name: '30%', value: 'auto', description: '25%' });
   const [resizing, setResizing] = useState(null);
   const [focusedNameIndex, setFocusedNameIndex] = useState(null);
 
@@ -83,10 +83,11 @@ const EnvironmentVariablesTable = ({
       const maxShrink = startWidth - MIN_COLUMN_WIDTH;
       const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
 
-      setColumnWidths({
+      setColumnWidths((prev) => ({
+        ...prev,
         [columnKey]: `${startWidth + clampedDiff}px`,
         [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
-      });
+      }));
     };
 
     const handleMouseUp = () => {
@@ -116,14 +117,15 @@ const EnvironmentVariablesTable = ({
   const initialValues = useMemo(() => {
     const vars = environment.variables || [];
     return [
-      ...vars,
+      ...vars.map((v) => ({ ...v, description: v.description ?? '' })),
       {
         uid: uuid(),
         name: '',
         value: '',
         type: 'text',
         secret: false,
-        enabled: true
+        enabled: true,
+        description: ''
       }
     ];
   }, [environment.uid, environment.variables]);
@@ -149,7 +151,8 @@ const EnvironmentVariablesTable = ({
         secret: Yup.boolean(),
         type: Yup.string(),
         uid: Yup.string(),
-        value: Yup.mixed().nullable()
+        value: Yup.mixed().nullable(),
+        description: Yup.string().nullable()
       })
     ),
     validate: (values) => {
@@ -188,14 +191,15 @@ const EnvironmentVariablesTable = ({
 
     if ((isMount || envChanged || variablesReloaded) && hasDraftForThisEnv && draft?.variables) {
       formik.setValues([
-        ...draft.variables,
+        ...draft.variables.map((v) => ({ ...v, description: v.description ?? '' })),
         {
           uid: uuid(),
           name: '',
           value: '',
           type: 'text',
           secret: false,
-          enabled: true
+          enabled: true,
+          description: ''
         }
       ]);
     }
@@ -290,7 +294,8 @@ const EnvironmentVariablesTable = ({
               value: '',
               type: 'text',
               secret: false,
-              enabled: true
+              enabled: true,
+              description: ''
             }
           ];
 
@@ -310,7 +315,8 @@ const EnvironmentVariablesTable = ({
         value: '',
         type: 'text',
         secret: false,
-        enabled: true
+        enabled: true,
+        description: ''
       };
       setTimeout(() => {
         formik.setFieldValue(formik.values.length, newVariable, false);
@@ -366,7 +372,8 @@ const EnvironmentVariablesTable = ({
             value: '',
             type: 'text',
             secret: false,
-            enabled: true
+            enabled: true,
+            description: ''
           }
         ];
         formik.resetForm({ values: newValues });
@@ -381,14 +388,15 @@ const EnvironmentVariablesTable = ({
   const handleReset = useCallback(() => {
     const originalVars = environment.variables || [];
     const resetValues = [
-      ...originalVars,
+      ...originalVars.map((v) => ({ ...v, description: v.description ?? '' })),
       {
         uid: uuid(),
         name: '',
         value: '',
         type: 'text',
         secret: false,
-        enabled: true
+        enabled: true,
+        description: ''
       }
     ];
     formik.resetForm({ values: resetValues });
@@ -421,14 +429,18 @@ const EnvironmentVariablesTable = ({
     return allVariables.filter(({ variable }) => {
       const nameMatch = variable.name ? variable.name.toLowerCase().includes(query) : false;
       const valueMatch = typeof variable.value === 'string' ? variable.value.toLowerCase().includes(query) : false;
-      return !!(nameMatch || valueMatch);
+      const descriptionMatch = variable.description && typeof variable.description === 'string'
+        ? variable.description.toLowerCase().includes(query)
+        : false;
+
+      return !!(nameMatch || valueMatch || descriptionMatch);
     });
   }, [formik.values, searchQuery]);
 
   const isSearchActive = !!searchQuery?.trim();
 
   return (
-    <StyledWrapper className={resizing ? 'is-resizing' : ''}>
+    <StyledWrapper className={`${resizing ? 'is-resizing' : ''} has-description-column`.trim()}>
       {isSearchActive && filteredVariables.length === 0 ? (
         <div className="no-results">No results found for &ldquo;{searchQuery.trim()}&rdquo;</div>
       ) : (
@@ -450,11 +462,12 @@ const EnvironmentVariablesTable = ({
                 />
               </td>
               <td style={{ width: columnWidths.value }}>Value</td>
-              <td className="text-center">Secret</td>
-              <td></td>
+              <td style={{ width: columnWidths.description }}>Description</td>
+              <td className="text-center secret-column">Secret</td>
+              <td className="actions-column"></td>
             </tr>
           )}
-          fixedItemHeight={35}
+          defaultItemHeight={35}
           computeItemKey={(virtualIndex, item) => `${environment.uid}-${item.index}`}
           itemContent={(virtualIndex, { variable, index: actualIndex }) => {
             const isLastRow = actualIndex === formik.values.length - 1;
@@ -513,40 +526,53 @@ const EnvironmentVariablesTable = ({
                   </div>
                 </td>
                 <td
-                  className="flex flex-row flex-nowrap items-center"
                   style={{ width: columnWidths.value, ...(valueMatchesOnly && valueMatchBg ? { background: valueMatchBg } : {}) }}
                 >
-                  <div className="overflow-hidden grow w-full relative">
-                    <MultiLineEditor
-                      theme={storedTheme}
-                      collection={_collection}
-                      name={`${actualIndex}.value`}
-                      value={variable.value}
-                      placeholder={isLastEmptyRow ? 'Value' : ''}
-                      isSecret={variable.secret}
-                      readOnly={isSearchActive || typeof variable.value !== 'string'}
-                      onChange={(newValue) => {
-                        formik.setFieldValue(`${actualIndex}.value`, newValue, true);
-                        // Clear ephemeral metadata when user manually edits the value
-                        if (variable.ephemeral) {
-                          formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
-                          formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
-                        }
-                      }}
-                      onSave={handleSave}
-                    />
-                  </div>
-                  {typeof variable.value !== 'string' && (
-                    <span className="ml-2 flex items-center">
-                      <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
-                      <Tooltip
-                        anchorId={`${variable.uid}-disabled-info-icon`}
-                        content="Non-string values set via scripts are read-only and can only be updated through scripts."
-                        place="top"
+                  <div className="flex flex-row flex-nowrap items-start w-full">
+                    <div className="overflow-hidden grow w-full relative">
+                      <MultiLineEditor
+                        theme={storedTheme}
+                        collection={_collection}
+                        name={`${actualIndex}.value`}
+                        value={variable.value}
+                        placeholder={isLastEmptyRow ? 'Value' : ''}
+                        isSecret={variable.secret}
+                        readOnly={isSearchActive || typeof variable.value !== 'string'}
+                        onChange={(newValue) => {
+                          formik.setFieldValue(`${actualIndex}.value`, newValue, true);
+                          // Clear ephemeral metadata when user manually edits the value
+                          if (variable.ephemeral) {
+                            formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
+                            formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
+                          }
+                        }}
+                        onSave={handleSave}
                       />
-                    </span>
-                  )}
-                  {renderExtraValueContent && renderExtraValueContent(variable)}
+                    </div>
+                    {typeof variable.value !== 'string' && (
+                      <span className="ml-2 flex items-center flex-shrink-0">
+                        <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
+                        <Tooltip
+                          anchorId={`${variable.uid}-disabled-info-icon`}
+                          content="Non-string values set via scripts are read-only and can only be updated through scripts."
+                          place="top"
+                        />
+                      </span>
+                    )}
+                    {renderExtraValueContent && renderExtraValueContent(variable)}
+                  </div>
+                </td>
+                <td style={{ width: columnWidths.description }}>
+                  <MultiLineEditor
+                    theme={storedTheme}
+                    collection={_collection}
+                    name={`${actualIndex}.description`}
+                    value={variable.description ?? ''}
+                    readOnly={false}
+                    onChange={(newValue) => formik.setFieldValue(`${actualIndex}.description`, newValue, true)}
+                    onSave={handleSave}
+                    allowNewlines={true}
+                  />
                 </td>
                 <td className="text-center">
                   {!isLastEmptyRow && (

@@ -259,7 +259,8 @@ export const brunoToPostman = (collection) => {
               key: bodyItem.name || '',
               value: bodyItem.value || '',
               disabled: !bodyItem.enabled,
-              type: 'default'
+              type: 'default',
+              description: bodyItem.description || ''
             };
           })
         };
@@ -282,6 +283,7 @@ export const brunoToPostman = (collection) => {
               key: bodyItem.name || '',
               disabled: !bodyItem.enabled,
               type: isFile ? 'file' : 'text',
+              description: bodyItem.description || '',
               ...(isFile ? { src: getSrc() } : { value: bodyItem.value || '' }),
               ...(bodyItem.contentType && { contentType: bodyItem.contentType })
             };

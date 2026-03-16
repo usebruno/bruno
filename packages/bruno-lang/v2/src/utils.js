@@ -19,6 +19,48 @@ const indentString = (str, levels = 1) => {
     .join('\n');
 };
 
+/**
+ * Like indentString but adds one extra indent level to lines inside @description('''...''') content
+ * so multiline description content is indented relative to its key line, matching env multiline value behaviour.
+ * When reading back, parsers strip those 4 spaces (2 block + 2 extra) to recover the original description.
+ */
+const indentWithDescription = (str, levels = 1) => {
+  if (!str || !str.length) {
+    return str || '';
+  }
+
+  const indent = '  '.repeat(levels);
+  // split the string into lines
+  const lines = str.split(/\r\n|\r|\n/);
+
+  // tracks whether we're inside a multiline @description('''...''') block
+  let inDescContent = false;
+  const result = [];
+
+  for (const line of lines) {
+    const trimmed = line.trimEnd();
+    if (inDescContent) {
+      if (/^\s*'''\s*\)?\s*$/.test(trimmed)) {
+        // closing ''' or ''') — exit description content and apply normal indent
+        inDescContent = false;
+        result.push(indent + line);
+      } else {
+        // description content line — add one extra indent level so it's visually nested
+        result.push(indent + '  ' + line);
+      }
+    } else {
+      // detect start of a multiline @description(''' — it ends with ''' but NOT with ''')
+      // (single-line @description('''text''') ends with ''' ) so we skip those)
+      if (trimmed.includes('@description(\'\'\'') && trimmed.endsWith('\'\'\'') && !trimmed.endsWith('\'\'\')')) {
+        inDescContent = true;
+      }
+      result.push(indent + line);
+    }
+  }
+
+  return result.join('\n');
+};
+
 const outdentString = (str, spaces = 2) => {
   if (!str || !str.length) {
     return str || '';
@@ -71,6 +113,7 @@ const getValueUrl = (url) => {
 module.exports = {
   safeParseJson,
   indentString,
+  indentWithDescription,
   outdentString,
   getValueString,
   getKeyString,

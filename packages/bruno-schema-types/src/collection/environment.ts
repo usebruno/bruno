@@ -7,6 +7,7 @@ export interface EnvironmentVariable {
   type: 'text';
   enabled?: boolean;
   secret?: boolean;
+  description?: string | null;
 }
 
 export interface Environment {
