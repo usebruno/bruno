@@ -1186,7 +1186,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             if (item.type === 'folder') {
               let sanitizedFolderName = sanitizeName(item?.filename || item?.name);
               const folderPath = path.join(currentPath, sanitizedFolderName);
-              fs.mkdirSync(folderPath);
+              fs.mkdirSync(folderPath, { recursive: true });
 
               if (item?.root?.meta?.name) {
                 const folderFilePath = path.join(folderPath, `folder.${format}`);
