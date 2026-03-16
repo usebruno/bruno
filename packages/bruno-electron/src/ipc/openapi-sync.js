@@ -282,7 +282,7 @@ const loadBrunoConfig = (collectionPath) => {
 const saveBrunoConfig = async (collectionPath, format, brunoConfig, collectionRoot) => {
   // Convert absolute openapi sourceUrls back to collection-relative for git-shareability
   const configToSave = { ...brunoConfig };
-  if (configToSave?.openapi) {
+  if (Array.isArray(configToSave?.openapi)) {
     configToSave.openapi = configToSave.openapi.map((entry) => ({
       ...entry,
       sourceUrl: (entry.sourceUrl && !isValidHttpUrl(entry.sourceUrl))
@@ -439,7 +439,7 @@ const cleanupSpecFilesForCollection = (collectionPath) => {
  * Only preserves the user's enabled state; values come from the spec.
  */
 const mergeWithUserValues = (specItems, existingItems) => {
-  return specItems?.map((specItem) => {
+  return (specItems || []).map((specItem) => {
     const existing = (existingItems || []).find(
       (e) => e.name === specItem.name && e.value === specItem.value
     );
