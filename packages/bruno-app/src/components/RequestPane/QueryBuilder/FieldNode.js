@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo, useRef, useEffect } from 'react';
+import React, { useCallback, useState, useMemo, useRef } from 'react';
 import { IconChevronRight, IconChevronDown, IconTrash, IconInfoCircle } from '@tabler/icons';
 import { nanoid } from 'nanoid';
 import { getInputObjectFields } from 'utils/graphql/queryBuilder';
@@ -6,78 +6,63 @@ import { getInputObjectFields } from 'utils/graphql/queryBuilder';
 const ListArgValueInput = ({ values, onChange, field, indent }) => {
   const [items, setItems] = useState(() => {
     const vals = Array.isArray(values) ? values : (values ? [values] : []);
-    return vals.map((v) => ({ id: nanoid(), value: v }));
+    const mapped = vals.map((v) => ({ id: nanoid(), value: v }));
+    return [...mapped, { id: nanoid(), value: '' }];
   });
   const lastExternalRef = useRef(values);
-  const focusIdRef = useRef(null);
-  const listRef = useRef(null);
 
   // Sync internal items when values prop changes externally (e.g. editor edits)
   if (values !== lastExternalRef.current) {
     lastExternalRef.current = values;
     const vals = Array.isArray(values) ? values : (values ? [values] : []);
-    const currentValues = items.map((i) => i.value);
-    // Only re-sync if the values actually differ (avoid overwriting on our own onChange)
-    if (JSON.stringify(vals) !== JSON.stringify(currentValues)) {
-      setItems(vals.map((v) => ({ id: nanoid(), value: v })));
+    const filledValues = items.filter((i) => i.value !== '').map((i) => i.value);
+    if (JSON.stringify(vals) !== JSON.stringify(filledValues)) {
+      const mapped = vals.map((v) => ({ id: nanoid(), value: v }));
+      setItems([...mapped, { id: nanoid(), value: '' }]);
     }
   }
 
-  const syncItems = (nextItems) => {
-    setItems(nextItems);
-    onChange(nextItems.map((item) => item.value));
-  };
-
   const handleItemChange = (id, newValue) => {
-    syncItems(items.map((item) => (item.id === id ? { ...item, value: newValue } : item)));
-  };
-
-  const handleAdd = (newValue) => {
-    if (newValue === '' || newValue === undefined) return;
-    const id = nanoid();
-    focusIdRef.current = id;
-    syncItems([...items, { id, value: newValue }]);
+    let nextItems = items.map((item) => (item.id === id ? { ...item, value: newValue } : item));
+    const lastItem = nextItems[nextItems.length - 1];
+    if (lastItem && lastItem.value !== '') {
+      nextItems = [...nextItems, { id: nanoid(), value: '' }];
+    }
+    setItems(nextItems);
+    onChange(nextItems.filter((item) => item.value !== '').map((item) => item.value));
   };
 
   const handleRemove = (id) => {
-    syncItems(items.filter((item) => item.id !== id));
+    const nextItems = items.filter((item) => item.id !== id);
+    setItems(nextItems);
+    onChange(nextItems.filter((item) => item.value !== '').map((item) => item.value));
   };
 
-  useEffect(() => {
-    if (focusIdRef.current && listRef.current) {
-      const row = listRef.current.querySelector(`[data-item-id="${focusIdRef.current}"] input`);
-      if (row) {
-        row.focus();
-        // Place cursor at end
-        const len = row.value.length;
-        row.setSelectionRange(len, len);
-      }
-      focusIdRef.current = null;
-    }
-  });
-
   return (
-    <div ref={listRef}>
-      {items.map((item) => (
-        <div key={item.id} data-item-id={item.id} className="arg-row" style={{ paddingLeft: indent }} onClick={(e) => e.stopPropagation()}>
-          <ArgValueInput value={item.value} onChange={(v) => handleItemChange(item.id, v)} field={field} />
-          <button
-            type="button"
-            className="list-arg-remove"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRemove(item.id);
-            }}
-            aria-label="Remove item"
-          >
-            <IconTrash size={13} strokeWidth={1.5} />
-          </button>
-        </div>
-      ))}
-      <div className="arg-row" style={{ paddingLeft: indent }} onClick={(e) => e.stopPropagation()}>
-        <ArgValueInput value="" onChange={handleAdd} field={field} />
-        <span className="list-arg-remove-spacer" />
-      </div>
+    <div>
+      {items.map((item, index) => {
+        const isEmptyRow = index === items.length - 1 && item.value === '';
+        return (
+          <div key={item.id} className="arg-row" style={{ paddingLeft: indent }} onClick={(e) => e.stopPropagation()}>
+            <ArgValueInput value={item.value} onChange={(v) => handleItemChange(item.id, v)} field={field} />
+            {isEmptyRow ? (
+              <span className="list-arg-remove-spacer" />
+            ) : (
+              <button
+                type="button"
+                className="list-arg-remove"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemove(item.id);
+                }}
+                aria-label="Remove item"
+              >
+                <IconTrash size={13} strokeWidth={1.5} />
+              </button>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -212,7 +197,6 @@ const FieldNode = ({
   onArgChange,
   onToggleInputField,
   onSetInputFieldValue,
-  isCircular,
   hasChildren
 }) => {
   const indent = depth * 20;
@@ -228,11 +212,11 @@ const FieldNode = ({
   const handleExpand = useCallback(
     (e) => {
       e.stopPropagation();
-      if (!field.isLeaf && !isCircular) {
+      if (!field.isLeaf) {
         onToggleExpand(field.path);
       }
     },
-    [field.path, field.isLeaf, isCircular, onToggleExpand]
+    [field.path, field.isLeaf, onToggleExpand]
   );
 
   // Union member type row (e.g. "... on Human")
@@ -280,7 +264,7 @@ const FieldNode = ({
       <div
         className="field-node"
         role="treeitem"
-        aria-expanded={!field.isLeaf && !isCircular ? isExpanded : undefined}
+        aria-expanded={!field.isLeaf ? isExpanded : undefined}
         onClick={handleExpand}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -292,7 +276,7 @@ const FieldNode = ({
       >
         <span className="field-indent" style={{ width: indent }} />
         <span className="field-chevron">
-          {!field.isLeaf && !isCircular ? (
+          {!field.isLeaf ? (
             isExpanded ? (
               <IconChevronDown size={14} strokeWidth={2} />
             ) : (
@@ -310,7 +294,6 @@ const FieldNode = ({
         <span className="field-name">{field.name}</span>
         <span className="field-separator">:</span>
         <span className="field-type">{field.typeLabel}</span>
-        {isCircular && <span className="circular-indicator">circular</span>}
       </div>
 
       {showSections && hasArgs && (

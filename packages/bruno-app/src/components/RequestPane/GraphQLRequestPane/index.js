@@ -1,8 +1,8 @@
-import React, { useEffect, useCallback, useMemo, useRef, forwardRef } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import find from 'lodash/find';
 import get from 'lodash/get';
 import classnames from 'classnames';
-import { IconWand, IconDots, IconBook, IconDownload, IconRefresh, IconLoader2, IconFile, IconChevronDown, IconChevronRight } from '@tabler/icons';
+import { IconWand, IconDots, IconBook, IconDownload, IconRefresh, IconFile, IconChevronDown, IconChevronRight } from '@tabler/icons';
 import IconQueryBuilderToggle from 'components/Icons/IconQueryBuilderToggle';
 import ActionIcon from 'ui/ActionIcon';
 import { useSelector, useDispatch } from 'react-redux';
@@ -29,13 +29,11 @@ import Settings from 'components/RequestPane/Settings';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import AuthMode from '../Auth/AuthMode/index';
 
-const MenuIcon = forwardRef((props, ref) => (
+const MenuIcon = ({ ref, ...props }) => (
   <button ref={ref} className="graphql-menu-icon" title="More actions" {...props}>
     <IconDots size={16} strokeWidth={1.5} />
   </button>
-));
-
-MenuIcon.displayName = 'MenuIcon';
+);
 
 const TAB_CONFIG = [
   { key: 'query', label: 'Query' },
@@ -320,13 +318,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
         <IconQueryBuilderToggle collapsed={!showQueryBuilder} size={16} strokeWidth={1.5} />
       </ActionIcon>
       <MenuDropdown items={queryMenuItems} placement="bottom-end">
-        {isSchemaLoading ? (
-          <button className="graphql-menu-icon" title="Loading schema...">
-            <IconLoader2 className="animate-spin" size={14} strokeWidth={1.5} />
-          </button>
-        ) : (
-          <MenuIcon />
-        )}
+        <MenuIcon />
       </MenuDropdown>
     </div>
   ) : null;

@@ -83,7 +83,7 @@ const StyledWrapper = styled.div`
     flex: 1 1 0;
     min-height: 0;
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: auto;
     padding: 2px 0;
   }
 
@@ -134,7 +134,9 @@ const StyledWrapper = styled.div`
     cursor: pointer;
     font-size: 13px;
     line-height: 1.4;
-    min-width: 0;
+    white-space: nowrap;
+    width: fit-content;
+    min-width: 100%;
     outline: none;
 
     &:hover,
@@ -159,9 +161,6 @@ const StyledWrapper = styled.div`
     .field-name {
       color: ${(props) => props.theme.text};
       font-weight: 500;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
     .field-separator {
@@ -175,13 +174,6 @@ const StyledWrapper = styled.div`
       font-size: 12px;
       flex-shrink: 0;
       white-space: nowrap;
-    }
-
-    .circular-indicator {
-      color: ${(props) => props.theme.colors.text.muted};
-      font-size: 10px;
-      font-style: italic;
-      margin-left: 4px;
     }
 
     .union-label {
