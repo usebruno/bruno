@@ -208,7 +208,7 @@ const importCollectionLevelVariables = (variables, requestObject) => {
   const vars = variables.filter((v) => !(v.key == null && v.value == null)).map((v) => ({
     uid: uuid(),
     name: (v.key ?? '').replace(invalidVariableCharacterRegex, '_'),
-    value: v.value ?? '',
+    value: v.value == null ? '' : typeof v.value === 'string' ? v.value : JSON.stringify(v.value),
     enabled: true
   }));
 
