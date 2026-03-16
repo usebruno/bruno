@@ -189,6 +189,7 @@ test.describe('GraphQL Query Builder', () => {
       }
 
       await expect.poll(() => getQueryEditorContent(page)).toContain('email');
+      await page.waitForTimeout(200);
     });
 
     await test.step('Remove "email" field from the code editor', async () => {
