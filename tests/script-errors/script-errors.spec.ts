@@ -7,8 +7,10 @@ import { setSandboxMode, runCollection } from '../utils/page/runner';
  * Helper: click send and wait for at least one error card to appear.
  */
 const sendAndWaitForErrorCard = async (page: Page) => {
-  await page.getByTestId('send-arrow-icon').click();
-  await page.getByTestId('script-error-card').first().waitFor({ state: 'visible', timeout: 15000 });
+  const { request } = buildCommonLocators(page);
+  const se = buildScriptErrorLocators(page);
+  await request.sendButton().click();
+  await se.card().waitFor({ state: 'visible', timeout: 15000 });
 };
 
 /**
@@ -16,8 +18,9 @@ const sendAndWaitForErrorCard = async (page: Page) => {
  * Used for requests that succeed at HTTP level but may have post-response/test errors.
  */
 const sendAndWaitForResponse = async (page: Page) => {
-  await page.getByTestId('send-arrow-icon').click();
-  await page.getByTestId('response-status-code').waitFor({ state: 'visible', timeout: 15000 });
+  const { request, response } = buildCommonLocators(page);
+  await request.sendButton().click();
+  await response.statusCode().waitFor({ state: 'visible', timeout: 15000 });
 };
 
 /**
@@ -27,25 +30,26 @@ const sendAndWaitForResponse = async (page: Page) => {
  */
 const openFolderRequest = async (page: Page, collectionName: string, folderName: string, requestName: string) => {
   await test.step(`Open folder request "${requestName}" in "${folderName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    const collectionRow = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
-    await collectionRow.click();
-    const folder = page.locator('.collection-item-name').filter({ hasText: folderName });
+    const { sidebar, tabs } = buildCommonLocators(page);
+    await sidebar.collectionRow(collectionName).click();
+    const folder = sidebar.folder(folderName);
     await folder.waitFor({ state: 'visible' });
     await folder.click();
-    const request = page.locator('.collection-item-name').filter({ hasText: requestName });
+    const request = sidebar.request(requestName);
     await request.waitFor({ state: 'visible' });
     await request.click();
-    await expect(locators.tabs.activeRequestTab()).toContainText(requestName);
+    await expect(tabs.activeRequestTab()).toContainText(requestName);
   });
 };
 
 for (const mode of ['safe', 'developer'] as const) {
   test.describe.serial(`Script Error Display [${mode} mode]`, () => {
     let se: ReturnType<typeof buildScriptErrorLocators>;
+    let cl: ReturnType<typeof buildCommonLocators>;
 
     test.beforeAll(async ({ pageWithUserData: page }) => {
       se = buildScriptErrorLocators(page);
+      cl = buildCommonLocators(page);
 
       await setSandboxMode(page, 'script-errors-test', mode);
       await setSandboxMode(page, 'collection-script-error', mode);
@@ -69,7 +73,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify response status shows Error', async () => {
-        await expect(page.getByTestId('response-status-code')).toContainText('Error');
+        await expect(cl.response.statusCode()).toContainText('Error');
       });
     });
 
@@ -89,7 +93,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify HTTP 200 status', async () => {
-        await expect(page.getByTestId('response-status-code')).toContainText('200');
+        await expect(cl.response.statusCode()).toContainText('200');
       });
     });
 
@@ -180,7 +184,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify HTTP 200 status', async () => {
-        await expect(page.getByTestId('response-status-code')).toContainText('200');
+        await expect(cl.response.statusCode()).toContainText('200');
       });
     });
 
@@ -217,7 +221,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify navigation to folder settings with Script tab', async () => {
-        const activeTab = page.locator('.request-tab.active');
+        const activeTab = cl.tabs.activeRequestTab();
         await expect(activeTab).toContainText('error-subfolder');
         const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
         await expect(scriptTab).toHaveClass(/active/);
@@ -255,7 +259,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify navigation to collection settings with Script tab', async () => {
-        const activeTab = page.locator('.request-tab.active');
+        const activeTab = cl.tabs.activeRequestTab();
         await expect(activeTab).toContainText('Collection');
         const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
         await expect(scriptTab).toHaveClass(/active/);
@@ -274,7 +278,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify Script pane tab is active', async () => {
-        const activeTab = page.locator('.request-tab.active');
+        const activeTab = cl.tabs.activeRequestTab();
         await expect(activeTab).toContainText('pre-request-ref-error');
         const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
         await expect(scriptTab).toHaveClass(/active/);
@@ -328,7 +332,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify request tab opened with Script sub-tab active', async () => {
-        const activeTab = page.locator('.request-tab.active');
+        const activeTab = cl.tabs.activeRequestTab();
         await expect(activeTab).toContainText('pre-request-ref-error');
         const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
         await expect(scriptTab).toHaveClass(/active/);
@@ -371,7 +375,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify Script pane tab is active (same as click navigation)', async () => {
-        const activeTab = page.locator('.request-tab.active');
+        const activeTab = cl.tabs.activeRequestTab();
         await expect(activeTab).toContainText('pre-request-ref-error');
         const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
         await expect(scriptTab).toHaveClass(/active/);
@@ -435,7 +439,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify request tab opened with Tests sub-tab active', async () => {
-        const activeTab = page.locator('.request-tab.active');
+        const activeTab = cl.tabs.activeRequestTab();
         await expect(activeTab).toContainText('test-script-error');
         const testsTab = page.locator('.tabs [role="tab"]').getByText('Tests', { exact: true });
         await expect(testsTab).toHaveClass(/active/);

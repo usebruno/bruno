@@ -18,9 +18,7 @@ export const buildCommonLocators = (page: Page) => ({
       return folderWrapper.locator('.collection-item-name').filter({ hasText: requestName });
     },
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
-    collectionRow: (name: string) => page.locator('.collection-name').filter({
-      has: page.locator('#sidebar-collection-name', { hasText: name })
-    })
+    collectionRow: (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name })
   },
   actions: {
     collectionActions: (collectionName: string) =>
