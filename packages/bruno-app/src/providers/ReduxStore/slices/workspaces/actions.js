@@ -835,7 +835,7 @@ export const copyWorkspaceEnvironment = (workspaceUid, environmentUid, newName) 
   };
 };
 
-export const exportWorkspaceAction = (workspaceUid) => {
+export const shareWorkspaceAction = (workspaceUid) => {
   return async (dispatch, getState) => {
     try {
       const { workspaces } = getState().workspaces;

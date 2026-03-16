@@ -15,7 +15,7 @@ import {
   IconUpload
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
-import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
+import { switchWorkspace, renameWorkspaceAction, shareWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
@@ -25,6 +25,7 @@ import Dropdown from 'components/Dropdown';
 import MenuDropdown from 'ui/MenuDropdown';
 import CloseWorkspace from 'components/Sidebar/CloseWorkspace';
 import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
+import ShareWorkspace from 'components/ShareWorkspace';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import ToolHint from 'components/ToolHint';
 import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
@@ -55,6 +56,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const [workspaceNameError, setWorkspaceNameError] = useState('');
   const [closeWorkspaceModalOpen, setCloseWorkspaceModalOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
+  const [shareWorkspaceModalOpen, setShareWorkspaceModalOpen] = useState(false);
 
   const switcherRef = useRef();
   const workspaceActionsRef = useRef();
@@ -256,20 +258,10 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     }
   };
 
-  const handleExportWorkspace = () => {
+  const handleShareWorkspace = () => {
     workspaceActionsRef.current?.hide();
-    const uid = currentWorkspace?.uid;
-    if (!uid) return;
-
-    dispatch(exportWorkspaceAction(uid))
-      .then((result) => {
-        if (!result?.canceled) {
-          toast.success('Workspace exported successfully');
-        }
-      })
-      .catch((error) => {
-        toast.error(error?.message || 'Error exporting workspace');
-      });
+    if (!currentWorkspace?.uid) return;
+    setShareWorkspaceModalOpen(true);
   };
 
   const validateWorkspaceName = (name) => {
@@ -399,6 +391,12 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         <CloseWorkspace
           workspaceUid={currentWorkspace.uid}
           onClose={() => setCloseWorkspaceModalOpen(false)}
+        />
+      )}
+      {shareWorkspaceModalOpen && currentWorkspace?.uid && (
+        <ShareWorkspace
+          workspaceUid={currentWorkspace.uid}
+          onClose={() => setShareWorkspaceModalOpen(false)}
         />
       )}
 
@@ -544,7 +542,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                 </div>
                 <span>{getRevealInFolderLabel()}</span>
               </div>
-              <div className="dropdown-item" onClick={handleExportWorkspace}>
+              <div className="dropdown-item" onClick={handleShareWorkspace}>
                 <div className="dropdown-icon">
                   <IconUpload size={16} strokeWidth={1.5} />
                 </div>
