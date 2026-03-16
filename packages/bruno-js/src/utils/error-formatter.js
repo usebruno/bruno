@@ -88,7 +88,7 @@ const findScriptBlockEndLine = (filePath, scriptType, cache = null) => {
     }
     if (inBlock) {
       if (/^\}/.test(lines[i])) {
-        // `}` is at 0-indexed i, so the last content line before it is (i-1), which equals 1-indexed i
+        // Closing brace at 0-indexed position i; last content line is at 0-indexed (i-1) = 1-indexed i
         result = hasContent ? i : null;
         break;
       }

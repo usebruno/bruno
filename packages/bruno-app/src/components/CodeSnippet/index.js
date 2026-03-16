@@ -1,11 +1,12 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
 
-const renderLine = (line, highlightClass) => {
+const renderLine = (line, highlightClass, hunkIdx) => {
   const isHighlighted = line.isHighlighted || line.isError;
+  const key = hunkIdx != null ? `${hunkIdx}-${line.lineNumber}` : line.lineNumber;
   return (
     <div
-      key={line.lineNumber}
+      key={key}
       className={`code-line ${isHighlighted ? highlightClass : ''}`}
       data-testid={isHighlighted ? 'code-line-error' : 'code-line'}
     >
@@ -32,7 +33,7 @@ const CodeSnippet = ({ lines, hunks, variant = 'error' }) => {
                   <span className="code-line-content separator-content">{'\u22EE'}</span>
                 </div>
               )}
-              {hunk.lines.map((line) => renderLine(line, highlightClass))}
+              {hunk.lines.map((line) => renderLine(line, highlightClass, idx))}
             </React.Fragment>
           ))}
         </div>

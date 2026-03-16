@@ -107,14 +107,12 @@ const compiledReplacements = Object.entries(extendedReplacements).map(([pattern,
 
 const processRegexReplacement = (code) => {
   for (const { regex, replacement } of compiledReplacements) {
-    if (regex.test(code)) {
-      code = code.replace(regex, replacement);
-    }
+    code = code.replace(regex, replacement);
   }
   return code;
 };
 
-const postmanTranslation = (script, options = {}) => {
+const postmanTranslation = (script) => {
   let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
   let translatedScript;
 
