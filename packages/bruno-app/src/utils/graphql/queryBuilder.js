@@ -340,12 +340,13 @@ const buildInputObjectWithVariables = (parentKey, inputType, enabledArgs, varMap
     const named = getNamedType(field.type);
     if (isInputObjectType(named)) {
       const nestedObj = buildInputObjectWithVariables(fieldKey, named, enabledArgs, varMap);
-      const value = nestedObj || { kind: Kind.NULL };
-      fields.push({
-        kind: Kind.OBJECT_FIELD,
-        name: { kind: Kind.NAME, value: fieldName },
-        value
-      });
+      if (nestedObj) {
+        fields.push({
+          kind: Kind.OBJECT_FIELD,
+          name: { kind: Kind.NAME, value: fieldName },
+          value: nestedObj
+        });
+      }
     } else {
       const varInfo = varMap.get(fieldKey);
       if (varInfo) {
@@ -373,12 +374,13 @@ const buildArgumentsAST = (field, fieldPath, enabledArgs, varMap) => {
     const named = getNamedType(arg.type);
     if (isInputObjectType(named)) {
       const objValue = buildInputObjectWithVariables(key, named, enabledArgs, varMap);
-      const value = objValue || { kind: Kind.NULL };
-      args.push({
-        kind: Kind.ARGUMENT,
-        name: { kind: Kind.NAME, value: arg.name },
-        value
-      });
+      if (objValue) {
+        args.push({
+          kind: Kind.ARGUMENT,
+          name: { kind: Kind.NAME, value: arg.name },
+          value: objValue
+        });
+      }
     } else {
       const varInfo = varMap.get(key);
       if (varInfo) {
