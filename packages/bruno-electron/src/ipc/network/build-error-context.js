@@ -79,6 +79,9 @@ const buildErrorContext = (error, scriptType, itemPathname, collectionPath, scri
         ? findYmlScriptBlockEndLine(sourceFile, scriptType, cache)
         : null;
 
+    // If this is a .bru/.yml file but the script block is missing or empty, there's nothing to show
+    if ((isBru || isYml) && !blockEndLine) return null;
+
     const blockOffset = blockStartLine ? blockStartLine - 1 : 0;
 
     const filteredLines = context.lines

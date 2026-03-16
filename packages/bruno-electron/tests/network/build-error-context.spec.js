@@ -217,6 +217,25 @@ describe('buildErrorContext', () => {
       expect(result).not.toBeNull();
       expect(result.errorLine).toBe(1);
     });
+
+    it('should return null when yml script block has empty code', () => {
+      const emptyYml = [
+        'info:',
+        '  name: empty-test',
+        '  version: "1"',
+        'runtime:',
+        '  scripts:',
+        '    - type: before-request',
+        '      code: ""'
+      ].join('\n');
+      const emptyYmlPath = path.join(testDir, 'empty.yml');
+      fs.writeFileSync(emptyYmlPath, emptyYml);
+
+      const error = makeCallSiteError(emptyYmlPath, 3, 'error');
+      const result = buildErrorContext(error, 'pre-request', emptyYmlPath, testDir);
+
+      expect(result).toBeNull();
+    });
   });
 
   describe('segment resolution (collection/folder scripts)', () => {
@@ -338,6 +357,43 @@ script:pre-request {
 
       // With an empty block, block start and end don't contain any valid content lines
       // so result should be null (either from getSourceContext or the filter guard)
+      expect(result).toBeNull();
+    });
+
+    it('should return null when .bru file has no script block at all', () => {
+      const noScriptBru = `meta {
+  name: no-script-test
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com
+}`;
+      const noScriptBruPath = path.join(testDir, 'no-script.bru');
+      fs.writeFileSync(noScriptBruPath, noScriptBru);
+
+      const error = makeCallSiteError(noScriptBruPath, 3, 'error');
+      const result = buildErrorContext(error, 'pre-request', noScriptBruPath, testDir);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when .yml file has no script section at all', () => {
+      const noScriptYml = [
+        'info:',
+        '  name: no-script-test',
+        '  version: "1"',
+        'runtime:',
+        '  settings:',
+        '    timeout: 5000'
+      ].join('\n');
+      const noScriptYmlPath = path.join(testDir, 'no-script.yml');
+      fs.writeFileSync(noScriptYmlPath, noScriptYml);
+
+      const error = makeCallSiteError(noScriptYmlPath, 3, 'error');
+      const result = buildErrorContext(error, 'pre-request', noScriptYmlPath, testDir);
+
       expect(result).toBeNull();
     });
   });

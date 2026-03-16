@@ -5,7 +5,7 @@ import ErrorBanner from 'ui/ErrorBanner';
 import CodeSnippet from 'components/CodeSnippet';
 import { getTreePathFromCollectionToItem } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';
-import { addTab, focusTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
 
@@ -127,7 +127,7 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
         dispatch(updateScriptPaneTab({ uid: sourceInfo.sourceUid, scriptPaneTab: scriptPhase }));
       }
     } else if (sourceInfo.sourceType === 'request') {
-      dispatch(focusTab({ uid: item.uid }));
+      dispatch(addTab({ uid: item.uid, collectionUid: collection.uid, type: 'request' }));
       if (scriptPhase === 'test') {
         dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: 'tests' }));
       } else {

@@ -1,7 +1,7 @@
 import { test, expect, Page } from '../../playwright';
 import { buildScriptErrorLocators, buildCommonLocators } from '../utils/page/locators';
-import { openRequest } from '../utils/page/actions';
-import { setSandboxMode } from '../utils/page/runner';
+import { openRequest, closeAllTabs } from '../utils/page/actions';
+import { setSandboxMode, runCollection } from '../utils/page/runner';
 
 /**
  * Helper: click send and wait for at least one error card to appear.
@@ -65,7 +65,7 @@ for (const mode of ['safe', 'developer'] as const) {
       await test.step('Verify error card content', async () => {
         const card = se.card();
         await expect(se.title(card)).toContainText('Pre-Request Script Error');
-        await expect(se.sourceLabel(card)).toContainText('Request Script');
+        await expect(se.sourceLabel(card)).toContainText('Request');
         await expect(se.filePath(card)).toContainText('pre-request-ref-error.bru');
         await expect(se.message(card)).toContainText('ReferenceError');
         await expect(se.message(card)).toContainText('undefinedVariable');
@@ -88,7 +88,7 @@ for (const mode of ['safe', 'developer'] as const) {
         const card = se.card();
         await expect(card).toBeVisible();
         await expect(se.title(card)).toContainText('Post-Response Script Error');
-        await expect(se.sourceLabel(card)).toContainText('Request Script');
+        await expect(se.sourceLabel(card)).toContainText('Request');
         await expect(se.filePath(card)).toContainText('post-response-type-error.bru');
         await expect(se.message(card)).toContainText('TypeError');
       });
@@ -108,7 +108,7 @@ for (const mode of ['safe', 'developer'] as const) {
         const card = se.card();
         await expect(card).toBeVisible();
         await expect(se.title(card)).toContainText('Test Script Error');
-        await expect(se.sourceLabel(card)).toContainText('Request Script');
+        await expect(se.sourceLabel(card)).toContainText('Request');
         await expect(se.filePath(card)).toContainText('test-script-error.bru');
         await expect(se.message(card)).toContainText('ReferenceError');
         await expect(se.message(card)).toContainText('nonExistentFunction');
@@ -241,7 +241,7 @@ for (const mode of ['safe', 'developer'] as const) {
       await test.step('Verify collection-level error card', async () => {
         const card = se.card();
         await expect(se.title(card)).toContainText('Pre-Request Script Error');
-        await expect(se.sourceLabel(card)).toContainText('Collection Script');
+        await expect(se.sourceLabel(card)).toContainText('Collection');
         await expect(se.filePath(card)).toContainText('collection.bru');
         await expect(se.message(card)).toContainText('ReferenceError');
         await expect(se.message(card)).toContainText('collectionUndefinedVar');
@@ -301,6 +301,42 @@ for (const mode of ['safe', 'developer'] as const) {
       await test.step('Verify Tests pane tab is active', async () => {
         const testsTab = page.locator('.tabs [role="tab"]').getByText('Tests', { exact: true });
         await expect(testsTab).toHaveClass(/active/);
+      });
+    });
+
+    test('13. Runner: clicking request error file path opens request tab', async ({ pageWithUserData: page }) => {
+      test.setTimeout(2 * 60 * 1000);
+
+      await test.step('Close all existing request tabs', async () => {
+        await closeAllTabs(page);
+      });
+
+      await test.step('Run collection via runner', async () => {
+        await runCollection(page, 'script-errors-test');
+      });
+
+      await test.step('Click on failed request result to open detail pane', async () => {
+        const resultItem = page.locator('.item-path').filter({ hasText: 'pre-request-ref-error' });
+        await resultItem.locator('.danger').filter({ hasText: '(request failed)' }).click();
+      });
+
+      await test.step('Verify script error card in runner detail pane', async () => {
+        const card = se.card();
+        await card.waitFor({ state: 'visible', timeout: 10000 });
+        await expect(se.title(card)).toContainText('Pre-Request Script Error');
+        await expect(se.filePath(card)).toContainText('pre-request-ref-error.bru');
+      });
+
+      await test.step('Click file path to navigate to request', async () => {
+        const card = se.card();
+        await se.filePath(card).click();
+      });
+
+      await test.step('Verify request tab opened with Script sub-tab active', async () => {
+        const activeTab = page.locator('.request-tab.active');
+        await expect(activeTab).toContainText('pre-request-ref-error');
+        const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
+        await expect(scriptTab).toHaveClass(/active/);
       });
     });
   });
