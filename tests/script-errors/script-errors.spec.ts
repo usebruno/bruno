@@ -43,20 +43,15 @@ const openFolderRequest = async (page: Page, collectionName: string, folderName:
 for (const mode of ['safe', 'developer'] as const) {
   test.describe.serial(`Script Error Display [${mode} mode]`, () => {
     let se: ReturnType<typeof buildScriptErrorLocators>;
-    let locators: ReturnType<typeof buildCommonLocators>;
 
     test.beforeAll(async ({ pageWithUserData: page }) => {
       se = buildScriptErrorLocators(page);
-      locators = buildCommonLocators(page);
 
       await setSandboxMode(page, 'script-errors-test', mode);
       await setSandboxMode(page, 'collection-script-error', mode);
     });
 
     test('1. Pre-request ReferenceError shows error card with correct details', async ({ pageWithUserData: page }) => {
-      se = buildScriptErrorLocators(page);
-      locators = buildCommonLocators(page);
-
       await test.step('Open request and send', async () => {
         await openRequest(page, 'script-errors-test', 'pre-request-ref-error');
         await sendAndWaitForErrorCard(page);
@@ -337,6 +332,113 @@ for (const mode of ['safe', 'developer'] as const) {
         await expect(activeTab).toContainText('pre-request-ref-error');
         const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
         await expect(scriptTab).toHaveClass(/active/);
+      });
+    });
+
+    test('14. Post-response file-path navigation opens Script tab with Post Response sub-tab', async ({ pageWithUserData: page }) => {
+      await test.step('Open request and trigger post-response error', async () => {
+        await openRequest(page, 'script-errors-test', 'post-response-type-error');
+        await sendAndWaitForResponse(page);
+      });
+
+      await test.step('Click file path to navigate', async () => {
+        const card = se.card();
+        await expect(card).toBeVisible();
+        await se.filePath(card).click();
+      });
+
+      await test.step('Verify Script pane tab is active', async () => {
+        const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
+        await expect(scriptTab).toHaveClass(/active/);
+      });
+
+      await test.step('Verify Post Response sub-tab is active', async () => {
+        const postResponseSubTab = page.locator('.tab-trigger').getByText('Post Response');
+        await expect(postResponseSubTab).toHaveClass(/active/);
+      });
+    });
+
+    test('15. Keyboard navigation (Enter key) triggers file-path navigation', async ({ pageWithUserData: page }) => {
+      await test.step('Open request and trigger error', async () => {
+        await openRequest(page, 'script-errors-test', 'pre-request-ref-error');
+        await sendAndWaitForErrorCard(page);
+      });
+
+      await test.step('Focus file path and press Enter', async () => {
+        const card = se.card();
+        await se.filePath(card).focus();
+        await page.keyboard.press('Enter');
+      });
+
+      await test.step('Verify Script pane tab is active (same as click navigation)', async () => {
+        const activeTab = page.locator('.request-tab.active');
+        await expect(activeTab).toContainText('pre-request-ref-error');
+        const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
+        await expect(scriptTab).toHaveClass(/active/);
+      });
+    });
+
+    // Skip: currently closing one error card closes all cards. Unskip once independent card close is implemented.
+    test.skip('16. Multiple error cards — closing one preserves the other', async ({ pageWithUserData: page }) => {
+      await test.step('Open request and send', async () => {
+        await openRequest(page, 'script-errors-test', 'multiple-errors');
+        await sendAndWaitForResponse(page);
+      });
+
+      await test.step('Verify two error cards exist', async () => {
+        await expect(se.cards()).toHaveCount(2);
+      });
+
+      await test.step('Close the first card (post-response error)', async () => {
+        const card0 = se.card(0);
+        await se.closeButton(card0).click();
+      });
+
+      await test.step('Verify only one card remains and it is the test script error', async () => {
+        await expect(se.cards()).toHaveCount(1);
+        const remainingCard = se.card(0);
+        await expect(se.title(remainingCard)).toContainText('Test Script Error');
+        await expect(se.message(remainingCard)).toContainText('testMissingVar');
+      });
+
+      await test.step('Verify ScriptErrorIcon appears for the closed card', async () => {
+        await expect(se.errorIcon()).toBeVisible();
+      });
+    });
+
+    test('17. Runner: test error file-path navigation opens Tests tab', async ({ pageWithUserData: page }) => {
+      test.setTimeout(2 * 60 * 1000);
+
+      await test.step('Close all existing request tabs', async () => {
+        await closeAllTabs(page);
+      });
+
+      await test.step('Run collection via runner', async () => {
+        await runCollection(page, 'script-errors-test');
+      });
+
+      await test.step('Click on test-script-error result to open detail pane', async () => {
+        const resultItem = page.locator('.item-path').filter({ hasText: 'test-script-error' });
+        await resultItem.locator('.link').click();
+      });
+
+      await test.step('Verify script error card in runner detail pane', async () => {
+        const card = se.card();
+        await card.waitFor({ state: 'visible', timeout: 10000 });
+        await expect(se.title(card)).toContainText('Test Script Error');
+        await expect(se.filePath(card)).toContainText('test-script-error.bru');
+      });
+
+      await test.step('Click file path to navigate to request', async () => {
+        const card = se.card();
+        await se.filePath(card).click();
+      });
+
+      await test.step('Verify request tab opened with Tests sub-tab active', async () => {
+        const activeTab = page.locator('.request-tab.active');
+        await expect(activeTab).toContainText('test-script-error');
+        const testsTab = page.locator('.tabs [role="tab"]').getByText('Tests', { exact: true });
+        await expect(testsTab).toHaveClass(/active/);
       });
     });
   });
