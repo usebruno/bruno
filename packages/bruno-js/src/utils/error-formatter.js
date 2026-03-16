@@ -79,16 +79,20 @@ const findScriptBlockEndLine = (filePath, scriptType, cache = null) => {
 
   const lines = content.split('\n');
   let inBlock = false;
+  let hasContent = false;
   let result = null;
   for (let i = 0; i < lines.length; i++) {
     if (!inBlock && pattern.test(lines[i])) {
       inBlock = true;
       continue;
     }
-    if (inBlock && /^\}/.test(lines[i])) {
-      // `}` is at 0-indexed i, so the last content line before it is (i-1), which equals 1-indexed i
-      result = i;
-      break;
+    if (inBlock) {
+      if (/^\}/.test(lines[i])) {
+        // `}` is at 0-indexed i, so the last content line before it is (i-1), which equals 1-indexed i
+        result = hasContent ? i : null;
+        break;
+      }
+      hasContent = true;
     }
   }
 
@@ -129,7 +133,7 @@ const findYmlScriptBlockStartLine = (filePath, scriptType, cache = null) => {
             }
           }
         }
-        if (result) break;
+        if (result != null) break;
       }
     }
   } catch {
@@ -174,7 +178,7 @@ const findYmlScriptBlockEndLine = (filePath, scriptType, cache = null) => {
             }
           }
         }
-        if (result) break;
+        if (result != null) break;
       }
     }
   } catch {

@@ -2,7 +2,9 @@ const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals')
 const {
   formatErrorWithContext,
   findScriptBlockStartLine,
+  findScriptBlockEndLine,
   findYmlScriptBlockStartLine,
+  findYmlScriptBlockEndLine,
   adjustLineNumber,
   parseStackTrace,
   parseErrorLocation
@@ -154,6 +156,31 @@ describe('Error Formatter', () => {
     });
   });
 
+  describe('findScriptBlockEndLine', () => {
+    it('should find last content line for each block type', () => {
+      expect(findScriptBlockEndLine(bruFilePath, 'pre-request')).toBe(15);
+      expect(findScriptBlockEndLine(bruFilePath, 'post-response')).toBe(21);
+      expect(findScriptBlockEndLine(bruFilePath, 'test')).toBe(30);
+    });
+
+    it('should return null for empty block', () => {
+      const emptyBlockPath = path.join(testDir, 'empty.bru');
+      fs.writeFileSync(emptyBlockPath, 'script:pre-request {\n}');
+      expect(findScriptBlockEndLine(emptyBlockPath, 'pre-request')).toBeNull();
+    });
+
+    it('should return null for missing block', () => {
+      const noBlockPath = path.join(testDir, 'no-block.bru');
+      fs.writeFileSync(noBlockPath, 'meta {\n  name: test\n}');
+      expect(findScriptBlockEndLine(noBlockPath, 'pre-request')).toBeNull();
+    });
+
+    it('should return null for non-.bru files', () => {
+      expect(findScriptBlockEndLine('/some/file.js', 'pre-request')).toBeNull();
+      expect(findScriptBlockEndLine(ymlFilePath, 'pre-request')).toBeNull();
+    });
+  });
+
   describe('findYmlScriptBlockStartLine', () => {
     it('should find each block type in .yml files', () => {
       expect(findYmlScriptBlockStartLine(ymlFilePath, 'pre-request')).toBe(8);
@@ -170,6 +197,36 @@ describe('Error Formatter', () => {
       const noRuntimePath = path.join(testDir, 'no-runtime.yml');
       fs.writeFileSync(noRuntimePath, 'info:\n  name: simple\n  version: "1"\n');
       expect(findYmlScriptBlockStartLine(noRuntimePath, 'pre-request')).toBeNull();
+    });
+  });
+
+  describe('findYmlScriptBlockEndLine', () => {
+    it('should find last content line for each block type in runtime.scripts', () => {
+      expect(findYmlScriptBlockEndLine(ymlFilePath, 'pre-request')).toBe(9);
+      expect(findYmlScriptBlockEndLine(ymlFilePath, 'post-response')).toBe(13);
+      expect(findYmlScriptBlockEndLine(ymlFilePath, 'test')).toBe(18);
+    });
+
+    it('should find last content line in collection yml (request.scripts)', () => {
+      expect(findYmlScriptBlockEndLine(collectionYmlPath, 'pre-request')).toBe(8);
+      expect(findYmlScriptBlockEndLine(collectionYmlPath, 'test')).toBe(13);
+    });
+
+    it('should return null for missing block', () => {
+      const noRuntimePath = path.join(testDir, 'no-runtime.yml');
+      fs.writeFileSync(noRuntimePath, 'info:\n  name: simple\n  version: "1"\n');
+      expect(findYmlScriptBlockEndLine(noRuntimePath, 'pre-request')).toBeNull();
+    });
+
+    it('should return null for non-.yml files', () => {
+      expect(findYmlScriptBlockEndLine('/some/file.js', 'pre-request')).toBeNull();
+      expect(findYmlScriptBlockEndLine(bruFilePath, 'pre-request')).toBeNull();
+    });
+
+    it('should return null for invalid YAML', () => {
+      const invalidYmlPath = path.join(testDir, 'invalid.yml');
+      fs.writeFileSync(invalidYmlPath, ':\n  - :\n    bad: [unclosed');
+      expect(findYmlScriptBlockEndLine(invalidYmlPath, 'pre-request')).toBeNull();
     });
   });
 
