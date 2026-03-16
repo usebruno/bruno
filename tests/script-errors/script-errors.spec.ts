@@ -70,6 +70,7 @@ for (const mode of ['safe', 'developer'] as const) {
         await expect(se.message(card)).toContainText('undefinedVariable');
         await expect(se.codeSnippet(card)).toBeVisible();
         await expect(se.errorLine(card)).toBeVisible();
+        await expect(se.errorLine(card)).toContainText('undefinedVariable');
       });
 
       await test.step('Verify response status shows Error', async () => {
@@ -90,6 +91,7 @@ for (const mode of ['safe', 'developer'] as const) {
         await expect(se.sourceLabel(card)).toContainText('Request');
         await expect(se.filePath(card)).toContainText('post-response-type-error.bru');
         await expect(se.message(card)).toContainText('TypeError');
+        await expect(se.errorLine(card)).toContainText('result.nonExistentMethod()');
       });
 
       await test.step('Verify HTTP 200 status', async () => {
@@ -111,6 +113,7 @@ for (const mode of ['safe', 'developer'] as const) {
         await expect(se.filePath(card)).toContainText('test-script-error.bru');
         await expect(se.message(card)).toContainText('ReferenceError');
         await expect(se.message(card)).toContainText('nonExistentFunction');
+        await expect(se.errorLine(card)).toContainText('nonExistentFunction()');
       });
     });
 
@@ -175,12 +178,14 @@ for (const mode of ['safe', 'developer'] as const) {
         const card0 = se.card(0);
         await expect(se.title(card0)).toContainText('Post-Response Script Error');
         await expect(se.message(card0)).toContainText('postResponseMissingVar');
+        await expect(se.errorLine(card0)).toContainText('postResponseMissingVar()');
       });
 
       await test.step('Verify second card is test script error', async () => {
         const card1 = se.card(1);
         await expect(se.title(card1)).toContainText('Test Script Error');
         await expect(se.message(card1)).toContainText('testMissingVar');
+        await expect(se.errorLine(card1)).toContainText('testMissingVar()');
       });
 
       await test.step('Verify HTTP 200 status', async () => {
@@ -205,6 +210,7 @@ for (const mode of ['safe', 'developer'] as const) {
         await expect(se.filePath(card)).toContainText('folder.bru');
         await expect(se.message(card)).toContainText('ReferenceError');
         await expect(se.message(card)).toContainText('folderUndefinedVar');
+        await expect(se.errorLine(card)).toContainText('folderUndefinedVar');
       });
     });
 
@@ -244,6 +250,7 @@ for (const mode of ['safe', 'developer'] as const) {
         await expect(se.filePath(card)).toContainText('collection.bru');
         await expect(se.message(card)).toContainText('ReferenceError');
         await expect(se.message(card)).toContainText('collectionUndefinedVar');
+        await expect(se.errorLine(card)).toContainText('collectionUndefinedVar');
       });
     });
 
