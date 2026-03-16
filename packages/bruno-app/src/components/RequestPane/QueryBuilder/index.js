@@ -176,7 +176,6 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
                     onArgChange={setArgValue}
                     onToggleInputField={toggleInputField}
                     onSetInputFieldValue={setInputFieldValue}
-                    visitedTypes={new Set()}
                   />
                 ) : (
                   <div className="empty-state">

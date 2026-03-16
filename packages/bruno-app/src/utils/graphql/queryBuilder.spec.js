@@ -177,7 +177,7 @@ describe('queryBuilder', () => {
       const userField = fields.find((f) => f.name === 'user');
       const children = getFieldChildren(userField.namedType, 'Query.user');
 
-      expect(children.isCircular).toBe(false);
+      expect(children.fields.length).toBeGreaterThan(0);
       const names = children.fields.map((f) => f.name);
       expect(names).toContain('id');
       expect(names).toContain('name');
@@ -195,16 +195,6 @@ describe('queryBuilder', () => {
       expect(nameChild.path).toBe('Query.user.name');
     });
 
-    it('should detect circular types', () => {
-      const fields = getRootFields(BASIC_SCHEMA, 'Query');
-      const userField = fields.find((f) => f.name === 'user');
-      const visited = new Set(['User']);
-      const children = getFieldChildren(userField.namedType, 'Query.user', visited);
-
-      expect(children.fields).toEqual([]);
-      expect(children.isCircular).toBe(true);
-    });
-
     it('should return union types for union fields', () => {
       const fields = getRootFields(BASIC_SCHEMA, 'Query');
       const searchField = fields.find((f) => f.name === 'search');
@@ -220,7 +210,7 @@ describe('queryBuilder', () => {
     });
 
     it('should return empty for null type', () => {
-      expect(getFieldChildren(null, 'Query.foo')).toEqual({ fields: [], isCircular: false });
+      expect(getFieldChildren(null, 'Query.foo')).toEqual({ fields: [] });
     });
   });
 

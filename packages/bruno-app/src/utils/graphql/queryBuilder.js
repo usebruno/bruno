@@ -15,6 +15,15 @@ import {
 
 const MAX_DEPTH = 7;
 
+const PLACEHOLDER = '__bruno_placeholder__';
+
+const sanitizeQueryForParsing = (queryString) => {
+  let sanitized = queryString.replace(/\(\s*\)/g, '');
+  sanitized = sanitized.replace(/(:\s*)\{\s*\}/g, '$1{ __empty: true }');
+  sanitized = sanitized.replace(/\{\s*\}/g, `{ ${PLACEHOLDER} }`);
+  return sanitized;
+};
+
 const resolveRootType = (schema, rootTypeName) => {
   switch (rootTypeName) {
     case 'Query': return schema.getQueryType();
@@ -89,15 +98,15 @@ const buildFieldDescriptor = (field, parentPath) => {
   };
 };
 
-export const getFieldChildren = (namedType, parentPath, visited = new Set()) => {
-  if (!namedType || visited.has(namedType.name)) {
-    return { fields: [], isCircular: visited.has(namedType?.name) };
+export const getFieldChildren = (namedType, parentPath) => {
+  if (!namedType) {
+    return { fields: [] };
   }
 
   if (isObjectType(namedType) || isInterfaceType(namedType)) {
     const fieldMap = namedType.getFields();
     const fields = Object.values(fieldMap).map((field) => buildFieldDescriptor(field, parentPath));
-    return { fields, isCircular: false };
+    return { fields };
   }
 
   if (isUnionType(namedType)) {
@@ -109,10 +118,10 @@ export const getFieldChildren = (namedType, parentPath, visited = new Set()) => 
       namedType: type,
       isUnionMember: true
     }));
-    return { fields: [], unionTypes, isCircular: false };
+    return { fields: [], unionTypes };
   }
 
-  return { fields: [], isCircular: false };
+  return { fields: [] };
 };
 
 export const getInputObjectFields = (namedType) => {
@@ -175,7 +184,15 @@ const collectVariablesFromSelections = (selections, enabledArgs, type, parentPat
   if (isUnionType(type)) {
     for (const memberType of type.getTypes()) {
       const memberPath = `${parentPath}.__on_${memberType.name}`;
-      const isMemberSelected = selections.has(memberPath) || Array.from(selections).some((s) => s.startsWith(memberPath + '.'));
+      let isMemberSelected = selections.has(memberPath);
+      if (!isMemberSelected) {
+        for (const s of selections) {
+          if (s.startsWith(memberPath + '.')) {
+            isMemberSelected = true;
+            break;
+          }
+        }
+      }
       if (!isMemberSelected) continue;
       collectVariablesFromSelections(selections, enabledArgs, memberType, memberPath, nextVisited, depth + 1, varMap, usedNames);
     }
@@ -244,12 +261,12 @@ const buildVariableValue = (argKey, argType, argValues) => {
   return coerceScalarValue(raw, named);
 };
 
-const typenameSelectionSet = () => ({
+const placeholderSelectionSet = () => ({
   kind: Kind.SELECTION_SET,
   selections: [
     {
       kind: Kind.FIELD,
-      name: { kind: Kind.NAME, value: '__typename' }
+      name: { kind: Kind.NAME, value: PLACEHOLDER }
     }
   ]
 });
@@ -299,7 +316,7 @@ const buildFieldAST = (selections, field, fieldPath, visited, depth, enabledArgs
   if (!isLeafType(field.type)) {
     selectionSet = buildSelectionSetAST(selections, named, fieldPath, visited, depth + 1, enabledArgs, varMap);
     if (!selectionSet) {
-      selectionSet = typenameSelectionSet();
+      selectionSet = placeholderSelectionSet();
     }
   }
 
@@ -382,13 +399,21 @@ const buildUnionSelectionSet = (selections, unionType, parentPath, visited, dept
 
   for (const memberType of memberTypes) {
     const memberPath = `${parentPath}.__on_${memberType.name}`;
-    const isMemberSelected = selections.has(memberPath) || Array.from(selections).some((s) => s.startsWith(memberPath + '.'));
+    let isMemberSelected = selections.has(memberPath);
+    if (!isMemberSelected) {
+      for (const s of selections) {
+        if (s.startsWith(memberPath + '.')) {
+          isMemberSelected = true;
+          break;
+        }
+      }
+    }
 
     if (!isMemberSelected) continue;
 
     let selectionSet = buildSelectionSetAST(selections, memberType, memberPath, visited, depth + 1, enabledArgs, varMap);
     if (!selectionSet) {
-      selectionSet = typenameSelectionSet();
+      selectionSet = placeholderSelectionSet();
     }
     inlineFragments.push({
       kind: Kind.INLINE_FRAGMENT,
@@ -458,7 +483,7 @@ export const generateQueryString = (selections, argValues, schema, rootTypeName,
   };
 
   let result = print(document);
-  result = result.replace(/^\s*__typename\n/gm, '');
+  result = result.replace(new RegExp(`^\\s*${PLACEHOLDER}\\n`, 'gm'), '');
   return { query: result, variables: variableValues };
 };
 
@@ -469,10 +494,7 @@ export const validateQueryForSync = (queryString) => {
 
   let doc;
   try {
-    let sanitized = queryString.replace(/\(\s*\)/g, '');
-    sanitized = sanitized.replace(/(:\s*)\{\s*\}/g, '$1{ __empty: true }');
-    sanitized = sanitized.replace(/\{\s*\}/g, '{ __typename }');
-    doc = gqlParse(sanitized);
+    doc = gqlParse(sanitizeQueryForParsing(queryString));
   } catch {
     return { valid: false, error: null };
   }
@@ -498,10 +520,7 @@ export const parseQueryToState = (queryString, schema, variablesString) => {
 
   let doc;
   try {
-    let sanitized = queryString.replace(/\(\s*\)/g, '');
-    sanitized = sanitized.replace(/(:\s*)\{\s*\}/g, '$1{ __empty: true }');
-    sanitized = sanitized.replace(/\{\s*\}/g, '{ __typename }');
-    doc = gqlParse(sanitized);
+    doc = gqlParse(sanitizeQueryForParsing(queryString));
   } catch {
     return null;
   }
@@ -523,7 +542,7 @@ export const parseQueryToState = (queryString, schema, variablesString) => {
     const rootTypeName = def.operation.charAt(0).toUpperCase() + def.operation.slice(1);
     const rootType = resolveRootType(schema, rootTypeName);
     if (!rootType || !def.selectionSet) continue;
-    walkSelectionSet(def.selectionSet, rootType, rootTypeName, selections, expandedPaths, argValues, enabledArgs, variablesJson);
+    walkSelectionSet(def.selectionSet, rootType, rootTypeName, selections, expandedPaths, argValues, enabledArgs, variablesJson, schema);
   }
 
   return { selections, expandedPaths, argValues, enabledArgs };
@@ -587,8 +606,8 @@ const walkVariableInputObject = (value, inputType, parentKey, argValues, enabled
   }
 };
 
-const walkSelectionSet = (selectionSet, parentType, parentPath, selections, expandedPaths, argValues, enabledArgs, variablesJson) => {
-  if (!selectionSet || !selectionSet.selections) return;
+const walkSelectionSet = (selectionSet, parentType, parentPath, selections, expandedPaths, argValues, enabledArgs, variablesJson, schema, depth = 0) => {
+  if (!selectionSet || !selectionSet.selections || depth > MAX_DEPTH) return;
 
   const fieldMap = (isObjectType(parentType) || isInterfaceType(parentType))
     ? parentType.getFields()
@@ -597,7 +616,7 @@ const walkSelectionSet = (selectionSet, parentType, parentPath, selections, expa
   for (const sel of selectionSet.selections) {
     if (sel.kind === Kind.FIELD) {
       const fieldName = sel.name.value;
-      if (fieldName === '__typename') continue;
+      if (fieldName === '__typename' || fieldName === PLACEHOLDER) continue;
       const fieldPath = parentPath ? `${parentPath}.${fieldName}` : fieldName;
 
       selections.add(fieldPath);
@@ -643,7 +662,7 @@ const walkSelectionSet = (selectionSet, parentType, parentPath, selections, expa
         expandedPaths.add(fieldPath);
         const named = getNamedType(fieldMap[fieldName].type);
         if (named) {
-          walkSelectionSet(sel.selectionSet, named, fieldPath, selections, expandedPaths, argValues, enabledArgs, variablesJson);
+          walkSelectionSet(sel.selectionSet, named, fieldPath, selections, expandedPaths, argValues, enabledArgs, variablesJson, schema, depth + 1);
         }
       }
     } else if (sel.kind === Kind.INLINE_FRAGMENT) {
@@ -653,9 +672,12 @@ const walkSelectionSet = (selectionSet, parentType, parentPath, selections, expa
         selections.add(memberPath);
         expandedPaths.add(memberPath);
 
-        const memberType = getNamedType(parentType)?.getTypes?.()?.find((t) => t.name === typeName);
+        // For unions, find the member type. For object/interface types with inline fragments, look up from schema.
+        const named = getNamedType(parentType);
+        const memberType = named?.getTypes?.()?.find((t) => t.name === typeName)
+          || schema.getType(typeName);
         if (memberType && sel.selectionSet) {
-          walkSelectionSet(sel.selectionSet, memberType, memberPath, selections, expandedPaths, argValues, enabledArgs, variablesJson);
+          walkSelectionSet(sel.selectionSet, memberType, memberPath, selections, expandedPaths, argValues, enabledArgs, variablesJson, schema, depth + 1);
         }
       }
     }
