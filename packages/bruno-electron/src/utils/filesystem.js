@@ -501,8 +501,11 @@ const scanForBrunoFiles = async (dir) => {
   return brunoFolders;
 };
 
+const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
+
 module.exports = {
   DEFAULT_GITIGNORE,
+  posixifyPath,
   isValidPathname,
   exists,
   isSymbolicLink,
