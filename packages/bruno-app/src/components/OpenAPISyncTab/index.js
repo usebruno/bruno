@@ -129,7 +129,6 @@ const OpenAPISyncTab = ({ collection }) => {
                   remoteDrift={remoteDrift}
                   onTabSelect={setActiveTab}
                   error={error}
-                  isLoading={isLoading}
                   onOpenSettings={() => setShowSettingsModal(true)}
                 />
                 <p className="beta-feedback-inline">

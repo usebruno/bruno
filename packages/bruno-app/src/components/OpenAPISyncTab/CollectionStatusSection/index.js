@@ -88,12 +88,6 @@ const CollectionStatusSection = ({
               : <div className={`status-dot ${bannerState.variant}`} />}
             <span className="banner-title">
               {bannerState.message}
-              {bannerState.version && (
-                <> &middot; <code style={{ fontStyle: 'normal' }} className="checked-text">v{bannerState.version}</code></>
-              )}
-              {bannerState.lastSyncDate && (
-                <span className="checked-text"> &middot; Synced {moment(bannerState.lastSyncDate).fromNow()}</span>
-              )}
             </span>
             {bannerState.badges && (
               <span className="banner-details">

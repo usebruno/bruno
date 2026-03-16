@@ -12,7 +12,7 @@ const {
   stringifyFolder
 } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
-const { writeFile, sanitizeName, getCollectionFormat } = require('../utils/filesystem');
+const { writeFile, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
 const { getEnvVars } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
@@ -286,7 +286,7 @@ const saveBrunoConfig = async (collectionPath, format, brunoConfig, collectionRo
     configToSave.openapi = configToSave.openapi.map((entry) => ({
       ...entry,
       sourceUrl: (entry.sourceUrl && !isValidHttpUrl(entry.sourceUrl))
-        ? path.relative(collectionPath, entry.sourceUrl)
+        ? posixifyPath(path.relative(collectionPath, entry.sourceUrl))
         : entry.sourceUrl
     }));
   }

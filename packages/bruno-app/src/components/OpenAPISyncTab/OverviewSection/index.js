@@ -152,12 +152,6 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
         buttons: ['changes']
       };
     }
-    // return {
-    //   variant: 'success',
-    //   title: 'Collection is in sync with the spec',
-    //   subtitle: null,
-    //   buttons: []
-    // };
     return null;
   }, [activeError, hasDriftData, hasSpecUpdates, hasCollectionChanges, specDrift?.storedSpecMissing, specDrift?.storedVersion, specDrift?.newVersion, lastSyncDate]);
 

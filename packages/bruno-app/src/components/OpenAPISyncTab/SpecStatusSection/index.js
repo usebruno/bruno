@@ -24,7 +24,7 @@ const SpecStatusSection = ({
 
   const {
     isSyncing, showConfirmModal, confirmGroups,
-    handleSyncNow, handleRestoreSpec, handleApplySync, cancelConfirmModal, handleConfirmModalSync
+    handleRestoreSpec, handleApplySync, cancelConfirmModal, handleConfirmModalSync
   } = useSyncFlow({
     collection, specDrift, remoteDrift, collectionDrift,
     setError, checkForUpdates: onCheck
@@ -63,11 +63,6 @@ const SpecStatusSection = ({
         changes: { added: specDrift.added?.length || 0, modified: specDrift.modified?.length || 0, removed: specDrift.removed?.length || 0 }
       };
     }
-    // return {
-    //   variant: 'success', message: 'Spec is up to date', actions: [],
-    //   version: specDrift.newVersion || storedSpec?.info?.version || specDrift.storedVersion,
-    //   lastChecked: lastCheckedAt ? moment(lastCheckedAt).fromNow() : 'just now'
-    // };
     return null;
   }, [fileNotFound, error, sourceUrl, specDrift, lastSyncedAt, storedSpec, lastCheckedAt, hasRemoteUpdates]);
   return (
@@ -98,9 +93,6 @@ const SpecStatusSection = ({
               )}
             </div>
             <div className="banner-actions">
-              {bannerState.actions.includes('quick-sync') && (
-                <Button size="xs" onClick={handleRestoreSpec}>Restore Spec File</Button>
-              )}
               {bannerState.actions.includes('open-settings') && (
                 <Button variant="ghost" size="sm" onClick={onOpenSettings}>
                   Update connection settings
