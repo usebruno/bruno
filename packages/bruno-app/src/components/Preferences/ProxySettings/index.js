@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
@@ -75,11 +75,14 @@ const ProxySettings = ({ close }) => {
       });
   }, [dispatch, preferences, proxySchema]);
 
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
   const debouncedSave = useCallback(
     debounce((values) => {
-      onUpdate(values);
+      onUpdateRef.current(values);
     }, 500),
-    [onUpdate]
+    []
   );
 
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -107,7 +110,7 @@ const ProxySettings = ({ close }) => {
       debouncedSave(formik.values);
     }
     return () => {
-      debouncedSave.cancel();
+      debouncedSave.flush();
     };
   }, [formik.values, formik.dirty, debouncedSave]);
 
