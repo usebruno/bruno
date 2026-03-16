@@ -103,7 +103,7 @@ export default function useQueryBuilder(schema, onQueryChange, editorValue, onVa
     let existing = {};
     const currentVarsValue = variablesValueRef.current;
     if (currentVarsValue) {
-      try { existing = JSON.parse(currentVarsValue); } catch { /* ignore */ }
+      try { existing = JSON.parse(currentVarsValue); } catch { return; }
     }
 
     for (const name of lastGeneratedVarNames.current) {
@@ -349,7 +349,8 @@ export default function useQueryBuilder(schema, onQueryChange, editorValue, onVa
       return next;
     });
 
-    if (field && !field.isLeaf) {
+    const hasArgs = field && field.args && field.args.length > 0;
+    if (field && (!field.isLeaf || hasArgs)) {
       setExpandedPaths((prev) => {
         const next = new Set(prev);
         if (!prev.has(path)) {

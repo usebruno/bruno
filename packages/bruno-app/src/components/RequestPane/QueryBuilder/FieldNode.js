@@ -209,14 +209,17 @@ const FieldNode = ({
     [field, onToggleCheck]
   );
 
+  const hasArgs = field.args && field.args.length > 0;
+  const canExpand = !field.isLeaf || hasArgs;
+
   const handleExpand = useCallback(
     (e) => {
       e.stopPropagation();
-      if (!field.isLeaf) {
+      if (canExpand) {
         onToggleExpand(field.path);
       }
     },
-    [field.path, field.isLeaf, onToggleExpand]
+    [field.path, canExpand, onToggleExpand]
   );
 
   // Union member type row (e.g. "... on Human")
@@ -255,7 +258,6 @@ const FieldNode = ({
     );
   }
 
-  const hasArgs = field.args && field.args.length > 0;
   const showSections = isExpanded && (hasArgs || hasChildren);
   const sectionIndent = (depth + 1) * 20;
 
@@ -264,7 +266,7 @@ const FieldNode = ({
       <div
         className="field-node"
         role="treeitem"
-        aria-expanded={!field.isLeaf ? isExpanded : undefined}
+        aria-expanded={canExpand ? isExpanded : undefined}
         onClick={handleExpand}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -276,7 +278,7 @@ const FieldNode = ({
       >
         <span className="field-indent" style={{ width: indent }} />
         <span className="field-chevron">
-          {!field.isLeaf ? (
+          {canExpand ? (
             isExpanded ? (
               <IconChevronDown size={14} strokeWidth={2} />
             ) : (

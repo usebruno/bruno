@@ -221,13 +221,16 @@ export default class QueryEditor extends React.Component {
       if (!currentValue || !currentValue.trim()) return;
 
       // Temporarily fill empty selection sets so prettier can parse the query
+      // First preserve empty input objects (e.g. input: {}), then fill empty selection sets
       const PLACEHOLDER = '__bruno_placeholder__';
-      const sanitized = currentValue.replace(/\{\s*\}/g, `{ ${PLACEHOLDER} }`);
+      let sanitized = currentValue.replace(/(:\s*)\{\s*\}/g, '$1{ __empty: true }');
+      sanitized = sanitized.replace(/\{\s*\}/g, `{ ${PLACEHOLDER} }`);
       let prettyQuery = format(sanitized, {
         parser: 'graphql',
         plugins: [prettierPluginGraphql]
       });
       prettyQuery = prettyQuery.replace(new RegExp(`^\\s*${PLACEHOLDER}\\n`, 'gm'), '');
+      prettyQuery = prettyQuery.replace(/\{\s*__empty:\s*true\s*\}/g, '{}');
 
       this.editor.setValue(prettyQuery);
       toast.success('Query prettified');
