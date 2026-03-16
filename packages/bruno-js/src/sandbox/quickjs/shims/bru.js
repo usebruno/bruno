@@ -471,6 +471,20 @@ const addBruShimToContext = (vm, bru) => {
     });
     _deleteCookieFn.consume((handle) => vm.setProp(jarObj, '_deleteCookie', handle));
 
+    const _hasCookieFn = vm.newFunction('_hasCookie', (url, cookieName) => {
+      const promise = vm.newPromise();
+      nativeJar.hasCookie(vm.dump(url), vm.dump(cookieName), (err, exists) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(marshallToVm(exists, vm));
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _hasCookieFn.consume((handle) => vm.setProp(jarObj, '_hasCookie', handle));
+
     return jarObj;
   });
   _jarFn.consume((handle) => vm.setProp(bruCookiesObject, '_jar', handle));
@@ -540,7 +554,8 @@ const addBruShimToContext = (vm, bru) => {
         setCookies: (url, cookiesArray, cb) => callWithCallback(() => _jar._setCookies(url, cookiesArray), cb),
         clear: (cb) => callWithCallback(() => _jar._clear(), cb),
         deleteCookies: (url, cb) => callWithCallback(() => _jar._deleteCookies(url), cb),
-        deleteCookie: (url, name, cb) => callWithCallback(() => _jar._deleteCookie(url, name), cb)
+        deleteCookie: (url, name, cb) => callWithCallback(() => _jar._deleteCookie(url, name), cb),
+        hasCookie: (url, name, cb) => callWithCallback(() => _jar._hasCookie(url, name), cb)
       };
     };
   `);
