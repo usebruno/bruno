@@ -12,7 +12,6 @@ import {
 } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
-import StatusBadge from 'ui/StatusBadge';
 import ActionIcon from 'ui/ActionIcon/index';
 import MenuDropdown from 'ui/MenuDropdown';
 import Help from 'components/Help';

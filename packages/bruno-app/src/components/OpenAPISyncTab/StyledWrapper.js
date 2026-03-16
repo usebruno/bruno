@@ -625,7 +625,7 @@ const StyledWrapper = styled.div`
     .settings-label {
       font-size: 11px;
       font-weight: 600;
-      color: ${(props) => props.theme.colors.text.subtext0};
+      color: ${(props) => props.theme.text};
       display: block;
       margin-bottom: 5px;
     }
@@ -670,7 +670,7 @@ const StyledWrapper = styled.div`
 
     .toggle-description {
       font-size: 11px;
-      color: ${(props) => props.theme.colors.text.muted};
+      color: ${(props) => props.theme.text};
       margin-top: 2px;
     }
 
@@ -1251,7 +1251,6 @@ const StyledWrapper = styled.div`
   .disconnect-modal {
     .disconnect-message {
       font-size: ${(props) => props.theme.font.size.sm};
-      color: ${(props) => props.theme.colors.text.muted};
       line-height: 1.5;
       margin-bottom: 1.5rem;
     }
@@ -1281,7 +1280,7 @@ const StyledWrapper = styled.div`
   .action-confirm-modal {
     .confirm-message {
       font-size: ${(props) => props.theme.font.size.sm};
-      color: ${(props) => props.theme.colors.text.muted};
+      color: ${(props) => props.theme.text};
       line-height: 1.5;
       margin-bottom: 1.5rem;
     }

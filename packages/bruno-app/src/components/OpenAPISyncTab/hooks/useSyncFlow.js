@@ -6,7 +6,7 @@ import { formatIpcError } from 'utils/common/error';
 
 const useSyncFlow = ({
   collection, specDrift, remoteDrift, collectionDrift,
-  sourceUrl, setError, checkForUpdates
+  setError, checkForUpdates
 }) => {
   const dispatch = useDispatch();
 
@@ -65,7 +65,6 @@ const useSyncFlow = ({
       await ipcRenderer.invoke('renderer:apply-openapi-sync', {
         collectionUid: collection.uid,
         collectionPath: collection.pathname,
-        sourceUrl: sourceUrl.trim(),
         addNewRequests: mode !== 'spec-only',
         removeDeletedRequests: localOnlyIds.length > 0,
         diff: filteredDiff,
@@ -121,6 +120,13 @@ const useSyncFlow = ({
     return new Set((specDrift?.removed || []).map((ep) => ep.id));
   }, [specDrift]);
 
+  const handleRestoreSpec = () => {
+    const localOnlyIds = (remoteDrift?.localOnly || [])
+      .filter((ep) => specRemovedIds.has(ep.id))
+      .map((ep) => ep.id);
+    performSync({ localOnlyIds, endpointDecisions: {} }, 'sync');
+  };
+
   const handleConfirmModalSync = () => {
     const localOnlyIds = (remoteDrift?.localOnly || [])
       .filter((ep) => specRemovedIds.has(ep.id))
@@ -150,7 +156,7 @@ const useSyncFlow = ({
 
   return {
     isSyncing, showConfirmModal, confirmGroups,
-    handleSyncNow,
+    handleSyncNow, handleRestoreSpec,
     handleApplySync, cancelConfirmModal, handleConfirmModalSync
   };
 };
