@@ -84,6 +84,7 @@ const uiStateSnapshotStore = new UiStateSnapshotStore();
 const MAX_COLLECTION_SIZE_IN_MB = 20;
 const MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB = 5;
 const MAX_COLLECTION_FILES_COUNT = 2000;
+const PRIVATE_ENV_FILE_MODE = 0o600;
 
 // Get the base directory for transient request files (stored in app data directory)
 const getTransientDirectoryBase = () => {
@@ -587,7 +588,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const content = await stringifyEnvironment(environment, { format });
 
-      await writeFile(envFilePath, content);
+      await writeFile(envFilePath, content, false, { mode: PRIVATE_ENV_FILE_MODE });
     } catch (error) {
       return Promise.reject(error);
     }

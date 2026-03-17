@@ -93,10 +93,11 @@ function normalizeWSLPath(pathname) {
   return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
 }
 
-const writeFile = async (pathname, content, isBinary = false) => {
+const writeFile = async (pathname, content, isBinary = false, options = {}) => {
   try {
     await safeWriteFile(pathname, content, {
-      encoding: !isBinary ? 'utf-8' : null
+      encoding: !isBinary ? 'utf-8' : null,
+      ...options
     });
   } catch (err) {
     console.error(`Error writing file at ${pathname}:`, err);
