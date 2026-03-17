@@ -646,4 +646,106 @@ describe('prepare-request: prepareRequest', () => {
       expect(result.data.variables).toBe('{}');
     });
   });
+
+  describe('Query param URL sync', () => {
+    it('should sync enabled query params into the URL when URL has no query string', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          headers: [],
+          params: [
+            { name: 'partial', value: 'true', type: 'query', enabled: true },
+            { name: 'limit', value: '10', type: 'query', enabled: true }
+          ],
+          url: 'https://api.example.com/items'
+        }
+      };
+
+      const result = await prepareRequest(item);
+      expect(result.url).toBe('https://api.example.com/items?partial=true&limit=10');
+    });
+
+    it('should rebuild URL from params when URL already contains a query string', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          headers: [],
+          params: [
+            { name: 'partial', value: 'true', type: 'query', enabled: true },
+            { name: 'limit', value: '10', type: 'query', enabled: true }
+          ],
+          url: 'https://api.example.com/items?partial=true&limit=10'
+        }
+      };
+
+      const result = await prepareRequest(item);
+      expect(result.url).toBe('https://api.example.com/items?partial=true&limit=10');
+    });
+
+    it('should exclude disabled query params from the URL', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          headers: [],
+          params: [
+            { name: 'active', value: 'true', type: 'query', enabled: true },
+            { name: 'disabled_param', value: 'some_value', type: 'query', enabled: false }
+          ],
+          url: 'https://api.example.com/items'
+        }
+      };
+
+      const result = await prepareRequest(item);
+      expect(result.url).toBe('https://api.example.com/items?active=true');
+    });
+
+    it('should not modify URL when all query params are disabled', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          headers: [],
+          params: [
+            { name: 'param1', value: 'value1', type: 'query', enabled: false },
+            { name: 'param2', value: 'value2', type: 'query', enabled: false }
+          ],
+          url: 'https://api.example.com/items'
+        }
+      };
+
+      const result = await prepareRequest(item);
+      expect(result.url).toBe('https://api.example.com/items');
+    });
+
+    it('should not modify URL when there are no query params', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          headers: [],
+          params: [],
+          url: 'https://api.example.com/items'
+        }
+      };
+
+      const result = await prepareRequest(item);
+      expect(result.url).toBe('https://api.example.com/items');
+    });
+
+    it('should not affect path params while syncing query params', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          headers: [],
+          params: [
+            { name: 'partial', value: 'true', type: 'query', enabled: true },
+            { name: 'id', value: '123', type: 'path', enabled: true }
+          ],
+          url: 'https://api.example.com/:id/items'
+        }
+      };
+
+      const result = await prepareRequest(item);
+      expect(result.url).toBe('https://api.example.com/:id/items?partial=true');
+      expect(result.pathParams).toEqual([{ name: 'id', value: '123', type: 'path', enabled: true }]);
+    });
+  });
 });
