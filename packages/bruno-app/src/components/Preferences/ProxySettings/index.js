@@ -37,6 +37,7 @@ const ProxySettings = ({ close }) => {
   });
 
   const formik = useFormik({
+    enableReinitialize: true,
     initialValues: {
       disabled: preferences.proxy.disabled || false,
       inherit: preferences.proxy.inherit || false,
@@ -88,31 +89,13 @@ const ProxySettings = ({ close }) => {
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   useEffect(() => {
-    formik.setValues({
-      disabled: preferences.proxy.disabled || false,
-      inherit: preferences.proxy.inherit || false,
-      config: {
-        protocol: preferences.proxy.config?.protocol || 'http',
-        hostname: preferences.proxy.config?.hostname || '',
-        port: preferences.proxy.config?.port || '',
-        auth: {
-          disabled: preferences.proxy.config?.auth?.disabled || false,
-          username: preferences.proxy.config?.auth?.username || '',
-          password: preferences.proxy.config?.auth?.password || ''
-        },
-        bypassProxy: preferences.proxy.config?.bypassProxy || ''
-      }
-    });
-  }, [preferences]);
-
-  useEffect(() => {
-    if (formik.dirty) {
+    if (formik.dirty && formik.isValid) {
       debouncedSave(formik.values);
     }
     return () => {
       debouncedSave.flush();
     };
-  }, [formik.values, formik.dirty, debouncedSave]);
+  }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 
   return (
     <StyledWrapper>
