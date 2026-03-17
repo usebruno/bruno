@@ -39,8 +39,8 @@ const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
   // logic and regexes expect forward slashes.
   const normalizedPath = normalizePath(filePath);
 
-  const isFolderFile = /(?:^|\/)folder\.(?:bru|ya?ml)$/.test(normalizedPath);
-  const isCollectionFile = normalizedPath === 'collection.bru' || /^opencollection\.ya?ml$/.test(normalizedPath);
+  const isFolderFile = /(?:^|\/)folder\.(?:bru|yml)$/.test(normalizedPath);
+  const isCollectionFile = normalizedPath === 'collection.bru' || /^opencollection\.yml$/.test(normalizedPath);
 
   // Folder level (check before collection to avoid folder.yml matching as collection)
   if (isFolderFile) {

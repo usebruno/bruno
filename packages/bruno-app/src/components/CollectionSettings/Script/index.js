@@ -24,7 +24,6 @@ const Script = ({ collection }) => {
   const focusedTab = find(tabs, (t) => t.uid === collection.uid);
   const scriptPaneTab = focusedTab?.scriptPaneTab;
 
-  // Default to post-response if pre-request script is empty (only when scriptPaneTab is null/undefined)
   const getDefaultTab = () => {
     const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
     return hasPreRequestScript ? 'pre-request' : 'post-response';

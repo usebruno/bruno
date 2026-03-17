@@ -8,9 +8,9 @@ import { setSandboxMode, runCollection } from '../utils/page/runner';
  */
 const sendAndWaitForErrorCard = async (page: Page) => {
   const { request } = buildCommonLocators(page);
-  const se = buildScriptErrorLocators(page);
+  const scriptErrorLocators = buildScriptErrorLocators(page);
   await request.sendButton().click();
-  await se.card().waitFor({ state: 'visible', timeout: 15000 });
+  await scriptErrorLocators.card().waitFor({ state: 'visible', timeout: 15000 });
 };
 
 /**
@@ -44,12 +44,12 @@ const openFolderRequest = async (page: Page, collectionName: string, folderName:
 
 for (const mode of ['safe', 'developer'] as const) {
   test.describe.serial(`Script Error Display [${mode} mode]`, () => {
-    let se: ReturnType<typeof buildScriptErrorLocators>;
-    let cl: ReturnType<typeof buildCommonLocators>;
+    let scriptErrorLocators: ReturnType<typeof buildScriptErrorLocators>;
+    let commonLocators: ReturnType<typeof buildCommonLocators>;
 
     test.beforeAll(async ({ pageWithUserData: page }) => {
-      se = buildScriptErrorLocators(page);
-      cl = buildCommonLocators(page);
+      scriptErrorLocators = buildScriptErrorLocators(page);
+      commonLocators = buildCommonLocators(page);
 
       await setSandboxMode(page, 'script-errors-test', mode);
       await setSandboxMode(page, 'collection-script-error', mode);
@@ -62,19 +62,19 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify error card content', async () => {
-        const card = se.card();
-        await expect(se.title(card)).toContainText('Pre-Request Script Error');
-        await expect(se.sourceLabel(card)).toContainText('Request');
-        await expect(se.filePath(card)).toContainText('pre-request-ref-error.bru');
-        await expect(se.message(card)).toContainText('ReferenceError');
-        await expect(se.message(card)).toContainText('undefinedVariable');
-        await expect(se.codeSnippet(card)).toBeVisible();
-        await expect(se.errorLine(card)).toBeVisible();
-        await expect(se.errorLine(card)).toContainText('undefinedVariable');
+        const card = scriptErrorLocators.card();
+        await expect(scriptErrorLocators.title(card)).toContainText('Pre-Request Script Error');
+        await expect(scriptErrorLocators.sourceLabel(card)).toContainText('Request');
+        await expect(scriptErrorLocators.filePath(card)).toContainText('pre-request-ref-error.bru');
+        await expect(scriptErrorLocators.message(card)).toContainText('ReferenceError');
+        await expect(scriptErrorLocators.message(card)).toContainText('undefinedVariable');
+        await expect(scriptErrorLocators.codeSnippet(card)).toBeVisible();
+        await expect(scriptErrorLocators.errorLine(card)).toBeVisible();
+        await expect(scriptErrorLocators.errorLine(card)).toContainText('undefinedVariable');
       });
 
       await test.step('Verify response status shows Error', async () => {
-        await expect(cl.response.statusCode()).toContainText('Error');
+        await expect(commonLocators.response.statusCode()).toContainText('Error');
       });
     });
 
@@ -85,17 +85,17 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify error card content', async () => {
-        const card = se.card();
+        const card = scriptErrorLocators.card();
         await expect(card).toBeVisible();
-        await expect(se.title(card)).toContainText('Post-Response Script Error');
-        await expect(se.sourceLabel(card)).toContainText('Request');
-        await expect(se.filePath(card)).toContainText('post-response-type-error.bru');
-        await expect(se.message(card)).toContainText('TypeError');
-        await expect(se.errorLine(card)).toContainText('result.nonExistentMethod()');
+        await expect(scriptErrorLocators.title(card)).toContainText('Post-Response Script Error');
+        await expect(scriptErrorLocators.sourceLabel(card)).toContainText('Request');
+        await expect(scriptErrorLocators.filePath(card)).toContainText('post-response-type-error.bru');
+        await expect(scriptErrorLocators.message(card)).toContainText('TypeError');
+        await expect(scriptErrorLocators.errorLine(card)).toContainText('result.nonExistentMethod()');
       });
 
       await test.step('Verify HTTP 200 status', async () => {
-        await expect(cl.response.statusCode()).toContainText('200');
+        await expect(commonLocators.response.statusCode()).toContainText('200');
       });
     });
 
@@ -106,14 +106,14 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify error card content', async () => {
-        const card = se.card();
+        const card = scriptErrorLocators.card();
         await expect(card).toBeVisible();
-        await expect(se.title(card)).toContainText('Test Script Error');
-        await expect(se.sourceLabel(card)).toContainText('Request');
-        await expect(se.filePath(card)).toContainText('test-script-error.bru');
-        await expect(se.message(card)).toContainText('ReferenceError');
-        await expect(se.message(card)).toContainText('nonExistentFunction');
-        await expect(se.errorLine(card)).toContainText('nonExistentFunction()');
+        await expect(scriptErrorLocators.title(card)).toContainText('Test Script Error');
+        await expect(scriptErrorLocators.sourceLabel(card)).toContainText('Request');
+        await expect(scriptErrorLocators.filePath(card)).toContainText('test-script-error.bru');
+        await expect(scriptErrorLocators.message(card)).toContainText('ReferenceError');
+        await expect(scriptErrorLocators.message(card)).toContainText('nonExistentFunction');
+        await expect(scriptErrorLocators.errorLine(card)).toContainText('nonExistentFunction()');
       });
     });
 
@@ -124,23 +124,23 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify stack toggle is visible and stack is hidden', async () => {
-        const card = se.card();
-        await expect(se.stackToggle(card)).toBeVisible();
-        await expect(se.stackToggle(card)).toContainText('Show stack trace');
-        await expect(se.stack(card)).not.toBeVisible();
+        const card = scriptErrorLocators.card();
+        await expect(scriptErrorLocators.stackToggle(card)).toBeVisible();
+        await expect(scriptErrorLocators.stackToggle(card)).toContainText('Show stack trace');
+        await expect(scriptErrorLocators.stack(card)).not.toBeVisible();
       });
 
       await test.step('Click toggle to show stack trace', async () => {
-        const card = se.card();
-        await se.stackToggle(card).click();
-        await expect(se.stack(card)).toBeVisible();
-        await expect(se.stackToggle(card)).toContainText('Hide stack trace');
+        const card = scriptErrorLocators.card();
+        await scriptErrorLocators.stackToggle(card).click();
+        await expect(scriptErrorLocators.stack(card)).toBeVisible();
+        await expect(scriptErrorLocators.stackToggle(card)).toContainText('Hide stack trace');
       });
 
       await test.step('Click toggle to hide stack trace again', async () => {
-        const card = se.card();
-        await se.stackToggle(card).click();
-        await expect(se.stack(card)).not.toBeVisible();
+        const card = scriptErrorLocators.card();
+        await scriptErrorLocators.stackToggle(card).click();
+        await expect(scriptErrorLocators.stack(card)).not.toBeVisible();
       });
     });
 
@@ -151,16 +151,16 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Close error card', async () => {
-        const card = se.card();
+        const card = scriptErrorLocators.card();
         await expect(card).toBeVisible();
-        await se.closeButton(card).click();
-        await expect(se.cards()).toHaveCount(0);
+        await scriptErrorLocators.closeButton(card).click();
+        await expect(scriptErrorLocators.cards()).toHaveCount(0);
       });
 
       await test.step('Click error icon to restore card', async () => {
-        await expect(se.errorIcon()).toBeVisible();
-        await se.errorIcon().click();
-        await expect(se.card()).toBeVisible();
+        await expect(scriptErrorLocators.errorIcon()).toBeVisible();
+        await scriptErrorLocators.errorIcon().click();
+        await expect(scriptErrorLocators.card()).toBeVisible();
       });
     });
 
@@ -171,25 +171,25 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify two error cards are displayed', async () => {
-        await expect(se.cards()).toHaveCount(2);
+        await expect(scriptErrorLocators.cards()).toHaveCount(2);
       });
 
       await test.step('Verify first card is post-response error', async () => {
-        const card0 = se.card(0);
-        await expect(se.title(card0)).toContainText('Post-Response Script Error');
-        await expect(se.message(card0)).toContainText('postResponseMissingVar');
-        await expect(se.errorLine(card0)).toContainText('postResponseMissingVar()');
+        const card0 = scriptErrorLocators.card(0);
+        await expect(scriptErrorLocators.title(card0)).toContainText('Post-Response Script Error');
+        await expect(scriptErrorLocators.message(card0)).toContainText('postResponseMissingVar');
+        await expect(scriptErrorLocators.errorLine(card0)).toContainText('postResponseMissingVar()');
       });
 
       await test.step('Verify second card is test script error', async () => {
-        const card1 = se.card(1);
-        await expect(se.title(card1)).toContainText('Test Script Error');
-        await expect(se.message(card1)).toContainText('testMissingVar');
-        await expect(se.errorLine(card1)).toContainText('testMissingVar()');
+        const card1 = scriptErrorLocators.card(1);
+        await expect(scriptErrorLocators.title(card1)).toContainText('Test Script Error');
+        await expect(scriptErrorLocators.message(card1)).toContainText('testMissingVar');
+        await expect(scriptErrorLocators.errorLine(card1)).toContainText('testMissingVar()');
       });
 
       await test.step('Verify HTTP 200 status', async () => {
-        await expect(cl.response.statusCode()).toContainText('200');
+        await expect(commonLocators.response.statusCode()).toContainText('200');
       });
     });
 
@@ -203,14 +203,14 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify folder-level error card', async () => {
-        const card = se.card();
-        await expect(se.title(card)).toContainText('Pre-Request Script Error');
-        await expect(se.sourceLabel(card)).toContainText('Folder');
-        await expect(se.sourceLabel(card)).toContainText('error-subfolder');
-        await expect(se.filePath(card)).toContainText('folder.bru');
-        await expect(se.message(card)).toContainText('ReferenceError');
-        await expect(se.message(card)).toContainText('folderUndefinedVar');
-        await expect(se.errorLine(card)).toContainText('folderUndefinedVar');
+        const card = scriptErrorLocators.card();
+        await expect(scriptErrorLocators.title(card)).toContainText('Pre-Request Script Error');
+        await expect(scriptErrorLocators.sourceLabel(card)).toContainText('Folder');
+        await expect(scriptErrorLocators.sourceLabel(card)).toContainText('error-subfolder');
+        await expect(scriptErrorLocators.filePath(card)).toContainText('folder.bru');
+        await expect(scriptErrorLocators.message(card)).toContainText('ReferenceError');
+        await expect(scriptErrorLocators.message(card)).toContainText('folderUndefinedVar');
+        await expect(scriptErrorLocators.errorLine(card)).toContainText('folderUndefinedVar');
       });
     });
 
@@ -222,12 +222,12 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Click file path to navigate', async () => {
-        const card = se.card();
-        await se.filePath(card).click();
+        const card = scriptErrorLocators.card();
+        await scriptErrorLocators.filePath(card).click();
       });
 
       await test.step('Verify navigation to folder settings with Script tab', async () => {
-        const activeTab = cl.tabs.activeRequestTab();
+        const activeTab = commonLocators.tabs.activeRequestTab();
         await expect(activeTab).toContainText('error-subfolder');
         const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
         await expect(scriptTab).toHaveClass(/active/);
@@ -244,13 +244,13 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify collection-level error card', async () => {
-        const card = se.card();
-        await expect(se.title(card)).toContainText('Pre-Request Script Error');
-        await expect(se.sourceLabel(card)).toContainText('Collection');
-        await expect(se.filePath(card)).toContainText('collection.bru');
-        await expect(se.message(card)).toContainText('ReferenceError');
-        await expect(se.message(card)).toContainText('collectionUndefinedVar');
-        await expect(se.errorLine(card)).toContainText('collectionUndefinedVar');
+        const card = scriptErrorLocators.card();
+        await expect(scriptErrorLocators.title(card)).toContainText('Pre-Request Script Error');
+        await expect(scriptErrorLocators.sourceLabel(card)).toContainText('Collection');
+        await expect(scriptErrorLocators.filePath(card)).toContainText('collection.bru');
+        await expect(scriptErrorLocators.message(card)).toContainText('ReferenceError');
+        await expect(scriptErrorLocators.message(card)).toContainText('collectionUndefinedVar');
+        await expect(scriptErrorLocators.errorLine(card)).toContainText('collectionUndefinedVar');
       });
     });
 
@@ -261,12 +261,12 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Click file path to navigate', async () => {
-        const card = se.card();
-        await se.filePath(card).click();
+        const card = scriptErrorLocators.card();
+        await scriptErrorLocators.filePath(card).click();
       });
 
       await test.step('Verify navigation to collection settings with Script tab', async () => {
-        const activeTab = cl.tabs.activeRequestTab();
+        const activeTab = commonLocators.tabs.activeRequestTab();
         await expect(activeTab).toContainText('Collection');
         const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
         await expect(scriptTab).toHaveClass(/active/);
@@ -280,12 +280,12 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Click file path to navigate', async () => {
-        const card = se.card();
-        await se.filePath(card).click();
+        const card = scriptErrorLocators.card();
+        await scriptErrorLocators.filePath(card).click();
       });
 
       await test.step('Verify Script pane tab is active', async () => {
-        const activeTab = cl.tabs.activeRequestTab();
+        const activeTab = commonLocators.tabs.activeRequestTab();
         await expect(activeTab).toContainText('pre-request-ref-error');
         const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
         await expect(scriptTab).toHaveClass(/active/);
@@ -299,9 +299,9 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Click file path to navigate', async () => {
-        const card = se.card();
+        const card = scriptErrorLocators.card();
         await expect(card).toBeVisible();
-        await se.filePath(card).click();
+        await scriptErrorLocators.filePath(card).click();
       });
 
       await test.step('Verify Tests pane tab is active', async () => {
@@ -327,19 +327,19 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify script error card in runner detail pane', async () => {
-        const card = se.card();
+        const card = scriptErrorLocators.card();
         await card.waitFor({ state: 'visible', timeout: 10000 });
-        await expect(se.title(card)).toContainText('Pre-Request Script Error');
-        await expect(se.filePath(card)).toContainText('pre-request-ref-error.bru');
+        await expect(scriptErrorLocators.title(card)).toContainText('Pre-Request Script Error');
+        await expect(scriptErrorLocators.filePath(card)).toContainText('pre-request-ref-error.bru');
       });
 
       await test.step('Click file path to navigate to request', async () => {
-        const card = se.card();
-        await se.filePath(card).click();
+        const card = scriptErrorLocators.card();
+        await scriptErrorLocators.filePath(card).click();
       });
 
       await test.step('Verify request tab opened with Script sub-tab active', async () => {
-        const activeTab = cl.tabs.activeRequestTab();
+        const activeTab = commonLocators.tabs.activeRequestTab();
         await expect(activeTab).toContainText('pre-request-ref-error');
         const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
         await expect(scriptTab).toHaveClass(/active/);
@@ -353,9 +353,9 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Click file path to navigate', async () => {
-        const card = se.card();
+        const card = scriptErrorLocators.card();
         await expect(card).toBeVisible();
-        await se.filePath(card).click();
+        await scriptErrorLocators.filePath(card).click();
       });
 
       await test.step('Verify Script pane tab is active', async () => {
@@ -376,13 +376,13 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Focus file path and press Enter', async () => {
-        const card = se.card();
-        await se.filePath(card).focus();
+        const card = scriptErrorLocators.card();
+        await scriptErrorLocators.filePath(card).focus();
         await page.keyboard.press('Enter');
       });
 
       await test.step('Verify Script pane tab is active (same as click navigation)', async () => {
-        const activeTab = cl.tabs.activeRequestTab();
+        const activeTab = commonLocators.tabs.activeRequestTab();
         await expect(activeTab).toContainText('pre-request-ref-error');
         const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
         await expect(scriptTab).toHaveClass(/active/);
@@ -397,23 +397,23 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify two error cards exist', async () => {
-        await expect(se.cards()).toHaveCount(2);
+        await expect(scriptErrorLocators.cards()).toHaveCount(2);
       });
 
       await test.step('Close the first card (post-response error)', async () => {
-        const card0 = se.card(0);
-        await se.closeButton(card0).click();
+        const card0 = scriptErrorLocators.card(0);
+        await scriptErrorLocators.closeButton(card0).click();
       });
 
       await test.step('Verify only one card remains and it is the test script error', async () => {
-        await expect(se.cards()).toHaveCount(1);
-        const remainingCard = se.card(0);
-        await expect(se.title(remainingCard)).toContainText('Test Script Error');
-        await expect(se.message(remainingCard)).toContainText('testMissingVar');
+        await expect(scriptErrorLocators.cards()).toHaveCount(1);
+        const remainingCard = scriptErrorLocators.card(0);
+        await expect(scriptErrorLocators.title(remainingCard)).toContainText('Test Script Error');
+        await expect(scriptErrorLocators.message(remainingCard)).toContainText('testMissingVar');
       });
 
       await test.step('Verify ScriptErrorIcon appears for the closed card', async () => {
-        await expect(se.errorIcon()).toBeVisible();
+        await expect(scriptErrorLocators.errorIcon()).toBeVisible();
       });
     });
 
@@ -434,19 +434,19 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify script error card in runner detail pane', async () => {
-        const card = se.card();
+        const card = scriptErrorLocators.card();
         await card.waitFor({ state: 'visible', timeout: 10000 });
-        await expect(se.title(card)).toContainText('Test Script Error');
-        await expect(se.filePath(card)).toContainText('test-script-error.bru');
+        await expect(scriptErrorLocators.title(card)).toContainText('Test Script Error');
+        await expect(scriptErrorLocators.filePath(card)).toContainText('test-script-error.bru');
       });
 
       await test.step('Click file path to navigate to request', async () => {
-        const card = se.card();
-        await se.filePath(card).click();
+        const card = scriptErrorLocators.card();
+        await scriptErrorLocators.filePath(card).click();
       });
 
       await test.step('Verify request tab opened with Tests sub-tab active', async () => {
-        const activeTab = cl.tabs.activeRequestTab();
+        const activeTab = commonLocators.tabs.activeRequestTab();
         await expect(activeTab).toContainText('test-script-error');
         const testsTab = page.locator('.tabs [role="tab"]').getByText('Tests', { exact: true });
         await expect(testsTab).toHaveClass(/active/);

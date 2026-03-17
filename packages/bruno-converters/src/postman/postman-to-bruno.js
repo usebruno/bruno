@@ -834,9 +834,8 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
                 item.root.request.tests = '';
               }
 
-              const translated = translatedScripts.get(item.uid);
-              const script = translated.request?.script?.req;
-              const tests = translated.request?.script?.res;
+              const script = translatedScripts.get(item.uid).request?.script?.req;
+              const tests = translatedScripts.get(item.uid).request?.script?.res;
 
               item.root.request.script.req = script && script.length > 0 ? script : '';
               item.root.request.script.res = tests && tests.length > 0 ? tests : '';
@@ -855,9 +854,8 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
                 item.request.tests = '';
               }
 
-              const translated = translatedScripts.get(item.uid);
-              const script = translated.request?.script?.req;
-              const tests = translated.request?.script?.res;
+              const script = translatedScripts.get(item.uid).request?.script?.req;
+              const tests = translatedScripts.get(item.uid).request?.script?.res;
 
               item.request.script.req = script && script.length > 0 ? script : '';
               item.request.script.res = tests && tests.length > 0 ? tests : '';

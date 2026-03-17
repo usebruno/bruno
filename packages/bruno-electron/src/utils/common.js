@@ -129,8 +129,6 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
-const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
-
 const parseDataFromRequest = (request) => {
   let requestDataString;
 
@@ -162,6 +160,5 @@ module.exports = {
   generateUidBasedOnHash,
   flattenDataForDotNotation,
   parseDataFromResponse,
-  parseDataFromRequest,
-  posixifyPath
+  parseDataFromRequest
 };

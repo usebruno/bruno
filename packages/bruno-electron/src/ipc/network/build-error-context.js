@@ -8,7 +8,7 @@
  * and test script errors.
  */
 const path = require('path');
-const { posixifyPath } = require('../../utils/common');
+const { posixifyPath } = require('../../utils/filesystem');
 const {
   parseErrorLocation,
   adjustLineNumber,
@@ -65,7 +65,7 @@ const buildErrorContext = (error, scriptType, itemPathname, collectionPath, scri
     // Users edit scripts in a CodeMirror editor starting at line 1,
     // so show lines relative to the script block, not absolute .bru file lines.
     const isBru = sourceFile.endsWith('.bru');
-    const isYml = sourceFile.endsWith('.yml') || sourceFile.endsWith('.yaml');
+    const isYml = sourceFile.endsWith('.yml');
 
     const blockStartLine = isBru
       ? findScriptBlockStartLine(sourceFile, scriptType, cache)

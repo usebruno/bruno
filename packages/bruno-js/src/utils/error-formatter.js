@@ -3,7 +3,7 @@ const YAML = require('yaml');
 const { NODEVM_SCRIPT_WRAPPER_OFFSET, QUICKJS_SCRIPT_WRAPPER_OFFSET } = require('./sandbox');
 
 const DEFAULT_CONTEXT_LINES = 5;
-const ALLOWED_SOURCE_EXTENSIONS = ['.bru', '.yml', '.yaml'];
+const ALLOWED_SOURCE_EXTENSIONS = ['.bru', '.yml'];
 
 const isAllowedSourceFile = (filePath) =>
   typeof filePath === 'string' && ALLOWED_SOURCE_EXTENSIONS.some((ext) => filePath.endsWith(ext));
@@ -102,7 +102,7 @@ const findScriptBlockEndLine = (filePath, scriptType, cache = null) => {
 
 /** Find the 1-indexed line where a script block's content starts in a .yml file */
 const findYmlScriptBlockStartLine = (filePath, scriptType, cache = null) => {
-  if (!filePath.endsWith('.yml') && !filePath.endsWith('.yaml')) return null;
+  if (!filePath.endsWith('.yml')) return null;
 
   const cacheKey = `yml:${filePath}:${scriptType}`;
   if (cache?.has(cacheKey)) return cache.get(cacheKey);
@@ -146,7 +146,7 @@ const findYmlScriptBlockStartLine = (filePath, scriptType, cache = null) => {
 
 /** Find the 1-indexed last content line of a script block in a .yml file */
 const findYmlScriptBlockEndLine = (filePath, scriptType, cache = null) => {
-  if (!filePath.endsWith('.yml') && !filePath.endsWith('.yaml')) return null;
+  if (!filePath.endsWith('.yml')) return null;
 
   const cacheKey = `yml-end:${filePath}:${scriptType}`;
   if (cache?.has(cacheKey)) return cache.get(cacheKey);
@@ -192,7 +192,7 @@ const findYmlScriptBlockEndLine = (filePath, scriptType, cache = null) => {
 /** Adjust a runtime-reported line number to the actual line in the .bru/.yml file */
 const adjustLineNumber = (filePath, reportedLine, isQuickJS, scriptType = null, cache = null, scriptMetadata = null) => {
   const isBruFile = filePath.endsWith('.bru');
-  const isYmlFile = filePath.endsWith('.yml') || filePath.endsWith('.yaml');
+  const isYmlFile = filePath.endsWith('.yml');
 
   if (!isBruFile && !isYmlFile) {
     return reportedLine;
@@ -253,7 +253,7 @@ const resolveSegmentError = (parsed, metadata, scriptType, cache) => {
   for (const segment of metadata.segments) {
     if (scriptRelativeLine >= segment.startLine && scriptRelativeLine <= segment.endLine) {
       const isBru = segment.filePath.endsWith('.bru');
-      const isYml = segment.filePath.endsWith('.yml') || segment.filePath.endsWith('.yaml');
+      const isYml = segment.filePath.endsWith('.yml');
       if (!isBru && !isYml) return null;
 
       const blockStartLine = isBru

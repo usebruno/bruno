@@ -1,7 +1,8 @@
 const { get, each, find, isString, filter } = require('lodash');
 const fs = require('fs');
 const { getRequestUid, getExampleUid } = require('../cache/requestUids');
-const { uuid, posixifyPath } = require('./common');
+const { uuid } = require('./common');
+const { posixifyPath } = require('./filesystem');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
