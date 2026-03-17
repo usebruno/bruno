@@ -166,6 +166,40 @@ ${script}
  * @param {number} requestIndex - Index in scripts of the request-level segment.
  * @param {Array|null} segmentSources - Source file info for each segment (null for request segment).
  * @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number } | null }}
+ *
+ * @example
+ * ** Input **
+ * const scripts = ['let col = 1;', 'let fold = 2;', 'let req = 3;'];
+ * const requestIndex = 2;
+ * const segmentSources = [
+ *   { source: 'collection', fileName: 'collection.bru' },
+ *   { source: 'folder', fileName: 'folder.bru' },
+ *   null // request segment — no source needed
+ * ];
+ *
+ * ** Output **
+ * {
+ *   code:
+ *       'await (async () => {\n'   // line 1
+ *      + 'let col = 1;\n'           // line 2
+ *      + '})();\n'                  // line 3
+ *      + '\n'                       // line 4 (blank separator)
+ *      + 'await (async () => {\n'   // line 5
+ *      + 'let fold = 2;\n'          // line 6
+ *      + '})();\n'                  // line 7
+ *      + '\n'                       // line 8 (blank separator)
+ *      + 'await (async () => {\n'   // line 9
+ *      + 'let req = 3;\n'           // line 10
+ *      + '})();',                   // line 11
+ *   metadata: {
+ *      requestStartLine: 9,
+ *      requestEndLine: 11,
+ *     segments: [
+ *       { startLine: 1, endLine: 3, source: 'collection', fileName: 'collection.bru' },
+ *       { startLine: 5, endLine: 7, source: 'folder', fileName: 'folder.bru' }
+ *     ]
+ *   }
+ * }
  */
 const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null) => {
   const wrapped = scripts.map((s) => wrapScriptInClosure(s));

@@ -322,7 +322,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Click on failed request result to open detail pane', async () => {
-        const resultItem = page.locator('.item-path').filter({ hasText: 'pre-request-ref-error' });
+        const resultItem = commonLocators.runnerResults.itemPath('pre-request-ref-error');
         await resultItem.locator('.danger').filter({ hasText: '(request failed)' }).click();
       });
 
@@ -429,7 +429,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Click on test-script-error result to open detail pane', async () => {
-        const resultItem = page.locator('.item-path').filter({ hasText: 'test-script-error' });
+        const resultItem = commonLocators.runnerResults.itemPath('test-script-error');
         await resultItem.locator('.link').click();
       });
 

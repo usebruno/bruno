@@ -81,6 +81,9 @@ export const buildCommonLocators = (page: Page) => ({
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
     item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
   },
+  runnerResults: {
+    itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })
+  },
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
     pane: () => page.locator('.response-pane'),
