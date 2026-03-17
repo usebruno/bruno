@@ -308,7 +308,7 @@ export default function RunnerResults({ collection }) {
                     className="cursor-pointer"
                     id="filter-config"
                     type="radio"
-                    name="filterMode"
+                    name="filter-mode"
                     checked={configureMode}
                     onChange={toggleConfigureMode}
                   />

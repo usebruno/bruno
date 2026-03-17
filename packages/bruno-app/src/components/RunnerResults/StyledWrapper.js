@@ -15,7 +15,6 @@ const Wrapper = styled.div`
       border-color: ${(props) => props.theme.input.focusBorder};
     }
 
-    /* Hide the up and down arrows in the number input */
     &[type='number'] {
       -moz-appearance: textfield;
       appearance: textfield;

@@ -95,7 +95,7 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
           </div>
 
           {/* Tags for the collection run */}
-          <RunnerTags collectionUid={collection.uid} className="mb-6" />
+          <RunnerTags collectionUid={collection.uid} className="mb-6" radioName="modal-filter-mode" />
 
           <div className="flex justify-end bruno-modal-footer">
             <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-3">
