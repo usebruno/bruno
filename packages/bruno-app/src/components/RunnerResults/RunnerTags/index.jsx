@@ -87,7 +87,7 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
   };
 
   return (
-    <div className={`mt-6 flex flex-col ${className}`}>
+    <div className={`flex flex-col ${className}`}>
       <div className="flex gap-2">
         <input
           className="cursor-pointer"
@@ -97,12 +97,12 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
           checked={tagsEnabled}
           onChange={() => setTagsEnabled(!tagsEnabled)}
         />
-        <label htmlFor="filter-tags" className="block font-medium">Filter requests with tags</label>
+        <label htmlFor="filter-tags" className="block">Filter requests with tags</label>
       </div>
       {tagsEnabled && (
-        <div className="flex flex-row mt-4 gap-4 w-full">
-          <div className="w-1/2 flex flex-col gap-2 max-w-[400px]">
-            <span>Included tags:</span>
+        <div className="flex flex-row mt-2 gap-4 w-full pl-6">
+          <div className="flex-1 flex flex-col gap-2 min-w-0">
+            <span>Include tags</span>
             <TagList
               tags={tags.include}
               handleAddTag={(tag) => handleAddTag({ tag, to: 'include' })}
@@ -111,8 +111,8 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
               handleValidation={handleValidation}
             />
           </div>
-          <div className="w-1/2 flex flex-col gap-2 max-w-[400px]">
-            <span>Excluded tags:</span>
+          <div className="flex-1 flex flex-col gap-2 min-w-0">
+            <span>Exclude tags</span>
             <TagList
               tags={tags.exclude}
               handleAddTag={(tag) => handleAddTag({ tag, to: 'exclude' })}
