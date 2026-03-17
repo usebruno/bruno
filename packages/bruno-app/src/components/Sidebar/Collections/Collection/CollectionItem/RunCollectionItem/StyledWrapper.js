@@ -4,6 +4,17 @@ const Wrapper = styled.div`
   .bruno-modal-content {
     padding-bottom: 1rem;
   }
+
+  .description {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid ${(props) => props.theme.input.border};
+    margin: 1rem 0rem;
+  }
+
   .warning {
     color: ${(props) => props.theme.colors.text.danger};
   }
