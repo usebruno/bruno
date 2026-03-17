@@ -37,7 +37,6 @@ const ProxySettings = ({ close }) => {
   });
 
   const formik = useFormik({
-    enableReinitialize: true,
     initialValues: {
       disabled: preferences.proxy.disabled || false,
       inherit: preferences.proxy.inherit || false,
