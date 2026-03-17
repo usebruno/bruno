@@ -229,7 +229,7 @@ for (const mode of ['safe', 'developer'] as const) {
       await test.step('Verify navigation to folder settings with Script tab', async () => {
         const activeTab = commonLocators.tabs.activeRequestTab();
         await expect(activeTab).toContainText('error-subfolder');
-        const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
+        const scriptTab = commonLocators.paneTabs.folderSettingsTab('script');
         await expect(scriptTab).toHaveClass(/active/);
       });
     });
@@ -268,7 +268,7 @@ for (const mode of ['safe', 'developer'] as const) {
       await test.step('Verify navigation to collection settings with Script tab', async () => {
         const activeTab = commonLocators.tabs.activeRequestTab();
         await expect(activeTab).toContainText('Collection');
-        const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
+        const scriptTab = commonLocators.paneTabs.collectionSettingsTab('script');
         await expect(scriptTab).toHaveClass(/active/);
       });
     });
@@ -287,7 +287,7 @@ for (const mode of ['safe', 'developer'] as const) {
       await test.step('Verify Script pane tab is active', async () => {
         const activeTab = commonLocators.tabs.activeRequestTab();
         await expect(activeTab).toContainText('pre-request-ref-error');
-        const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
+        const scriptTab = commonLocators.paneTabs.responsiveTab('script');
         await expect(scriptTab).toHaveClass(/active/);
       });
     });
@@ -305,7 +305,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify Tests pane tab is active', async () => {
-        const testsTab = page.locator('.tabs [role="tab"]').getByText('Tests', { exact: true });
+        const testsTab = commonLocators.paneTabs.responsiveTab('tests');
         await expect(testsTab).toHaveClass(/active/);
       });
     });
@@ -341,7 +341,7 @@ for (const mode of ['safe', 'developer'] as const) {
       await test.step('Verify request tab opened with Script sub-tab active', async () => {
         const activeTab = commonLocators.tabs.activeRequestTab();
         await expect(activeTab).toContainText('pre-request-ref-error');
-        const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
+        const scriptTab = commonLocators.paneTabs.responsiveTab('script');
         await expect(scriptTab).toHaveClass(/active/);
       });
     });
@@ -359,12 +359,12 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify Script pane tab is active', async () => {
-        const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
+        const scriptTab = commonLocators.paneTabs.responsiveTab('script');
         await expect(scriptTab).toHaveClass(/active/);
       });
 
       await test.step('Verify Post Response sub-tab is active', async () => {
-        const postResponseSubTab = page.locator('.tab-trigger').getByText('Post Response');
+        const postResponseSubTab = commonLocators.paneTabs.tabTrigger('post-response');
         await expect(postResponseSubTab).toHaveClass(/active/);
       });
     });
@@ -384,7 +384,7 @@ for (const mode of ['safe', 'developer'] as const) {
       await test.step('Verify Script pane tab is active (same as click navigation)', async () => {
         const activeTab = commonLocators.tabs.activeRequestTab();
         await expect(activeTab).toContainText('pre-request-ref-error');
-        const scriptTab = page.locator('.tabs [role="tab"]').getByText('Script', { exact: true });
+        const scriptTab = commonLocators.paneTabs.responsiveTab('script');
         await expect(scriptTab).toHaveClass(/active/);
       });
     });
@@ -448,7 +448,7 @@ for (const mode of ['safe', 'developer'] as const) {
       await test.step('Verify request tab opened with Tests sub-tab active', async () => {
         const activeTab = commonLocators.tabs.activeRequestTab();
         await expect(activeTab).toContainText('test-script-error');
-        const testsTab = page.locator('.tabs [role="tab"]').getByText('Tests', { exact: true });
+        const testsTab = commonLocators.paneTabs.responsiveTab('tests');
         await expect(testsTab).toHaveClass(/active/);
       });
     });

@@ -39,6 +39,12 @@ export const buildCommonLocators = (page: Page) => ({
     activeRequestTab: () => page.locator('.request-tab.active'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon')
   },
+  paneTabs: {
+    responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
+    collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
+    folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
+    tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
+  },
   folder: {
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
   },
