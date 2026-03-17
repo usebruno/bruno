@@ -8,11 +8,10 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
 const { encodeUrl } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
-const { buildErrorContext } = require('./build-error-context');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
@@ -449,11 +448,10 @@ const registerNetworkIpc = (mainWindow) => {
     basePayload, // request-level or runner-level identifiers
     scriptType, // 'pre-request' | 'post-response' | 'test'
     error, // optional Error
-    itemPathname, // optional path to the item file
     collectionPath, // optional path to the collection root
     scriptMetadata // optional metadata for line mapping
   }) => {
-    const errorContext = error ? buildErrorContext(error, scriptType, itemPathname, collectionPath, scriptMetadata) : null;
+    const errorContext = error ? formatErrorWithContextV2(error, scriptType, scriptMetadata, collectionPath) : null;
 
     mainWindow.webContents.send(channel, {
       type: `${scriptType}-script-execution`,
@@ -824,7 +822,6 @@ const registerNetworkIpc = (mainWindow) => {
         basePayload: { requestUid, collectionUid, itemUid: item.uid },
         scriptType: 'pre-request',
         error: preRequestError,
-        itemPathname: item.pathname,
         collectionPath,
         scriptMetadata: request.script?.reqMetadata
       });

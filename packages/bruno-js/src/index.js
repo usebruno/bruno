@@ -5,6 +5,7 @@ const AssertRuntime = require('./runtime/assert-runtime');
 const { runScriptInNodeVm } = require('./sandbox/node-vm');
 const {
   formatErrorWithContext,
+  formatErrorWithContextV2,
   SCRIPT_TYPES,
   parseErrorLocation,
   adjustLineNumber,
@@ -25,6 +26,7 @@ module.exports = {
   AssertRuntime,
   runScriptInNodeVm,
   formatErrorWithContext,
+  formatErrorWithContextV2,
   SCRIPT_TYPES,
   parseErrorLocation,
   adjustLineNumber,
