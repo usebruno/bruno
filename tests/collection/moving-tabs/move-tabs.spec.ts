@@ -2,8 +2,6 @@ import { test, expect } from '../../../playwright';
 import { closeAllCollections, createCollection } from '../../utils/page';
 
 test.describe('Move tabs', () => {
-  const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
-
   test.afterEach(async ({ page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
@@ -137,7 +135,7 @@ test.describe('Move tabs', () => {
     // Move the request tab before the folder tab using keyboard shortcut
     const source = page.locator('.request-tab .tab-label').filter({ hasText: 'test-request' });
     await source.click();
-    await page.keyboard.press(`${modifier}+BracketLeft`);
+    await page.keyboard.press('ControlOrMeta+Shift+PageUp');
     await page.waitForTimeout(500);
 
     // Verify order of tabs after move
@@ -146,7 +144,7 @@ test.describe('Move tabs', () => {
 
     // Move the request tab back to its original position using keyboard shortcut
     await source.click();
-    await page.keyboard.press(`${modifier}+BracketRight`);
+    await page.keyboard.press('ControlOrMeta+Shift+PageDown');
     await page.waitForTimeout(500);
 
     // Verify order of tabs after move

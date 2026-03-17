@@ -6,7 +6,7 @@ import { formatIpcError } from 'utils/common/error';
 
 const useSyncFlow = ({
   collection, specDrift, remoteDrift, collectionDrift,
-  sourceUrl, setError, checkForUpdates
+  setError, checkForUpdates
 }) => {
   const dispatch = useDispatch();
 
@@ -14,13 +14,13 @@ const useSyncFlow = ({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const performSync = async (selections = { removedIds: [], localOnlyIds: [], endpointDecisions: {} }, mode = 'sync') => {
+  const performSync = async (selections = { localOnlyIds: [], endpointDecisions: {} }, mode = 'sync') => {
     setShowConfirmModal(false);
     setIsSyncing(true);
     setError(null);
 
     const {
-      removedIds = [], localOnlyIds = [], endpointDecisions: decisions = {},
+      localOnlyIds = [], endpointDecisions: decisions = {},
       newToCollection, specUpdates, resolvedConflicts, localChangesToReset
     } = selections;
 
@@ -49,9 +49,7 @@ const useSyncFlow = ({
         // Called from "Sync Now" (skip review) or ConfirmSyncModal — use specDrift directly
         filteredDiff = {
           ...specDrift,
-          removed: removedIds.length > 0
-            ? (specDrift?.removed || []).filter((ep) => removedIds.includes(ep.id))
-            : []
+          removed: [] // Removals handled via localOnlyToRemove
         };
 
         localOnlyToRemove = localOnlyIds.length > 0
@@ -67,9 +65,8 @@ const useSyncFlow = ({
       await ipcRenderer.invoke('renderer:apply-openapi-sync', {
         collectionUid: collection.uid,
         collectionPath: collection.pathname,
-        sourceUrl: sourceUrl.trim(),
         addNewRequests: mode !== 'spec-only',
-        removeDeletedRequests: removedIds.length > 0 || localOnlyIds.length > 0,
+        removeDeletedRequests: localOnlyIds.length > 0,
         diff: filteredDiff,
         localOnlyToRemove,
         driftedToReset,
@@ -113,10 +110,28 @@ const useSyncFlow = ({
     setPendingSyncMode(null);
   };
 
+  // Only treat endpoints as spec changes if they actually changed in the spec
+  // (not locally-added/deleted endpoints that were never in or removed from the spec)
+  const specAddedIds = useMemo(() => {
+    return new Set((specDrift?.added || []).map((ep) => ep.id));
+  }, [specDrift]);
+
+  const specRemovedIds = useMemo(() => {
+    return new Set((specDrift?.removed || []).map((ep) => ep.id));
+  }, [specDrift]);
+
+  const handleRestoreSpec = () => {
+    const localOnlyIds = (remoteDrift?.localOnly || [])
+      .filter((ep) => specRemovedIds.has(ep.id))
+      .map((ep) => ep.id);
+    performSync({ localOnlyIds, endpointDecisions: {} }, 'sync');
+  };
+
   const handleConfirmModalSync = () => {
-    const localOnlyIds = (remoteDrift?.localOnly || []).map((ep) => ep.id);
+    const localOnlyIds = (remoteDrift?.localOnly || [])
+      .filter((ep) => specRemovedIds.has(ep.id))
+      .map((ep) => ep.id);
     performSync({
-      removedIds: [],
       localOnlyIds,
       endpointDecisions: {}
     }, pendingSyncMode || 'sync');
@@ -125,21 +140,23 @@ const useSyncFlow = ({
   const confirmGroups = useMemo(() => {
     if (!remoteDrift) return [];
     const groups = [];
-    if (remoteDrift.missing?.length > 0) {
-      groups.push({ label: 'New endpoints to add', type: 'add', endpoints: remoteDrift.missing });
+    const actuallyAdded = (remoteDrift.missing || []).filter((ep) => specAddedIds.has(ep.id));
+    if (actuallyAdded.length > 0) {
+      groups.push({ label: 'New endpoints to add', type: 'add', endpoints: actuallyAdded });
     }
     if (remoteDrift.modified?.length > 0) {
       groups.push({ label: 'Endpoints to update', type: 'update', endpoints: remoteDrift.modified });
     }
-    if (remoteDrift.localOnly?.length > 0) {
-      groups.push({ label: 'Endpoints to delete', type: 'remove', endpoints: remoteDrift.localOnly });
+    const actuallyRemoved = (remoteDrift.localOnly || []).filter((ep) => specRemovedIds.has(ep.id));
+    if (actuallyRemoved.length > 0) {
+      groups.push({ label: 'Endpoints to delete', type: 'remove', endpoints: actuallyRemoved });
     }
     return groups;
-  }, [remoteDrift]);
+  }, [remoteDrift, specAddedIds, specRemovedIds]);
 
   return {
     isSyncing, showConfirmModal, confirmGroups,
-    handleSyncNow,
+    handleSyncNow, handleRestoreSpec,
     handleApplySync, cancelConfirmModal, handleConfirmModalSync
   };
 };

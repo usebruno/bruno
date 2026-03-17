@@ -3,9 +3,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { addTab, focusTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { getDefaultRequestPaneTab } from 'utils/collections';
-import { clearCollectionState, setCollectionUpdate } from 'providers/ReduxStore/slices/openapi-sync';
+import { clearCollectionState, setCollectionUpdate, setStoredSpecMeta } from 'providers/ReduxStore/slices/openapi-sync';
+import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
+import { isHttpUrl } from 'utils/url/index';
 import { flattenItems } from 'utils/collections/index';
 import { formatIpcError } from 'utils/common/error';
+import { countEndpoints } from '../utils';
 
 const useOpenAPISync = (collection) => {
   const dispatch = useDispatch();
@@ -26,6 +29,16 @@ const useOpenAPISync = (collection) => {
   const tabs = useSelector((state) => state.tabs.tabs);
 
   const isConfigured = !!openApiSyncConfig?.sourceUrl;
+
+  const updateStoredSpec = (spec) => {
+    setStoredSpec(spec);
+    dispatch(setStoredSpecMeta({
+      collectionUid: collection.uid,
+      title: spec?.info?.title || null,
+      version: spec?.info?.version || null,
+      endpointCount: spec ? countEndpoints(spec) : null
+    }));
+  };
 
   // Flatten collection items including nested items in folders
   const allHttpItems = useMemo(() => {
@@ -75,6 +88,7 @@ const useOpenAPISync = (collection) => {
 
   const prevItemCountRef = useRef(httpItemCount);
   const isDriftLoadingRef = useRef(false);
+  const specDriftRef = useRef(specDrift);
 
   const loadCollectionDrift = async ({ clear = false } = {}) => {
     if (isDriftLoadingRef.current && !clear) return;
@@ -84,8 +98,7 @@ const useOpenAPISync = (collection) => {
     try {
       const { ipcRenderer } = window;
       const result = await ipcRenderer.invoke('renderer:get-collection-drift', {
-        collectionPath: collection.pathname,
-        brunoConfig: collection.brunoConfig
+        collectionPath: collection.pathname
       });
 
       if (!result.error) {
@@ -111,6 +124,7 @@ const useOpenAPISync = (collection) => {
     setFileNotFound(false);
     setSpecDrift(null);
     setRemoteDrift(null);
+    setCollectionDrift(null);
 
     try {
       const { ipcRenderer } = window;
@@ -133,9 +147,7 @@ const useOpenAPISync = (collection) => {
       }
 
       setSpecDrift(result);
-      if (result.storedSpec) {
-        setStoredSpec(result.storedSpec);
-      }
+      updateStoredSpec(result.storedSpec || null);
 
       // Update Redux store so toolbar status stays in sync
       dispatch(setCollectionUpdate({
@@ -149,7 +161,6 @@ const useOpenAPISync = (collection) => {
       if (result.newSpec) {
         const remoteComparison = await ipcRenderer.invoke('renderer:get-collection-drift', {
           collectionPath: collection.pathname,
-          brunoConfig: collection.brunoConfig,
           compareSpec: result.newSpec
         });
         if (remoteComparison.error) {
@@ -193,7 +204,8 @@ const useOpenAPISync = (collection) => {
   }, [httpItemCount, isConfigured]);
 
   const handleConnect = async () => {
-    if (!sourceUrl.trim()) {
+    const trimmedUrl = sourceUrl.trim();
+    if (!trimmedUrl) {
       setError('Please enter a URL or select a file');
       return;
     }
@@ -203,13 +215,27 @@ const useOpenAPISync = (collection) => {
     setFileNotFound(false);
 
     try {
+      // Validate it's a valid OpenAPI spec before proceeding (URL only; files are validated at picker)
+      if (isHttpUrl(trimmedUrl)) {
+        try {
+          const { specType } = await fetchAndValidateApiSpecFromUrl({ url: trimmedUrl });
+          if (specType !== 'openapi') {
+            setError('The URL does not point to a valid OpenAPI 3.x specification');
+            return;
+          }
+        } catch {
+          setError('The URL does not point to a valid OpenAPI 3.x specification');
+          return;
+        }
+      }
+
       const { ipcRenderer } = window;
 
       // Validate the spec first
       const result = await ipcRenderer.invoke('renderer:compare-openapi-specs', {
         collectionUid: collection.uid,
         collectionPath: collection.pathname,
-        sourceUrl: sourceUrl.trim(),
+        sourceUrl: trimmedUrl,
         environmentContext: {
           activeEnvironmentUid: collection.activeEnvironmentUid,
           environments: collection.environments,
@@ -228,7 +254,7 @@ const useOpenAPISync = (collection) => {
       await ipcRenderer.invoke('renderer:update-openapi-sync-config', {
         collectionPath: collection.pathname,
         config: {
-          sourceUrl: sourceUrl.trim(),
+          sourceUrl: trimmedUrl,
           groupBy: 'tags',
           autoCheck: true,
           autoCheckInterval: 5
@@ -239,7 +265,6 @@ const useOpenAPISync = (collection) => {
       if (result.newSpec) {
         const drift = await ipcRenderer.invoke('renderer:get-collection-drift', {
           collectionPath: collection.pathname,
-          brunoConfig: collection.brunoConfig,
           compareSpec: result.newSpec
         });
 
@@ -252,8 +277,7 @@ const useOpenAPISync = (collection) => {
           // Collection matches — save spec file silently to complete setup
           await ipcRenderer.invoke('renderer:save-openapi-spec', {
             collectionPath: collection.pathname,
-            specContent: result.newSpecContent || JSON.stringify(result.newSpec, null, 2),
-            sourceUrl: sourceUrl.trim()
+            specContent: result.newSpecContent || JSON.stringify(result.newSpec, null, 2)
           });
         }
       }
@@ -272,7 +296,6 @@ const useOpenAPISync = (collection) => {
       const { ipcRenderer } = window;
       await ipcRenderer.invoke('renderer:remove-openapi-sync-config', {
         collectionPath: collection.pathname,
-        sourceUrl: openApiSyncConfig?.sourceUrl || sourceUrl,
         deleteSpecFile: true
       });
       setSourceUrl('');
@@ -297,16 +320,56 @@ const useOpenAPISync = (collection) => {
     }
   };
 
-  // Reload drift — passed to useEndpointActions so it can refresh after actions
-  const reloadDrift = () => loadCollectionDrift({ clear: true });
+  // Keep ref in sync so reloadDrift always reads the latest specDrift
+  specDriftRef.current = specDrift;
+
+  // Reload both drifts — passed to useEndpointActions so it can refresh after actions.
+  // Uses specDriftRef to avoid stale closure over specDrift state.
+  const reloadDrift = async () => {
+    await loadCollectionDrift({ clear: true });
+    // Refresh remoteDrift if we have a remote spec cached from the last check
+    const currentSpecDrift = specDriftRef.current;
+    if (currentSpecDrift?.newSpec) {
+      try {
+        const { ipcRenderer } = window;
+        const remoteComparison = await ipcRenderer.invoke('renderer:get-collection-drift', {
+          collectionPath: collection.pathname,
+          compareSpec: currentSpecDrift.newSpec
+        });
+        if (!remoteComparison.error) {
+          setRemoteDrift(remoteComparison);
+        }
+      } catch (err) {
+        console.error('Error reloading remote drift:', err);
+      }
+    }
+  };
 
   // Save connection settings from the modal
   const handleSaveSettings = async ({ sourceUrl: newUrl, autoCheck, autoCheckInterval }) => {
+    const sourceUrlChanged = newUrl !== openApiSyncConfig?.sourceUrl;
+
+    // Validate the spec before saving if source URL changed (URL only; files are validated at picker)
+    // Kept outside try-catch so validation errors propagate to the caller and the modal stays open
+    if (sourceUrlChanged && isHttpUrl(newUrl)) {
+      let specType;
+      try {
+        ({ specType } = await fetchAndValidateApiSpecFromUrl({ url: newUrl }));
+      } catch {
+        toast.error('The URL does not point to a valid OpenAPI 3.x specification');
+        throw new Error('Invalid OpenAPI specification');
+      }
+      if (specType !== 'openapi') {
+        toast.error('The URL does not point to a valid OpenAPI 3.x specification');
+        throw new Error('Invalid OpenAPI specification');
+      }
+    }
+
     try {
       const { ipcRenderer } = window;
+
       await ipcRenderer.invoke('renderer:update-openapi-sync-config', {
         collectionPath: collection.pathname,
-        oldSourceUrl: openApiSyncConfig?.sourceUrl,
         config: {
           sourceUrl: newUrl,
           autoCheck,

@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { selectStoredSpecMeta } from 'providers/ReduxStore/slices/openapi-sync';
 import {
   IconCopy,
   IconDotsVertical,
@@ -9,21 +12,33 @@ import {
 } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
-import StatusBadge from 'ui/StatusBadge';
 import ActionIcon from 'ui/ActionIcon/index';
 import MenuDropdown from 'ui/MenuDropdown';
 import Help from 'components/Help';
+import { isHttpUrl } from 'utils/url/index';
 
 const OpenAPISyncHeader = ({
   collection, spec, sourceUrl, syncStatus, onViewSpec,
   onOpenSettings, onOpenDisconnect,
   onCheck, isLoading
 }) => {
-  const sourceIsLocal = !sourceUrl?.startsWith('http');
+  const sourceIsLocal = !isHttpUrl(sourceUrl);
   const canCheck = !!sourceUrl?.trim();
 
-  const title = spec?.info?.title || 'Unknown API';
-  const version = spec?.info?.version || '-';
+  // Resolve relative file paths to absolute for display
+  const [displayPath, setDisplayPath] = useState(sourceUrl);
+  useEffect(() => {
+    if (sourceIsLocal && sourceUrl) {
+      window.ipcRenderer.invoke('renderer:resolve-path', sourceUrl, collection.pathname)
+        .then((resolved) => setDisplayPath(resolved))
+        .catch(() => setDisplayPath(sourceUrl));
+    } else {
+      setDisplayPath(sourceUrl);
+    }
+  }, [sourceUrl, sourceIsLocal, collection.pathname]);
+
+  const specMeta = useSelector(selectStoredSpecMeta(collection.uid));
+  const title = specMeta?.title || spec?.info?.title || 'Unknown API';
 
   const copyUrl = async () => {
     if (!sourceUrl) return;
@@ -74,7 +89,6 @@ const OpenAPISyncHeader = ({
         <div className="spec-title-section">
           <div className="spec-title-row">
             <span className="spec-title">{title}</span>
-            <StatusBadge status="muted" variant="outline" className="spec-version">{version}</StatusBadge>
           </div>
         </div>
         <div className="spec-header-actions">
@@ -111,7 +125,7 @@ const OpenAPISyncHeader = ({
             type="button"
             onClick={revealInFolder}
           >
-            {sourceUrl}
+            {displayPath}
           </button>
         ) : (
           <a

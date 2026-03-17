@@ -1271,11 +1271,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         // Save OpenAPI spec file for sync support
         if (rawOpenAPISpec && brunoConfig.openapi?.length) {
-          const importSourceUrl = brunoConfig.openapi[0].sourceUrl;
           const specContent = typeof rawOpenAPISpec === 'string'
             ? rawOpenAPISpec
             : JSON.stringify(rawOpenAPISpec, null, 2);
-          await saveSpecAndUpdateMetadata({ collectionPath, specContent, sourceUrl: importSourceUrl });
+          await saveSpecAndUpdateMetadata({ collectionPath, specContent });
         }
 
         const { size, filesCount } = await getCollectionStats(collectionPath);

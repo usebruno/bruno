@@ -15,7 +15,7 @@ const DisconnectSyncModal = ({ onConfirm, onClose }) => {
           <>This will only disconnect the sync configuration. Your collection will remain intact.</>
         </p>
         <div className="disconnect-actions">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" color="secondary" onClick={onClose}>
             Cancel
           </Button>
           <Button color="danger" onClick={onConfirm}>

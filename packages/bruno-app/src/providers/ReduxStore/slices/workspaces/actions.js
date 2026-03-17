@@ -1,22 +1,20 @@
-import path from 'path';
+import path from 'utils/common/path';
 import {
   createWorkspace,
   removeWorkspace,
   setActiveWorkspace,
   updateWorkspace,
-  addCollectionToWorkspace,
   removeCollectionFromWorkspace,
   updateWorkspaceLoadingState,
   setWorkspaceScratchCollection
 } from '../workspaces';
-import { showHomePage } from '../app';
 import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus } from '../collections';
+import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
 import { addTab, focusTab } from '../tabs';
 import { normalizePath } from 'utils/common/path';
-import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 
 const { ipcRenderer } = window;
@@ -53,17 +51,109 @@ const transformCollection = async (collection, type) => {
 };
 
 /**
- * Creates a workspace with a unique name under the given location
+ * Creates a temporary workspace in Redux without touching the filesystem.
+ * The workspace is only persisted to disk when the user confirms the name.
  */
 export const createWorkspaceWithUniqueName = (location) => {
   return async (dispatch) => {
+    const { uuid: generateUuid } = await import('utils/common');
+    const tempUid = generateUuid();
     const name = await ipcRenderer?.invoke('renderer:find-unique-folder-name', 'Untitled Workspace', location) || 'Untitled Workspace';
-    const folderName = sanitizeName(name);
-    const result = await dispatch(createWorkspaceAction(name, folderName, location));
-    if (result?.workspaceUid) {
-      dispatch(updateWorkspace({ uid: result.workspaceUid, isNewlyCreated: true }));
+
+    dispatch(createWorkspace({
+      uid: tempUid,
+      name,
+      pathname: null,
+      collections: [],
+      isCreating: true,
+      creationLocation: location
+    }));
+
+    dispatch(updateWorkspace({ uid: tempUid, isNewlyCreated: true }));
+    await dispatch(switchWorkspace(tempUid));
+
+    return { workspaceUid: tempUid };
+  };
+};
+
+/**
+ * Confirms creation of a temporary workspace by persisting it to the filesystem.
+ */
+export const confirmWorkspaceCreation = (tempWorkspaceUid, workspaceName) => {
+  return async (dispatch, getState) => {
+    const tempWorkspace = getState().workspaces.workspaces.find((w) => w.uid === tempWorkspaceUid);
+    if (!tempWorkspace) {
+      throw new Error('Temporary workspace not found');
     }
+
+    const location = tempWorkspace.creationLocation;
+    if (!location) {
+      throw new Error('Workspace creation location not found');
+    }
+
+    const baseFolderName = sanitizeName(workspaceName);
+    const folderName = await ipcRenderer?.invoke('renderer:find-unique-folder-name', baseFolderName, location) || baseFolderName;
+
+    const result = await ipcRenderer.invoke(
+      'renderer:create-workspace',
+      workspaceName,
+      folderName,
+      location
+    );
+
+    const { workspaceUid: realUid, workspacePath, workspaceConfig } = result;
+
+    // Clean up the temp workspace's scratch collection after IPC succeeds
+    // (doing it before would leave a broken state if the IPC call fails)
+    if (tempWorkspace.scratchCollectionUid) {
+      dispatch(removeCollection({ collectionUid: tempWorkspace.scratchCollectionUid }));
+    }
+
+    // Remove the temporary workspace
+    dispatch(removeWorkspace(tempWorkspaceUid));
+
+    // Ensure the real workspace exists in Redux (the workspace-opened event may or may not have fired yet)
+    const existing = getState().workspaces.workspaces.find((w) => w.uid === realUid);
+    if (!existing) {
+      dispatch(createWorkspace({
+        uid: realUid,
+        pathname: workspacePath,
+        ...workspaceConfig
+      }));
+    }
+
+    dispatch(updateWorkspace({ uid: realUid, name: workspaceName }));
+
+    await dispatch(switchWorkspace(realUid));
+
     return result;
+  };
+};
+
+/**
+ * Cancels creation of a temporary workspace, removing it from Redux.
+ * Only switches to default workspace if the temp workspace was the active one.
+ */
+export const cancelWorkspaceCreation = (tempWorkspaceUid) => {
+  return async (dispatch, getState) => {
+    const tempWorkspace = getState().workspaces.workspaces.find((w) => w.uid === tempWorkspaceUid);
+    if (!tempWorkspace) return;
+
+    // Clean up the scratch collection if one was mounted
+    if (tempWorkspace.scratchCollectionUid) {
+      dispatch(removeCollection({ collectionUid: tempWorkspace.scratchCollectionUid }));
+    }
+
+    const wasActive = getState().workspaces.activeWorkspaceUid === tempWorkspaceUid;
+    dispatch(removeWorkspace(tempWorkspaceUid));
+
+    // Only switch to default if the cancelled workspace was the active one
+    if (wasActive) {
+      const defaultWorkspace = getState().workspaces.workspaces.find((w) => w.type === 'default');
+      if (defaultWorkspace) {
+        await dispatch(switchWorkspace(defaultWorkspace.uid));
+      }
+    }
   };
 };
 

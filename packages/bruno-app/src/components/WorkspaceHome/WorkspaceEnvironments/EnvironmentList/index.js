@@ -48,7 +48,6 @@ const EnvironmentList = ({
 
   const [openImportModal, setOpenImportModal] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [isEnvListSearchExpanded, setIsEnvListSearchExpanded] = useState(false);
   const envListSearchInputRef = useRef(null);
   const [isCreatingInline, setIsCreatingInline] = useState(false);
   const [renamingEnvUid, setRenamingEnvUid] = useState(null);
@@ -552,51 +551,66 @@ const EnvironmentList = ({
                 <>
                   <button
                     type="button"
-                    className={`btn-action ${isEnvListSearchExpanded ? 'active' : ''}`}
+                    className="btn-action"
                     onClick={() => {
-                      const next = !isEnvListSearchExpanded;
-                      setIsEnvListSearchExpanded(next);
-                      if (!next) setSearchText('');
-                      else setTimeout(() => envListSearchInputRef.current?.focus(), 50);
+                      if (!environmentsExpanded) {
+                        setEnvironmentsExpanded(true);
+                      }
+                      handleCreateEnvClick();
                     }}
-                    title="Search environments"
+                    title="Create environment"
                   >
-                    <IconSearch size={14} strokeWidth={1.5} />
-                  </button>
-                  <button type="button" className="btn-action" onClick={() => handleCreateEnvClick()} title="Create environment">
                     <IconPlus size={14} strokeWidth={1.5} />
                   </button>
-                  <button type="button" className="btn-action" onClick={() => handleImportClick()} title="Import environment">
+                  <button
+                    type="button"
+                    className="btn-action"
+                    onClick={() => {
+                      if (!environmentsExpanded) {
+                        setEnvironmentsExpanded(true);
+                      }
+                      handleImportClick();
+                    }}
+                    title="Import environment"
+                  >
                     <IconDownload size={14} strokeWidth={1.5} />
                   </button>
-                  <button type="button" className="btn-action" onClick={() => handleExportClick()} title="Export environment">
+                  <button
+                    type="button"
+                    className="btn-action"
+                    onClick={() => {
+                      if (!environmentsExpanded) {
+                        setEnvironmentsExpanded(true);
+                      }
+                      handleExportClick();
+                    }}
+                    title="Export environment"
+                  >
                     <IconUpload size={14} strokeWidth={1.5} />
                   </button>
                 </>
               )}
             >
-              {isEnvListSearchExpanded && (
-                <div className="env-list-search">
-                  <IconSearch size={13} strokeWidth={1.5} className="env-list-search-icon" />
-                  <input
-                    ref={envListSearchInputRef}
-                    type="text"
-                    placeholder="Search environments..."
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    className="env-list-search-input"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                  />
-                  {searchText && (
-                    <button className="env-list-search-clear" title="Clear search" onClick={() => setSearchText('')} onMouseDown={(e) => e.preventDefault()}>
-                      <IconX size={12} strokeWidth={1.5} />
-                    </button>
-                  )}
-                </div>
-              )}
+              <div className="env-list-search">
+                <IconSearch size={13} strokeWidth={1.5} className="env-list-search-icon" />
+                <input
+                  ref={envListSearchInputRef}
+                  type="text"
+                  placeholder="Search environments..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  className="env-list-search-input"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                />
+                {searchText && (
+                  <button className="env-list-search-clear" title="Clear search" onClick={() => setSearchText('')} onMouseDown={(e) => e.preventDefault()}>
+                    <IconX size={12} strokeWidth={1.5} />
+                  </button>
+                )}
+              </div>
               <div className="environments-list">
                 {filteredEnvironments.map((env) => (
                   <div

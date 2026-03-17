@@ -10,7 +10,7 @@ import {
 } from 'providers/ReduxStore/slices/collections/actions';
 import { removeGitOperationProgress } from 'providers/ReduxStore/slices/app';
 import Modal from 'components/Modal';
-import * as path from 'path';
+import path from 'utils/common/path';
 import Portal from 'components/Portal';
 import { IconRefresh, IconCheck, IconAlertCircle, IconBrandGit } from '@tabler/icons';
 import { uuid } from 'utils/common/index';

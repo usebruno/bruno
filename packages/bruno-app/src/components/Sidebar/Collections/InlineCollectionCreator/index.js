@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconCheck, IconX, IconSettings } from '@tabler/icons';
 import get from 'lodash/get';
-import path from 'path';
+import path from 'utils/common/path';
 import toast from 'react-hot-toast';
 import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';

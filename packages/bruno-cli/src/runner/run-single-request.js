@@ -559,18 +559,18 @@ const runSingleRequest = async function (
       // if `data` is of string type - return as-is (assumes already encoded)
     }
 
-    if (contentTypeHeader && contentTypeHeader.startsWith('multipart/')) {
+    const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
+    if (typeof contentType === 'string' && contentType.startsWith('multipart/')) {
       if (!isFormData(request?.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);
         request.data = form;
 
-        if (request?.headers?.['content-type'] !== 'multipart/form-data') {
+        if (contentType !== 'multipart/form-data') {
           // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
           const formHeaders = form.getHeaders();
-          const ct = request.headers['content-type'];
-          formHeaders['content-type'] = `${ct}; boundary=${form.getBoundary()}`;
+          formHeaders['content-type'] = `${contentType}; boundary=${form.getBoundary()}`;
           form.getHeaders = function () {
             return formHeaders;
           };

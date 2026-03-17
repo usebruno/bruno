@@ -15,7 +15,7 @@ import {
   IconUpload
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
-import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
+import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
@@ -24,14 +24,18 @@ import toast from 'react-hot-toast';
 import Dropdown from 'components/Dropdown';
 import MenuDropdown from 'ui/MenuDropdown';
 import CloseWorkspace from 'components/Sidebar/CloseWorkspace';
+import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import ToolHint from 'components/ToolHint';
 import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
 import ActionIcon from 'ui/ActionIcon';
 import { getRevealInFolderLabel } from 'utils/common/platform';
+import { normalizePath } from 'utils/common/path';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import StatusBadge from 'ui/StatusBadge/index';
 
 const CollectionHeader = ({ collection, isScratchCollection }) => {
   const dispatch = useDispatch();
@@ -42,17 +46,25 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
 
   // Get the current active workspace
   const currentWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const gitRootPath = collection?.git?.gitRootPath;
+  const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
 
   // Workspace rename state
   const [isRenamingWorkspace, setIsRenamingWorkspace] = useState(false);
   const [workspaceNameInput, setWorkspaceNameInput] = useState('');
   const [workspaceNameError, setWorkspaceNameError] = useState('');
   const [closeWorkspaceModalOpen, setCloseWorkspaceModalOpen] = useState(false);
+  const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
 
   const switcherRef = useRef();
   const workspaceActionsRef = useRef();
   const workspaceNameInputRef = useRef(null);
   const workspaceRenameContainerRef = useRef(null);
+  const openingAdvancedRef = useRef(false);
+  const clickedOutsideRef = useRef(false);
+  const handleSaveRef = useRef(null);
+  const tempWorkspaceUidRef = useRef(null);
+  const isSavingRef = useRef(false);
 
   const onSwitcherCreate = (ref) => (switcherRef.current = ref);
   const onWorkspaceActionsCreate = (ref) => (workspaceActionsRef.current = ref);
@@ -68,17 +80,27 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   }, [isScratchCollection, currentWorkspace?.isNewlyCreated, currentWorkspace?.uid, currentWorkspace?.name, dispatch]);
 
   const handleCancelWorkspaceRename = useCallback(() => {
+    if (openingAdvancedRef.current) return;
+    if (currentWorkspace?.isCreating) {
+      dispatch(cancelWorkspaceCreation(currentWorkspace.uid));
+      return;
+    }
     setIsRenamingWorkspace(false);
     setWorkspaceNameInput('');
     setWorkspaceNameError('');
-  }, []);
+  }, [currentWorkspace?.isCreating, currentWorkspace?.uid, dispatch]);
 
   useEffect(() => {
     if (!isRenamingWorkspace) return;
 
     const handleClickOutside = (event) => {
       if (workspaceRenameContainerRef.current && !workspaceRenameContainerRef.current.contains(event.target)) {
-        handleCancelWorkspaceRename();
+        if (currentWorkspace?.isCreating) {
+          clickedOutsideRef.current = true;
+          handleSaveRef.current?.();
+        } else {
+          handleCancelWorkspaceRename();
+        }
       }
     };
 
@@ -91,7 +113,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
       document.removeEventListener('mousedown', handleClickOutside);
       clearTimeout(timer);
     };
-  }, [isRenamingWorkspace, handleCancelWorkspaceRename]);
+  }, [isRenamingWorkspace, handleCancelWorkspaceRename, currentWorkspace?.isCreating]);
 
   const collectionUpdates = useSelector((state) => state.openapiSync?.collectionUpdates || {});
   const { theme } = useTheme();
@@ -112,7 +134,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     if (isScratch) return false;
 
     const workspaceCollectionPaths = currentWorkspace?.collections?.map((wc) => wc.path) || [];
-    return workspaceCollectionPaths.some((wcPath) => c.pathname === wcPath);
+    return workspaceCollectionPaths.some((wcPath) => normalizePath(c.pathname) === normalizePath(wcPath));
   });
 
   // Count tabs for the current collection
@@ -201,10 +223,10 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   // Build overflow menu items for the "..." dropdown
   const overflowMenuItems = [
     { id: 'variables', label: 'Variables', leftSection: IconEye, onClick: viewVariables },
-    { id: 'collection-settings', label: 'Collection Settings', leftSection: IconSettings, onClick: viewCollectionSettings },
-    ...(!hasOpenApiSyncConfigured
-      ? [{ id: 'openapi-sync', label: 'OpenAPI Sync', leftSection: OpenAPISyncIcon, onClick: viewOpenApiSync }]
-      : [])
+    ...(isOpenAPISyncEnabled && !hasOpenApiSyncConfigured
+      ? [{ id: 'openapi-sync', label: 'OpenAPI', leftSection: OpenAPISyncIcon, rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>, onClick: viewOpenApiSync }]
+      : []),
+    { id: 'collection-settings', label: 'Collection Settings', leftSection: IconSettings, onClick: viewCollectionSettings }
   ];
 
   // Workspace action handlers (only used when isScratchCollection is true)
@@ -262,27 +284,70 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   };
 
   const handleSaveWorkspaceRename = () => {
+    const fromOutside = clickedOutsideRef.current;
+    clickedOutsideRef.current = false;
+
+    if (openingAdvancedRef.current) return;
+    if (isSavingRef.current) return;
+
+    const trimmedName = workspaceNameInput?.trim();
+    if (!trimmedName) {
+      if (fromOutside && currentWorkspace?.isCreating) {
+        dispatch(cancelWorkspaceCreation(currentWorkspace.uid));
+        return;
+      }
+      setWorkspaceNameError('Name is required');
+      return;
+    }
+
     const error = validateWorkspaceName(workspaceNameInput);
     if (error) {
       setWorkspaceNameError(error);
+      if (fromOutside && currentWorkspace?.isCreating) {
+        dispatch(cancelWorkspaceCreation(currentWorkspace.uid));
+      }
       return;
     }
 
     const uid = currentWorkspace?.uid;
     if (!uid) return;
 
-    dispatch(renameWorkspaceAction(uid, workspaceNameInput))
-      .then(() => {
-        toast.success('Workspace renamed!');
-        setIsRenamingWorkspace(false);
-        setWorkspaceNameInput('');
-        setWorkspaceNameError('');
-      })
-      .catch((err) => {
-        toast.error(err?.message || 'An error occurred while renaming the workspace');
-        setWorkspaceNameError(err?.message || 'Failed to rename workspace');
-      });
+    isSavingRef.current = true;
+
+    if (currentWorkspace?.isCreating) {
+      dispatch(confirmWorkspaceCreation(uid, trimmedName))
+        .then(() => {
+          setIsRenamingWorkspace(false);
+          setWorkspaceNameInput('');
+          setWorkspaceNameError('');
+          toast.success('Workspace created!');
+        })
+        .catch((err) => {
+          toast.error(err?.message || 'An error occurred while creating the workspace');
+        })
+        .finally(() => {
+          isSavingRef.current = false;
+        });
+    } else {
+      dispatch(renameWorkspaceAction(uid, workspaceNameInput))
+        .then(() => {
+          toast.success('Workspace renamed!');
+          setIsRenamingWorkspace(false);
+          setWorkspaceNameInput('');
+          setWorkspaceNameError('');
+        })
+        .catch((err) => {
+          toast.error(err?.message || 'An error occurred while renaming the workspace');
+          setWorkspaceNameError(err?.message || 'Failed to rename workspace');
+        })
+        .finally(() => {
+          isSavingRef.current = false;
+        });
+    }
   };
+
+  // Keep ref in sync so click-outside handler always has the latest save logic
+  handleSaveRef.current = handleSaveWorkspaceRename;
 
   const handleWorkspaceNameChange = (e) => {
     setWorkspaceNameInput(e.target.value);
@@ -301,6 +366,27 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     }
   };
 
+  const handleOpenAdvancedCreate = () => {
+    openingAdvancedRef.current = true;
+    tempWorkspaceUidRef.current = currentWorkspace?.isCreating ? currentWorkspace.uid : null;
+    setCreateWorkspaceModalOpen(true);
+  };
+
+  const handleAdvancedCreateClose = () => {
+    openingAdvancedRef.current = false;
+    setCreateWorkspaceModalOpen(false);
+    setIsRenamingWorkspace(false);
+    setWorkspaceNameInput('');
+    setWorkspaceNameError('');
+    const tempUid = tempWorkspaceUidRef.current;
+    tempWorkspaceUidRef.current = null;
+    // Clean up the temp workspace (cancelWorkspaceCreation only switches to default
+    // if the temp workspace was still active, so this is safe after modal success too)
+    if (tempUid) {
+      dispatch(cancelWorkspaceCreation(tempUid));
+    }
+  };
+
   // Check if workspace actions should be shown
   const showWorkspaceActions = isScratchCollection
     && currentWorkspace
@@ -316,30 +402,46 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         />
       )}
 
+      {createWorkspaceModalOpen && (
+        <CreateWorkspace onClose={handleAdvancedCreateClose} />
+      )}
+
       <div className="flex items-center justify-between gap-2 py-2 px-4">
         {/* Left side: Switcher dropdown or rename input */}
         <div className="collection-switcher">
           {isRenamingWorkspace ? (
             <div className="workspace-rename-container" ref={workspaceRenameContainerRef}>
               <DisplayIcon size={18} strokeWidth={1.5} />
-              <input
-                ref={workspaceNameInputRef}
-                type="text"
-                className="workspace-name-input"
-                value={workspaceNameInput}
-                onChange={handleWorkspaceNameChange}
-                onKeyDown={handleWorkspaceNameKeyDown}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-              />
+              <div className="workspace-input-wrapper">
+                <input
+                  ref={workspaceNameInputRef}
+                  type="text"
+                  className="workspace-name-input"
+                  value={workspaceNameInput}
+                  onChange={handleWorkspaceNameChange}
+                  onKeyDown={handleWorkspaceNameKeyDown}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                />
+                {currentWorkspace?.isCreating && (
+                  <button
+                    className="cog-btn"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={handleOpenAdvancedCreate}
+                    title="Advanced options"
+                  >
+                    <IconSettings size={13} strokeWidth={1.5} />
+                  </button>
+                )}
+              </div>
               <div className="inline-actions">
                 <button
                   className="inline-action-btn save"
                   onClick={handleSaveWorkspaceRename}
                   onMouseDown={(e) => e.preventDefault()}
-                  title="Save"
+                  title={currentWorkspace?.isCreating ? 'Create' : 'Save'}
                 >
                   <IconCheck size={14} strokeWidth={2} />
                 </button>
@@ -461,8 +563,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         {/* Right side: Actions (only for regular collections) */}
         {!isScratchCollection && (
           <div className="flex flex-grow gap-1.5 items-center justify-end">
-            {/* OpenAPI Sync - standalone only when configured */}
-            {hasOpenApiSyncConfigured && (
+            {/* OpenAPI Sync - standalone only when configured and beta enabled */}
+            {isOpenAPISyncEnabled && hasOpenApiSyncConfigured && (
               <ToolHint
                 text={hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI'}
                 toolhintId="OpenApiSyncToolhintId"

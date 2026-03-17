@@ -1,15 +1,19 @@
 import { useState, useRef } from 'react';
+import toast from 'react-hot-toast';
 import Button from 'ui/Button';
 import Modal from 'components/Modal';
-import { isValidUrl } from 'utils/url/index';
+import { isHttpUrl } from 'utils/url/index';
+import { isOpenApiSpec } from 'utils/importers/openapi-collection';
+import { parseFileAsJsonOrYaml } from 'utils/importers/file-reader';
 
 const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, onClose }) => {
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
-  const isUrl = isValidUrl(sourceUrl);
+  const normalizedSourceUrl = (sourceUrl || '').trim();
+  const isUrl = isHttpUrl(normalizedSourceUrl);
   const initialMode = isUrl ? 'url' : 'file';
   const [mode, setMode] = useState(initialMode);
-  const [url, setUrl] = useState(isUrl ? (sourceUrl || '') : '');
-  const [filePath, setFilePath] = useState(isUrl ? '' : sourceUrl);
+  const [url, setUrl] = useState(isUrl ? normalizedSourceUrl : '');
+  const [filePath, setFilePath] = useState(isUrl ? '' : normalizedSourceUrl);
   const [autoCheck, setAutoCheck] = useState(openApiSyncConfig?.autoCheck !== false);
   const [checkInterval, setCheckInterval] = useState(openApiSyncConfig?.autoCheckInterval || 5);
   const [isSaving, setIsSaving] = useState(false);
@@ -18,7 +22,7 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
   const intervals = [5, 15, 30, 60];
 
   const effectiveSource = mode === 'file' ? filePath : url.trim();
-  const canSave = mode === 'file' ? !!effectiveSource : isValidUrl(effectiveSource.trim());
+  const canSave = mode === 'file' ? !!effectiveSource : isHttpUrl(effectiveSource.trim());
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -75,11 +79,20 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
                   type="file"
                   accept=".json,.yaml,.yml"
                   style={{ display: 'none' }}
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      const path = window.ipcRenderer.getFilePath(file);
-                      if (path) setFilePath(path);
+                      try {
+                        const data = await parseFileAsJsonOrYaml(file);
+                        if (!isOpenApiSpec(data)) {
+                          toast.error('The selected file is not a valid OpenAPI 3.x specification');
+                          return;
+                        }
+                        const path = window.ipcRenderer.getFilePath(file);
+                        if (path) setFilePath(path);
+                      } catch (err) {
+                        toast.error(err.message || 'Failed to read the selected file');
+                      }
                     }
                   }}
                 />
@@ -136,7 +149,7 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
             Disconnect sync
           </button>
           <div className="settings-actions">
-            <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+            <Button variant="ghost" color="secondary" size="sm" onClick={onClose}>Cancel</Button>
             <Button size="sm" onClick={handleSave} loading={isSaving} disabled={!canSave || isSaving}>Save</Button>
           </div>
         </div>

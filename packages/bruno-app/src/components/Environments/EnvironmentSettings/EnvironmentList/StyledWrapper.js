@@ -72,7 +72,7 @@ const StyledWrapper = styled.div`
       font-size: 12px;
       background: transparent;
       border: 1px solid ${(props) => props.theme.border.border1};
-      border-radius: 5px;
+      border-radius: 6px;
       color: ${(props) => props.theme.text};
       transition: border-color 0.15s ease;
 
@@ -110,7 +110,15 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding: 0 8px;
+    padding: 8px;
+  }
+
+  .section-header {
+    margin-inline: 4px !important;
+    padding-left: 6px !important;
+    border-radius: 6px ;
+    padding-right: 3px !important;
+    padding-block: 4px !important;
   }
 
   .environments-list {
@@ -153,7 +161,7 @@ const StyledWrapper = styled.div`
     font-size: 13px;
     color: ${(props) => props.theme.text};
     cursor: pointer;
-    border-radius: 5px;
+    border-radius: 6px;
     transition: background 0.15s ease;
     
     .environment-name {

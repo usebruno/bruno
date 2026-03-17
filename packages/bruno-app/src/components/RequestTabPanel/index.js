@@ -177,7 +177,7 @@ const RequestTabPanel = () => {
   }
 
   if (!activeTabUid || !focusedTab) {
-    return <div className="pb-4 px-4">An error occurred!</div>;
+    return <div className="pb-4 px-4">Loading...</div>;
   }
 
   if (focusedTab.type === 'global-environment-settings') {
