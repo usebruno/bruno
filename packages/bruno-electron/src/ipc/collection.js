@@ -1219,7 +1219,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             const content = await stringifyEnvironment(env, { format });
             let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
             const filePath = path.join(envDirPath, sanitizedEnvFilename);
-            safeWriteFileSync(filePath, content);
+            await writeFile(filePath, content, false, { mode: PRIVATE_ENV_FILE_MODE });
           }));
         };
 
