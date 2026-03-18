@@ -1,6 +1,7 @@
 import React, { forwardRef, useRef, useCallback, useState, useImperativeHandle, useEffect, useMemo } from 'react';
 import Dropdown from 'components/Dropdown';
 import SubMenuItem from './SubMenuItem';
+import KeyBindText from 'components/Keybindings/KeyBindText';
 
 // Constants
 const NAVIGATION_KEYS = ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape'];
@@ -381,7 +382,13 @@ const MenuDropdown = forwardRef(({
   const renderMenuItemContent = (item, rightContent = null) => (
     <>
       {renderSection(item.leftSection)}
-      <span className="dropdown-label">{item.label}</span>
+      <span className="dropdown-label">
+        {item.keyBinding ? (
+          <KeyBindText keybinding={item.keyBinding} keybindingConfig={{ description: item.label, modifiers: item.modifiers }} />
+        ) : (
+          item.label
+        )}
+      </span>
       {rightContent}
     </>
   );
