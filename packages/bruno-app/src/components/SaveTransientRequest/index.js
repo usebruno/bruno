@@ -12,7 +12,7 @@ import StyledWrapper from './StyledWrapper';
 import CollectionListItem from './CollectionListItem';
 import FolderBreadcrumbs from './FolderBreadcrumbs';
 import useCollectionFolderTree from 'hooks/useCollectionFolderTree';
-import { removeSaveTransientRequestModal } from 'providers/ReduxStore/slices/collections';
+import { clearSaveTransientRequestModal } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { newFolder, closeTabs, mountCollection, createCollection, browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
@@ -62,7 +62,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       onClose();
       return;
     }
-    dispatch(removeSaveTransientRequestModal({ itemUid: item.uid }));
+    dispatch(clearSaveTransientRequestModal());
   };
   const [requestName, setRequestName] = useState(item?.name || '');
   const [searchText, setSearchText] = useState('');

@@ -9,6 +9,7 @@ const {
   sizeInMB,
   getCollectionFormat
 } = require('../utils/filesystem');
+const transientManager = require('../services/transient');
 const {
   parseEnvironment,
   parseRequest,
@@ -279,7 +280,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         collectionUid,
         pathname,
         name: path.basename(pathname),
-        folderRoot: true
+        folderRoot: true,
+        isTransient: transientManager.isTransientPath(pathname)
       }
     };
 
@@ -305,7 +307,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       meta: {
         collectionUid,
         pathname,
-        name: path.basename(pathname)
+        name: path.basename(pathname),
+        isTransient: transientManager.isTransientPath(pathname)
       }
     };
 
@@ -413,7 +416,8 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
       pathname,
       name,
       seq,
-      uid: getRequestUid(pathname)
+      uid: getRequestUid(pathname),
+      isTransient: transientManager.isTransientPath(pathname)
     }
   };
 
@@ -504,7 +508,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
         collectionUid,
         pathname,
         name: path.basename(pathname),
-        folderRoot: true
+        folderRoot: true,
+        isTransient: transientManager.isTransientPath(pathname)
       }
     };
 
@@ -529,7 +534,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
         meta: {
           collectionUid,
           pathname,
-          name: path.basename(pathname)
+          name: path.basename(pathname),
+          isTransient: transientManager.isTransientPath(pathname)
         }
       };
 
@@ -853,17 +859,10 @@ class CollectionWatcher {
     }
   }
 
-  // Helper function to get collection path from temp directory metadata
+  // Helper function to get collection path from temp directory
   getCollectionPathFromTempDirectory(tempDirectoryPath) {
-    const metadataPath = path.join(tempDirectoryPath, 'metadata.json');
-    try {
-      const metadataContent = fs.readFileSync(metadataPath, 'utf8');
-      const metadata = JSON.parse(metadataContent);
-      return metadata.collectionPath;
-    } catch (error) {
-      console.error(`Error reading metadata from temp directory ${tempDirectoryPath}:`, error);
-      return null;
-    }
+    const info = transientManager.getCollectionInfo(tempDirectoryPath);
+    return info ? info.collectionPath : null;
   }
 
   // Add watcher for transient directory
@@ -883,7 +882,7 @@ class CollectionWatcher {
     };
 
     const watcher = chokidar.watch(tempDirectoryPath, {
-      ignoreInitial: true, // Don't process existing files
+      ignoreInitial: false, // Process existing files for resurrection
       usePolling: isWSLPath(tempDirectoryPath) ? true : false,
       ignored,
       persistent: true,

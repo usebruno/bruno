@@ -321,7 +321,7 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.requestTabPanel.url.bg};
     border-radius: 4px;
     padding: 8px 12px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    border: 1px solid ${(props) => props.theme.border.border1};
     margin-top: 8px;
   }
 
@@ -461,6 +461,93 @@ const StyledWrapper = styled.div`
     font-size: 12px;
     margin-top: 4px;
     opacity: 0.8;
+  }
+
+  /* Container styles for unsaved transient requests modal */
+  .unsaved-requests-header {
+    display: flex;
+    align-items: center;
+  }
+
+  .unsaved-requests-icon {
+    color: ${(props) => props.theme.colors.text.warning};
+  }
+
+  .unsaved-requests-title {
+    margin-left: 8px;
+    font-size: 18px;
+    font-weight: 500;
+  }
+
+  .unsaved-requests-description {
+    margin-top: 16px;
+  }
+
+  .unsaved-requests-list-section {
+    margin-top: 16px;
+  }
+
+  .unsaved-requests-list-title {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .unsaved-requests-list-subtitle {
+    font-size: 12px;
+    color: ${(props) => props.theme.colors.text.warning};
+    margin-bottom: 12px;
+  }
+
+  .unsaved-requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 384px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .unsaved-request-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background-color: ${(props) => props.theme.background.surface0};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    border: 1px solid ${(props) => props.theme.border.border1};
+  }
+
+  .unsaved-request-item-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    margin-right: 12px;
+  }
+
+  .unsaved-request-item-name {
+    font-size: 14px;
+    color: ${(props) => props.theme.text};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .unsaved-request-item-collection {
+    font-size: 12px;
+    color: ${(props) => props.theme.colors.text.muted};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .unsaved-requests-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid ${(props) => props.theme.border.border1};
   }
 `;
 

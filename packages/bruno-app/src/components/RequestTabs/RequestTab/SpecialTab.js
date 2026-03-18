@@ -4,7 +4,7 @@ import { IconVariable, IconSettings, IconRun, IconFolder, IconDatabase, IconWorl
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import StatusBadge from 'ui/StatusBadge/index';
 
-const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft }) => {
+const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft, onContextMenu }) => {
   const getTabInfo = (type, tabName) => {
     switch (type) {
       case 'collection-settings': {
@@ -112,6 +112,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
       <div
         className="flex items-center tab-label"
         onDoubleClick={handleDoubleClick}
+        onContextMenu={onContextMenu}
       >
         {getTabInfo(type, tabName)}
       </div>

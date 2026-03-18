@@ -115,8 +115,7 @@ const initialState = {
   collections: [],
   collectionSortOrder: 'default',
   activeConnections: [],
-  tempDirectories: {},
-  saveTransientRequestModals: []
+  saveTransientRequestModal: null
 };
 
 const initiatedGrpcResponse = {
@@ -2659,9 +2658,7 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         const dirname = path.dirname(file.meta.pathname);
-
-        const tempDirectory = state.tempDirectories?.[file.meta.collectionUid];
-        const isTransientFile = tempDirectory && file.meta.pathname.startsWith(tempDirectory);
+        const isTransientFile = file.meta.isTransient || false;
 
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
         let currentPath = collection.pathname;
@@ -2737,9 +2734,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, dir.meta.collectionUid);
 
       if (collection) {
-        // Check if this directory is in a temp directory (transient request)
-        const tempDirectory = state.tempDirectories?.[dir.meta.collectionUid];
-        const isTransientDir = tempDirectory && dir.meta.pathname.startsWith(tempDirectory);
+        const isTransientDir = dir.meta.isTransient || false;
 
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
         let currentPath = collection.pathname;
@@ -3475,25 +3470,11 @@ export const collectionsSlice = createSlice({
       }
     },
 
-    addTransientDirectory: (state, action) => {
-      state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
+    setSaveTransientRequestModal: (state, action) => {
+      state.saveTransientRequestModal = action.payload;
     },
-    addSaveTransientRequestModal: (state, action) => {
-      const { item, collection } = action.payload;
-      // Avoid duplicates - check if this item is already in the array
-      const exists = state.saveTransientRequestModals.some((modal) => modal.item.uid === item.uid);
-      if (!exists) {
-        state.saveTransientRequestModals.push({ item, collection });
-      }
-    },
-    removeSaveTransientRequestModal: (state, action) => {
-      const { itemUid } = action.payload;
-      state.saveTransientRequestModals = state.saveTransientRequestModals.filter(
-        (modal) => modal.item.uid !== itemUid
-      );
-    },
-    clearAllSaveTransientRequestModals: (state) => {
-      state.saveTransientRequestModals = [];
+    clearSaveTransientRequestModal: (state) => {
+      state.saveTransientRequestModal = null;
     },
     /* Response Example Actions */
     addResponseExample: exampleReducers.addResponseExample,
@@ -3724,10 +3705,8 @@ export const {
   setResponseExampleRequestHeaders,
   setResponseExampleParams,
   /* Response Example Actions - End */
-  addTransientDirectory,
-  addSaveTransientRequestModal,
-  removeSaveTransientRequestModal,
-  clearAllSaveTransientRequestModals
+  setSaveTransientRequestModal,
+  clearSaveTransientRequestModal
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

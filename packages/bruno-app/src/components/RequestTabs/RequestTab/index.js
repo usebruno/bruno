@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, closeTabs, restoreClosedTransientRequests } from 'providers/ReduxStore/slices/collections/actions';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
@@ -24,6 +24,22 @@ import { closeWsConnection } from 'utils/network/index';
 import ExampleTab from '../ExampleTab';
 import toast from 'react-hot-toast';
 
+/**
+ * Shared handler for restoring closed transient request drafts
+ */
+const handleRestoreClosedDrafts = async (dispatch, collectionUid) => {
+  try {
+    const result = await dispatch(restoreClosedTransientRequests(collectionUid));
+    if (result.restored > 0) {
+      toast.success(`Restored ${result.restored} closed draft${result.restored > 1 ? 's' : ''}`);
+    } else {
+      toast.success('No closed drafts to restore');
+    }
+  } catch (err) {
+    toast.error('Failed to restore closed drafts');
+  }
+};
+
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow, dropdownContainerRef }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
@@ -37,6 +53,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const [showConfirmGlobalEnvironmentClose, setShowConfirmGlobalEnvironmentClose] = useState(false);
 
   const menuDropdownRef = useRef();
+  const specialTabMenuRef = useRef();
+  const specialTabLabelRef = useRef();
 
   const item = findItemInCollection(collection, tab.uid);
 
@@ -100,6 +118,12 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     event.preventDefault();
     event.stopPropagation();
     menuDropdownRef.current?.show();
+  };
+
+  const handleSpecialTabRightClick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    specialTabMenuRef.current?.show();
   };
 
   const handleMouseUp = (e) => {
@@ -340,23 +364,32 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
           />
         )}
-        {tab.type === 'folder-settings' && !folder ? (
-          <RequestTabNotFound handleCloseClick={handleCloseClick} />
-        ) : tab.type === 'folder-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseFolderSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} hasDraft={hasFolderDraft} />
-        ) : tab.type === 'collection-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseCollectionSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={collection?.name} hasDraft={hasDraft} />
-        ) : tab.type === 'environment-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseEnvironmentSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} hasDraft={hasEnvironmentDraft} />
-        ) : tab.type === 'global-environment-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseGlobalEnvironmentSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} hasDraft={hasGlobalEnvironmentDraft} />
-        ) : tab.type === 'workspaceOverview' ? (
-          <SpecialTab handleCloseClick={null} type={tab.type} />
-        ) : tab.type === 'workspaceEnvironments' ? (
-          <SpecialTab handleCloseClick={null} type={tab.type} />
-        ) : (
-          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
-        )}
+        <div ref={specialTabLabelRef}>
+          {tab.type === 'folder-settings' && !folder ? (
+            <RequestTabNotFound handleCloseClick={handleCloseClick} />
+          ) : tab.type === 'folder-settings' ? (
+            <SpecialTab handleCloseClick={handleCloseFolderSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} hasDraft={hasFolderDraft} onContextMenu={handleSpecialTabRightClick} />
+          ) : tab.type === 'collection-settings' ? (
+            <SpecialTab handleCloseClick={handleCloseCollectionSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={collection?.name} hasDraft={hasDraft} onContextMenu={handleSpecialTabRightClick} />
+          ) : tab.type === 'environment-settings' ? (
+            <SpecialTab handleCloseClick={handleCloseEnvironmentSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} hasDraft={hasEnvironmentDraft} onContextMenu={handleSpecialTabRightClick} />
+          ) : tab.type === 'global-environment-settings' ? (
+            <SpecialTab handleCloseClick={handleCloseGlobalEnvironmentSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} hasDraft={hasGlobalEnvironmentDraft} onContextMenu={handleSpecialTabRightClick} />
+          ) : tab.type === 'workspaceOverview' ? (
+            <SpecialTab handleCloseClick={null} type={tab.type} onContextMenu={handleSpecialTabRightClick} />
+          ) : tab.type === 'workspaceEnvironments' ? (
+            <SpecialTab handleCloseClick={null} type={tab.type} onContextMenu={handleSpecialTabRightClick} />
+          ) : (
+            <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} onContextMenu={handleSpecialTabRightClick} />
+          )}
+        </div>
+        <SpecialTabMenu
+          menuDropdownRef={specialTabMenuRef}
+          tabLabelRef={specialTabLabelRef}
+          collection={collection}
+          dispatch={dispatch}
+          dropdownContainerRef={dropdownContainerRef}
+        />
       </StyledWrapper>
     );
   }
@@ -629,6 +662,11 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
       id: 'close-all',
       label: 'Close All',
       onClick: handleCloseAllTabs
+    },
+    {
+      id: 'restore-closed-drafts',
+      label: 'Restore Closed Drafts',
+      onClick: () => handleRestoreClosedDrafts(dispatch, collection.uid)
     }
   ], [currentTabUid, currentTabItem, hasOtherTabs, hasLeftTabs, hasRightTabs, collection, collectionRequestTabs, tabIndex, dispatch]);
 
@@ -660,6 +698,35 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
 
       {menuDropdown}
     </Fragment>
+  );
+}
+
+function SpecialTabMenu({ menuDropdownRef, tabLabelRef, collection, dispatch, dropdownContainerRef }) {
+  const getTabLabelRect = () => {
+    if (!tabLabelRef.current) {
+      return { width: 0, height: 0, top: 0, bottom: 0, left: 0, right: 0 };
+    }
+    return tabLabelRef.current.getBoundingClientRect();
+  };
+
+  const menuItems = [
+    {
+      id: 'restore-closed-drafts',
+      label: 'Restore Closed Drafts',
+      onClick: () => handleRestoreClosedDrafts(dispatch, collection.uid)
+    }
+  ];
+
+  return (
+    <MenuDropdown
+      ref={menuDropdownRef}
+      items={menuItems}
+      placement="bottom-start"
+      appendTo={dropdownContainerRef?.current || document.body}
+      getReferenceClientRect={getTabLabelRect}
+    >
+      <span></span>
+    </MenuDropdown>
   );
 }
 

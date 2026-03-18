@@ -9,6 +9,7 @@ import GlobalSearchModal from 'components/GlobalSearchModal';
 import {
   sendRequest,
   saveRequest,
+  saveRequestToCollection,
   saveCollectionRoot,
   saveFolderRoot,
   saveCollectionSettings,
@@ -70,6 +71,28 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind([...getKeyBindingsForActionAllOS('save')]);
     };
   }, [activeTabUid, tabs, saveRequest, collections, dispatch]);
+
+  // save to collection hotkey (ctrl/cmd + shift + s)
+  useEffect(() => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('saveToCollection')], (e) => {
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if (activeTab) {
+        const collection = findCollectionByUid(collections, activeTab.collectionUid);
+        if (collection) {
+          const item = findItemInCollection(collection, activeTab.uid);
+          if (item && item.uid) {
+            dispatch(saveRequestToCollection(activeTab.uid, activeTab.collectionUid));
+          }
+        }
+      }
+
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('saveToCollection')]);
+    };
+  }, [activeTabUid, tabs, collections, dispatch]);
 
   // send request (ctrl/cmd + enter)
   useEffect(() => {
