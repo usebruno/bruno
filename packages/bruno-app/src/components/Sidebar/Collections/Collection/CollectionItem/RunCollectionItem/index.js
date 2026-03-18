@@ -14,7 +14,7 @@ import Button from 'ui/Button';
 
 const RunCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
-  const [delay, setDelay] = useState(null);
+  const [delay, setDelay] = useState('');
 
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const isCollectionRunInProgress = collection?.runnerResult?.info?.status && (collection?.runnerResult?.info?.status !== 'ended');
@@ -34,7 +34,7 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
       })
     );
     if (!isCollectionRunInProgress) {
-      dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive, Number(delay), tagsEnabled && tags));
+      dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive, delay ? Number(delay) : null, tagsEnabled && tags));
     }
     onClose();
   };
@@ -82,8 +82,9 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
 
           {/* Timings */}
           <div className="flex flex-col items-start gap-2 mb-8">
-            <label className="block text-sm">Delay between requests (ms)</label>
+            <label htmlFor="runner-delay" className="block text-sm">Delay between requests (ms)</label>
             <input
+              id="runner-delay"
               type="number"
               className="textbox w-1/2"
               placeholder="e.g. 5"

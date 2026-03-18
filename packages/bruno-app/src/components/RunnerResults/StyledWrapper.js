@@ -37,6 +37,11 @@ const Wrapper = styled.div`
     background-color: ${(props) => props.theme.bg};
     flex-shrink: 0;
 
+    &:focus-visible {
+      outline: 2px solid ${(props) => props.theme.input.focusBorder};
+      outline-offset: 2px;
+    }
+
     &:checked {
       border: 1px solid ${(props) => props.theme.primary.solid};
       background-image: radial-gradient(circle, ${(props) => props.theme.primary.solid} 40%, ${(props) => props.theme.bg} 42%);
