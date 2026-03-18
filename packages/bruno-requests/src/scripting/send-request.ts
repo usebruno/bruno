@@ -17,11 +17,19 @@ type T_SendRequestCallback = (error: any, response: any) => void;
 type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'>;
 
 /**
- * Creates a sendRequest function configured with proxy and certificate settings.
- * This allows bru.sendRequest to use the same proxy/certs config as the main request.
+ * Attaches cookie jar interceptors to an axios instance.
  *
- * @param config - Configuration for proxy, certs, and TLS options (same as getHttpHttpsAgents)
- * @returns A sendRequest function that applies the config to each request
+ * The request interceptor reads stored cookies for the resolved URL and merges
+ * them into the outgoing `Cookie` header (respecting any cookies already set by
+ * the caller).  The response interceptor — on both success and error paths —
+ * persists any `Set-Cookie` headers returned by the server.
+ *
+ * URL resolution uses `baseURL` when present so that relative paths are expanded
+ * consistently across request and response handlers.
+ *
+ * All errors are swallowed so that cookie-jar failures never abort a request.
+ *
+ * @param axiosInstance - The axios instance to instrument
  */
 const attachCookieInterceptors = (axiosInstance: ReturnType<typeof makeAxiosInstance>) => {
   axiosInstance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
@@ -48,14 +56,20 @@ const attachCookieInterceptors = (axiosInstance: ReturnType<typeof makeAxiosInst
   axiosInstance.interceptors.response.use(
     (response: AxiosResponse) => {
       try {
-        const url = response.config?.url;
+        const cfg = response.config;
+        const url = cfg?.url
+          ? (cfg.baseURL ? new URL(cfg.url, cfg.baseURL).toString() : cfg.url)
+          : undefined;
         if (url && response.headers) saveCookies(url, response.headers);
       } catch { /* ignore */ }
       return response;
     },
     (error: any) => {
       try {
-        const url = error?.config?.url;
+        const cfg = error?.config;
+        const url = cfg?.url
+          ? (cfg.baseURL ? new URL(cfg.url, cfg.baseURL).toString() : cfg.url)
+          : undefined;
         const headers = error?.response?.headers;
         if (url && headers) saveCookies(url, headers);
       } catch { /* ignore */ }
@@ -64,6 +78,13 @@ const attachCookieInterceptors = (axiosInstance: ReturnType<typeof makeAxiosInst
   );
 };
 
+/**
+ * Creates a sendRequest function configured with proxy and certificate settings.
+ * This allows bru.sendRequest to use the same proxy/certs config as the main request.
+ *
+ * @param config - Configuration for proxy, certs, and TLS options (same as getHttpHttpsAgents)
+ * @returns A sendRequest function that applies the config to each request
+ */
 const createSendRequest = (config?: SendRequestConfig) => {
   return async (requestConfig: AxiosRequestConfig | string, callback?: T_SendRequestCallback) => {
     // Handle case where requestConfig is a URL string
