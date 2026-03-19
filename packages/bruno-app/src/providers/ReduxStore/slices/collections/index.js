@@ -737,8 +737,8 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
-          const filter = action.payload.filter;
-          if (!filter || !filter.trim()) return;
+          const filter = action.payload.filter?.trim();
+          if (!filter) return;
 
           const history = item.responseFilterHistory || [];
           const filtered = history.filter((f) => f !== filter);

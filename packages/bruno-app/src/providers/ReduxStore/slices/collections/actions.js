@@ -2835,7 +2835,7 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
   });
 };
 
-export const persistResponseFilterHistory = (collectionUid, itemUid) => (dispatch, getState) => {
+export const persistResponseFilterHistory = (collectionUid, itemUid) => async (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   if (!collection) return;
@@ -2845,14 +2845,18 @@ export const persistResponseFilterHistory = (collectionUid, itemUid) => (dispatc
 
   const history = item.responseFilterHistory || [];
   const { ipcRenderer } = window;
-  ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
-    type: 'REQUEST_FILTER_HISTORY',
-    data: {
-      collectionPath: collection.pathname,
-      itemPathname: item.pathname,
-      history
-    }
-  });
+  try {
+    await ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
+      type: 'REQUEST_FILTER_HISTORY',
+      data: {
+        collectionPath: collection.pathname,
+        itemPathname: item.pathname,
+        history
+      }
+    });
+  } catch (error) {
+    console.error('Failed to persist response filter history', error);
+  }
 };
 
 export const fetchOauth2Credentials = (payload) => async (dispatch, getState) => {

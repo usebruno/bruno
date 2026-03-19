@@ -56,13 +56,15 @@ class UiStateSnapshotStore {
 
   update({ type, data }) {
     switch (type) {
-      case 'COLLECTION_ENVIRONMENT':
+      case 'COLLECTION_ENVIRONMENT': {
         const { collectionPath, environmentName } = data;
         this.updateCollectionEnvironment({ collectionPath, environmentName });
         break;
-      case 'REQUEST_FILTER_HISTORY':
+      }
+      case 'REQUEST_FILTER_HISTORY': {
         this.updateRequestFilterHistory(data);
         break;
+      }
       default:
         break;
     }

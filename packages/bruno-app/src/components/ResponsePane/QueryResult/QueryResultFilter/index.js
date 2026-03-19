@@ -100,8 +100,10 @@ const QueryResultFilter = ({ onChange, onCommit, onDeleteHistory, mode, filterHi
                   {entry}
                 </span>
                 <button
+                  type="button"
                   className="opacity-0 group-hover:opacity-100 shrink-0 cursor-pointer"
                   onMouseDown={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     onDeleteHistory(entry);
                   }}
