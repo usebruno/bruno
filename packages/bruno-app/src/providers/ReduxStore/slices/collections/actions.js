@@ -61,7 +61,8 @@ import {
   updateCollectionVar,
   addTransientDirectory,
   addSaveTransientRequestModal,
-  updatePathParam
+  updatePathParam,
+  hydrateResponseFilterHistory
 } from './index';
 
 import { each } from 'lodash';
@@ -2809,7 +2810,7 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
         resolve();
         return;
       }
-      const { pathname, selectedEnvironment } = collectionSnapshotData;
+      const { pathname, selectedEnvironment, requestFilterHistory } = collectionSnapshotData;
       const collection = findCollectionByPathname(state.collections.collections, pathname);
       const collectionCopy = cloneDeep(collection);
       const collectionUid = collectionCopy?.uid;
@@ -2822,11 +2823,34 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
         }
       }
 
-      // todo: add any other redux state that you want to save
+      // restore per-request filter history
+      if (requestFilterHistory && collectionUid) {
+        dispatch(hydrateResponseFilterHistory({ collectionUid, requestFilterHistory }));
+      }
 
       resolve();
     } catch (error) {
       reject(error);
+    }
+  });
+};
+
+export const persistResponseFilterHistory = (collectionUid, itemUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) return;
+
+  const item = findItemInCollection(collection, itemUid);
+  if (!item || !item.pathname) return;
+
+  const history = item.responseFilterHistory || [];
+  const { ipcRenderer } = window;
+  ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
+    type: 'REQUEST_FILTER_HISTORY',
+    data: {
+      collectionPath: collection.pathname,
+      itemPathname: item.pathname,
+      history
     }
   });
 };
