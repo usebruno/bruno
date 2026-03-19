@@ -2835,6 +2835,15 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
   });
 };
 
+/**
+ * Persists the response filter history for a collection item to the UI state snapshot on disk.
+ *
+ * @param {string|number} collectionUid - The UID of the collection containing the item.
+ * @param {string|number} itemUid - The UID of the request item whose filter history should be saved.
+ * @returns {Function} An async Redux thunk that reads current state and invokes the
+ *   `renderer:update-ui-state-snapshot` IPC channel to write the item's
+ *   `responseFilterHistory` array to disk. No Redux actions are dispatched.
+ */
 export const persistResponseFilterHistory = (collectionUid, itemUid) => async (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
