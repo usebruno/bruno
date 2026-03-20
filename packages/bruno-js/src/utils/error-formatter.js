@@ -1,9 +1,12 @@
 const fs = require('fs');
+const path = require('path');
 const YAML = require('yaml');
 const { NODEVM_SCRIPT_WRAPPER_OFFSET, QUICKJS_SCRIPT_WRAPPER_OFFSET } = require('./sandbox');
 
+const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
+
 const DEFAULT_CONTEXT_LINES = 5;
-const ALLOWED_SOURCE_EXTENSIONS = ['.bru', '.yml', '.yaml'];
+const ALLOWED_SOURCE_EXTENSIONS = ['.bru', '.yml'];
 
 const isAllowedSourceFile = (filePath) =>
   typeof filePath === 'string' && ALLOWED_SOURCE_EXTENSIONS.some((ext) => filePath.endsWith(ext));
@@ -64,9 +67,45 @@ const findScriptBlockStartLine = (filePath, scriptType, cache = null) => {
   return result;
 };
 
+/** Find the 1-indexed last content line of a script block in a .bru file (excludes closing }) */
+const findScriptBlockEndLine = (filePath, scriptType, cache = null) => {
+  if (!filePath.endsWith('.bru')) return null;
+
+  const cacheKey = `bru-end:${filePath}:${scriptType}`;
+  if (cache?.has(cacheKey)) return cache.get(cacheKey);
+
+  const content = readFile(filePath, cache);
+  if (!content) return null;
+
+  const pattern = BLOCK_PATTERNS[scriptType];
+  if (!pattern) return null;
+
+  const lines = content.split('\n');
+  let inBlock = false;
+  let hasContent = false;
+  let result = null;
+  for (let i = 0; i < lines.length; i++) {
+    if (!inBlock && pattern.test(lines[i])) {
+      inBlock = true;
+      continue;
+    }
+    if (inBlock) {
+      if (/^\}/.test(lines[i])) {
+        // Closing brace at 0-indexed position i; last content line is at 0-indexed (i-1) = 1-indexed i
+        result = hasContent ? i : null;
+        break;
+      }
+      hasContent = true;
+    }
+  }
+
+  if (cache) cache.set(cacheKey, result);
+  return result;
+};
+
 /** Find the 1-indexed line where a script block's content starts in a .yml file */
 const findYmlScriptBlockStartLine = (filePath, scriptType, cache = null) => {
-  if (!filePath.endsWith('.yml') && !filePath.endsWith('.yaml')) return null;
+  if (!filePath.endsWith('.yml')) return null;
 
   const cacheKey = `yml:${filePath}:${scriptType}`;
   if (cache?.has(cacheKey)) return cache.get(cacheKey);
@@ -97,7 +136,52 @@ const findYmlScriptBlockStartLine = (filePath, scriptType, cache = null) => {
             }
           }
         }
-        if (result) break;
+        if (result != null) break;
+      }
+    }
+  } catch {
+    // invalid YAML
+  }
+
+  if (cache) cache.set(cacheKey, result);
+  return result;
+};
+
+/** Find the 1-indexed last content line of a script block in a .yml file */
+const findYmlScriptBlockEndLine = (filePath, scriptType, cache = null) => {
+  if (!filePath.endsWith('.yml')) return null;
+
+  const cacheKey = `yml-end:${filePath}:${scriptType}`;
+  if (cache?.has(cacheKey)) return cache.get(cacheKey);
+
+  const content = readFile(filePath, cache);
+  if (!content) return null;
+
+  const ymlType = SCRIPT_TYPE_TO_YML[scriptType];
+  if (!ymlType) return null;
+
+  let result = null;
+  try {
+    const lineCounter = new YAML.LineCounter();
+    const doc = YAML.parseDocument(content, { lineCounter });
+
+    const scriptPaths = [['runtime', 'scripts'], ['request', 'scripts']];
+    for (const scriptPath of scriptPaths) {
+      const scripts = doc.getIn(scriptPath, true);
+      if (YAML.isSeq(scripts)) {
+        for (const item of scripts.items) {
+          if (!YAML.isMap(item)) continue;
+          if (item.get('type') === ymlType) {
+            const codeNode = item.get('code', true);
+            if (codeNode && codeNode.range) {
+              // range[1] is the end offset; go back 1 to get the last content character
+              const endOffset = Math.max(codeNode.range[1] - 1, codeNode.range[0]);
+              result = lineCounter.linePos(endOffset).line;
+              break;
+            }
+          }
+        }
+        if (result != null) break;
       }
     }
   } catch {
@@ -111,7 +195,7 @@ const findYmlScriptBlockStartLine = (filePath, scriptType, cache = null) => {
 /** Adjust a runtime-reported line number to the actual line in the .bru/.yml file */
 const adjustLineNumber = (filePath, reportedLine, isQuickJS, scriptType = null, cache = null, scriptMetadata = null) => {
   const isBruFile = filePath.endsWith('.bru');
-  const isYmlFile = filePath.endsWith('.yml') || filePath.endsWith('.yaml');
+  const isYmlFile = filePath.endsWith('.yml');
 
   if (!isBruFile && !isYmlFile) {
     return reportedLine;
@@ -172,7 +256,7 @@ const resolveSegmentError = (parsed, metadata, scriptType, cache) => {
   for (const segment of metadata.segments) {
     if (scriptRelativeLine >= segment.startLine && scriptRelativeLine <= segment.endLine) {
       const isBru = segment.filePath.endsWith('.bru');
-      const isYml = segment.filePath.endsWith('.yml') || segment.filePath.endsWith('.yaml');
+      const isYml = segment.filePath.endsWith('.yml');
       if (!isBru && !isYml) return null;
 
       const blockStartLine = isBru
@@ -409,6 +493,150 @@ const formatErrorWithContext = (error, relativeFilePath = null, scriptType = nul
   return lines.join('\n');
 };
 
+/**
+ * Build a structured error context object for the desktop UI's ScriptError component.
+ *
+ * formatErrorWithContext (V1) returns a pre-formatted string for CLI output.
+ * This function returns a structured object so the desktop UI can render it
+ * with its own layout (CodeSnippet component, collapsible stack, etc.).
+ *
+ * Key difference: line numbers in the returned object are block-relative
+ * (i.e. relative to the script block, starting at 1) rather than absolute
+ * file line numbers, because users edit scripts in a CodeMirror editor that
+ * starts numbering at line 1.
+ *
+ * @example
+ * Given a .bru file at /home/user/my-collection/requests/get-user.bru:
+ *
+ *   meta {                          ← file line 1
+ *     name: get-user                ← file line 2
+ *   }                               ← file line 3
+ *                                   ← file line 4
+ *   script:post-response {          ← file line 5
+ *     const data = res.body;        ← file line 6  (script line 1)
+ *     data.missing.prop;            ← file line 7  (script line 2) ← error
+ *     console.log(data);            ← file line 8  (script line 3)
+ *   }                               ← file line 9
+ *
+ * formatErrorWithContextV2(error, 'post-response', null, '/home/user/my-collection')
+ * → {
+ *     errorType: 'TypeError',
+ *     filePath: 'requests/get-user.bru',   ← relative to collectionPath
+ *     errorLine: 2,                        ← block-relative, not file line 7
+ *     lines: [
+ *       { lineNumber: 1, content: '  const data = res.body;', isError: false },
+ *       { lineNumber: 2, content: '  data.missing.prop;',     isError: true  },
+ *       { lineNumber: 3, content: '  console.log(data);',     isError: false }
+ *     ],
+ *     stack: '    at …/requests/get-user.bru:7:3'
+ *   }
+ *
+ * V1 (formatErrorWithContext) returns a flat string for the same error:
+ *   File: requests/get-user.bru
+ *
+ *    5 |  const data = res.body;
+ *  > 6 |  data.missing.prop;
+ *    7 |  console.log(data);
+ *
+ *   TypeError: Cannot read properties of undefined
+ *       at …/requests/get-user.bru:7:3
+ *
+ * @param {Error} error - The error to build context for
+ * @param {string} scriptType - 'pre-request' | 'post-response' | 'test'
+ * @param {object} scriptMetadata - Optional metadata for line mapping in combined scripts
+ * @param {string} collectionPath - Absolute path to the collection root (used to compute relative display paths)
+ * @returns {object|null} Structured error context or null
+ */
+const formatErrorWithContextV2 = (error, scriptType, scriptMetadata, collectionPath) => {
+  if (!error) return null;
+
+  try {
+    const cache = new Map();
+    const metadata = (error.scriptMetadata && Object.keys(error.scriptMetadata).length > 0)
+      ? error.scriptMetadata
+      : scriptMetadata;
+    const parsed = parseErrorLocation(error);
+    if (!parsed) return null;
+
+    const { filePath } = parsed;
+    const adjustedLine = adjustLineNumber(filePath, parsed.line, parsed.isQuickJS, scriptType, cache, metadata);
+
+    let sourceFile = filePath;
+    let sourceLine = adjustedLine;
+
+    // Handle collection/folder script segments
+    if (adjustedLine === null) {
+      const segmentResult = resolveSegmentError(parsed, metadata, scriptType, cache);
+      if (!segmentResult) return null;
+      sourceFile = segmentResult.filePath;
+      sourceLine = segmentResult.line;
+    }
+
+    const resolvedDisplayPath = posixifyPath(
+      collectionPath ? path.relative(collectionPath, sourceFile) : sourceFile
+    );
+
+    const context = getSourceContext(sourceFile, sourceLine, 3, cache);
+    if (!context) return null;
+
+    const errorType = getErrorTypeName(error);
+    let stack = null;
+    if (error.stack) {
+      stack = adjustStackTrace(error.stack, scriptType, cache, metadata, parsed.isQuickJS);
+      // Extract only the stack frames (skip the first line which is the error message)
+      const stackLines = stack.split('\n').slice(1).filter((l) => l.trim().startsWith('at'));
+      stack = stackLines.length ? stackLines.map((l) => `    ${l.trim()}`).join('\n') : null;
+    }
+
+    // Compute block-relative line numbers for the desktop UI.
+    // Users edit scripts in a CodeMirror editor starting at line 1,
+    // so show lines relative to the script block, not absolute .bru file lines.
+    const isBru = sourceFile.endsWith('.bru');
+    const isYml = sourceFile.endsWith('.yml');
+
+    const blockStartLine = isBru
+      ? findScriptBlockStartLine(sourceFile, scriptType, cache)
+      : isYml
+        ? findYmlScriptBlockStartLine(sourceFile, scriptType, cache)
+        : null;
+
+    const blockEndLine = isBru
+      ? findScriptBlockEndLine(sourceFile, scriptType, cache)
+      : isYml
+        ? findYmlScriptBlockEndLine(sourceFile, scriptType, cache)
+        : null;
+
+    // If this is a .bru/.yml file but the script block is missing or empty, there's nothing to show
+    if ((isBru || isYml) && !blockEndLine) return null;
+
+    const blockOffset = blockStartLine ? blockStartLine - 1 : 0;
+
+    const filteredLines = context.lines
+      .filter((l) => {
+        const rel = l.lineNumber - blockOffset;
+        return rel >= 1 && (!blockEndLine || l.lineNumber <= blockEndLine);
+      })
+      .map((l) => ({
+        lineNumber: l.lineNumber - blockOffset,
+        content: l.content,
+        isError: l.isError
+      }));
+
+    if (filteredLines.length === 0) return null;
+
+    return {
+      errorType,
+      filePath: resolvedDisplayPath,
+      errorLine: sourceLine - blockOffset,
+      lines: filteredLines,
+      stack
+    };
+  } catch (e) {
+    console.warn('formatErrorWithContextV2 failed:', e);
+    return null;
+  }
+};
+
 module.exports = {
   SCRIPT_TYPES,
   DEFAULT_CONTEXT_LINES,
@@ -417,10 +645,13 @@ module.exports = {
   buildStackFromCallSites,
   getSourceContext,
   formatErrorWithContext,
+  formatErrorWithContextV2,
   adjustLineNumber,
   resolveSegmentError,
   findScriptBlockStartLine,
+  findScriptBlockEndLine,
   findYmlScriptBlockStartLine,
+  findYmlScriptBlockEndLine,
   adjustStackTrace,
   getErrorTypeName
 };

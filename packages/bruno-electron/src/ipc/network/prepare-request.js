@@ -468,6 +468,10 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     axiosRequest.tests = request.tests;
   }
 
+  if (request.testsMetadata) {
+    axiosRequest.testsMetadata = request.testsMetadata;
+  }
+
   axiosRequest.vars = request.vars;
   axiosRequest.collectionVariables = request.collectionVariables;
   axiosRequest.folderVariables = request.folderVariables;
