@@ -8,6 +8,7 @@ import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { createWorkspaceWithUniqueName, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { sortWorkspaces } from 'utils/workspaces';
+import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 
 import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 import RenameWorkspace from './RenameWorkspace';
@@ -59,6 +60,28 @@ const ManageWorkspace = () => {
       return;
     }
     setDeleteWorkspaceModal({ open: true, workspace });
+  };
+
+  const handleSetAsDefault = async (workspace) => {
+    if (workspace.type === 'default' || !workspace.pathname) return;
+    const currentDefault = workspaces.find((w) => w.type === 'default');
+    try {
+      const result = await window.ipcRenderer.invoke('renderer:set-default-workspace-path', workspace.pathname);
+      if (!result?.success) {
+        throw new Error('Failed to set default workspace');
+      }
+      if (currentDefault && !result.previousDefaultUid) {
+        toast.error('Failed to resolve previous default workspace');
+        return;
+      }
+      if (currentDefault) {
+        dispatch(updateWorkspace({ uid: currentDefault.uid, newUid: result.previousDefaultUid, type: 'workspace' }));
+      }
+      dispatch(updateWorkspace({ uid: workspace.uid, newUid: 'default', type: 'default' }));
+      toast.success(`${workspace.name} set as default workspace`);
+    } catch (err) {
+      toast.error('Failed to set default workspace');
+    }
   };
 
   const handleCreateWorkspace = async () => {
@@ -158,8 +181,9 @@ const ManageWorkspace = () => {
                       placement="bottom-end"
                       items={[
                         { id: 'rename', label: 'Rename', onClick: () => handleRenameClick(workspace) },
-                        { id: 'remove', label: 'Remove', onClick: () => handleCloseClick(workspace) }
-                      ]}
+                        { id: 'remove', label: 'Remove', onClick: () => handleCloseClick(workspace) },
+                        workspace.pathname && { id: 'set_as_default', label: 'Set as default', onClick: () => handleSetAsDefault(workspace) }
+                      ].filter(Boolean)}
                     >
                       <button className="more-actions-btn">
                         <IconDots size={14} strokeWidth={1.5} />
