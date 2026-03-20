@@ -261,13 +261,13 @@ export default function RunnerResults({ collection }) {
     return (
       <StyledWrapper className="pl-4 overflow-hidden h-full">
         <div className="flex overflow-hidden max-h-full h-full">
-          <div className={`${configureMode ? 'w-1/2 pr-4' : 'w-full'}`}>
+          <div className="w-1/2 pr-4">
             <div className="font-medium mt-6 title flex items-center">
+              <IconRun size={20} strokeWidth={1.5} className="mr-2" />
               Runner
-              <IconRun size={20} strokeWidth={1.5} className="ml-2" />
             </div>
-            <div className="mt-6">
-              You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
+            <div className="mt-2">
+              You have <span className="font-medium text-xs">{totalRequestsInCollection}</span> {totalRequestsInCollection === 1 ? 'request' : 'requests'} in this collection.
               {isCollectionLoading && (
                 <span className="ml-2 text-muted">
                   (Loading...)
@@ -275,35 +275,45 @@ export default function RunnerResults({ collection }) {
               )}
             </div>
             {isCollectionLoading ? <div className="my-1 danger">Requests in this collection are still loading.</div> : null}
-            <div className="mt-6">
-              <label>Delay (in ms)</label>
-              <input
-                type="number"
-                className="block textbox mt-2 py-5"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                value={delay}
-                onChange={(e) => setDelay(e.target.value)}
-              />
+
+            {/* Timings */}
+            <div className="runner-section-title mt-6">Timings</div>
+            <div className="runner-section mt-2">
+              <div className="flex items-center justify-between gap-4">
+                <label className="flex-1">Delay between requests (ms)</label>
+                <input
+                  type="number"
+                  className="block textbox w-[60%]"
+                  placeholder="e.g. 5"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  value={delay}
+                  onChange={(e) => setDelay(e.target.value)}
+                />
+              </div>
             </div>
 
-            {/* Tags for the collection run */}
-            <RunnerTags collectionUid={collection.uid} className="mb-6" />
+            {/* Filters */}
+            <div className="runner-section-title mt-6">Filters</div>
+            <div className="runner-section mt-2 mb-6">
+              {/* Tags for the collection run */}
+              <RunnerTags collectionUid={collection.uid} className="mb-4" />
 
-            {/* Configure requests option */}
-            <div className="run-config-option flex flex-col border-b pb-6 mb-6">
-              <div className="flex gap-2">
-                <input
-                  className="cursor-pointer"
-                  id="filter-config"
-                  type="radio"
-                  name="filterMode"
-                  checked={configureMode}
-                  onChange={toggleConfigureMode}
-                />
-                <label htmlFor="filter-config" className="block font-medium">Configure requests to run</label>
+              {/* Configure requests option */}
+              <div className="run-config-option flex flex-col">
+                <div className="flex gap-2">
+                  <input
+                    className="cursor-pointer"
+                    id="filter-config"
+                    type="radio"
+                    name="filter-mode"
+                    checked={configureMode}
+                    onChange={toggleConfigureMode}
+                  />
+                  <label htmlFor="filter-config" className="block">Configure requests to run</label>
+                </div>
               </div>
             </div>
 

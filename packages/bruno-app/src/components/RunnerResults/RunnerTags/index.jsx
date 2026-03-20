@@ -4,7 +4,7 @@ import { get, cloneDeep, find } from 'lodash';
 import { updateCollectionTagsList, updateRunnerTagsDetails } from 'providers/ReduxStore/slices/collections';
 import TagList from 'components/TagList';
 
-const RunnerTags = ({ collectionUid, className = '' }) => {
+const RunnerTags = ({ collectionUid, className = '', radioName = 'filter-mode' }) => {
   const dispatch = useDispatch();
   const collections = useSelector((state) => state.collections.collections);
   const collection = cloneDeep(find(collections, (c) => c.uid === collectionUid));
@@ -87,22 +87,22 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
   };
 
   return (
-    <div className={`mt-6 flex flex-col ${className}`}>
+    <div className={`flex flex-col ${className}`}>
       <div className="flex gap-2">
         <input
           className="cursor-pointer"
-          id="filter-tags"
+          id={`${radioName}-tags`}
           type="radio"
-          name="filterMode"
+          name={radioName}
           checked={tagsEnabled}
           onChange={() => setTagsEnabled(!tagsEnabled)}
         />
-        <label htmlFor="filter-tags" className="block font-medium">Filter requests with tags</label>
+        <label htmlFor={`${radioName}-tags`} className="block">Filter requests with tags</label>
       </div>
       {tagsEnabled && (
-        <div className="flex flex-row mt-4 gap-4 w-full">
-          <div className="w-1/2 flex flex-col gap-2 max-w-[400px]">
-            <span>Included tags:</span>
+        <div className="flex flex-row mt-2 gap-4 w-full pl-6">
+          <div className="flex-1 flex flex-col gap-2 min-w-0">
+            <span>Include tags</span>
             <TagList
               tags={tags.include}
               handleAddTag={(tag) => handleAddTag({ tag, to: 'include' })}
@@ -111,8 +111,8 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
               handleValidation={handleValidation}
             />
           </div>
-          <div className="w-1/2 flex flex-col gap-2 max-w-[400px]">
-            <span>Excluded tags:</span>
+          <div className="flex-1 flex flex-col gap-2 min-w-0">
+            <span>Exclude tags</span>
             <TagList
               tags={tags.exclude}
               handleAddTag={(tag) => handleAddTag({ tag, to: 'exclude' })}
