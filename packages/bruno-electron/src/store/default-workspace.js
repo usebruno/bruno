@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const { generateUidBasedOnHash } = require('../utils/common');
-const { writeFile, isValidCollectionDirectory } = require('../utils/filesystem');
+const { PRIVATE_ENV_FILE_MODE, writeFile, isValidCollectionDirectory } = require('../utils/filesystem');
 const { getPreferences, savePreferences } = require('./preferences');
 const { globalEnvironmentsStore } = require('./global-environments');
 const {
@@ -372,7 +372,7 @@ class DefaultWorkspaceManager {
           const envFilePath = path.join(environmentsDir, `${env.name}.yml`);
           const environment = { name: env.name, variables: env.variables || [] };
           const content = stringifyEnvironment(environment, { format: 'yml' });
-          await writeFile(envFilePath, content);
+          await writeFile(envFilePath, content, false, { mode: PRIVATE_ENV_FILE_MODE });
 
           if (env.uid === activeGlobalEnvironmentUid && !workspaceConfig.activeEnvironmentUid) {
             workspaceConfig.activeEnvironmentUid = generateUidBasedOnHash(envFilePath);

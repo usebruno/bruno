@@ -615,7 +615,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       const content = await stringifyEnvironment(environment, { format });
-      await writeFile(envFilePath, content);
+      await writeFile(envFilePath, content, false, { mode: PRIVATE_ENV_FILE_MODE });
     } catch (error) {
       return Promise.reject(error);
     }
@@ -773,7 +773,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const environment = parseEnvironment(fileContent, { format });
       environment.color = color;
       const updatedContent = stringifyEnvironment(environment, { format });
-      fs.writeFileSync(envFilePath, updatedContent, 'utf8');
+      await writeFile(envFilePath, updatedContent, false, { mode: PRIVATE_ENV_FILE_MODE });
     } catch (error) {
       return Promise.reject(error);
     }
