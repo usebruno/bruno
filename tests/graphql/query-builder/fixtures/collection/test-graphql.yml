@@ -1,0 +1,20 @@
+info:
+  name: test-graphql
+  type: graphql
+  seq: 1
+
+graphql:
+  method: POST
+  url: https://graphql.anilist.co
+  body:
+    query: |-
+
+    variables: |-
+      {}
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
