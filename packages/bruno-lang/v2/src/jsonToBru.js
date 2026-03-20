@@ -254,6 +254,27 @@ ${indentString(`domain: ${auth?.ntlm?.domain || ''}`)}
 `;
   }
 
+  if (auth && auth.oauth1) {
+    bru += `auth:oauth1 {
+${indentString(`consumer_key: ${auth?.oauth1?.consumerKey || ''}`)}
+${indentString(`consumer_secret: ${auth?.oauth1?.consumerSecret || ''}`)}
+${indentString(`access_token: ${auth?.oauth1?.accessToken || ''}`)}
+${indentString(`token_secret: ${auth?.oauth1?.tokenSecret || ''}`)}
+${indentString(`callback_url: ${auth?.oauth1?.callbackUrl || ''}`)}
+${indentString(`verifier: ${auth?.oauth1?.verifier || ''}`)}
+${indentString(`signature_method: ${auth?.oauth1?.signatureMethod || ''}`)}
+${indentString(`private_key: ${auth?.oauth1?.privateKeyType === 'file' ? `@file(${auth?.oauth1?.privateKey || ''})` : getValueString(auth?.oauth1?.privateKey || '')}`)}
+${indentString(`timestamp: ${auth?.oauth1?.timestamp || ''}`)}
+${indentString(`nonce: ${auth?.oauth1?.nonce || ''}`)}
+${indentString(`version: ${auth?.oauth1?.version || ''}`)}
+${indentString(`realm: ${auth?.oauth1?.realm || ''}`)}
+${indentString(`add_params_to: ${auth?.oauth1?.addParamsTo || ''}`)}
+${indentString(`include_body_hash: ${(auth?.oauth1?.includeBodyHash || false).toString()}`)}
+}
+
+`;
+  }
+
   if (auth && auth.oauth2) {
     switch (auth?.oauth2?.grantType) {
       case 'password':

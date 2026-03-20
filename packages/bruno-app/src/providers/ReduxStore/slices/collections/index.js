@@ -1017,6 +1017,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'ntlm';
               item.draft.request.auth.ntlm = action.payload.content;
               break;
+            case 'oauth1':
+              item.draft.request.auth.mode = 'oauth1';
+              item.draft.request.auth.oauth1 = action.payload.content;
+              break;
             case 'oauth2':
               item.draft.request.auth.mode = 'oauth2';
               item.draft.request.auth.oauth2 = action.payload.content;
@@ -2121,6 +2125,9 @@ export const collectionsSlice = createSlice({
           case 'ntlm':
             set(collection, 'draft.root.request.auth.ntlm', action.payload.content);
             break;
+          case 'oauth1':
+            set(collection, 'draft.root.request.auth.oauth1', action.payload.content);
+            break;
           case 'oauth2':
             set(collection, 'draft.root.request.auth.oauth2', action.payload.content);
             break;
@@ -2453,6 +2460,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'ntlm':
             set(folder, 'draft.request.auth.ntlm', action.payload.content);
+            break;
+          case 'oauth1':
+            set(folder, 'draft.request.auth.oauth1', action.payload.content);
             break;
           case 'apikey':
             set(folder, 'draft.request.auth.apikey', action.payload.content);

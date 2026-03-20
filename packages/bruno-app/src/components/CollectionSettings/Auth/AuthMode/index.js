@@ -52,6 +52,11 @@ const AuthMode = ({ collection }) => {
       onClick: () => onModeChange('ntlm')
     },
     {
+      id: 'oauth1',
+      label: 'OAuth 1.0',
+      onClick: () => onModeChange('oauth1')
+    },
+    {
       id: 'oauth2',
       label: 'OAuth 2.0',
       onClick: () => onModeChange('oauth2')

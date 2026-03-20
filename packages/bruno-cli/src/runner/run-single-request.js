@@ -22,7 +22,7 @@ const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
-const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2 } = require('@usebruno/requests');
+const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
 const { getCACertificates, transformProxyConfig, getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
@@ -694,6 +694,14 @@ const runSingleRequest = async function (
       if (request.ntlmConfig) {
         axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
         delete request.ntlmConfig;
+      }
+
+      if (request.oauth1config) {
+        try {
+          applyOAuth1ToRequest(request, collectionPath);
+        } catch (error) {
+          throw new Error(`OAuth1 signing failed: ${error.message}`);
+        }
       }
 
       if (request.awsv4config) {

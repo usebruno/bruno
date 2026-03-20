@@ -8,7 +8,7 @@ const { isLargeFile } = require('../../utils/filesystem');
 
 const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
-const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
+const setAuthHeaders = (axiosRequest, request, collectionRoot, collectionPath) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth && request.auth.mode === 'inherit') {
     switch (collectionAuth.mode) {
@@ -42,6 +42,25 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           username: get(collectionAuth, 'ntlm.username'),
           password: get(collectionAuth, 'ntlm.password'),
           domain: get(collectionAuth, 'ntlm.domain')
+        };
+        break;
+      case 'oauth1':
+        axiosRequest.oauth1config = {
+          consumerKey: get(collectionAuth, 'oauth1.consumerKey'),
+          consumerSecret: get(collectionAuth, 'oauth1.consumerSecret'),
+          accessToken: get(collectionAuth, 'oauth1.accessToken'),
+          tokenSecret: get(collectionAuth, 'oauth1.tokenSecret'),
+          callbackUrl: get(collectionAuth, 'oauth1.callbackUrl'),
+          verifier: get(collectionAuth, 'oauth1.verifier'),
+          signatureMethod: get(collectionAuth, 'oauth1.signatureMethod'),
+          privateKey: get(collectionAuth, 'oauth1.privateKey'),
+          privateKeyType: get(collectionAuth, 'oauth1.privateKeyType'),
+          timestamp: get(collectionAuth, 'oauth1.timestamp'),
+          nonce: get(collectionAuth, 'oauth1.nonce'),
+          version: get(collectionAuth, 'oauth1.version'),
+          realm: get(collectionAuth, 'oauth1.realm'),
+          addParamsTo: get(collectionAuth, 'oauth1.addParamsTo'),
+          includeBodyHash: get(collectionAuth, 'oauth1.includeBodyHash')
         };
         break;
       case 'wsse':
@@ -192,6 +211,26 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(request, 'auth.ntlm.password'),
           domain: get(request, 'auth.ntlm.domain')
         };
+        break;
+      case 'oauth1':
+        axiosRequest.oauth1config = {
+          consumerKey: get(request, 'auth.oauth1.consumerKey'),
+          consumerSecret: get(request, 'auth.oauth1.consumerSecret'),
+          accessToken: get(request, 'auth.oauth1.accessToken'),
+          tokenSecret: get(request, 'auth.oauth1.tokenSecret'),
+          callbackUrl: get(request, 'auth.oauth1.callbackUrl'),
+          verifier: get(request, 'auth.oauth1.verifier'),
+          signatureMethod: get(request, 'auth.oauth1.signatureMethod'),
+          privateKey: get(request, 'auth.oauth1.privateKey'),
+          privateKeyType: get(request, 'auth.oauth1.privateKeyType'),
+          timestamp: get(request, 'auth.oauth1.timestamp'),
+          nonce: get(request, 'auth.oauth1.nonce'),
+          version: get(request, 'auth.oauth1.version'),
+          realm: get(request, 'auth.oauth1.realm'),
+          addParamsTo: get(request, 'auth.oauth1.addParamsTo'),
+          includeBodyHash: get(request, 'auth.oauth1.includeBodyHash')
+        };
+        break;
       case 'oauth2':
         const grantType = get(request, 'auth.oauth2.grantType');
         switch (grantType) {
@@ -360,7 +399,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     responseType: 'arraybuffer'
   };
 
-  axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
+  axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot, collectionPath);
 
   if (request.body.mode === 'json') {
     if (!contentTypeDefined) {
