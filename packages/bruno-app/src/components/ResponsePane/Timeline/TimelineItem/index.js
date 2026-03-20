@@ -8,11 +8,20 @@ import Status from './Common/Status/index';
 import { RelativeTime } from './Common/Time/index';
 import StyledWrapper from './StyledWrapper';
 
-const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2, hideTimestamp = false }) => {
+const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2, hideTimestamp = false, isExpanded, onToggleExpand }) => {
   const { theme } = useTheme();
-  const [isCollapsed, _toggleCollapse] = useState(false);
+  const [localIsCollapsed, setLocalIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('request');
-  const toggleCollapse = () => _toggleCollapse((prev) => !prev);
+
+  const isCollapsed = isExpanded !== undefined ? isExpanded : localIsCollapsed;
+  const toggleCollapse = () => {
+    if (onToggleExpand) {
+      // Pass !isCollapsed: if currently collapsed (isCollapsed=false), pass true to mean "expanded"
+      onToggleExpand(!isCollapsed);
+    } else {
+      setLocalIsCollapsed((prev) => !prev);
+    }
+  };
   const { method, status, statusCode, statusText, url = '' } = request || {};
   const { status: responseStatus, statusCode: responseStatusCode, statusText: responseStatusText } = response || {};
   const showNetworkLogs = response.timeline && response.timeline.length > 0;

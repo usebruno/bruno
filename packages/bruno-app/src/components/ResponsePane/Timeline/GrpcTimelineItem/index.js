@@ -26,9 +26,18 @@ const EventTypeNames = {
   cancel: 'Cancelled'
 };
 
-const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, item }) => {
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const toggleCollapse = () => setIsCollapsed((prev) => !prev);
+const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, item, isExpanded, onToggleExpand }) => {
+  const [localIsCollapsed, setLocalIsCollapsed] = useState(true);
+
+  const isCollapsed = isExpanded !== undefined ? isExpanded : localIsCollapsed;
+  const toggleCollapse = () => {
+    if (onToggleExpand) {
+      // Pass !isCollapsed: if currently collapsed (isCollapsed=false), pass true to mean "expanded"
+      onToggleExpand(!isCollapsed);
+    } else {
+      setLocalIsCollapsed((prev) => !prev);
+    }
+  };
 
   // Use requestSent if available, otherwise fall back to request
   const effectiveRequest = item.requestSent || request || item.request || {};

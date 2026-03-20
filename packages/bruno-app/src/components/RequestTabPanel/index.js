@@ -9,6 +9,7 @@ import ResponsePane from 'components/ResponsePane';
 import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
 import { findItemInCollection } from 'utils/collections';
 import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { updateGqlDocsOpen } from 'providers/ReduxStore/slices/tabs';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl/index';
 import GrpcQueryUrl from 'components/RequestPane/GrpcQueryUrl/index';
@@ -92,18 +93,23 @@ const RequestTabPanel = () => {
   const mainSectionRef = useRef(null);
 
   const [schema, setSchema] = useState(null);
-  const [showGqlDocs, setShowGqlDocs] = useState(false);
+
+  // Get gqlDocsOpen from Redux for persistence across tab switches
+  const showGqlDocs = focusedTab?.gqlDocsOpen || false;
+
   const onSchemaLoad = useCallback((schema) => setSchema(schema), []);
-  const toggleDocs = useCallback(() => setShowGqlDocs((prev) => !prev), []);
+  const toggleDocs = useCallback(() => {
+    dispatch(updateGqlDocsOpen({ uid: activeTabUid, gqlDocsOpen: !showGqlDocs }));
+  }, [dispatch, activeTabUid, showGqlDocs]);
 
   const handleGqlClickReference = useCallback((reference) => {
     if (docExplorerRef.current) {
       docExplorerRef.current.showDocForReference(reference);
     }
     if (!showGqlDocs) {
-      setShowGqlDocs(true);
+      dispatch(updateGqlDocsOpen({ uid: activeTabUid, gqlDocsOpen: true }));
     }
-  }, []);
+  }, [dispatch, activeTabUid, showGqlDocs]);
 
   const handleMouseMove = useCallback((e) => {
     if (!draggingRef.current || !mainSectionRef.current) return;
