@@ -1,5 +1,5 @@
 import { test, expect, Page } from '../../playwright';
-import { buildScriptErrorLocators, buildCommonLocators } from '../utils/page/locators';
+import { buildScriptErrorLocators } from '../utils/page/locators';
 import { openRequest, selectRequestPaneTab } from '../utils/page/actions';
 import { setSandboxMode } from '../utils/page/runner';
 
@@ -40,11 +40,9 @@ const editScriptEditor = async (page: Page, editorTestId: string, newContent: st
 for (const mode of ['safe', 'developer'] as const) {
   test.describe.serial(`Draft Script Error Context [${mode} mode]`, () => {
     let scriptErrorLocators: ReturnType<typeof buildScriptErrorLocators>;
-    let commonLocators: ReturnType<typeof buildCommonLocators>;
 
     test.beforeAll(async ({ pageWithUserData: page }) => {
       scriptErrorLocators = buildScriptErrorLocators(page);
-      commonLocators = buildCommonLocators(page);
 
       await setSandboxMode(page, 'script-errors-test', mode);
     });

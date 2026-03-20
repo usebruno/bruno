@@ -347,32 +347,12 @@ const parseErrorLocation = (error) => {
   return parsed;
 };
 
-/** Read source file and extract context lines around the error location */
-const getSourceContext = (filePath, errorLine, contextLines = DEFAULT_CONTEXT_LINES, cache = null) => {
-  const content = readFile(filePath, cache);
-  if (!content) return null;
+/** Extract context lines around the error location from a file or in-memory content */
+const getSourceContext = (filePath, errorLine, contextLines = DEFAULT_CONTEXT_LINES, cache = null, content = null) => {
+  const fileContent = content || readFile(filePath, cache);
+  if (!fileContent) return null;
 
-  const lines = content.split('\n');
-  const startLine = Math.max(1, errorLine - contextLines);
-  const endLine = Math.min(lines.length, errorLine + contextLines);
-
-  const contextLinesArray = [];
-  for (let i = startLine; i <= endLine; i++) {
-    contextLinesArray.push({
-      lineNumber: i,
-      content: lines[i - 1],
-      isError: i === errorLine
-    });
-  }
-
-  return { lines: contextLinesArray, startLine, errorLine };
-};
-
-/** Extract context lines from an in-memory script string (no disk read) */
-const getSourceContextFromContent = (content, errorLine, contextLines = DEFAULT_CONTEXT_LINES) => {
-  if (!content) return null;
-
-  const lines = content.split('\n');
+  const lines = fileContent.split('\n');
   if (errorLine < 1 || errorLine > lines.length) return null;
 
   const startLine = Math.max(1, errorLine - contextLines);
@@ -388,6 +368,11 @@ const getSourceContextFromContent = (content, errorLine, contextLines = DEFAULT_
   }
 
   return { lines: contextLinesArray, startLine, errorLine };
+};
+
+/** @deprecated Use getSourceContext with content parameter instead */
+const getSourceContextFromContent = (content, errorLine, contextLines = DEFAULT_CONTEXT_LINES) => {
+  return getSourceContext(null, errorLine, contextLines, null, content);
 };
 
 /** Build adjusted stack trace string from structured CallSite data */
@@ -603,7 +588,7 @@ const formatErrorWithContextV2 = (error, scriptType, scriptMetadata, collectionP
     let sourceFile = filePath;
     let sourceLine = adjustedLine;
     let context = null;
-    let blockRelativeAlready = false;
+    let contextFromMemory = false;
 
     // Handle collection/folder script segments
     let segmentResult = null;
@@ -621,13 +606,13 @@ const formatErrorWithContextV2 = (error, scriptType, scriptMetadata, collectionP
       const lineInScript = scriptRelativeLine - metadata.requestStartLine;
       context = getSourceContextFromContent(metadata.requestScriptContent, lineInScript, 3);
       if (context) {
-        blockRelativeAlready = true;
+        contextFromMemory = true;
       }
     } else if (adjustedLine === null && segmentResult?.scriptContent) {
       // Segment error with in-memory content available
       context = getSourceContextFromContent(segmentResult.scriptContent, segmentResult.lineInScript, 3);
       if (context) {
-        blockRelativeAlready = true;
+        contextFromMemory = true;
       }
     }
 
@@ -651,7 +636,7 @@ const formatErrorWithContextV2 = (error, scriptType, scriptMetadata, collectionP
     }
 
     // When context came from in-memory content, lines are already block-relative
-    if (blockRelativeAlready) {
+    if (contextFromMemory) {
       if (context.lines.length === 0) return null;
 
       return {
