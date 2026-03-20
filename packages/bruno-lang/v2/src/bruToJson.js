@@ -30,7 +30,7 @@ const parseExample = require('./example/bruToJson');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | example)*
+  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | bodyvariants | varsandassert | script | tests | settings | docs | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
@@ -148,6 +148,15 @@ const grammar = ohm.grammar(`Bru {
   bodymultipart = "body:multipart-form" dictionary
   bodyfile = "body:file" dictionary
 
+  // Body Variants - multiple named body variants per request
+  bodyvariants = bodyvariantjson | bodyvarianttext | bodyvariantxml | bodyvariantsparql | bodyvariantformurlencoded | bodyvariantmultipart
+  variantname = (~(st* "{") any)+
+  bodyvariantjson = "body:json:variant:" variantname st* "{" nl* textblock tagend
+  bodyvarianttext = "body:text:variant:" variantname st* "{" nl* textblock tagend
+  bodyvariantxml = "body:xml:variant:" variantname st* "{" nl* textblock tagend
+  bodyvariantsparql = "body:sparql:variant:" variantname st* "{" nl* textblock tagend
+  bodyvariantformurlencoded = "body:form-urlencoded:variant:" variantname dictionary
+  bodyvariantmultipart = "body:multipart-form:variant:" variantname dictionary
 
   // Examples - multiple example blocks
   example = "example" st* "{" nl* examplecontent tagend
@@ -1071,6 +1080,75 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           }
         ]
       }
+    };
+  },
+  variantname(chars) {
+    return chars.sourceString.trim();
+  },
+  bodyvariantjson(_1, variantname, _2, _3, _4, textblock, _5) {
+    return {
+      bodyVariants: [{
+        name: variantname.ast,
+        body: {
+          mode: 'json',
+          json: outdentString(textblock.sourceString)
+        }
+      }]
+    };
+  },
+  bodyvarianttext(_1, variantname, _2, _3, _4, textblock, _5) {
+    return {
+      bodyVariants: [{
+        name: variantname.ast,
+        body: {
+          mode: 'text',
+          text: outdentString(textblock.sourceString)
+        }
+      }]
+    };
+  },
+  bodyvariantxml(_1, variantname, _2, _3, _4, textblock, _5) {
+    return {
+      bodyVariants: [{
+        name: variantname.ast,
+        body: {
+          mode: 'xml',
+          xml: outdentString(textblock.sourceString)
+        }
+      }]
+    };
+  },
+  bodyvariantsparql(_1, variantname, _2, _3, _4, textblock, _5) {
+    return {
+      bodyVariants: [{
+        name: variantname.ast,
+        body: {
+          mode: 'sparql',
+          sparql: outdentString(textblock.sourceString)
+        }
+      }]
+    };
+  },
+  bodyvariantformurlencoded(_1, variantname, dictionary) {
+    return {
+      bodyVariants: [{
+        name: variantname.ast,
+        body: {
+          mode: 'formUrlEncoded',
+          formUrlEncoded: mapPairListToKeyValPairs(dictionary.ast)
+        }
+      }]
+    };
+  },
+  bodyvariantmultipart(_1, variantname, dictionary) {
+    return {
+      bodyVariants: [{
+        name: variantname.ast,
+        body: {
+          mode: 'multipartForm',
+          multipartForm: mapPairListToKeyValPairsMultipart(dictionary.ast)
+        }
+      }]
     };
   },
   example(_1, _2, _3, _4, examplecontent, _5) {

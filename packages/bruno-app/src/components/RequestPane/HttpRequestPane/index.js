@@ -7,6 +7,7 @@ import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
+import BodyVariantSelector from 'components/RequestPane/RequestBody/BodyVariantSelector';
 import Auth from 'components/RequestPane/Auth';
 import Vars from 'components/RequestPane/Vars';
 import Assertions from 'components/RequestPane/Assertions';
@@ -119,7 +120,8 @@ const HttpRequestPane = ({ item, collection }) => {
   }
 
   const rightContent = requestPaneTab === 'body' ? (
-    <div ref={rightContentRef}>
+    <div ref={rightContentRef} className="flex items-center gap-2">
+      <BodyVariantSelector item={item} collection={collection} />
       <RequestBodyMode item={item} collection={collection} />
     </div>
   ) : requestPaneTab === 'auth' ? (
