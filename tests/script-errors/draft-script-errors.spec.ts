@@ -1,48 +1,23 @@
-import { test, expect, Page } from '../../playwright';
+import { test, expect } from '../../playwright';
 import { buildScriptErrorLocators, buildCommonLocators } from '../utils/page/locators';
-import { openRequest, selectRequestPaneTab } from '../utils/page/actions';
+import {
+  openRequest,
+  selectRequestPaneTab,
+  selectScriptSubTab,
+  editCodeMirrorEditor,
+  sendAndWaitForErrorCard,
+  sendAndWaitForResponse
+} from '../utils/page/actions';
 import { setSandboxMode } from '../utils/page/runner';
-
-const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
-
-/**
- * Helper: click send and wait for at least one error card to appear.
- */
-const sendAndWaitForErrorCard = async (page: Page) => {
-  const { request } = buildCommonLocators(page);
-  const scriptErrorLocators = buildScriptErrorLocators(page);
-  await request.sendButton().click();
-  await scriptErrorLocators.card().waitFor({ state: 'visible', timeout: 15000 });
-};
-
-/**
- * Helper: click send and wait for a response status code to appear.
- */
-const sendAndWaitForResponse = async (page: Page) => {
-  const { request, response } = buildCommonLocators(page);
-  await request.sendButton().click();
-  await response.statusCode().waitFor({ state: 'visible', timeout: 15000 });
-};
-
-/**
- * Helper: edit a CodeMirror script editor by clearing and typing new content.
- */
-const editScriptEditor = async (page: Page, editorTestId: string, newContent: string) => {
-  const editor = page.getByTestId(editorTestId).locator('.CodeMirror').first();
-  await editor.waitFor({ state: 'visible' });
-  const textarea = editor.locator('textarea[tabindex="0"]');
-  await textarea.focus();
-  await page.keyboard.press(selectAllShortcut);
-  await page.keyboard.press('Backspace');
-  await page.keyboard.type(newContent, { delay: 5 });
-};
 
 for (const mode of ['safe', 'developer'] as const) {
   test.describe.serial(`Draft Script Error Context [${mode} mode]`, () => {
     let scriptErrorLocators: ReturnType<typeof buildScriptErrorLocators>;
+    let commonLocators: ReturnType<typeof buildCommonLocators>;
 
     test.beforeAll(async ({ pageWithUserData: page }) => {
       scriptErrorLocators = buildScriptErrorLocators(page);
+      commonLocators = buildCommonLocators(page);
 
       await setSandboxMode(page, 'script-errors-test', mode);
     });
@@ -53,17 +28,9 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Navigate to Script > Pre Request tab and edit script', async () => {
-        const requestPane = page.locator('.request-pane > .px-4');
-        await expect(requestPane).toBeVisible();
-        await expect(requestPane.locator('.tabs')).toBeVisible();
+        await selectScriptSubTab(page, 'pre-request');
 
-        const scriptTab = page.locator('.tabs').getByRole('tab', { name: 'Script' });
-        await scriptTab.click();
-        await expect(scriptTab).toContainClass('active');
-
-        await page.getByRole('button', { name: 'Pre Request' }).click();
-
-        await editScriptEditor(
+        await editCodeMirrorEditor(
           page,
           'pre-request-script-editor',
           'const draftOnlyVar = "draft";\ndraftOnlyUndefined();'
@@ -71,8 +38,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify draft indicator is visible', async () => {
-        const requestTab = page.locator('.request-tab.active');
-        await expect(requestTab.locator('.has-changes-icon')).toBeVisible({ timeout: 5000 });
+        await expect(commonLocators.tabs.draftIndicator()).toBeVisible({ timeout: 5000 });
       });
 
       await test.step('Send request and wait for error card', async () => {
@@ -93,17 +59,9 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Navigate to Script > Post Response tab and edit script', async () => {
-        const requestPane = page.locator('.request-pane > .px-4');
-        await expect(requestPane).toBeVisible();
-        await expect(requestPane.locator('.tabs')).toBeVisible();
+        await selectScriptSubTab(page, 'post-response');
 
-        const scriptTab = page.locator('.tabs').getByRole('tab', { name: 'Script' });
-        await scriptTab.click();
-        await expect(scriptTab).toContainClass('active');
-
-        await page.getByRole('button', { name: 'Post Response' }).click();
-
-        await editScriptEditor(
+        await editCodeMirrorEditor(
           page,
           'post-response-script-editor',
           'const postDraftVar = "post-draft";\npostDraftUndefined();'
@@ -111,8 +69,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify draft indicator is visible', async () => {
-        const requestTab = page.locator('.request-tab.active');
-        await expect(requestTab.locator('.has-changes-icon')).toBeVisible({ timeout: 5000 });
+        await expect(commonLocators.tabs.draftIndicator()).toBeVisible({ timeout: 5000 });
       });
 
       await test.step('Send request and wait for error card', async () => {
@@ -134,13 +91,9 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Navigate to Tests tab and edit script', async () => {
-        const requestPane = page.locator('.request-pane > .px-4');
-        await expect(requestPane).toBeVisible();
-        await expect(requestPane.locator('.tabs')).toBeVisible();
-
         await selectRequestPaneTab(page, 'Tests');
 
-        await editScriptEditor(
+        await editCodeMirrorEditor(
           page,
           'test-script-editor',
           'const draftTest = "test";\ndraftTestUndefined();'
@@ -148,8 +101,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify draft indicator is visible', async () => {
-        const requestTab = page.locator('.request-tab.active');
-        await expect(requestTab.locator('.has-changes-icon')).toBeVisible({ timeout: 5000 });
+        await expect(commonLocators.tabs.draftIndicator()).toBeVisible({ timeout: 5000 });
       });
 
       await test.step('Send request and wait for response', async () => {
