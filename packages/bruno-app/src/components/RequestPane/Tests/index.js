@@ -27,7 +27,7 @@ const Tests = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <div data-testid="test-script-editor" className="flex flex-col h-full flex-1">
+    <div data-testid="test-script-editor">
       <CodeEditor
         collection={collection}
         value={tests || ''}
