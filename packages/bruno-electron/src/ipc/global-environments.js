@@ -3,7 +3,13 @@ const fs = require('fs');
 const path = require('path');
 const { ipcMain } = require('electron');
 const { globalEnvironmentsStore } = require('../store/global-environments');
-const { generateUniqueName, sanitizeName, writeFile, isValidDotEnvFilename } = require('../utils/filesystem');
+const {
+  PRIVATE_ENV_FILE_MODE,
+  generateUniqueName,
+  sanitizeName,
+  writeFile,
+  isValidDotEnvFilename
+} = require('../utils/filesystem');
 
 const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager) => {
   ipcMain.handle('renderer:create-global-environment', async (event, { uid, name, variables, color, workspaceUid, workspacePath }) => {
@@ -130,7 +136,7 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
         })
         .join('\n');
 
-      await writeFile(dotEnvPath, content);
+      await writeFile(dotEnvPath, content, false, { mode: PRIVATE_ENV_FILE_MODE });
 
       return { success: true };
     } catch (error) {
@@ -151,7 +157,7 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
       }
 
       const dotEnvPath = path.join(workspacePath, filename);
-      await writeFile(dotEnvPath, content);
+      await writeFile(dotEnvPath, content, false, { mode: PRIVATE_ENV_FILE_MODE });
 
       return { success: true };
     } catch (error) {
@@ -177,7 +183,7 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
         throw new Error(`${filename} file already exists`);
       }
 
-      await writeFile(dotEnvPath, '');
+      await writeFile(dotEnvPath, '', false, { mode: PRIVATE_ENV_FILE_MODE });
 
       return { success: true };
     } catch (error) {

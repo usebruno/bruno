@@ -16,6 +16,7 @@ const DEFAULT_GITIGNORE = [
   '.DS_Store',
   'Thumbs.db'
 ].join('\n');
+const PRIVATE_ENV_FILE_MODE = 0o600;
 
 const exists = async (p) => {
   try {
@@ -506,6 +507,7 @@ const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
 
 module.exports = {
   DEFAULT_GITIGNORE,
+  PRIVATE_ENV_FILE_MODE,
   posixifyPath,
   isValidPathname,
   exists,
