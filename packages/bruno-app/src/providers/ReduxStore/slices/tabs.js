@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import last from 'lodash/last';
+import { isActiveTab as checkIsActiveTab, deserializeTab } from 'utils/snapshot';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -19,7 +20,7 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid } = action.payload;
+      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid, pathname, exampleName } = action.payload;
 
       const nonReplaceableTabTypes = [
         'variables',
@@ -56,23 +57,25 @@ export const tabsSlice = createSlice({
       }
 
       const lastTab = state.tabs[state.tabs.length - 1];
-      if (state.tabs.length > 0 && lastTab.preview) {
+      if (state.tabs.length > 0 && lastTab.preview && lastTab.collectionUid === collectionUid) {
         state.tabs[state.tabs.length - 1] = {
           uid,
           collectionUid,
+          type: type || 'request',
+          pathname: pathname || null,
           requestPaneWidth: null,
           requestPaneTab: requestPaneTab || defaultRequestPaneTab,
           responsePaneTab: 'response',
           responseFormat: null,
           responseViewTab: null,
           scriptPaneTab: null,
-          type: type || 'request',
           preview: preview !== undefined
             ? preview
             : !nonReplaceableTabTypes.includes(type),
           ...(uid ? { folderUid: uid } : {}),
           ...(exampleUid ? { exampleUid } : {}),
-          ...(itemUid ? { itemUid } : {})
+          ...(itemUid ? { itemUid } : {}),
+          ...(exampleName ? { exampleName } : {})
         };
 
         state.activeTabUid = uid;
@@ -82,6 +85,8 @@ export const tabsSlice = createSlice({
       state.tabs.push({
         uid,
         collectionUid,
+        type: type || 'request',
+        pathname: pathname || null,
         requestPaneWidth: null,
         requestPaneTab: requestPaneTab || defaultRequestPaneTab,
         responsePaneTab: 'response',
@@ -89,13 +94,13 @@ export const tabsSlice = createSlice({
         responseFormat: null,
         responseViewTab: null,
         scriptPaneTab: null,
-        type: type || 'request',
-        ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
           ? preview
           : !nonReplaceableTabTypes.includes(type),
+        ...(uid ? { folderUid: uid } : {}),
         ...(exampleUid ? { exampleUid } : {}),
-        ...(itemUid ? { itemUid } : {})
+        ...(itemUid ? { itemUid } : {}),
+        ...(exampleName ? { exampleName } : {})
       });
       state.activeTabUid = uid;
     },
@@ -267,6 +272,43 @@ export const tabsSlice = createSlice({
       tabs.splice(targetIdx, 0, moved);
 
       state.tabs = tabs;
+    },
+    syncTabUid: (state, action) => {
+      const { oldUid, newUid } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === oldUid);
+      if (tab) {
+        tab.uid = newUid;
+        if (state.activeTabUid === oldUid) {
+          state.activeTabUid = newUid;
+        }
+      }
+    },
+    restoreTabs: (state, action) => {
+      const { collection, tabs: snapshotTabs, activeTab } = action.payload;
+      const collectionUid = collection.uid;
+
+      const activeTabWasInCollection = state.tabs.some(
+        (t) => t.uid === state.activeTabUid && t.collectionUid === collectionUid
+      );
+
+      state.tabs = state.tabs.filter((t) => t.collectionUid !== collectionUid);
+
+      if (activeTabWasInCollection) {
+        state.activeTabUid = null;
+      }
+
+      (snapshotTabs || []).forEach((snapshotTab) => {
+        const tab = deserializeTab(snapshotTab, collection);
+        state.tabs.push(tab);
+
+        if (checkIsActiveTab(tab, activeTab, collection)) {
+          state.activeTabUid = tab.uid;
+        }
+      });
+
+      if (!state.activeTabUid) {
+        state.activeTabUid = state.tabs.find((t) => t.collectionUid === collectionUid)?.uid || null;
+      }
     }
   }
 });
@@ -287,7 +329,9 @@ export const {
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
-  reorderTabs
+  reorderTabs,
+  syncTabUid,
+  restoreTabs
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;
