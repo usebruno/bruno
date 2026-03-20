@@ -337,6 +337,37 @@ describe('setupLinkAware', () => {
           }
         });
     });
+
+    it('should extend truncated matches with nested parentheses', () => {
+      const fullUrl = 'https://kibana-elasticsearch-sink-connector.loc/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:60000),time:(from:now-24h%2Fh,to:now))&_a=(columns:!(TopicName,key),sort:!(!(KafkaConnectTimestamp,asc)))';
+
+      mockDoc.getLine.mockImplementation((lineNum) => lineNum === 0 ? fullUrl : '');
+      mockLinkify.match.mockReturnValue([
+        {
+          index: 0,
+          lastIndex: 148,
+          raw: 'https://kibana-elasticsearch-sink-connector.loc/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:60000),time:(from:now-24h%2Fh,to:now)',
+          text: 'https://kibana-elasticsearch-sink-connector.loc/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:60000),time:(from:now-24h%2Fh,to:now)',
+          url: 'https://kibana-elasticsearch-sink-connector.loc/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:60000),time:(from:now-24h%2Fh,to:now)'
+        }
+      ]);
+
+      setupLinkAware(mockEditor);
+
+      const changeHandler = mockEditor.on.mock.calls.find((call) => call[0] === 'changes')[1];
+      changeHandler();
+      jest.runAllTimers();
+
+      expect(mockEditor.markText).toHaveBeenCalledWith(
+        { line: 0, ch: 0 },
+        { line: 0, ch: fullUrl.length },
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'data-url': fullUrl
+          })
+        })
+      );
+    });
   });
 
   // Test animation frame handling
