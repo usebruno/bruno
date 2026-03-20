@@ -408,7 +408,8 @@ describe('mergeScripts metadata', () => {
     mergeScripts(collection, request, [request], 'sequential');
     expect(request.script.reqMetadata).toEqual({
       requestStartLine: 1,
-      requestEndLine: 3
+      requestEndLine: 3,
+      requestScriptContent: 'console.log("req");'
     });
   });
 
@@ -473,5 +474,73 @@ describe('mergeScripts metadata', () => {
     mergeScripts(collection, request, [request], 'sequential');
 
     expect(request.script.reqMetadata.segments[0].displayPath).toBe('collection.bru');
+  });
+
+  test('includes requestScriptContent in metadata for pre-request scripts', () => {
+    const collection = makeCollection({ preReq: 'let col = 1;' });
+    const request = makeRequest({ preReq: 'let req = 2;' });
+    mergeScripts(collection, request, [request], 'sequential');
+
+    expect(request.script.reqMetadata.requestScriptContent).toBe('let req = 2;');
+  });
+
+  test('includes requestScriptContent in metadata for post-response scripts', () => {
+    const collection = makeCollection({ postRes: 'let col = 1;' });
+    const request = makeRequest({ postRes: 'let req = 2;' });
+    mergeScripts(collection, request, [request], 'sequential');
+
+    expect(request.script.resMetadata.requestScriptContent).toBe('let req = 2;');
+  });
+
+  test('includes requestScriptContent in metadata for tests', () => {
+    const collection = makeCollection({ tests: 'test("col", () => {});' });
+    const request = makeRequest({ tests: 'test("req", () => {});' });
+    mergeScripts(collection, request, [request], 'sequential');
+
+    expect(request.testsMetadata.requestScriptContent).toBe('test("req", () => {});');
+  });
+
+  test('includes requestScriptContent as empty string when request script is empty', () => {
+    const collection = makeCollection({ preReq: 'let col = 1;' });
+    const request = makeRequest();
+    mergeScripts(collection, request, [request], 'sequential');
+
+    expect(request.script.reqMetadata.requestScriptContent).toBe('');
+  });
+
+  test('includes scriptContent in collection segment sources', () => {
+    const collection = makeCollection({ preReq: 'let col = 1;' });
+    const request = makeRequest({ preReq: 'let req = 2;' });
+    mergeScripts(collection, request, [request], 'sequential');
+
+    expect(request.script.reqMetadata.segments[0].scriptContent).toBe('let col = 1;');
+  });
+
+  test('includes scriptContent in folder segment sources', () => {
+    const collection = makeCollection();
+    const folder = makeFolder('subfolder', { preReq: 'let fold = 1;' });
+    const request = makeRequest({ preReq: 'let req = 2;' });
+    mergeScripts(collection, request, [folder, request], 'sequential');
+
+    expect(request.script.reqMetadata.segments[0].scriptContent).toBe('let fold = 1;');
+  });
+
+  test('includes scriptContent for both collection and folder segments', () => {
+    const collection = makeCollection({ preReq: 'let col = 1;' });
+    const folder = makeFolder('subfolder', { preReq: 'let fold = 2;' });
+    const request = makeRequest({ preReq: 'let req = 3;' });
+    mergeScripts(collection, request, [folder, request], 'sequential');
+
+    expect(request.script.reqMetadata.segments).toHaveLength(2);
+    expect(request.script.reqMetadata.segments[0].scriptContent).toBe('let col = 1;');
+    expect(request.script.reqMetadata.segments[1].scriptContent).toBe('let fold = 2;');
+  });
+
+  test('includes requestScriptContent in non-sequential post-response metadata', () => {
+    const collection = makeCollection({ postRes: 'let col = 1;' });
+    const request = makeRequest({ postRes: 'let req = 2;' });
+    mergeScripts(collection, request, [request], 'non-sequential');
+
+    expect(request.script.resMetadata.requestScriptContent).toBe('let req = 2;');
   });
 });

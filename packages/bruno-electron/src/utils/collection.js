@@ -253,6 +253,9 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     displayPath: config.collectionFile
   };
 
+  const withContent = (source, script) =>
+    script?.trim() ? { ...source, scriptContent: script } : source;
+
   let combinedPreReqScript = [];
   let combinedPreReqSources = [];
   let combinedPostResScript = [];
@@ -271,81 +274,99 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       let preReqScript = get(folderRoot, 'request.script.req', '');
       if (preReqScript && preReqScript.trim() !== '') {
         combinedPreReqScript.push(preReqScript);
-        combinedPreReqSources.push(folderSource);
+        combinedPreReqSources.push(withContent(folderSource, preReqScript));
       }
 
       let postResScript = get(folderRoot, 'request.script.res', '');
       if (postResScript && postResScript.trim() !== '') {
         combinedPostResScript.push(postResScript);
-        combinedPostResSources.push(folderSource);
+        combinedPostResSources.push(withContent(folderSource, postResScript));
       }
 
       let tests = get(folderRoot, 'request.tests', '');
       if (tests && tests?.trim?.() !== '') {
         combinedTests.push(tests);
-        combinedTestsSources.push(folderSource);
+        combinedTestsSources.push(withContent(folderSource, tests));
       }
     }
   }
+
+  // Capture original request script content before overwriting with combined code
+  const originalPreReqScript = request?.script?.req || '';
+  const originalPostResScript = request?.script?.res || '';
+  const originalTests = request?.tests || '';
+
+  // Wrap scripts, join them, and annotate metadata with the original request script content.
+  // Returns { code, metadata } where metadata.requestScriptContent is set.
+  const buildCombinedScript = (scripts, requestIndex, sources, originalScript) => {
+    const result = wrapAndJoinScripts(scripts, requestIndex, sources);
+    if (result.metadata) {
+      result.metadata.requestScriptContent = originalScript;
+    }
+    return result;
+  };
 
   // Wrap each script segment in its own closure and join them
   // This allows each script to run separately with its own scope,
   // preventing variable re-declaration errors and allowing early returns
   // to only affect that specific script segment
+  const collectionPreReqSource = withContent(collectionSource, collectionPreReqScript);
   const preReqScripts = [
     collectionPreReqScript,
     ...combinedPreReqScript,
-    request?.script?.req || ''
+    originalPreReqScript
   ];
-  const preReqSources = [collectionSource, ...combinedPreReqSources, null];
-  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1, preReqSources);
+  const preReqSources = [collectionPreReqSource, ...combinedPreReqSources, null];
+  const preReq = buildCombinedScript(preReqScripts, preReqScripts.length - 1, preReqSources, originalPreReqScript);
   request.script.req = preReq.code;
   request.script.reqMetadata = preReq.metadata;
 
   // Handle post-response scripts based on scriptFlow
+  const collectionPostResSource = withContent(collectionSource, collectionPostResScript);
   if (scriptFlow === 'sequential') {
     const postResScripts = [
       collectionPostResScript,
       ...combinedPostResScript,
-      request?.script?.res || ''
+      originalPostResScript
     ];
-    const postResSources = [collectionSource, ...combinedPostResSources, null];
-    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1, postResSources);
+    const postResSources = [collectionPostResSource, ...combinedPostResSources, null];
+    const postRes = buildCombinedScript(postResScripts, postResScripts.length - 1, postResSources, originalPostResScript);
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   } else {
     // Reverse order for non-sequential flow
     const postResScripts = [
-      request?.script?.res || '',
+      originalPostResScript,
       ...[...combinedPostResScript].reverse(),
       collectionPostResScript
     ];
-    const postResSources = [null, ...[...combinedPostResSources].reverse(), collectionSource];
-    const postRes = wrapAndJoinScripts(postResScripts, 0, postResSources);
+    const postResSources = [null, ...[...combinedPostResSources].reverse(), collectionPostResSource];
+    const postRes = buildCombinedScript(postResScripts, 0, postResSources, originalPostResScript);
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   }
 
   // Handle tests based on scriptFlow
+  const collectionTestsSource = withContent(collectionSource, collectionTests);
   if (scriptFlow === 'sequential') {
     const testScripts = [
       collectionTests,
       ...combinedTests,
-      request?.tests || ''
+      originalTests
     ];
-    const testSources = [collectionSource, ...combinedTestsSources, null];
-    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1, testSources);
+    const testSources = [collectionTestsSource, ...combinedTestsSources, null];
+    const tests = buildCombinedScript(testScripts, testScripts.length - 1, testSources, originalTests);
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   } else {
     // Reverse order for non-sequential flow
     const testScripts = [
-      request?.tests || '',
+      originalTests,
       ...[...combinedTests].reverse(),
       collectionTests
     ];
-    const testSources = [null, ...[...combinedTestsSources].reverse(), collectionSource];
-    const tests = wrapAndJoinScripts(testScripts, 0, testSources);
+    const testSources = [null, ...[...combinedTestsSources].reverse(), collectionTestsSource];
+    const tests = buildCombinedScript(testScripts, 0, testSources, originalTests);
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   }
