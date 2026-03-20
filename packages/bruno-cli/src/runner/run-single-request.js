@@ -744,6 +744,11 @@ const runSingleRequest = async function (
         // Prevents the duration on leaking to the actual result
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
+
+        // save cookies if enabled (4XX/5XX responses can also set cookies)
+        if (!options.disableCookies) {
+          saveCookies(request.url, response.headers);
+        }
       } else {
         console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
         return {
