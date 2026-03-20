@@ -1,5 +1,5 @@
 import { test, expect, Page } from '../../playwright';
-import { buildScriptErrorLocators } from '../utils/page/locators';
+import { buildScriptErrorLocators, buildCommonLocators } from '../utils/page/locators';
 import { openRequest, selectRequestPaneTab } from '../utils/page/actions';
 import { setSandboxMode } from '../utils/page/runner';
 

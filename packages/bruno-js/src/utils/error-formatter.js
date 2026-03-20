@@ -370,7 +370,7 @@ const getSourceContext = (filePath, errorLine, contextLines = DEFAULT_CONTEXT_LI
   return { lines: contextLinesArray, startLine, errorLine };
 };
 
-/** @deprecated Use getSourceContext with content parameter instead */
+/** Extract context lines from in-memory script content (e.g. unsaved draft scripts) */
 const getSourceContextFromContent = (content, errorLine, contextLines = DEFAULT_CONTEXT_LINES) => {
   return getSourceContext(null, errorLine, contextLines, null, content);
 };
@@ -589,6 +589,7 @@ const formatErrorWithContextV2 = (error, scriptType, scriptMetadata, collectionP
     let sourceLine = adjustedLine;
     let context = null;
     let contextFromMemory = false;
+    let draftOnlyBlock = false;
 
     // Handle collection/folder script segments
     let segmentResult = null;
@@ -602,6 +603,23 @@ const formatErrorWithContextV2 = (error, scriptType, scriptMetadata, collectionP
     // Try to get context from in-memory script content first (draft state).
     // This avoids reading stale content from disk when the user has unsaved changes.
     if (adjustedLine !== null && metadata?.requestScriptContent) {
+      // Verify the underlying request block actually exists on disk (same guard
+      // used for segmentResult where resolveSegmentError returns line: null).
+      // When the user added a brand-new script that hasn't been saved yet,
+      // findScriptBlockStartLine returns null and adjustLineNumber fell through
+      // without a real mapping — adjustedLine is scriptRelativeLine, not a .bru
+      // file line, so stack frame adjustment would produce misleading results.
+      const isBru = filePath.endsWith('.bru');
+      const isYml = filePath.endsWith('.yml');
+      const blockStartLine = isBru
+        ? findScriptBlockStartLine(filePath, scriptType, cache)
+        : isYml
+          ? findYmlScriptBlockStartLine(filePath, scriptType, cache)
+          : true;
+      if (!blockStartLine) {
+        draftOnlyBlock = true;
+      }
+
       // Request-level error with in-memory content available
       const lineInScript = scriptRelativeLine - metadata.requestStartLine;
       context = getSourceContextFromContent(metadata.requestScriptContent, lineInScript, 3);
@@ -629,9 +647,13 @@ const formatErrorWithContextV2 = (error, scriptType, scriptMetadata, collectionP
     const errorType = getErrorTypeName(error);
     let stack = null;
     if (error.stack) {
-      stack = adjustStackTrace(error.stack, scriptType, cache, metadata, parsed.isQuickJS);
+      // When the script block only exists as a draft (not on disk), adjustLineNumber
+      // cannot map to real .bru file lines — skip adjustment to preserve original frames.
+      const rawStack = draftOnlyBlock
+        ? error.stack
+        : adjustStackTrace(error.stack, scriptType, cache, metadata, parsed.isQuickJS);
       // Extract only the stack frames (skip the first line which is the error message)
-      const stackLines = stack.split('\n').slice(1).filter((l) => l.trim().startsWith('at'));
+      const stackLines = rawStack.split('\n').slice(1).filter((l) => l.trim().startsWith('at'));
       stack = stackLines.length ? stackLines.map((l) => `    ${l.trim()}`).join('\n') : null;
     }
 
