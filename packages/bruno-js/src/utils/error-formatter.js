@@ -262,12 +262,27 @@ const resolveSegmentError = (parsed, metadata, scriptType, cache) => {
       const blockStartLine = isBru
         ? findScriptBlockStartLine(segment.filePath, scriptType, cache)
         : findYmlScriptBlockStartLine(segment.filePath, scriptType, cache);
-      if (!blockStartLine) return null;
+      if (!blockStartLine) {
+        // No script block on disk — only possible when user added a new script as a draft.
+        // If we have in-memory content, return it so the caller can show the code snippet.
+        if (segment.scriptContent) {
+          return {
+            line: null,
+            filePath: segment.filePath,
+            displayPath: segment.displayPath,
+            scriptContent: segment.scriptContent,
+            lineInScript: scriptRelativeLine - segment.startLine
+          };
+        }
+        return null;
+      }
 
       return {
         line: blockStartLine + (scriptRelativeLine - segment.startLine) - 1,
         filePath: segment.filePath,
-        displayPath: segment.displayPath
+        displayPath: segment.displayPath,
+        scriptContent: segment.scriptContent || null,
+        lineInScript: scriptRelativeLine - segment.startLine
       };
     }
   }
@@ -353,6 +368,28 @@ const getSourceContext = (filePath, errorLine, contextLines = DEFAULT_CONTEXT_LI
   return { lines: contextLinesArray, startLine, errorLine };
 };
 
+/** Extract context lines from an in-memory script string (no disk read) */
+const getSourceContextFromContent = (content, errorLine, contextLines = DEFAULT_CONTEXT_LINES) => {
+  if (!content) return null;
+
+  const lines = content.split('\n');
+  if (errorLine < 1 || errorLine > lines.length) return null;
+
+  const startLine = Math.max(1, errorLine - contextLines);
+  const endLine = Math.min(lines.length, errorLine + contextLines);
+
+  const contextLinesArray = [];
+  for (let i = startLine; i <= endLine; i++) {
+    contextLinesArray.push({
+      lineNumber: i,
+      content: lines[i - 1],
+      isError: i === errorLine
+    });
+  }
+
+  return { lines: contextLinesArray, startLine, errorLine };
+};
+
 /** Build adjusted stack trace string from structured CallSite data */
 const buildStackFromCallSites = (callSites, scriptType = null, cache = null, scriptMetadata = null) => {
   return callSites.map((site) => {
@@ -364,7 +401,7 @@ const buildStackFromCallSites = (callSites, scriptType = null, cache = null, scr
     if (adjusted === null && scriptMetadata?.segments) {
       const parsed = { line: site.line, isQuickJS: false };
       const resolved = resolveSegmentError(parsed, scriptMetadata, scriptType, cache);
-      if (resolved) {
+      if (resolved && resolved.line !== null) {
         fileToUse = resolved.filePath;
         lineToUse = resolved.line;
       }
@@ -391,7 +428,7 @@ const adjustStackTrace = (stack, scriptType = null, cache = null, scriptMetadata
     if (adjusted === null && scriptMetadata?.segments) {
       const parsed = { line: match.line, isQuickJS };
       const resolved = resolveSegmentError(parsed, scriptMetadata, scriptType, cache);
-      if (resolved) {
+      if (resolved && resolved.line !== null) {
         const suffix = match.isQuickJS ? ')' : '';
         return match.column !== null
           ? line.replace(`${match.filePath}:${match.line}:${match.column}${suffix}`, `${resolved.filePath}:${resolved.line}:${match.column}${suffix}`)
@@ -559,24 +596,49 @@ const formatErrorWithContextV2 = (error, scriptType, scriptMetadata, collectionP
     if (!parsed) return null;
 
     const { filePath } = parsed;
+    const wrapperOffset = parsed.isQuickJS ? QUICKJS_SCRIPT_WRAPPER_OFFSET : NODEVM_SCRIPT_WRAPPER_OFFSET;
+    const scriptRelativeLine = parsed.line - wrapperOffset;
     const adjustedLine = adjustLineNumber(filePath, parsed.line, parsed.isQuickJS, scriptType, cache, metadata);
 
     let sourceFile = filePath;
     let sourceLine = adjustedLine;
+    let context = null;
+    let blockRelativeAlready = false;
 
     // Handle collection/folder script segments
+    let segmentResult = null;
     if (adjustedLine === null) {
-      const segmentResult = resolveSegmentError(parsed, metadata, scriptType, cache);
+      segmentResult = resolveSegmentError(parsed, metadata, scriptType, cache);
       if (!segmentResult) return null;
       sourceFile = segmentResult.filePath;
       sourceLine = segmentResult.line;
+    }
+
+    // Try to get context from in-memory script content first (draft state).
+    // This avoids reading stale content from disk when the user has unsaved changes.
+    if (adjustedLine !== null && metadata?.requestScriptContent) {
+      // Request-level error with in-memory content available
+      const lineInScript = scriptRelativeLine - metadata.requestStartLine;
+      context = getSourceContextFromContent(metadata.requestScriptContent, lineInScript, 3);
+      if (context) {
+        blockRelativeAlready = true;
+      }
+    } else if (adjustedLine === null && segmentResult?.scriptContent) {
+      // Segment error with in-memory content available
+      context = getSourceContextFromContent(segmentResult.scriptContent, segmentResult.lineInScript, 3);
+      if (context) {
+        blockRelativeAlready = true;
+      }
     }
 
     const resolvedDisplayPath = posixifyPath(
       collectionPath ? path.relative(collectionPath, sourceFile) : sourceFile
     );
 
-    const context = getSourceContext(sourceFile, sourceLine, 3, cache);
+    // Fall back to disk read if in-memory content not available
+    if (!context && sourceLine !== null) {
+      context = getSourceContext(sourceFile, sourceLine, 3, cache);
+    }
     if (!context) return null;
 
     const errorType = getErrorTypeName(error);
@@ -586,6 +648,19 @@ const formatErrorWithContextV2 = (error, scriptType, scriptMetadata, collectionP
       // Extract only the stack frames (skip the first line which is the error message)
       const stackLines = stack.split('\n').slice(1).filter((l) => l.trim().startsWith('at'));
       stack = stackLines.length ? stackLines.map((l) => `    ${l.trim()}`).join('\n') : null;
+    }
+
+    // When context came from in-memory content, lines are already block-relative
+    if (blockRelativeAlready) {
+      if (context.lines.length === 0) return null;
+
+      return {
+        errorType,
+        filePath: resolvedDisplayPath,
+        errorLine: context.errorLine,
+        lines: context.lines,
+        stack
+      };
     }
 
     // Compute block-relative line numbers for the desktop UI.
@@ -644,6 +719,7 @@ module.exports = {
   parseErrorLocation,
   buildStackFromCallSites,
   getSourceContext,
+  getSourceContextFromContent,
   formatErrorWithContext,
   formatErrorWithContextV2,
   adjustLineNumber,

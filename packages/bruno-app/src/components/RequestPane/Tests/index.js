@@ -27,18 +27,20 @@ const Tests = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <CodeEditor
-      collection={collection}
-      value={tests || ''}
-      theme={displayedTheme}
-      font={get(preferences, 'font.codeFont', 'default')}
-      fontSize={get(preferences, 'font.codeFontSize')}
-      onEdit={onEdit}
-      mode="javascript"
-      onRun={onRun}
-      onSave={onSave}
-      showHintsFor={['req', 'res', 'bru']}
-    />
+    <div data-testid="test-script-editor" className="flex flex-col h-full flex-1">
+      <CodeEditor
+        collection={collection}
+        value={tests || ''}
+        theme={displayedTheme}
+        font={get(preferences, 'font.codeFont', 'default')}
+        fontSize={get(preferences, 'font.codeFontSize')}
+        onEdit={onEdit}
+        mode="javascript"
+        onRun={onRun}
+        onSave={onSave}
+        showHintsFor={['req', 'res', 'bru']}
+      />
+    </div>
   );
 };
 
