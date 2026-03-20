@@ -17,14 +17,11 @@ const RequestNotFound = ({ itemUid }) => {
   };
 
   useEffect(() => {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setShowErrorMessage(true);
     }, 300);
+    return () => clearTimeout(timer);
   }, []);
-
-  // add a delay component in react that shows a loading spinner
-  // and then shows the error message after a delay
-  // this will prevent the error message from flashing on the screen
 
   if (!showErrorMessage) {
     return null;
