@@ -27,7 +27,8 @@ const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
-const { getProcessEnvVars } = require('../../store/process-env');
+const { getProcessEnvVars, getEnvironmentDotEnvVars } = require('../../store/process-env');
+const { safeMergeEnvDotEnvVars } = require('../../utils/env-dotenv-merge');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
 const { isRequestTagsIncluded } = require('@usebruno/common');
@@ -359,6 +360,11 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     // mergeVars modifies the request in place, but we'll assign it to ensure consistency
     mergeVars(collection, resolvedRequest, requestTreePath);
     const envVars = getEnvVars(environment);
+    // Merge per-environment dotenv variables (override .yml env vars)
+    const envDotEnvVars = collection.workspacePath && environment?.name
+      ? getEnvironmentDotEnvVars(collection.workspacePath, environment.name)
+      : {};
+    safeMergeEnvDotEnvVars(envVars, envDotEnvVars);
 
     const globalEnvironmentVars = collection.globalEnvironmentVariables;
     const folderVars = resolvedRequest.folderVariables;
@@ -1191,6 +1197,11 @@ const registerNetworkIpc = (mainWindow) => {
     let seq = 0;
     const collectionUid = collection.uid;
     const envVars = getEnvVars(environment);
+    // Merge per-environment dotenv variables (override .yml env vars)
+    const envDotEnvVars = collection.workspacePath && environment?.name
+      ? getEnvironmentDotEnvVars(collection.workspacePath, environment.name)
+      : {};
+    safeMergeEnvDotEnvVars(envVars, envDotEnvVars);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const response = await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
     if (response.stream) {
@@ -1265,6 +1276,11 @@ const registerNetworkIpc = (mainWindow) => {
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const envVars = getEnvVars(environment);
+      // Merge per-environment dotenv variables (override .yml env vars)
+      const envDotEnvVars = collection.workspacePath && environment?.name
+        ? getEnvironmentDotEnvVars(collection.workspacePath, environment.name)
+        : {};
+      safeMergeEnvDotEnvVars(envVars, envDotEnvVars);
       const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
       let currentAbortController;
