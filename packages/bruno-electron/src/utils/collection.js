@@ -296,6 +296,16 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   const originalPostResScript = request?.script?.res || '';
   const originalTests = request?.tests || '';
 
+  // Wrap scripts, join them, and annotate metadata with the original request script content.
+  // Returns { code, metadata } where metadata.requestScriptContent is set.
+  const buildCombinedScript = (scripts, requestIndex, sources, originalScript) => {
+    const result = wrapAndJoinScripts(scripts, requestIndex, sources);
+    if (result.metadata) {
+      result.metadata.requestScriptContent = originalScript;
+    }
+    return result;
+  };
+
   // Wrap each script segment in its own closure and join them
   // This allows each script to run separately with its own scope,
   // preventing variable re-declaration errors and allowing early returns
@@ -307,12 +317,9 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     originalPreReqScript
   ];
   const preReqSources = [collectionPreReqSource, ...combinedPreReqSources, null];
-  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1, preReqSources);
+  const preReq = buildCombinedScript(preReqScripts, preReqScripts.length - 1, preReqSources, originalPreReqScript);
   request.script.req = preReq.code;
   request.script.reqMetadata = preReq.metadata;
-  if (preReq.metadata) {
-    preReq.metadata.requestScriptContent = originalPreReqScript;
-  }
 
   // Handle post-response scripts based on scriptFlow
   const collectionPostResSource = withContent(collectionSource, collectionPostResScript);
@@ -323,12 +330,9 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       originalPostResScript
     ];
     const postResSources = [collectionPostResSource, ...combinedPostResSources, null];
-    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1, postResSources);
+    const postRes = buildCombinedScript(postResScripts, postResScripts.length - 1, postResSources, originalPostResScript);
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
-    if (postRes.metadata) {
-      postRes.metadata.requestScriptContent = originalPostResScript;
-    }
   } else {
     // Reverse order for non-sequential flow
     const postResScripts = [
@@ -337,12 +341,9 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       collectionPostResScript
     ];
     const postResSources = [null, ...[...combinedPostResSources].reverse(), collectionPostResSource];
-    const postRes = wrapAndJoinScripts(postResScripts, 0, postResSources);
+    const postRes = buildCombinedScript(postResScripts, 0, postResSources, originalPostResScript);
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
-    if (postRes.metadata) {
-      postRes.metadata.requestScriptContent = originalPostResScript;
-    }
   }
 
   // Handle tests based on scriptFlow
@@ -354,12 +355,9 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       originalTests
     ];
     const testSources = [collectionTestsSource, ...combinedTestsSources, null];
-    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1, testSources);
+    const tests = buildCombinedScript(testScripts, testScripts.length - 1, testSources, originalTests);
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
-    if (tests.metadata) {
-      tests.metadata.requestScriptContent = originalTests;
-    }
   } else {
     // Reverse order for non-sequential flow
     const testScripts = [
@@ -368,12 +366,9 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       collectionTests
     ];
     const testSources = [null, ...[...combinedTestsSources].reverse(), collectionTestsSource];
-    const tests = wrapAndJoinScripts(testScripts, 0, testSources);
+    const tests = buildCombinedScript(testScripts, 0, testSources, originalTests);
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
-    if (tests.metadata) {
-      tests.metadata.requestScriptContent = originalTests;
-    }
   }
 };
 
