@@ -97,6 +97,37 @@ export const startGrpcRequest = async (item, collection, environment, runtimeVar
 };
 
 /**
+ * Connects and sends all enabled gRPC messages in one atomic operation.
+ * Used for client-streaming methods where we want single-click send.
+ * @param {Object} item - The request item
+ * @param {Object} collection - The collection object
+ * @param {Object} environment - The environment variables
+ * @param {Object} runtimeVariables - The runtime variables
+ * @returns {Promise<Object>} - Result with messagesSent count
+ */
+export const connectAndSendGrpc = async (item, collection, environment, runtimeVariables) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    const request = item.draft ? item.draft : item;
+
+    ipcRenderer.invoke('grpc:connect-and-send', {
+      request,
+      collection,
+      environment,
+      runtimeVariables
+    })
+      .then((result) => {
+        if (result.success) {
+          resolve(result);
+        } else {
+          reject(new Error(result.error || 'Connect and send failed'));
+        }
+      })
+      .catch(reject);
+  });
+};
+
+/**
  * Sends a message to an existing gRPC stream
  * @param {string} requestId - The request ID to send a message to
  * @param {Object} message - The message to send
@@ -109,6 +140,35 @@ export const sendGrpcMessage = async (item, collectionUid, message) => {
       .then(resolve)
       .catch(reject);
   });
+};
+
+/**
+ * Sends all enabled gRPC messages sequentially
+ * @param {Object} item - The request item
+ * @param {string} collectionUid - The collection UID
+ * @param {Array} messages - Array of message objects with content and enabled fields
+ * @returns {Promise<Object>} - Result of the batch send operation
+ */
+export const sendGrpcMessagesSequentially = async (item, collectionUid, messages) => {
+  const enabledMessages = messages.filter((m) => m.enabled !== false);
+
+  const results = [];
+  for (const message of enabledMessages) {
+    try {
+      await sendGrpcMessage(item, collectionUid, message.content);
+      results.push({ success: true, name: message.name });
+    } catch (error) {
+      results.push({ success: false, name: message.name, error: error.message });
+      // Continue sending remaining messages even if one fails
+    }
+  }
+
+  return {
+    success: results.every((r) => r.success),
+    results,
+    totalSent: results.filter((r) => r.success).length,
+    totalFailed: results.filter((r) => !r.success).length
+  };
 };
 
 /**

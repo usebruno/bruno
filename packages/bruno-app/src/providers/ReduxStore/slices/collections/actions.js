@@ -25,7 +25,7 @@ import {
   flattenItems
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
+import { cancelNetworkRequest, connectAndSendGrpc, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
 import brunoClipboard from 'utils/bruno-clipboard';
 
@@ -572,11 +572,24 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     const isGrpcRequest = itemCopy.type === 'grpc-request';
     const isWsRequest = itemCopy.type === 'ws-request';
     if (isGrpcRequest) {
-      sendGrpcRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
-        .then(resolve)
-        .catch((err) => {
-          toast.error(err.message);
-        });
+      const methodType = itemCopy.draft?.request?.methodType || itemCopy.request?.methodType;
+      const isClientStreaming = methodType === 'client-streaming' || methodType === 'bidi-streaming';
+
+      if (isClientStreaming) {
+        // Atomic connect-and-send for client-streaming and bidi-streaming
+        connectAndSendGrpc(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+          .then(resolve)
+          .catch((err) => {
+            toast.error(err.message);
+          });
+      } else {
+        // Existing behavior for unary and server-streaming
+        sendGrpcRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+          .then(resolve)
+          .catch((err) => {
+            toast.error(err.message);
+          });
+      }
     } else if (isWsRequest) {
       sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
         .then(resolve)

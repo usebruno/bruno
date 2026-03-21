@@ -10,6 +10,7 @@ export type GrpcMethodType
 export interface GrpcMessage {
   name?: string | null;
   content?: string | null;
+  enabled?: boolean | null;
 }
 
 export interface GrpcRequestBody {
