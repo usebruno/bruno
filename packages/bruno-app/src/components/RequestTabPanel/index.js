@@ -38,6 +38,7 @@ import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
+import Spinner from 'components/Spinner';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 490;
@@ -174,6 +175,14 @@ const RequestTabPanel = () => {
 
   if (typeof window == 'undefined') {
     return <div></div>;
+  }
+
+  if (!activeWorkspace?.scratchCollectionUid) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
   }
 
   if (!activeTabUid || !focusedTab) {
