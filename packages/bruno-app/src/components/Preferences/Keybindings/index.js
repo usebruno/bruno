@@ -797,8 +797,6 @@ const Keybindings = () => {
         </div>
       </div>
 
-      {/* <div className="section-divider" /> */}
-
       <div className={`tables-container ${!keybindingsEnabled ? 'tables-disabled' : ''}`}>
         {groupedKeyMappings.length > 0 ? (
           <div className="table-container">
