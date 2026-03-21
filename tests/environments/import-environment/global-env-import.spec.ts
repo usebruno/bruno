@@ -48,10 +48,17 @@ test.describe('Global Environment Import Tests', () => {
     const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
     await expect(envTab).toBeVisible();
 
+    // Environment variables table uses react-virtuoso (virtual scroll),
+    // so only visible rows are in the DOM. Verify first visible batch,
+    // then scroll to reveal the rest.
     const variablesTable = page.locator('.table-container');
     await expect(variablesTable.locator('input[name="0.name"]')).toHaveValue('host');
     await expect(variablesTable.locator('input[name="1.name"]')).toHaveValue('userId');
     await expect(variablesTable.locator('input[name="2.name"]')).toHaveValue('apiKey');
+
+    // Scroll the virtualized table to reveal remaining rows
+    await variablesTable.evaluate((el) => el.scrollTop = el.scrollHeight);
+
     await expect(variablesTable.locator('input[name="3.name"]')).toHaveValue('postTitle');
     await expect(variablesTable.locator('input[name="4.name"]')).toHaveValue('postBody');
     await expect(variablesTable.locator('input[name="5.name"]')).toHaveValue('secretApiToken');
