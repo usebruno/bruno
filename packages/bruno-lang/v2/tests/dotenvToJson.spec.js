@@ -50,4 +50,13 @@ SPACE=  value
     const output = parser(input);
     expect(output).toEqual(expected);
   });
+
+  test('it should preserve hash characters when the value is quoted', () => {
+    const input = `
+TOKEN="ABC#DEF"
+`;
+    const expected = { TOKEN: 'ABC#DEF' };
+    const output = parser(input);
+    expect(output).toEqual(expected);
+  });
 });

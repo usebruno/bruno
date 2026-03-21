@@ -1,11 +1,22 @@
 import { uuid } from 'utils/common';
 
+const needsQuoting = (value) => {
+  return (
+    value.includes('\n')
+    || value.includes('"')
+    || value.includes('\'')
+    || value.includes('\\')
+    || value.includes('#')
+    || /^\s|\s$/.test(value)
+  );
+};
+
 export const variablesToRaw = (variables) => {
   return variables
     .filter((v) => v.name && v.name.trim() !== '')
     .map((v) => {
       const value = v.value || '';
-      if (value.includes('\n') || value.includes('"') || value.includes('\'')) {
+      if (needsQuoting(value)) {
         const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
         return `${v.name}="${escapedValue}"`;
       }
@@ -57,3 +68,7 @@ export const rawToVariables = (rawContent) => {
 };
 
 export const MIN_TABLE_HEIGHT = 35 * 2;
+
+export const __private__ = {
+  needsQuoting
+};
