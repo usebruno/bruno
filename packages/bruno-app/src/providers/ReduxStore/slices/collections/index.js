@@ -718,6 +718,44 @@ export const collectionsSlice = createSlice({
         }
       });
     },
+    hydrateResponseFilterHistory: (state, action) => {
+      const { collectionUid, requestFilterHistory } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection && requestFilterHistory) {
+        Object.entries(requestFilterHistory).forEach(([itemPathname, history]) => {
+          const item = findItemInCollectionByPathname(collection, itemPathname);
+          if (item && Array.isArray(history)) {
+            item.responseFilterHistory = history.slice(0, 10);
+          }
+        });
+      }
+    },
+    updateResponseFilterHistory: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if (item) {
+          const filter = action.payload.filter?.trim();
+          if (!filter) return;
+
+          const history = item.responseFilterHistory || [];
+          const filtered = history.filter((f) => f !== filter);
+          item.responseFilterHistory = [filter, ...filtered].slice(0, 10);
+        }
+      }
+    },
+    deleteResponseFilterHistoryEntry: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if (item && item.responseFilterHistory) {
+          item.responseFilterHistory = item.responseFilterHistory.filter((f) => f !== action.payload.filter);
+        }
+      }
+    },
     responseCleared: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -3578,6 +3616,9 @@ export const {
   responseReceived,
   runGrpcRequestEvent,
   grpcResponseReceived,
+  hydrateResponseFilterHistory,
+  updateResponseFilterHistory,
+  deleteResponseFilterHistoryEntry,
   responseCleared,
   clearTimeline,
   clearRequestTimeline,
