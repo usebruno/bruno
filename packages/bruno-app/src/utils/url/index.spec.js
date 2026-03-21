@@ -286,6 +286,33 @@ describe('Url Utils - splitOnFirst', () => {
     const params = splitOnFirst('a=1&b=2', '&');
     expect(params).toEqual(['a=1', 'b=2']);
   });
+
+  it('should skip ? inside {{ }} template variables', () => {
+    const url = 'https://example.com/domain/{{?domain_id}}?include_dcv=true&include_validation=true';
+    const params = splitOnFirst(url, '?');
+    expect(params).toEqual([
+      'https://example.com/domain/{{?domain_id}}',
+      'include_dcv=true&include_validation=true'
+    ]);
+  });
+
+  it('should handle multiple prompt variables in URL path', () => {
+    const url = 'http://localhost:{{?port}}/api/{{?resource}}?key=value';
+    const params = splitOnFirst(url, '?');
+    expect(params).toEqual([
+      'http://localhost:{{?port}}/api/{{?resource}}',
+      'key=value'
+    ]);
+  });
+
+  it('should handle prompt variable in query param value', () => {
+    const url = 'https://example.com/api?token={{?token}}&active=true';
+    const params = splitOnFirst(url, '?');
+    expect(params).toEqual([
+      'https://example.com/api',
+      'token={{?token}}&active=true'
+    ]);
+  });
 });
 
 describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
