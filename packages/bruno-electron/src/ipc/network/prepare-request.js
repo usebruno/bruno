@@ -8,6 +8,20 @@ const { isLargeFile } = require('../../utils/filesystem');
 
 const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
+const getAuthorizationHeaderKey = (headers = {}) => {
+  return Object.keys(headers).find((headerName) => headerName.toLowerCase() === 'authorization');
+};
+
+const ensureNoAuthorizationConflict = (headers, sourceLabel) => {
+  const existingAuthorizationHeader = getAuthorizationHeaderKey(headers);
+  if (existingAuthorizationHeader) {
+    throw new Error(
+      `Multiple Authorization sources detected (${sourceLabel} and existing header). Remove duplicate Authorization configuration.`
+    );
+  }
+};
+
+
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth && request.auth.mode === 'inherit') {
@@ -29,6 +43,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'bearer':
+        ensureNoAuthorizationConflict(axiosRequest.headers, 'inherited bearer auth');
         axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token', '')}`;
         break;
       case 'digest':
@@ -178,6 +193,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'bearer':
+        ensureNoAuthorizationConflict(axiosRequest.headers, 'inherited bearer auth');
+        ensureNoAuthorizationConflict(axiosRequest.headers, 'inherited bearer auth');
         axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token', '')}`;
         break;
       case 'digest':
@@ -192,6 +209,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(request, 'auth.ntlm.password'),
           domain: get(request, 'auth.ntlm.domain')
         };
+        break;
       case 'oauth2':
         const grantType = get(request, 'auth.oauth2.grantType');
         switch (grantType) {
