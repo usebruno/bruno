@@ -1,5 +1,8 @@
-const { sanitizeName, isWSLPath, normalizeWSLPath, normalizeAndResolvePath, isLargeFile } = require('./filesystem.js');
+const path = require('path');
+const os = require('os');
+const nativeFs = require('fs');
 const fs = require('fs-extra');
+const { sanitizeName, isWSLPath, normalizeWSLPath, normalizeAndResolvePath, isLargeFile, writeFile } = require('./filesystem.js');
 
 describe('sanitizeName', () => {
   it('should replace invalid characters with hyphens', () => {
@@ -27,6 +30,42 @@ describe('sanitizeName', () => {
     const input = 'my/invalid/directory';
     const expectedOutput = 'my-invalid-directory';
     expect(sanitizeName(input)).toEqual(expectedOutput);
+  });
+});
+
+describe('writeFile', () => {
+  let tempDir;
+
+  beforeEach(() => {
+    tempDir = nativeFs.mkdtempSync(path.join(os.tmpdir(), 'bruno-filesystem-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tempDir);
+  });
+
+  const itOnPosix = process.platform === 'win32' ? it.skip : it;
+
+  itOnPosix('should create a new file with the provided mode', async () => {
+    const filePath = path.join(tempDir, 'environments', 'dev.bru');
+
+    await writeFile(filePath, 'vars {\\n}', false, { mode: 0o600 });
+
+    expect(nativeFs.readFileSync(filePath, 'utf8')).toBe('vars {\\n}');
+    expect(nativeFs.statSync(filePath).mode & 0o777).toBe(0o600);
+  });
+
+  itOnPosix('should preserve existing permissions when overwriting a file', async () => {
+    const filePath = path.join(tempDir, 'environments', 'dev.bru');
+
+    fs.ensureDirSync(path.dirname(filePath));
+    nativeFs.writeFileSync(filePath, 'before', { encoding: 'utf8', mode: 0o640 });
+    nativeFs.chmodSync(filePath, 0o640);
+
+    await writeFile(filePath, 'after', false, { mode: 0o600 });
+
+    expect(nativeFs.readFileSync(filePath, 'utf8')).toBe('after');
+    expect(nativeFs.statSync(filePath).mode & 0o777).toBe(0o640);
   });
 });
 

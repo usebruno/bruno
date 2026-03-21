@@ -11,6 +11,7 @@ const FORMAT_CONFIG = {
   yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
   bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
 };
+const PRIVATE_ENV_FILE_MODE = 0o600;
 const REQUEST_ITEM_TYPES = ['http-request', 'graphql-request'];
 
 const getCollectionFormat = (collectionPath) => {
@@ -565,7 +566,10 @@ const createCollectionFromBrunoObject = async (collection, dirPath, options = {}
     for (const env of collection.environments) {
       const content = stringifyEnvironment(env, { format });
       const filename = format === 'bru' ? sanitizeName(`${env.name}.bru`) : sanitizeName(`${env.name}.yml`);
-      fs.writeFileSync(path.join(envDirPath, filename), content);
+      fs.writeFileSync(path.join(envDirPath, filename), content, {
+        encoding: 'utf8',
+        mode: PRIVATE_ENV_FILE_MODE
+      });
     }
   }
 

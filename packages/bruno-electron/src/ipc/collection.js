@@ -30,6 +30,7 @@ const { hasSubDirectories } = require('../utils/filesystem');
 
 const {
   DEFAULT_GITIGNORE,
+  PRIVATE_ENV_FILE_MODE,
   writeFile,
   hasBruExtension,
   isDirectory,
@@ -587,7 +588,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const content = await stringifyEnvironment(environment, { format });
 
-      await writeFile(envFilePath, content);
+      await writeFile(envFilePath, content, false, { mode: PRIVATE_ENV_FILE_MODE });
     } catch (error) {
       return Promise.reject(error);
     }
@@ -614,7 +615,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       const content = await stringifyEnvironment(environment, { format });
-      await writeFile(envFilePath, content);
+      await writeFile(envFilePath, content, false, { mode: PRIVATE_ENV_FILE_MODE });
     } catch (error) {
       return Promise.reject(error);
     }
@@ -687,7 +688,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         })
         .join('\n');
 
-      await writeFile(dotEnvPath, content);
+      await writeFile(dotEnvPath, content, false, { mode: PRIVATE_ENV_FILE_MODE });
 
       return { success: true };
     } catch (error) {
@@ -704,7 +705,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       const dotEnvPath = path.join(collectionPathname, filename);
-      await writeFile(dotEnvPath, content);
+      await writeFile(dotEnvPath, content, false, { mode: PRIVATE_ENV_FILE_MODE });
       return { success: true };
     } catch (error) {
       console.error('Error saving .env file:', error);
@@ -725,7 +726,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`${filename} file already exists`);
       }
 
-      await writeFile(dotEnvPath, '');
+      await writeFile(dotEnvPath, '', false, { mode: PRIVATE_ENV_FILE_MODE });
 
       return { success: true, filename };
     } catch (error) {
@@ -772,7 +773,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const environment = parseEnvironment(fileContent, { format });
       environment.color = color;
       const updatedContent = stringifyEnvironment(environment, { format });
-      fs.writeFileSync(envFilePath, updatedContent, 'utf8');
+      await writeFile(envFilePath, updatedContent, false, { mode: PRIVATE_ENV_FILE_MODE });
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1218,7 +1219,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             const content = await stringifyEnvironment(env, { format });
             let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
             const filePath = path.join(envDirPath, sanitizedEnvFilename);
-            safeWriteFileSync(filePath, content);
+            await writeFile(filePath, content, false, { mode: PRIVATE_ENV_FILE_MODE });
           }));
         };
 

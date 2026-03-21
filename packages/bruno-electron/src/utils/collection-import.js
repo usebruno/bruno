@@ -1,7 +1,14 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { ipcMain } = require('electron');
-const { sanitizeName, createDirectory, writeFile, safeWriteFileSync, getCollectionStats } = require('./filesystem');
+const {
+  PRIVATE_ENV_FILE_MODE,
+  sanitizeName,
+  createDirectory,
+  writeFile,
+  safeWriteFileSync,
+  getCollectionStats
+} = require('./filesystem');
 const { generateUidBasedOnHash, stringifyJson } = require('./common');
 const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, stringifyFolder, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 
@@ -77,7 +84,7 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
       const content = await stringifyEnvironment(env, { format });
       let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
       const filePath = path.join(envDirPath, sanitizedEnvFilename);
-      safeWriteFileSync(filePath, content);
+      await writeFile(filePath, content, false, { mode: PRIVATE_ENV_FILE_MODE });
     }
   };
 

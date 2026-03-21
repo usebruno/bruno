@@ -16,6 +16,7 @@ const DEFAULT_GITIGNORE = [
   '.DS_Store',
   'Thumbs.db'
 ].join('\n');
+const PRIVATE_ENV_FILE_MODE = 0o600;
 
 const exists = async (p) => {
   try {
@@ -93,10 +94,11 @@ function normalizeWSLPath(pathname) {
   return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
 }
 
-const writeFile = async (pathname, content, isBinary = false) => {
+const writeFile = async (pathname, content, isBinary = false, options = {}) => {
   try {
     await safeWriteFile(pathname, content, {
-      encoding: !isBinary ? 'utf-8' : null
+      encoding: !isBinary ? 'utf-8' : null,
+      ...options
     });
   } catch (err) {
     console.error(`Error writing file at ${pathname}:`, err);
@@ -505,6 +507,7 @@ const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
 
 module.exports = {
   DEFAULT_GITIGNORE,
+  PRIVATE_ENV_FILE_MODE,
   posixifyPath,
   isValidPathname,
   exists,

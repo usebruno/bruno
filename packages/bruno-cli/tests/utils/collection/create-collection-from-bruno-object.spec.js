@@ -143,4 +143,30 @@ describe('createCollectionFromBrunoObject', () => {
       )
     ).rejects.toThrow('Unsupported item type: unsupported-type');
   });
+
+  const itOnPosix = process.platform === 'win32' ? it.skip : it;
+
+  itOnPosix('creates imported environment files with private permissions', async () => {
+    createOutputDir();
+
+    await createCollectionFromBrunoObject(
+      {
+        name: 'collection-with-environments',
+        environments: [
+          {
+            name: 'dev',
+            variables: [{ name: 'apiKey', value: 'secret', enabled: true }]
+          }
+        ],
+        items: []
+      },
+      outputDir,
+      { format: 'bru' }
+    );
+
+    const envPath = path.join(outputDir, 'environments', 'dev.bru');
+
+    expect(fs.existsSync(envPath)).toBe(true);
+    expect(fs.statSync(envPath).mode & 0o777).toBe(0o600);
+  });
 });
