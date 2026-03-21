@@ -4,6 +4,7 @@ import {
   updatePreferences,
   setGitVersion
 } from 'providers/ReduxStore/slices/app';
+import { loadCompletedGuides } from 'providers/ReduxStore/slices/onboarding';
 import {
   addTab
 } from 'providers/ReduxStore/slices/tabs';
@@ -294,6 +295,10 @@ const useIpcEvents = () => {
 
     const removePreferencesUpdatesListener = ipcRenderer.on('main:load-preferences', (val) => {
       dispatch(updatePreferences(val));
+      // Load completed guides from preferences
+      if (val?.onboarding?.completedGuides) {
+        dispatch(loadCompletedGuides({ completedGuides: val.onboarding.completedGuides }));
+      }
     });
 
     const removeCookieUpdateListener = ipcRenderer.on('main:cookies-update', (val) => {

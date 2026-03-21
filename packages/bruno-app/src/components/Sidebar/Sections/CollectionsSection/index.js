@@ -235,10 +235,11 @@ const CollectionsSection = () => {
 
   const addDropdownItems = [
     {
-      id: 'create',
-      leftSection: IconPlus,
-      label: 'Create collection',
-      onClick: () => {
+      'id': 'create',
+      'leftSection': IconPlus,
+      'label': 'Create collection',
+      'data-onboarding': 'create-collection-option',
+      'onClick': () => {
         dispatch(setIsCreatingCollection(true));
       }
     },
@@ -298,11 +299,13 @@ const CollectionsSection = () => {
 
       <MenuDropdown
         data-testid="collections-header-add-menu"
+        data-onboarding="add-collection-menu"
         items={addDropdownItems}
         placement="bottom-end"
       >
         <ActionIcon
           label="Add new collection"
+          data-onboarding="add-collection-menu"
         >
           <IconPlus size={14} stroke={1.5} aria-hidden="true" />
         </ActionIcon>
@@ -394,6 +397,7 @@ const CollectionsSection = () => {
         title="Collections"
         icon={IconBox}
         actions={sectionActions}
+        data-onboarding="collections-section"
       >
         <Collections
           showSearch={showSearch}

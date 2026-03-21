@@ -20,14 +20,14 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import AuthMode from '../Auth/AuthMode/index';
 
 const TAB_CONFIG = [
-  { key: 'params', label: 'Params' },
-  { key: 'body', label: 'Body' },
-  { key: 'headers', label: 'Headers' },
-  { key: 'auth', label: 'Auth' },
+  { 'key': 'params', 'label': 'Params', 'data-onboarding': 'request-params-tab' },
+  { 'key': 'body', 'label': 'Body', 'data-onboarding': 'request-body-tab' },
+  { 'key': 'headers', 'label': 'Headers', 'data-onboarding': 'request-headers-tab' },
+  { 'key': 'auth', 'label': 'Auth', 'data-onboarding': 'request-auth-tab' },
   { key: 'vars', label: 'Vars' },
-  { key: 'script', label: 'Script' },
+  { 'key': 'script', 'label': 'Script', 'data-onboarding': 'request-scripts-tab' },
   { key: 'assert', label: 'Assert' },
-  { key: 'tests', label: 'Tests' },
+  { 'key': 'tests', 'label': 'Tests', 'data-onboarding': 'request-tests-tab' },
   { key: 'docs', label: 'Docs' },
   { key: 'settings', label: 'Settings' }
 ];
@@ -129,7 +129,7 @@ const HttpRequestPane = ({ item, collection }) => {
   ) : null;
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full relative" data-onboarding="request-pane">
       <ResponsiveTabs
         tabs={allTabs}
         activeTab={requestPaneTab}

@@ -373,6 +373,7 @@ const MenuDropdown = forwardRef(({
       'aria-current': isActive ? 'true' : undefined,
       'title': item.title,
       'data-testid': `${testId}-${String(item.id).toLowerCase()}`,
+      'data-onboarding': item['data-onboarding'],
       ...restExtraProps
     };
   };

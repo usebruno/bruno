@@ -262,7 +262,7 @@ const EnvironmentSelector = ({ collection }) => {
 
   return (
     <StyledWrapper width={dropdownWidth}>
-      <div className="environment-selector flex align-center cursor-pointer">
+      <div className="environment-selector flex align-center cursor-pointer" data-onboarding="environment-selector">
         <Dropdown
           onCreate={(ref) => (dropdownTippyRef.current = ref)}
           icon={<DropdownTrigger collectionEnv={activeCollectionEnvironment} globalEnv={activeGlobalEnvironment} />}
@@ -288,7 +288,7 @@ const EnvironmentSelector = ({ collection }) => {
           </div>
 
           {/* Tab Content */}
-          <div className="tab-content">
+          <div className="tab-content" data-onboarding="environment-dropdown">
             <EnvironmentListContent
               environments={activeTab === 'collection' ? environments : globalEnvironments}
               activeEnvironmentUid={activeTab === 'collection' ? activeEnvironmentUid : activeGlobalEnvironmentUid}
