@@ -46,6 +46,14 @@ jobs:
         with:
           shell: pwsh
 
+      - name: Publish Test Report
+        uses: EnricoMi/publish-unit-test-result-action/windows@v2
+        if: always()
+        with:
+          check_name: CLI Test Results (Windows)
+          files: packages/bruno-tests/collection/junit.xml
+          comment_mode: off
+
   e2e-test:
     name: Playwright E2E Tests (Windows)
     timeout-minutes: 120
