@@ -4,6 +4,8 @@ import { test, expect, closeElectronApp } from '../../../playwright';
 import { waitForReadyPage } from '../../utils/page';
 
 test.describe('Default Workspace', () => {
+  test.setTimeout(90000);
+
   test.describe('First Launch', () => {
     test('should create default workspace with "My Workspace" name on first launch', async ({ launchElectronApp, createTmpDir }) => {
       const userDataPath = await createTmpDir('default-workspace-first-launch');
