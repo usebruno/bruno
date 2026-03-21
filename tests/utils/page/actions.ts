@@ -963,8 +963,9 @@ const clickResponseAction = async (page: Page, actionTestId: string) => {
   if (await actionButton.isVisible()) {
     await actionButton.click();
   } else {
-    // Open the menu dropdown
+    // Open the menu dropdown (wait for response pane to fully render)
     const menu = page.getByTestId('response-actions-menu');
+    await menu.waitFor({ state: 'visible', timeout: 15000 });
     await menu.click();
 
     // Click the corresponding menu item
