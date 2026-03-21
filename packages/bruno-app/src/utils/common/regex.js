@@ -6,6 +6,14 @@ const lastCharacter = /[^.\s<>:"/\\|?*\x00-\x1F]$/; // no dot, space and `invali
 
 export const variableNameRegex = /^[\w-.]*$/;
 
+export const hasInvalidVariableNames = (variables) => {
+  if (!variables || !Array.isArray(variables)) return false;
+  return variables.some((variable) => {
+    if (!variable.name || variable.name.trim() === '') return false;
+    return !variableNameRegex.test(variable.name);
+  });
+};
+
 // HTTP header name should not contain spaces, newlines, or control characters
 export const headerNameRegex = /^[^\s\r\n]*$/;
 
