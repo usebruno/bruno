@@ -5,6 +5,7 @@ const addBrunoResponseShimToContext = require('./shims/bruno-response');
 const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
 const addLocalModuleLoaderShimToContext = require('./shims/local-module');
+const { getRequireCode } = require('./shims/require');
 const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscripten');
 
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
@@ -104,44 +105,11 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     await addCryptoUtilsShimToContext(vm);
 
     const bundledCode = getBundledCode?.toString() || '';
-    const moduleLoaderCode = function () {
-      return `
-        globalThis.require = (mod) => {
-          let lib = globalThis.requireObject[mod];
-          let isModuleAPath = (module) => (module?.startsWith('.') || module?.startsWith?.(bru.cwd()))
-          if (lib) {
-            return lib;
-          }
-          else if (isModuleAPath(mod)) {
-            // fetch local module
-            let localModuleCode = globalThis.__brunoLoadLocalModule(mod);
-
-            // compile local module as iife
-            (function (){
-              const initModuleExportsCode = "const module = { exports: {} };"
-              const copyModuleExportsCode = "\\n;globalThis.requireObject[mod] = module.exports;";
-              const patchedRequire = ${`
-                "\\n;" +
-                "let require = (subModule) => isModuleAPath(subModule) ? globalThis.require(path.resolve(bru.cwd(), mod, '..', subModule)) : globalThis.require(subModule)" +
-                "\\n;" 
-              `}
-              eval(initModuleExportsCode + patchedRequire + localModuleCode + copyModuleExportsCode);
-            })();
-
-            // resolve module
-            return globalThis.requireObject[mod];
-          }
-          else {
-            throw new Error("Cannot find module " + mod);
-          }
-        }
-      `;
-    };
 
     vm.evalCode(
       `
         (${bundledCode})()
-        ${moduleLoaderCode()}
+        ${getRequireCode({ enableLocalModules: true })}
       `
     );
 
