@@ -1,0 +1,103 @@
+name: Linux Tests
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'release/v*']
+  pull_request:
+    branches: [main, 'release/v*']
+
+jobs:
+  unit-test:
+    name: Unit Tests (Linux)
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Run Unit Tests
+        uses: ./.github/actions/tests/run-unit-tests
+
+  cli-test:
+    name: CLI Tests (Linux)
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Run CLI Tests
+        uses: ./.github/actions/tests/run-cli-tests
+
+  e2e-test:
+    name: Playwright E2E Tests (Linux)
+    timeout-minutes: 90
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install System Dependencies (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get --no-install-recommends install -y \
+            libglib2.0-0 libnss3 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libgtk-3-0 libasound2t64 \
+            xvfb
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Configure Chrome Sandbox
+        run: |
+          sudo chown root node_modules/electron/dist/chrome-sandbox
+          sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
+
+      - name: Run playwright Tests
+        uses: ./.github/actions/tests/run-e2e-tests
+        with:
+          os: ubuntu
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-linux
+          path: playwright-report/
+          retention-days: 30
+
+  ssl-test:
+    name: SSL Tests (Linux)
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Setup Feature Dependencies
+        uses: ./.github/actions/ssl/linux/setup-feature-specific-deps
+
+      - name: Setup CA Certificates
+        uses: ./.github/actions/ssl/linux/setup-ca-certs
+
+      - name: Run Basic SSL CLI Tests
+        uses: ./.github/actions/ssl/linux/run-basic-ssl-cli-tests
+
+      - name: Run Custom CA Certs CLI Tests
+        uses: ./.github/actions/ssl/linux/run-custom-ca-certs-cli-tests
+
+      - name: Run Custom CA Certs E2E Tests
+        uses: ./.github/actions/ssl/linux/run-ssl-e2e-tests
