@@ -259,6 +259,14 @@ describe('Url Utils - OData parameters', () => {
     const params = parsePathParams('https://example.com/odata/Products?$filter=Category eq \'{{category}}\'&$orderby={{sortField}}');
     expect(params).toEqual([]);
   });
+
+  it('should not treat colons inside OData datetime values as path params', () => {
+    const params = parsePathParams(
+      'https://api10.successfactors.com/odata/v2/EmpJob(seqNumber=1L,startDate=datetime\'2021-08-29T00:00:00\',userId=\'213668\')?$format=json'
+    );
+
+    expect(params).toEqual([]);
+  });
 });
 
 describe('Url Utils - splitOnFirst', () => {
@@ -435,5 +443,29 @@ describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {
     const result = interpolateUrlPathParams(url, params, {}, { raw: true });
 
     expect(result).toEqual('https://example.com/api/:id');
+  });
+
+  it('should preserve OData datetime colons when no path params are present', () => {
+    const url
+      = 'https://api10.successfactors.com/odata/v2/EmpJob(seqNumber=1L,startDate=datetime\'2021-08-29T00:00:00\',userId=\'213668\')?$format=json';
+
+    const result = interpolateUrlPathParams(url, [], {}, { raw: true });
+
+    expect(result).toEqual(url);
+  });
+
+  it('should replace only real OData path params and preserve datetime colons', () => {
+    const url
+      = 'https://example.com/odata/v2/EmpJob(seqNumber=:seqNumber,startDate=datetime\'2021-08-29T00:00:00\',userId=\':userId\')?$format=json';
+    const params = [
+      { name: 'seqNumber', type: 'path', enabled: true, value: '1L' },
+      { name: 'userId', type: 'path', enabled: true, value: '213668' }
+    ];
+
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
+
+    expect(result).toEqual(
+      'https://example.com/odata/v2/EmpJob(seqNumber=1L,startDate=datetime\'2021-08-29T00:00:00\',userId=\'213668\')?$format=json'
+    );
   });
 });
