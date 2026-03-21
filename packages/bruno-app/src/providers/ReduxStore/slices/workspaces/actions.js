@@ -8,13 +8,17 @@ import {
   updateWorkspaceLoadingState,
   setWorkspaceScratchCollection
 } from '../workspaces';
-import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent } from '../collections/actions';
-import { removeCollection, addTransientDirectory, updateCollectionMountStatus } from '../collections';
+import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection } from '../collections/actions';
+import { removeCollection, addTransientDirectory, updateCollectionMountStatus, expandCollection } from '../collections';
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
-import { addTab, focusTab } from '../tabs';
+import { addTab, restoreTabs } from '../tabs';
+import { setSnapshotReady } from '../app';
+import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab } from '../logs';
 import { normalizePath } from 'utils/common/path';
+import { hydrateTabs, getActiveTabFromSnapshot } from 'utils/snapshot';
+import { seedActiveCollectionUidCache } from '../../middlewares/snapshot/middleware';
 import toast from 'react-hot-toast';
 
 const { ipcRenderer } = window;
@@ -349,51 +353,73 @@ export const switchWorkspace = (workspaceUid) => {
     dispatch(setActiveWorkspace(workspaceUid));
 
     const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
+    if (!workspace) return;
 
-    if (!workspace) {
-      return;
-    }
+    // Load workspace snapshot
+    const workspaceSnapshot = workspace.pathname
+      ? await ipcRenderer.invoke('renderer:get-workspace-snapshot', workspace.pathname).catch(() => null)
+      : null;
 
-    try {
-      const { ipcRenderer } = window;
+    // Load global environments
+    const envResult = await ipcRenderer.invoke('renderer:get-global-environments', {
+      workspaceUid,
+      workspacePath: workspace.pathname
+    }).catch(() => null);
 
-      const result = await ipcRenderer.invoke('renderer:get-global-environments',
-        {
-          workspaceUid,
-          workspacePath: workspace.pathname
-        });
+    dispatch(updateGlobalEnvironments({
+      globalEnvironments: envResult?.globalEnvironments || [],
+      activeGlobalEnvironmentUid: envResult?.activeGlobalEnvironmentUid || null
+    }));
 
-      const globalEnvironments = result?.globalEnvironments || [];
-      const activeGlobalEnvironmentUid = result?.activeGlobalEnvironmentUid || null;
-
-      dispatch(updateGlobalEnvironments({ globalEnvironments, activeGlobalEnvironmentUid }));
-    } catch (error) {
-      dispatch(updateGlobalEnvironments({ globalEnvironments: [], activeGlobalEnvironmentUid: null }));
-    }
-
+    // Mount scratch collection and load workspace collections
     const scratchCollection = await dispatch(mountScratchCollection(workspaceUid));
     await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
 
+    // Hydrate tabs for ALL collections from snapshot before snapshotReady
+    // This prevents overwriting tabs for unmounted collections
+    const collections = getState().collections.collections.filter(
+      (c) => c.pathname && c.uid !== scratchCollection?.uid
+    );
+    await hydrateTabs(collections, dispatch, restoreTabs);
+
+    // Add workspace tabs
     if (scratchCollection?.uid) {
-      const overviewTabUid = `${scratchCollection.uid}-overview`;
-      const environmentsTabUid = `${scratchCollection.uid}-environments`;
-
-      dispatch(addTab({
-        uid: overviewTabUid,
-        collectionUid: scratchCollection.uid,
-        type: 'workspaceOverview'
-      }));
-
-      dispatch(addTab({
-        uid: environmentsTabUid,
-        collectionUid: scratchCollection.uid,
-        type: 'workspaceEnvironments'
-      }));
-
-      dispatch(focusTab({
-        uid: overviewTabUid
-      }));
+      dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
+      dispatch(addTab({ uid: `${scratchCollection.uid}-environments`, collectionUid: scratchCollection.uid, type: 'workspaceEnvironments' }));
     }
+
+    // Restore active collection from snapshot
+    const activeCollection = workspaceSnapshot?.activeCollectionUid
+      ? getState().collections.collections.find((c) => c.uid === workspaceSnapshot.activeCollectionUid)
+      : null;
+
+    if (activeCollection) {
+      dispatch(expandCollection(activeCollection.uid));
+
+      const needsMount = activeCollection.mountStatus !== 'mounted' && activeCollection.mountStatus !== 'mounting';
+      if (needsMount) {
+        await dispatch(mountCollection({
+          collectionUid: activeCollection.uid,
+          collectionPathname: activeCollection.pathname,
+          brunoConfig: activeCollection.brunoConfig
+        })).catch((err) => console.error('Failed to mount active collection:', err));
+      }
+
+      // Focus the active tab from the collection snapshot
+      const activeTab = await getActiveTabFromSnapshot(activeCollection.pathname, activeCollection.uid);
+
+      if (activeTab) {
+        dispatch(addTab(activeTab));
+      } else if (scratchCollection?.uid) {
+        dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
+      }
+    } else if (scratchCollection?.uid) {
+      // No active collection, focus the workspace overview tab
+      dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
+    }
+
+    // Mark snapshot as ready after initial workspace loading completes
+    dispatch(setSnapshotReady(true));
   };
 };
 
@@ -498,11 +524,38 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
     } catch (error) {
     }
 
-    // If this is the default workspace or no workspace is active yet, switch to it
     const state = getState();
     const activeWorkspaceUid = state.workspaces.activeWorkspaceUid;
 
-    if (!activeWorkspaceUid || workspaceConfig.type === 'default') {
+    let shouldSwitch = false;
+    try {
+      const snapshot = await ipcRenderer.invoke('renderer:get-snapshot');
+      const activeWorkspacePath = snapshot?.activeWorkspacePath;
+
+      seedActiveCollectionUidCache(snapshot);
+
+      const currentState = getState();
+      if (!currentState.app.snapshotReady && snapshot?.extras?.devTools) {
+        const { open, tab } = snapshot.extras.devTools;
+        if (open) {
+          dispatch(openConsole());
+        } else {
+          dispatch(closeConsole());
+        }
+        if (tab) {
+          dispatch(setActiveDevToolsTab(tab));
+        }
+      }
+
+      if (activeWorkspacePath) {
+        shouldSwitch = workspacePath === activeWorkspacePath;
+      } else {
+        shouldSwitch = !activeWorkspaceUid || workspaceConfig.type === 'default';
+      }
+    } catch (err) {
+      shouldSwitch = !activeWorkspaceUid || workspaceConfig.type === 'default';
+    }
+    if (shouldSwitch) {
       dispatch(switchWorkspace(workspaceUid));
     }
   };

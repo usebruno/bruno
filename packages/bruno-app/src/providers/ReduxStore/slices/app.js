@@ -6,6 +6,7 @@ import { addTab, focusTab } from './tabs';
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
+  snapshotReady: false,
   leftSidebarWidth: 250,
   sidebarCollapsed: false,
   screenWidth: 500,
@@ -76,6 +77,9 @@ export const appSlice = createSlice({
   reducers: {
     idbConnectionReady: (state) => {
       state.idbConnectionReady = true;
+    },
+    setSnapshotReady: (state, action) => {
+      state.snapshotReady = action.payload;
     },
     refreshScreenWidth: (state) => {
       state.screenWidth = window.innerWidth;
@@ -186,6 +190,7 @@ export const appSlice = createSlice({
 
 export const {
   idbConnectionReady,
+  setSnapshotReady,
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateIsDragging,
