@@ -52,9 +52,12 @@ export const ThemeProvider = (props) => {
     applyThemeToRoot(effectiveTheme);
 
     if (window.ipcRenderer) {
-      window.ipcRenderer.send('renderer:theme-change', storedTheme);
+      const isLight = effectiveTheme === 'light';
+      const variantName = isLight ? themeVariantLight : themeVariantDark;
+      const themeBg = themes[variantName]?.bg || (isLight ? '#ffffff' : '#1e1e1e');
+      window.ipcRenderer.send('renderer:theme-change', storedTheme, themeBg);
     }
-  }, [storedTheme]);
+  }, [storedTheme, themeVariantLight, themeVariantDark]);
 
   // storedTheme can have 3 values: 'light', 'dark', 'system'
   // displayedTheme can have 2 values: 'light', 'dark'
