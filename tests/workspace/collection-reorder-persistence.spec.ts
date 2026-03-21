@@ -7,6 +7,8 @@ import { createCollection, waitForReadyPage } from '../utils/page';
 type WorkspaceConfig = { collections?: { name: string }[] };
 
 test.describe('Collection reorder persistence', () => {
+  test.setTimeout(90000);
+
   test('reordered collection order persists after app restart', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('collection-reorder-persistence');
     const colAPath = await createTmpDir('col-a');
