@@ -23,6 +23,7 @@ import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useTheme } from 'styled-components';
 import Button from 'ui/Button';
+import { REQUEST_TYPES } from 'utils/common/constants';
 
 const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
@@ -48,7 +49,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const Icon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex items-center justify-end auth-type-label select-none">
-        {curlRequestTypeDetected === 'http-request' ? 'HTTP' : 'GraphQL'}
+        {curlRequestTypeDetected === REQUEST_TYPES.HTTP_REQUEST ? 'HTTP' : 'GraphQL'}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
@@ -67,7 +68,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
       return;
     }
 
-    setCurlRequestTypeDetected('http-request');
+    setCurlRequestTypeDetected(REQUEST_TYPES.HTTP_REQUEST);
   };
 
   const curlRequestTypeChange = (type) => {
@@ -78,7 +79,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
 
   const getRequestType = (collectionPresets) => {
     if (!collectionPresets || !collectionPresets.requestType) {
-      return 'http-request';
+      return REQUEST_TYPES.HTTP_REQUEST;
     }
 
     // Note: Why different labels for the same thing?
@@ -86,22 +87,22 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
     // http and graphql are used in Bru DSL as well as collection exports
     // We need to eventually standardize the app's DSL to use the same labels as bru DSL
     if (collectionPresets.requestType === 'http') {
-      return 'http-request';
+      return REQUEST_TYPES.HTTP_REQUEST;
     }
 
     if (collectionPresets.requestType === 'graphql') {
-      return 'graphql-request';
+      return REQUEST_TYPES.GRAPHQL_REQUEST;
     }
 
     if (collectionPresets.requestType === 'grpc') {
-      return 'grpc-request';
+      return REQUEST_TYPES.GRPC_REQUEST;
     }
 
     if (collectionPresets.requestType === 'ws') {
-      return 'ws-request';
+      return REQUEST_TYPES.WS_REQUEST;
     }
 
-    return 'http-request';
+    return REQUEST_TYPES.HTTP_REQUEST;
   };
 
   const formik = useFormik({

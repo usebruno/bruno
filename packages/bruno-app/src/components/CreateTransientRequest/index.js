@@ -10,6 +10,7 @@ import { flattenItems, isItemARequest, isItemTransientRequest } from 'utils/coll
 import filter from 'lodash/filter';
 import { get } from 'lodash';
 import { formatIpcError } from 'utils/common/error';
+import { REQUEST_TYPES } from 'utils/common/constants';
 
 const REQUEST_TYPE = {
   HTTP: 'http',
@@ -97,7 +98,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
       newHttpRequest({
         requestName: uniqueName,
         filename: filename,
-        requestType: 'http-request',
+        requestType: REQUEST_TYPES.HTTP_REQUEST,
         requestUrl: collectionPresets.requestUrl,
         requestMethod: 'GET',
         collectionUid: collection.uid,
