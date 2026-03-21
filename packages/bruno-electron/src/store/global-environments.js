@@ -112,12 +112,15 @@ class GlobalEnvironmentsStore {
     this.setGlobalEnvironments(globalEnvironments);
   }
 
-  saveGlobalEnvironment({ environmentUid: globalEnvironmentUid, variables }) {
+  saveGlobalEnvironment({ environmentUid: globalEnvironmentUid, variables, color }) {
     let globalEnvironments = this.getGlobalEnvironments();
     const environment = globalEnvironments.find((env) => env?.uid == globalEnvironmentUid);
     globalEnvironments = globalEnvironments.filter((env) => env?.uid !== globalEnvironmentUid);
     if (environment) {
       environment.variables = variables;
+      if (color !== undefined) {
+        environment.color = color;
+      }
     }
     globalEnvironments.push(environment);
     this.setGlobalEnvironments(globalEnvironments);
