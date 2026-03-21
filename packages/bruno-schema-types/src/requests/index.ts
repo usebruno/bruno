@@ -7,7 +7,8 @@ export type {
   HttpRequestBody,
   HttpRequestBodyMode,
   HttpRequestParam,
-  HttpRequestParamType
+  HttpRequestParamType,
+  Decorator
 } from './http';
 
 export type {

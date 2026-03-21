@@ -92,6 +92,7 @@ class MultiLineEditor extends Component {
 
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
+    this.editor.on('blur', this._onBlur);
     this.addOverlay(variables);
 
     // Initialize masking if this is a secret field
@@ -105,6 +106,12 @@ class MultiLineEditor extends Component {
       if (this.props.onChange) {
         this.props.onChange(this.cachedValue);
       }
+    }
+  };
+
+  _onBlur = () => {
+    if (this.editor && this.props.onBlur) {
+      this.props.onBlur(this.editor.getValue());
     }
   };
 
@@ -188,6 +195,9 @@ class MultiLineEditor extends Component {
     if (this.maskedEditor) {
       this.maskedEditor.destroy();
       this.maskedEditor = null;
+    }
+    if (this.editor) {
+      this.editor.off('blur', this._onBlur);
     }
     this.editor.getWrapperElement().remove();
   }

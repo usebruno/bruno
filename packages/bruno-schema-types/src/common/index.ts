@@ -1,5 +1,6 @@
 export type { UID } from './uid';
 export type { KeyValue } from './key-value';
+export type { Decorator } from './decorators';
 export type { Variable, Variables } from './variables';
 export type { MultipartFormEntry, MultipartForm } from './multipart-form';
 export type { FileEntry, FileList } from './file';

@@ -721,14 +721,21 @@ export const transformRequestToSaveToFilesystem = (item) => {
   // Only process params for non-gRPC requests
   if (!['grpc-request', 'ws-request'].includes(_item.type)) {
     each(_item.request.params, (param) => {
-      itemToSave.request.params.push({
+      const paramToSave = {
         uid: param.uid,
         name: param.name,
         value: param.value,
         description: param.description,
         type: param.type,
         enabled: param.enabled
-      });
+      };
+
+      // Include decorators directly on the param if present
+      if (param.decorators && param.decorators.length > 0) {
+        paramToSave.decorators = param.decorators;
+      }
+
+      itemToSave.request.params.push(paramToSave);
     });
   }
 
