@@ -8,6 +8,7 @@
 import React, { createRef } from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { focusAddressBar } from 'utils/common/keybinding-commons';
 import { setupAutoComplete, showRootHints } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
@@ -84,6 +85,8 @@ export default class CodeEditor extends React.Component {
             this.props.onRun();
           }
         },
+        'Cmd-L': focusAddressBar,
+        'Ctrl-L': focusAddressBar,
         'Cmd-S': () => {
           if (this.props.onSave) {
             this.props.onSave();
