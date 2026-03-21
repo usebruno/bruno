@@ -57,12 +57,12 @@ import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
+import useKeybindings, { Key, Modifier, createKeybinding } from 'hooks/useKeybindings';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
   const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
   const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
-
   const _isTabForItemPresentSelector = isTabForItemPresentSelector({ itemUid: item.uid });
   const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
 
@@ -301,18 +301,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           id: 'new-request',
           leftSection: IconFilePlus,
           label: 'New Request',
+          keyBinding: Key.N,
           onClick: () => setNewRequestModalOpen(true)
         },
         {
           id: 'new-folder',
           leftSection: IconFolderPlus,
           label: 'New Folder',
+          keyBinding: Key.F,
+          modifiers: [Modifier.Shift],
           onClick: () => setNewFolderModalOpen(true)
         },
         {
           id: 'run',
           leftSection: IconPlayerPlay,
           label: 'Run',
+          keyBinding: Key.X,
           onClick: () => setRunCollectionModalOpen(true)
         }
       );
@@ -323,12 +327,16 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         id: 'clone',
         leftSection: IconCopy,
         label: 'Clone',
+        keyBinding: Key.D,
+        modifiers: [Modifier.CmdOrCtrl],
         onClick: () => setCloneItemModalOpen(true)
       },
       {
         id: 'copy',
         leftSection: IconCopy,
         label: 'Copy',
+        keyBinding: Key.C,
+        modifiers: [Modifier.CmdOrCtrl],
         onClick: handleCopyItem
       }
     );
@@ -338,6 +346,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         id: 'paste',
         leftSection: IconClipboard,
         label: 'Paste',
+        keyBinding: Key.V,
+        modifiers: [Modifier.CmdOrCtrl],
         onClick: handlePasteItem
       });
     }
@@ -347,6 +357,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         id: 'rename',
         leftSection: IconEdit,
         label: 'Rename',
+        keyBinding: [Key.R, Key.Enter],
         onClick: () => setRenameItemModalOpen(true)
       }
     );
@@ -355,6 +366,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         id: 'run',
         leftSection: IconPlayerPlay,
         label: 'Run',
+        keyBinding: Key.X,
         onClick: () => {
           handleRun();
         }
@@ -366,6 +378,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         id: 'generate-code',
         leftSection: IconCode,
         label: 'Generate Code',
+        keyBinding: Key.G,
         onClick: handleGenerateCode
       });
     }
@@ -375,6 +388,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         id: 'create-example',
         leftSection: ExampleIcon,
         label: 'Create Example',
+        keyBinding: Key.E,
+        modifiers: [Modifier.CmdOrCtrl],
         onClick: () => setCreateExampleModalOpen(true)
       });
     }
@@ -384,6 +399,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         id: 'show-in-folder',
         leftSection: IconFolder,
         label: getRevealInFolderLabel(),
+        keyBinding: Key.Period,
+        modifiers: [Modifier.CmdOrCtrl],
         onClick: handleShowInFolder
       }
     );
@@ -394,6 +411,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       id: 'info',
       leftSection: IconInfoCircle,
       label: 'Info',
+      keyBinding: Key.I,
       onClick: () => setItemInfoModalOpen(true)
     });
 
@@ -403,12 +421,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           id: 'settings',
           leftSection: IconSettings,
           label: 'Settings',
-          onClick: viewFolderSettings
+          onClick: viewFolderSettings,
+          keyBinding: Key.S
         },
         {
           id: 'open-terminal',
           leftSection: IconTerminal2,
           label: 'Open in Terminal',
+          keyBinding: Key.T,
           onClick: async () => {
             const folderCwd = item.pathname || collectionPathname;
             await openDevtoolsAndSwitchToTerminal(dispatch, folderCwd);
@@ -422,6 +442,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       leftSection: IconTrash,
       label: 'Delete',
       className: 'delete-item',
+      keyBinding: [Key.Delete, Key.Backspace],
       onClick: () => setDeleteItemModalOpen(true)
     });
 
@@ -560,32 +581,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       });
   };
 
-  // Keyboard shortcuts handler
-  const handleKeyDown = (e) => {
-    // Detect Mac by checking both metaKey and platform
-    const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
-    const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
-
-    const [macRenameKey, winRenameKey] = getKeyBindingsForActionAllOS('renameItem');
-    const renameKey = isMac ? macRenameKey : winRenameKey;
-
-    // Only trigger rename if no modifier keys are pressed (allow Cmd+Enter for run request)
-    const hasModifier = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
-    if (e.key.toLowerCase() === renameKey && !hasModifier) {
-      e.preventDefault();
-      e.stopPropagation();
-      setRenameItemModalOpen(true);
-    } else if (isModifierPressed && e.key.toLowerCase() === 'c') {
-      e.preventDefault();
-      e.stopPropagation();
-      handleCopyItem();
-    } else if (isModifierPressed && e.key.toLowerCase() === 'v') {
-      e.preventDefault();
-      e.stopPropagation();
-      handlePasteItem();
-    }
-  };
-
   const handleFocus = () => {
     setIsKeyboardFocused(true);
   };
@@ -593,6 +588,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const handleBlur = () => {
     setIsKeyboardFocused(false);
   };
+
+  const menuItems = buildMenuItems();
+  const keybindings = useKeybindings(Object.entries(menuItems).reduce((acc, [_, item]) => {
+    const keyBindings = Array.isArray(item.keyBinding) ? item.keyBinding : [item.keyBinding];
+    if (item.keyBinding) {
+      keyBindings.forEach((keyBinding) => {
+        acc[keyBinding] = createKeybinding({
+          actionFn: item.onClick,
+          modifiers: item.modifiers || [],
+          alias: item.id,
+          description: item.label
+        });
+      });
+    }
+    return acc;
+  }, {}), { preventDefault: true, stopPropagation: true });
 
   return (
     <StyledWrapper className={className}>
@@ -634,7 +645,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           drag(drop(node));
         }}
         tabIndex={0}
-        onKeyDown={handleKeyDown}
+        onKeyDown={keybindings.handleKeyPress}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onContextMenu={handleContextMenu}
@@ -697,7 +708,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           <div className="pr-2">
             <MenuDropdown
               ref={menuDropdownRef}
-              items={buildMenuItems()}
+              items={menuItems}
               placement="bottom-start"
               data-testid="collection-item-menu"
               popperOptions={{ strategy: 'fixed' }}
