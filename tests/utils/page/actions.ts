@@ -11,7 +11,7 @@ type WaitForAppReadyOptions = {
  * Wait for the Electron app to have a ready, loaded window.
  * Handles cases where the first window is slow to appear.
  */
-const waitForAppReady = async (
+const waitForReadyPage = async (
   app: ElectronApplication,
   options: WaitForAppReadyOptions = {}
 ) => {
@@ -58,8 +58,8 @@ const closeAllCollections = async (page) => {
       const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
 
       if (hasDiscardButton) {
-        // Drafts modal - click "Discard All and Remove"
-        await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+        // Drafts modal - click "Discard All and Remove" (force to avoid element stability issues)
+        await page.getByRole('button', { name: 'Discard All and Remove' }).click({ force: true });
       } else {
         // Regular modal - click the submit button
         await page.locator('.bruno-modal-footer .submit').click();
@@ -1087,7 +1087,7 @@ const closeAllTabs = async (page: Page) => {
 };
 
 export {
-  waitForAppReady,
+  waitForReadyPage,
   closeAllCollections,
   openCollection,
   createCollection,

@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import { test, expect } from '../../playwright';
-import { createCollection, waitForAppReady } from '../utils/page';
+import { createCollection, waitForReadyPage } from '../utils/page';
 
 type WorkspaceConfig = { collections?: { name: string }[] };
 
@@ -13,7 +13,7 @@ test.describe('Collection reorder persistence', () => {
     const colBPath = await createTmpDir('col-b');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await waitForAppReady(app);
+    const page = await waitForReadyPage(app);
 
     await test.step('Create two collections', async () => {
       await createCollection(page, 'ColA', colAPath);
@@ -44,7 +44,7 @@ test.describe('Collection reorder persistence', () => {
 
     await test.step('Restart app and verify order persisted', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await waitForAppReady(app2);
+      const page2 = await waitForReadyPage(app2);
 
       const rows2 = page2.getByTestId('sidebar-collection-row');
       await expect(rows2.nth(0)).toContainText('ColB');
@@ -61,7 +61,7 @@ test.describe('Collection reorder persistence', () => {
     const colBPath = await createTmpDir('col-b');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await waitForAppReady(app);
+    const page = await waitForReadyPage(app);
 
     await test.step('Create two collections', async () => {
       await createCollection(page, 'ColA', colAPath);
