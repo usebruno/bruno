@@ -185,3 +185,8 @@ body.os-mac * {
  * transform: scale(1.1);
  * }
  */
+
+ .react-tooltip {
+  z-index: 10000 !important;
+  position: fixed !important;
+}
