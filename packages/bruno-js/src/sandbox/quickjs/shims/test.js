@@ -79,6 +79,28 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
       })();
     `
   );
+  // Register custom chai assertion for jsonSchema (expect(...).to.have.jsonSchema(schema, options))
+  vm.evalCode(
+    `
+      (function() {
+        var proto = Object.getPrototypeOf(expect(null));
+        proto.jsonSchema = function(schema, ajvOptions) {
+          var Ajv = require('ajv');
+          var ajv = new Ajv(ajvOptions || { allErrors: true });
+          var validate = ajv.compile(schema);
+          var data = this._obj;
+          var isValid = validate(data);
+
+          this.assert(
+            isValid,
+            'expected value to match JSON schema, validation errors: ' + (validate.errors ? JSON.stringify(validate.errors) : 'none'),
+            'expected value to not match JSON schema'
+          );
+          return this;
+        };
+      })();
+    `
+  );
 };
 
 module.exports = addBruShimToContext;
