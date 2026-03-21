@@ -1221,9 +1221,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
   test.describe('SHORTCUT: Collapse Sidebar', () => {
     test('collapse/expand sidebar using default Cmd/Ctrl+\\', async ({ page, createTmpDir }) => {
-      const collectionPath = await createTmpDir('collapse-sidebar-default');
-      await createCollection(page, 'test-collection-sidebar-default', collectionPath);
-
       // Get initial sidebar state
       const width = await page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width);
 
@@ -1241,7 +1238,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
 
     test('should collapse/expand sidebar using customized-1 Cmd/Ctrl+Shift+B', async ({ page, createTmpDir }) => {
-      // Remap collapseSidebar to Alt+X
+      // Remap collapseSidebar to Shift+G
       await openKeybindingsTab(page);
       const row = page.getByTestId('keybinding-row-collapseSidebar');
       await row.hover();
@@ -1250,15 +1247,15 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
       await page.keyboard.down('Backspace');
 
-      await page.keyboard.down('Alt');
-      await page.keyboard.down('KeyX');
-      await page.keyboard.up('KeyX');
-      await page.keyboard.up('Alt');
+      await page.keyboard.down('Shift');
+      await page.keyboard.down('KeyG');
+      await page.keyboard.up('KeyG');
+      await page.keyboard.up('Shift');
 
-      await page.keyboard.down('Alt');
-      await page.keyboard.down('KeyX');
-      await page.keyboard.up('KeyX');
-      await page.keyboard.up('Alt');
+      await page.keyboard.down('Shift');
+      await page.keyboard.down('KeyG');
+      await page.keyboard.up('KeyG');
+      await page.keyboard.up('Shift');
 
       // Get initial sidebar state
       const width = await page.locator('aside.sidebar').evaluate((el) =>
