@@ -4,6 +4,8 @@
 
 // Store captured channel options for assertions
 let capturedChannelOptions = null;
+let lastRpc = null;
+let lastUnaryCallback = null;
 
 // Mock GrpcReflection to capture options
 const mockListServices = jest.fn().mockResolvedValue(['test.Service']);
@@ -53,6 +55,11 @@ jest.mock('@grpc/grpc-js', () => {
         handlers[event] = handler;
         return mockRpc; // Return the mock object for chaining
       }),
+      __emit: jest.fn((event, payload) => {
+        if (handlers[event]) {
+          handlers[event](payload);
+        }
+      }),
       write: jest.fn(),
       end: jest.fn(),
       cancel: jest.fn(),
@@ -68,9 +75,13 @@ jest.mock('@grpc/grpc-js', () => {
       return jest.fn().mockImplementation((host, credentials, options) => {
         capturedChannelOptions = options;
         const mockRpc = createMockRpc();
+        lastRpc = mockRpc;
         return {
           close: jest.fn(),
-          makeUnaryRequest: jest.fn().mockReturnValue(mockRpc),
+          makeUnaryRequest: jest.fn((requestPath, requestSerialize, responseDeserialize, message, metadata, callback) => {
+            lastUnaryCallback = callback;
+            return mockRpc;
+          }),
           makeClientStreamRequest: jest.fn().mockReturnValue(mockRpc),
           makeServerStreamRequest: jest.fn().mockReturnValue(mockRpc),
           makeBidiStreamRequest: jest.fn().mockReturnValue(mockRpc)
@@ -105,6 +116,8 @@ describe('GrpcClient', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     capturedChannelOptions = null;
+    lastRpc = null;
+    lastUnaryCallback = null;
     mockEventCallback = jest.fn();
     grpcClient = new GrpcClient(mockEventCallback);
   });
@@ -503,6 +516,127 @@ describe('GrpcClient', () => {
         // Empty string is falsy, so grpc.primary_user_agent should not be set
         expect(capturedChannelOptions['grpc.primary_user_agent']).toBeUndefined();
       });
+    });
+  });
+
+  describe('gRPC response normalization', () => {
+    const baseRequest = {
+      url: 'grpc://localhost:50051',
+      uid: 'test-request-uid',
+      method: '/test.Service/TestMethod',
+      headers: {},
+      body: {
+        grpc: [{ content: '{}' }]
+      }
+    };
+
+    const baseCollection = {
+      uid: 'test-collection-uid',
+      pathname: '/test/path'
+    };
+
+    test('should add nulls for missing response fields', async () => {
+      grpcClient.methods.set('/test.Service/TestMethod', {
+        path: '/test.Service/TestMethod',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (val) => Buffer.from(JSON.stringify(val)),
+        responseDeserialize: (val) => JSON.parse(val.toString()),
+        responseType: {
+          field: [
+            { name: 'id', type: 'TYPE_STRING' },
+            { name: 'count', type: 'TYPE_INT32' },
+            { name: 'tags', type: 'TYPE_STRING', label: 'LABEL_REPEATED' },
+            {
+              name: 'meta',
+              type: 'TYPE_MESSAGE',
+              messageType: {
+                field: [
+                  { name: 'createdAt', type: 'TYPE_STRING' },
+                  {
+                    name: 'owner',
+                    type: 'TYPE_MESSAGE',
+                    messageType: {
+                      field: [
+                        { name: 'name', type: 'TYPE_STRING' },
+                        { name: 'age', type: 'TYPE_INT32' }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              name: 'items',
+              type: 'TYPE_MESSAGE',
+              label: 'LABEL_REPEATED',
+              messageType: {
+                field: [{ name: 'value', type: 'TYPE_STRING' }]
+              }
+            }
+          ]
+        }
+      });
+
+      await grpcClient.startConnection({
+        request: baseRequest,
+        collection: baseCollection
+      });
+
+      const response = {
+        id: 'abc',
+        meta: { owner: { name: 'Alice' } },
+        items: [{}]
+      };
+
+      lastUnaryCallback(null, response);
+
+      const expected = {
+        id: 'abc',
+        count: null,
+        tags: null,
+        meta: {
+          createdAt: null,
+          owner: {
+            name: 'Alice',
+            age: null
+          }
+        },
+        items: [{ value: null }]
+      };
+
+      expect(mockEventCallback).toHaveBeenCalledWith(
+        'grpc:response',
+        'test-request-uid',
+        'test-collection-uid',
+        { error: null, res: expected }
+      );
+    });
+
+    test('should leave response unchanged when schema is missing', async () => {
+      grpcClient.methods.set('/test.Service/TestMethod', {
+        path: '/test.Service/TestMethod',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (val) => Buffer.from(JSON.stringify(val)),
+        responseDeserialize: (val) => JSON.parse(val.toString())
+      });
+
+      await grpcClient.startConnection({
+        request: baseRequest,
+        collection: baseCollection
+      });
+
+      const response = { id: 'abc', count: 2 };
+
+      lastUnaryCallback(null, response);
+
+      expect(mockEventCallback).toHaveBeenCalledWith(
+        'grpc:response',
+        'test-request-uid',
+        'test-collection-uid',
+        { error: null, res: response }
+      );
     });
   });
 });

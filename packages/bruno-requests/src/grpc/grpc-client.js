@@ -51,6 +51,79 @@ const ensureBuffer = (data) => {
   return Buffer.from(data, 'utf-8');
 };
 
+const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+
+const getMethodResponseFields = (method) => {
+  try {
+    if (method?.responseType?.type?.field) {
+      return method.responseType.type.field;
+    }
+
+    if (method?.responseType?.field) {
+      return method.responseType.field;
+    }
+
+    if (method?.responseType?.type) {
+      return method.responseType.type;
+    }
+  } catch (error) {
+    console.error('Error extracting method response fields:', error);
+  }
+
+  return null;
+};
+
+const normalizeGrpcResponseWithNulls = (data, fields) => {
+  if (!fields || !Array.isArray(fields)) {
+    return data;
+  }
+
+  const isObject = data && typeof data === 'object' && !Array.isArray(data);
+  if (!isObject) {
+    return data;
+  }
+
+  const normalized = { ...data };
+
+  fields.forEach((field) => {
+    const key = field.name;
+    const isRepeated = field.label === 'LABEL_REPEATED';
+    const isMessage = field.type === 'TYPE_MESSAGE';
+    const hasValue = hasOwn(normalized, key) && normalized[key] !== undefined;
+
+    if (isRepeated) {
+      if (!hasValue) {
+        normalized[key] = null;
+        return;
+      }
+
+      if (isMessage && Array.isArray(normalized[key]) && field.messageType?.field) {
+        normalized[key] = normalized[key].map((item) => normalizeGrpcResponseWithNulls(item, field.messageType.field));
+      }
+      return;
+    }
+
+    if (!hasValue) {
+      normalized[key] = null;
+      return;
+    }
+
+    if (isMessage && normalized[key] !== null && field.messageType?.field) {
+      normalized[key] = normalizeGrpcResponseWithNulls(normalized[key], field.messageType.field);
+    }
+  });
+
+  return normalized;
+};
+
+const normalizeGrpcResponseForMethod = (data, method) => {
+  const fields = getMethodResponseFields(method);
+  if (!fields) {
+    return data;
+  }
+  return normalizeGrpcResponseWithNulls(data, fields);
+};
+
 /**
  * Safely parse JSON string with error handling
  * @param {string} jsonString - The JSON string to parse
@@ -150,13 +223,14 @@ const getParsedGrpcUrlObject = (url) => {
  * @param {string} collectionUid - The collection UID
  * @param {Object} rpc - The gRPC object
  */
-const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc) => {
+const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc, normalizeResponse) => {
   rpc.on('status', (status, res) => {
     const statusWithMetadata = {
       ...status,
       metadata: processGrpcMetadata(status.metadata.getMap ? status.metadata.getMap() : status.metadata)
     };
-    callback('grpc:status', requestId, collectionUid, { status: statusWithMetadata, res });
+    const normalizedRes = normalizeResponse ? normalizeResponse(res) : res;
+    callback('grpc:status', requestId, collectionUid, { status: statusWithMetadata, res: normalizedRes });
   });
 
   rpc.on('error', (error) => {
@@ -168,17 +242,20 @@ const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc) => {
   });
 
   rpc.on('end', (res) => {
-    callback('grpc:server-end-stream', requestId, collectionUid, { res });
+    const normalizedRes = normalizeResponse ? normalizeResponse(res) : res;
+    callback('grpc:server-end-stream', requestId, collectionUid, { res: normalizedRes });
     const channel = rpc?.call?.channel;
     if (channel) channel.close();
   });
 
   rpc.on('data', (res) => {
-    callback('grpc:response', requestId, collectionUid, { error: null, res });
+    const normalizedRes = normalizeResponse ? normalizeResponse(res) : res;
+    callback('grpc:response', requestId, collectionUid, { error: null, res: normalizedRes });
   });
 
   rpc.on('cancel', (res) => {
-    callback('grpc:server-cancel-stream', requestId, collectionUid, { res });
+    const normalizedRes = normalizeResponse ? normalizeResponse(res) : res;
+    callback('grpc:server-cancel-stream', requestId, collectionUid, { res: normalizedRes });
 
     const channel = rpc?.call?.channel;
     if (channel) channel.close();
@@ -415,6 +492,7 @@ class GrpcClient {
    * Handle unary responses
    */
   #handleUnaryResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
+    const normalizeResponse = (res) => normalizeGrpcResponseForMethod(res, method);
     const rpc = client.makeUnaryRequest(
       requestPath,
       method.requestSerialize,
@@ -422,30 +500,34 @@ class GrpcClient {
       messages[0],
       metadata,
       (error, res) => {
-        this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
+        const normalizedRes = normalizeResponse(res);
+        this.eventCallback('grpc:response', requestId, collectionUid, { error, res: normalizedRes });
       }
     );
 
-    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, normalizeResponse);
   }
 
   #handleClientStreamingResponse({ client, requestId, requestPath, method, metadata, collectionUid }) {
+    const normalizeResponse = (res) => normalizeGrpcResponseForMethod(res, method);
     const rpc = client.makeClientStreamRequest(
       requestPath,
       method.requestSerialize,
       method.responseDeserialize,
       metadata,
       (error, res) => {
-        this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
+        const normalizedRes = normalizeResponse(res);
+        this.eventCallback('grpc:response', requestId, collectionUid, { error, res: normalizedRes });
       }
     );
     this.#addConnection(requestId, rpc);
 
-    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, normalizeResponse);
   }
 
   #handleServerStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
     const message = messages[0];
+    const normalizeResponse = (res) => normalizeGrpcResponseForMethod(res, method);
     const rpc = client.makeServerStreamRequest(
       requestPath,
       method.requestSerialize,
@@ -453,15 +535,17 @@ class GrpcClient {
       message,
       metadata,
       (error, res) => {
-        this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
+        const normalizedRes = normalizeResponse(res);
+        this.eventCallback('grpc:response', requestId, collectionUid, { error, res: normalizedRes });
       }
     );
     this.#addConnection(requestId, rpc);
 
-    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, normalizeResponse);
   }
 
   #handleBidiStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
+    const normalizeResponse = (res) => normalizeGrpcResponseForMethod(res, method);
     const rpc = client.makeBidiStreamRequest(
       requestPath,
       method.requestSerialize,
@@ -470,7 +554,7 @@ class GrpcClient {
     );
     this.#addConnection(requestId, rpc);
 
-    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, normalizeResponse);
   }
 
   /**
