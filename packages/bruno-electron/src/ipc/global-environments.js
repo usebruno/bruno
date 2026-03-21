@@ -2,6 +2,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { ipcMain } = require('electron');
+const { utils: { jsonToDotenv } } = require('@usebruno/common');
 const { globalEnvironmentsStore } = require('../store/global-environments');
 const { generateUniqueName, sanitizeName, writeFile, isValidDotEnvFilename } = require('../utils/filesystem');
 
@@ -114,22 +115,7 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
       }
 
       const dotEnvPath = path.join(workspacePath, filename);
-
-      // Convert variables array to .env format
-      const content = variables
-        .filter((v) => v.name && v.name.trim() !== '')
-        .map((v) => {
-          const value = v.value || '';
-          // If value contains newlines or special characters, wrap in quotes
-          if (value.includes('\n') || value.includes('"') || value.includes('\'') || value.includes('\\')) {
-            // Escape backslashes first, then double quotes
-            const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-            return `${v.name}="${escapedValue}"`;
-          }
-          return `${v.name}=${value}`;
-        })
-        .join('\n');
-
+      const content = jsonToDotenv(variables);
       await writeFile(dotEnvPath, content);
 
       return { success: true };

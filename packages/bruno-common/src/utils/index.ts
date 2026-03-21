@@ -20,3 +20,8 @@ export {
   extractPromptVariables,
   extractPromptVariablesFromString
 } from './prompt-variables';
+
+export {
+  jsonToDotenv,
+  DotenvVariable
+} from './jsonToDotenv';
