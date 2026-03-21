@@ -48,7 +48,8 @@ const initialState = {
       sslSession: {
         enabled: false
       }
-    }
+    },
+    keybindingsEnabled: true
   },
   generateCode: {
     mainLanguage: 'Shell',
@@ -67,7 +68,15 @@ const initialState = {
     collection: { query: '', expanded: false },
     global: { query: '', expanded: false }
   },
-  isCreatingCollection: false
+  isCreatingCollection: false,
+  collectionSearchActive: false,
+  sidebarItemFocused: false,
+  sidebarSelectedItem: null,
+  renameModalItem: null,
+  cloneModalItem: null,
+  newRequestModalItem: null,
+  importCollectionModalOpen: false,
+  globalSearchOpen: false
 };
 
 export const appSlice = createSlice({
@@ -138,6 +147,11 @@ export const appSlice = createSlice({
     },
     toggleSidebarCollapse: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed;
+      // Clear sidebar selection when sidebar is hidden
+      if (state.sidebarCollapsed) {
+        state.sidebarItemFocused = false;
+        state.sidebarSelectedItem = null;
+      }
     },
     updateGitOperationProgress: (state, action) => {
       const { uid, data } = action.payload;
@@ -166,6 +180,49 @@ export const appSlice = createSlice({
     },
     setIsCreatingCollection: (state, action) => {
       state.isCreatingCollection = action.payload;
+    },
+    setCollectionSearchActive: (state, action) => {
+      state.collectionSearchActive = action.payload;
+    },
+    setSidebarItemFocused: (state, action) => {
+      state.sidebarItemFocused = action.payload;
+    },
+    setSidebarSelectedItem: (state, action) => {
+      state.sidebarSelectedItem = action.payload;
+    },
+    clearSidebarSelection: (state) => {
+      state.sidebarItemFocused = false;
+      state.sidebarSelectedItem = null;
+    },
+    setRenameModalItem: (state, action) => {
+      state.renameModalItem = action.payload;
+    },
+    clearRenameModalItem: (state) => {
+      state.renameModalItem = null;
+    },
+    setCloneModalItem: (state, action) => {
+      state.cloneModalItem = action.payload;
+    },
+    clearCloneModalItem: (state) => {
+      state.cloneModalItem = null;
+    },
+    setNewRequestModalItem: (state, action) => {
+      state.newRequestModalItem = action.payload;
+    },
+    clearNewRequestModalItem: (state) => {
+      state.newRequestModalItem = null;
+    },
+    setImportCollectionModalOpen: (state) => {
+      state.importCollectionModalOpen = true;
+    },
+    clearImportCollectionModalOpen: (state) => {
+      state.importCollectionModalOpen = false;
+    },
+    setGlobalSearchOpen: (state) => {
+      state.globalSearchOpen = true;
+    },
+    clearGlobalSearchOpen: (state) => {
+      state.globalSearchOpen = false;
     }
   },
   extraReducers: (builder) => {
@@ -210,7 +267,21 @@ export const {
   setClipboard,
   setEnvVarSearchQuery,
   setEnvVarSearchExpanded,
-  setIsCreatingCollection
+  setIsCreatingCollection,
+  setCollectionSearchActive,
+  setSidebarItemFocused,
+  setSidebarSelectedItem,
+  clearSidebarSelection,
+  setRenameModalItem,
+  clearRenameModalItem,
+  setCloneModalItem,
+  clearCloneModalItem,
+  setNewRequestModalItem,
+  clearNewRequestModalItem,
+  setImportCollectionModalOpen,
+  clearImportCollectionModalOpen,
+  setGlobalSearchOpen,
+  clearGlobalSearchOpen
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {

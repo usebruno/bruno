@@ -6,6 +6,7 @@ import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import StyledWrapper from './StyledWrapper';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { setupShortcuts } from 'utils/codemirror/shortcuts';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
@@ -24,6 +25,8 @@ class MultiLineEditor extends Component {
     this.state = {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
     };
+    // Shortcuts cleanup function
+    this._shortcutsCleanup = null;
   }
 
   componentDidMount() {
@@ -55,16 +58,16 @@ class MultiLineEditor extends Component {
             this.props.onRun();
           }
         },
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
+        // 'Cmd-S': () => {
+        //   if (this.props.onSave) {
+        //     this.props.onSave();
+        //   }
+        // },
+        // 'Ctrl-S': () => {
+        //   if (this.props.onSave) {
+        //     this.props.onSave();
+        //   }
+        // },
         'Cmd-F': () => {},
         'Ctrl-F': () => {},
         // Tabbing disabled to make tabindex work
@@ -89,6 +92,9 @@ class MultiLineEditor extends Component {
     );
 
     setupLinkAware(this.editor);
+
+    // Setup keyboard shortcuts
+    this._shortcutsCleanup = setupShortcuts(this.editor, this);
 
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
@@ -179,6 +185,12 @@ class MultiLineEditor extends Component {
   }
 
   componentWillUnmount() {
+    // Cleanup shortcuts (keymap and store subscription)
+    if (this._shortcutsCleanup) {
+      this._shortcutsCleanup();
+      this._shortcutsCleanup = null;
+    }
+
     if (this.brunoAutoCompleteCleanup) {
       this.brunoAutoCompleteCleanup();
     }

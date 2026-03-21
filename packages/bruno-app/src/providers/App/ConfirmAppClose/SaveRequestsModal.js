@@ -7,13 +7,15 @@ import { useDispatch } from 'react-redux';
 import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { deleteCollectionDraft, deleteFolderDraft, deleteRequestDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
+import { saveGlobalEnvironment, clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
 
-const SaveRequestsModal = ({ onClose }) => {
+const SaveRequestsModal = ({ onClose, forCloseTabs = false }) => {
   const MAX_UNSAVED_ITEMS_TO_SHOW = 5;
   const collections = useSelector((state) => state.collections.collections);
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -101,13 +103,72 @@ const SaveRequestsModal = ({ onClose }) => {
 
   useEffect(() => {
     if (totalDraftsCount === 0) {
-      return dispatch(completeQuitFlow());
+      if (forCloseTabs) {
+        // Close tabs without quitting the app (no drafts to delete)
+        const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
+        const closableTabs = tabs.filter((tab) => !nonClosableTypes.includes(tab.type));
+        if (closableTabs.length > 0) {
+          const tabUids = closableTabs.map((t) => t.uid);
+          dispatch(closeTabs({ tabUids }));
+        }
+        onClose();
+      } else {
+        return dispatch(completeQuitFlow());
+      }
     }
-  }, [totalDraftsCount, dispatch]);
+  }, [totalDraftsCount, dispatch, forCloseTabs, tabs, onClose]);
 
   const closeWithoutSave = () => {
-    dispatch(completeQuitFlow());
-    onClose();
+    if (forCloseTabs) {
+      // For closeAllTabs - delete drafts first, then close tabs, then close modal
+      // This follows the same pattern as single tab close confirmation
+
+      // Separate drafts by type
+      const collectionDrafts = allDrafts.filter((d) => d.type === 'collection');
+      const folderDrafts = allDrafts.filter((d) => d.type === 'folder');
+      const requestDrafts = allDrafts.filter((d) => isItemARequest(d));
+      const collectionEnvironmentDrafts = allDrafts.filter((d) => d.type === 'collection-environment');
+      const globalEnvironmentDrafts = allDrafts.filter((d) => d.type === 'global-environment');
+
+      // Delete collection drafts
+      each(collectionDrafts, (draft) => {
+        dispatch(deleteCollectionDraft({ collectionUid: draft.collectionUid }));
+      });
+
+      // Delete folder drafts
+      each(folderDrafts, (draft) => {
+        dispatch(deleteFolderDraft({ collectionUid: draft.collectionUid, folderUid: draft.folderUid }));
+      });
+
+      // Delete request drafts
+      each(requestDrafts, (draft) => {
+        dispatch(deleteRequestDraft({ itemUid: draft.uid, collectionUid: draft.collectionUid }));
+      });
+
+      // Clear collection environment drafts
+      each(collectionEnvironmentDrafts, (draft) => {
+        dispatch(clearEnvironmentsDraft({ collectionUid: draft.collectionUid }));
+      });
+
+      // Clear global environment drafts
+      each(globalEnvironmentDrafts, () => {
+        dispatch(clearGlobalEnvironmentDraft());
+      });
+
+      // Close tabs (filtering out non-closable types)
+      const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
+      const closableTabs = tabs.filter((tab) => !nonClosableTypes.includes(tab.type));
+      if (closableTabs.length > 0) {
+        const tabUids = closableTabs.map((t) => t.uid);
+        dispatch(closeTabs({ tabUids }));
+      }
+
+      onClose();
+    } else {
+      // For app quit - quit the app
+      dispatch(completeQuitFlow());
+      onClose();
+    }
   };
 
   const closeWithSave = async () => {
@@ -144,8 +205,20 @@ const SaveRequestsModal = ({ onClose }) => {
         await dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }));
       }
 
-      dispatch(completeQuitFlow());
-      onClose();
+      if (forCloseTabs) {
+        // For closeAllTabs - close tabs without quitting app
+        const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
+        const closableTabs = tabs.filter((tab) => !nonClosableTypes.includes(tab.type));
+        if (closableTabs.length > 0) {
+          const tabUids = closableTabs.map((t) => t.uid);
+          dispatch(closeTabs({ tabUids }));
+        }
+        onClose();
+      } else {
+        // For app quit - quit the app
+        dispatch(completeQuitFlow());
+        onClose();
+      }
     } catch (error) {
       console.error('Error saving drafts:', error);
     }

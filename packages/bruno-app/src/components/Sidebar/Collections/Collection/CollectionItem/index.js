@@ -24,7 +24,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
-import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import { insertTaskIntoQueue, setSidebarItemFocused, setSidebarSelectedItem, clearRenameModalItem, clearCloneModalItem, clearNewRequestModalItem, newRequestModalItem } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
 import { copyRequest } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -39,7 +39,6 @@ import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from '
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
-import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from './CollectionItemInfo/index';
 import CollectionItemIcon from './CollectionItemIcon';
@@ -69,6 +68,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
+  const renameModalItem = useSelector((state) => state.app.renameModalItem);
+  const cloneModalItem = useSelector((state) => state.app.cloneModalItem);
+  const newRequestModalItem = useSelector((state) => state.app.newRequestModalItem);
   const dispatch = useDispatch();
 
   // We use a single ref for drag and drop.
@@ -92,6 +94,33 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
+
+  // Listen for renameModalItem from global command
+  useEffect(() => {
+    if (renameModalItem && renameModalItem.uid === item.uid) {
+      setRenameItemModalOpen(true);
+      dispatch(clearRenameModalItem());
+    }
+  }, [renameModalItem, item.uid, dispatch]);
+
+  // Listen for cloneModalItem from global command
+  useEffect(() => {
+    if (cloneModalItem && cloneModalItem.uid === item.uid) {
+      setCloneItemModalOpen(true);
+      dispatch(clearCloneModalItem());
+    }
+  }, [cloneModalItem, item.uid, dispatch]);
+
+  // Listen for newRequestModalItem from global command
+  useEffect(() => {
+    if (newRequestModalItem && newRequestModalItem.uid === item.uid) {
+      // Only open for folders - requests should not trigger new request modal
+      if (item.type === 'folder') {
+        setNewRequestModalOpen(true);
+        dispatch(clearNewRequestModalItem());
+      }
+    }
+  }, [newRequestModalItem, item.uid, item.type, dispatch]);
 
   const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
 
@@ -560,38 +589,25 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       });
   };
 
-  // Keyboard shortcuts handler
-  const handleKeyDown = (e) => {
-    // Detect Mac by checking both metaKey and platform
-    const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
-    const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
-
-    const [macRenameKey, winRenameKey] = getKeyBindingsForActionAllOS('renameItem');
-    const renameKey = isMac ? macRenameKey : winRenameKey;
-
-    // Only trigger rename if no modifier keys are pressed (allow Cmd+Enter for run request)
-    const hasModifier = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
-    if (e.key.toLowerCase() === renameKey && !hasModifier) {
-      e.preventDefault();
-      e.stopPropagation();
-      setRenameItemModalOpen(true);
-    } else if (isModifierPressed && e.key.toLowerCase() === 'c') {
-      e.preventDefault();
-      e.stopPropagation();
-      handleCopyItem();
-    } else if (isModifierPressed && e.key.toLowerCase() === 'v') {
-      e.preventDefault();
-      e.stopPropagation();
-      handlePasteItem();
-    }
-  };
-
   const handleFocus = () => {
     setIsKeyboardFocused(true);
+    dispatch(setSidebarItemFocused(true));
+    dispatch(setSidebarSelectedItem({
+      uid: item.uid,
+      collectionUid,
+      type: item.type,
+      name: item.name
+    }));
   };
 
-  const handleBlur = () => {
+  const handleBlur = (e) => {
     setIsKeyboardFocused(false);
+    // Only clear global focus if focus is leaving the sidebar entirely
+    const relatedTarget = e?.relatedTarget;
+    const sidebar = e?.currentTarget?.closest('.sidebar, .collections-sidebar');
+    if (!sidebar || !sidebar.contains(relatedTarget)) {
+      dispatch(setSidebarItemFocused(false));
+    }
   };
 
   return (
@@ -634,7 +650,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           drag(drop(node));
         }}
         tabIndex={0}
-        onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onContextMenu={handleContextMenu}

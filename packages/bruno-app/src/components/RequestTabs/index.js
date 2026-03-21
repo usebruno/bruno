@@ -29,6 +29,14 @@ const RequestTabs = () => {
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
 
+  // Expose scroll function for keyboard shortcuts
+  window.scrollActiveTabIntoView = () => {
+    const activeTab = tabsRef.current?.querySelector('.request-tab.active');
+    if (activeTab) {
+      activeTab.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  };
+
   const createSetHasOverflow = useCallback((tabUid) => {
     return (hasOverflow) => {
       setTabOverflowStates((prev) => {

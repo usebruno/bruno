@@ -8,7 +8,7 @@ import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
 import ApiSpecPanel from 'components/ApiSpecPanel';
 // import ErrorCapture from 'components/ErrorCapture';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
@@ -21,6 +21,8 @@ import useWsEventListeners from 'utils/network/ws-event-listeners';
 import Portal from 'components/Portal';
 import SaveTransientRequestContainer from 'components/SaveTransientRequest/Container';
 import SaveTransientRequest from 'components/SaveTransientRequest';
+import GlobalSearchModal from 'components/GlobalSearchModal';
+import { clearGlobalSearchOpen } from 'providers/ReduxStore/slices/app';
 
 require('codemirror/mode/javascript/javascript');
 require('codemirror/mode/xml/xml');
@@ -73,6 +75,7 @@ const TransientRequestModalsRenderer = ({ modals }) => {
 };
 
 export default function Main() {
+  const dispatch = useDispatch();
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
   const isDragging = useSelector((state) => state.app.isDragging);
@@ -80,6 +83,7 @@ export default function Main() {
   const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
   const saveTransientRequestModals = useSelector((state) => state.collections.saveTransientRequestModals);
+  const globalSearchOpen = useSelector((state) => state.app.globalSearchOpen);
   const mainSectionRef = useRef(null);
   const [showRosettaBanner, setShowRosettaBanner] = useState(false);
 
@@ -155,6 +159,7 @@ export default function Main() {
       <Devtools mainSectionRef={mainSectionRef} />
       <StatusBar />
       <TransientRequestModalsRenderer modals={saveTransientRequestModals} />
+      <GlobalSearchModal isOpen={globalSearchOpen} onClose={() => dispatch(clearGlobalSearchOpen())} />
     </div>
     // </ErrorCapture>
   );

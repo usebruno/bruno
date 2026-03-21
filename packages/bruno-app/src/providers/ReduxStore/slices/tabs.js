@@ -7,7 +7,10 @@ import last from 'lodash/last';
 
 const initialState = {
   tabs: [],
-  activeTabUid: null
+  activeTabUid: null,
+  showCloseAllConfirmation: false,
+  closedTabs: [],
+  lastActiveCollectionUid: null
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
@@ -194,6 +197,39 @@ export const tabsSlice = createSlice({
       const tabUids = action.payload.tabUids || [];
 
       const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
+
+      // Push snapshots of closing tabs to closedTabs history (LIFO stack)
+      const closingTabs = state.tabs.filter(
+        (t) => tabUids.includes(t.uid) && !nonClosableTypes.includes(t.type)
+      );
+      if (closingTabs.length > 0) {
+        const collectionUid = closingTabs[0].collectionUid;
+        state.lastActiveCollectionUid = collectionUid;
+        closingTabs.forEach((t) => {
+          state.closedTabs.push({
+            uid: t.uid,
+            collectionUid: t.collectionUid,
+            type: t.type,
+            requestPaneTab: t.requestPaneTab,
+            ...(t.exampleUid ? { exampleUid: t.exampleUid } : {}),
+            ...(t.itemUid ? { itemUid: t.itemUid } : {})
+          });
+        });
+        // Cap at 50 entries per collection
+        const collectionEntries = state.closedTabs.filter((t) => t.collectionUid === collectionUid);
+        if (collectionEntries.length > 50) {
+          const excess = collectionEntries.length - 50;
+          let removed = 0;
+          state.closedTabs = state.closedTabs.filter((t) => {
+            if (t.collectionUid === collectionUid && removed < excess) {
+              removed++;
+              return false;
+            }
+            return true;
+          });
+        }
+      }
+
       state.tabs = filter(state.tabs, (t) =>
         !tabUids.includes(t.uid) || nonClosableTypes.includes(t.type)
       );
@@ -225,6 +261,39 @@ export const tabsSlice = createSlice({
     closeAllCollectionTabs: (state, action) => {
       const { collectionUid } = action.payload;
       const prevActiveTabUid = state.activeTabUid;
+      const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
+
+      // Push snapshots of all closing collection tabs to closedTabs history
+      const closingTabs = state.tabs.filter(
+        (t) => t.collectionUid === collectionUid && !nonClosableTypes.includes(t.type)
+      );
+      if (closingTabs.length > 0) {
+        state.lastActiveCollectionUid = collectionUid;
+        closingTabs.forEach((t) => {
+          state.closedTabs.push({
+            uid: t.uid,
+            collectionUid: t.collectionUid,
+            type: t.type,
+            requestPaneTab: t.requestPaneTab,
+            ...(t.exampleUid ? { exampleUid: t.exampleUid } : {}),
+            ...(t.itemUid ? { itemUid: t.itemUid } : {})
+          });
+        });
+        // Cap at 50 entries per collection
+        const collectionEntries = state.closedTabs.filter((t) => t.collectionUid === collectionUid);
+        if (collectionEntries.length > 50) {
+          const excess = collectionEntries.length - 50;
+          let removed = 0;
+          state.closedTabs = state.closedTabs.filter((t) => {
+            if (t.collectionUid === collectionUid && removed < excess) {
+              removed++;
+              return false;
+            }
+            return true;
+          });
+        }
+      }
+
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
 
       const activeTabStillExists = state.tabs.some((t) => t.uid === prevActiveTabUid);
@@ -239,6 +308,44 @@ export const tabsSlice = createSlice({
         tab.preview = false;
       } else {
         console.error('Tab not found!');
+      }
+    },
+    requestCloseConfirmation: (state, action) => {
+      const { uid } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.showCloseConfirmation = true;
+      }
+    },
+    clearCloseConfirmation: (state, action) => {
+      const { uid } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.showCloseConfirmation = false;
+      }
+    },
+    requestCloseAllConfirmation: (state, action) => {
+      state.showCloseAllConfirmation = true;
+    },
+    clearCloseAllConfirmation: (state, action) => {
+      state.showCloseAllConfirmation = false;
+    },
+    removeFromClosedTabs: (state, action) => {
+      const { uid, collectionUid } = action.payload;
+      // Remove the last matching entry (most recently added = LIFO)
+      const idx = state.closedTabs.reduceRight((found, t, i) => {
+        if (found !== -1) return found;
+        return t.uid === uid && t.collectionUid === collectionUid ? i : -1;
+      }, -1);
+      if (idx !== -1) {
+        state.closedTabs.splice(idx, 1);
+      }
+    },
+    clearClosedTabsForCollection: (state, action) => {
+      const { collectionUid } = action.payload;
+      state.closedTabs = state.closedTabs.filter((t) => t.collectionUid !== collectionUid);
+      if (state.lastActiveCollectionUid === collectionUid) {
+        state.lastActiveCollectionUid = null;
       }
     },
     reorderTabs: (state, action) => {
@@ -287,7 +394,13 @@ export const {
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
-  reorderTabs
+  reorderTabs,
+  requestCloseConfirmation,
+  clearCloseConfirmation,
+  requestCloseAllConfirmation,
+  clearCloseAllConfirmation,
+  removeFromClosedTabs,
+  clearClosedTabsForCollection
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

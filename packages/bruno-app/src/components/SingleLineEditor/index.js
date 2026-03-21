@@ -7,6 +7,7 @@ import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { setupShortcuts } from 'utils/codemirror/shortcuts';
 
 const CodeMirror = require('codemirror');
 
@@ -20,6 +21,9 @@ class SingleLineEditor extends Component {
     this.editorRef = React.createRef();
     this.variables = {};
     this.readOnly = props.readOnly || false;
+
+    // Shortcuts cleanup function
+    this._shortcutsCleanup = null;
 
     this.state = {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
@@ -59,8 +63,8 @@ class SingleLineEditor extends Component {
       readOnly: this.props.readOnly,
       extraKeys: {
         'Enter': runHandler,
-        'Ctrl-Enter': runHandler,
-        'Cmd-Enter': runHandler,
+        // 'Ctrl-Enter': runHandler,
+        // 'Cmd-Enter': runHandler,
         'Alt-Enter': () => {
           if (this.props.allowNewlines) {
             this.editor.setValue(this.editor.getValue() + '\n');
@@ -70,8 +74,8 @@ class SingleLineEditor extends Component {
           }
         },
         'Shift-Enter': runHandler,
-        'Cmd-S': saveHandler,
-        'Ctrl-S': saveHandler,
+        // 'Cmd-S': saveHandler,
+        // 'Ctrl-S': saveHandler,
         'Cmd-F': noopHandler,
         'Ctrl-F': noopHandler,
         // Tabbing disabled to make tabindex work
@@ -108,6 +112,9 @@ class SingleLineEditor extends Component {
       this._updateNewlineMarkers();
     }
     setupLinkAware(this.editor);
+
+    // Setup keyboard shortcuts using the dedicated utility
+    this._shortcutsCleanup = setupShortcuts(this.editor, this);
   }
 
   /** Enable or disable masking the rendered content of the editor */
