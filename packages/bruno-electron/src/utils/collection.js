@@ -469,12 +469,12 @@ const parseYmlFileMeta = (data) => {
     const yaml = require('js-yaml');
     const parsed = yaml.load(data);
 
-    if (!parsed || !parsed.meta) {
-      console.log('No "meta" section found in YAML file.');
+    // YML format uses 'info' block for metadata
+    const metaJson = parsed?.info || parsed?.meta;
+    if (!metaJson) {
+      console.log('No "info" or "meta" section found in YAML file.');
       return null;
     }
-
-    const metaJson = parsed.meta;
 
     // Transform to the format expected by bruno-app
     let requestType = metaJson.type;
@@ -482,7 +482,8 @@ const parseYmlFileMeta = (data) => {
       http: 'http-request',
       graphql: 'graphql-request',
       grpc: 'grpc-request',
-      ws: 'ws-request'
+      ws: 'ws-request',
+      mqtt: 'mqtt-request'
     };
     requestType = typeMap[requestType] || 'http-request';
 
@@ -614,6 +615,12 @@ const transformRequestToSaveToFilesystem = (item) => {
     itemToSave.request.methodType = _item.request.methodType;
     itemToSave.request.protoPath = _item.request.protoPath;
     delete itemToSave.request.params;
+  }
+
+  if (_item.type === 'mqtt-request') {
+    itemToSave.request.publish = _item.request.publish;
+    itemToSave.request.subscriptions = _item.request.subscriptions;
+    itemToSave.request.settings = _item.request.settings;
   }
 
   // Only process params for non-gRPC requests

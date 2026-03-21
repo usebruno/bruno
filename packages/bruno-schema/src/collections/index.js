@@ -499,6 +499,64 @@ const wsRequestSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const mqttRequestSchema = Yup.object({
+  url: requestUrlSchema,
+  publish: Yup.object({
+    topic: Yup.string().defined(),
+    qos: Yup.number().oneOf([0, 1, 2]).required(),
+    retain: Yup.boolean().required(),
+    payload: Yup.object({
+      type: Yup.string().oneOf(['json', 'text', 'xml', 'binary']).required(),
+      content: Yup.string().defined()
+    }).noUnknown(true).strict().required()
+  }).noUnknown(true).strict().required(),
+  subscriptions: Yup.array().of(
+    Yup.object({
+      topic: Yup.string().min(1).required(),
+      qos: Yup.number().oneOf([0, 1, 2]).required(),
+      enabled: Yup.boolean().required()
+    }).noUnknown(true).strict()
+  ).required(),
+  settings: Yup.object({
+    clientId: Yup.string().defined(),
+    mqttVersion: Yup.string().oneOf(['3.1.1', '5.0']).required(),
+    keepAlive: Yup.number().min(0).required(),
+    cleanSession: Yup.boolean().required(),
+    connectTimeout: Yup.number().min(0).required(),
+    username: Yup.string().nullable(),
+    password: Yup.string().nullable(),
+    ssl: Yup.object({
+      enabled: Yup.boolean().required(),
+      rejectUnauthorized: Yup.boolean().nullable(),
+      caCert: Yup.string().nullable(),
+      clientCert: Yup.string().nullable(),
+      clientKey: Yup.string().nullable()
+    }).noUnknown(true).strict().required(),
+    v5Properties: Yup.object({
+      sessionExpiryInterval: Yup.number().integer().min(0).nullable(),
+      receiveMaximum: Yup.number().integer().min(1).nullable(),
+      maximumPacketSize: Yup.number().integer().min(1).nullable(),
+      topicAliasMaximum: Yup.number().integer().min(0).nullable(),
+      userProperties: Yup.array().of(keyValueSchema).nullable()
+    }).noUnknown(true).strict().nullable()
+      .when('mqttVersion', {
+        is: '5.0',
+        otherwise: (schema) => schema.transform(() => null).nullable()
+      })
+  }).noUnknown(true).strict().required(),
+  script: Yup.object({
+    req: Yup.string().nullable(),
+    res: Yup.string().nullable()
+  }).noUnknown(true).strict().nullable(),
+  vars: Yup.object({
+    req: Yup.array().of(varsSchema).nullable(),
+    res: Yup.array().of(varsSchema).nullable()
+  }).noUnknown(true).strict().nullable(),
+  assertions: Yup.array().of(assertionSchema).nullable(),
+  tests: Yup.string().nullable(),
+  docs: Yup.string().nullable()
+}).noUnknown(true).strict();
+
 const wsSettingsSchema = Yup.object({
   settings: Yup.object({
     timeout: Yup.number()
@@ -547,19 +605,23 @@ const folderRootSchema = Yup.object({
 
 const itemSchema = Yup.object({
   uid: uidSchema,
-  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request', 'ws-request']).required('type is required'),
+  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request', 'ws-request', 'mqtt-request']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
   tags: Yup.array().of(Yup.string().matches(/^[\p{L}\p{N}_-](?:[\p{L}\p{N}_\s-]*[\p{L}\p{N}_-])?$/u, 'tag must contain only letters, numbers, spaces, hyphens, or underscores')),
   request: Yup.mixed().when('type', {
-    is: (type) => type === 'grpc-request',
-    then: grpcRequestSchema.required('request is required when item-type is grpc-request'),
+    is: (type) => type === 'mqtt-request',
+    then: mqttRequestSchema.required('request is required when item-type is mqtt-request'),
     otherwise: Yup.mixed().when('type', {
-      is: (type) => type === 'ws-request',
-      then: wsRequestSchema.required('request is required when item-type is ws-request'),
-      otherwise: requestSchema.when('type', {
-        is: (type) => ['http-request', 'graphql-request'].includes(type),
-        then: (schema) => schema.required('request is required when item-type is request')
+      is: (type) => type === 'grpc-request',
+      then: grpcRequestSchema.required('request is required when item-type is grpc-request'),
+      otherwise: Yup.mixed().when('type', {
+        is: (type) => type === 'ws-request',
+        then: wsRequestSchema.required('request is required when item-type is ws-request'),
+        otherwise: requestSchema.when('type', {
+          is: (type) => ['http-request', 'graphql-request'].includes(type),
+          then: (schema) => schema.required('request is required when item-type is request')
+        })
       })
     })
   }),

@@ -1,6 +1,7 @@
 import type { HttpRequest } from './http';
 import type { GrpcRequest } from './grpc';
 import type { WebSocketRequest } from './websocket';
+import type { MqttRequest } from './mqtt';
 
 export type {
   HttpRequest,
@@ -23,4 +24,13 @@ export type {
   WebSocketMessage
 } from './websocket';
 
-export type Request = HttpRequest | GrpcRequest | WebSocketRequest;
+export type {
+  MqttRequest,
+  MqttPublishConfig,
+  MqttSubscription,
+  MqttSettings,
+  MqttV5Properties,
+  MqttSslConfig
+} from './mqtt';
+
+export type Request = HttpRequest | GrpcRequest | WebSocketRequest | MqttRequest;

@@ -30,6 +30,9 @@ import ExampleNotFound from './ExampleNotFound';
 import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
 import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
+import MqttQueryUrl from 'components/RequestPane/MqttQueryUrl';
+import MqttRequestPane from 'components/RequestPane/MqttRequestPane';
+import MqttResponsePane from 'components/ResponsePane/MqttResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
 import ResponseExample from 'components/ResponseExample';
 import WorkspaceOverview from 'components/WorkspaceHome/WorkspaceOverview';
@@ -217,6 +220,7 @@ const RequestTabPanel = () => {
   const item = findItemInCollection(collection, activeTabUid);
   const isGrpcRequest = item?.type === 'grpc-request';
   const isWsRequest = item?.type === 'ws-request';
+  const isMqttRequest = item?.type === 'mqtt-request';
 
   if (focusedTab.type === 'collection-runner') {
     return <RunnerResults collection={collection} />;
@@ -305,6 +309,9 @@ const RequestTabPanel = () => {
     if (isWsRequest) {
       return <WsQueryUrl item={item} collection={collection} handleRun={handleRun} />;
     }
+    if (isMqttRequest) {
+      return <MqttQueryUrl item={item} collection={collection} />;
+    }
     return <QueryUrl item={item} collection={collection} handleRun={handleRun} />;
   };
 
@@ -326,6 +333,8 @@ const RequestTabPanel = () => {
         return <GrpcRequestPane item={item} collection={collection} handleRun={handleRun} />;
       case 'ws-request':
         return <WSRequestPane item={item} collection={collection} handleRun={handleRun} />;
+      case 'mqtt-request':
+        return <MqttRequestPane item={item} collection={collection} />;
       default:
         return null;
     }
@@ -337,6 +346,8 @@ const RequestTabPanel = () => {
         return <GrpcResponsePane item={item} collection={collection} response={item.response} />;
       case 'ws-request':
         return <WSResponsePane item={item} collection={collection} response={item.response} />;
+      case 'mqtt-request':
+        return <MqttResponsePane item={item} collection={collection} />;
       default:
         return <ResponsePane item={item} collection={collection} response={item.response} />;
     }

@@ -26,6 +26,7 @@ const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { wsClient } = require('../ipc/network/ws-event-handlers');
+const { mqttClient } = require('../ipc/network/mqtt-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 
 const {
@@ -1026,7 +1027,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         fs.rmSync(pathname, { recursive: true, force: true });
-      } else if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(type)) {
+      } else if (['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'mqtt-request'].includes(type)) {
         if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The file does not exist'));
         }
@@ -1116,6 +1117,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (wsClient) {
         wsClient.closeForCollection(collectionUid);
       }
+      if (mqttClient) {
+        mqttClient.closeForCollection(collectionUid);
+      }
     }
 
     // Clean up
@@ -1177,7 +1181,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         // Recursive function to parse the collection items and create files/folders
         const parseCollectionItems = async (items = [], currentPath) => {
           await Promise.all(items.map(async (item) => {
-            if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
+            if (['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'mqtt-request'].includes(item.type)) {
               let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
               const content = await stringifyRequestViaWorker(item, { format });
               const filePath = path.join(currentPath, sanitizedFilename);

@@ -243,7 +243,8 @@ const darkPastelTheme = {
     },
     grpc: '#9e8fd9', // Soft indigo
     ws: colors.MAGENTA, // Orchid
-    gql: colors.PINK // Rose
+    gql: colors.PINK, // Rose
+    mqtt: colors.TEAL // Aqua
   },
 
   requestTabPanel: {

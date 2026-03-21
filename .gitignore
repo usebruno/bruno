@@ -62,6 +62,7 @@ skills-lock.json
 CLAUDE.md
 AGENTS.md
 *.plan.md
+/openspec/
 
 # packages dist
 packages/bruno-filestore/dist

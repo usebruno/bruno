@@ -34,6 +34,7 @@ const { isRequestTagsIncluded } = require('@usebruno/common');
 const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
+const { registerMqttEventHandlers } = require('./mqtt-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { buildFormUrlEncodedPayload, isFormData } = require('@usebruno/common').utils;
 
@@ -1379,14 +1380,14 @@ const registerNetworkIpc = (mainWindow) => {
             ...eventData
           });
 
-          // Skip gRPC requests
-          if (item.type === 'grpc-request') {
+          // Skip gRPC, MQTT, and WebSocket requests
+          if (['grpc-request', 'mqtt-request', 'ws-request'].includes(item.type)) {
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'runner-request-skipped',
-              error: 'gRPC requests are skipped in folder/collection runs',
+              error: `${item.type} requests are skipped in folder/collection runs`,
               responseReceived: {
                 status: 'skipped',
-                statusText: 'gRPC request skipped',
+                statusText: `${item.type} request skipped`,
                 data: null,
                 responseTime: 0,
                 headers: null
@@ -1983,6 +1984,7 @@ const registerAllNetworkIpc = (mainWindow) => {
   registerNetworkIpc(mainWindow);
   registerGrpcEventHandlers(mainWindow);
   registerWsEventHandlers(mainWindow);
+  registerMqttEventHandlers(mainWindow);
 };
 
 module.exports = registerAllNetworkIpc;

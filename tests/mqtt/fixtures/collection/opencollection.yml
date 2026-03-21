@@ -1,0 +1,9 @@
+opencollection: "1.0.0"
+info:
+  name: mqtt-test-collection
+
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

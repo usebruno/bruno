@@ -337,3 +337,47 @@ export const getWsConnectionStatus = async (requestId) => {
     ipcRenderer.invoke('renderer:ws:connection-status', requestId).then(resolve).catch(reject);
   });
 };
+
+// MQTT Network Utilities
+
+export const connectMqtt = async (item, collection, environment, runtimeVariables) => {
+  const { ipcRenderer } = window;
+  const request = item.draft ? item.draft : item;
+  return ipcRenderer.invoke('renderer:mqtt:start-connection', {
+    request,
+    collection,
+    environment,
+    runtimeVariables
+  });
+};
+
+export const publishMqtt = async (item, collection, environment, runtimeVariables) => {
+  const { ipcRenderer } = window;
+  const request = item.draft ? item.draft : item;
+  return ipcRenderer.invoke('renderer:mqtt:publish', {
+    item: request,
+    collection,
+    environment,
+    runtimeVariables
+  });
+};
+
+export const subscribeMqtt = async (requestId, collectionUid, topic, qos) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:mqtt:subscribe', { requestId, collectionUid, topic, qos });
+};
+
+export const unsubscribeMqtt = async (requestId, collectionUid, topic) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:mqtt:unsubscribe', { requestId, collectionUid, topic });
+};
+
+export const disconnectMqtt = async (requestId) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:mqtt:close-connection', requestId);
+};
+
+export const getMqttConnectionStatus = async (requestId) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:mqtt:connection-status', requestId);
+};
