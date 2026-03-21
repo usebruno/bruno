@@ -61,7 +61,7 @@ const StyledWrapper = styled.div`
   .status-bar-divider {
     width: 1px;
     height: 16px;
-    background: ${(props) => props.theme.sidebar.dragbar};
+    background: ${(props) => props.theme.border.border2};
     opacity: 0.4;
   }
 
