@@ -16,18 +16,16 @@ const metadata = new Map();
  * @param {string} meta.name - Display name
  * @param {string} meta.description - Command description
  * @param {string} meta.when - When clause (optional)
+ * @param {string} meta.scope - Scope: 'global' (works in input fields), 'sidebar' (blocked in input fields), 'passthrough' (falls through to browser when when-clause fails). Defaults to 'sidebar'.
  */
 const register = (id, handler, meta = {}) => {
-  if (commands.has(id)) {
-    console.warn(`Command "${id}" is already registered. Overwriting.`);
-  }
-
   commands.set(id, handler);
   metadata.set(id, {
     id,
     name: meta.name || id,
     description: meta.description || '',
-    when: meta.when
+    when: meta.when,
+    scope: meta.scope || 'sidebar'
   });
 };
 

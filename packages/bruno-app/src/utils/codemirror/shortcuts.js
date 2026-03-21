@@ -6,10 +6,36 @@ const CodeMirror = require('codemirror');
 
 // Actions that should work within CodeMirror editor
 const EDITOR_ACTIONS = [
+  // ==== TABS ====
   'save',
   'saveAllTabs',
   'sendRequest',
-  'closeTab'
+  'closeTab',
+  'closeAllTabs',
+  'switchToPreviousTab',
+  'switchToNextTab',
+  'moveTabLeft',
+  'moveTabRight',
+  'switchToTab1',
+  'switchToTab2',
+  'switchToTab3',
+  'switchToTab4',
+  'switchToTab5',
+  'switchToTab6',
+  'switchToTab7',
+  'switchToTab8',
+  'switchToLastTab',
+  // ==== Terminal =====
+  'openTerminal',
+  // ==== LAYOUT =====
+  'changeLayout',
+  // ==== ZOOM =====
+  'zoomIn',
+  'zoomOut',
+  'resetZoom',
+  // ===== SIDEBAR =====
+  'editEnvironment',
+  'collapseSidebar'
 ];
 
 /**

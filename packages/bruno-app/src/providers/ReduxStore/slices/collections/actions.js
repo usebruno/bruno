@@ -65,7 +65,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, clearClosedTabsForCollection, closeTabs as _closeTabs, focusTab, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
@@ -2352,8 +2352,9 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
         return ipcRenderer.invoke('renderer:get-collection-workspaces', collection.pathname);
       })
       .then((remainingWorkspaces) => {
-        // Close tabs for this collection
+        // Close tabs for this collection and clear its closed-tab history
         dispatch(closeAllCollectionTabs({ collectionUid }));
+        dispatch(clearClosedTabsForCollection({ collectionUid }));
 
         // Remove collection from workspace in Redux state
         if (activeWorkspace) {

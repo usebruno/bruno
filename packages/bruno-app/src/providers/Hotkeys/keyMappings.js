@@ -1,72 +1,14 @@
-export const DEFAULT_KEY_BINDINGS = {
-  save: { mac: 'command+bind+s', windows: 'ctrl+bind+s', name: 'Save' },
-  sendRequest: { mac: 'command+bind+enter', windows: 'ctrl+bind+enter', name: 'Send Request' },
-  editEnvironment: { mac: 'command+bind+e', windows: 'ctrl+bind+e', name: 'Edit Environment' },
-  newRequest: { mac: 'command+bind+n', windows: 'ctrl+bind+n', name: 'New Request' },
-  importCollection: { mac: 'command+bind+o', windows: 'ctrl+bind+o', name: 'Import Collection' },
-  globalSearch: { mac: 'command+bind+k', windows: 'ctrl+bind+k', name: 'Global Search' },
-  sidebarSearch: { mac: 'command+bind+f', windows: 'ctrl+bind+f', name: 'Search Sidebar' },
-  closeTab: { mac: 'command+bind+w', windows: 'ctrl+bind+w', name: 'Close Tab' },
-  openPreferences: { mac: 'command+bind+,', windows: 'ctrl+bind+,', name: 'Open Preferences' },
-  changeLayout: { mac: 'command+bind+j', windows: 'ctrl+bind+j', name: 'Change Orientation' },
-  closeBruno: {
-    mac: 'command+bind+q',
-    windows: 'ctrl+bind+shift+bind+q',
-    name: 'Close Bruno'
-  },
-  switchToPreviousTab: {
-    mac: 'shift+bind+command+bind+[',
-    windows: 'shift+bind+ctrl+bind+[',
-    name: 'Switch to Previous Tab'
-  },
-  switchToNextTab: {
-    mac: 'shift+bind+command+bind+]',
-    windows: 'shift+bind+ctrl+bind+]',
-    name: 'Switch to Next Tab'
-  },
-  moveTabLeft: {
-    mac: 'command+bind+[',
-    windows: 'ctrl+bind+[',
-    name: 'Move Tab Left'
-  },
-  moveTabRight: {
-    mac: 'command+bind+]',
-    windows: 'ctrl+bind+]',
-    name: 'Move Tab Right'
-  },
-  closeAllTabs: { mac: 'command+bind+shift+bind+w', windows: 'ctrl+bind+shift+bind+w', name: 'Close All Tabs' },
-  collapseSidebar: { mac: 'command+bind+\\', windows: 'ctrl+bind+\\', name: 'Collapse Sidebar' },
-  zoomIn: { mac: 'command+bind+=', windows: 'ctrl+bind+=', name: 'Zoom In' },
-  zoomOut: { mac: 'command+bind+-', windows: 'ctrl+bind+-', name: 'Zoom Out' },
-  resetZoom: { mac: 'command+bind+0', windows: 'ctrl+bind+0', name: 'Reset Zoom' },
-  cloneItem: { mac: 'command+bind+d', windows: 'ctrl+bind+d', name: 'Clone Item' },
-  copyItem: { mac: 'command+bind+c', windows: 'ctrl+bind+c', name: 'Copy Item' },
-  pasteItem: { mac: 'command+bind+v', windows: 'ctrl+bind+v', name: 'Paste Item' },
-  renameItem: { mac: 'command+bind+r', windows: 'ctrl+bind+r', name: 'Rename Item' },
-  openTerminal: { mac: 'command+bind+t', windows: 'ctrl+bind+t', name: 'Open in Terminal' },
-  saveAllTabs: { mac: 'command+bind+shift+bind+s', windows: 'ctrl+bind+shift+bind+s', name: 'Save All Tabs' },
-  switchToLastTab: { mac: 'command+bind+9', windows: 'ctrl+bind+9', name: 'Switch to Last Tab' },
-  reopenLastClosedTab: { mac: 'command+bind+shift+bind+t', windows: 'ctrl+bind+shift+bind+t', name: 'Reopen Last Closed Tab' },
-  switchToTabAtPosition: { mac: 'command+bind+1+bind+command+bind+8', windows: 'ctrl+bind+1+bind+ctrl+bind+8', name: 'Switch to Tab at Position', readOnly: true, displayValue: { mac: 'command + 1 - command + 8', windows: 'ctrl + 1 - ctrl + 8' } },
-  switchToTab1: { mac: 'command+bind+1', windows: 'ctrl+bind+1', name: 'Switch to Tab at Position', readOnly: true, hidden: true },
-  switchToTab2: { mac: 'command+bind+2', windows: 'ctrl+bind+2', name: 'Switch to Tab at Position', readOnly: true, hidden: true },
-  switchToTab3: { mac: 'command+bind+3', windows: 'ctrl+bind+3', name: 'Switch to Tab at Position', readOnly: true, hidden: true },
-  switchToTab4: { mac: 'command+bind+4', windows: 'ctrl+bind+4', name: 'Switch to Tab at Position', readOnly: true, hidden: true },
-  switchToTab5: { mac: 'command+bind+5', windows: 'ctrl+bind+5', name: 'Switch to Tab at Position', readOnly: true, hidden: true },
-  switchToTab6: { mac: 'command+bind+6', windows: 'ctrl+bind+6', name: 'Switch to Tab at Position', readOnly: true, hidden: true },
-  switchToTab7: { mac: 'command+bind+7', windows: 'ctrl+bind+7', name: 'Switch to Tab at Position', readOnly: true, hidden: true },
-  switchToTab8: { mac: 'command+bind+8', windows: 'ctrl+bind+8', name: 'Switch to Tab at Position', readOnly: true, hidden: true }
-};
-
 export const KEY_BINDING_SECTIONS = [
   {
     heading: 'Tabs',
     bindings: {
       closeTab: { mac: 'command+bind+w', windows: 'ctrl+bind+w', name: 'Close Tab' },
       closeAllTabs: { mac: 'command+bind+shift+bind+w', windows: 'ctrl+bind+shift+bind+w', name: 'Close All Tabs' },
+      save: { mac: 'command+bind+s', windows: 'ctrl+bind+s', name: 'Save' },
       saveAllTabs: { mac: 'command+bind+shift+bind+s', windows: 'ctrl+bind+shift+bind+s', name: 'Save All Tabs' },
       reopenLastClosedTab: { mac: 'command+bind+shift+bind+t', windows: 'ctrl+bind+shift+bind+t', name: 'Reopen Last Closed Tab' },
-      switchToTabAtPosition: { mac: 'command+bind+1+bind+command+bind+8', windows: 'ctrl+bind+1+bind+ctrl+bind+8', name: 'Switch to Tab at Position', readOnly: true, displayValue: { mac: 'command + 1 - command + 8', windows: 'ctrl + 1 - ctrl + 8' } },
+      switchToTabAtPosition: { mac: 'command+bind+1+bind+command+bind+8', windows: 'ctrl+bind+1+bind+ctrl+bind+8', name: 'Switch to Tab at Position', readOnly: true, displayValue: { mac: 'command+bind+1 - command+bind+8', windows: 'ctrl+bind+1 - ctrl+bind+8' } },
+      switchToLastTab: { mac: 'command+bind+9', windows: 'ctrl+bind+9', name: 'Switch to Last Tab' },
       switchToPreviousTab: { mac: 'shift+bind+command+bind+[', windows: 'shift+bind+ctrl+bind+[', name: 'Switch to Previous Tab' },
       switchToNextTab: { mac: 'shift+bind+command+bind+]', windows: 'shift+bind+ctrl+bind+]', name: 'Switch to Next Tab' },
       moveTabLeft: { mac: 'command+bind+[', windows: 'ctrl+bind+[', name: 'Move Tab Left' },
@@ -82,42 +24,56 @@ export const KEY_BINDING_SECTIONS = [
     }
   },
   {
-    heading: 'Terminal',
-    bindings: {
-      openTerminal: { mac: 'command+bind+t', windows: 'ctrl+bind+t', name: 'Open in Terminal' }
-    }
-  },
-  {
     heading: 'Sidebar',
     bindings: {
       sidebarSearch: { mac: 'command+bind+f', windows: 'ctrl+bind+f', name: 'Search Sidebar' },
-      renameItem: { mac: 'command+bind+r', windows: 'ctrl+bind+r', name: 'Rename Item' },
       copyItem: { mac: 'command+bind+c', windows: 'ctrl+bind+c', name: 'Copy Item' },
       pasteItem: { mac: 'command+bind+v', windows: 'ctrl+bind+v', name: 'Paste Item' },
-      cloneItem: { mac: 'command+bind+d', windows: 'ctrl+bind+d', name: 'Clone Item' }
+      cloneItem: { mac: 'command+bind+d', windows: 'ctrl+bind+d', name: 'Clone Item' },
+      renameItem: { mac: 'command+bind+r', windows: 'ctrl+bind+r', name: 'Rename Item' },
+      collapseSidebar: { mac: 'command+bind+\\', windows: 'ctrl+bind+\\', name: 'Collapse Sidebar' }
     }
   },
   {
-    heading: 'Request',
+    heading: 'Requests',
     bindings: {
-      save: { mac: 'command+bind+s', windows: 'ctrl+bind+s', name: 'Save' },
       sendRequest: { mac: 'command+bind+enter', windows: 'ctrl+bind+enter', name: 'Send Request' },
-      newRequest: { mac: 'command+bind+n', windows: 'ctrl+bind+n', name: 'New Request' },
       changeLayout: { mac: 'command+bind+j', windows: 'ctrl+bind+j', name: 'Change Orientation' }
+    }
+  },
+  {
+    heading: 'Collections & Environment',
+    bindings: {
+      importCollection: { mac: 'command+bind+o', windows: 'ctrl+bind+o', name: 'Import Collection' },
+      editEnvironment: { mac: 'command+bind+e', windows: 'ctrl+bind+e', name: 'Edit Environment' },
+      newRequest: { mac: 'command+bind+n', windows: 'ctrl+bind+n', name: 'New Request' }
+    }
+  },
+  {
+    heading: 'Search',
+    bindings: {
+      globalSearch: { mac: 'command+bind+k', windows: 'ctrl+bind+k', name: 'Global Search' }
+    }
+  },
+  {
+    heading: 'View',
+    bindings: {
+      zoomIn: { mac: 'command+bind+=', windows: 'ctrl+bind+=', name: 'Zoom In' },
+      zoomOut: { mac: 'command+bind+-', windows: 'ctrl+bind+-', name: 'Zoom Out' },
+      resetZoom: { mac: 'command+bind+0', windows: 'ctrl+bind+0', name: 'Reset Zoom' }
+    }
+  },
+  {
+    heading: 'Developer Tool',
+    bindings: {
+      openTerminal: { mac: 'command+bind+t', windows: 'ctrl+bind+t', name: 'Open in Terminal' }
     }
   },
   {
     heading: 'Others',
     bindings: {
       openPreferences: { mac: 'command+bind+,', windows: 'ctrl+bind+,', name: 'Open Preferences' },
-      closeBruno: { mac: 'command+bind+q', windows: 'ctrl+bind+shift+bind+q', name: 'Close Bruno' },
-      collapseSidebar: { mac: 'command+bind+\\', windows: 'ctrl+bind+\\', name: 'Collapse Sidebar' },
-      zoomIn: { mac: 'command+bind+=', windows: 'ctrl+bind+=', name: 'Zoom In' },
-      zoomOut: { mac: 'command+bind+-', windows: 'ctrl+bind+-', name: 'Zoom Out' },
-      resetZoom: { mac: 'command+bind+0', windows: 'ctrl+bind+0', name: 'Reset Zoom' },
-      importCollection: { mac: 'command+bind+o', windows: 'ctrl+bind+o', name: 'Import Collection' },
-      editEnvironment: { mac: 'command+bind+e', windows: 'ctrl+bind+e', name: 'Edit Environment' },
-      globalSearch: { mac: 'command+bind+k', windows: 'ctrl+bind+k', name: 'Global Search' }
+      closeBruno: { mac: 'command+bind+q', windows: 'ctrl+bind+shift+bind+q', name: 'Close Bruno' }
     }
   }
 ];
@@ -148,25 +104,6 @@ export const toMousetrapCombo = (keysStr) => {
   });
 
   return converted.join('+');
-};
-
-/**
- * Retrieves the key bindings for a specific operating system.
- *
- * @param {string} os - The operating system (e.g., 'mac', 'windows').
- * @returns {Object} An object containing the key bindings for the specified OS.
- */
-export const getKeyBindingsForOS = (os) => {
-  const keyBindings = {};
-  for (const [action, { name, ...keys }] of Object.entries(DEFAULT_KEY_BINDINGS)) {
-    if (keys[os]) {
-      keyBindings[action] = {
-        keys: keys[os],
-        name
-      };
-    }
-  }
-  return keyBindings;
 };
 
 /**
@@ -219,15 +156,18 @@ export const getKeyBindingsForActionAllOS = (action, userKeyBindings) => {
   }
 
   const combos = [];
-  if (actionBindings.mac) {
+
+  // Detect current OS and use appropriate bindings only
+  const isMac = navigator.platform.toLowerCase().includes('mac');
+
+  if (isMac && actionBindings.mac) {
     const combo = toMousetrapCombo(actionBindings.mac);
     if (combo) combos.push(combo);
-  }
-  if (actionBindings.windows) {
+  } else if (!isMac && actionBindings.windows) {
     const combo = toMousetrapCombo(actionBindings.windows);
     if (combo) combos.push(combo);
   }
 
-  console.log('[keyMappings] getKeyBindingsForActionAllOS:', action, '->', combos);
+  // console.log('[keyMappings] getKeyBindingsForActionAllOS:', action, '->', combos);
   return combos.length > 0 ? combos : null;
 };

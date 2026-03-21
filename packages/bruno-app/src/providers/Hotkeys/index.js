@@ -19,10 +19,49 @@ export const HotkeysContext = React.createContext();
 
 // List of all actions that are bound in this provider
 const BOUND_ACTIONS = [
+  // ===== TABS =====
   'save',
   'saveAllTabs',
   'sendRequest',
-  'closeTab'
+  'closeTab',
+  'closeAllTabs',
+  'switchToPreviousTab',
+  'switchToNextTab',
+  'moveTabLeft',
+  'moveTabRight',
+  // ===== Switch to tab at position 1-8 =====
+  'switchToTab1',
+  'switchToTab2',
+  'switchToTab3',
+  'switchToTab4',
+  'switchToTab5',
+  'switchToTab6',
+  'switchToTab7',
+  'switchToTab8',
+  'switchToLastTab',
+  'reopenLastClosedTab',
+  // ===== Terminal =====
+  'openTerminal',
+  // ===== SIDEBAR =====
+  'sidebarSearch',
+  'newRequest', // Will only be modal for now not transient request
+  'renameItem',
+  'cloneItem',
+  'copyItem',
+  'pasteItem',
+  // ===== LAYOUT =====
+  'changeLayout',
+  'openPreferences',
+  'closeBruno',
+  // ===== ZOOM =====
+  'zoomIn',
+  'zoomOut',
+  'resetZoom',
+  // ===== COLLECTIONS =====
+  'importCollection',
+  'editEnvironment',
+  'collapseSidebar',
+  'globalSearch'
 ];
 
 /**
@@ -74,62 +113,49 @@ function unbindAllHotkeys(userKeyBindings) {
  * All business logic has been extracted to CommandInitializer.
  */
 function bindAllHotkeys(userKeyBindings) {
-  console.log('[Hotkeys] bindAllHotkeys called', userKeyBindings);
-
   BOUND_ACTIONS.forEach((action) => {
     const combos = getKeyBindingsForActionAllOS(action, userKeyBindings);
-    console.log('[Hotkeys] combos for', action, ':', combos);
 
     if (!combos?.length) {
       return;
     }
 
-    console.log('[Hotkeys] Binding Mousetrap for', action);
-
     Mousetrap.bind([...combos], (e) => {
-      console.log('[Hotkeys] Key pressed:', action);
-
-      // Check if user is typing in an input field - let default browser behavior work
       const target = e.target || document.activeElement;
       const isInputField = target?.closest('.mousetrap')
         || target?.tagName === 'INPUT'
         || target?.tagName === 'TEXTAREA'
         || target?.getAttribute('contenteditable') === 'true';
-
-      console.log('[Hotkeys] isInputField:', isInputField, 'target:', target?.tagName); // Check if there's text selected anywhere - let browser handle copy/paste
       const hasSelection = window.getSelection()?.toString()?.length > 0;
 
-      // For copy/paste actions (Ctrl+C, Ctrl+V), check if we should handle or let browser do it
-      const isCopyPasteAction = action === 'copyItem' || action === 'pasteItem';
-      const isSaveAction = action === 'save' || action === 'saveAllTabs';
-      const isSendRequestAction = action === 'sendRequest';
-
-      // Get when clause from command metadata for context-aware execution
       const metadata = commandRegistry.getMetadata(action);
-      console.log('[Hotkeys] metadata:', metadata);
-
       const whenClause = metadata?.when || 'always';
-      console.log('[Hotkeys] whenClause:', whenClause);
-
+      const scope = metadata?.scope || 'sidebar';
       const whenClausePasses = whenClauseResolver.evaluate(whenClause);
-      console.log('[Hotkeys] whenClausePasses:', whenClausePasses);
 
-      // If in input field OR has text selected, OR when clause doesn't pass for copy/paste
-      // -> Let browser handle it (this allows native Ctrl+C/V to work)
-      if ((isInputField && !isSaveAction && !isSendRequestAction) || hasSelection || (isCopyPasteAction && !whenClausePasses)) {
-        return true; // Let default behavior happen (Copy/Paste/Cut/SelectAll)
-      }
+      // --- Scope-based routing ---
 
-      // Not in input field and when clause passes - execute our custom command
-      e?.preventDefault?.();
-
-      // Evaluate when clause - if false, don't execute
-      if (!whenClausePasses) {
+      if (scope === 'global') {
+        // Always execute, regardless of input focus
+        if (!whenClausePasses) return false;
+        e?.preventDefault?.();
+        commandRegistry.execute(action);
         return false;
       }
 
-      // Execute the command by ID - Implementation is in CommandInitializer!
-      console.log('[Hotkeys] Executing command:', action);
+      if (scope === 'passthrough') {
+        // If in input, has selection, or when-clause fails → let browser handle it
+        if (isInputField || hasSelection || !whenClausePasses) return true;
+        e?.preventDefault?.();
+        commandRegistry.execute(action);
+        return false;
+      }
+
+      // scope === 'sidebar' (default)
+      // Blocked in input fields, requires when-clause
+      if (isInputField || hasSelection) return true;
+      if (!whenClausePasses) return false;
+      e?.preventDefault?.();
       commandRegistry.execute(action);
       return false;
     });
@@ -142,23 +168,31 @@ function bindAllHotkeys(userKeyBindings) {
 export const HotkeysProvider = (props) => {
   const preferences = useSelector((state) => state.app.preferences);
   const userKeyBindings = preferences?.keyBindings || {};
+  const keybindingsEnabled = preferences?.keybindingsEnabled !== false;
   const prevKeyBindingsRef = useRef(undefined);
 
   // Update whenClauseResolver with active tab type when it changes
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const tabs = useSelector((state) => state.tabs.tabs);
+  const sidebarItemFocused = useSelector((state) => state.app.sidebarItemFocused);
 
   useEffect(() => {
     if (activeTabUid && tabs?.length) {
       const activeTab = tabs.find((t) => t.uid === activeTabUid);
       if (activeTab) {
         whenClauseResolver.setActiveTabType(activeTab.type);
-        console.log('[Hotkeys] Active tab type set to:', activeTab.type);
       }
     }
+    // Also update tabs count
+    whenClauseResolver.setTabsCount(tabs?.length || 0);
   }, [activeTabUid, tabs]);
 
-  // Bind/rebind hotkeys whenever user preferences change
+  // Sync sidebarItemFocused to whenClauseResolver
+  useEffect(() => {
+    whenClauseResolver.setSidebarItemFocused(sidebarItemFocused);
+  }, [sidebarItemFocused]);
+
+  // Bind/rebind hotkeys whenever user preferences or enabled state changes
   useEffect(() => {
     // Store previous bindings before updating
     const prevBindings = prevKeyBindingsRef.current;
@@ -168,15 +202,17 @@ export const HotkeysProvider = (props) => {
       unbindAllHotkeys(prevBindings);
     }
 
-    // Bind with current preferences
-    bindAllHotkeys(userKeyBindings);
+    // Only bind if keybindings are enabled
+    if (keybindingsEnabled) {
+      bindAllHotkeys(userKeyBindings);
+    }
     prevKeyBindingsRef.current = userKeyBindings;
 
     return () => {
       // Cleanup on unmount
       unbindAllHotkeys(userKeyBindings);
     };
-  }, [userKeyBindings]);
+  }, [userKeyBindings, keybindingsEnabled]);
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">

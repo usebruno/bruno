@@ -8,7 +8,9 @@
 const contextProviders = {};
 let _activeTabType = null;
 let _sidebarVisible = true;
+let _sidebarItemFocused = false;
 let _requestIsDirty = false;
+let _tabsCount = 0;
 
 /**
  * Register a context provider
@@ -103,11 +105,27 @@ const setSidebarVisible = (visible) => {
 };
 
 /**
+ * Set sidebar item focused state for context evaluation
+ * @param {boolean} focused - Whether a sidebar item is focused
+ */
+const setSidebarItemFocused = (focused) => {
+  _sidebarItemFocused = focused;
+};
+
+/**
  * Set request dirty state for context evaluation
  * @param {boolean} dirty - Whether request has unsaved changes
  */
 const setRequestIsDirty = (dirty) => {
   _requestIsDirty = dirty;
+};
+
+/**
+ * Set the number of tabs for context evaluation
+ * @param {number} count - Number of open tabs
+ */
+const setTabsCount = (count) => {
+  _tabsCount = count;
 };
 
 // Register default contexts
@@ -146,6 +164,15 @@ registerContext('sidebarVisible', () => {
   return _sidebarVisible !== false;
 });
 
+registerContext('sidebarItemFocused', () => {
+  return _sidebarItemFocused === true;
+});
+
+registerContext('inModal', () => {
+  // Check if any modal overlay is currently in the DOM
+  return document.querySelector('.modal-overlay, [class*="modal"]') !== null;
+});
+
 registerContext('inPreferences', () => {
   return _activeTabType === 'preferences';
 });
@@ -164,6 +191,14 @@ registerContext('activeTabExists', () => {
   return _activeTabType !== null;
 });
 
+registerContext('multipleTabsOpen', () => {
+  return _tabsCount > 1;
+});
+
+registerContext('hasOpenTabs', () => {
+  return _tabsCount > 0;
+});
+
 // Export as singleton object
 const whenClauseResolver = {
   registerContext,
@@ -172,7 +207,9 @@ const whenClauseResolver = {
   getAvailableContexts,
   setActiveTabType,
   setSidebarVisible,
-  setRequestIsDirty
+  setSidebarItemFocused,
+  setRequestIsDirty,
+  setTabsCount
 };
 
 export default whenClauseResolver;

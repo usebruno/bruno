@@ -1,6 +1,8 @@
 import styled from 'styled-components';
 
 const switchSizes = {
+  '4xs': { width: 24, height: 12, buttonSize: 10 },
+  '3xs': { width: 28, height: 14, buttonSize: 12 },
   '2xs': { width: 32, height: 16, buttonSize: 14 },
   'xs': { width: 40, height: 20, buttonSize: 18 },
   's': { width: 44, height: 22, buttonSize: 20 },

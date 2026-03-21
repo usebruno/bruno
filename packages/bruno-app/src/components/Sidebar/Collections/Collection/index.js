@@ -27,6 +27,7 @@ import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/s
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { setSidebarItemFocused, setSidebarSelectedItem, clearRenameModalItem, renameModalItem, setCloneModalItem, clearCloneModalItem, cloneModalItem, clearNewRequestModalItem, newRequestModalItem } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -75,6 +76,9 @@ const Collection = ({ collection, searchText }) => {
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
+  const renameModalItem = useSelector((state) => state.app.renameModalItem);
+  const cloneModalItem = useSelector((state) => state.app.cloneModalItem);
+  const newRequestModalItem = useSelector((state) => state.app.newRequestModalItem);
   const menuDropdownRef = useRef(null);
 
   // Open the OpenAPI Sync tab
@@ -214,10 +218,23 @@ const Collection = ({ collection, searchText }) => {
 
   const handleFocus = () => {
     setIsKeyboardFocused(true);
+    dispatch(setSidebarItemFocused(true));
+    dispatch(setSidebarSelectedItem({
+      uid: collection.uid,
+      collectionUid: collection.uid,
+      type: 'collection',
+      name: collection.name
+    }));
   };
 
-  const handleBlur = () => {
+  const handleBlur = (e) => {
     setIsKeyboardFocused(false);
+    // Only clear global focus if focus is leaving the sidebar entirely
+    const relatedTarget = e?.relatedTarget;
+    const sidebar = e?.currentTarget?.closest('.sidebar, .collections-sidebar');
+    if (!sidebar || !sidebar.contains(relatedTarget)) {
+      dispatch(setSidebarItemFocused(false));
+    }
   };
 
   const isCollectionItem = (itemType) => {
@@ -267,6 +284,30 @@ const Collection = ({ collection, searchText }) => {
   useEffect(() => {
     dragPreview(getEmptyImage(), { captureDraggingState: true });
   }, []);
+
+  // Listen for renameModalItem from global command
+  useEffect(() => {
+    if (renameModalItem && renameModalItem.type === 'collection' && renameModalItem.uid === collection.uid) {
+      setShowRenameCollectionModal(true);
+      dispatch(clearRenameModalItem());
+    }
+  }, [renameModalItem, collection.uid, dispatch]);
+
+  // Listen for cloneModalItem from global command
+  useEffect(() => {
+    if (cloneModalItem && cloneModalItem.type === 'collection' && cloneModalItem.uid === collection.uid) {
+      setShowCloneCollectionModalOpen(true);
+      dispatch(clearCloneModalItem());
+    }
+  }, [cloneModalItem, collection.uid, dispatch]);
+
+  // Listen for newRequestModalItem from global command
+  useEffect(() => {
+    if (newRequestModalItem && newRequestModalItem.type === 'collection' && newRequestModalItem.uid === collection.uid) {
+      setShowNewRequestModal(true);
+      dispatch(clearNewRequestModalItem());
+    }
+  }, [newRequestModalItem, collection.uid, dispatch]);
 
   useEffect(() => {
     if (isCollectionFocused && collectionRef.current) {

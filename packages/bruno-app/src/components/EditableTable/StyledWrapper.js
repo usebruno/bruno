@@ -12,10 +12,9 @@ const StyledWrapper = styled.div`
   }
 
   .table-container {
-    min-height: 0;
-    overflow: hidden;
+    overflow: auto;
     border-radius: ${(props) => props.theme.border.radius.base};
-    border-bottom: 1px solid ${(props) => props.theme.table.border};
+    border: solid 1px ${(props) => props.theme.border.border0};
   }
 
   table {
