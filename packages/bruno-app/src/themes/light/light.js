@@ -278,6 +278,7 @@ const lightTheme = {
     },
     responseStatus: palette.text.SUBTEXT1,
     responseOk: palette.hues.GREEN,
+    responseWarning: palette.hues.ORANGE,
     responseError: palette.hues.RED,
     responsePending: palette.hues.BLUE,
     responseOverlayBg: 'rgba(255, 255, 255, 0.6)',
