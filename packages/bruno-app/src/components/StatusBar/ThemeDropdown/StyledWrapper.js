@@ -115,6 +115,7 @@ const StyledWrapper = styled.div`
     margin-bottom: 8px;
     position: sticky;
     top: 0;
+    z-index: 1;
   }
 
   .active-badge {
