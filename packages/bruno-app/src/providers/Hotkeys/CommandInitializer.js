@@ -7,7 +7,8 @@ import {
   saveCollectionSettings,
   saveMultipleRequests,
   sendRequest,
-  pasteItem as pasteItemAction
+  pasteItem as pasteItemAction,
+  ensureActiveTabInCurrentWorkspace
 } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection, hasRequestChanges, findParentItemInCollection } from 'utils/collections';
 import { addTab, closeTabs, closeAllCollectionTabs, requestCloseConfirmation, requestCloseAllConfirmation, reorderTabs, focusTab, removeFromClosedTabs } from 'providers/ReduxStore/slices/tabs';
@@ -175,6 +176,7 @@ const CommandInitializer = () => {
       } else {
         // No unsaved changes, close directly
         dispatch(closeTabs({ tabUids: [activeTab.uid] }));
+        dispatch(ensureActiveTabInCurrentWorkspace());
       }
     }, {
       name: 'Close Tab',
@@ -236,12 +238,13 @@ const CommandInitializer = () => {
       });
 
       if (hasUnsavedChanges) {
-        // Dispatch action to show SaveRequestsModal
-        dispatch(requestCloseAllConfirmation());
+        // Dispatch action to show SaveRequestsModal scoped to active collection
+        dispatch(requestCloseAllConfirmation({ collectionUid: activeCollectionUid }));
       } else {
         // Close only closable tabs in the active collection
         const tabUids = closableTabs.map((t) => t.uid);
         dispatch(closeTabs({ tabUids }));
+        dispatch(ensureActiveTabInCurrentWorkspace());
       }
     }, {
       name: 'Close All Tabs',
@@ -260,7 +263,6 @@ const CommandInitializer = () => {
       const currentIndex = collectionTabs.findIndex((t) => t.uid === activeTabUid);
       const prevIndex = (currentIndex - 1 + collectionTabs.length) % collectionTabs.length;
       dispatch(focusTab({ uid: collectionTabs[prevIndex].uid }));
-      window.scrollActiveTabIntoView?.();
     }, {
       name: 'Previous Tab',
       description: 'Switch to the previous tab in the active collection',
@@ -279,7 +281,6 @@ const CommandInitializer = () => {
       const currentIndex = collectionTabs.findIndex((t) => t.uid === activeTabUid);
       const nextIndex = (currentIndex + 1) % collectionTabs.length;
       dispatch(focusTab({ uid: collectionTabs[nextIndex].uid }));
-      window.scrollActiveTabIntoView?.();
     }, {
       name: 'Next Tab',
       description: 'Switch to the next tab in the active collection',
@@ -339,7 +340,6 @@ const CommandInitializer = () => {
         const tab = collectionTabs[tabNumber - 1]; // scoped to active collection
         if (tab) {
           dispatch(focusTab({ uid: tab.uid }));
-          window.scrollActiveTabIntoView?.();
         }
       }, {
         name: `Switch to Tab ${tabNumber}`,
@@ -359,7 +359,6 @@ const CommandInitializer = () => {
       if (collectionTabs.length > 0) {
         const lastTab = collectionTabs[collectionTabs.length - 1];
         dispatch(focusTab({ uid: lastTab.uid }));
-        window.scrollActiveTabIntoView?.();
       }
     }, {
       name: 'Switch to Last Tab',

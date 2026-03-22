@@ -171,17 +171,14 @@ function setupShortcuts(editor, context = {}) {
     // Build combo: modifiers first, then the key (lowercase)
     // Use 'command' instead of 'cmd' to match keyMappings format
     const combo = [...mods, key.toLowerCase()].join('+');
-    console.log('Combo:', combo);
 
     // Get latest user key bindings
     const currentUserKeyBindings = getUserKeyBindings();
-    console.log('User key bindings:', currentUserKeyBindings);
 
     // Check if this combo matches any of our shortcuts (using user keybindings)
     let matched = false;
     EDITOR_ACTIONS.forEach((actionName) => {
       const combos = getKeyBindingsForActionAllOS(actionName, currentUserKeyBindings) || [];
-      console.log('Action:', actionName, 'Combos:', combos, 'Includes:', combos.includes(combo));
       if (combos.includes(combo)) {
         matched = true;
         commandRegistry.execute(actionName, context);

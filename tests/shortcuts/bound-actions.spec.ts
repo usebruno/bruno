@@ -914,7 +914,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Alt');
 
         await openRequest(page, 'kb-collection', 'req-2', { persist: true });
-        await page.keyboard.press(`${modifier}+KeyD`);
 
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyD');
@@ -1039,7 +1038,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Alt');
 
         // Verify cloned request appears in sidebar
-        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-3 (1)' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-4 (1)' })).toBeVisible({ timeout: 2000 });
       });
 
       test('customized Alt+C/V copy paste item for folder', async ({ page, createTmpDir }) => {
@@ -1092,7 +1091,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         ).toHaveAttribute('title', 'Switch to horizontal layout', { timeout: 2000 });
       });
 
-      test('default Alt+Shift+Y change layout orientation', async ({ page, createTmpDir }) => {
+      test('customized Alt+Shift+Y change layout orientation', async ({ page, createTmpDir }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
         await page.keyboard.up('KeyY');
@@ -1164,12 +1163,12 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.down(modifier);
         await page.keyboard.down('Comma');
         await page.keyboard.up('Comma');
-        await page.keyboard.down(modifier);
+        await page.keyboard.up(modifier);
 
         await expect(page.locator('.request-tab.select-none.active.last-tab').filter({ hasText: 'Preferences' })).toBeVisible({ timeout: 2000 });
       });
 
-      test('default Cmd/Ctrl+P open preferences', async ({ page }) => {
+      test('customized Cmd/Ctrl+P open preferences', async ({ page }) => {
         // Remap openPreferences to Ctrl+P
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-openPreferences');
@@ -1193,7 +1192,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.down(modifier);
         await page.keyboard.down('KeyP');
         await page.keyboard.up('KeyP');
-        await page.keyboard.down(modifier);
+        await page.keyboard.up(modifier);
 
         await expect(page.locator('.request-tab.select-none.active.last-tab').filter({ hasText: 'Preferences' })).toBeVisible({ timeout: 2000 });
       });
@@ -1209,7 +1208,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.down(modifier);
         await page.keyboard.down('KeyK');
         await page.keyboard.up('KeyK');
-        await page.keyboard.down(modifier);
+        await page.keyboard.up(modifier);
 
         await expect(page.getByPlaceholder('Search collections, requests, or documentation...')).toBeVisible({ timeout: 1000 });
 

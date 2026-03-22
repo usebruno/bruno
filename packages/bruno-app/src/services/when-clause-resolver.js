@@ -130,7 +130,7 @@ const setTabsCount = (count) => {
 
 // Register default contexts
 registerContext('editorTextFocus', () => {
-  return document.activeElement?.closest('.CodeMirror') !== undefined;
+  return document.activeElement?.closest('.CodeMirror') !== null;
 });
 
 registerContext('editorHasSelection', () => {

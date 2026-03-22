@@ -188,8 +188,6 @@ const comboSignature = (arr) => toKeysString(arr);
 // Also includes common editing shortcuts that should not be overridden.
 const RESERVED_BY_OS = {
   mac: new Set([
-    comboSignature(['command', 'q']),
-    comboSignature(['command', 'w']),
     comboSignature(['command', 'h']),
     comboSignature(['command', 'alt', 'h']),
     comboSignature(['ctrl', 'command', 'f']),
@@ -199,7 +197,6 @@ const RESERVED_BY_OS = {
     comboSignature(['command', 'tab']),
     comboSignature(['command', 'space']),
     comboSignature(['ctrl', 'command', 'q']),
-    comboSignature(['command', ',']),
     comboSignature(['command', 'shift', '3']),
     comboSignature(['command', 'shift', '4']),
     comboSignature(['command', 'shift', '5']),

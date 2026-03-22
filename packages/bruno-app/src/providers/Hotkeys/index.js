@@ -65,30 +65,6 @@ const BOUND_ACTIONS = [
 ];
 
 /**
- * Bind a single hotkey action using Mousetrap.
- * Reads from merged defaults + user preferences via getKeyBindingsForActionAllOS.
- * Supports when clauses for context-aware execution.
- */
-function bindHotkey(action, handler, userKeyBindings) {
-  const combos = getKeyBindingsForActionAllOS(action, userKeyBindings);
-  if (!combos?.length) return;
-
-  Mousetrap.bind([...combos], (e) => {
-    e?.preventDefault?.();
-
-    // Get when clause from command metadata
-    const metadata = commandRegistry.getMetadata(action);
-    const whenClause = metadata?.when || 'always';
-
-    // Evaluate when clause before executing
-    if (whenClauseResolver.evaluate(whenClause)) {
-      handler(e);
-    }
-    return false;
-  });
-}
-
-/**
  * Unbind a single hotkey action.
  */
 function unbindHotkey(action, userKeyBindings) {

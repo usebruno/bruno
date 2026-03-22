@@ -326,9 +326,11 @@ export const tabsSlice = createSlice({
     },
     requestCloseAllConfirmation: (state, action) => {
       state.showCloseAllConfirmation = true;
+      state.closeAllCollectionUid = action.payload?.collectionUid || null;
     },
     clearCloseAllConfirmation: (state, action) => {
       state.showCloseAllConfirmation = false;
+      state.closeAllCollectionUid = null;
     },
     removeFromClosedTabs: (state, action) => {
       const { uid, collectionUid } = action.payload;

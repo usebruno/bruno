@@ -8,7 +8,7 @@ import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges, f
 import { pluralizeWord } from 'utils/common';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
-import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, ensureActiveTabInCurrentWorkspace } from 'providers/ReduxStore/slices/collections/actions';
 import { deleteCollectionDraft, deleteFolderDraft, deleteRequestDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { saveGlobalEnvironment, clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { IconAlertTriangle } from '@tabler/icons';
@@ -18,10 +18,16 @@ import Button from 'ui/Button';
 const SaveRequestsModal = ({ onClose, forCloseTabs = false }) => {
   const MAX_UNSAVED_ITEMS_TO_SHOW = 5;
   const collections = useSelector((state) => state.collections.collections);
-  const tabs = useSelector((state) => state.tabs.tabs);
+  const allTabs = useSelector((state) => state.tabs.tabs);
+  const closeAllCollectionUid = useSelector((state) => state.tabs.closeAllCollectionUid);
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
   const dispatch = useDispatch();
+
+  // When triggered by closeAllTabs shortcut, scope tabs to the active collection
+  const tabs = (forCloseTabs && closeAllCollectionUid)
+    ? allTabs.filter((t) => t.collectionUid === closeAllCollectionUid)
+    : allTabs;
 
   const allDrafts = useMemo(() => {
     const requestDrafts = [];
@@ -110,6 +116,7 @@ const SaveRequestsModal = ({ onClose, forCloseTabs = false }) => {
         if (closableTabs.length > 0) {
           const tabUids = closableTabs.map((t) => t.uid);
           dispatch(closeTabs({ tabUids }));
+          dispatch(ensureActiveTabInCurrentWorkspace());
         }
         onClose();
       } else {
@@ -161,6 +168,7 @@ const SaveRequestsModal = ({ onClose, forCloseTabs = false }) => {
       if (closableTabs.length > 0) {
         const tabUids = closableTabs.map((t) => t.uid);
         dispatch(closeTabs({ tabUids }));
+        dispatch(ensureActiveTabInCurrentWorkspace());
       }
 
       onClose();
@@ -212,6 +220,7 @@ const SaveRequestsModal = ({ onClose, forCloseTabs = false }) => {
         if (closableTabs.length > 0) {
           const tabUids = closableTabs.map((t) => t.uid);
           dispatch(closeTabs({ tabUids }));
+          dispatch(ensureActiveTabInCurrentWorkspace());
         }
         onClose();
       } else {

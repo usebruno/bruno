@@ -78,26 +78,6 @@ export default class CodeEditor extends React.Component {
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
-        // 'Cmd-Enter': () => {
-        //   if (this.props.onRun) {
-        //     this.props.onRun();
-        //   }
-        // },
-        // 'Ctrl-Enter': () => {
-        //   if (this.props.onRun) {
-        //     this.props.onRun();
-        //   }
-        // },
-        // 'Cmd-S': () => {
-        //   if (this.props.onSave) {
-        //     this.props.onSave();
-        //   }
-        // },
-        // 'Ctrl-S': () => {
-        //   if (this.props.onSave) {
-        //     this.props.onSave();
-        //   }
-        // },
         'Cmd-F': (cm) => {
           this.setState({ searchBarVisible: true }, () => {
             this.searchBarRef.current?.focus();
