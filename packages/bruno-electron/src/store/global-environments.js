@@ -86,15 +86,32 @@ class GlobalEnvironmentsStore {
     return this.store.get('activeGlobalEnvironmentUid', null);
   }
 
+  setActiveGlobalEnvironmentUid(uid) {
+    return this.store.set('activeGlobalEnvironmentUid', uid);
+  }
+
+  getActiveGlobalEnvironmentUidForWorkspace(workspacePath) {
+    if (!workspacePath) return null;
+    const mapping = this.store.get('activeGlobalEnvironmentUidByWorkspace', {});
+    return mapping[workspacePath] || null;
+  }
+
+  setActiveGlobalEnvironmentUidForWorkspace(workspacePath, uid) {
+    if (!workspacePath) return;
+    const mapping = this.store.get('activeGlobalEnvironmentUidByWorkspace', {});
+    if (uid) {
+      mapping[workspacePath] = uid;
+    } else {
+      delete mapping[workspacePath];
+    }
+    this.store.set('activeGlobalEnvironmentUidByWorkspace', mapping);
+  }
+
   setGlobalEnvironments(globalEnvironments) {
     globalEnvironments = this.filterValidEnvironments(globalEnvironments);
 
     globalEnvironments = this.encryptGlobalEnvironmentVariables({ globalEnvironments });
     return this.store.set('environments', globalEnvironments);
-  }
-
-  setActiveGlobalEnvironmentUid(uid) {
-    return this.store.set('activeGlobalEnvironmentUid', uid);
   }
 
   addGlobalEnvironment({ uid, name, variables = [], color }) {
