@@ -9,6 +9,7 @@ import darkPastel from './dark/dark-pastel';
 import catppuccinFrappe from './dark/catppuccin-frappe';
 import catppuccinMacchiato from './dark/catppuccin-macchiato';
 import catppuccinMocha from './dark/catppuccin-mocha';
+import kanagawa from './dark/kanagawa';
 import nord from './dark/nord';
 import vscodeDark from './dark/vscode';
 
@@ -23,6 +24,7 @@ const themes = {
   'catppuccin-frappe': catppuccinFrappe,
   'catppuccin-macchiato': catppuccinMacchiato,
   'catppuccin-mocha': catppuccinMocha,
+  kanagawa,
   nord,
   'vscode-light': vscodeLight,
   'vscode-dark': vscodeDark
@@ -78,6 +80,11 @@ export const themeRegistry = {
   'catppuccin-mocha': {
     id: 'catppuccin-mocha',
     name: 'Catppuccin Mocha',
+    mode: 'dark'
+  },
+  'kanagawa': {
+    id: 'kanagawa',
+    name: 'Kanagawa',
     mode: 'dark'
   },
   'nord': {
