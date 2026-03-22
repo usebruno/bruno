@@ -45,6 +45,7 @@ jobs:
           check_name: CLI Test Results (Linux)
           files: packages/bruno-tests/collection/junit.xml
           comment_mode: always
+          check_run: false
 
   e2e-test:
     name: Playwright E2E Tests (Linux)
