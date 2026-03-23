@@ -57,7 +57,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
       name: varType === 'request' ? 'Value' : (
         <div className="flex items-center">
           <span>Expr</span>
-          <InfoTip content="You can write any valid JS expression here" infotipId={`request-${varType}-var`} />
+          <InfoTip className="tooltip-mod" content="You can write any valid JS expression here" infotipId={`request-${varType}-var`} />
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
