@@ -60,8 +60,7 @@ export const tabsSlice = createSlice({
         state.tabs[state.tabs.length - 1] = {
           uid,
           collectionUid,
-          requestPaneWidth: lastTab.requestPaneWidth ?? null,
-          requestPaneHeight: lastTab.requestPaneHeight ?? null,
+          requestPaneWidth: null,
           requestPaneTab: requestPaneTab || defaultRequestPaneTab,
           responsePaneTab: 'response',
           responseFormat: null,

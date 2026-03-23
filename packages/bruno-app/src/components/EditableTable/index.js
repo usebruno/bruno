@@ -30,25 +30,11 @@ const EditableTable = ({
   const [hoveredRow, setHoveredRow] = useState(null);
   const [resizing, setResizing] = useState(null);
   const [tableHeight, setTableHeight] = useState(0);
-  const [localColumnWidths, setLocalColumnWidths] = useState(() => {
-    const initialWidths = {};
-    columns.forEach((col) => {
-      initialWidths[col.key] = col.width || 'auto';
-    });
-    return initialWidths;
-  });
-
-  // Use controlled props if provided, otherwise use local state
-  const isControlled = columnWidths !== undefined;
-  const widths = isControlled ? columnWidths : localColumnWidths;
+  const widths = columnWidths || {};
 
   const handleColumnWidthsChange = useCallback((newWidths) => {
-    if (isControlled && onColumnWidthsChange) {
-      onColumnWidthsChange(newWidths);
-    } else {
-      setLocalColumnWidths(newWidths);
-    }
-  }, [isControlled, onColumnWidthsChange]);
+    onColumnWidthsChange?.(newWidths);
+  }, [onColumnWidthsChange]);
 
   const handleResizeStart = useCallback((e, columnKey) => {
     e.preventDefault();
@@ -80,9 +66,7 @@ const EditableTable = ({
         [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
       };
 
-      if (isControlled) {
-        handleColumnWidthsChange(newWidths);
-      }
+      handleColumnWidthsChange(newWidths);
     };
 
     const handleMouseUp = () => {
@@ -107,9 +91,7 @@ const EditableTable = ({
         });
 
         if (Object.keys(newWidths).length > 0) {
-          if (isControlled) {
-            handleColumnWidthsChange({ ...widths, ...newWidths });
-          }
+          handleColumnWidthsChange({ ...widths, ...newWidths });
         }
       }
       setResizing(null);
@@ -119,7 +101,7 @@ const EditableTable = ({
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [columns, showCheckbox, widths, isControlled, handleColumnWidthsChange]);
+  }, [columns, showCheckbox, widths, handleColumnWidthsChange]);
 
   // Track table height for resize handles
   useEffect(() => {
