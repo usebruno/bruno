@@ -32,8 +32,16 @@ export const seedActiveCollectionUidCache = (snapshot) => {
 /**
  * Serialize the current app state into a snapshot format
  */
-const serializeSnapshot = (state) => {
+const serializeSnapshot = async (state) => {
   const { workspaces, collections, tabs, logs, globalEnvironments } = state;
+
+  // Get existing snapshot to preserve data for collections not currently loaded
+  let existingSnapshot = null;
+  try {
+    existingSnapshot = await ipcRenderer.invoke('renderer:get-snapshot');
+  } catch (err) {
+    // Ignore - will create fresh snapshot
+  }
 
   // Build a set of scratch collection UIDs to exclude
   const scratchCollectionUids = new Set(
@@ -60,6 +68,9 @@ const serializeSnapshot = (state) => {
     workspaces: [],
     collections: []
   };
+
+  // Track which collection pathnames we've serialized from Redux
+  const serializedCollectionPaths = new Set();
 
   (workspaces.workspaces || []).forEach((workspace) => {
     if (!workspace.pathname) return;
@@ -98,6 +109,8 @@ const serializeSnapshot = (state) => {
       return;
     }
 
+    serializedCollectionPaths.add(normalizePath(collection.pathname));
+
     // Get transient directory for this collection to filter transient tabs
     const transientDirectory = collections.tempDirectories?.[collection.uid];
 
@@ -118,10 +131,19 @@ const serializeSnapshot = (state) => {
       },
       isOpen: !collection.collapsed,
       isMounted: collection.mountStatus === 'mounted',
-      activeTab: serializeActiveTab(activeTabInCollection),
+      activeTab: serializeActiveTab(activeTabInCollection, collection),
       tabs: collectionTabs
     });
   });
+
+  // Preserve collections from existing snapshot that aren't currently loaded in Redux
+  if (existingSnapshot?.collections) {
+    existingSnapshot.collections.forEach((existingCollection) => {
+      if (!serializedCollectionPaths.has(normalizePath(existingCollection.pathname))) {
+        snapshot.collections.push(existingCollection);
+      }
+    });
+  }
 
   return snapshot;
 };
@@ -137,7 +159,7 @@ const scheduleSave = (getState) => {
   saveTimer = setTimeout(async () => {
     try {
       const state = getState();
-      const snapshot = serializeSnapshot(state);
+      const snapshot = await serializeSnapshot(state);
       await ipcRenderer.invoke('renderer:save-snapshot', snapshot);
     } catch (err) {
       console.error('Failed to save snapshot:', err);

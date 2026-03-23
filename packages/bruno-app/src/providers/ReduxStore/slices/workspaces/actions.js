@@ -406,7 +406,7 @@ export const switchWorkspace = (workspaceUid) => {
       }
 
       // Focus the active tab from the collection snapshot
-      const activeTab = await getActiveTabFromSnapshot(activeCollection.pathname, activeCollection.uid);
+      const activeTab = await getActiveTabFromSnapshot(activeCollection.pathname, activeCollection);
 
       if (activeTab) {
         dispatch(addTab(activeTab));
