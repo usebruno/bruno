@@ -162,7 +162,6 @@ export const collectionsSlice = createSlice({
       collection.settingsSelectedTab = 'overview';
       collection.folderLevelSettingsSelectedTab = {};
       collection.allTags = []; // Initialize collection-level tags
-      collection.isLoading = false;
 
       // Collection mount status is used to track the mount status of the collection
       // values can be 'unmounted', 'mounting', 'mounted'
@@ -2770,224 +2769,6 @@ export const collectionsSlice = createSlice({
         addDepth(collection.items);
       }
     },
-    // Batch reducer for adding multiple files/directories in a single state update
-    // This is a performance optimization to avoid multiple re-renders during collection mount
-    collectionBatchAddItems: (state, action) => {
-      const { items } = action.payload;
-      if (!items || !Array.isArray(items) || items.length === 0) {
-        return;
-      }
-
-      // Group items by collection to minimize lookups
-      const itemsByCollection = new Map();
-      for (const item of items) {
-        const collectionUid = item.payload?.meta?.collectionUid || item.payload?.collectionUid;
-        if (!collectionUid) continue;
-
-        if (!itemsByCollection.has(collectionUid)) {
-          itemsByCollection.set(collectionUid, []);
-        }
-        itemsByCollection.get(collectionUid).push(item);
-      }
-
-      // Process each collection's items
-      for (const [collectionUid, collectionItems] of itemsByCollection) {
-        const collection = findCollectionByUid(state.collections, collectionUid);
-        if (!collection) continue;
-        const tempDirectory = state.tempDirectories?.[collectionUid];
-        const folderIndex = new Map();
-        const folderStack = [...collection.items];
-        while (folderStack.length) {
-          const item = folderStack.pop();
-          if (item?.type === 'folder' && item.pathname) {
-            folderIndex.set(item.pathname, item);
-            if (item.items && item.items.length) {
-              folderStack.push(...item.items);
-            }
-          }
-        }
-
-        for (const { eventType, payload } of collectionItems) {
-          if (eventType === 'addDir') {
-            const dir = payload;
-            const isTransientDir = tempDirectory && dir.meta.pathname.startsWith(tempDirectory);
-            const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
-            let currentPath = collection.pathname;
-            let currentSubItems = collection.items;
-            let lastFolder = null;
-
-            for (const directoryName of subDirectories) {
-              currentPath = path.join(currentPath, directoryName);
-              let childItem = folderIndex.get(currentPath);
-              if (!childItem) {
-                childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
-              }
-              if (!childItem) {
-                childItem = {
-                  uid: dir?.meta?.uid || uuid(),
-                  pathname: currentPath,
-                  name: dir?.meta?.name || directoryName,
-                  seq: dir?.meta?.seq,
-                  filename: directoryName,
-                  collapsed: true,
-                  type: 'folder',
-                  items: [],
-                  isTransient: isTransientDir
-                };
-                currentSubItems.push(childItem);
-                folderIndex.set(currentPath, childItem);
-              } else if (isTransientDir && !childItem.isTransient) {
-                childItem.isTransient = true;
-              }
-
-              currentSubItems = childItem.items;
-              lastFolder = childItem;
-            }
-
-            if (lastFolder) {
-              if (dir?.meta?.name) {
-                lastFolder.name = dir.meta.name;
-              }
-              if (dir?.meta?.seq) {
-                lastFolder.seq = dir.meta.seq;
-              }
-            }
-            continue;
-          }
-
-          if (eventType === 'addFile') {
-            const file = payload;
-            const isCollectionRoot = file.meta.collectionRoot ? true : false;
-            const isFolderRoot = file.meta.folderRoot ? true : false;
-            const isTransientFile = tempDirectory && file.meta.pathname.startsWith(tempDirectory);
-
-            if (isCollectionRoot) {
-              collection.root = mergeRootWithPreservedUids(collection.root, file.data);
-              continue;
-            }
-
-            if (isFolderRoot) {
-              const folderPath = path.dirname(file.meta.pathname);
-              const subDirectories = getSubdirectoriesFromRoot(collection.pathname, folderPath);
-              let currentPath = collection.pathname;
-              let currentSubItems = collection.items;
-              let folderItem = folderIndex.get(folderPath);
-
-              if (!folderItem) {
-                for (const directoryName of subDirectories) {
-                  currentPath = path.join(currentPath, directoryName);
-                  let childItem = folderIndex.get(currentPath);
-                  if (!childItem) {
-                    childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
-                  }
-                  if (!childItem) {
-                    childItem = {
-                      uid: uuid(),
-                      pathname: currentPath,
-                      name: directoryName,
-                      collapsed: true,
-                      type: 'folder',
-                      items: [],
-                      isTransient: isTransientFile
-                    };
-                    currentSubItems.push(childItem);
-                    folderIndex.set(currentPath, childItem);
-                  } else if (isTransientFile && !childItem.isTransient) {
-                    childItem.isTransient = true;
-                  }
-                  currentSubItems = childItem.items;
-                  if (currentPath === folderPath) {
-                    folderItem = childItem;
-                  }
-                }
-              }
-
-              if (folderItem) {
-                if (file?.data?.meta?.name) {
-                  folderItem.name = file?.data?.meta?.name;
-                }
-                folderItem.root = mergeRootWithPreservedUids(folderItem.root, file.data);
-                if (file?.data?.meta?.seq) {
-                  folderItem.seq = file.data?.meta?.seq;
-                }
-              }
-              continue;
-            }
-
-            const dirname = path.dirname(file.meta.pathname);
-            const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
-            let currentPath = collection.pathname;
-            let currentSubItems = collection.items;
-            for (const directoryName of subDirectories) {
-              currentPath = path.join(currentPath, directoryName);
-              let childItem = folderIndex.get(currentPath);
-              if (!childItem) {
-                childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
-              }
-              if (!childItem) {
-                childItem = {
-                  uid: uuid(),
-                  pathname: currentPath,
-                  name: directoryName,
-                  collapsed: true,
-                  type: 'folder',
-                  items: [],
-                  isTransient: isTransientFile
-                };
-                currentSubItems.push(childItem);
-                folderIndex.set(currentPath, childItem);
-              } else if (isTransientFile && !childItem.isTransient) {
-                childItem.isTransient = true;
-              }
-              currentSubItems = childItem.items;
-            }
-
-            if (file.meta.name !== 'folder.bru' && !currentSubItems.find((f) => f.name === file.meta.name)) {
-              const currentItem = find(currentSubItems, (i) => i.uid === file.data.uid);
-              if (currentItem) {
-                currentItem.name = file.data.name;
-                currentItem.type = file.data.type;
-                currentItem.seq = file.data.seq;
-                currentItem.tags = file.data.tags;
-                currentItem.request = mergeRequestWithPreservedUids(currentItem.request, file.data.request);
-                currentItem.filename = file.meta.name;
-                currentItem.pathname = file.meta.pathname;
-                currentItem.settings = file.data.settings;
-                currentItem.examples = file.data.examples;
-                currentItem.draft = null;
-                currentItem.partial = file.partial;
-                currentItem.loading = file.loading;
-                currentItem.size = file.size;
-                currentItem.error = file.error;
-                currentItem.isTransient = isTransientFile;
-              } else {
-                currentSubItems.push({
-                  uid: file.data.uid,
-                  name: file.data.name,
-                  type: file.data.type,
-                  seq: file.data.seq,
-                  tags: file.data.tags,
-                  request: file.data.request,
-                  settings: file.data.settings,
-                  examples: file.data.examples,
-                  filename: file.meta.name,
-                  pathname: file.meta.pathname,
-                  draft: null,
-                  partial: file.partial,
-                  loading: file.loading,
-                  size: file.size,
-                  error: file.error,
-                  isTransient: isTransientFile
-                });
-              }
-            }
-          }
-        }
-
-        // Call addDepth once per collection after all items are added
-        addDepth(collection.items);
-      }
-    },
     collectionChangeFileEvent: (state, action) => {
       const { file } = action.payload;
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
@@ -3002,33 +2783,7 @@ export const collectionsSlice = createSlice({
 
       if (isFolderRoot) {
         const folderPath = path.dirname(file.meta.pathname);
-        let folderItem = findItemInCollectionByPathname(collection, folderPath);
-
-        if (!folderItem && collection) {
-          const subDirectories = getSubdirectoriesFromRoot(collection.pathname, folderPath);
-          let currentPath = collection.pathname;
-          let currentSubItems = collection.items;
-          for (const directoryName of subDirectories) {
-            let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
-            currentPath = path.join(currentPath, directoryName);
-            if (!childItem) {
-              childItem = {
-                uid: uuid(),
-                pathname: currentPath,
-                name: directoryName,
-                collapsed: true,
-                type: 'folder',
-                items: []
-              };
-              currentSubItems.push(childItem);
-            }
-            currentSubItems = childItem.items;
-            if (currentPath === folderPath) {
-              folderItem = childItem;
-            }
-          }
-        }
-
+        const folderItem = findItemInCollectionByPathname(collection, folderPath);
         if (folderItem) {
           if (file?.data?.meta?.name) {
             folderItem.name = file?.data?.meta?.name;
@@ -3183,6 +2938,9 @@ export const collectionsSlice = createSlice({
       item.preRequestScriptErrorMessage = null;
       item.postResponseScriptErrorMessage = null;
       item.testScriptErrorMessage = null;
+      item.preRequestScriptErrorContext = null;
+      item.postResponseScriptErrorContext = null;
+      item.testScriptErrorContext = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -3196,14 +2954,17 @@ export const collectionsSlice = createSlice({
 
           if (type === 'pre-request-script-execution') {
             item.preRequestScriptErrorMessage = action.payload.errorMessage;
+            item.preRequestScriptErrorContext = action.payload.errorContext || null;
           }
 
           if (type === 'post-response-script-execution') {
             item.postResponseScriptErrorMessage = action.payload.errorMessage;
+            item.postResponseScriptErrorContext = action.payload.errorContext || null;
           }
 
           if (type === 'test-script-execution') {
             item.testScriptErrorMessage = action.payload.errorMessage;
+            item.testScriptErrorContext = action.payload.errorContext || null;
           }
 
           if (type === 'request-queued') {
@@ -3334,16 +3095,19 @@ export const collectionsSlice = createSlice({
         if (type === 'post-response-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.postResponseScriptErrorMessage = action.payload.errorMessage;
+          item.postResponseScriptErrorContext = action.payload.errorContext || null;
         }
 
         if (type === 'test-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.testScriptErrorMessage = action.payload.errorMessage;
+          item.testScriptErrorContext = action.payload.errorContext || null;
         }
 
         if (type === 'pre-request-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.preRequestScriptErrorMessage = action.payload.errorMessage;
+          item.preRequestScriptErrorContext = action.payload.errorContext || null;
         }
       }
     },
@@ -3907,7 +3671,6 @@ export const {
   updateCollectionProtobuf,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
-  collectionBatchAddItems,
   collectionChangeFileEvent,
   collectionUnlinkFileEvent,
   collectionUnlinkDirectoryEvent,

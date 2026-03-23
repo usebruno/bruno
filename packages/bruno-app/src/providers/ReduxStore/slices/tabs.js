@@ -28,7 +28,9 @@ export const tabsSlice = createSlice({
         'global-environment-settings',
         'preferences',
         'workspaceOverview',
-        'workspaceEnvironments'
+        'workspaceEnvironments',
+        'openapi-sync',
+        'openapi-spec'
       ];
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
@@ -159,6 +161,13 @@ export const tabsSlice = createSlice({
         tab.responsePaneScrollPosition = action.payload.scrollY;
       }
     },
+    updateRequestBodyScrollPosition: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.requestBodyScrollPosition = action.payload.scrollY;
+      }
+    },
     updateResponseFormat: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -271,6 +280,7 @@ export const {
   updateRequestPaneTab,
   updateResponsePaneTab,
   updateResponsePaneScrollPosition,
+  updateRequestBodyScrollPosition,
   updateResponseFormat,
   updateResponseViewTab,
   updateScriptPaneTab,

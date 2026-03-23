@@ -1,87 +1,120 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
+import { useFormik } from 'formik';
+import { useSelector, useDispatch } from 'react-redux';
+import {
+  savePreferences,
+  clearHttpHttpsAgentCache
+} from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
+import * as Yup from 'yup';
+import debounce from 'lodash/debounce';
+import get from 'lodash/get';
+
+const cacheSchema = Yup.object().shape({
+  sslSession: Yup.object({
+    enabled: Yup.boolean()
+  })
+});
 
 const Cache = () => {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [purging, setPurging] = useState(false);
+  const preferences = useSelector((state) => state.app.preferences);
+  const dispatch = useDispatch();
 
-  const fetchStats = useCallback(async () => {
-    try {
-      const cacheStats = await window.ipcRenderer.invoke('renderer:get-cache-stats');
-      setStats(cacheStats);
-    } catch (error) {
-      console.error('Error fetching cache stats:', error);
-      setStats({ error: error.message });
-    } finally {
-      setLoading(false);
+  const handleSave = useCallback(
+    (newCachePreferences) => {
+      dispatch(
+        savePreferences({
+          ...preferences,
+          cache: newCachePreferences
+        })
+      ).catch(() => toast.error('Failed to update cache preferences'));
+    },
+    [dispatch, preferences]
+  );
+
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
+  const formik = useFormik({
+    initialValues: {
+      sslSession: {
+        enabled: get(preferences, 'cache.sslSession.enabled', false)
+      }
+    },
+    validationSchema: cacheSchema,
+    onSubmit: async (values) => {
+      try {
+        const newPreferences = await cacheSchema.validate(values, { abortEarly: true });
+        handleSave(newPreferences);
+      } catch (error) {
+        console.error('Cache preferences validation error:', error.message);
+      }
     }
-  }, []);
+  });
+
+  const debouncedSave = useCallback(
+    debounce((values) => {
+      cacheSchema
+        .validate(values, { abortEarly: true })
+        .then((validatedValues) => handleSaveRef.current(validatedValues))
+        .catch(() => {});
+    }, 500),
+    []
+  );
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
-  const handlePurgeCache = async () => {
-    setPurging(true);
-    try {
-      const result = await window.ipcRenderer.invoke('renderer:purge-cache');
-      if (result.success) {
-        toast.success('Cache purged successfully');
-        await fetchStats();
-      } else {
-        toast.error(result.error || 'Failed to purge cache');
-      }
-    } catch (error) {
-      console.error('Error purging cache:', error);
-      toast.error('Failed to purge cache');
-    } finally {
-      setPurging(false);
+    if (formik.dirty && formik.isValid) {
+      debouncedSave(formik.values);
     }
+    return () => {
+      debouncedSave.flush();
+    };
+  }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
+
+  const handleAgentCachingChange = (e) => {
+    formik.handleChange(e);
+    // Immediately evict all cached agents when caching is disabled
+    if (!e.target.checked) {
+      dispatch(clearHttpHttpsAgentCache()).catch(() => {});
+    }
+  };
+
+  const handleResetCache = () => {
+    dispatch(clearHttpHttpsAgentCache())
+      .then(() => toast.success('ssl session cache cleared'))
+      .catch(() => toast.error('Failed to clear ssl session cache'));
   };
 
   return (
     <StyledWrapper className="w-full">
-      <div className="section-title">Collection Cache</div>
-      <p className="description mb-4">
-        Bruno caches parsed collection files to improve loading performance. Clearing the cache will cause collections to be fully re-parsed on next load.
-      </p>
+      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <div className="section-title mt-6 mb-3">Cache SSL Session</div>
 
-      <div className="cache-stats">
-        {loading ? (
-          <div className="stat-item">
-            <span className="stat-label">Loading...</span>
-          </div>
-        ) : stats?.error ? (
-          <div className="stat-item">
-            <span className="stat-label">Error: {stats.error}</span>
-          </div>
-        ) : (
-          <>
-            <div className="stat-item">
-              <span className="stat-label">Cached Collections</span>
-              <span className="stat-value">{stats?.totalCollections ?? 0}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Cached Files</span>
-              <span className="stat-value">{stats?.totalFiles ?? 0}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Cache Version</span>
-              <span className="stat-value">{stats?.version ?? 'N/A'}</span>
-            </div>
-          </>
-        )}
-      </div>
+        <div className="flex items-center my-2">
+          <input
+            id="sslSession.enabled"
+            type="checkbox"
+            name="sslSession.enabled"
+            checked={formik.values.sslSession.enabled}
+            onChange={handleAgentCachingChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="sslSession.enabled">
+            Enable SSL session caching
+          </label>
+        </div>
+        <div className="text-xs mt-1 ml-6 opacity-70">
+          Reuses TLS sessions and connections across requests for faster handshakes. Disable to create a fresh connection for every
+          request.
+        </div>
 
-      <button
-        className="purge-button"
-        onClick={handlePurgeCache}
-        disabled={purging || loading}
-      >
-        {purging ? 'Purging...' : 'Purge Cache'}
-      </button>
+        <div className="mt-6">
+          <button type="button" className="text-link cursor-pointer hover:underline" onClick={handleResetCache}>
+            Clear
+          </button>
+        </div>
+      </form>
     </StyledWrapper>
   );
 };

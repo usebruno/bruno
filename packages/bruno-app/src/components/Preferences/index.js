@@ -20,9 +20,9 @@ import Proxy from './ProxySettings';
 import Display from './Display';
 import Keybindings from './Keybindings';
 import Beta from './Beta';
-import Cache from './Cache';
 
 import StyledWrapper from './StyledWrapper';
+import Cache from './Cache/index';
 
 const Preferences = () => {
   const dispatch = useDispatch();
@@ -64,12 +64,12 @@ const Preferences = () => {
         return <Beta />;
       }
 
-      case 'cache': {
-        return <Cache />;
-      }
-
       case 'support': {
         return <Support />;
+      }
+
+      case 'cache': {
+        return <Cache />;
       }
     }
   };

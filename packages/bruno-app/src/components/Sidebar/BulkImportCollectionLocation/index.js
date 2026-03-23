@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useMemo, forwardRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import path from 'utils/common/path';
 import { browseDirectory, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import Modal from 'components/Modal';
 import { isElectron } from 'utils/common/platform';
@@ -134,7 +135,7 @@ export const BulkImportCollectionLocation = ({
   const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
   const defaultLocation = isDefaultWorkspace
     ? get(preferences, 'general.defaultLocation', '')
-    : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
+    : (activeWorkspace?.pathname ? path.join(activeWorkspace.pathname, 'collections') : '');
 
   const [status, setStatus] = useState({});
   const [errorMessages, setErrorMessages] = useState({});
@@ -839,7 +840,7 @@ export const BulkImportCollectionLocation = ({
 
                 {isMultipleImport && hasOpenApiSpec && (
                   <div>
-                    <div className="flex gap-4 items-center">
+                    <div className="flex gap-4 items-center mt-4">
                       <div>
                         <label htmlFor="groupingType" className="block font-semibold">
                           Folder arrangement

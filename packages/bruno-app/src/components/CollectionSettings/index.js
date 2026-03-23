@@ -106,42 +106,42 @@ const CollectionSettings = ({ collection }) => {
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-hidden">
       <div className="flex flex-wrap items-center tabs" role="tablist">
-        <div className={getTabClassname('overview')} role="tab" onClick={() => setTab('overview')}>
+        <div className={getTabClassname('overview')} role="tab" data-testid="collection-settings-tab-overview" onClick={() => setTab('overview')}>
           Overview
         </div>
-        <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
+        <div className={getTabClassname('headers')} role="tab" data-testid="collection-settings-tab-headers" onClick={() => setTab('headers')}>
           Headers
           {activeHeadersCount > 0 && <sup className="ml-1 font-medium">{activeHeadersCount}</sup>}
         </div>
-        <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
+        <div className={getTabClassname('vars')} role="tab" data-testid="collection-settings-tab-vars" onClick={() => setTab('vars')}>
           Vars
           {activeVarsCount > 0 && <sup className="ml-1 font-medium">{activeVarsCount}</sup>}
         </div>
-        <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
+        <div className={getTabClassname('auth')} role="tab" data-testid="collection-settings-tab-auth" onClick={() => setTab('auth')}>
           Auth
           {authMode !== 'none' && <StatusDot />}
         </div>
-        <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
+        <div className={getTabClassname('script')} role="tab" data-testid="collection-settings-tab-script" onClick={() => setTab('script')}>
           Script
           {hasScripts && <StatusDot />}
         </div>
-        <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
+        <div className={getTabClassname('tests')} role="tab" data-testid="collection-settings-tab-tests" onClick={() => setTab('tests')}>
           Tests
           {hasTests && <StatusDot />}
         </div>
-        <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
+        <div className={getTabClassname('presets')} role="tab" data-testid="collection-settings-tab-presets" onClick={() => setTab('presets')}>
           Presets
           {hasPresets && <StatusDot />}
         </div>
-        <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
+        <div className={getTabClassname('proxy')} role="tab" data-testid="collection-settings-tab-proxy" onClick={() => setTab('proxy')}>
           Proxy
           {Object.keys(proxyConfig).length > 0 && proxyEnabled && <StatusDot />}
         </div>
-        <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
+        <div className={getTabClassname('clientCert')} role="tab" data-testid="collection-settings-tab-clientCert" onClick={() => setTab('clientCert')}>
           Client Certificates
           {clientCertConfig.length > 0 && <StatusDot />}
         </div>
-        <div className={getTabClassname('protobuf')} role="tab" onClick={() => setTab('protobuf')}>
+        <div className={getTabClassname('protobuf')} role="tab" data-testid="collection-settings-tab-protobuf" onClick={() => setTab('protobuf')}>
           Protobuf
           {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
         </div>

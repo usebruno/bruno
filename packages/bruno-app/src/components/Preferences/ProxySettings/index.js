@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
@@ -75,41 +75,26 @@ const ProxySettings = ({ close }) => {
       });
   }, [dispatch, preferences, proxySchema]);
 
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
   const debouncedSave = useCallback(
     debounce((values) => {
-      onUpdate(values);
+      onUpdateRef.current(values);
     }, 500),
-    [onUpdate]
+    []
   );
 
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   useEffect(() => {
-    formik.setValues({
-      disabled: preferences.proxy.disabled || false,
-      inherit: preferences.proxy.inherit || false,
-      config: {
-        protocol: preferences.proxy.config?.protocol || 'http',
-        hostname: preferences.proxy.config?.hostname || '',
-        port: preferences.proxy.config?.port || '',
-        auth: {
-          disabled: preferences.proxy.config?.auth?.disabled || false,
-          username: preferences.proxy.config?.auth?.username || '',
-          password: preferences.proxy.config?.auth?.password || ''
-        },
-        bypassProxy: preferences.proxy.config?.bypassProxy || ''
-      }
-    });
-  }, [preferences]);
-
-  useEffect(() => {
-    if (formik.dirty) {
+    if (formik.dirty && formik.isValid) {
       debouncedSave(formik.values);
     }
     return () => {
-      debouncedSave.cancel();
+      debouncedSave.flush();
     };
-  }, [formik.values, formik.dirty, debouncedSave]);
+  }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 
   return (
     <StyledWrapper>

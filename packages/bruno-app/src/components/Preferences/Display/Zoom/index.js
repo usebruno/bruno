@@ -3,7 +3,9 @@ import get from 'lodash/get';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
+import { IconReload } from '@tabler/icons';
 import { IconChevronDown, IconCheck } from '@tabler/icons';
+import Button from 'ui/Button/index';
 const { percentageToZoomLevel } = require('@usebruno/common');
 
 // Zoom options for dropdown (50% to 150%)
@@ -27,6 +29,7 @@ const Zoom = () => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
   const dropdownRef = useRef(null);
+  const dropdownMenuRef = useRef(null);
   const { ipcRenderer } = window;
 
   // Get saved zoom percentage from Redux preferences (single source of truth)
@@ -44,6 +47,17 @@ const Zoom = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Callback ref to scroll to selected option when dropdown renders
+  const setDropdownMenuRef = (node) => {
+    dropdownMenuRef.current = node;
+    if (node) {
+      const selectedOption = node.querySelector('.dropdown-option.selected');
+      if (selectedOption) {
+        selectedOption.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  };
 
   const handleSelect = (zoom) => {
     // Apply zoom level to Electron window immediately
@@ -73,15 +87,17 @@ const Zoom = () => {
 
   return (
     <StyledWrapper>
-      <div className="flex flex-row gap-4 items-end">
+      <div>
+        <label className="block">Interface Zoom</label>
+      </div>
+      <div className="flex flex-row gap-1 items-center mt-2">
         <div className="zoom-field" ref={dropdownRef}>
-          <label className="block">Interface Zoom</label>
-          <div className="custom-select mt-2" onClick={() => setIsOpen(!isOpen)}>
+          <div className="custom-select" onClick={() => setIsOpen(!isOpen)}>
             <span className="selected-value">{selectedOption?.label}</span>
             <IconChevronDown size={14} className="chevron-icon" />
           </div>
           {isOpen && (
-            <div className="dropdown-menu">
+            <div className="dropdown-menu" ref={setDropdownMenuRef}>
               {ZOOM_OPTIONS.map((option) => (
                 <div
                   key={option.value}
@@ -89,20 +105,20 @@ const Zoom = () => {
                   onClick={() => handleSelect(option.value)}
                 >
                   <span className="option-label">{option.label}</span>
-                  {option.value === savedZoom && <IconCheck size={14} className="check-icon" />}
+                  {option.value === savedZoom && <IconCheck size={12} className="check-icon" />}
                 </div>
               ))}
             </div>
           )}
         </div>
         {!isDefault && (
-          <button
-            type="button"
-            className="reset-btn"
+          <Button
+            size="sm"
+            icon={<IconReload />}
+            color="secondary"
+            variant="ghost"
             onClick={handleResetToDefault}
-          >
-            Reset
-          </button>
+          />
         )}
       </div>
     </StyledWrapper>

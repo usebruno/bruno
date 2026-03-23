@@ -304,6 +304,7 @@ const ResponsePane = ({ item, collection }) => {
           <ScriptError
             item={item}
             onClose={() => setShowScriptErrorCard(false)}
+            collection={collection}
           />
         )}
         <div className="flex-1 overflow-y-auto">

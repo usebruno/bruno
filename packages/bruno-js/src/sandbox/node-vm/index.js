@@ -3,10 +3,11 @@ const path = require('node:path');
 const { get } = require('lodash');
 const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
-const { ScriptError } = require('./utils');
+const { ScriptError, resolveVmFilename } = require('./utils');
 const { createCustomRequire } = require('./cjs-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
+const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
 
 /**
  * Executes a script in a Node.js VM context with enhanced security and module loading
@@ -16,10 +17,17 @@ const { mixinTypedArrays } = require('../mixins/typed-arrays');
  * @param {Object} options.context - The execution context with Bruno objects
  * @param {string} options.collectionPath - Path to the collection directory
  * @param {Object} options.scriptingConfig - Scripting configuration options
- * @returns {Promise<void>}
+ * @param {string} [options.scriptPath] - Path to the source file for accurate stack traces
+ * @returns {Promise<Object>} Execution results including variables and test results
  * @throws {ScriptError} When script execution fails
  */
-async function runScriptInNodeVm({ script, context, collectionPath, scriptingConfig }) {
+async function runScriptInNodeVm({
+  script,
+  context,
+  collectionPath,
+  scriptingConfig,
+  scriptPath
+}) {
   if (script.trim().length === 0) {
     return;
   }
@@ -58,13 +66,61 @@ async function runScriptInNodeVm({ script, context, collectionPath, scriptingCon
       additionalContextRootsAbsolute
     });
 
-    // Execute the script in the isolated context
-    const wrappedScript = `(async function(){ ${script} \n})();`;
-    const compiledScript = new vm.Script(wrappedScript, {
-      filename: path.join(collectionPath, 'script.js')
-    });
+    const vmFilename = resolveVmFilename(scriptPath, collectionPath);
 
-    await compiledScript.runInContext(isolatedContext);
+    // Execute the script in the isolated context
+    const wrappedScript = wrapScriptInClosure(script, SANDBOX.NODEVM);
+    let compiledScript;
+    try {
+      compiledScript = new vm.Script(wrappedScript, {
+        filename: vmFilename
+      });
+    } catch (error) {
+      // V8 puts "filename:line" as the first line of syntax error stacks.
+      // Parse it so the error formatter can map to the correct source location.
+      const firstLine = error.stack?.split('\n')[0];
+      const match = firstLine?.match(/^(.+):(\d+)$/);
+      if (match && match[1] === vmFilename) {
+        error.__callSites = [{
+          filePath: vmFilename,
+          line: parseInt(match[2], 10),
+          column: null,
+          functionName: null
+        }];
+      }
+      throw error;
+    }
+
+    // Capture structured call sites for error-formatter line mapping
+    const originalPrepareStackTrace = Error.prepareStackTrace;
+    Error.prepareStackTrace = (error, callSites) => {
+      error.__callSites = callSites
+        .filter((site) => site.getFileName() === vmFilename)
+        .map((site) => ({
+          filePath: site.getFileName(),
+          line: site.getLineNumber(),
+          column: site.getColumnNumber(),
+          functionName: site.getFunctionName() || null
+        }));
+
+      return error.toString() + '\n' + callSites
+        .map((site) => `    at ${site}`)
+        .join('\n');
+    };
+
+    try {
+      await compiledScript.runInContext(isolatedContext, {
+        displayErrors: true
+      });
+    } catch (error) {
+      // V8 invokes prepareStackTrace lazily on first .stack access.
+      // Reading .stack here so custom handler runs and populates error.__callSites
+      // (used later by the error formatter to map stack frames to the .bru/.yml script)
+      void error.stack;
+      throw error;
+    } finally {
+      Error.prepareStackTrace = originalPrepareStackTrace;
+    }
   } catch (error) {
     throw new ScriptError(error, script);
   }

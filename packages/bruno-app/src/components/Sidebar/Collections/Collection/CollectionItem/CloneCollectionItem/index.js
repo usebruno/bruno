@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Modal from 'components/Modal';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
 import { cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
@@ -18,6 +18,7 @@ import Button from 'ui/Button';
 
 const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
+  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const isFolder = isItemAFolder(item);
   const inputRef = useRef();
   const [isEditing, toggleEditing] = useState(false);
@@ -168,7 +169,7 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
                       onChange={formik.handleChange}
                       value={formik.values.filename || ''}
                     />
-                    {itemType !== 'folder' && <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.bru</span>}
+                    {itemType !== 'folder' && <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.{collection?.format || 'bru'}</span>}
                   </div>
                 ) : (
                   <div className="relative flex flex-row gap-1 items-center justify-between">

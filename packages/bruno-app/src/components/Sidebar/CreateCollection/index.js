@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, forwardRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import path from 'utils/common/path';
 import { browseDirectory, createCollection } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import Portal from 'components/Portal';
@@ -18,7 +19,7 @@ import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
 import Button from 'ui/Button';
 
-const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => {
+const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initialCollectionName = '' }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
@@ -32,13 +33,13 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
   const activeWorkspace = workspaces.find((w) => w.uid === workspaceUid);
   const isDefaultWorkspace = activeWorkspace?.type === 'default';
 
-  const defaultLocation = isDefaultWorkspace ? get(preferences, 'general.defaultLocation', '') : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
+  const defaultLocation = isDefaultWorkspace ? get(preferences, 'general.defaultLocation', '') : (activeWorkspace?.pathname ? path.join(activeWorkspace.pathname, 'collections') : '');
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      collectionName: '',
-      collectionFolderName: '',
+      collectionName: initialCollectionName,
+      collectionFolderName: initialCollectionName ? sanitizeName(initialCollectionName) : '',
       collectionLocation: defaultLocation || '',
       format: DEFAULT_COLLECTION_FORMAT
     },
@@ -86,9 +87,13 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
   };
 
   useEffect(() => {
-    if (inputRef && inputRef.current) {
-      inputRef.current.focus();
-    }
+    const timer = setTimeout(() => {
+      if (inputRef && inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
+    }, 50);
+    return () => clearTimeout(timer);
   }, [inputRef]);
 
   const AdvancedOptions = forwardRef((props, ref) => {

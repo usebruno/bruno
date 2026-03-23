@@ -68,7 +68,13 @@ const createCollection = async (page, collectionName: string, collectionLocation
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
+    // Wait for inline creator to appear, then click the cog button to open advanced modal
+    const inlineCreator = page.locator('.inline-collection-creator');
+    await inlineCreator.waitFor({ state: 'visible', timeout: 5000 });
+    await inlineCreator.locator('.cog-btn').click();
+
     const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
+    await createCollectionModal.waitFor({ state: 'visible', timeout: 5000 });
 
     await createCollectionModal.getByLabel('Name').fill(collectionName);
     const locationInput = createCollectionModal.getByLabel('Location');
@@ -314,6 +320,42 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
     await locators.dropdown.item('Delete').click();
     await locators.modal.button('Delete').click();
     await expect(request).not.toBeVisible();
+  });
+};
+
+/**
+ * Delete a collection permanently from disk via the workspace overview page
+ * @param page - The page object
+ * @param collectionName - The name of the collection to delete
+ * @returns void
+ */
+const deleteCollectionFromOverview = async (page: Page, collectionName: string) => {
+  await test.step(`Delete collection "${collectionName}" from workspace overview`, async () => {
+    // Navigate to workspace overview
+    await page.locator('.home-button').click();
+    const overviewTab = page.locator('.request-tab').filter({ hasText: 'Overview' });
+    await overviewTab.click();
+
+    // Find the collection card and open its menu
+    const collectionCard = page.locator('.collection-card').filter({ hasText: collectionName });
+    await collectionCard.waitFor({ state: 'visible', timeout: 5000 });
+    await collectionCard.locator('.collection-menu').click();
+
+    // Click Delete from the dropdown
+    await page.locator('.dropdown-item').filter({ hasText: 'Delete' }).click();
+
+    // Wait for delete confirmation modal
+    const deleteModal = page.locator('.bruno-modal').filter({ hasText: 'Delete Collection' });
+    await deleteModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Type 'delete' to confirm
+    await deleteModal.locator('#delete-confirm-input').fill('delete');
+
+    // Click the Delete button
+    await deleteModal.getByRole('button', { name: 'Delete', exact: true }).click();
+
+    // Wait for modal to close
+    await deleteModal.waitFor({ state: 'hidden', timeout: 10000 });
   });
 };
 
@@ -1014,6 +1056,7 @@ export {
   createTransientRequest,
   fillRequestUrl,
   deleteRequest,
+  deleteCollectionFromOverview,
   importCollection,
   removeCollection,
   createFolder,

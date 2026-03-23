@@ -3,8 +3,9 @@ import { useSelector, useDispatch } from 'react-redux';
 import { IconArrowLeft, IconPlus, IconFolder, IconLock, IconDots, IconCategory, IconLogin } from '@tabler/icons';
 import toast from 'react-hot-toast';
 
+import get from 'lodash/get';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
-import { switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { createWorkspaceWithUniqueName, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { sortWorkspaces } from 'utils/workspaces';
 
@@ -26,7 +27,8 @@ const ManageWorkspace = () => {
   const [deleteWorkspaceModal, setDeleteWorkspaceModal] = useState({ open: false, workspace: null });
 
   const sortedWorkspaces = useMemo(() => {
-    return sortWorkspaces(workspaces, preferences);
+    const persistedWorkspaces = workspaces.filter((w) => !w.isCreating);
+    return sortWorkspaces(persistedWorkspaces, preferences);
   }, [workspaces, preferences]);
 
   const handleBack = () => {
@@ -59,6 +61,20 @@ const ManageWorkspace = () => {
     setDeleteWorkspaceModal({ open: true, workspace });
   };
 
+  const handleCreateWorkspace = async () => {
+    const defaultLocation = get(preferences, 'general.defaultLocation', '');
+    if (!defaultLocation) {
+      setCreateWorkspaceModalOpen(true);
+      return;
+    }
+
+    try {
+      await dispatch(createWorkspaceWithUniqueName(defaultLocation));
+    } catch (error) {
+      toast.error(error?.message || 'Failed to create workspace');
+    }
+  };
+
   return (
     <StyledWrapper>
       {createWorkspaceModalOpen && (
@@ -86,7 +102,7 @@ const ManageWorkspace = () => {
           </div>
           <span className="header-title">Manage Workspace</span>
         </div>
-        <Button size="sm" onClick={() => setCreateWorkspaceModalOpen(true)} icon={<IconPlus size={14} strokeWidth={2} />}>
+        <Button size="sm" onClick={handleCreateWorkspace} icon={<IconPlus size={14} strokeWidth={2} />}>
           Create Workspace
         </Button>
       </div>

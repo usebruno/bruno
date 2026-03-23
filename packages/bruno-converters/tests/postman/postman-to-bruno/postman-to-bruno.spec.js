@@ -238,6 +238,43 @@ describe('postman-collection', () => {
     ]);
   });
 
+  it('should convert non-string variable values to strings', async () => {
+    const collectionWithNonStringVars = {
+      info: {
+        name: 'Non-String Variable Demo',
+        _postman_id: 'abcd1234-5678-90ef-ghij-1234567890ab',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      variable: [
+        { key: 'timeout', value: 5000 },
+        { key: 'enabled', value: true },
+        { key: 'user', value: { id: 1, name: 'Alice' } }
+      ],
+      item: [
+        {
+          name: 'Sample Request',
+          request: {
+            method: 'GET',
+            url: {
+              raw: 'https://postman-echo.com/get',
+              protocol: 'https',
+              host: ['postman-echo', 'com'],
+              path: ['get']
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNonStringVars);
+    const vars = brunoCollection.root.request.vars.req;
+
+    expect(vars).toHaveLength(3);
+    expect(vars[0]).toMatchObject({ name: 'timeout', value: '5000' });
+    expect(vars[1]).toMatchObject({ name: 'enabled', value: 'true' });
+    expect(vars[2]).toMatchObject({ name: 'user', value: '{"id":1,"name":"Alice"}' });
+  });
+
   it('should handle empty variables', async () => {
     const collectionWithEmptyVars = {
       info: {

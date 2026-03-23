@@ -74,6 +74,7 @@ const { transformBrunoConfigBeforeSave } = require('../utils/transformBrunoConfi
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
 const { findUniqueFolderName } = require('../utils/collection-import');
+const { saveSpecAndUpdateMetadata, cleanupSpecFilesForCollection } = require('./openapi-sync');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -1129,9 +1130,18 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         console.error('Error removing collection from workspace.yml:', error);
       }
     }
+
+    // Clean up AppData spec files for this collection
+    try {
+      cleanupSpecFilesForCollection(collectionPath);
+    } catch (error) {
+      console.error('Error cleaning up spec files for removed collection:', error);
+    }
   });
 
-  ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, format = DEFAULT_COLLECTION_FORMAT) => {
+  ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, options = {}) => {
+    const format = options.format || DEFAULT_COLLECTION_FORMAT;
+    const rawOpenAPISpec = options.rawOpenAPISpec;
     let collections = Array.isArray(collection) ? collection : [collection];
     let completedImports = 0;
     let failedImports = 0;
@@ -1232,6 +1242,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const uid = generateUidBasedOnHash(collectionPath);
         const brunoConfig = getBrunoJsonConfig(coll);
 
+        // Convert absolute local file paths to collection-relative (git-shareable)
+        if (Array.isArray(brunoConfig.openapi)) {
+          for (const entry of brunoConfig.openapi) {
+            if (entry.sourceUrl && path.isAbsolute(entry.sourceUrl)) {
+              entry.sourceUrl = path.relative(collectionPath, entry.sourceUrl);
+            }
+          }
+        }
+
         if (format === 'yml') {
           brunoConfig.opencollection = '1.0.0';
           const collectionContent = await stringifyCollection(coll.root, brunoConfig, { format });
@@ -1249,6 +1268,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         // create folder and files based on collection
         await parseCollectionItems(coll.items, collectionPath);
         await parseEnvironments(coll.environments, collectionPath);
+
+        // Save OpenAPI spec file for sync support
+        if (rawOpenAPISpec && brunoConfig.openapi?.length) {
+          const specContent = typeof rawOpenAPISpec === 'string'
+            ? rawOpenAPISpec
+            : JSON.stringify(rawOpenAPISpec, null, 2);
+          await saveSpecAndUpdateMetadata({ collectionPath, specContent });
+        }
 
         const { size, filesCount } = await getCollectionStats(collectionPath);
         brunoConfig.size = size;

@@ -45,7 +45,9 @@ const defaultPreferences = {
   layout: {
     responsePaneOrientation: 'horizontal'
   },
-  beta: {},
+  beta: {
+    'openapi-sync': false
+  },
   onboarding: {
     hasLaunchedBefore: false,
     hasSeenWelcomeModal: true
@@ -60,6 +62,11 @@ const defaultPreferences = {
   },
   display: {
     zoomPercentage: 100
+  },
+  cache: {
+    sslSession: {
+      enabled: false
+    }
   }
 };
 
@@ -103,6 +110,7 @@ const preferencesSchema = Yup.object().shape({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   }),
   beta: Yup.object({
+    'openapi-sync': Yup.boolean()
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean(),
@@ -118,7 +126,12 @@ const preferencesSchema = Yup.object().shape({
   }),
   display: Yup.object({
     zoomPercentage: Yup.number().min(50).max(150)
-  })
+  }),
+  cache: Yup.object({
+    sslSession: Yup.object({
+      enabled: Yup.boolean()
+    })
+  }).optional()
 });
 
 class PreferencesStore {
@@ -304,6 +317,9 @@ const preferencesUtil = {
   },
   getZoomPercentage: () => {
     return get(getPreferences(), 'display.zoomPercentage', 100);
+  },
+  isSslSessionCachingEnabled: () => {
+    return get(getPreferences(), 'cache.sslSession.enabled', false);
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);

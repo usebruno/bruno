@@ -6,9 +6,10 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { savePreferences, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
-import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { createWorkspaceWithUniqueName, openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
 import { focusTab } from 'providers/ReduxStore/slices/tabs';
+import get from 'lodash/get';
 
 import Bruno from 'components/Bruno';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -150,9 +151,19 @@ const AppTitleBar = () => {
     }
   };
 
-  const handleCreateWorkspace = () => {
-    setCreateWorkspaceModalOpen(true);
-  };
+  const handleCreateWorkspace = useCallback(async () => {
+    const defaultLocation = get(preferences, 'general.defaultLocation', '');
+    if (!defaultLocation) {
+      setCreateWorkspaceModalOpen(true);
+      return;
+    }
+
+    try {
+      await dispatch(createWorkspaceWithUniqueName(defaultLocation));
+    } catch (error) {
+      toast.error(error?.message || 'Failed to create workspace');
+    }
+  }, [preferences, dispatch]);
 
   const handleManageWorkspaces = () => {
     dispatch(showManageWorkspacePage());
@@ -240,7 +251,7 @@ const AppTitleBar = () => {
     );
 
     return items;
-  }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace]);
+  }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace, handleCreateWorkspace]);
 
   return (
     <StyledWrapper className={`app-titlebar ${osClass} ${isFullScreen ? 'fullscreen' : ''}`}>

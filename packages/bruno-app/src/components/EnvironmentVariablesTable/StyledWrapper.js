@@ -106,24 +106,6 @@ const Wrapper = styled.div`
   .name-cell-wrapper {
     position: relative;
     width: 100%;
-
-    .name-highlight-overlay {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      white-space: pre;
-      overflow: hidden;
-      font-size: inherit;
-      line-height: inherit;
-      color: ${(props) => props.theme.text};
-    }
-  }
-
-  .search-highlight {
-    background: ${(props) => props.theme.colors.accent}55;
-    color: inherit;
-    border-radius: 2px;
-    padding: 0 1px;
   }
 
   .no-results {

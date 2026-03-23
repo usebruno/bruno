@@ -207,6 +207,14 @@ export interface BrunoConfig {
   scripts?: {
     additionalContextRoots?: string[];
   };
+  openapi?: Array<{
+    sourceUrl: string;
+    groupBy?: 'tags' | 'path';
+    lastSyncDate?: string;
+    specHash?: string;
+    autoCheck?: boolean;
+    autoCheckInterval?: number;
+  }>;
 }
 
 export interface BrunoCollectionRoot {

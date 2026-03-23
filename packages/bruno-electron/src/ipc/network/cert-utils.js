@@ -145,7 +145,7 @@ const getCertsAndProxyConfig = async ({
     } else if (!globalDisabled && globalInherit) {
       // Use system proxy (cached at app startup)
       proxyMode = 'system';
-      const systemProxyConfig = getCachedSystemProxy();
+      const systemProxyConfig = await getCachedSystemProxy();
       proxyConfig = systemProxyConfig || { http_proxy: null, https_proxy: null, no_proxy: null, source: 'cache-miss' };
     }
     // else: global proxy is disabled, proxyMode stays 'off'
@@ -194,7 +194,8 @@ const buildCertsAndProxyConfig = async ({
     shouldVerifyTls: preferencesUtil.shouldVerifyTls(),
     shouldUseCustomCaCertificate: preferencesUtil.shouldUseCustomCaCertificate(),
     customCaCertificateFilePath: preferencesUtil.getCustomCaCertificateFilePath(),
-    shouldKeepDefaultCaCertificates: preferencesUtil.shouldKeepDefaultCaCertificates()
+    shouldKeepDefaultCaCertificates: preferencesUtil.shouldKeepDefaultCaCertificates(),
+    cacheSslSession: preferencesUtil.isSslSessionCachingEnabled()
   };
 
   // Get client certificates from bruno config and interpolate
@@ -211,7 +212,7 @@ const buildCertsAndProxyConfig = async ({
   const appLevelProxyConfig = preferencesUtil.getGlobalProxyConfig();
 
   // Get system proxy config
-  const systemProxyConfig = getCachedSystemProxy();
+  const systemProxyConfig = await getCachedSystemProxy();
 
   return {
     collectionPath,
