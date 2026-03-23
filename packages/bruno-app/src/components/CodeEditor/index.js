@@ -15,7 +15,6 @@ import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { setupShortcuts } from 'utils/codemirror/shortcuts';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
 
@@ -47,9 +46,6 @@ export default class CodeEditor extends React.Component {
     this.state = {
       searchBarVisible: false
     };
-
-    // Shortcuts cleanup function
-    this._shortcutsCleanup = null;
   }
 
   componentDidMount() {
@@ -202,8 +198,11 @@ export default class CodeEditor extends React.Component {
       // Setup lint error tooltip on line number hover
       this.cleanupLintErrorTooltip = setupLintErrorTooltip(editor);
 
-      // Setup keyboard shortcuts
-      this._shortcutsCleanup = setupShortcuts(editor, this);
+      // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
+      const cmInput = editor.getInputField();
+      if (cmInput) {
+        cmInput.classList.add('mousetrap');
+      }
     }
   }
 
@@ -275,11 +274,6 @@ export default class CodeEditor extends React.Component {
   }
 
   componentWillUnmount() {
-    if (this._shortcutsCleanup) {
-      this._shortcutsCleanup();
-      this._shortcutsCleanup = null;
-    }
-
     if (this.editor) {
       if (this.props.onScroll) {
         this.props.onScroll(this.editor);

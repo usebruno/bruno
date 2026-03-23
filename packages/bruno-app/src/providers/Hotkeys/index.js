@@ -1,14 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import find from 'lodash/find';
 import Mousetrap from 'mousetrap';
-import { useSelector, useDispatch } from 'react-redux';
-import {
-  saveRequest,
-  saveCollectionRoot,
-  saveFolderRoot,
-  saveCollectionSettings
-} from 'providers/ReduxStore/slices/collections/actions';
-import { findCollectionByUid, findItemInCollection } from 'utils/collections';
+import { useSelector } from 'react-redux';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
 import commandRegistry from '../../services/command-registry';
@@ -98,11 +90,13 @@ function bindAllHotkeys(userKeyBindings) {
 
     Mousetrap.bind([...combos], (e) => {
       const target = e.target || document.activeElement;
-      const isInputField = target?.closest('.mousetrap')
-        || target?.tagName === 'INPUT'
+      const isInCodeMirror = !!target?.closest('.CodeMirror');
+      const isInputField = !isInCodeMirror && (
+        target?.tagName === 'INPUT'
         || target?.tagName === 'TEXTAREA'
-        || target?.getAttribute('contenteditable') === 'true';
-      const hasSelection = window.getSelection()?.toString()?.length > 0;
+        || target?.getAttribute('contenteditable') === 'true'
+      );
+      const hasSelection = !isInCodeMirror && window.getSelection()?.toString()?.length > 0;
 
       const metadata = commandRegistry.getMetadata(action);
       const whenClause = metadata?.when || 'always';

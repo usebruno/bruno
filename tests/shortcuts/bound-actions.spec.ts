@@ -3,8 +3,6 @@ import { createCollection, createRequest, openRequest, closeAllCollections, crea
 
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 
-// ─── Shared helpers ─────────────────────────────────────────────────────────────
-
 const openKeybindingsTab = async (page) => {
   await page.getByRole('button', { name: 'Open Preferences' }).click();
   await page.getByRole('tab', { name: 'Keybindings' }).click();
@@ -30,7 +28,7 @@ const closeTabByName = async (page: any, name: string | RegExp) => {
   await expect(tab).not.toBeVisible({ timeout: 2000 });
 };
 
-// ─── Tests ─────────────────────────────────────────────────────────────────────
+// ─── Tests ────
 
 test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.beforeEach(async ({ page }) => {
@@ -520,8 +518,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(folderSessionName).toContainText('kb-folder');
 
         // Close all sessions with terminal tab
-        await page.getByTestId('session-close-0').click();
-        await page.waitForTimeout(500);
+        await page.getByTestId('session-close-1').click();
+        await page.waitForTimeout(1000);
         await page.getByTestId('session-close-0').click();
         await expect(page.getByTestId('session-close-0')).not.toBeVisible({ timeout: 3000 });
         await page.getByTitle('Close console').click();
@@ -574,8 +572,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(folderSessionName).toContainText('kb-folder');
 
         // Close all sessions with terminal tab
-        await page.getByTestId('session-close-0').click();
-        await page.waitForTimeout(500);
+        await page.getByTestId('session-close-1').click();
+        await page.waitForTimeout(1000);
         await page.getByTestId('session-close-0').click();
         await expect(page.getByTestId('session-close-0')).not.toBeVisible({ timeout: 3000 });
         await page.getByTitle('Close console').click();
@@ -1199,7 +1197,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
   });
 
-  test.describe('Search', () => {
+  test.describe('GLOBAL SEARCH', () => {
     test.describe('SHORTCUT: Global Search Modal', () => {
       test('default Cmd/Ctrl+K Global Search Modal', async ({ page, createTmpDir }) => {
         // Press Cmd/Ctrl+K to global search modal
@@ -1210,10 +1208,39 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyK');
         await page.keyboard.up(modifier);
 
-        await expect(page.getByPlaceholder('Search collections, requests, or documentation...')).toBeVisible({ timeout: 1000 });
+        await page.getByTestId('global-search-input').click();
+        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 2000 });
 
-        await page.waitForTimeout(500);
-        await page.locator('body').click();
+        // await page.waitForTimeout(500);
+        await page.keyboard.down('Escape');
+        await page.keyboard.up('Escape');
+      });
+
+      test('customized Alt+K Global Search Modal', async ({ page, createTmpDir }) => {
+        // Remap globalSearch to Alt+K
+        await openKeybindingsTab(page);
+        const row = page.getByTestId('keybinding-row-globalSearch');
+        await row.hover();
+        await page.getByTestId('keybinding-edit-globalSearch').click();
+        await expect(page.getByTestId('keybinding-input-globalSearch')).toBeVisible({ timeout: 2000 });
+
+        await page.keyboard.down('Backspace');
+
+        await page.keyboard.down('Alt');
+        await page.keyboard.down('KeyK');
+        await page.keyboard.up('KeyK');
+        await page.keyboard.up('Alt');
+
+        await page.keyboard.down('Alt');
+        await page.keyboard.down('KeyK');
+        await page.keyboard.up('KeyK');
+        await page.keyboard.up('Alt');
+
+        await page.getByTestId('global-search-input').click();
+        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 2000 });
+
+        await page.keyboard.down('Escape');
+        await page.keyboard.up('Escape');
       });
     });
   });

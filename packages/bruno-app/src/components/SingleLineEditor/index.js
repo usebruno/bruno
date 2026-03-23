@@ -7,7 +7,6 @@ import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { setupShortcuts } from 'utils/codemirror/shortcuts';
 
 const CodeMirror = require('codemirror');
 
@@ -21,9 +20,6 @@ class SingleLineEditor extends Component {
     this.editorRef = React.createRef();
     this.variables = {};
     this.readOnly = props.readOnly || false;
-
-    // Shortcuts cleanup function
-    this._shortcutsCleanup = null;
 
     this.state = {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
@@ -113,8 +109,11 @@ class SingleLineEditor extends Component {
     }
     setupLinkAware(this.editor);
 
-    // Setup keyboard shortcuts using the dedicated utility
-    this._shortcutsCleanup = setupShortcuts(this.editor, this);
+    // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
+    const cmInput = this.editor.getInputField();
+    if (cmInput) {
+      cmInput.classList.add('mousetrap');
+    }
   }
 
   /** Enable or disable masking the rendered content of the editor */

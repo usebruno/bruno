@@ -99,7 +99,13 @@ const REQUIRED_MODIFIERS_BY_OS = {
   windows: new Set(['ctrl', 'alt', 'shift'])
 };
 
-const hasRequiredModifier = (os, arr) => arr.some((k) => REQUIRED_MODIFIERS_BY_OS[os]?.has(k));
+const FUNCTION_KEY_PATTERN = /^f([1-9]|1[0-2])$/;
+const isFunctionKey = (k) => FUNCTION_KEY_PATTERN.test(k);
+const hasRequiredModifier = (os, arr) => {
+  // Function keys (F1-F12) are allowed without a modifier
+  if (arr.some(isFunctionKey)) return true;
+  return arr.some((k) => REQUIRED_MODIFIERS_BY_OS[os]?.has(k));
+};
 const isOnlyModifiers = (arr) => arr.length > 0 && arr.every((k) => MODIFIERS.has(k));
 
 // Keep a stable modifier order for display, storage, and duplicate detection.
@@ -206,11 +212,15 @@ const RESERVED_BY_OS = {
     comboSignature(['command', 'shift', 'z']),
     comboSignature(['command', 'alt', 'z']),
     // Toggle Developer Tools
-    comboSignature(['command', 'alt', 'i'])
+    comboSignature(['command', 'alt', 'i']),
+    // Function keys reserved by macOS
+    comboSignature(['f11']), // Show Desktop
+    comboSignature(['f12']) // Dashboard (older macOS)
   ]),
   windows: new Set([
     comboSignature(['alt', 'tab']),
     comboSignature(['alt', 'f4']),
+    comboSignature(['f1']), // Windows Help
     comboSignature(['ctrl', 'alt', 'delete']),
     comboSignature(['command', 'l']),
     comboSignature(['command', 'd']),
