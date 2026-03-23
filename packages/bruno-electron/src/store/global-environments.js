@@ -2,6 +2,7 @@ const _ = require('lodash');
 const Store = require('electron-store');
 const { encryptStringSafe, decryptStringSafe } = require('../utils/encryption');
 const { environmentSchema } = require('@usebruno/schema');
+const { posixifyPath } = require('../utils/filesystem');
 
 class GlobalEnvironmentsStore {
   constructor() {
@@ -92,24 +93,27 @@ class GlobalEnvironmentsStore {
 
   getActiveGlobalEnvironmentUidForWorkspace(workspacePath) {
     if (!workspacePath) return undefined;
+    const key = posixifyPath(workspacePath);
     const mapping = this.store.get('activeGlobalEnvironmentUidByWorkspace', {});
-    if (workspacePath in mapping) {
-      return mapping[workspacePath];
+    if (key in mapping) {
+      return mapping[key];
     }
     return undefined;
   }
 
   setActiveGlobalEnvironmentUidForWorkspace(workspacePath, uid) {
     if (!workspacePath) return;
+    const key = posixifyPath(workspacePath);
     const mapping = this.store.get('activeGlobalEnvironmentUidByWorkspace', {});
-    mapping[workspacePath] = uid || null;
+    mapping[key] = uid || null;
     this.store.set('activeGlobalEnvironmentUidByWorkspace', mapping);
   }
 
   removeActiveGlobalEnvironmentUidForWorkspace(workspacePath) {
     if (!workspacePath) return;
+    const key = posixifyPath(workspacePath);
     const mapping = this.store.get('activeGlobalEnvironmentUidByWorkspace', {});
-    delete mapping[workspacePath];
+    delete mapping[key];
     this.store.set('activeGlobalEnvironmentUidByWorkspace', mapping);
   }
 
