@@ -87,6 +87,11 @@ const StyledWrapper = styled.div`
     padding: 2px 0;
   }
 
+  .root-type-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
   .root-type-node {
     display: flex;
     align-items: center;
@@ -102,6 +107,15 @@ const StyledWrapper = styled.div`
     &:hover,
     &:focus-visible {
       background: ${(props) => props.theme.background.surface0};
+    }
+
+    &:disabled {
+      cursor: default;
+
+      &:hover,
+      &:focus-visible {
+        background: none;
+      }
     }
 
     .root-type-name {
@@ -323,8 +337,6 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    flex: 1;
     padding: 24px 20px;
     text-align: center;
     gap: 12px;

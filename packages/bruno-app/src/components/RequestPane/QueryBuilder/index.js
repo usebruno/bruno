@@ -55,6 +55,16 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
     return map;
   }, [schema, availableRootTypes]);
 
+  // Determine which root type is active (has selections) — only one allowed at a time
+  const activeRootType = useMemo(() => {
+    for (const type of availableRootTypes) {
+      for (const path of selections) {
+        if (path.startsWith(type + '.')) return type;
+      }
+    }
+    return null;
+  }, [selections, availableRootTypes]);
+
   // Filter fields by search text
   const filteredFieldsByType = useMemo(() => {
     if (!searchText.trim()) return rootFieldsByType;
@@ -71,9 +81,6 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
   if (!schema) {
     return (
       <StyledWrapper>
-        <div className="query-builder-search">
-          <input type="text" placeholder="Search operations..." disabled />
-        </div>
         <div className="schema-empty-state">
           {schemaError ? (
             <>
@@ -118,18 +125,9 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
     );
   }
 
-  return (
-    <StyledWrapper>
-      <div className="query-builder-search">
-        <input
-          type="text"
-          placeholder="Search operations..."
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-        />
-      </div>
-
-      {syncError && (
+  if (syncError) {
+    return (
+      <StyledWrapper>
         <div className="sync-error-banner">
           <IconAlertTriangle size={13} strokeWidth={1.5} className="sync-error-icon" />
           <div className="sync-error-text">
@@ -141,18 +139,38 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
             ) : null}
           </div>
         </div>
-      )}
+      </StyledWrapper>
+    );
+  }
+
+  return (
+    <StyledWrapper>
+      <div className="query-builder-search">
+        <input
+          type="text"
+          placeholder="Search operations..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+      </div>
 
       <div className="query-builder-tree">
         {availableRootTypes.map((rootType) => {
           const isExpanded = effectiveExpandedRootTypes.has(rootType);
           const fields = filteredFieldsByType[rootType] || [];
+          const isDisabled = activeRootType !== null && activeRootType !== rootType;
 
           return (
-            <div key={rootType}>
-              <button type="button" className="root-type-node" onClick={() => toggleRootType(rootType)} aria-expanded={isExpanded}>
+            <div key={rootType} className={isDisabled ? 'root-type-disabled' : ''}>
+              <button
+                type="button"
+                className="root-type-node"
+                onClick={() => !isDisabled && toggleRootType(rootType)}
+                aria-expanded={isExpanded}
+                disabled={isDisabled}
+              >
                 <span className="field-chevron">
-                  {isExpanded ? (
+                  {isExpanded && !isDisabled ? (
                     <IconChevronDown size={14} strokeWidth={2} />
                   ) : (
                     <IconChevronRight size={14} strokeWidth={2} />
@@ -161,7 +179,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
                 <span className="root-type-name">{rootType}</span>
                 <span className="root-type-count">{(rootFieldsByType[rootType] || []).length}</span>
               </button>
-              {isExpanded && (
+              {isExpanded && !isDisabled && (
                 fields.length > 0 ? (
                   <QueryBuilderTree
                     fields={fields}
