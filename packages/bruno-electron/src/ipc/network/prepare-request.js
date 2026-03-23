@@ -8,7 +8,7 @@ const { isLargeFile } = require('../../utils/filesystem');
 
 const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
-const setAuthHeaders = (axiosRequest, request, collectionRoot, collectionPath) => {
+const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth && request.auth.mode === 'inherit') {
     switch (collectionAuth.mode) {
@@ -399,7 +399,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     responseType: 'arraybuffer'
   };
 
-  axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot, collectionPath);
+  axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
 
   if (request.body.mode === 'json') {
     if (!contentTypeDefined) {

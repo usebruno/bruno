@@ -159,6 +159,7 @@ const fromOpenCollectionOAuth2 = (auth: AuthOAuth2): BrunoAuth => {
         bearer: null,
         digest: null,
         ntlm: null,
+        oauth1: null,
         oauth2: null,
         wsse: null,
         apikey: null
@@ -174,6 +175,7 @@ export const fromOpenCollectionAuth = (auth: Auth | undefined): BrunoAuth => {
     bearer: null,
     digest: null,
     ntlm: null,
+    oauth1: null,
     oauth2: null,
     wsse: null,
     apikey: null

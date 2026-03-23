@@ -7,6 +7,8 @@ import nodePath from 'node:path';
 
 // Private key file cache: avoids re-reading the same file on every request.
 // Keyed by absolute path; invalidated when the file's mtime changes.
+// Capped at 50 entries to prevent unbounded growth in long-running processes.
+const PRIVATE_KEY_CACHE_MAX = 50;
 const privateKeyCache = new Map<string, { mtimeMs: number; content: string }>();
 
 function readPrivateKeyFile(filePath: string): string {
@@ -16,6 +18,13 @@ function readPrivateKeyFile(filePath: string): string {
     return cached.content;
   }
   const content = fs.readFileSync(filePath, 'utf-8');
+  if (privateKeyCache.size >= PRIVATE_KEY_CACHE_MAX) {
+    // Evict the oldest entry (first inserted)
+    const oldestKey = privateKeyCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      privateKeyCache.delete(oldestKey);
+    }
+  }
   privateKeyCache.set(filePath, { mtimeMs: stat.mtimeMs, content });
   return content;
 }
@@ -393,10 +402,12 @@ export function applyOAuth1ToRequest(request: {
   const method = request.method.toUpperCase();
   const hasBody = method !== 'GET' && method !== 'HEAD';
 
-  // RFC 5849 §3.4.1.3.1: form-encoded body params MUST be included in the signature base string
+  // RFC 5849 §3.4.1.3.1: form-encoded body params MUST be included in the signature base string.
+  // When addParamsTo is 'body', include body params even for GET/HEAD since Bruno sends the body regardless.
   const dataPairs: Array<[string, string]> = [];
+  const includeBodyInSignature = addParamsTo === 'body' || hasBody;
 
-  if (hasBody && isFormUrlEncoded && request.data) {
+  if (includeBodyInSignature && isFormUrlEncoded && request.data) {
     const bodyStr = typeof request.data === 'string' ? request.data : '';
     if (bodyStr) {
       new URLSearchParams(bodyStr).forEach((v, k) => {

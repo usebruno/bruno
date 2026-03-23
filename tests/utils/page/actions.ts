@@ -834,11 +834,11 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
 };
 
 const selectResponsePaneTab = async (page: Page, tabName: string) => {
-  await selectPaneTab(page, '.response-pane', tabName);
+  await selectPaneTab(page, '[data-testid="response-pane"]', tabName);
 };
 
 const selectRequestPaneTab = async (page: Page, tabName: string) => {
-  await selectPaneTab(page, '.request-pane > .px-4', tabName);
+  await selectPaneTab(page, '[data-testid="request-pane"] > .px-4', tabName);
 };
 
 /**

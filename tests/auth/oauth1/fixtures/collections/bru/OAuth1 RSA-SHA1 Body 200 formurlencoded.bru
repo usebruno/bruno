@@ -1,12 +1,12 @@
 meta {
-  name: OAuth1 RSA-SHA512 200
+  name: OAuth1 RSA-SHA1 Body formurlencoded 200
   type: http
-  seq: 1
+  seq: 20
 }
 
-get {
+post {
   url: {{localhost}}/api/auth/oauth1/resource
-  body: none
+  body: formUrlEncoded
   auth: oauth1
 }
 
@@ -17,7 +17,7 @@ auth:oauth1 {
   token_secret: token_secret_1
   callback_url: 
   verifier: 
-  signature_method: RSA-SHA512
+  signature_method: RSA-SHA1
   private_key: '''
     -----BEGIN PRIVATE KEY-----
     MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCf/ioOwb6uGm01
@@ -52,12 +52,15 @@ auth:oauth1 {
   nonce: 
   version: 1.0
   realm: 
-  add_params_to: header
+  add_params_to: body
   include_body_hash: false
+}
+
+body:form-urlencoded {
+  test: test
 }
 
 assert {
   res.status: eq 200
   res.body.resource.name: eq oauth1-test-resource
-  res.body.resource.email: eq oauth1@example.com
 }

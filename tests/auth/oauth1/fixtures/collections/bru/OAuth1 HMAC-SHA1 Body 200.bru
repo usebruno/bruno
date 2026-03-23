@@ -16,6 +16,7 @@ auth:oauth1 {
   access_token: access_token_1
   token_secret: token_secret_1
   callback_url: 
+  verifier: 
   signature_method: HMAC-SHA1
   private_key: 
   timestamp: 
@@ -39,8 +40,4 @@ body:text {
 assert {
   res.status: eq 200
   res.body.resource.name: eq oauth1-test-resource
-}
-
-script:post-response {
-  console.log(req.getBody());
 }

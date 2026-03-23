@@ -183,6 +183,11 @@ auth:oauth1 {
     expect(result.auth.oauth1.privateKey).toContain('-----BEGIN FAKE TEST KEY-----');
     expect(result.auth.oauth1.privateKey).toContain('-----END FAKE TEST KEY-----');
     expect(result.auth.oauth1.privateKey).toContain('TESTREPLACEMENTdGhpcyBpcyBub3QgYQ==');
+    // Verify no leading spaces are preserved in the parsed key lines
+    const keyLines = result.auth.oauth1.privateKey.split('\n').filter((l) => l.length > 0);
+    keyLines.forEach((line) => {
+      expect(line).not.toMatch(/^\s/);
+    });
   });
 
   it('should parse variable reference in private key as text type', () => {
@@ -444,6 +449,11 @@ auth:oauth1 {
     expect(result.auth.oauth1.privateKey).toContain('-----BEGIN FAKE RSA TEST KEY-----');
     expect(result.auth.oauth1.privateKey).toContain('RkFLRUtFWXJlYWxrZXlkYXRhZm9ydGVz');
     expect(result.auth.oauth1.privateKey).toContain('-----END FAKE RSA TEST KEY-----');
+    // Verify no leading spaces are preserved in the parsed key lines
+    const keyLines = result.auth.oauth1.privateKey.split('\n').filter((l) => l.length > 0);
+    keyLines.forEach((line) => {
+      expect(line).not.toMatch(/^\s/);
+    });
   });
 });
 

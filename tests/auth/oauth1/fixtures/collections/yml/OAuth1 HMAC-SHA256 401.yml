@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: '{{localhost}}/api/auth/oauth1/resource'
+  url: "{{localhost}}/api/auth/oauth1/resource"
   auth:
     type: oauth1
     consumerKey: consumer_key_1
@@ -13,7 +13,7 @@ http:
     accessToken: access_token_1
     tokenSecret: token_secret_1
     signatureMethod: HMAC-SHA256
-    version: '1.0'
+    version: "1.0"
     addParamsTo: header
     includeBodyHash: false
 
@@ -21,7 +21,7 @@ runtime:
   assertions:
     - expression: res.status
       operator: eq
-      value: '401'
+      value: "401"
     - expression: res.body.error
       operator: eq
       value: Invalid signature

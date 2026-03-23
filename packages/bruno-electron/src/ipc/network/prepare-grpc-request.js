@@ -167,7 +167,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     oauth2CredentialVariables: request.oauth2CredentialVariables
   };
 
-  grpcRequest = setAuthHeaders(grpcRequest, request, collectionRoot, collection?.pathname);
+  grpcRequest = setAuthHeaders(grpcRequest, request, collectionRoot);
 
   interpolateVars(grpcRequest, envVars, runtimeVariables, processEnvVars, promptVariables);
   processHeaders(grpcRequest.headers);

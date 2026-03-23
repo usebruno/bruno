@@ -9,6 +9,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import MultiLineEditor from 'components/MultiLineEditor';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
+import toast from 'react-hot-toast';
 import { sendRequest, browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
@@ -57,7 +58,10 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
   };
 
   const handlePrivateKeyChange = (val) => {
-    if (val && /^@file\(/.test(val.trim())) return;
+    if (val && /^@file\(/.test(val.trim())) {
+      toast.error('File references should be added using the "Upload File" button below');
+      return;
+    }
     handleChange('privateKey', val);
   };
 
@@ -102,7 +106,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
 
   const privateKeyValue = oauth1.privateKey || '';
   const isFileRef = oauth1.privateKeyType === 'file';
-  const fileName = isFileRef ? privateKeyValue.split('/').pop().split('\\').pop() : '';
+  const fileName = isFileRef ? path.basename(privateKeyValue) : '';
 
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
@@ -283,6 +287,15 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
           </MenuDropdown>
         </div>
       </div>
+
+      {oauth1.addParamsTo === 'body' && (
+        <div className="flex items-center gap-4 w-full">
+          <label className="block min-w-[140px]"></label>
+          <span className="text-xs opacity-60">
+            Body placement requires a form-urlencoded body. Non-form payloads will be replaced with OAuth parameters.
+          </span>
+        </div>
+      )}
 
       <div className="flex items-center gap-4 w-full">
         <label className="block min-w-[140px]"></label>

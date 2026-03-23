@@ -20,6 +20,9 @@ for (const subdir of ['bru', 'yml']) {
   }
 }
 
+const BRU_COLLECTION = 'oauth1-testbench-bru';
+const YML_COLLECTION = 'oauth1-testbench-yml';
+
 const requests = [
   { name: 'OAuth1 HMAC-SHA1 200', status: 200 },
   { name: 'OAuth1 HMAC-SHA1 401', status: 401 },
@@ -42,6 +45,7 @@ const requests = [
   { name: 'OAuth1 PLAINTEXT Body 200', status: 200 },
   { name: 'OAuth1 HMAC-SHA256 Body 200', status: 200 },
   { name: 'OAuth1 RSA-SHA1 Body 200', status: 200 },
+  { name: 'OAuth1 RSA-SHA1 Body formurlencoded 200', status: 200 },
   { name: 'OAuth1 HMAC-SHA1 Body JSON 200', status: 200 }
 ];
 
@@ -110,53 +114,53 @@ test.describe('OAuth 1.0 Runner', () => {
   test.describe('[bru]', () => {
     test('Send individual requests', async ({ pageWithUserData: page }) => {
       test.setTimeout(3 * 60 * 1000);
-      await sendAllRequests(page, 'oauth1-testbench-bru');
+      await sendAllRequests(page, BRU_COLLECTION);
     });
 
     test('Run collection and verify all assertions pass', async ({ pageWithUserData: page }) => {
       test.setTimeout(3 * 60 * 1000);
-      await runAndValidate(page, 'oauth1-testbench-bru');
+      await runAndValidate(page, BRU_COLLECTION);
     });
 
     test('Verify Add Params To placement via timeline', async ({ pageWithUserData: page }) => {
       test.setTimeout(3 * 60 * 1000);
-      await openCollection(page, 'oauth1-testbench-bru');
+      await openCollection(page, BRU_COLLECTION);
       await selectEnvironment(page, 'Local', 'collection');
 
       await test.step('Header: HMAC-SHA1', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-bru', 'OAuth1 HMAC-SHA1 200', 'header');
+        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 HMAC-SHA1 200', 'header');
       });
 
       await test.step('Query Params: HMAC-SHA1', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-bru', 'OAuth1 HMAC-SHA1 Query Params 200', 'queryparams');
+        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 HMAC-SHA1 Query Params 200', 'queryparams');
       });
 
       await test.step('Query Params: PLAINTEXT', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-bru', 'OAuth1 PLAINTEXT Query Params 200', 'queryparams');
+        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 PLAINTEXT Query Params 200', 'queryparams');
       });
 
       await test.step('Query Params: RSA-SHA1', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-bru', 'OAuth1 RSA-SHA1 Query Params 200', 'queryparams');
+        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 RSA-SHA1 Query Params 200', 'queryparams');
       });
 
       await test.step('Body: HMAC-SHA1', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-bru', 'OAuth1 HMAC-SHA1 Body 200', 'body');
+        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 HMAC-SHA1 Body 200', 'body');
       });
 
       await test.step('Body: PLAINTEXT', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-bru', 'OAuth1 PLAINTEXT Body 200', 'body');
+        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 PLAINTEXT Body 200', 'body');
       });
 
       await test.step('Body: HMAC-SHA256', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-bru', 'OAuth1 HMAC-SHA256 Body 200', 'body');
+        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 HMAC-SHA256 Body 200', 'body');
       });
 
       await test.step('Body: RSA-SHA1', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-bru', 'OAuth1 RSA-SHA1 Body 200', 'body');
+        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 RSA-SHA1 Body 200', 'body');
       });
 
       await test.step('Body: HMAC-SHA1 JSON (non-form body)', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-bru', 'OAuth1 HMAC-SHA1 Body JSON 200', 'body');
+        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 HMAC-SHA1 Body JSON 200', 'body');
       });
     });
   });
@@ -164,53 +168,53 @@ test.describe('OAuth 1.0 Runner', () => {
   test.describe('[yml]', () => {
     test('Send individual requests', async ({ pageWithUserData: page }) => {
       test.setTimeout(3 * 60 * 1000);
-      await sendAllRequests(page, 'oauth1-testbench-yml');
+      await sendAllRequests(page, YML_COLLECTION);
     });
 
     test('Run collection and verify all assertions pass', async ({ pageWithUserData: page }) => {
       test.setTimeout(3 * 60 * 1000);
-      await runAndValidate(page, 'oauth1-testbench-yml');
+      await runAndValidate(page, YML_COLLECTION);
     });
 
     test('Verify Add Params To placement via timeline', async ({ pageWithUserData: page }) => {
       test.setTimeout(3 * 60 * 1000);
-      await openCollection(page, 'oauth1-testbench-yml');
+      await openCollection(page, YML_COLLECTION);
       await selectEnvironment(page, 'Local', 'collection');
 
       await test.step('Header: HMAC-SHA1', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-yml', 'OAuth1 HMAC-SHA1 200', 'header');
+        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 HMAC-SHA1 200', 'header');
       });
 
       await test.step('Query Params: HMAC-SHA1', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-yml', 'OAuth1 HMAC-SHA1 Query Params 200', 'queryparams');
+        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 HMAC-SHA1 Query Params 200', 'queryparams');
       });
 
       await test.step('Query Params: PLAINTEXT', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-yml', 'OAuth1 PLAINTEXT Query Params 200', 'queryparams');
+        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 PLAINTEXT Query Params 200', 'queryparams');
       });
 
       await test.step('Query Params: RSA-SHA1', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-yml', 'OAuth1 RSA-SHA1 Query Params 200', 'queryparams');
+        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 RSA-SHA1 Query Params 200', 'queryparams');
       });
 
       await test.step('Body: HMAC-SHA1', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-yml', 'OAuth1 HMAC-SHA1 Body 200', 'body');
+        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 HMAC-SHA1 Body 200', 'body');
       });
 
       await test.step('Body: PLAINTEXT', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-yml', 'OAuth1 PLAINTEXT Body 200', 'body');
+        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 PLAINTEXT Body 200', 'body');
       });
 
       await test.step('Body: HMAC-SHA256', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-yml', 'OAuth1 HMAC-SHA256 Body 200', 'body');
+        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 HMAC-SHA256 Body 200', 'body');
       });
 
       await test.step('Body: RSA-SHA1', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-yml', 'OAuth1 RSA-SHA1 Body 200', 'body');
+        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 RSA-SHA1 Body 200', 'body');
       });
 
       await test.step('Body: HMAC-SHA1 JSON (non-form body)', async () => {
-        await verifyAddParamsTo(page, 'oauth1-testbench-yml', 'OAuth1 HMAC-SHA1 Body JSON 200', 'body');
+        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 HMAC-SHA1 Body JSON 200', 'body');
       });
     });
   });

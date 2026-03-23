@@ -5,24 +5,24 @@ info:
 
 http:
   method: GET
-  url: '{{localhost}}/api/auth/oauth1/resource'
+  url: "{{localhost}}/api/auth/oauth1/resource"
   auth:
     type: oauth1
     consumerKey: consumer_key_1
     accessToken: access_token_1
     tokenSecret: token_secret_1
     signatureMethod: RSA-SHA1
-    version: '1.0'
-    addParamsTo: header
-    includeBodyHash: false
     privateKey:
       type: text
-      value: '{{private-key}}'
+      value: "{{private-key}}"
+    version: "1.0"
+    addParamsTo: header
+    includeBodyHash: false
 
 runtime:
   scripts:
     - type: before-request
-      code: |
+      code: |-
         bru.setVar('private-key', `-----BEGIN PRIVATE KEY-----
         MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCf/ioOwb6uGm01
         WjL89sBOKmvMuwyGW33w+ud3eV5dWbHZbJTgCHMtjUVqGE4sVPnX8wfKgb00hVGZ
@@ -54,7 +54,7 @@ runtime:
   assertions:
     - expression: res.status
       operator: eq
-      value: '200'
+      value: "200"
     - expression: res.body.resource.name
       operator: eq
       value: oauth1-test-resource

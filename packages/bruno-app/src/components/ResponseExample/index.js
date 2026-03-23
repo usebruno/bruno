@@ -169,7 +169,7 @@ const ResponseExample = ({ item, collection, example }) => {
           onTryExample={handleTryExample}
         />
         <section ref={mainSectionRef} className={`main wrapper flex mt-4 ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto scrollbar-hover`}>
-          <section className="request-pane">
+          <section className="request-pane" data-testid="request-pane">
             <div
               className="px-4 h-full"
               style={isVerticalLayout ? {
@@ -195,7 +195,7 @@ const ResponseExample = ({ item, collection, example }) => {
             <div className="dragbar-handle" />
           </div>
 
-          <section className="response-pane flex-grow overflow-x-auto">
+          <section className="response-pane flex-grow overflow-x-auto" data-testid="response-pane">
             <ResponseExampleResponsePane
               item={item}
               collection={collection}

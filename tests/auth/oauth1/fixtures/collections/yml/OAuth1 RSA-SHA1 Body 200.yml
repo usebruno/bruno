@@ -5,17 +5,15 @@ info:
 
 http:
   method: POST
-  url: '{{localhost}}/api/auth/oauth1/resource'
+  url: "{{localhost}}/api/auth/oauth1/resource"
+  body:
+    type: form-urlencoded
   auth:
     type: oauth1
     consumerKey: consumer_key_1
-    consumerSecret: ''
     accessToken: access_token_1
     tokenSecret: token_secret_1
     signatureMethod: RSA-SHA1
-    version: '1.0'
-    addParamsTo: body
-    includeBodyHash: false
     privateKey:
       type: text
       value: |
@@ -47,14 +45,15 @@ http:
         5TVAaNzDXayWVbxhx3Lb8NUV+QNUJEJOgjq4+NYw8fUZCr7T64pGGM4DJHPuHCBo
         dJv7UByPuMKBIOYpy3Z+iWs=
         -----END PRIVATE KEY-----
-  body:
-    type: formUrlEncoded
+    version: "1.0"
+    addParamsTo: body
+    includeBodyHash: false
 
 runtime:
   assertions:
     - expression: res.status
       operator: eq
-      value: '200'
+      value: "200"
     - expression: res.body.resource.name
       operator: eq
       value: oauth1-test-resource

@@ -1,11 +1,16 @@
 info:
-  name: OAuth1 RSA-SHA1 Query Params 200
+  name: OAuth1 RSA-SHA1 Body formurlencoded 200
   type: http
-  seq: 16
+  seq: 20
 
 http:
-  method: GET
+  method: POST
   url: "{{localhost}}/api/auth/oauth1/resource"
+  body:
+    type: form-urlencoded
+    data:
+      - name: test
+        value: test
   auth:
     type: oauth1
     consumerKey: consumer_key_1
@@ -44,7 +49,7 @@ http:
         dJv7UByPuMKBIOYpy3Z+iWs=
         -----END PRIVATE KEY-----
     version: "1.0"
-    addParamsTo: queryparams
+    addParamsTo: body
     includeBodyHash: false
 
 runtime:
