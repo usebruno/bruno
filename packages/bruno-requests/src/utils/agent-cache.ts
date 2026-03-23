@@ -3,6 +3,7 @@ import tls from 'node:tls';
 import type { Agent as HttpAgent } from 'node:http';
 import type { Agent as HttpsAgent } from 'node:https';
 import { createTimelineAgentClass, createTimelineHttpAgentClass, type TimelineEntry, type AgentOptions, type HttpAgentOptions, type AgentClass, type HttpAgentClass } from './timeline-agent';
+import { fastLookup } from '../network/fast-lookup';
 
 /**
  * Agent cache for SSL session reuse.
@@ -267,8 +268,20 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
   }
 
   const AgentClass = timeline ? getTimelineClass(BaseAgentClass) : BaseAgentClass;
+
+  // Inject optimized DNS lookup and socket pool settings into all agents.
+  // fastLookup uses async dns.resolve4/6 (c-ares) to bypass the libuv thread pool,
+  // falling back to dns.lookup for /etc/hosts and mDNS hostnames.
+  const optimizedOptions = {
+    lookup: fastLookup,
+    maxSockets: 100,
+    maxFreeSockets: 10,
+    scheduling: 'fifo' as const,
+    ...options
+  };
+
   // Convert raw `ca` to a secureContext that adds CAs on top of OpenSSL defaults
-  const resolvedOptions = applySecureContext(options);
+  const resolvedOptions = applySecureContext(optimizedOptions);
 
   let agent: HttpAgent | HttpsAgent;
   if (timeline) {
