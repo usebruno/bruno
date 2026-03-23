@@ -91,19 +91,25 @@ class GlobalEnvironmentsStore {
   }
 
   getActiveGlobalEnvironmentUidForWorkspace(workspacePath) {
-    if (!workspacePath) return null;
+    if (!workspacePath) return undefined;
     const mapping = this.store.get('activeGlobalEnvironmentUidByWorkspace', {});
-    return mapping[workspacePath] || null;
+    if (workspacePath in mapping) {
+      return mapping[workspacePath];
+    }
+    return undefined;
   }
 
   setActiveGlobalEnvironmentUidForWorkspace(workspacePath, uid) {
     if (!workspacePath) return;
     const mapping = this.store.get('activeGlobalEnvironmentUidByWorkspace', {});
-    if (uid) {
-      mapping[workspacePath] = uid;
-    } else {
-      delete mapping[workspacePath];
-    }
+    mapping[workspacePath] = uid || null;
+    this.store.set('activeGlobalEnvironmentUidByWorkspace', mapping);
+  }
+
+  removeActiveGlobalEnvironmentUidForWorkspace(workspacePath) {
+    if (!workspacePath) return;
+    const mapping = this.store.get('activeGlobalEnvironmentUidByWorkspace', {});
+    delete mapping[workspacePath];
     this.store.set('activeGlobalEnvironmentUidByWorkspace', mapping);
   }
 

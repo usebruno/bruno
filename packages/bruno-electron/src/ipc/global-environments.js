@@ -17,9 +17,9 @@ const { readWorkspaceConfig, writeWorkspaceConfig } = require('../utils/workspac
  * 4. null (new workspace)
  */
 const migrateActiveGlobalEnvironmentUid = async (workspacePath) => {
-  // Already in per-workspace store
+  // Already in per-workspace store (null means explicitly "No Environment", undefined means not set)
   const perWorkspaceUid = globalEnvironmentsStore.getActiveGlobalEnvironmentUidForWorkspace(workspacePath);
-  if (perWorkspaceUid) {
+  if (perWorkspaceUid !== undefined) {
     return perWorkspaceUid;
   }
 

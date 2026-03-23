@@ -281,7 +281,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
   ipcMain.handle('renderer:close-workspace', async (event, workspacePath) => {
     try {
       lastOpenedWorkspaces.remove(workspacePath);
-      globalEnvironmentsStore.setActiveGlobalEnvironmentUidForWorkspace(workspacePath, null);
+      globalEnvironmentsStore.removeActiveGlobalEnvironmentUidForWorkspace(workspacePath);
 
       if (workspaceWatcher) {
         workspaceWatcher.removeWatcher(workspacePath);
