@@ -5,6 +5,49 @@ const { ipcMain } = require('electron');
 const { utils: { jsonToDotenv } } = require('@usebruno/common');
 const { globalEnvironmentsStore } = require('../store/global-environments');
 const { generateUniqueName, sanitizeName, writeFile, isValidDotEnvFilename } = require('../utils/filesystem');
+const { readWorkspaceConfig, writeWorkspaceConfig } = require('../utils/workspace-config');
+
+/**
+ * Migrates activeEnvironmentUid from workspace.yml to the electron store (per-workspace).
+ * This handles users upgrading from versions that stored the active global env in workspace.yml.
+ *
+ * Fallback chain:
+ * 1. Per-workspace electron store (already migrated) - use it
+ * 2. workspace.yml activeEnvironmentUid - migrate to electron store, remove from file
+ * 3. Legacy electron store activeGlobalEnvironmentUid - migrate to per-workspace store
+ * 4. null (new workspace)
+ */
+const migrateActiveGlobalEnvironmentUid = async (workspacePath) => {
+  // Already in per-workspace store (null means explicitly "No Environment", undefined means not set)
+  const perWorkspaceUid = globalEnvironmentsStore.getActiveGlobalEnvironmentUidForWorkspace(workspacePath);
+  if (perWorkspaceUid !== undefined) {
+    return perWorkspaceUid;
+  }
+
+  // Try workspace.yml
+  try {
+    const config = readWorkspaceConfig(workspacePath);
+    if (config.activeEnvironmentUid) {
+      const uid = config.activeEnvironmentUid;
+      // Migrate to electron store
+      globalEnvironmentsStore.setActiveGlobalEnvironmentUidForWorkspace(workspacePath, uid);
+      // Rewrite workspace.yml without activeEnvironmentUid (generateYamlContent drops unknown fields)
+      await writeWorkspaceConfig(workspacePath, config);
+      return uid;
+    }
+  } catch (error) {
+    // workspace.yml may not exist or be unreadable, continue to next fallback
+  }
+
+  // Fallback to legacy single active uid
+  const legacyUid = globalEnvironmentsStore.getActiveGlobalEnvironmentUid();
+  if (legacyUid) {
+    globalEnvironmentsStore.setActiveGlobalEnvironmentUidForWorkspace(workspacePath, legacyUid);
+    return legacyUid;
+  }
+
+  return null;
+};
 
 const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager) => {
   ipcMain.handle('renderer:create-global-environment', async (event, { uid, name, variables, color, workspaceUid, workspacePath }) => {
@@ -64,23 +107,28 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
   ipcMain.handle('renderer:delete-global-environment', async (event, { environmentUid, workspaceUid, workspacePath }) => {
     try {
       if (workspacePath && workspaceEnvironmentsManager) {
-        return await workspaceEnvironmentsManager.deleteGlobalEnvironmentByPath(workspacePath, { environmentUid });
+        await workspaceEnvironmentsManager.deleteGlobalEnvironmentByPath(workspacePath, { environmentUid });
+        // Clear active environment for this workspace if the deleted one was active
+        const activeUid = globalEnvironmentsStore.getActiveGlobalEnvironmentUidForWorkspace(workspacePath);
+        if (activeUid === environmentUid) {
+          globalEnvironmentsStore.setActiveGlobalEnvironmentUidForWorkspace(workspacePath, null);
+        }
+      } else {
+        globalEnvironmentsStore.deleteGlobalEnvironment({ environmentUid });
       }
-
-      globalEnvironmentsStore.deleteGlobalEnvironment({ environmentUid });
     } catch (error) {
       console.error('Error in renderer:delete-global-environment:', error);
       return Promise.reject(error);
     }
   });
 
-  ipcMain.handle('renderer:select-global-environment', async (event, { environmentUid, workspaceUid, workspacePath }) => {
+  ipcMain.handle('renderer:select-global-environment', async (event, { environmentUid, workspacePath }) => {
     try {
-      if (workspacePath && workspaceEnvironmentsManager) {
-        return await workspaceEnvironmentsManager.selectGlobalEnvironmentByPath(workspacePath, { environmentUid });
+      if (workspacePath) {
+        globalEnvironmentsStore.setActiveGlobalEnvironmentUidForWorkspace(workspacePath, environmentUid || null);
+      } else {
+        globalEnvironmentsStore.setActiveGlobalEnvironmentUid(environmentUid || null);
       }
-
-      globalEnvironmentsStore.selectGlobalEnvironment({ environmentUid });
     } catch (error) {
       console.error('Error in renderer:select-global-environment:', error);
       return Promise.reject(error);
@@ -89,13 +137,22 @@ const registerGlobalEnvironmentsIpc = (mainWindow, workspaceEnvironmentsManager)
 
   ipcMain.handle('renderer:get-global-environments', async (event, { workspaceUid, workspacePath }) => {
     try {
+      let globalEnvironments = [];
+
       if (workspacePath && workspaceEnvironmentsManager) {
-        return await workspaceEnvironmentsManager.getGlobalEnvironmentsByPath(workspacePath);
+        const result = await workspaceEnvironmentsManager.getGlobalEnvironmentsByPath(workspacePath);
+        globalEnvironments = result?.globalEnvironments || [];
+      } else {
+        globalEnvironments = globalEnvironmentsStore.getGlobalEnvironments() || [];
       }
 
+      const activeGlobalEnvironmentUid = workspacePath
+        ? await migrateActiveGlobalEnvironmentUid(workspacePath)
+        : globalEnvironmentsStore.getActiveGlobalEnvironmentUid();
+
       return {
-        globalEnvironments: globalEnvironmentsStore.getGlobalEnvironments() || [],
-        activeGlobalEnvironmentUid: globalEnvironmentsStore.getActiveGlobalEnvironmentUid()
+        globalEnvironments,
+        activeGlobalEnvironmentUid
       };
     } catch (error) {
       console.error('Error in renderer:get-global-environments:', error);

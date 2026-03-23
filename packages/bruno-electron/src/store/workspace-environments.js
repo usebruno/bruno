@@ -1,18 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
-const yaml = require('js-yaml');
 const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
 const { writeFile, createDirectory } = require('../utils/filesystem');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
 const EnvironmentSecretsStore = require('./env-secrets');
-const {
-  readWorkspaceConfig,
-  generateYamlContent,
-  writeWorkspaceFileAtomic
-} = require('../utils/workspace-config');
-const { withLock, getWorkspaceLockKey } = require('../utils/workspace-lock');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -98,8 +91,7 @@ class GlobalEnvironmentsManager {
 
       if (!fs.existsSync(environmentsDir)) {
         return {
-          globalEnvironments: [],
-          activeGlobalEnvironmentUid: null
+          globalEnvironments: []
         };
       }
 
@@ -119,56 +111,12 @@ class GlobalEnvironmentsManager {
         }
       }
 
-      const activeGlobalEnvironmentUid = await this.getActiveGlobalEnvironmentUid(workspacePath);
-
       return {
-        globalEnvironments: environments,
-        activeGlobalEnvironmentUid
+        globalEnvironments: environments
       };
     } catch (error) {
       throw error;
     }
-  }
-
-  async getActiveGlobalEnvironmentUid(workspacePath) {
-    try {
-      if (!workspacePath) {
-        return null;
-      }
-
-      const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-
-      if (!fs.existsSync(workspaceFilePath)) {
-        return null;
-      }
-
-      const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-      const workspaceConfig = yaml.load(yamlContent);
-
-      return workspaceConfig.activeEnvironmentUid || null;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  async setActiveGlobalEnvironmentUid(workspacePath, environmentUid) {
-    if (!workspacePath) {
-      throw new Error('Workspace path is required');
-    }
-
-    const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-
-    if (!fs.existsSync(workspaceFilePath)) {
-      throw new Error('Invalid workspace: workspace.yml not found');
-    }
-
-    return withLock(getWorkspaceLockKey(workspacePath), async () => {
-      const workspaceConfig = readWorkspaceConfig(workspacePath);
-      workspaceConfig.activeEnvironmentUid = environmentUid;
-      const yamlOutput = generateYamlContent(workspaceConfig);
-      await writeWorkspaceFileAtomic(workspacePath, yamlOutput);
-      return true;
-    });
   }
 
   async createGlobalEnvironment(workspacePath, { uid, name, variables, color }) {
@@ -303,24 +251,6 @@ class GlobalEnvironmentsManager {
 
       fs.unlinkSync(envFile.filePath);
 
-      const activeGlobalEnvironmentUid = await this.getActiveGlobalEnvironmentUid(workspacePath);
-      if (activeGlobalEnvironmentUid === environmentUid) {
-        await this.setActiveGlobalEnvironmentUid(workspacePath, null);
-      }
-
-      return true;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async selectGlobalEnvironment(workspacePath, { environmentUid }) {
-    try {
-      if (!workspacePath) {
-        throw new Error('Workspace path is required');
-      }
-
-      await this.setActiveGlobalEnvironmentUid(workspacePath, environmentUid);
       return true;
     } catch (error) {
       throw error;
@@ -369,10 +299,6 @@ class GlobalEnvironmentsManager {
 
   async deleteGlobalEnvironmentByPath(workspacePath, params) {
     return this.deleteGlobalEnvironment(workspacePath, params);
-  }
-
-  async selectGlobalEnvironmentByPath(workspacePath, params) {
-    return this.selectGlobalEnvironment(workspacePath, params);
   }
 
   async updateGlobalEnvironmentColorByPath(workspacePath, { environmentUid, color }) {

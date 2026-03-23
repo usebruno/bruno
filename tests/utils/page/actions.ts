@@ -1047,6 +1047,41 @@ const closeAllTabs = async (page: Page) => {
   });
 };
 
+/**
+ * Create a new workspace via the title bar dropdown inline rename flow
+ * @param page - The page object
+ * @param workspaceName - The name of the workspace to create
+ * @returns void
+ */
+const createWorkspace = async (page: Page, workspaceName: string) => {
+  await test.step(`Create workspace "${workspaceName}"`, async () => {
+    await page.locator('.workspace-name-container').click();
+    await page.locator('.dropdown-item').filter({ hasText: 'Create workspace' }).click();
+
+    const renameInput = page.locator('.workspace-name-input');
+    await expect(renameInput).toBeVisible({ timeout: 5000 });
+    await renameInput.fill(workspaceName);
+    await renameInput.press('Enter');
+
+    await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('workspace-name')).toHaveText(workspaceName, { timeout: 5000 });
+  });
+};
+
+/**
+ * Switch to an existing workspace via the title bar dropdown
+ * @param page - The page object
+ * @param workspaceName - The name of the workspace to switch to
+ * @returns void
+ */
+const switchWorkspace = async (page: Page, workspaceName: string) => {
+  await test.step(`Switch to workspace "${workspaceName}"`, async () => {
+    await page.locator('.workspace-name-container').click();
+    await page.locator('.workspace-item, .dropdown-item').filter({ hasText: workspaceName }).click();
+    await expect(page.getByTestId('workspace-name')).toHaveText(workspaceName, { timeout: 5000 });
+  });
+};
+
 export {
   closeAllCollections,
   openCollection,
@@ -1082,7 +1117,9 @@ export {
   editAssertion,
   deleteAssertion,
   saveRequest,
-  closeAllTabs
+  closeAllTabs,
+  createWorkspace,
+  switchWorkspace
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

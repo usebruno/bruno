@@ -272,11 +272,6 @@ const generateYamlContent = (config) => {
     yamlLines.push('docs: \'\'');
   }
 
-  if (config.activeEnvironmentUid && typeof config.activeEnvironmentUid === 'string') {
-    yamlLines.push('');
-    yamlLines.push(`activeEnvironmentUid: ${config.activeEnvironmentUid}`);
-  }
-
   yamlLines.push('');
 
   return yamlLines.join('\n');
