@@ -29,6 +29,7 @@ const GlobalStyle = createGlobalStyle`
     border-radius: 4px !important;
     opacity: 1 !important;
     z-index: 9999 !important;
+    max-width: 100%;
   }
 
   .btn {
