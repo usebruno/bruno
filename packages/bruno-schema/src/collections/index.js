@@ -213,7 +213,7 @@ const authOAuth1Schema = Yup.object({
   nonce: Yup.string().nullable(),
   version: Yup.string().nullable(),
   realm: Yup.string().nullable(),
-  addParamsTo: Yup.string().oneOf(['header', 'query', 'body']).nullable(),
+  placement: Yup.string().oneOf(['header', 'query', 'body']).nullable(),
   includeBodyHash: Yup.boolean().nullable()
 })
   .noUnknown(true)

@@ -16,7 +16,7 @@ http:
       type: file
       value: test-private-key.pem
     version: "1.0"
-    addParamsTo: header
+    placement: header
     includeBodyHash: false
 
 runtime:

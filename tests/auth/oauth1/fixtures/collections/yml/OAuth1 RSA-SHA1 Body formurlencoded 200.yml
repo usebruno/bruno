@@ -49,7 +49,7 @@ http:
         dJv7UByPuMKBIOYpy3Z+iWs=
         -----END PRIVATE KEY-----
     version: "1.0"
-    addParamsTo: body
+    placement: body
     includeBodyHash: false
 
 runtime:

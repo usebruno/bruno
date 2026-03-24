@@ -59,7 +59,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           nonce: get(collectionAuth, 'oauth1.nonce'),
           version: get(collectionAuth, 'oauth1.version'),
           realm: get(collectionAuth, 'oauth1.realm'),
-          addParamsTo: get(collectionAuth, 'oauth1.addParamsTo'),
+          placement: get(collectionAuth, 'oauth1.placement'),
           includeBodyHash: get(collectionAuth, 'oauth1.includeBodyHash')
         };
         break;
@@ -227,7 +227,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           nonce: get(request, 'auth.oauth1.nonce'),
           version: get(request, 'auth.oauth1.version'),
           realm: get(request, 'auth.oauth1.realm'),
-          addParamsTo: get(request, 'auth.oauth1.addParamsTo'),
+          placement: get(request, 'auth.oauth1.placement'),
           includeBodyHash: get(request, 'auth.oauth1.includeBodyHash')
         };
         break;

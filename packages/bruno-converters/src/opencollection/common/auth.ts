@@ -298,7 +298,7 @@ export const fromOpenCollectionAuth = (auth: Auth | undefined): BrunoAuth => {
           nonce: oauth1Auth.nonce || null,
           version: oauth1Auth.version || '1.0',
           realm: oauth1Auth.realm || null,
-          addParamsTo: (oauth1Auth.addParamsTo as BrunoAuthOauth1['addParamsTo']) || 'header',
+          placement: (oauth1Auth.placement as BrunoAuthOauth1['placement']) || 'header',
           includeBodyHash: oauth1Auth.includeBodyHash || false
         }
       };
@@ -507,7 +507,7 @@ export const toOpenCollectionAuth = (auth: BrunoAuth | null | undefined): Auth |
         nonce: auth.oauth1?.nonce || '',
         version: auth.oauth1?.version || '1.0',
         realm: auth.oauth1?.realm || '',
-        addParamsTo: auth.oauth1?.addParamsTo || 'header',
+        placement: auth.oauth1?.placement || 'header',
         includeBodyHash: auth.oauth1?.includeBodyHash || false
       };
       return oauth1;

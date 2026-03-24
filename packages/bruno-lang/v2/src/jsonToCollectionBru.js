@@ -157,7 +157,7 @@ ${indentString(`timestamp: ${auth?.oauth1?.timestamp || ''}`)}
 ${indentString(`nonce: ${auth?.oauth1?.nonce || ''}`)}
 ${indentString(`version: ${auth?.oauth1?.version || ''}`)}
 ${indentString(`realm: ${auth?.oauth1?.realm || ''}`)}
-${indentString(`add_params_to: ${auth?.oauth1?.addParamsTo || ''}`)}
+${indentString(`placement: ${auth?.oauth1?.placement || ''}`)}
 ${indentString(`include_body_hash: ${(auth?.oauth1?.includeBodyHash || false).toString()}`)}
 }
 

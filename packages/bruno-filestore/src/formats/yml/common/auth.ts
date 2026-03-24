@@ -139,7 +139,7 @@ const buildOAuth1Auth = (config?: BrunoAuth['oauth1']): AuthOAuth1 => {
   if (isString(config.nonce)) auth.nonce = config.nonce;
   if (isString(config.version)) auth.version = config.version;
   if (isString(config.realm)) auth.realm = config.realm;
-  if (isString(config.addParamsTo)) auth.addParamsTo = config.addParamsTo as AuthOAuth1['addParamsTo'];
+  if (isString(config.placement)) auth.placement = config.placement as AuthOAuth1['placement'];
   if (typeof config.includeBodyHash === 'boolean') auth.includeBodyHash = config.includeBodyHash;
 
   return auth;
@@ -279,7 +279,7 @@ export const toBrunoAuth = (auth: Auth | null | undefined): BrunoAuth | null => 
         nonce: auth.nonce || null,
         version: auth.version || '1.0',
         realm: auth.realm || null,
-        addParamsTo: (auth.addParamsTo as BrunoAuthOauth1['addParamsTo']) || 'header',
+        placement: (auth.placement as BrunoAuthOauth1['placement']) || 'header',
         includeBodyHash: auth.includeBodyHash || false
       };
       break;

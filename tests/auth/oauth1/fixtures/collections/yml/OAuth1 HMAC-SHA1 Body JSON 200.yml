@@ -17,7 +17,7 @@ http:
     accessTokenSecret: token_secret_1
     signatureEncoding: HMAC-SHA1
     version: "1.0"
-    addParamsTo: body
+    placement: body
     includeBodyHash: false
 
 runtime:

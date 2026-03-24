@@ -23,7 +23,7 @@ const signatureMethodLabels = {
   'PLAINTEXT': 'PLAINTEXT'
 };
 
-const addParamsToLabels = {
+const placementLabels = {
   header: 'Header',
   query: 'Query Params',
   body: 'Body'
@@ -272,23 +272,23 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
         <label className="block min-w-[140px]">Add Params To</label>
         <div className="inline-flex items-center cursor-pointer oauth1-dropdown-selector">
           <MenuDropdown
-            items={Object.entries(addParamsToLabels).map(([value, label]) => ({
+            items={Object.entries(placementLabels).map(([value, label]) => ({
               id: value,
               label,
-              onClick: () => handleChange('addParamsTo', value)
+              onClick: () => handleChange('placement', value)
             }))}
-            selectedItemId={oauth1.addParamsTo}
+            selectedItemId={oauth1.placement}
             placement="bottom-end"
           >
             <div className="flex items-center justify-end oauth1-dropdown-label select-none">
-              {addParamsToLabels[oauth1.addParamsTo] || 'Header'}
+              {placementLabels[oauth1.placement] || 'Header'}
               <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
           </MenuDropdown>
         </div>
       </div>
 
-      {oauth1.addParamsTo === 'body' && (
+      {oauth1.placement === 'body' && (
         <div className="flex items-center gap-4 w-full">
           <label className="block min-w-[140px]"></label>
           <span className="text-xs opacity-60">

@@ -355,14 +355,14 @@ export function applyOAuth1ToRequest(request: {
     nonce?: string;
     version?: string;
     realm?: string;
-    addParamsTo?: string;
+    placement?: string;
     includeBodyHash?: boolean;
   };
 }, collectionPath?: string): void {
   const {
     consumerKey, consumerSecret, accessToken, accessTokenSecret,
     callbackUrl, verifier, signatureEncoding, privateKey, privateKeyType, timestamp, nonce,
-    version, realm, addParamsTo, includeBodyHash
+    version, realm, placement, includeBodyHash
   } = request.oauth1config;
 
   // Clear credentials from the request object before any operation that could throw
@@ -403,9 +403,9 @@ export function applyOAuth1ToRequest(request: {
   const hasBody = method !== 'GET' && method !== 'HEAD';
 
   // RFC 5849 §3.4.1.3.1: form-encoded body params MUST be included in the signature base string.
-  // When addParamsTo is 'body', include body params even for GET/HEAD since Bruno sends the body regardless.
+  // When placement is 'body', include body params even for GET/HEAD since Bruno sends the body regardless.
   const dataPairs: Array<[string, string]> = [];
-  const includeBodyInSignature = addParamsTo === 'body' || hasBody;
+  const includeBodyInSignature = placement === 'body' || hasBody;
 
   if (includeBodyInSignature && isFormUrlEncoded && request.data) {
     const bodyStr = typeof request.data === 'string' ? request.data : '';
@@ -436,7 +436,7 @@ export function applyOAuth1ToRequest(request: {
   if (nonce) overrides.nonce = nonce;
   const oauthData = authorizer.authorize(requestData, token, callbackUrl || undefined, verifier || undefined, overrides);
 
-  switch (addParamsTo || 'header') {
+  switch (placement || 'header') {
     case 'header':
       request.headers['Authorization'] = authorizer.toHeader(oauthData).Authorization;
       break;

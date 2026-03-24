@@ -34,7 +34,7 @@ auth:oauth1 {
   nonce: abc123
   version: 1.0
   realm: my_realm
-  add_params_to: header
+  placement: header
   include_body_hash: true
 }
 `.trim();
@@ -55,7 +55,7 @@ auth:oauth1 {
       nonce: 'abc123',
       version: '1.0',
       realm: 'my_realm',
-      addParamsTo: 'header',
+      placement: 'header',
       includeBodyHash: true
     });
   });
@@ -85,7 +85,7 @@ auth:oauth1 {
   nonce:
   version:
   realm:
-  add_params_to: header
+  placement: header
   include_body_hash: false
 }
 `.trim();
@@ -132,7 +132,7 @@ auth:oauth1 {
   nonce:
   version: 1.0
   realm:
-  add_params_to: header
+  placement: header
   include_body_hash: false
 }
 `.trim();
@@ -172,7 +172,7 @@ auth:oauth1 {
   nonce:
   version: 1.0
   realm:
-  add_params_to: header
+  placement: header
   include_body_hash: false
 }
 `.trim();
@@ -215,7 +215,7 @@ auth:oauth1 {
   nonce:
   version: 1.0
   realm:
-  add_params_to: header
+  placement: header
   include_body_hash: false
 }
 `.trim();
@@ -254,7 +254,7 @@ auth:oauth1 {
   nonce:
   version: 1.0
   realm:
-  add_params_to: header
+  placement: header
   include_body_hash: false
 }
 `.trim();
@@ -264,7 +264,7 @@ auth:oauth1 {
     }
   });
 
-  it('should parse addParamsTo values: header, query, body', () => {
+  it('should parse placement values: header, query, body', () => {
     for (const placement of ['header', 'query', 'body']) {
       const input = `
 meta {
@@ -290,13 +290,13 @@ auth:oauth1 {
   nonce:
   version: 1.0
   realm:
-  add_params_to: ${placement}
+  placement: ${placement}
   include_body_hash: false
 }
 `.trim();
 
       const result = bruToJson(input);
-      expect(result.auth.oauth1.addParamsTo).toBe(placement);
+      expect(result.auth.oauth1.placement).toBe(placement);
     }
   });
 
@@ -325,7 +325,7 @@ auth:oauth1 {
   nonce:
   version: 1.0
   realm:
-  add_params_to: header
+  placement: header
   include_body_hash: ${val}
 }
 `.trim();
@@ -358,7 +358,7 @@ auth:oauth1 {
   nonce: col_nonce
   version: 1.0
   realm: col_realm
-  add_params_to: query
+  placement: query
   include_body_hash: true
 }
 `.trim();
@@ -380,7 +380,7 @@ auth:oauth1 {
       nonce: 'col_nonce',
       version: '1.0',
       realm: 'col_realm',
-      addParamsTo: 'query',
+      placement: 'query',
       includeBodyHash: true
     });
   });
@@ -404,7 +404,7 @@ auth:oauth1 {
   nonce:
   version: 1.0
   realm:
-  add_params_to: header
+  placement: header
   include_body_hash: false
 }
 `.trim();
@@ -438,7 +438,7 @@ auth:oauth1 {
   nonce:
   version: 1.0
   realm:
-  add_params_to: header
+  placement: header
   include_body_hash: false
 }
 `.trim();
@@ -480,7 +480,7 @@ describe('OAuth1 jsonToBru (request-level)', () => {
           nonce: 'n',
           version: '1.0',
           realm: 'r',
-          addParamsTo: 'header',
+          placement: 'header',
           includeBodyHash: false
         }
       }
@@ -501,7 +501,7 @@ describe('OAuth1 jsonToBru (request-level)', () => {
     expect(bru).toContain('nonce: n');
     expect(bru).toContain('version: 1.0');
     expect(bru).toContain('realm: r');
-    expect(bru).toContain('add_params_to: header');
+    expect(bru).toContain('placement: header');
     expect(bru).toContain('include_body_hash: false');
   });
 
@@ -524,7 +524,7 @@ describe('OAuth1 jsonToBru (request-level)', () => {
           nonce: '',
           version: '1.0',
           realm: '',
-          addParamsTo: 'header',
+          placement: 'header',
           includeBodyHash: false
         }
       }
@@ -556,7 +556,7 @@ describe('OAuth1 jsonToBru (request-level)', () => {
           nonce: '',
           version: '1.0',
           realm: '',
-          addParamsTo: 'header',
+          placement: 'header',
           includeBodyHash: false
         }
       }
@@ -588,7 +588,7 @@ describe('OAuth1 jsonToBru (request-level)', () => {
           nonce: '',
           version: '',
           realm: '',
-          addParamsTo: 'header',
+          placement: 'header',
           includeBodyHash: false
         }
       }
@@ -632,7 +632,7 @@ describe('OAuth1 jsonToCollectionBru (collection/folder-level)', () => {
           nonce: '',
           version: '1.0',
           realm: '',
-          addParamsTo: 'query',
+          placement: 'query',
           includeBodyHash: true
         }
       }
@@ -646,7 +646,7 @@ describe('OAuth1 jsonToCollectionBru (collection/folder-level)', () => {
     expect(bru).toContain('consumer_key: col_ck');
     expect(bru).toContain('consumer_secret: col_cs');
     expect(bru).toContain('signature_method: HMAC-SHA256');
-    expect(bru).toContain('add_params_to: query');
+    expect(bru).toContain('placement: query');
     expect(bru).toContain('include_body_hash: true');
   });
 
@@ -668,7 +668,7 @@ describe('OAuth1 jsonToCollectionBru (collection/folder-level)', () => {
           nonce: '',
           version: '1.0',
           realm: '',
-          addParamsTo: 'header',
+          placement: 'header',
           includeBodyHash: false
         }
       }
@@ -703,7 +703,7 @@ describe('OAuth1 round-trip (request-level)', () => {
           nonce: 'abc',
           version: '1.0',
           realm: 'testrealm',
-          addParamsTo: 'header',
+          placement: 'header',
           includeBodyHash: true
         }
       },
@@ -735,7 +735,7 @@ describe('OAuth1 round-trip (request-level)', () => {
           nonce: '',
           version: '1.0',
           realm: '',
-          addParamsTo: 'header',
+          placement: 'header',
           includeBodyHash: false
         }
       },
@@ -770,7 +770,7 @@ describe('OAuth1 round-trip (request-level)', () => {
           nonce: '',
           version: '1.0',
           realm: '',
-          addParamsTo: 'header',
+          placement: 'header',
           includeBodyHash: false
         }
       },
@@ -804,7 +804,7 @@ describe('OAuth1 round-trip (collection-level)', () => {
           nonce: '',
           version: '1.0',
           realm: '',
-          addParamsTo: 'body',
+          placement: 'body',
           includeBodyHash: false
         }
       }
@@ -835,7 +835,7 @@ describe('OAuth1 round-trip (collection-level)', () => {
           nonce: '',
           version: '1.0',
           realm: '',
-          addParamsTo: 'header',
+          placement: 'header',
           includeBodyHash: false
         }
       }

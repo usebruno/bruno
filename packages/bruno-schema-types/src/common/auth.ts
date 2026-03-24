@@ -52,7 +52,7 @@ export interface AuthOauth1 {
   nonce?: string | null;
   version?: string | null;
   realm?: string | null;
-  addParamsTo?: 'header' | 'query' | 'body' | null;
+  placement?: 'header' | 'query' | 'body' | null;
   includeBodyHash?: boolean | null;
 }
 

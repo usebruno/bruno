@@ -16,7 +16,7 @@ http:
       type: text
       value: "{{private-key}}"
     version: "1.0"
-    addParamsTo: header
+    placement: header
     includeBodyHash: false
 
 runtime:

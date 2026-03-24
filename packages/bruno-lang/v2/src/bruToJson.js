@@ -739,7 +739,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           nonce: findValue('nonce'),
           version: findValue('version'),
           realm: findValue('realm'),
-          addParamsTo: findValue('add_params_to'),
+          placement: findValue('placement'),
           includeBodyHash: findValue('include_body_hash') === 'true'
         }
       }

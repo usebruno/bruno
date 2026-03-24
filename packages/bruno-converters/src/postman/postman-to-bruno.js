@@ -242,7 +242,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         nonce: authValues.nonce || null,
         version: authValues.version || '1.0',
         realm: authValues.realm || null,
-        addParamsTo: authValues.addParamsToHeader === false ? 'query' : 'header',
+        placement: authValues.addParamsToHeader === false ? 'query' : 'header',
         includeBodyHash: authValues.includeBodyHash || false
       };
       break;

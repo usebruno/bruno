@@ -551,7 +551,7 @@ describe('processAuth', () => {
       nonce: 'test-nonce',
       version: '1.0',
       realm: 'test-realm',
-      addParamsTo: 'header',
+      placement: 'header',
       includeBodyHash: true
     });
   });
@@ -575,7 +575,7 @@ describe('processAuth', () => {
     expect(requestObject.auth.oauth1.accessToken).toBe('tk-array');
     expect(requestObject.auth.oauth1.accessTokenSecret).toBe('ts-array');
     expect(requestObject.auth.oauth1.signatureEncoding).toBe('HMAC-SHA1');
-    expect(requestObject.auth.oauth1.addParamsTo).toBe('query');
+    expect(requestObject.auth.oauth1.placement).toBe('query');
   });
 
   it('should handle oauth1 auth with missing values', () => {
@@ -599,7 +599,7 @@ describe('processAuth', () => {
       nonce: null,
       version: '1.0',
       realm: null,
-      addParamsTo: 'header',
+      placement: 'header',
       includeBodyHash: false
     });
   });
@@ -624,7 +624,7 @@ describe('processAuth', () => {
       nonce: null,
       version: '1.0',
       realm: null,
-      addParamsTo: 'header',
+      placement: 'header',
       includeBodyHash: false
     });
   });
@@ -638,6 +638,6 @@ describe('processAuth', () => {
       }
     };
     processAuth(auth, requestObject);
-    expect(requestObject.auth.oauth1.addParamsTo).toBe('query');
+    expect(requestObject.auth.oauth1.placement).toBe('query');
   });
 });

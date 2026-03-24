@@ -399,7 +399,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               nonce: get(si.request, 'auth.oauth1.nonce', ''),
               version: get(si.request, 'auth.oauth1.version', '1.0'),
               realm: get(si.request, 'auth.oauth1.realm', ''),
-              addParamsTo: get(si.request, 'auth.oauth1.addParamsTo', 'header'),
+              placement: get(si.request, 'auth.oauth1.placement', 'header'),
               includeBodyHash: get(si.request, 'auth.oauth1.includeBodyHash', false)
             };
             break;

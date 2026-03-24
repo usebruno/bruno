@@ -44,7 +44,7 @@ http:
         dJv7UByPuMKBIOYpy3Z+iWs=
         -----END PRIVATE KEY-----
     version: "1.0"
-    addParamsTo: query
+    placement: query
     includeBodyHash: false
 
 runtime:
