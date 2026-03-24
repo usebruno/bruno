@@ -31,7 +31,7 @@ class CookieList extends ReadOnlyPropertyList {
     });
     this._getUrl = getUrl;
     this._interpolateFn = interpolate;
-    // Delegates to a module-level singleton CookieJar (created once per request lifecycle)
+    // Factory function — returns a wrapper around the module-level cookie jar singleton
     this._createCookieJar = createCookieJar;
   }
 

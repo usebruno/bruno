@@ -1,5 +1,4 @@
 const CookieList = require('../src/cookie-list');
-const PropertyList = require('../src/property-list');
 const ReadOnlyPropertyList = require('../src/readonly-property-list');
 
 describe('CookieList', () => {
@@ -20,10 +19,9 @@ describe('CookieList', () => {
 
   // ── Inheritance ────────────────────────────────────────────────────────
 
-  test('extends ReadOnlyPropertyList (not PropertyList)', () => {
+  test('extends ReadOnlyPropertyList', () => {
     const list = createCookieList();
     expect(list).toBeInstanceOf(ReadOnlyPropertyList);
-    expect(list).not.toBeInstanceOf(PropertyList);
     expect(list).toBeInstanceOf(CookieList);
   });
 

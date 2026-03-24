@@ -1,6 +1,11 @@
 const { cleanJson, cleanCircularJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
 
+/**
+ * Creates an async bridge that resolves with `undefined` (write-only).
+ * Do NOT reuse this for read methods that need to return values —
+ * those require resolving with the callback's result argument instead.
+ */
 const createAsyncCookieBridge = (vm, targetObj, propName, nativeMethod) => {
   const fn = vm.newFunction(propName, (...vmArgs) => {
     const promise = vm.newPromise();
@@ -374,7 +379,7 @@ const addBruShimToContext = (vm, bru) => {
   cookiesGet.dispose();
 
   let cookiesHas = vm.newFunction('has', function (name, value) {
-    const dumpedValue = value ? vm.dump(value) : undefined;
+    const dumpedValue = value !== undefined ? vm.dump(value) : undefined;
     return marshallToVm(bru.cookies.has(vm.dump(name), dumpedValue), vm);
   });
   vm.setProp(bruCookiesObject, 'has', cookiesHas);

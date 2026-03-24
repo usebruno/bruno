@@ -80,7 +80,8 @@ const replacements = {
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
   'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
-  // Cookie jar translations (must appear before simpler pm.cookies patterns)
+  // Cookie jar translations — order matters: these more-specific patterns must precede
+  // the simpler pm.cookies.* patterns below, since replacements are applied in insertion order.
 
   'pm\\.cookies\\.jar\\(\\)': 'bru.cookies.jar()',
   'pm\\.cookies\\.jar\\(\\)\\.get\\(': 'bru.cookies.jar().getCookie(',
