@@ -8,7 +8,7 @@ const toHostQueryArg = (vm, arg) => {
   if (vm.typeof(arg) === 'function') {
     return (item) => {
       const itemHandle = marshallToVm(item, vm);
-      const result = vm.callFunction(arg, vm.global, itemHandle);
+      const result = vm.callFunction(arg, vm.undefined, itemHandle);
       itemHandle.dispose();
 
       if (result.error) {
