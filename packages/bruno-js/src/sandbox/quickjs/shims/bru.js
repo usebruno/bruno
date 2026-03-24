@@ -1,6 +1,23 @@
 const { cleanJson, cleanCircularJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
 
+const createAsyncCookieBridge = (vm, targetObj, propName, nativeMethod) => {
+  const fn = vm.newFunction(propName, (...vmArgs) => {
+    const promise = vm.newPromise();
+    const args = vmArgs.map((a) => vm.dump(a));
+    nativeMethod(...args, (err) => {
+      if (err) {
+        promise.reject(marshallToVm(cleanJson(err), vm));
+      } else {
+        promise.resolve(vm.undefined);
+      }
+    });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  fn.consume((handle) => vm.setProp(targetObj, propName, handle));
+};
+
 const addBruShimToContext = (vm, bru) => {
   const bruObject = vm.newObject();
   const bruRunnerObject = vm.newObject();
@@ -369,33 +386,8 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruCookiesObject, 'toObject', cookiesToObject);
   cookiesToObject.dispose();
 
-  const _cookiesClearFn = vm.newFunction('_clear', () => {
-    const promise = vm.newPromise();
-    bru.cookies.clear((err) => {
-      if (err) {
-        promise.reject(marshallToVm(cleanJson(err), vm));
-      } else {
-        promise.resolve(vm.undefined);
-      }
-    });
-    promise.settled.then(vm.runtime.executePendingJobs);
-    return promise.handle;
-  });
-  _cookiesClearFn.consume((handle) => vm.setProp(bruCookiesObject, '_clear', handle));
-
-  const _cookiesDeleteFn = vm.newFunction('_delete', (name) => {
-    const promise = vm.newPromise();
-    bru.cookies.delete(vm.dump(name), (err) => {
-      if (err) {
-        promise.reject(marshallToVm(cleanJson(err), vm));
-      } else {
-        promise.resolve(vm.undefined);
-      }
-    });
-    promise.settled.then(vm.runtime.executePendingJobs);
-    return promise.handle;
-  });
-  _cookiesDeleteFn.consume((handle) => vm.setProp(bruCookiesObject, '_delete', handle));
+  createAsyncCookieBridge(vm, bruCookiesObject, '_clear', (...a) => bru.cookies.clear(...a));
+  createAsyncCookieBridge(vm, bruCookiesObject, '_delete', (...a) => bru.cookies.delete(...a));
 
   let cookiesToString = vm.newFunction('toString', function () {
     return marshallToVm(bru.cookies.toString(), vm);
@@ -435,47 +427,9 @@ const addBruShimToContext = (vm, bru) => {
   cookiesIndexOf.dispose();
 
   // Async write methods (_add, _upsert, _remove)
-  const _cookiesAddFn = vm.newFunction('_add', (cookieObj) => {
-    const promise = vm.newPromise();
-    bru.cookies.add(vm.dump(cookieObj), (err) => {
-      if (err) {
-        promise.reject(marshallToVm(cleanJson(err), vm));
-      } else {
-        promise.resolve(vm.undefined);
-      }
-    });
-    promise.settled.then(vm.runtime.executePendingJobs);
-    return promise.handle;
-  });
-  _cookiesAddFn.consume((handle) => vm.setProp(bruCookiesObject, '_add', handle));
-
-  const _cookiesUpsertFn = vm.newFunction('_upsert', (cookieObj) => {
-    const promise = vm.newPromise();
-    bru.cookies.upsert(vm.dump(cookieObj), (err) => {
-      if (err) {
-        promise.reject(marshallToVm(cleanJson(err), vm));
-      } else {
-        promise.resolve(vm.undefined);
-      }
-    });
-    promise.settled.then(vm.runtime.executePendingJobs);
-    return promise.handle;
-  });
-  _cookiesUpsertFn.consume((handle) => vm.setProp(bruCookiesObject, '_upsert', handle));
-
-  const _cookiesRemoveFn = vm.newFunction('_remove', (name) => {
-    const promise = vm.newPromise();
-    bru.cookies.remove(vm.dump(name), (err) => {
-      if (err) {
-        promise.reject(marshallToVm(cleanJson(err), vm));
-      } else {
-        promise.resolve(vm.undefined);
-      }
-    });
-    promise.settled.then(vm.runtime.executePendingJobs);
-    return promise.handle;
-  });
-  _cookiesRemoveFn.consume((handle) => vm.setProp(bruCookiesObject, '_remove', handle));
+  createAsyncCookieBridge(vm, bruCookiesObject, '_add', (...a) => bru.cookies.add(...a));
+  createAsyncCookieBridge(vm, bruCookiesObject, '_upsert', (...a) => bru.cookies.upsert(...a));
+  createAsyncCookieBridge(vm, bruCookiesObject, '_remove', (...a) => bru.cookies.remove(...a));
 
   const _jarFn = vm.newFunction('_jar', () => {
     const nativeJar = bru.cookies.jar();

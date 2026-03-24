@@ -1,19 +1,19 @@
-const PropertyList = require('./property-list');
+const ReadOnlyPropertyList = require('./readonly-property-list');
 
 /**
- * CookieList - A PropertyList subclass for cookie management.
+ * CookieList - A ReadOnlyPropertyList subclass for cookie management.
  *
  * All read/iteration/search/transformation methods (get, one, all, idx, count,
  * indexOf, has, find, filter, each, map, reduce, toObject, toString) are
- * inherited from ReadOnlyPropertyList via PropertyList in dynamic mode.
+ * inherited from ReadOnlyPropertyList in dynamic mode.
  *
- * Write methods (add, upsert, remove, clear, delete) override PropertyList's
- * static-mode mutations and delegate to the cookie jar asynchronously.
+ * Write methods (add, upsert, remove, clear, delete) delegate to the cookie
+ * jar asynchronously — no static-mode mutation methods are inherited.
  *
  * jar() provides direct access to the underlying cookie jar with URL
  * interpolation applied to all URL arguments.
  */
-class CookieList extends PropertyList {
+class CookieList extends ReadOnlyPropertyList {
   /**
    * @param {object} options
    * @param {Function} options.getUrl - Returns the interpolated request URL (or falsy if unavailable)

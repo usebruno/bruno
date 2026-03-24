@@ -402,6 +402,31 @@ describe('postmanTranslations - cookie API conversions', () => {
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
+  // Regression guards: jar patterns must be matched before simpler pm.cookies.* patterns
+  // to prevent pm.cookies.jar().get being caught by pm.cookies.get, etc.
+
+  test('regression: pm.cookies.jar().get must not be caught by pm.cookies.get pattern', () => {
+    const inputScript = `pm.cookies.jar().get('https://example.com', 'token', (err, cookie) => { console.log(cookie); });`;
+    const result = postmanTranslation(inputScript);
+    expect(result).toContain('bru.cookies.jar().getCookie(');
+    expect(result).not.toContain('bru.cookies.get(');
+  });
+
+  test('regression: pm.cookies.jar().set must not be caught by pm.cookies.add pattern', () => {
+    const inputScript = `pm.cookies.jar().set('https://example.com', 'session', 'abc', (err) => {});`;
+    const result = postmanTranslation(inputScript);
+    expect(result).toContain('bru.cookies.jar().setCookie(');
+    expect(result).not.toContain('bru.cookies.add(');
+  });
+
+  test('regression: mixed jar and direct patterns produce correct output for each', () => {
+    const inputScript = `const v = pm.cookies.get('token');\npm.cookies.jar().set('https://example.com', 'a', 'b');\npm.cookies.jar().get('https://example.com', 'a', cb);`;
+    const result = postmanTranslation(inputScript);
+    expect(result).toContain('bru.cookies.get(');
+    expect(result).toContain('bru.cookies.jar().setCookie(');
+    expect(result).toContain('bru.cookies.jar().getCookie(');
+  });
+
   test('should handle mixed direct cookie access and jar methods', () => {
     const inputScript = `
       const token = pm.cookies.get('authToken');

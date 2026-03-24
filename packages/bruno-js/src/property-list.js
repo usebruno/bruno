@@ -132,7 +132,7 @@ class PropertyList extends ReadOnlyPropertyList {
    */
   repopulate(items) {
     this._assertStatic('repopulate');
-    this._items = Array.isArray(items) ? [...items] : [];
+    this.populate(items);
   }
 
   /**

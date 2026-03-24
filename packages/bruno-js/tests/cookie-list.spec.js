@@ -20,10 +20,10 @@ describe('CookieList', () => {
 
   // ── Inheritance ────────────────────────────────────────────────────────
 
-  test('extends PropertyList (and ReadOnlyPropertyList)', () => {
+  test('extends ReadOnlyPropertyList (not PropertyList)', () => {
     const list = createCookieList();
     expect(list).toBeInstanceOf(ReadOnlyPropertyList);
-    expect(list).toBeInstanceOf(PropertyList);
+    expect(list).not.toBeInstanceOf(PropertyList);
     expect(list).toBeInstanceOf(CookieList);
   });
 
