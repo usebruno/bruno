@@ -2952,7 +2952,7 @@ export const loadLargeRequest
     };
 
 export const mountCollection
-  = ({ collectionUid, collectionPathname, brunoConfig }) =>
+  = ({ collectionUid, collectionPathname, brunoConfig, skipTabRestore = false }) =>
     (dispatch, getState) => {
       const { ipcRenderer } = window;
       dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
@@ -2962,20 +2962,22 @@ export const mountCollection
             dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
 
-            try {
-              const tabsSnapshot = await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname);
-              if (tabsSnapshot?.tabs?.length > 0) {
-                const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
-                if (collection) {
-                  dispatch(restoreTabs({
-                    collection,
-                    tabs: tabsSnapshot.tabs,
-                    activeTab: tabsSnapshot.activeTab
-                  }));
+            if (!skipTabRestore) {
+              try {
+                const tabsSnapshot = await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname);
+                if (tabsSnapshot?.tabs?.length > 0) {
+                  const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
+                  if (collection) {
+                    dispatch(restoreTabs({
+                      collection,
+                      tabs: tabsSnapshot.tabs,
+                      activeTab: tabsSnapshot.activeTab
+                    }));
+                  }
                 }
+              } catch (err) {
+                console.error('Failed to restore tabs from snapshot:', err);
               }
-            } catch (err) {
-              console.error('Failed to restore tabs from snapshot:', err);
             }
           })
           .then(resolve)
