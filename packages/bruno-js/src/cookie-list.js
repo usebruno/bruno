@@ -1,19 +1,19 @@
-const ReadOnlyPropertyList = require('./readonly-property-list');
+const PropertyList = require('./property-list');
 
 /**
- * CookieList - A ReadOnlyPropertyList subclass for cookie management.
+ * CookieList - A PropertyList subclass for cookie management.
  *
  * All read/iteration/search/transformation methods (get, one, all, idx, count,
  * indexOf, has, find, filter, each, map, reduce, toObject, toString) are
- * inherited from ReadOnlyPropertyList in dynamic mode.
+ * inherited from ReadOnlyPropertyList via PropertyList in dynamic mode.
  *
- * Write methods (add, upsert, remove, clear, delete) delegate to the cookie
- * jar asynchronously.
+ * Write methods (add, upsert, remove, clear, delete) override PropertyList's
+ * static-mode mutations and delegate to the cookie jar asynchronously.
  *
  * jar() provides direct access to the underlying cookie jar with URL
  * interpolation applied to all URL arguments.
  */
-class CookieList extends ReadOnlyPropertyList {
+class CookieList extends PropertyList {
   /**
    * @param {object} options
    * @param {Function} options.getUrl - Returns the interpolated request URL (or falsy if unavailable)
@@ -31,6 +31,7 @@ class CookieList extends ReadOnlyPropertyList {
     });
     this._getUrl = getUrl;
     this._interpolateFn = interpolate;
+    // Delegates to a module-level singleton CookieJar (created once per request lifecycle)
     this._createCookieJar = createCookieJar;
   }
 
@@ -41,6 +42,11 @@ class CookieList extends ReadOnlyPropertyList {
   }
 
   upsert(cookieObj, callback) {
+    if (!cookieObj || typeof cookieObj !== 'object') {
+      const error = new Error('cookieObj must be a non-null object');
+      if (callback) return callback(error);
+      return Promise.reject(error);
+    }
     const url = this._getUrl();
     if (!url) {
       if (callback) return callback(undefined);
@@ -60,8 +66,11 @@ class CookieList extends ReadOnlyPropertyList {
     return jar.deleteCookie(url, name, callback);
   }
 
-  // Note: clear() only removes cookies for the current request URL.
-  // Use jar().clear() to remove ALL cookies globally.
+  /**
+   * Remove cookies scoped to the current request URL only.
+   * Unlike jar().clear() which removes ALL cookies globally, this only
+   * removes cookies matching the current request's domain and path.
+   */
   clear(callback) {
     const url = this._getUrl();
     if (!url) {

@@ -1,4 +1,5 @@
 const CookieList = require('../src/cookie-list');
+const PropertyList = require('../src/property-list');
 const ReadOnlyPropertyList = require('../src/readonly-property-list');
 
 describe('CookieList', () => {
@@ -19,9 +20,10 @@ describe('CookieList', () => {
 
   // ── Inheritance ────────────────────────────────────────────────────────
 
-  test('extends ReadOnlyPropertyList', () => {
+  test('extends PropertyList (and ReadOnlyPropertyList)', () => {
     const list = createCookieList();
     expect(list).toBeInstanceOf(ReadOnlyPropertyList);
+    expect(list).toBeInstanceOf(PropertyList);
     expect(list).toBeInstanceOf(CookieList);
   });
 
@@ -111,6 +113,24 @@ describe('CookieList', () => {
       const list = createCookieList({ getUrl: () => null });
       const result = list.upsert({ name: 'foo', value: 'bar' });
       await expect(result).resolves.toBeUndefined();
+    });
+
+    test('rejects with error when cookieObj is null', async () => {
+      const list = createCookieList();
+      await expect(list.upsert(null)).rejects.toThrow('cookieObj must be a non-null object');
+    });
+
+    test('rejects with error when cookieObj is a string', async () => {
+      const list = createCookieList();
+      await expect(list.upsert('not-an-object')).rejects.toThrow('cookieObj must be a non-null object');
+    });
+
+    test('calls callback with error when cookieObj is null', () => {
+      const cb = jest.fn();
+      const list = createCookieList();
+      list.upsert(null, cb);
+      expect(cb).toHaveBeenCalledWith(expect.any(Error));
+      expect(cb.mock.calls[0][0].message).toBe('cookieObj must be a non-null object');
     });
   });
 

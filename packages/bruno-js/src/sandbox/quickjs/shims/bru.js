@@ -666,7 +666,8 @@ const addBruShimToContext = (vm, bru) => {
       globalThis.bru.cookies.clear = (cb) => callWithCallback(() => _clearDirect(), cb);
       globalThis.bru.cookies.delete = (name, cb) => callWithCallback(() => _deleteDirect(name), cb);
 
-      // Async write wrappers for new PropertyList methods
+      // Async write wrappers — duplicated from above pattern intentionally;
+      // QuickJS VM bridge requires explicit wrapper per method (no shared prototype)
       const _addDirect = globalThis.bru.cookies._add;
       const _upsertDirect = globalThis.bru.cookies._upsert;
       const _removeDirect = globalThis.bru.cookies._remove;
