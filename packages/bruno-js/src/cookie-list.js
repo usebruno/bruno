@@ -26,7 +26,12 @@ class CookieList extends ReadOnlyPropertyList {
       keyProperty: 'key',
       dataSource: () => {
         const url = getUrl();
-        return url ? getCookiesForUrl(url) : [];
+        if (!url) return [];
+        // Normalize tough-cookie Cookie instances to plain objects to avoid
+        // circular references and exposing internal library structures.
+        return getCookiesForUrl(url).map(({ key, value, domain, path, secure, httpOnly, expires }) =>
+          ({ key, value, domain, path, secure, httpOnly, expires })
+        );
       }
     });
     this._getUrl = getUrl;
@@ -56,6 +61,8 @@ class CookieList extends ReadOnlyPropertyList {
     return jar.setCookie(url, cookieObj, callback);
   }
 
+  // Removing a non-existent or empty-named cookie is a no-op (like Map.delete),
+  // unlike upsert() which rejects invalid input since it's a programming error.
   remove(name, callback) {
     const url = this._getUrl();
     if (!url || !name) {

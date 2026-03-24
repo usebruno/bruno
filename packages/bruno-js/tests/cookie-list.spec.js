@@ -32,6 +32,21 @@ describe('CookieList', () => {
     expect(list.count()).toBe(3);
   });
 
+  test('normalizes tough-cookie objects to plain objects', () => {
+    const toughCookies = [
+      { key: 'a', value: '1', domain: 'example.com', path: '/', secure: true, httpOnly: false, expires: null, _internal: 'hidden', creation: new Date(), store: { circular: true } }
+    ];
+    const list = createCookieList({
+      getCookiesForUrl: () => toughCookies
+    });
+    const items = list.all();
+    expect(items).toHaveLength(1);
+    expect(items[0]).toEqual({ key: 'a', value: '1', domain: 'example.com', path: '/', secure: true, httpOnly: false, expires: null });
+    expect(items[0]).not.toHaveProperty('_internal');
+    expect(items[0]).not.toHaveProperty('creation');
+    expect(items[0]).not.toHaveProperty('store');
+  });
+
   // ── Read methods with no URL ───────────────────────────────────────────
 
   describe('read methods when URL is falsy', () => {
