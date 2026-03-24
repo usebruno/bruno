@@ -137,7 +137,7 @@ class PropertyList extends ReadOnlyPropertyList {
    */
   repopulate(items) {
     this._ensureStaticMode('repopulate');
-    this._items = Array.isArray(items) ? [...items] : [];
+    this.populate(items);
   }
 
   /**
@@ -150,7 +150,14 @@ class PropertyList extends ReadOnlyPropertyList {
     if (prune) {
       this._items = [];
     }
-    const items = ReadOnlyPropertyList.isPropertyList(source) ? source.all() : Array.isArray(source) ? source : [];
+    let items;
+    if (ReadOnlyPropertyList.isPropertyList(source)) {
+      items = source.all();
+    } else if (Array.isArray(source)) {
+      items = source;
+    } else {
+      items = [];
+    }
     for (const item of items) {
       this._items.push(item);
     }

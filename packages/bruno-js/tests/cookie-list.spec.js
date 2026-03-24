@@ -49,6 +49,13 @@ describe('CookieList', () => {
     expect(items[0]).not.toHaveProperty('store');
   });
 
+  test('toJSON() returns cloned array of normalized cookies', () => {
+    const list = createCookieList();
+    const json = list.toJSON();
+    expect(json).toHaveLength(3);
+    expect(json[0]).toEqual({ key: 'session', value: 'abc123' });
+  });
+
   // ── Read methods with no URL ───────────────────────────────────────────
 
   describe('read methods when URL is falsy', () => {
