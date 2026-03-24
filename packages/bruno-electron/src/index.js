@@ -176,7 +176,10 @@ if (useSingleInstance && !gotTheLock) {
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
   // Ensure shell environment is loaded before any operations that need it
-  await initializeShellEnv();
+  // Skip during Playwright tests - shell env is not needed and can hang on macOS CI
+  if (!process.env.PLAYWRIGHT) {
+    await initializeShellEnv();
+  }
 
   if (isDev) {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');

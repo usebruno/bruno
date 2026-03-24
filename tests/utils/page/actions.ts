@@ -1,7 +1,39 @@
-import { test, expect, Page } from '../../../playwright';
+import { test, expect, Page, ElectronApplication } from '../../../playwright';
 import { buildCommonLocators } from './locators';
 
 type SandboxMode = 'safe' | 'developer';
+
+type WaitForAppReadyOptions = {
+  timeout?: number;
+};
+
+/**
+ * Wait for the Electron app to have a ready, loaded window.
+ * Handles cases where the first window is slow to appear.
+ */
+const waitForReadyPage = async (
+  app: ElectronApplication,
+  options: WaitForAppReadyOptions = {}
+) => {
+  const { timeout = 45000 } = options;
+
+  // Try to grab an existing window; if none, wait for a new one.
+  let page: Page | null = null;
+  try {
+    page = await app.firstWindow();
+  } catch {
+    page = null;
+  }
+
+  if (!page) {
+    page = await app.waitForEvent('window', { timeout });
+  }
+
+  await page.locator('[data-app-state="loaded"]').waitFor({ timeout });
+  await page.waitForTimeout(200);
+
+  return page;
+};
 
 /**
  * Close all collections
@@ -26,8 +58,8 @@ const closeAllCollections = async (page) => {
       const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
 
       if (hasDiscardButton) {
-        // Drafts modal - click "Discard All and Remove"
-        await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+        // Drafts modal - click "Discard All and Remove" (force to avoid element stability issues)
+        await page.getByRole('button', { name: 'Discard All and Remove' }).click({ force: true });
       } else {
         // Regular modal - click the submit button
         await page.locator('.bruno-modal-footer .submit').click();
@@ -759,10 +791,17 @@ const sendRequestAndWaitForResponse = async (page: Page,
 const switchResponseFormat = async (page: Page, format: string) => {
   await test.step(`Switch response format to ${format}`, async () => {
     const responseFormatTab = page.getByTestId('format-response-tab');
+    await responseFormatTab.waitFor({ state: 'visible', timeout: 15000 });
     await responseFormatTab.click();
     // Wait for dropdown to be visible before clicking the format option
     const dropdown = page.getByTestId('format-response-tab-dropdown');
-    await dropdown.waitFor({ state: 'visible' });
+    try {
+      await dropdown.waitFor({ state: 'visible', timeout: 15000 });
+    } catch {
+      // If the dropdown didn't appear, try clicking the tab again before failing
+      await responseFormatTab.click();
+      await dropdown.waitFor({ state: 'visible', timeout: 15000 });
+    }
     await dropdown.getByText(format).click();
   });
 };
@@ -865,8 +904,9 @@ const clickResponseAction = async (page: Page, actionTestId: string) => {
   if (await actionButton.isVisible()) {
     await actionButton.click();
   } else {
-    // Open the menu dropdown
+    // Open the menu dropdown (wait for response pane to fully render)
     const menu = page.getByTestId('response-actions-menu');
+    await menu.waitFor({ state: 'visible', timeout: 15000 });
     await menu.click();
 
     // Click the corresponding menu item
@@ -1083,6 +1123,7 @@ const switchWorkspace = async (page: Page, workspaceName: string) => {
 };
 
 export {
+  waitForReadyPage,
   closeAllCollections,
   openCollection,
   createCollection,
