@@ -195,6 +195,23 @@ class ReadOnlyPropertyList {
       .map((i) => `${i[this._keyProperty]}=${i.value}`)
       .join('; ');
   }
+
+  /**
+   * Convert to JSON (returns the same as all()).
+   * @returns {Array}
+   */
+  toJSON() {
+    return this.all();
+  }
+
+  /**
+   * Check if an object is an instance of ReadOnlyPropertyList.
+   * @param {*} obj
+   * @returns {boolean}
+   */
+  static isPropertyList(obj) {
+    return obj instanceof ReadOnlyPropertyList;
+  }
 }
 
 module.exports = ReadOnlyPropertyList;

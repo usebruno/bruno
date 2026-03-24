@@ -57,6 +57,17 @@ describe('ReadOnlyPropertyList', () => {
       expect(list.toString()).toBe('a=1; b=2; c=3');
     });
 
+    test('toJSON() returns cloned array of all items', () => {
+      const json = list.toJSON();
+      expect(json).toEqual([
+        { key: 'a', value: '1' },
+        { key: 'b', value: '2' },
+        { key: 'c', value: '3' }
+      ]);
+      json.push({ key: 'd', value: '4' });
+      expect(list.count()).toBe(3);
+    });
+
     test('indexOf() finds item by structural equality', () => {
       expect(list.indexOf({ key: 'b', value: '2' })).toBe(1);
       expect(list.indexOf({ key: 'missing', value: '0' })).toBe(-1);
@@ -193,6 +204,22 @@ describe('ReadOnlyPropertyList', () => {
         items: [{ name: 'Content-Type', value: 'application/json' }]
       });
       expect(list.get('Content-Type')).toBe('application/json');
+    });
+  });
+
+  // ── Static Methods ──────────────────────────────────────────────────
+
+  describe('static methods', () => {
+    test('isPropertyList() returns true for ReadOnlyPropertyList', () => {
+      const list = new ReadOnlyPropertyList({ items: [] });
+      expect(ReadOnlyPropertyList.isPropertyList(list)).toBe(true);
+    });
+
+    test('isPropertyList() returns false for plain objects', () => {
+      expect(ReadOnlyPropertyList.isPropertyList({})).toBe(false);
+      expect(ReadOnlyPropertyList.isPropertyList(null)).toBe(false);
+      expect(ReadOnlyPropertyList.isPropertyList([])).toBe(false);
+      expect(ReadOnlyPropertyList.isPropertyList('string')).toBe(false);
     });
   });
 });
