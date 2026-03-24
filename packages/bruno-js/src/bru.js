@@ -22,6 +22,11 @@ class Bru {
    * @param {string} [options.collectionName] - Name of the collection
    * @param {object} [options.promptVariables] - Prompt variables
    * @param {object} [options.certsAndProxyConfig] - Configuration for bru.sendRequest (proxy, certs, TLS)
+   * @param {string} [options.certsAndProxyConfig.collectionPath] - Path to the collection
+   * @param {object} [options.certsAndProxyConfig.options] - TLS and proxy options
+   * @param {object} [options.certsAndProxyConfig.clientCertificates] - Client certificate configuration
+   * @param {object} [options.certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
+   * @param {object} [options.certsAndProxyConfig.systemProxyConfig] - System proxy configuration
    */
   constructor({
     runtime,
