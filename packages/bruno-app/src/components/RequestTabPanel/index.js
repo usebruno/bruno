@@ -38,11 +38,13 @@ import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
+import CollapsedPanelIndicator from './CollapsedPanelIndicator';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 490;
 const MIN_TOP_PANE_HEIGHT = 150;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
+const COLLAPSE_EDGE_THRESHOLD = 80;
 
 const RequestTabPanel = () => {
   const dispatch = useDispatch();
@@ -82,8 +84,21 @@ const RequestTabPanel = () => {
   const collection = find(collections, (c) => c.uid === focusedTab?.collectionUid);
   const [dragging, setDragging] = useState(false);
   const draggingRef = useRef(false);
+  const dragStartRef = useRef(null);
 
-  const { left: leftPaneWidth, top: topPaneHeight, reset: resetPaneBoundaries, setTop: setTopPaneHeight, setLeft: setLeftPaneWidth } = useTabPaneBoundaries(activeTabUid);
+  const {
+    left: leftPaneWidth,
+    top: topPaneHeight,
+    reset: resetPaneBoundaries,
+    setTop: setTopPaneHeight,
+    setLeft: setLeftPaneWidth,
+    requestPaneCollapsed,
+    responsePaneCollapsed,
+    collapseRequest,
+    expandRequest,
+    collapseResponse,
+    expandResponse
+  } = useTabPaneBoundaries(activeTabUid);
   const previousTopPaneHeight = useRef(null); // Store height before devtools opens
 
   // Not a recommended pattern here to have the child component
@@ -105,40 +120,87 @@ const RequestTabPanel = () => {
     }
   }, []);
 
+  // Refs for panel collapse functions
+  const collapseRequestRef = useRef(collapseRequest);
+  const collapseResponseRef = useRef(collapseResponse);
+  useEffect(() => {
+    collapseRequestRef.current = collapseRequest;
+    collapseResponseRef.current = collapseResponse;
+  }, [collapseRequest, collapseResponse]);
+
+  const stopDragging = useCallback(() => {
+    draggingRef.current = false;
+    dragStartRef.current = null;
+    setDragging(false);
+  }, []);
+
   const handleMouseMove = useCallback((e) => {
-    if (!draggingRef.current || !mainSectionRef.current) return;
+    if (!draggingRef.current || !mainSectionRef.current || !dragStartRef.current) return;
 
     e.preventDefault();
     const mainRect = mainSectionRef.current.getBoundingClientRect();
+    const dragStart = dragStartRef.current;
 
     if (isVerticalLayoutRef.current) {
       const newHeight = e.clientY - mainRect.top;
       const maxHeight = mainRect.height - MIN_BOTTOM_PANE_HEIGHT;
-      // Clamp to bounds instead of returning early
+      const distanceFromBottom = mainRect.bottom - e.clientY;
+
+      if (e.clientY < dragStart.y && newHeight < COLLAPSE_EDGE_THRESHOLD) {
+        collapseRequestRef.current();
+        return stopDragging();
+      }
+
+      if (e.clientY > dragStart.y && distanceFromBottom < COLLAPSE_EDGE_THRESHOLD) {
+        collapseResponseRef.current();
+        return stopDragging();
+      }
+
       const clampedHeight = Math.max(MIN_TOP_PANE_HEIGHT, Math.min(newHeight, maxHeight));
       setTopPaneHeight(clampedHeight);
     } else {
       const newWidth = e.clientX - mainRect.left;
       const maxWidth = mainRect.width - MIN_RIGHT_PANE_WIDTH;
-      // Clamp to bounds instead of returning early
+      const distanceFromRight = mainRect.right - e.clientX;
+
+      if (e.clientX < dragStart.x && newWidth < COLLAPSE_EDGE_THRESHOLD) {
+        collapseRequestRef.current();
+        return stopDragging();
+      }
+
+      if (e.clientX > dragStart.x && distanceFromRight < COLLAPSE_EDGE_THRESHOLD) {
+        collapseResponseRef.current();
+        return stopDragging();
+      }
+
       const clampedWidth = Math.max(MIN_LEFT_PANE_WIDTH, Math.min(newWidth, maxWidth));
       setLeftPaneWidth(clampedWidth);
     }
-  }, [setTopPaneHeight, setLeftPaneWidth]);
+  }, [setTopPaneHeight, setLeftPaneWidth, stopDragging]);
 
   const handleMouseUp = useCallback((e) => {
     if (draggingRef.current) {
       e.preventDefault();
-      draggingRef.current = false;
-      setDragging(false);
+      stopDragging();
     }
-  }, []);
+  }, [stopDragging]);
 
-  const handleDragbarMouseDown = useCallback((e) => {
+  const startDragging = useCallback((e) => {
     e.preventDefault();
     draggingRef.current = true;
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
     setDragging(true);
   }, []);
+
+  const handleRequestIndicatorDragStart = useCallback((e) => {
+    expandRequest();
+    startDragging(e);
+  }, [expandRequest, startDragging]);
+
+  const handleResponseIndicatorDragStart = useCallback((e) => {
+    expandResponse();
+    startDragging(e);
+  }, [expandResponse, startDragging]);
 
   useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp);
@@ -342,49 +404,76 @@ const RequestTabPanel = () => {
     }
   };
 
-  const requestPaneStyle = isVerticalLayout
-    ? {
-        height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
-        minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
-        width: '100%'
-      }
-    : {
-        width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
-      };
+  const getRequestPaneStyle = () => {
+    if (responsePaneCollapsed) {
+      return isVerticalLayout
+        ? { flex: 1, width: '100%' }
+        : { flex: 1 };
+    }
+
+    return isVerticalLayout
+      ? {
+          height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
+          minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
+          width: '100%'
+        }
+      : {
+          width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
+        };
+  };
 
   return (
     <StyledWrapper
       className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${
         isVerticalLayout ? 'vertical-layout' : ''
-      }`}
+      } ${requestPaneCollapsed ? 'request-collapsed' : ''} ${responsePaneCollapsed ? 'response-collapsed' : ''}`}
     >
-      <div className="pt-3 pb-3 px-4">
+      <div className="query-url-wrapper pt-3 pb-4 px-4">
         {renderQueryUrl()}
       </div>
-      <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}>
-        <section className="request-pane">
+      <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow relative overflow-auto`}>
+        {requestPaneCollapsed ? (
+          <CollapsedPanelIndicator
+            panelType="request"
+            isVertical={isVerticalLayout}
+            onExpand={expandRequest}
+            onDragStart={handleRequestIndicatorDragStart}
+            dragThresholdPx={isVerticalLayout ? MIN_TOP_PANE_HEIGHT / 2 : MIN_LEFT_PANE_WIDTH / 2}
+          />
+        ) : (
+          <section className="request-pane" style={getRequestPaneStyle()}>
+            <div className="px-4 h-full">
+              {renderRequestPane()}
+            </div>
+          </section>
+        )}
+
+        {!requestPaneCollapsed && !responsePaneCollapsed && (
           <div
-            className="px-4 h-full"
-            style={requestPaneStyle}
+            className="dragbar-wrapper"
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              resetPaneBoundaries();
+            }}
+            onMouseDown={startDragging}
           >
-            {renderRequestPane()}
+            <div className="dragbar-handle" />
           </div>
-        </section>
+        )}
 
-        <div
-          className="dragbar-wrapper"
-          onDoubleClick={(e) => {
-            e.preventDefault();
-            resetPaneBoundaries();
-          }}
-          onMouseDown={handleDragbarMouseDown}
-        >
-          <div className="dragbar-handle" />
-        </div>
-
-        <section className="response-pane flex-grow overflow-x-auto">
-          {renderResponsePane()}
-        </section>
+        {responsePaneCollapsed ? (
+          <CollapsedPanelIndicator
+            panelType="response"
+            isVertical={isVerticalLayout}
+            onExpand={expandResponse}
+            onDragStart={handleResponseIndicatorDragStart}
+            dragThresholdPx={isVerticalLayout ? MIN_BOTTOM_PANE_HEIGHT / 2 : MIN_RIGHT_PANE_WIDTH / 2}
+          />
+        ) : (
+          <section className="response-pane flex-grow overflow-x-auto" style={requestPaneCollapsed ? { flex: 1 } : undefined}>
+            {renderResponsePane()}
+          </section>
+        )}
       </section>
 
       {item.type === 'graphql-request' ? (
