@@ -1,5 +1,5 @@
 import { test, expect, Page } from '../../../playwright';
-import { buildCommonLocators } from './locators';
+import { buildCommonLocators, buildScriptErrorLocators } from './locators';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -1082,6 +1082,66 @@ const switchWorkspace = async (page: Page, workspaceName: string) => {
   });
 };
 
+/**
+ * Navigate to a Script sub-tab (pre-request / post-response)
+ * @param page - The page object
+ * @param subTab - The sub-tab to select
+ */
+const selectScriptSubTab = async (page: Page, subTab: 'pre-request' | 'post-response') => {
+  await test.step(`Select Script sub-tab "${subTab}"`, async () => {
+    await selectRequestPaneTab(page, 'Script');
+    const trigger = buildCommonLocators(page).paneTabs.tabTrigger(subTab);
+    await trigger.click();
+    await expect(trigger).toContainClass('active');
+  });
+};
+
+/**
+ * Clear and type into a CodeMirror editor identified by test ID
+ * @param page - The page object
+ * @param editorTestId - The test ID of the editor container
+ * @param newContent - The content to type
+ */
+const editCodeMirrorEditor = async (page: Page, editorTestId: string, newContent: string) => {
+  await test.step(`Edit CodeMirror editor "${editorTestId}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const editor = locators.codeMirror.byTestId(editorTestId);
+    await editor.waitFor({ state: 'visible' });
+    const textarea = editor.locator('textarea[tabindex="0"]');
+    await textarea.focus();
+    const selectAll = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
+    await page.keyboard.press(selectAll);
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type(newContent, { delay: 5 });
+  });
+};
+
+/**
+ * Click send and wait for at least one error card to appear.
+ * @param page - The page object
+ */
+const sendAndWaitForErrorCard = async (page: Page) => {
+  await test.step('Send request and wait for error card', async () => {
+    const { request } = buildCommonLocators(page);
+    const scriptErrorLocators = buildScriptErrorLocators(page);
+    await request.sendButton().click();
+    await scriptErrorLocators.card().waitFor({ state: 'visible', timeout: 15000 });
+  });
+};
+
+/**
+ * Click send and wait for a response status code to appear.
+ * Used for requests that succeed at HTTP level but may have post-response/test errors.
+ * @param page - The page object
+ */
+const sendAndWaitForResponse = async (page: Page) => {
+  await test.step('Send request and wait for response', async () => {
+    const { request, response } = buildCommonLocators(page);
+    await request.sendButton().click();
+    await response.statusCode().waitFor({ state: 'visible', timeout: 15000 });
+  });
+};
+
 export {
   closeAllCollections,
   openCollection,
@@ -1119,7 +1179,11 @@ export {
   saveRequest,
   closeAllTabs,
   createWorkspace,
-  switchWorkspace
+  switchWorkspace,
+  selectScriptSubTab,
+  editCodeMirrorEditor,
+  sendAndWaitForErrorCard,
+  sendAndWaitForResponse
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

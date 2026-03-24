@@ -241,6 +241,13 @@ const adjustLineNumber = (filePath, reportedLine, isQuickJS, scriptType = null, 
   return scriptRelativeLine;
 };
 
+/** Look up the script block start line for a .bru or .yml file */
+const findBlockStart = (filePath, scriptType, cache) => {
+  if (filePath.endsWith('.bru')) return findScriptBlockStartLine(filePath, scriptType, cache);
+  if (filePath.endsWith('.yml')) return findYmlScriptBlockStartLine(filePath, scriptType, cache);
+  return null;
+};
+
 /**
  * Resolve an error in a collection/folder script segment to its source file and line.
  * Uses the segments array in metadata to find which segment the error falls in,
@@ -255,19 +262,34 @@ const resolveSegmentError = (parsed, metadata, scriptType, cache) => {
 
   for (const segment of metadata.segments) {
     if (scriptRelativeLine >= segment.startLine && scriptRelativeLine <= segment.endLine) {
-      const isBru = segment.filePath.endsWith('.bru');
-      const isYml = segment.filePath.endsWith('.yml');
-      if (!isBru && !isYml) return null;
+      if (!isAllowedSourceFile(segment.filePath)) return null;
 
-      const blockStartLine = isBru
-        ? findScriptBlockStartLine(segment.filePath, scriptType, cache)
-        : findYmlScriptBlockStartLine(segment.filePath, scriptType, cache);
-      if (!blockStartLine) return null;
+      const blockStartLine = findBlockStart(segment.filePath, scriptType, cache);
+      if (!blockStartLine) {
+        // No script block on disk — only possible when user added a new script as a draft.
+        // If we have in-memory content, return it so the caller can show the code snippet.
+        if (segment.scriptContent) {
+          return {
+            line: null,
+            filePath: segment.filePath,
+            displayPath: segment.displayPath,
+            scriptContent: segment.scriptContent,
+            // segment.startLine points to the IIFE wrapper line (`await (async () => {`),
+            // so subtracting it yields a 1-based index into the user's script content.
+            lineInScript: scriptRelativeLine - segment.startLine
+          };
+        }
+        return null;
+      }
 
       return {
         line: blockStartLine + (scriptRelativeLine - segment.startLine) - 1,
         filePath: segment.filePath,
-        displayPath: segment.displayPath
+        displayPath: segment.displayPath,
+        scriptContent: segment.scriptContent || null,
+        // segment.startLine points to the IIFE wrapper line (`await (async () => {`),
+        // so subtracting it yields a 1-based index into the user's script content.
+        lineInScript: scriptRelativeLine - segment.startLine
       };
     }
   }
@@ -332,12 +354,10 @@ const parseErrorLocation = (error) => {
   return parsed;
 };
 
-/** Read source file and extract context lines around the error location */
-const getSourceContext = (filePath, errorLine, contextLines = DEFAULT_CONTEXT_LINES, cache = null) => {
-  const content = readFile(filePath, cache);
-  if (!content) return null;
+/** Build a context-lines object from an array of source lines around an error */
+const buildContextLines = (lines, errorLine, contextLines) => {
+  if (errorLine < 1 || errorLine > lines.length) return null;
 
-  const lines = content.split('\n');
   const startLine = Math.max(1, errorLine - contextLines);
   const endLine = Math.min(lines.length, errorLine + contextLines);
 
@@ -353,6 +373,19 @@ const getSourceContext = (filePath, errorLine, contextLines = DEFAULT_CONTEXT_LI
   return { lines: contextLinesArray, startLine, errorLine };
 };
 
+/** Read source file and extract context lines around the error location */
+const getSourceContext = (filePath, errorLine, contextLines = DEFAULT_CONTEXT_LINES, cache = null) => {
+  const content = readFile(filePath, cache);
+  if (!content) return null;
+  return buildContextLines(content.split('\n'), errorLine, contextLines);
+};
+
+/** Extract context lines from in-memory script content (e.g. unsaved draft scripts) */
+const getSourceContextFromContent = (content, errorLine, contextLines = DEFAULT_CONTEXT_LINES) => {
+  if (!content) return null;
+  return buildContextLines(content.split('\n'), errorLine, contextLines);
+};
+
 /** Build adjusted stack trace string from structured CallSite data */
 const buildStackFromCallSites = (callSites, scriptType = null, cache = null, scriptMetadata = null) => {
   return callSites.map((site) => {
@@ -364,7 +397,7 @@ const buildStackFromCallSites = (callSites, scriptType = null, cache = null, scr
     if (adjusted === null && scriptMetadata?.segments) {
       const parsed = { line: site.line, isQuickJS: false };
       const resolved = resolveSegmentError(parsed, scriptMetadata, scriptType, cache);
-      if (resolved) {
+      if (resolved && resolved.line !== null) {
         fileToUse = resolved.filePath;
         lineToUse = resolved.line;
       }
@@ -391,7 +424,7 @@ const adjustStackTrace = (stack, scriptType = null, cache = null, scriptMetadata
     if (adjusted === null && scriptMetadata?.segments) {
       const parsed = { line: match.line, isQuickJS };
       const resolved = resolveSegmentError(parsed, scriptMetadata, scriptType, cache);
-      if (resolved) {
+      if (resolved && resolved.line !== null) {
         const suffix = match.isQuickJS ? ')' : '';
         return match.column !== null
           ? line.replace(`${match.filePath}:${match.line}:${match.column}${suffix}`, `${resolved.filePath}:${resolved.line}:${match.column}${suffix}`)
@@ -547,6 +580,48 @@ const formatErrorWithContext = (error, relativeFilePath = null, scriptType = nul
  * @param {string} collectionPath - Absolute path to the collection root (used to compute relative display paths)
  * @returns {object|null} Structured error context or null
  */
+/**
+ * Resolve error context, preferring in-memory draft content over disk.
+ *
+ * Three resolution paths (tried in order):
+ * 1. Request-level error with in-memory draft content
+ * 2. Segment (collection/folder) error with in-memory draft content
+ * 3. Disk-based file read (original behavior)
+ *
+ * @returns {{ context, fromMemory, draftOnlyBlock }|null}
+ */
+const resolveErrorContext = ({ adjustedLine, scriptRelativeLine, metadata, segmentResult, filePath, sourceFile, sourceLine, scriptType, cache }) => {
+  // Request-level error with in-memory draft content
+  if (adjustedLine !== null && metadata?.requestScriptContent) {
+    // Check whether the script block exists on disk. When the user added a brand-new
+    // script that hasn't been saved yet, findBlockStart returns null and adjustLineNumber
+    // returned scriptRelativeLine (not a real .bru file line), so stack frame adjustment
+    // would produce misleading results — flag it as draft-only.
+    const blockStartLine = findBlockStart(filePath, scriptType, cache);
+    const draftOnlyBlock = !blockStartLine && isAllowedSourceFile(filePath);
+    // requestStartLine points to the IIFE wrapper line (`await (async () => {`),
+    // so subtracting it yields a 1-based index into the user's script content.
+    const lineInScript = scriptRelativeLine - metadata.requestStartLine;
+    const context = getSourceContextFromContent(metadata.requestScriptContent, lineInScript, 3);
+    if (context) return { context, fromMemory: true, draftOnlyBlock };
+  }
+
+  // Segment (collection/folder) error with in-memory draft content
+  if (adjustedLine === null && segmentResult?.scriptContent) {
+    const context = getSourceContextFromContent(segmentResult.scriptContent, segmentResult.lineInScript, 3);
+    // segmentResult.line is null when the block doesn't exist on disk
+    if (context) return { context, fromMemory: true, draftOnlyBlock: segmentResult.line === null };
+  }
+
+  // Fall back to reading from disk
+  if (sourceLine !== null) {
+    const context = getSourceContext(sourceFile, sourceLine, 3, cache);
+    if (context) return { context, fromMemory: false, draftOnlyBlock: false };
+  }
+
+  return null;
+};
+
 const formatErrorWithContextV2 = (error, scriptType, scriptMetadata, collectionPath) => {
   if (!error) return null;
 
@@ -559,47 +634,65 @@ const formatErrorWithContextV2 = (error, scriptType, scriptMetadata, collectionP
     if (!parsed) return null;
 
     const { filePath } = parsed;
+    const wrapperOffset = parsed.isQuickJS ? QUICKJS_SCRIPT_WRAPPER_OFFSET : NODEVM_SCRIPT_WRAPPER_OFFSET;
+    const scriptRelativeLine = parsed.line - wrapperOffset;
     const adjustedLine = adjustLineNumber(filePath, parsed.line, parsed.isQuickJS, scriptType, cache, metadata);
 
     let sourceFile = filePath;
     let sourceLine = adjustedLine;
 
     // Handle collection/folder script segments
+    let segmentResult = null;
     if (adjustedLine === null) {
-      const segmentResult = resolveSegmentError(parsed, metadata, scriptType, cache);
+      segmentResult = resolveSegmentError(parsed, metadata, scriptType, cache);
       if (!segmentResult) return null;
       sourceFile = segmentResult.filePath;
       sourceLine = segmentResult.line;
     }
 
+    // Resolve context: prefer in-memory draft content, fall back to disk
+    const resolved = resolveErrorContext({
+      adjustedLine, scriptRelativeLine, metadata, segmentResult,
+      filePath, sourceFile, sourceLine, scriptType, cache
+    });
+    if (!resolved || resolved.context.lines.length === 0) return null;
+
+    const { context, fromMemory, draftOnlyBlock } = resolved;
+
     const resolvedDisplayPath = posixifyPath(
       collectionPath ? path.relative(collectionPath, sourceFile) : sourceFile
     );
 
-    const context = getSourceContext(sourceFile, sourceLine, 3, cache);
-    if (!context) return null;
-
     const errorType = getErrorTypeName(error);
     let stack = null;
     if (error.stack) {
-      stack = adjustStackTrace(error.stack, scriptType, cache, metadata, parsed.isQuickJS);
-      // Extract only the stack frames (skip the first line which is the error message)
-      const stackLines = stack.split('\n').slice(1).filter((l) => l.trim().startsWith('at'));
+      // When the script block only exists as a draft (not on disk), adjustLineNumber
+      // cannot map to real .bru file lines — skip adjustment to preserve original frames.
+      const rawStack = draftOnlyBlock
+        ? error.stack
+        : adjustStackTrace(error.stack, scriptType, cache, metadata, parsed.isQuickJS);
+      const stackLines = rawStack.split('\n').slice(1).filter((l) => l.trim().startsWith('at'));
       stack = stackLines.length ? stackLines.map((l) => `    ${l.trim()}`).join('\n') : null;
+    }
+
+    // When context came from in-memory content, lines are already block-relative
+    if (fromMemory) {
+      return {
+        errorType,
+        filePath: resolvedDisplayPath,
+        errorLine: context.errorLine,
+        lines: context.lines,
+        stack
+      };
     }
 
     // Compute block-relative line numbers for the desktop UI.
     // Users edit scripts in a CodeMirror editor starting at line 1,
     // so show lines relative to the script block, not absolute .bru file lines.
+    const blockStartLine = findBlockStart(sourceFile, scriptType, cache);
+
     const isBru = sourceFile.endsWith('.bru');
     const isYml = sourceFile.endsWith('.yml');
-
-    const blockStartLine = isBru
-      ? findScriptBlockStartLine(sourceFile, scriptType, cache)
-      : isYml
-        ? findYmlScriptBlockStartLine(sourceFile, scriptType, cache)
-        : null;
-
     const blockEndLine = isBru
       ? findScriptBlockEndLine(sourceFile, scriptType, cache)
       : isYml
@@ -644,6 +737,7 @@ module.exports = {
   parseErrorLocation,
   buildStackFromCallSites,
   getSourceContext,
+  getSourceContextFromContent,
   formatErrorWithContext,
   formatErrorWithContextV2,
   adjustLineNumber,
