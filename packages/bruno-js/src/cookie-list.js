@@ -115,7 +115,7 @@ class CookieList extends ReadOnlyPropertyList {
       },
 
       hasCookie: (url, cookieName, callback) => {
-        const interpolatedUrl = this.interpolate(url);
+        const interpolatedUrl = this._interpolateFn(url);
         return cookieJar.hasCookie(interpolatedUrl, cookieName, callback);
       }
     };
