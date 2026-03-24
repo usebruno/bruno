@@ -1,27 +1,6 @@
 const { cleanJson, cleanCircularJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
-
-/**
- * Creates an async bridge that resolves with `undefined` (write-only).
- * Do NOT reuse this for read methods that need to return values —
- * those require resolving with the callback's result argument instead.
- */
-const createAsyncCookieBridge = (vm, targetObj, propName, nativeMethod) => {
-  const fn = vm.newFunction(propName, (...vmArgs) => {
-    const promise = vm.newPromise();
-    const args = vmArgs.map((a) => vm.dump(a));
-    nativeMethod(...args, (err) => {
-      if (err) {
-        promise.reject(marshallToVm(cleanJson(err), vm));
-      } else {
-        promise.resolve(vm.undefined);
-      }
-    });
-    promise.settled.then(vm.runtime.executePendingJobs);
-    return promise.handle;
-  });
-  fn.consume((handle) => vm.setProp(targetObj, propName, handle));
-};
+const { createPropertyListBridge } = require('../utils/property-list-bridge');
 
 const addBruShimToContext = (vm, bru) => {
   const bruObject = vm.newObject();
@@ -371,70 +350,13 @@ const addBruShimToContext = (vm, bru) => {
   sleep.consume((handle) => vm.setProp(bruObject, 'sleep', handle));
 
   let bruCookiesObject = vm.newObject();
-
-  let cookiesGet = vm.newFunction('get', function (name) {
-    return marshallToVm(bru.cookies.get(vm.dump(name)), vm);
+  const { evalCode: cookiesEvalCode } = createPropertyListBridge(vm, bru.cookies, bruCookiesObject, {
+    globalPath: 'globalThis.bru.cookies',
+    syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
+    syncReadObjectMethods: ['one', 'all', 'idx'],
+    asyncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'delete'],
+    withIterators: true
   });
-  vm.setProp(bruCookiesObject, 'get', cookiesGet);
-  cookiesGet.dispose();
-
-  let cookiesHas = vm.newFunction('has', function (name, value) {
-    const dumpedValue = value !== undefined ? vm.dump(value) : undefined;
-    return marshallToVm(bru.cookies.has(vm.dump(name), dumpedValue), vm);
-  });
-  vm.setProp(bruCookiesObject, 'has', cookiesHas);
-  cookiesHas.dispose();
-
-  let cookiesToObject = vm.newFunction('toObject', function () {
-    return marshallToVm(bru.cookies.toObject(), vm);
-  });
-  vm.setProp(bruCookiesObject, 'toObject', cookiesToObject);
-  cookiesToObject.dispose();
-
-  createAsyncCookieBridge(vm, bruCookiesObject, '_clear', (...a) => bru.cookies.clear(...a));
-  createAsyncCookieBridge(vm, bruCookiesObject, '_delete', (...a) => bru.cookies.delete(...a));
-
-  let cookiesToString = vm.newFunction('toString', function () {
-    return marshallToVm(bru.cookies.toString(), vm);
-  });
-  vm.setProp(bruCookiesObject, 'toString', cookiesToString);
-  cookiesToString.dispose();
-
-  // New PropertyList read methods
-  let cookiesOne = vm.newFunction('one', function (name) {
-    return marshallToVm(cleanCircularJson(bru.cookies.one(vm.dump(name))), vm);
-  });
-  vm.setProp(bruCookiesObject, 'one', cookiesOne);
-  cookiesOne.dispose();
-
-  let cookiesAll = vm.newFunction('all', function () {
-    return marshallToVm(cleanCircularJson(bru.cookies.all()), vm);
-  });
-  vm.setProp(bruCookiesObject, 'all', cookiesAll);
-  cookiesAll.dispose();
-
-  let cookiesIdx = vm.newFunction('idx', function (index) {
-    return marshallToVm(cleanCircularJson(bru.cookies.idx(vm.dump(index))), vm);
-  });
-  vm.setProp(bruCookiesObject, 'idx', cookiesIdx);
-  cookiesIdx.dispose();
-
-  let cookiesCount = vm.newFunction('count', function () {
-    return marshallToVm(bru.cookies.count(), vm);
-  });
-  vm.setProp(bruCookiesObject, 'count', cookiesCount);
-  cookiesCount.dispose();
-
-  let cookiesIndexOf = vm.newFunction('indexOf', function (item) {
-    return marshallToVm(bru.cookies.indexOf(vm.dump(item)), vm);
-  });
-  vm.setProp(bruCookiesObject, 'indexOf', cookiesIndexOf);
-  cookiesIndexOf.dispose();
-
-  // Same _prefix bridge pattern — see comment above _clear/_delete
-  createAsyncCookieBridge(vm, bruCookiesObject, '_add', (...a) => bru.cookies.add(...a));
-  createAsyncCookieBridge(vm, bruCookiesObject, '_upsert', (...a) => bru.cookies.upsert(...a));
-  createAsyncCookieBridge(vm, bruCookiesObject, '_remove', (...a) => bru.cookies.remove(...a));
 
   const _jarFn = vm.newFunction('_jar', () => {
     const nativeJar = bru.cookies.jar();
@@ -611,36 +533,7 @@ const addBruShimToContext = (vm, bru) => {
     };
 
     {
-      const _clearDirect = globalThis.bru.cookies._clear;
-      const _deleteDirect = globalThis.bru.cookies._delete;
-      const callWithCallback = async (promiseFn, callback) => {
-        if (!callback) return await promiseFn();
-        try {
-          const result = await promiseFn();
-          try { await callback(null, result); } catch(cbErr) { return Promise.reject(cbErr); }
-        } catch(err) {
-          try { await callback(err, null); } catch(cbErr) { return Promise.reject(cbErr); }
-        }
-      };
-      globalThis.bru.cookies.clear = (cb) => callWithCallback(() => _clearDirect(), cb);
-      globalThis.bru.cookies.delete = (name, cb) => callWithCallback(() => _deleteDirect(name), cb);
-
-      // Async write wrappers — duplicated from above pattern intentionally;
-      // QuickJS VM bridge requires explicit wrapper per method (no shared prototype)
-      const _addDirect = globalThis.bru.cookies._add;
-      const _upsertDirect = globalThis.bru.cookies._upsert;
-      const _removeDirect = globalThis.bru.cookies._remove;
-      globalThis.bru.cookies.add = (cookieObj, cb) => callWithCallback(() => _addDirect(cookieObj), cb);
-      globalThis.bru.cookies.upsert = (cookieObj, cb) => callWithCallback(() => _upsertDirect(cookieObj), cb);
-      globalThis.bru.cookies.remove = (name, cb) => callWithCallback(() => _removeDirect(name), cb);
-
-      // Iterator methods built on top of native all()
-      const _allNative = globalThis.bru.cookies.all;
-      globalThis.bru.cookies.each = (fn) => { _allNative().forEach(fn); };
-      globalThis.bru.cookies.filter = (fn) => _allNative().filter(fn);
-      globalThis.bru.cookies.find = (fn) => _allNative().find(fn);
-      globalThis.bru.cookies.map = (fn) => _allNative().map(fn);
-      globalThis.bru.cookies.reduce = (fn, ...rest) => rest.length ? _allNative().reduce(fn, rest[0]) : _allNative().reduce(fn);
+      ${cookiesEvalCode}
     }
 
     globalThis.bru.cookies.jar = () => {
