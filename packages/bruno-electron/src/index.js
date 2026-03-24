@@ -203,6 +203,9 @@ app.on('ready', async () => {
 
   Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
+  const WindowStateStore = require('./store/window-state');
+  const windowStateStore = new WindowStateStore();
+  const themeBg = windowStateStore.getThemeBg();
 
   mainWindow = new BrowserWindow({
     x,
@@ -212,6 +215,7 @@ app.on('ready', async () => {
     minWidth: 700,
     minHeight: 400,
     show: false,
+    backgroundColor: themeBg,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
