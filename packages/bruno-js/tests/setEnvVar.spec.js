@@ -2,23 +2,14 @@ const Bru = require('../src/bru');
 
 describe('Bru.setEnvVar', () => {
   const makeBru = () =>
-    new Bru(
-      /* runtime */ 'quickjs',
-      /* envVariables */ {},
-      /* runtimeVariables */ {},
-      /* processEnvVars */ {},
-      /* collectionPath */ '/',
-      /* historyLogger */ undefined,
-      /* setVisualizations */ undefined,
-      /* secretVariables */ {},
-      /* collectionVariables */ {},
-      /* folderVariables */ {},
-      /* requestVariables */ {},
-      /* globalEnvironmentVariables */ {},
-      /* oauth2CredentialVariables */ {},
-      /* iterationDetails */ {},
-      /* collectionName */ 'Test'
-    );
+    new Bru({
+      runtime: 'quickjs',
+      envVariables: {},
+      runtimeVariables: {},
+      processEnvVars: {},
+      collectionPath: '/',
+      collectionName: 'Test'
+    });
 
   test('updates envVariables and does not mark persistent when persist=false', () => {
     const bru = makeBru();

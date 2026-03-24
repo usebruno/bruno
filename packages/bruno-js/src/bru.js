@@ -8,26 +8,36 @@ const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
   /**
-   * @param {string} runtime - The runtime environment ('quickjs' or 'nodevm')
-   * @param {object} envVariables - Environment variables
-   * @param {object} runtimeVariables - Runtime variables
-   * @param {object} processEnvVars - Process environment variables
-   * @param {string} collectionPath - Path to the collection
-   * @param {object} collectionVariables - Collection-level variables
-   * @param {object} folderVariables - Folder-level variables
-   * @param {object} requestVariables - Request-level variables
-   * @param {object} globalEnvironmentVariables - Global environment variables
-   * @param {object} oauth2CredentialVariables - OAuth2 credential variables
-   * @param {string} collectionName - Name of the collection
-   * @param {object} promptVariables - Prompt variables
-   * @param {object} certsAndProxyConfig - Configuration for bru.sendRequest (proxy, certs, TLS)
-   * @param {string} certsAndProxyConfig.collectionPath - Path to the collection
-   * @param {object} certsAndProxyConfig.options - TLS and proxy options
-   * @param {object} [certsAndProxyConfig.clientCertificates] - Client certificate configuration
-   * @param {object} [certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
-   * @param {object} [certsAndProxyConfig.systemProxyConfig] - System proxy configuration
+   * @param {object} options
+   * @param {string} options.runtime - The runtime environment ('quickjs' or 'nodevm')
+   * @param {object} [options.envVariables] - Environment variables
+   * @param {object} [options.runtimeVariables] - Runtime variables
+   * @param {object} [options.processEnvVars] - Process environment variables
+   * @param {string} [options.collectionPath] - Path to the collection
+   * @param {object} [options.collectionVariables] - Collection-level variables
+   * @param {object} [options.folderVariables] - Folder-level variables
+   * @param {object} [options.requestVariables] - Request-level variables
+   * @param {object} [options.globalEnvironmentVariables] - Global environment variables
+   * @param {object} [options.oauth2CredentialVariables] - OAuth2 credential variables
+   * @param {string} [options.collectionName] - Name of the collection
+   * @param {object} [options.promptVariables] - Prompt variables
+   * @param {object} [options.certsAndProxyConfig] - Configuration for bru.sendRequest (proxy, certs, TLS)
    */
-  constructor(runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig) {
+  constructor({
+    runtime,
+    envVariables,
+    runtimeVariables,
+    processEnvVars,
+    collectionPath,
+    collectionVariables,
+    folderVariables,
+    requestVariables,
+    globalEnvironmentVariables,
+    oauth2CredentialVariables,
+    collectionName,
+    promptVariables,
+    certsAndProxyConfig
+  }) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.promptVariables = promptVariables || {};
