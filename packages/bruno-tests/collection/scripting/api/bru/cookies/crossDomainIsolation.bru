@@ -32,7 +32,7 @@ script:pre-request {
 tests {
   const jar = bru.cookies.jar()
 
-  test("cookies on domain A are not visible on domain B", async function() {
+  await test("cookies on domain A are not visible on domain B", async function() {
     const cookiesA = await jar.getCookies("https://testbench-sanity.usebruno.com");
     const cookiesB = await jar.getCookies("https://other.example.com");
 
@@ -46,13 +46,13 @@ tests {
     expect(keysB).to.not.include("domainA");
   });
 
-  test("bru.cookies.get() only returns cookies for the current request URL", function() {
+  await test("bru.cookies.get() only returns cookies for the current request URL", function() {
     // bru.cookies reads from the current request's URL
     // domainB cookie should not be accessible via bru.cookies
     expect(bru.cookies.has("domainB")).to.be.false;
   });
 
-  test("jar.getCookie() respects domain isolation", async function() {
+  await test("jar.getCookie() respects domain isolation", async function() {
     const cookieA = await jar.getCookie("https://testbench-sanity.usebruno.com", "domainA");
     const cookieBOnA = await jar.getCookie("https://testbench-sanity.usebruno.com", "domainB");
 
