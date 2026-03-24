@@ -64,8 +64,12 @@ const EnvironmentVariablesTable = ({
 
     const startX = e.clientX;
     const startWidth = currentCell.offsetWidth;
-    const matchedNextCol = columns[columns.indexOf(columnKey) + 1];
-    const nextColumnKey = matchedNextCol > -1 ? matchedNextCol : columns.at(-1);
+
+    const colIndex = columns.indexOf(columnKey) + 1;
+    if (colIndex >= columns.length - 1) return;
+
+    const matchedNextCol = columns[colIndex];
+    const nextColumnKey = matchedNextCol ?? columns.at(-1);
     const nextColumnStartWidth = nextCell.offsetWidth;
 
     setResizing(columnKey);
@@ -76,11 +80,15 @@ const EnvironmentVariablesTable = ({
       const maxShrink = startWidth - MIN_COLUMN_WIDTH;
       const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
 
-      setColumnWidths((prev) => ({
-        ...prev,
-        [columnKey]: `${startWidth + clampedDiff}px`,
-        [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
-      }));
+      setColumnWidths((prev) => {
+        const next = {
+          ...prev,
+          [columnKey]: `${startWidth + clampedDiff}px`,
+          [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
+        };
+        console.log({ next });
+        return next;
+      });
     };
 
     const handleMouseUp = () => {
@@ -480,13 +488,7 @@ const EnvironmentVariablesTable = ({
                   onMouseDown={(e) => handleResizeStart(e, 'value')}
                 />
               </td>
-              <td style={{ width: columnWidths.description }}>Description
-                <div
-                  className={`resize-handle ${resizing === 'description' ? 'resizing' : ''}`}
-                  style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
-                  onMouseDown={(e) => handleResizeStart(e, 'description')}
-                />
-              </td>
+              <td style={{ width: columnWidths.description }}>Description</td>
               <td className="text-center secret-column">Secret</td>
               <td className="actions-column"></td>
             </tr>
