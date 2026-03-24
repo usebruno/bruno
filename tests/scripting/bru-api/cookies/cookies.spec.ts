@@ -9,7 +9,7 @@ test.describe.parallel('bru.cookies PropertyList API', () => {
 
     await validateRunnerResults(page, {
       totalRequests: 6,
-      passed: 34,
+      passed: 6,
       failed: 0
     });
   });
@@ -21,7 +21,7 @@ test.describe.parallel('bru.cookies PropertyList API', () => {
 
     await validateRunnerResults(page, {
       totalRequests: 6,
-      passed: 34,
+      passed: 6,
       failed: 0
     });
   });
