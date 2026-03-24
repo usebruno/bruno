@@ -56,6 +56,48 @@ describe('ReadOnlyPropertyList', () => {
     test('toString() converts to string', () => {
       expect(list.toString()).toBe('a=1; b=2; c=3');
     });
+
+    test('indexOf() finds item by structural equality', () => {
+      expect(list.indexOf({ key: 'b', value: '2' })).toBe(1);
+      expect(list.indexOf({ key: 'missing', value: '0' })).toBe(-1);
+    });
+
+    test('indexOf() returns -1 for non-object input', () => {
+      expect(list.indexOf(null)).toBe(-1);
+      expect(list.indexOf('string')).toBe(-1);
+    });
+
+    test('find() returns first matching item', () => {
+      const item = list.find((i) => i.value === '2');
+      expect(item).toEqual({ key: 'b', value: '2' });
+    });
+
+    test('find() returns undefined when no match', () => {
+      expect(list.find((i) => i.value === 'missing')).toBeUndefined();
+    });
+
+    test('filter() returns matching items', () => {
+      const items = list.filter((i) => i.value !== '2');
+      expect(items).toHaveLength(2);
+      expect(items[0].key).toBe('a');
+      expect(items[1].key).toBe('c');
+    });
+
+    test('each() iterates over all items', () => {
+      const keys = [];
+      list.each((item) => keys.push(item.key));
+      expect(keys).toEqual(['a', 'b', 'c']);
+    });
+
+    test('map() transforms items', () => {
+      const values = list.map((item) => item.value);
+      expect(values).toEqual(['1', '2', '3']);
+    });
+
+    test('reduce() accumulates values', () => {
+      const sum = list.reduce((acc, item) => acc + item.value, '');
+      expect(sum).toBe('123');
+    });
   });
 
   // ── Dynamic Mode ─────────────────────────────────────────────────────

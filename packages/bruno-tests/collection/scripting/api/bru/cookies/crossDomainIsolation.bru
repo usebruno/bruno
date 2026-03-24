@@ -1,0 +1,69 @@
+meta {
+  name: crossDomainIsolation
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar()
+  await jar.clear();
+
+  await jar.setCookie("https://testbench-sanity.usebruno.com", {
+    key: "domainA",
+    value: "valueA",
+    path: "/",
+    secure: true
+  });
+
+  await jar.setCookie("https://other.example.com", {
+    key: "domainB",
+    value: "valueB",
+    path: "/",
+    secure: true
+  });
+}
+
+tests {
+  const jar = bru.cookies.jar()
+
+  test("cookies on domain A are not visible on domain B", async function() {
+    const cookiesA = await jar.getCookies("https://testbench-sanity.usebruno.com");
+    const cookiesB = await jar.getCookies("https://other.example.com");
+
+    const keysA = cookiesA.map(function(c) { return c.key; });
+    const keysB = cookiesB.map(function(c) { return c.key; });
+
+    expect(keysA).to.include("domainA");
+    expect(keysA).to.not.include("domainB");
+
+    expect(keysB).to.include("domainB");
+    expect(keysB).to.not.include("domainA");
+  });
+
+  test("bru.cookies.get() only returns cookies for the current request URL", function() {
+    // bru.cookies reads from the current request's URL
+    // domainB cookie should not be accessible via bru.cookies
+    expect(bru.cookies.has("domainB")).to.be.false;
+  });
+
+  test("jar.getCookie() respects domain isolation", async function() {
+    const cookieA = await jar.getCookie("https://testbench-sanity.usebruno.com", "domainA");
+    const cookieBOnA = await jar.getCookie("https://testbench-sanity.usebruno.com", "domainB");
+
+    expect(cookieA).to.not.be.null;
+    expect(cookieA.value).to.equal("valueA");
+    expect(cookieBOnA).to.be.null;
+  });
+
+  jar.clear()
+}
+
+settings {
+  encodeUrl: true
+}

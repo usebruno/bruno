@@ -223,7 +223,8 @@ describe('CookieList', () => {
         setCookies: jest.fn().mockResolvedValue('ok'),
         clear: jest.fn().mockResolvedValue('ok'),
         deleteCookies: jest.fn().mockResolvedValue('ok'),
-        deleteCookie: jest.fn().mockResolvedValue('ok')
+        deleteCookie: jest.fn().mockResolvedValue('ok'),
+        hasCookie: jest.fn().mockResolvedValue(true)
       };
       list = createCookieList({
         interpolate: (str) => str.replace('{{host}}', 'example.com'),
@@ -240,6 +241,7 @@ describe('CookieList', () => {
       expect(jar).toHaveProperty('clear');
       expect(jar).toHaveProperty('deleteCookies');
       expect(jar).toHaveProperty('deleteCookie');
+      expect(jar).toHaveProperty('hasCookie');
     });
 
     test('getCookie interpolates URL and delegates', () => {
@@ -289,6 +291,13 @@ describe('CookieList', () => {
       const cb = jest.fn();
       jar.deleteCookie('https://{{host}}/path', 'session', cb);
       expect(mockJar.deleteCookie).toHaveBeenCalledWith('https://example.com/path', 'session', cb);
+    });
+
+    test('hasCookie interpolates URL and delegates', () => {
+      const jar = list.jar();
+      const cb = jest.fn();
+      jar.hasCookie('https://{{host}}/path', 'session', cb);
+      expect(mockJar.hasCookie).toHaveBeenCalledWith('https://example.com/path', 'session', cb);
     });
   });
 });

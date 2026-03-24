@@ -70,6 +70,22 @@ tests {
     expect(result).to.contain('y,');
   });
 
+  test("indexOf() should find a cookie by structural equality", function() {
+    const cookie = bru.cookies.one('x');
+    const idx = bru.cookies.indexOf(cookie);
+    expect(idx).to.be.at.least(0);
+  });
+
+  test("indexOf() should return -1 for non-existent cookie", function() {
+    const idx = bru.cookies.indexOf({ key: 'nonexistent', value: 'nope' });
+    expect(idx).to.equal(-1);
+  });
+
+  test("idx() out-of-bounds should return undefined", function() {
+    const result = bru.cookies.idx(999);
+    expect(result).to.be.undefined;
+  });
+
   const jar = bru.cookies.jar()
   jar.clear()
 }

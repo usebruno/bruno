@@ -28,6 +28,13 @@ tests {
     expect(bru.cookies.get('a')).to.equal('2');
   });
 
+  await bru.cookies.upsert({ key: 'newCookie', value: 'inserted' });
+  test("upsert() should insert a cookie that does not exist", function() {
+    expect(bru.cookies.has('newCookie')).to.be.true;
+    expect(bru.cookies.get('newCookie')).to.equal('inserted');
+  });
+  await bru.cookies.remove('newCookie');
+
   await bru.cookies.remove('a');
   test("remove() should remove a cookie", function() {
     expect(bru.cookies.has('a')).to.be.false;

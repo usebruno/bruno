@@ -60,6 +60,8 @@ class CookieList extends ReadOnlyPropertyList {
     return jar.deleteCookie(url, name, callback);
   }
 
+  // Note: clear() only removes cookies for the current request URL.
+  // Use jar().clear() to remove ALL cookies globally.
   clear(callback) {
     const url = this._getUrl();
     if (!url) {

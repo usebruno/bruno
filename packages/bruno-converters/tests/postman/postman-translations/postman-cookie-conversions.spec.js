@@ -349,6 +349,12 @@ describe('postmanTranslations - cookie API conversions', () => {
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
+  test('should convert pm.cookies.toString() to bru.cookies.toString', () => {
+    const inputScript = `const str = pm.cookies.toString()`;
+    const expectedOutput = `const str = bru.cookies.toString()`;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
   test('should handle mixed pm.cookies.get and pm.cookies.jar().set without conflict', () => {
     const inputScript = `const v = pm.cookies.get('token'); pm.cookies.jar().set('https://example.com', 'a', 'b');`;
     const expectedOutput = `const v = bru.cookies.get('token'); bru.cookies.jar().setCookie('https://example.com', 'a', 'b');`;

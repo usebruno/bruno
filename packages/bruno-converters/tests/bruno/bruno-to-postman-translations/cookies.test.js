@@ -158,6 +158,19 @@ if (bru.getVar("clearAll") === "true") {
     expect(translatedCode).toBe('const exists = pm.cookies.has("sessionId");');
   });
 
+  it('should translate bru.cookies.toString to pm.cookies.toString', () => {
+    const code = 'const str = bru.cookies.toString();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const str = pm.cookies.toString();');
+  });
+
+  it('should pass through jar().hasCookie() (no Postman equivalent)', () => {
+    const code = 'const exists = bru.cookies.jar().hasCookie("https://example.com", "session");';
+    const translatedCode = translateBruToPostman(code);
+    // hasCookie has no Postman equivalent, so the jar() part translates but hasCookie stays
+    expect(translatedCode).toContain('pm.cookies.jar().hasCookie');
+  });
+
   it('should translate bru.cookies.toObject to pm.cookies.toObject', () => {
     const code = 'const allCookies = bru.cookies.toObject();';
     const translatedCode = translateBruToPostman(code);

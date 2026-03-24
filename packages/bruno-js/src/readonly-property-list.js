@@ -89,12 +89,19 @@ class ReadOnlyPropertyList {
   }
 
   /**
-   * Get the index of an item (by reference equality).
+   * Get the index of an item.
+   * Uses structural equality (matching by key and value) so it works
+   * even when the item is a copy rather than the same reference.
    * @param {object} item
    * @returns {number} -1 if not found
    */
   indexOf(item) {
-    return this._getItems().indexOf(item);
+    if (!item || typeof item !== 'object') return -1;
+    const items = this._getItems();
+    const keyProp = this._keyProperty;
+    return items.findIndex(
+      (i) => i[keyProp] === item[keyProp] && i.value === item.value
+    );
   }
 
   // ── Search ─────────────────────────────────────────────────────────────

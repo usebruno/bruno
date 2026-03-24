@@ -10,6 +10,16 @@ get {
   auth: inherit
 }
 
+script:pre-request {
+  const jar = bru.cookies.jar()
+  await jar.clear();
+
+  await jar.setCookies("https://testbench-sanity.usebruno.com", [
+    { key: "session", value: "abc123", path: "/", secure: true },
+    { key: "token", value: "xyz789", path: "/", secure: true }
+  ]);
+}
+
 tests {
   const jar = bru.cookies.jar()
   

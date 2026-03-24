@@ -251,6 +251,17 @@ describe('PropertyList', () => {
       expect(list.count()).toBe(3);
       expect(list.get('c')).toBe('3');
     });
+
+    test('remove() with non-existent key is a no-op', () => {
+      list.remove('nonexistent');
+      expect(list.count()).toBe(2);
+    });
+
+    test('assimilate() from empty source is a no-op', () => {
+      list.assimilate([]);
+      expect(list.count()).toBe(2);
+      expect(list.get('a')).toBe('1');
+    });
   });
 
   // ── Dynamic Mode: Reads ─────────────────────────────────────────────────
