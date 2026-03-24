@@ -13,7 +13,8 @@ get {
 script:pre-request {
   const jar = bru.cookies.jar()
 
-  await jar.setCookie("http://localhost:8081", {
+  const host = bru.getEnvVar('localhost');
+  await jar.setCookie(host, {
     key: 'session',
     value: 'abc123',
     path: '/'

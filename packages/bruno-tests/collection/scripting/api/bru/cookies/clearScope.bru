@@ -14,10 +14,13 @@ script:pre-request {
   const jar = bru.cookies.jar()
   await jar.clear();
 
-  // Set cookies on two different domains
-  await jar.setCookies("https://testbench-sanity.usebruno.com", [
-    { key: "a", value: "1", path: "/", secure: true },
-    { key: "b", value: "2", path: "/", secure: true }
+  // Set cookies on two different domains:
+  // - localhost matches the request URL, so bru.cookies.clear() targets it
+  // - other.example.com should be left untouched by bru.cookies.clear()
+  const host = bru.getEnvVar('localhost');
+  await jar.setCookies(host, [
+    { key: "a", value: "1", path: "/" },
+    { key: "b", value: "2", path: "/" }
   ]);
 
   await jar.setCookie("https://other.example.com", {
@@ -30,15 +33,20 @@ script:pre-request {
 
 tests {
   const jar = bru.cookies.jar()
+  const host = bru.getEnvVar('localhost');
 
   // bru.cookies sees only the current request URL's cookies
   await test("bru.cookies.clear() only clears cookies for current URL", async function() {
     // Verify cookies exist before clear
-    const before = await jar.getCookies("https://testbench-sanity.usebruno.com");
+    const before = await jar.getCookies(host);
     expect(before.length).to.be.at.least(1);
 
     // bru.cookies.clear() clears only current request URL cookies
     await bru.cookies.clear();
+
+    // Current URL's cookies should be gone
+    const after = await jar.getCookies(host);
+    expect(after.length).to.equal(0);
 
     // Other domain cookies should still exist
     const otherDomain = await jar.getCookies("https://other.example.com");
@@ -48,17 +56,16 @@ tests {
 
   await test("jar.clear() clears ALL cookies globally", async function() {
     // Re-add a cookie on main domain
-    await jar.setCookie("https://testbench-sanity.usebruno.com", {
+    await jar.setCookie(host, {
       key: "d",
       value: "4",
-      path: "/",
-      secure: true
+      path: "/"
     });
 
     // jar.clear() clears everything
     await jar.clear();
 
-    const main = await jar.getCookies("https://testbench-sanity.usebruno.com");
+    const main = await jar.getCookies(host);
     const other = await jar.getCookies("https://other.example.com");
     expect(main.length).to.equal(0);
     expect(other.length).to.equal(0);

@@ -88,15 +88,17 @@ export const runCollection = async (page: Page, collectionName: string) => {
  */
 export const runFolder = async (page: Page, collectionName: string, folderPath: string[]) => {
   await test.step(`Run folder "${folderPath.join('/')}" in "${collectionName}"`, async () => {
-    // Start scoped to the collection's sidebar container
-    const sidebar = page.getByTestId('collections');
+    // Scope to the specific collection by its DOM id (collection-<name-kebab>)
+    const collectionId = `collection-${collectionName.replace(/\s+/g, '-').toLowerCase()}`;
+    const collectionContainer = page.locator(`#${collectionId}`);
+    await collectionContainer.waitFor({ state: 'visible', timeout: 5000 });
 
     // Walk down the folder path, scoping each step to the previous folder's container.
     // Each CollectionItem renders as a StyledWrapper div containing:
     //   - div.collection-item-name (the row with chevron, name, menu)
     //   - div (children container when expanded)
     // We scope to the parent wrapper so the next folder lookup is unambiguous.
-    let scope = sidebar;
+    let scope = collectionContainer;
     for (const folderName of folderPath) {
       const row = scope.locator('.collection-item-name').filter({ hasText: folderName }).first();
       await row.waitFor({ state: 'visible', timeout: 5000 });
