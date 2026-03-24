@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{host}}/ping
+  url: {{localhost}}/ping
   body: none
   auth: inherit
 }
@@ -13,11 +13,10 @@ get {
 script:pre-request {
   const jar = bru.cookies.jar()
 
-  await jar.setCookie("https://testbench-sanity.usebruno.com", {
+  await jar.setCookie("http://localhost:8081", {
     key: 'session',
     value: 'abc123',
-    path: '/',
-    secure: true
+    path: '/'
   });
 }
 

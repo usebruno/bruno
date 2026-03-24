@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{collectionPath}}/cookies-test"
+    "{{projectRoot}}/packages/bruno-tests/collection"
   ],
   "preferences": {
     "onboarding": {

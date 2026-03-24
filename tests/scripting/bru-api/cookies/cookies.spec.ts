@@ -1,27 +1,25 @@
 import { test } from '../../../../playwright';
-import { setSandboxMode, runCollection, validateRunnerResults } from '../../../utils/page';
+import { setSandboxMode, runFolder, selectEnvironment, validateRunnerResults } from '../../../utils/page';
 
-test.describe.parallel('bru.cookies PropertyList API', () => {
+test.describe.serial('bru.cookies PropertyList API', () => {
   test('all cookie tests pass in developer mode', async ({ pageWithUserData: page }) => {
-    await setSandboxMode(page, 'cookies-test', 'developer');
-
-    await runCollection(page, 'cookies-test');
-
+    await setSandboxMode(page, 'bruno-testbench', 'developer');
+    await selectEnvironment(page, 'Local');
+    await runFolder(page, 'bruno-testbench', ['scripting', 'api', 'bru', 'cookies']);
     await validateRunnerResults(page, {
-      totalRequests: 6,
-      passed: 6,
+      totalRequests: 16,
+      passed: 16,
       failed: 0
     });
   });
 
   test('all cookie tests pass in safe mode', async ({ pageWithUserData: page }) => {
-    await setSandboxMode(page, 'cookies-test', 'safe');
-
-    await runCollection(page, 'cookies-test');
-
+    await setSandboxMode(page, 'bruno-testbench', 'safe');
+    await selectEnvironment(page, 'Local');
+    await runFolder(page, 'bruno-testbench', ['scripting', 'api', 'bru', 'cookies']);
     await validateRunnerResults(page, {
-      totalRequests: 6,
-      passed: 6,
+      totalRequests: 16,
+      passed: 16,
       failed: 0
     });
   });
