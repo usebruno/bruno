@@ -32,7 +32,7 @@ tests {
   const jar = bru.cookies.jar()
 
   // bru.cookies sees only the current request URL's cookies
-  test("bru.cookies.clear() only clears cookies for current URL", async function() {
+  await test("bru.cookies.clear() only clears cookies for current URL", async function() {
     // Verify cookies exist before clear
     const before = await jar.getCookies("https://testbench-sanity.usebruno.com");
     expect(before.length).to.be.at.least(1);
@@ -46,7 +46,7 @@ tests {
     expect(otherDomain[0].key).to.equal("c");
   });
 
-  test("jar.clear() clears ALL cookies globally", async function() {
+  await test("jar.clear() clears ALL cookies globally", async function() {
     // Re-add a cookie on main domain
     await jar.setCookie("https://testbench-sanity.usebruno.com", {
       key: "d",
