@@ -282,10 +282,10 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.oauth1config.consumerKey = _interpolate(request.oauth1config.consumerKey) || '';
     request.oauth1config.consumerSecret = _interpolate(request.oauth1config.consumerSecret) || '';
     request.oauth1config.accessToken = _interpolate(request.oauth1config.accessToken) || '';
-    request.oauth1config.tokenSecret = _interpolate(request.oauth1config.tokenSecret) || '';
+    request.oauth1config.accessTokenSecret = _interpolate(request.oauth1config.accessTokenSecret) || '';
     request.oauth1config.callbackUrl = _interpolate(request.oauth1config.callbackUrl) || '';
     request.oauth1config.verifier = _interpolate(request.oauth1config.verifier) || '';
-    request.oauth1config.signatureMethod = _interpolate(request.oauth1config.signatureMethod) || request.oauth1config.signatureMethod || 'HMAC-SHA1';
+    request.oauth1config.signatureEncoding = _interpolate(request.oauth1config.signatureEncoding) || request.oauth1config.signatureEncoding || 'HMAC-SHA1';
     request.oauth1config.privateKey = _interpolate(request.oauth1config.privateKey) || '';
     request.oauth1config.timestamp = _interpolate(request.oauth1config.timestamp) || '';
     request.oauth1config.nonce = _interpolate(request.oauth1config.nonce) || '';

@@ -954,8 +954,8 @@ describe('applyOAuth1ToRequest', () => {
     consumerKey: 'consumer_key',
     consumerSecret: 'consumer_secret',
     accessToken: 'access_token',
-    tokenSecret: 'token_secret',
-    signatureMethod: 'HMAC-SHA1',
+    accessTokenSecret: 'token_secret',
+    signatureEncoding: 'HMAC-SHA1',
     timestamp: '1234567890',
     nonce: 'testnonce'
   };

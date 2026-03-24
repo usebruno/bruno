@@ -84,7 +84,7 @@ const openTimelineRequest = async (page) => {
   return timelineItem;
 };
 
-const verifyAddParamsTo = async (page, collectionName: string, requestName: string, addParamsTo: 'header' | 'queryparams' | 'body') => {
+const verifyAddParamsTo = async (page, collectionName: string, requestName: string, addParamsTo: 'header' | 'query' | 'body') => {
   await openRequest(page, collectionName, requestName);
   await sendRequestAndWaitForResponse(page, 200);
 
@@ -94,7 +94,7 @@ const verifyAddParamsTo = async (page, collectionName: string, requestName: stri
   if (addParamsTo === 'header') {
     await expect(content).toContainText('Authorization');
     await expect(content).toContainText('OAuth');
-  } else if (addParamsTo === 'queryparams') {
+  } else if (addParamsTo === 'query') {
     const urlPre = content.locator('pre').first();
     await expect(urlPre).toContainText('oauth_consumer_key');
   } else {
@@ -132,15 +132,15 @@ test.describe('OAuth 1.0 Runner', () => {
       });
 
       await test.step('Query Params: HMAC-SHA1', async () => {
-        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 HMAC-SHA1 Query Params 200', 'queryparams');
+        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 HMAC-SHA1 Query Params 200', 'query');
       });
 
       await test.step('Query Params: PLAINTEXT', async () => {
-        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 PLAINTEXT Query Params 200', 'queryparams');
+        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 PLAINTEXT Query Params 200', 'query');
       });
 
       await test.step('Query Params: RSA-SHA1', async () => {
-        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 RSA-SHA1 Query Params 200', 'queryparams');
+        await verifyAddParamsTo(page, BRU_COLLECTION, 'OAuth1 RSA-SHA1 Query Params 200', 'query');
       });
 
       await test.step('Body: HMAC-SHA1', async () => {
@@ -186,15 +186,15 @@ test.describe('OAuth 1.0 Runner', () => {
       });
 
       await test.step('Query Params: HMAC-SHA1', async () => {
-        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 HMAC-SHA1 Query Params 200', 'queryparams');
+        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 HMAC-SHA1 Query Params 200', 'query');
       });
 
       await test.step('Query Params: PLAINTEXT', async () => {
-        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 PLAINTEXT Query Params 200', 'queryparams');
+        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 PLAINTEXT Query Params 200', 'query');
       });
 
       await test.step('Query Params: RSA-SHA1', async () => {
-        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 RSA-SHA1 Query Params 200', 'queryparams');
+        await verifyAddParamsTo(page, YML_COLLECTION, 'OAuth1 RSA-SHA1 Query Params 200', 'query');
       });
 
       await test.step('Body: HMAC-SHA1', async () => {

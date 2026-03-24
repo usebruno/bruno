@@ -541,10 +541,10 @@ describe('processAuth', () => {
       consumerKey: 'test-consumer-key',
       consumerSecret: 'test-consumer-secret',
       accessToken: 'test-token',
-      tokenSecret: 'test-token-secret',
+      accessTokenSecret: 'test-token-secret',
       callbackUrl: 'https://callback.example.com',
       verifier: 'test-verifier',
-      signatureMethod: 'HMAC-SHA256',
+      signatureEncoding: 'HMAC-SHA256',
       privateKey: 'test-private-key',
       privateKeyType: 'text',
       timestamp: '1234567890',
@@ -573,9 +573,9 @@ describe('processAuth', () => {
     expect(requestObject.auth.oauth1.consumerKey).toBe('ck-array');
     expect(requestObject.auth.oauth1.consumerSecret).toBe('cs-array');
     expect(requestObject.auth.oauth1.accessToken).toBe('tk-array');
-    expect(requestObject.auth.oauth1.tokenSecret).toBe('ts-array');
-    expect(requestObject.auth.oauth1.signatureMethod).toBe('HMAC-SHA1');
-    expect(requestObject.auth.oauth1.addParamsTo).toBe('queryparams');
+    expect(requestObject.auth.oauth1.accessTokenSecret).toBe('ts-array');
+    expect(requestObject.auth.oauth1.signatureEncoding).toBe('HMAC-SHA1');
+    expect(requestObject.auth.oauth1.addParamsTo).toBe('query');
   });
 
   it('should handle oauth1 auth with missing values', () => {
@@ -589,10 +589,10 @@ describe('processAuth', () => {
       consumerKey: '',
       consumerSecret: '',
       accessToken: '',
-      tokenSecret: '',
+      accessTokenSecret: '',
       callbackUrl: null,
       verifier: null,
-      signatureMethod: 'HMAC-SHA1',
+      signatureEncoding: 'HMAC-SHA1',
       privateKey: null,
       privateKeyType: 'text',
       timestamp: null,
@@ -614,10 +614,10 @@ describe('processAuth', () => {
       consumerKey: '',
       consumerSecret: '',
       accessToken: '',
-      tokenSecret: '',
+      accessTokenSecret: '',
       callbackUrl: null,
       verifier: null,
-      signatureMethod: 'HMAC-SHA1',
+      signatureEncoding: 'HMAC-SHA1',
       privateKey: null,
       privateKeyType: 'text',
       timestamp: null,
@@ -629,7 +629,7 @@ describe('processAuth', () => {
     });
   });
 
-  it('should handle oauth1 addParamsToHeader false as queryparams', () => {
+  it('should handle oauth1 addParamsToHeader false as query', () => {
     const auth = {
       type: 'oauth1',
       oauth1: {
@@ -638,6 +638,6 @@ describe('processAuth', () => {
       }
     };
     processAuth(auth, requestObject);
-    expect(requestObject.auth.oauth1.addParamsTo).toBe('queryparams');
+    expect(requestObject.auth.oauth1.addParamsTo).toBe('query');
   });
 });

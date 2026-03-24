@@ -11,10 +11,10 @@ http:
     consumerKey: consumer_key_1
     consumerSecret: consumer_secret_1
     accessToken: access_token_1
-    tokenSecret: token_secret_1
-    signatureMethod: HMAC-SHA1
+    accessTokenSecret: token_secret_1
+    signatureEncoding: HMAC-SHA1
     version: "1.0"
-    addParamsTo: queryparams
+    addParamsTo: query
     includeBodyHash: false
 
 runtime:

@@ -45,10 +45,10 @@ auth:oauth1 {
       consumerKey: 'my_consumer_key',
       consumerSecret: 'my_consumer_secret',
       accessToken: 'my_access_token',
-      tokenSecret: 'my_token_secret',
+      accessTokenSecret: 'my_token_secret',
       callbackUrl: 'https://example.com/callback',
       verifier: 'my_verifier',
-      signatureMethod: 'HMAC-SHA1',
+      signatureEncoding: 'HMAC-SHA1',
       privateKey: 'my_private_key',
       privateKeyType: 'text',
       timestamp: '1234567890',
@@ -95,7 +95,7 @@ auth:oauth1 {
     expect(result.auth.oauth1.consumerKey).toBe('ck');
     expect(result.auth.oauth1.consumerSecret).toBe('');
     expect(result.auth.oauth1.accessToken).toBe('');
-    expect(result.auth.oauth1.tokenSecret).toBe('');
+    expect(result.auth.oauth1.accessTokenSecret).toBe('');
     expect(result.auth.oauth1.callbackUrl).toBe('');
     expect(result.auth.oauth1.verifier).toBe('');
     expect(result.auth.oauth1.privateKey).toBe('');
@@ -227,9 +227,9 @@ auth:oauth1 {
   });
 
   it('should parse all signature methods correctly', () => {
-    const signatureMethods = ['HMAC-SHA1', 'HMAC-SHA256', 'HMAC-SHA512', 'RSA-SHA1', 'RSA-SHA256', 'RSA-SHA512', 'PLAINTEXT'];
+    const signatureEncodings = ['HMAC-SHA1', 'HMAC-SHA256', 'HMAC-SHA512', 'RSA-SHA1', 'RSA-SHA256', 'RSA-SHA512', 'PLAINTEXT'];
 
-    for (const method of signatureMethods) {
+    for (const method of signatureEncodings) {
       const input = `
 meta {
   name: OAuth1 ${method}
@@ -260,12 +260,12 @@ auth:oauth1 {
 `.trim();
 
       const result = bruToJson(input);
-      expect(result.auth.oauth1.signatureMethod).toBe(method);
+      expect(result.auth.oauth1.signatureEncoding).toBe(method);
     }
   });
 
-  it('should parse addParamsTo values: header, queryparams, body', () => {
-    for (const placement of ['header', 'queryparams', 'body']) {
+  it('should parse addParamsTo values: header, query, body', () => {
+    for (const placement of ['header', 'query', 'body']) {
       const input = `
 meta {
   name: OAuth1 Params To ${placement}
@@ -358,7 +358,7 @@ auth:oauth1 {
   nonce: col_nonce
   version: 1.0
   realm: col_realm
-  add_params_to: queryparams
+  add_params_to: query
   include_body_hash: true
 }
 `.trim();
@@ -370,17 +370,17 @@ auth:oauth1 {
       consumerKey: 'col_consumer_key',
       consumerSecret: 'col_consumer_secret',
       accessToken: 'col_access_token',
-      tokenSecret: 'col_token_secret',
+      accessTokenSecret: 'col_token_secret',
       callbackUrl: 'https://col.example.com/cb',
       verifier: 'col_verifier',
-      signatureMethod: 'HMAC-SHA256',
+      signatureEncoding: 'HMAC-SHA256',
       privateKey: 'col_private_key',
       privateKeyType: 'text',
       timestamp: '9999999999',
       nonce: 'col_nonce',
       version: '1.0',
       realm: 'col_realm',
-      addParamsTo: 'queryparams',
+      addParamsTo: 'query',
       includeBodyHash: true
     });
   });
@@ -470,10 +470,10 @@ describe('OAuth1 jsonToBru (request-level)', () => {
           consumerKey: 'ck',
           consumerSecret: 'cs',
           accessToken: 'at',
-          tokenSecret: 'ts',
+          accessTokenSecret: 'ts',
           callbackUrl: 'https://example.com/cb',
           verifier: 'v',
-          signatureMethod: 'HMAC-SHA1',
+          signatureEncoding: 'HMAC-SHA1',
           privateKey: 'pk',
           privateKeyType: 'text',
           timestamp: '123',
@@ -514,10 +514,10 @@ describe('OAuth1 jsonToBru (request-level)', () => {
           consumerKey: 'ck',
           consumerSecret: '',
           accessToken: '',
-          tokenSecret: '',
+          accessTokenSecret: '',
           callbackUrl: '',
           verifier: '',
-          signatureMethod: 'RSA-SHA1',
+          signatureEncoding: 'RSA-SHA1',
           privateKey: 'keys/private.pem',
           privateKeyType: 'file',
           timestamp: '',
@@ -546,10 +546,10 @@ describe('OAuth1 jsonToBru (request-level)', () => {
           consumerKey: 'ck',
           consumerSecret: '',
           accessToken: '',
-          tokenSecret: '',
+          accessTokenSecret: '',
           callbackUrl: '',
           verifier: '',
-          signatureMethod: 'RSA-SHA1',
+          signatureEncoding: 'RSA-SHA1',
           privateKey: pem,
           privateKeyType: 'text',
           timestamp: '',
@@ -578,10 +578,10 @@ describe('OAuth1 jsonToBru (request-level)', () => {
           consumerKey: 'ck',
           consumerSecret: '',
           accessToken: '',
-          tokenSecret: '',
+          accessTokenSecret: '',
           callbackUrl: '',
           verifier: '',
-          signatureMethod: 'HMAC-SHA1',
+          signatureEncoding: 'HMAC-SHA1',
           privateKey: '',
           privateKeyType: 'text',
           timestamp: '',
@@ -622,17 +622,17 @@ describe('OAuth1 jsonToCollectionBru (collection/folder-level)', () => {
           consumerKey: 'col_ck',
           consumerSecret: 'col_cs',
           accessToken: 'col_at',
-          tokenSecret: 'col_ts',
+          accessTokenSecret: 'col_ts',
           callbackUrl: '',
           verifier: '',
-          signatureMethod: 'HMAC-SHA256',
+          signatureEncoding: 'HMAC-SHA256',
           privateKey: '',
           privateKeyType: 'text',
           timestamp: '',
           nonce: '',
           version: '1.0',
           realm: '',
-          addParamsTo: 'queryparams',
+          addParamsTo: 'query',
           includeBodyHash: true
         }
       }
@@ -646,7 +646,7 @@ describe('OAuth1 jsonToCollectionBru (collection/folder-level)', () => {
     expect(bru).toContain('consumer_key: col_ck');
     expect(bru).toContain('consumer_secret: col_cs');
     expect(bru).toContain('signature_method: HMAC-SHA256');
-    expect(bru).toContain('add_params_to: queryparams');
+    expect(bru).toContain('add_params_to: query');
     expect(bru).toContain('include_body_hash: true');
   });
 
@@ -658,10 +658,10 @@ describe('OAuth1 jsonToCollectionBru (collection/folder-level)', () => {
           consumerKey: 'ck',
           consumerSecret: '',
           accessToken: '',
-          tokenSecret: '',
+          accessTokenSecret: '',
           callbackUrl: '',
           verifier: '',
-          signatureMethod: 'RSA-SHA1',
+          signatureEncoding: 'RSA-SHA1',
           privateKey: 'certs/key.pem',
           privateKeyType: 'file',
           timestamp: '',
@@ -693,10 +693,10 @@ describe('OAuth1 round-trip (request-level)', () => {
           consumerKey: 'ck',
           consumerSecret: 'cs',
           accessToken: 'at',
-          tokenSecret: 'ts',
+          accessTokenSecret: 'ts',
           callbackUrl: 'https://example.com/cb',
           verifier: 'ver',
-          signatureMethod: 'HMAC-SHA1',
+          signatureEncoding: 'HMAC-SHA1',
           privateKey: 'inline_pk',
           privateKeyType: 'text',
           timestamp: '1234567890',
@@ -725,10 +725,10 @@ describe('OAuth1 round-trip (request-level)', () => {
           consumerKey: 'ck',
           consumerSecret: '',
           accessToken: 'at',
-          tokenSecret: 'ts',
+          accessTokenSecret: 'ts',
           callbackUrl: '',
           verifier: '',
-          signatureMethod: 'RSA-SHA1',
+          signatureEncoding: 'RSA-SHA1',
           privateKey: 'keys/private.pem',
           privateKeyType: 'file',
           timestamp: '',
@@ -760,10 +760,10 @@ describe('OAuth1 round-trip (request-level)', () => {
           consumerKey: 'ck',
           consumerSecret: '',
           accessToken: '',
-          tokenSecret: '',
+          accessTokenSecret: '',
           callbackUrl: '',
           verifier: '',
-          signatureMethod: 'RSA-SHA256',
+          signatureEncoding: 'RSA-SHA256',
           privateKey: pem,
           privateKeyType: 'text',
           timestamp: '',
@@ -794,10 +794,10 @@ describe('OAuth1 round-trip (collection-level)', () => {
           consumerKey: 'ck',
           consumerSecret: 'cs',
           accessToken: 'at',
-          tokenSecret: 'ts',
+          accessTokenSecret: 'ts',
           callbackUrl: 'https://example.com/cb',
           verifier: 'ver',
-          signatureMethod: 'HMAC-SHA512',
+          signatureEncoding: 'HMAC-SHA512',
           privateKey: '',
           privateKeyType: 'text',
           timestamp: '',
@@ -825,10 +825,10 @@ describe('OAuth1 round-trip (collection-level)', () => {
           consumerKey: 'ck',
           consumerSecret: '',
           accessToken: '',
-          tokenSecret: '',
+          accessTokenSecret: '',
           callbackUrl: '',
           verifier: '',
-          signatureMethod: 'RSA-SHA512',
+          signatureEncoding: 'RSA-SHA512',
           privateKey: 'keys/rsa.pem',
           privateKeyType: 'file',
           timestamp: '',

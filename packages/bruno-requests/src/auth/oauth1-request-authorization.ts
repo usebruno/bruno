@@ -345,10 +345,10 @@ export function applyOAuth1ToRequest(request: {
     consumerKey: string;
     consumerSecret: string;
     accessToken?: string;
-    tokenSecret?: string;
+    accessTokenSecret?: string;
     callbackUrl?: string;
     verifier?: string;
-    signatureMethod?: string;
+    signatureEncoding?: string;
     privateKey?: string;
     privateKeyType?: string;
     timestamp?: string;
@@ -360,8 +360,8 @@ export function applyOAuth1ToRequest(request: {
   };
 }, collectionPath?: string): void {
   const {
-    consumerKey, consumerSecret, accessToken, tokenSecret,
-    callbackUrl, verifier, signatureMethod, privateKey, privateKeyType, timestamp, nonce,
+    consumerKey, consumerSecret, accessToken, accessTokenSecret,
+    callbackUrl, verifier, signatureEncoding, privateKey, privateKeyType, timestamp, nonce,
     version, realm, addParamsTo, includeBodyHash
   } = request.oauth1config;
 
@@ -384,7 +384,7 @@ export function applyOAuth1ToRequest(request: {
 
   const authorizer = createOAuth1Authorizer({
     consumer: { key: consumerKey, secret: consumerSecret },
-    signature_method: (signatureMethod || 'HMAC-SHA1') as SignatureMethod,
+    signature_method: (signatureEncoding || 'HMAC-SHA1') as SignatureMethod,
     version: version || '1.0',
     realm: realm || undefined,
     private_key: resolvedPrivateKey
@@ -422,7 +422,7 @@ export function applyOAuth1ToRequest(request: {
     const bodyStr = request.data
       ? (typeof request.data === 'string' ? request.data : JSON.stringify(request.data))
       : '';
-    const bodyHash = computeBodyHash(bodyStr, (signatureMethod || 'HMAC-SHA1') as SignatureMethod);
+    const bodyHash = computeBodyHash(bodyStr, (signatureEncoding || 'HMAC-SHA1') as SignatureMethod);
     dataPairs.push(['oauth_body_hash', bodyHash]);
   }
 
@@ -430,7 +430,7 @@ export function applyOAuth1ToRequest(request: {
     requestData.data = dataPairs;
   }
 
-  const token = accessToken ? { key: accessToken, secret: tokenSecret || '' } : undefined;
+  const token = accessToken ? { key: accessToken, secret: accessTokenSecret || '' } : undefined;
   const overrides: { timestamp?: string; nonce?: string } = {};
   if (timestamp) overrides.timestamp = timestamp;
   if (nonce) overrides.nonce = nonce;
@@ -440,7 +440,7 @@ export function applyOAuth1ToRequest(request: {
     case 'header':
       request.headers['Authorization'] = authorizer.toHeader(oauthData).Authorization;
       break;
-    case 'queryparams': {
+    case 'query': {
       const url = new URL(request.url);
       Object.entries(oauthData).forEach(([key, value]) => {
         if (value) url.searchParams.set(key, value);

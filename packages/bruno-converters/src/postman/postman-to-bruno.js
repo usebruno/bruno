@@ -232,17 +232,17 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         consumerKey: authValues.consumerKey || '',
         consumerSecret: authValues.consumerSecret || '',
         accessToken: authValues.token || '',
-        tokenSecret: authValues.tokenSecret || '',
+        accessTokenSecret: authValues.tokenSecret || '',
         callbackUrl: authValues.callback || null,
         verifier: authValues.verifier || null,
-        signatureMethod: authValues.signatureMethod || 'HMAC-SHA1',
+        signatureEncoding: authValues.signatureMethod || 'HMAC-SHA1',
         privateKey: authValues.privateKey || null,
         privateKeyType: 'text',
         timestamp: authValues.timestamp || null,
         nonce: authValues.nonce || null,
         version: authValues.version || '1.0',
         realm: authValues.realm || null,
-        addParamsTo: authValues.addParamsToHeader === false ? 'queryparams' : 'header',
+        addParamsTo: authValues.addParamsToHeader === false ? 'query' : 'header',
         includeBodyHash: authValues.includeBodyHash || false
       };
       break;

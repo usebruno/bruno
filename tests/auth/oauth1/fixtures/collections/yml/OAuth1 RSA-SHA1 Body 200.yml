@@ -12,8 +12,8 @@ http:
     type: oauth1
     consumerKey: consumer_key_1
     accessToken: access_token_1
-    tokenSecret: token_secret_1
-    signatureMethod: RSA-SHA1
+    accessTokenSecret: token_secret_1
+    signatureEncoding: RSA-SHA1
     privateKey:
       type: text
       value: |

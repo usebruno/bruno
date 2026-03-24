@@ -723,10 +723,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           consumerKey: findValue('consumer_key'),
           consumerSecret: findValue('consumer_secret'),
           accessToken: findValue('access_token'),
-          tokenSecret: findValue('token_secret'),
+          accessTokenSecret: findValue('token_secret'),
           callbackUrl: findValue('callback_url'),
           verifier: findValue('verifier'),
-          signatureMethod: findValue('signature_method'),
+          signatureEncoding: findValue('signature_method'),
           privateKey: (() => {
             const val = findValue('private_key');
             return val && val.startsWith('@file(') && val.endsWith(')') ? val.slice(6, -1) : val;
