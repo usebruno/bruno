@@ -617,7 +617,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               example.request.headers.push({
                 uid: uuid(),
                 name: header.key ?? '',
-                value: header.value ?? '',
+                value: String(header.value ?? ''),
                 description: transformDescription(header.description),
                 enabled: !header.disabled
               });
@@ -718,7 +718,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               example.response.headers.push({
                 uid: uuid(),
                 name: header.key ?? '',
-                value: header.value ?? '',
+                value: String(header.value ?? ''),
                 description: transformDescription(header.description),
                 enabled: true
               });
