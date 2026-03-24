@@ -5,6 +5,7 @@ import { useTheme } from 'providers/Theme';
 import { moveAssertion, setRequestAssertions } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import AssertionOperator from './AssertionOperator';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
@@ -74,6 +75,25 @@ const Assertions = ({ item, collection }) => {
       updateReorderedItem
     }));
   }, [dispatch, collection.uid, item.uid]);
+
+  const descriptionColumn = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ value, onChange }) => (
+      <MultiLineEditor
+        value={value || ''}
+        theme={storedTheme}
+        onSave={onSave}
+        onChange={onChange}
+        allowNewlines={true}
+        onRun={handleRun}
+        collection={collection}
+        item={item}
+      />
+    )
+  };
 
   const columns = [
     {
@@ -145,13 +165,15 @@ const Assertions = ({ item, collection }) => {
           />
         );
       }
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
     name: '',
     value: 'eq ',
-    operator: 'eq'
+    operator: 'eq',
+    description: ''
   };
 
   return (

@@ -8,7 +8,7 @@ const grammar = ohm.grammar(`Bru {
 
   // Oauth2 additional parameters
   authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
-  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams 
+  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams
   oauth2AccessTokenReqConfig = oauth2AccessTokenReqHeaders | oauth2AccessTokenReqQueryParams | oauth2AccessTokenReqBody
   oauth2RefreshTokenReqConfig = oauth2RefreshTokenReqHeaders | oauth2RefreshTokenReqQueryParams | oauth2RefreshTokenReqBody
 
@@ -27,7 +27,8 @@ const grammar = ohm.grammar(`Bru {
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = st* (quoted_key | key) st* ":" st* value st*
+  pair = descriptionprefix? st* (quoted_key | key) st* ":" st* value st*  -- kv
+       | descriptionprefix                                                  -- orphandesc
   disable_char = "~"
   quote_char = "\\""
   esc_char = "\\\\"
@@ -35,13 +36,25 @@ const grammar = ohm.grammar(`Bru {
   quoted_key_char = ~(quote_char | esc_quote_char | nl) any
   quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
   key = keychar*
-  value = multilinetextblock | valuechar*
+  value = multilinetextblock | singlelinevalue
+  singlelinevalue = valuechar*
+  descriptionTripleContent = (~"'''" any)*
+
+  // Prefix description annotation: @description('''...''') on its own line before a key:value pair.
+  // Supports multiline values (unlike the suffix form).
+  // Double-quoted form is used when the description itself contains ''' (cannot embed inside triple-quoted).
+  descriptionprefix = descriptionprefix_triple | descriptionprefix_double
+  descriptionprefix_triple = st* "@" "description" "(" "'''" descriptionTripleContent "'''" ")" st* nl
+  descriptionprefix_double = st* "@" "description" "(" "\\"" descriptionDoubleChar* "\\"" ")" st* nl
+  descriptionDoubleChar = descriptionDoubleEsc | descriptionDoubleNorm
+  descriptionDoubleEsc = "\\\\" any
+  descriptionDoubleNorm = ~"\\"" ~nl any
 
   // Text Blocks
   textblock = textline (~tagend nl textline)*
   textline = textchar*
   textchar = ~nl any
-  
+
   meta = "meta" dictionary
 
   auth = "auth" dictionary
@@ -84,7 +97,8 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
     return [];
   }
   return _.map(pairList[0], (pair) => {
-    let name = _.keys(pair)[0];
+    // Skip the internal __desc marker when resolving the real key name
+    let name = _.keys(pair).find((k) => k !== '__desc');
     let value = pair[name];
 
     if (!parseEnabled) {
@@ -100,11 +114,17 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       enabled = false;
     }
 
-    return {
+    const result = {
       name,
       value,
       enabled
     };
+
+    if (pair.__desc !== undefined) {
+      result.description = pair.__desc;
+    }
+
+    return result;
   });
 };
 
@@ -142,10 +162,36 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   pairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  pair(_1, key, _2, _3, _4, value, _5) {
+  descriptionprefix(alt) {
+    return alt.ast;
+  },
+  descriptionprefix_triple(_st, _at, _desc, _lp, _open, descContent, _close, _rp, _st2, _nl) {
+    const raw = descContent.sourceString;
+    if (raw.includes('\n')) {
+      return raw.split('\n').map((line) => (line.startsWith('    ') ? line.slice(4) : line)).join('\n').trim();
+    }
+    return raw.trim();
+  },
+  descriptionprefix_double(_st, _at, _desc, _lp, _dqOpen, descChars, _dqClose, _rp, _st2, _nl) {
+    return descChars.sourceString.replace(/\\(\\|"|n|r|t)/g, (_, c) => {
+      if (c === '\\') return '\\';
+      if (c === '"') return '"';
+      if (c === 'n') return '\n';
+      if (c === 'r') return '\r';
+      if (c === 't') return '\t';
+      return c;
+    });
+  },
+  pair_kv(descPrefix, _1, key, _2, _3, _4, value, _5) {
     let res = {};
-    res[key.ast] = value.ast ? value.ast.trim() : '';
+    const valueAst = value.ast;
+    const prefixDesc = descPrefix.children.length > 0 ? descPrefix.children[0].ast : undefined;
+    res[key.ast] = valueAst ? valueAst.trim() : '';
+    if (prefixDesc !== undefined) res.__desc = prefixDesc;
     return res;
+  },
+  pair_orphandesc(descPrefix) {
+    return { '': '', '__desc': descPrefix.ast };
   },
   quoted_key(disabled, _1, chars, _2) {
     // unquote and handle disabled prefix
@@ -163,23 +209,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
-    if (chars.ctorName === 'list') {
-      return chars.ast;
-    }
-    try {
-      let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
-      if (isMultiline) {
-        const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
-        return multilineString
-          .split('\n')
-          .map((line) => line.slice(4))
-          .join('\n');
-      }
-      return chars.sourceString ? chars.sourceString.trim() : '';
-    } catch (err) {
-      console.error(err);
-    }
-    return chars.sourceString ? chars.sourceString.trim() : '';
+    return chars.ast;
+  },
+  singlelinevalue(chars) {
+    return chars.sourceString?.trim() || '';
   },
   textblock(line, _1, rest) {
     return [line.ast, ...rest.ast].join('\n');
@@ -191,8 +224,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return char.sourceString;
   },
   multilinetextblock(_1, content, _2) {
-    // Join all the content between the triple quotes and trim it
-    return content.sourceString.trim();
+    return content.sourceString
+      .split('\n')
+      .map((line) => line.slice(4))
+      .join('\n')
+      .trim();
   },
   nl(_1, _2) {
     return '';

@@ -31,9 +31,22 @@ const grammar = ohm.grammar(`Bru {
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = st* key st* ":" st* value st*
+  pair = descriptionprefix? st* key st* ":" st* value st*  -- kv
+       | descriptionprefix                                  -- orphandesc
   key = keychar*
-  value = multilinetextblock | valuechar*
+  value = multilinetextblock | singlelinevalue
+  singlelinevalue = valuechar*
+  descriptionTripleContent = (~"'''" any)*
+
+  // Prefix description annotation: @description('''...''') on its own line before a key:value pair.
+  // Supports multiline values (unlike the suffix form).
+  // Double-quoted form is used when the description itself contains ''' (cannot embed inside triple-quoted).
+  descriptionprefix = descriptionprefix_triple | descriptionprefix_double
+  descriptionprefix_triple = st* "@" "description" "(" "'''" descriptionTripleContent "'''" ")" st* nl
+  descriptionprefix_double = st* "@" "description" "(" "\\"" descriptionDoubleChar* "\\"" ")" st* nl
+  descriptionDoubleChar = descriptionDoubleEsc | descriptionDoubleNorm
+  descriptionDoubleEsc = "\\\\" any
+  descriptionDoubleNorm = ~"\\"" ~nl any
 
   // Array Blocks
   array = st* "[" stnl* valuelist stnl* "]"
@@ -52,7 +65,8 @@ const mapPairListToKeyValPairs = (pairList = []) => {
   }
 
   return _.map(pairList[0], (pair) => {
-    let name = _.keys(pair)[0];
+    // Skip the internal __desc marker when resolving the real key name
+    let name = _.keys(pair).find((k) => k !== '__desc');
     let value = pair[name];
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
@@ -60,11 +74,17 @@ const mapPairListToKeyValPairs = (pairList = []) => {
       enabled = false;
     }
 
-    return {
+    const result = {
       name,
       value,
       enabled
     };
+
+    if (pair.__desc !== undefined) {
+      result.description = pair.__desc;
+    }
+
+    return result;
   });
 };
 
@@ -128,20 +148,45 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   pairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  pair(_1, key, _2, _3, _4, value, _5) {
+  descriptionprefix(alt) {
+    return alt.ast;
+  },
+  descriptionprefix_triple(_st, _at, _desc, _lp, _open, descContent, _close, _rp, _st2, _nl) {
+    const raw = descContent.sourceString;
+    if (raw.includes('\n')) {
+      return raw.split('\n').map((line) => (line.startsWith('    ') ? line.slice(4) : line)).join('\n').trim();
+    }
+    return raw.trim();
+  },
+  descriptionprefix_double(_st, _at, _desc, _lp, _dqOpen, descChars, _dqClose, _rp, _st2, _nl) {
+    return descChars.sourceString.replace(/\\(\\|"|n|r|t)/g, (_, c) => {
+      if (c === '\\') return '\\';
+      if (c === '"') return '"';
+      if (c === 'n') return '\n';
+      if (c === 'r') return '\r';
+      if (c === 't') return '\t';
+      return c;
+    });
+  },
+  pair_kv(descPrefix, _1, key, _2, _3, _4, value, _5) {
     let res = {};
-    res[key.ast] = value.ast ? value.ast.trim() : '';
+    const valueAst = value.ast;
+    const prefixDesc = descPrefix.children.length > 0 ? descPrefix.children[0].ast : undefined;
+    res[key.ast] = valueAst ? valueAst.trim() : '';
+    if (prefixDesc !== undefined) res.__desc = prefixDesc;
     return res;
+  },
+  pair_orphandesc(descPrefix) {
+    return { '': '', '__desc': descPrefix.ast };
   },
   key(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
-    // .ctorName provides the name of the rule that matched the input
-    if (chars.ctorName === 'multilinetextblock') {
-      return chars.ast;
-    }
-    return chars.sourceString ? chars.sourceString.trim() : '';
+    return chars.ast;
+  },
+  singlelinevalue(chars) {
+    return chars.sourceString?.trim() || '';
   },
   multilinetextblockstart(_1, _2) {
     return '';
