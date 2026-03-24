@@ -31,6 +31,8 @@ const TableRow = React.memo(
   }
 );
 
+const columns = ['name', 'value', 'description', 'secret'];
+
 const EnvironmentVariablesTable = ({
   environment,
   collection,
@@ -62,7 +64,8 @@ const EnvironmentVariablesTable = ({
 
     const startX = e.clientX;
     const startWidth = currentCell.offsetWidth;
-    const nextColumnKey = ['name', 'value', 'description', 'secret'][['name', 'value', 'description', 'secret'].indexOf(columnKey) + 1];
+    const matchedNextCol = columns[columns.indexOf(columnKey) + 1];
+    const nextColumnKey = matchedNextCol > -1 ? matchedNextCol : columns.at(-1);
     const nextColumnStartWidth = nextCell.offsetWidth;
 
     setResizing(columnKey);
@@ -477,7 +480,13 @@ const EnvironmentVariablesTable = ({
                   onMouseDown={(e) => handleResizeStart(e, 'value')}
                 />
               </td>
-              <td style={{ width: columnWidths.description }}>Description</td>
+              <td style={{ width: columnWidths.description }}>Description
+                <div
+                  className={`resize-handle ${resizing === 'description' ? 'resizing' : ''}`}
+                  style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
+                  onMouseDown={(e) => handleResizeStart(e, 'description')}
+                />
+              </td>
               <td className="text-center secret-column">Secret</td>
               <td className="actions-column"></td>
             </tr>
