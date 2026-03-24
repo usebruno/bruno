@@ -11,6 +11,7 @@ import {
   brunoConfigUpdateEvent,
   collectionAddDirectoryEvent,
   collectionAddFileEvent,
+  collectionBatchAddEvents,
   collectionChangeFileEvent,
   collectionRenamedEvent,
   collectionUnlinkDirectoryEvent,
@@ -25,6 +26,7 @@ import {
   streamDataReceived,
   setDotEnvVariables
 } from 'providers/ReduxStore/slices/collections';
+import { BETA_FEATURES } from 'utils/beta-features';
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import {
   workspaceOpenedEvent,
@@ -51,25 +53,62 @@ const useIpcEvents = () => {
 
     const { ipcRenderer } = window;
 
+    // Buffer for batching addFile/addDir events during collection mount.
+    // Instead of dispatching 3000 individual Redux actions (each triggering a React re-render),
+    // we accumulate events and flush them in a single batched dispatch.
+    let eventBuffer = [];
+    let flushTimer = null;
+    const FLUSH_INTERVAL_MS = 100;
+    const FLUSH_BATCH_SIZE = 200;
+
+    const flushEventBuffer = () => {
+      if (eventBuffer.length > 0) {
+        const events = eventBuffer;
+        eventBuffer = [];
+        dispatch(collectionBatchAddEvents({ events }));
+      }
+      flushTimer = null;
+    };
+
+    const bufferAddEvent = (type, val) => {
+      eventBuffer.push({ type, val });
+
+      // Flush immediately if buffer is large enough
+      if (eventBuffer.length >= FLUSH_BATCH_SIZE) {
+        if (flushTimer) {
+          clearTimeout(flushTimer);
+        }
+        flushEventBuffer();
+      } else if (!flushTimer) {
+        // Schedule a flush after a short delay to catch remaining events
+        flushTimer = setTimeout(flushEventBuffer, FLUSH_INTERVAL_MS);
+      }
+    };
+
     const _collectionTreeUpdated = (type, val) => {
       if (window.__IS_DEV__) {
         console.log(type);
         console.log(val);
       }
-      if (type === 'addDir') {
-        dispatch(
-          collectionAddDirectoryEvent({
-            dir: val
-          })
-        );
+
+      // Check if sidebar optimizations are enabled (read at event time so toggling takes effect immediately)
+      const isSidebarOptimized = store.getState().app.preferences?.beta?.[BETA_FEATURES.SIDEBAR_OPTIMIZATIONS] || false;
+
+      if (type === 'addDir' || type === 'addFile') {
+        if (isSidebarOptimized) {
+          // Optimized path: batch events and flush periodically
+          bufferAddEvent(type, val);
+        } else {
+          // Original path: dispatch individually
+          if (type === 'addDir') {
+            dispatch(collectionAddDirectoryEvent({ dir: val }));
+          } else {
+            dispatch(collectionAddFileEvent({ file: val }));
+          }
+        }
+        return;
       }
-      if (type === 'addFile') {
-        dispatch(
-          collectionAddFileEvent({
-            file: val
-          })
-        );
-      }
+      // All other events dispatch immediately (they're infrequent and need instant UI feedback)
       if (type === 'change') {
         dispatch(
           collectionChangeFileEvent({
@@ -371,6 +410,11 @@ const useIpcEvents = () => {
       removePersistentEnvVariablesUpdateListener();
       removeSystemResourcesListener();
       gitVersionListener();
+      // Flush any remaining buffered events and clear timer
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+      }
+      flushEventBuffer();
     };
   }, [isElectron]);
 };

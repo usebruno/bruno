@@ -1,8 +1,8 @@
 import React from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconFolder, IconWorld, IconApi, IconShare, IconBook } from '@tabler/icons';
+import { IconFolder, IconWorld, IconApi, IconShare, IconBook, IconClock } from '@tabler/icons';
 import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from 'components/Sidebar/Collections/Collection/GenerateDocumentation';
@@ -17,6 +17,30 @@ const Info = ({ collection }) => {
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
+
+  // --- Performance Benchmark Stopwatch ---
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [finalTime, setFinalTime] = useState(null);
+  const intervalRef = useRef(null);
+  const startTimeRef = useRef(null);
+
+  useEffect(() => {
+    if (isCollectionLoading) {
+      // Loading started — reset and start stopwatch
+      setFinalTime(null);
+      setElapsedMs(0);
+      startTimeRef.current = performance.now();
+      intervalRef.current = setInterval(() => {
+        setElapsedMs(performance.now() - startTimeRef.current);
+      }, 10);
+    } else if (startTimeRef.current && !finalTime) {
+      // Loading finished — stop and record final time
+      clearInterval(intervalRef.current);
+      setFinalTime(performance.now() - startTimeRef.current);
+      startTimeRef.current = null;
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [isCollectionLoading]);
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
 
@@ -97,6 +121,29 @@ const Info = ({ collection }) => {
                 {
                   isCollectionLoading ? `${totalItems - itemsLoadingCount} out of ${totalItems} requests in the collection loaded` : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
                 }
+              </div>
+            </div>
+          </div>
+
+          {/* Performance Benchmark Stopwatch */}
+          <div className="flex items-start">
+            <div className="icon-box requests flex-shrink-0 p-3 rounded-lg">
+              <IconClock className="w-5 h-5" stroke={1.5} />
+            </div>
+            <div className="ml-4">
+              <div className="font-medium">Load Time (Benchmark)</div>
+              <div className="mt-1 text-muted font-mono">
+                {isCollectionLoading ? (
+                  <span style={{ color: '#f59e0b' }}>
+                    {(elapsedMs / 1000).toFixed(2)}s
+                  </span>
+                ) : finalTime ? (
+                  <span style={{ color: '#10b981' }}>
+                    {(finalTime / 1000).toFixed(3)}s
+                  </span>
+                ) : (
+                  <span>Waiting for collection load...</span>
+                )}
               </div>
             </div>
           </div>

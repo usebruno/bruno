@@ -19,6 +19,11 @@ const BETA_FEATURES = [
     id: BETA_FEATURE_IDS.OPENAPI_SYNC,
     label: 'OpenAPI Sync',
     description: 'Synchronize your Bruno collection with an OpenAPI specification. Detect drift, review changes, and sync with a single click.'
+  },
+  {
+    id: BETA_FEATURE_IDS.SIDEBAR_OPTIMIZATIONS,
+    label: 'Sidebar Optimizations',
+    description: 'Batches sidebar rendering updates for large collections. Reduces Redux dispatches from thousands to ~30, significantly improving load times for collections with 1000+ items.'
   }
 ];
 
