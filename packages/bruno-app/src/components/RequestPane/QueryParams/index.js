@@ -153,7 +153,7 @@ const QueryParams = ({ item, collection }) => {
 
         <div className="mb-3 title text-xs flex items-stretch">
           <span>Path</span>
-          <InfoTip infotipId="path-param-InfoTip">
+          <InfoTip className="tooltip-mod" infotipId="path-param-InfoTip">
             <div>
               Path variables are automatically added whenever the
               <code className="font-mono mx-2">:name</code>
