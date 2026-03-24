@@ -80,15 +80,17 @@ const replacements = {
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
   'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
-  // Cookie jar translations — order matters: these more-specific patterns must precede
-  // the simpler pm.cookies.* patterns below, since replacements are applied in insertion order.
-
-  'pm\\.cookies\\.jar\\(\\)': 'bru.cookies.jar()',
+  // Cookie jar translations — order matters:
+  // 1. Specific jar method patterns must come before the general jar() pattern,
+  //    otherwise jar() consumes the prefix and the method patterns never match.
+  // 2. All jar patterns must precede the simpler pm.cookies.* patterns below,
+  //    since replacements are applied in insertion order.
   'pm\\.cookies\\.jar\\(\\)\\.get\\(': 'bru.cookies.jar().getCookie(',
   'pm\\.cookies\\.jar\\(\\)\\.set\\(': 'bru.cookies.jar().setCookie(',
   'pm\\.cookies\\.jar\\(\\)\\.unset\\(': 'bru.cookies.jar().deleteCookie(',
   'pm\\.cookies\\.jar\\(\\)\\.clear\\(': 'bru.cookies.jar().deleteCookies(',
   'pm\\.cookies\\.jar\\(\\)\\.getAll\\(': 'bru.cookies.jar().getCookies(',
+  'pm\\.cookies\\.jar\\(\\)': 'bru.cookies.jar()',
   // Direct cookie access
   'pm\\.cookies\\.get\\(': 'bru.cookies.get(',
   'pm\\.cookies\\.has\\(': 'bru.cookies.has(',

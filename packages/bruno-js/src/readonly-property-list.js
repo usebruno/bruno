@@ -62,7 +62,9 @@ class ReadOnlyPropertyList {
    */
   one(name) {
     const items = this._getItems();
-    return items.find((i) => i[this._keyProperty] === name);
+    // Use findLast so that duplicate keys resolve to the last entry,
+    // consistent with get() and toObject() which also give last-wins semantics.
+    return items.findLast((i) => i[this._keyProperty] === name);
   }
 
   /**

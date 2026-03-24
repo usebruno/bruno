@@ -110,6 +110,7 @@ const STATIC_API_HINTS = {
     'bru.cookies',
     'bru.cookies.get(name)',
     'bru.cookies.has(name)',
+    'bru.cookies.has(name, value)',
     'bru.cookies.one(name)',
     'bru.cookies.all()',
     'bru.cookies.count()',
