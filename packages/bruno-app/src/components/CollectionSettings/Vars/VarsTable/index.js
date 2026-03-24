@@ -33,9 +33,10 @@ const VarsTable = ({ collection, vars, varType }) => {
     name: 'Description',
     placeholder: 'Description',
     width: '25%',
-    render: ({ value, onChange }) => (
+    render: ({ value, onChange, rowIndex }) => (
       <MultiLineEditor
         value={value || ''}
+        name={`${rowIndex}.description`}
         theme={storedTheme}
         onSave={onSave}
         onChange={onChange}
@@ -62,9 +63,10 @@ const VarsTable = ({ collection, vars, varType }) => {
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
-      render: ({ value, onChange }) => (
+      render: ({ value, onChange, rowIndex }) => (
         <MultiLineEditor
           value={value || ''}
+          name={`${rowIndex}.value`}
           theme={storedTheme}
           onSave={onSave}
           onChange={onChange}
