@@ -11,28 +11,6 @@ const Wrapper = styled.div`
     user-select: none;
   }
 
-  &.has-description-column table td {
-    vertical-align: top;
-
-    &:nth-child(1) {
-      padding-top: 10px;
-    }
-
-    &:nth-child(4) {
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      word-break: break-word;
-    }
-    &:nth-child(5) {
-      width: 80px;
-      padding-top: 10px;
-    }
-    &:nth-child(6) {
-      width: 60px;
-      padding-top: 6px;
-    }
-  }
-
   .table-container {
     overflow-y: auto;
     border-radius: 8px;
@@ -53,13 +31,7 @@ const Wrapper = styled.div`
         width: 25px;
         border-right: none;
       }
-      &:nth-child(2) {
-        padding-top: 8px;
-        border-left: none;
-      }
-      &:nth-child(3) {
-        vertical-align: top;
-      }
+
       &:nth-child(4) {
         width: 80px;
       }
@@ -67,7 +39,6 @@ const Wrapper = styled.div`
         width: 10%;
       }
     }
-
 
     thead {
       color: ${(props) => props.theme.table.thead.color} !important;
@@ -175,12 +146,6 @@ const Wrapper = styled.div`
     transition: color 0.15s ease, background 0.15s ease;
   }
 
-  .btn-action {
-    position: relative;
-    right: 6px;
-    width: max-content !important;
-  }
-
   .button-container {
     padding: 12px 2px;
     background: ${(props) => props.theme.bg};
@@ -199,15 +164,6 @@ const Wrapper = styled.div`
     cursor: pointer;
     transition: opacity 0.15s ease;
 
-    &:hover {
-      opacity: 0.9;
-    }
-  }
-
-  .description-toggle {
-    background: transparent;
-    padding: 6px;
-    color: ${(props) => props.theme.brand};
     &:hover {
       opacity: 0.9;
     }
