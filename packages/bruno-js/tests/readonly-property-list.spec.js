@@ -98,6 +98,43 @@ describe('ReadOnlyPropertyList', () => {
       const sum = list.reduce((acc, item) => acc + item.value, '');
       expect(sum).toBe('123');
     });
+
+    test('reduce() without initial value uses first element as accumulator', () => {
+      const numList = new ReadOnlyPropertyList({
+        items: [
+          { key: 'a', value: 1 },
+          { key: 'b', value: 2 },
+          { key: 'c', value: 3 }
+        ]
+      });
+      const result = numList.reduce((acc, item) => acc + item.value);
+      // First element becomes accumulator: { key: 'a', value: 1 } + 2 + 3
+      expect(result).toEqual({ key: 'a', value: 1 } + 2 + 3);
+    });
+
+    test('reduce() without initial value on single-element list returns that element', () => {
+      const singleList = new ReadOnlyPropertyList({
+        items: [{ key: 'only', value: 42 }]
+      });
+      const result = singleList.reduce((acc, item) => acc + item.value);
+      expect(result).toEqual({ key: 'only', value: 42 });
+    });
+
+    test('reduce() without initial value on empty list throws TypeError', () => {
+      const emptyList = new ReadOnlyPropertyList({ items: [] });
+      expect(() => emptyList.reduce((acc, item) => acc + item.value)).toThrow(TypeError);
+    });
+
+    test('get() returns last value when duplicate keys exist, consistent with toObject()', () => {
+      const dupList = new ReadOnlyPropertyList({
+        items: [
+          { key: 'x', value: 'first' },
+          { key: 'x', value: 'second' }
+        ]
+      });
+      expect(dupList.get('x')).toBe('second');
+      expect(dupList.toObject().x).toBe('second');
+    });
   });
 
   // ── Dynamic Mode ─────────────────────────────────────────────────────

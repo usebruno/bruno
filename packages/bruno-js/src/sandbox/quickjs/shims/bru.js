@@ -431,7 +431,7 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruCookiesObject, 'indexOf', cookiesIndexOf);
   cookiesIndexOf.dispose();
 
-  // Async write methods (_add, _upsert, _remove)
+  // Same _prefix bridge pattern — see comment above _clear/_delete
   createAsyncCookieBridge(vm, bruCookiesObject, '_add', (...a) => bru.cookies.add(...a));
   createAsyncCookieBridge(vm, bruCookiesObject, '_upsert', (...a) => bru.cookies.upsert(...a));
   createAsyncCookieBridge(vm, bruCookiesObject, '_remove', (...a) => bru.cookies.remove(...a));
@@ -640,7 +640,7 @@ const addBruShimToContext = (vm, bru) => {
       globalThis.bru.cookies.filter = (fn) => _allNative().filter(fn);
       globalThis.bru.cookies.find = (fn) => _allNative().find(fn);
       globalThis.bru.cookies.map = (fn) => _allNative().map(fn);
-      globalThis.bru.cookies.reduce = (fn, acc) => _allNative().reduce(fn, acc);
+      globalThis.bru.cookies.reduce = (fn, ...rest) => rest.length ? _allNative().reduce(fn, rest[0]) : _allNative().reduce(fn);
     }
 
     globalThis.bru.cookies.jar = () => {

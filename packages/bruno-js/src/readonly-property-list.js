@@ -49,7 +49,9 @@ class ReadOnlyPropertyList {
    */
   get(name) {
     const items = this._getItems();
-    const item = items.find((i) => i[this._keyProperty] === name);
+    // Use findLast so that duplicate keys resolve to the last entry,
+    // consistent with toObject() which also gives last-wins semantics.
+    const item = items.findLast((i) => i[this._keyProperty] === name);
     return item ? item.value : undefined;
   }
 
@@ -161,11 +163,11 @@ class ReadOnlyPropertyList {
   /**
    * Reduce items.
    * @param {Function} fn
-   * @param {*} acc - Initial accumulator
+   * @param {*} [initialValue] - Optional initial accumulator value
    * @returns {*}
    */
-  reduce(fn, acc) {
-    return this._getItems().reduce(fn, acc);
+  reduce(fn, ...rest) {
+    return rest.length ? this._getItems().reduce(fn, rest[0]) : this._getItems().reduce(fn);
   }
 
   // ── Transformation ─────────────────────────────────────────────────────
