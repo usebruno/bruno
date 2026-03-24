@@ -274,6 +274,8 @@ const resolveSegmentError = (parsed, metadata, scriptType, cache) => {
             filePath: segment.filePath,
             displayPath: segment.displayPath,
             scriptContent: segment.scriptContent,
+            // segment.startLine points to the IIFE wrapper line (`await (async () => {`),
+            // so subtracting it yields a 1-based index into the user's script content.
             lineInScript: scriptRelativeLine - segment.startLine
           };
         }
@@ -285,6 +287,8 @@ const resolveSegmentError = (parsed, metadata, scriptType, cache) => {
         filePath: segment.filePath,
         displayPath: segment.displayPath,
         scriptContent: segment.scriptContent || null,
+        // segment.startLine points to the IIFE wrapper line (`await (async () => {`),
+        // so subtracting it yields a 1-based index into the user's script content.
         lineInScript: scriptRelativeLine - segment.startLine
       };
     }
@@ -595,6 +599,8 @@ const resolveErrorContext = ({ adjustedLine, scriptRelativeLine, metadata, segme
     // would produce misleading results — flag it as draft-only.
     const blockStartLine = findBlockStart(filePath, scriptType, cache);
     const draftOnlyBlock = !blockStartLine && isAllowedSourceFile(filePath);
+    // requestStartLine points to the IIFE wrapper line (`await (async () => {`),
+    // so subtracting it yields a 1-based index into the user's script content.
     const lineInScript = scriptRelativeLine - metadata.requestStartLine;
     const context = getSourceContextFromContent(metadata.requestScriptContent, lineInScript, 3);
     if (context) return { context, fromMemory: true, draftOnlyBlock };
