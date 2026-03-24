@@ -19,18 +19,9 @@ const { ipcRenderer } = window;
 let saveTimer = null;
 const DEBOUNCE_MS = 1000;
 
-const activeCollectionUidCache = new Map();
-
-export const seedActiveCollectionUidCache = (snapshot) => {
-  (snapshot?.workspaces || []).forEach((workspace) => {
-    if (workspace.pathname && workspace.activeCollectionUid) {
-      activeCollectionUidCache.set(workspace.pathname, workspace.activeCollectionUid);
-    }
-  });
-};
-
 /**
  * Serialize the current app state into a snapshot format
+ * Produces map-based structure keyed by pathname for O(1) lookups
  */
 const serializeSnapshot = async (state) => {
   const { workspaces, collections, tabs, logs, globalEnvironments } = state;
@@ -38,7 +29,7 @@ const serializeSnapshot = async (state) => {
   // Get existing snapshot to preserve data for collections not currently loaded
   let existingSnapshot = null;
   try {
-    existingSnapshot = await ipcRenderer.invoke('renderer:get-snapshot');
+    existingSnapshot = await ipcRenderer.invoke('renderer:snapshot:get');
   } catch (err) {
     // Ignore - will create fresh snapshot
   }
@@ -55,7 +46,6 @@ const serializeSnapshot = async (state) => {
   );
 
   const snapshot = {
-    version: 1,
     activeWorkspacePath: activeWorkspace?.pathname || null,
     extras: {
       devTools: {
@@ -65,12 +55,21 @@ const serializeSnapshot = async (state) => {
         tabData: {}
       }
     },
-    workspaces: [],
-    collections: []
+    workspaces: {},
+    collections: {},
+    tabs: {}
   };
 
   // Track which collection pathnames we've serialized from Redux
   const serializedCollectionPaths = new Set();
+
+  // Build a uid → pathname map for collections (used to resolve activeCollectionUid → pathname)
+  const collectionUidToPathname = new Map();
+  (collections.collections || []).forEach((c) => {
+    if (c.uid && c.pathname) {
+      collectionUidToPathname.set(c.uid, normalizePath(c.pathname));
+    }
+  });
 
   (workspaces.workspaces || []).forEach((workspace) => {
     if (!workspace.pathname) return;
@@ -79,7 +78,8 @@ const serializeSnapshot = async (state) => {
     const normalizedWorkspacePaths = workspaceCollectionPaths.map((p) => normalizePath(p));
     const isActiveWorkspace = workspace.uid === workspaces.activeWorkspaceUid;
 
-    let activeCollectionUid = activeCollectionUidCache.get(workspace.pathname) || null;
+    // Resolve lastActiveCollectionPathname
+    let lastActiveCollectionPathname = null;
 
     if (isActiveWorkspace) {
       const activeTab = tabs.tabs.find((t) => t.uid === tabs.activeTabUid);
@@ -88,19 +88,20 @@ const serializeSnapshot = async (state) => {
         : null;
       const normalizedPathname = activeCollection?.pathname ? normalizePath(activeCollection.pathname) : null;
 
-      activeCollectionUid = normalizedPathname && normalizedWorkspacePaths.includes(normalizedPathname)
-        ? activeCollection.uid
+      lastActiveCollectionPathname = normalizedPathname && normalizedWorkspacePaths.includes(normalizedPathname)
+        ? normalizedPathname
         : null;
-      activeCollectionUidCache.set(workspace.pathname, activeCollectionUid);
+    } else {
+      // For non-active workspaces, preserve from existing snapshot
+      const existingWorkspace = existingSnapshot?.workspaces?.[workspace.pathname];
+      lastActiveCollectionPathname = existingWorkspace?.lastActiveCollectionPathname || null;
     }
 
-    snapshot.workspaces.push({
-      pathname: workspace.pathname,
-      activeCollectionUid,
-      environment: '',
+    snapshot.workspaces[workspace.pathname] = {
+      lastActiveCollectionPathname,
       sorting: 'az',
-      collections: workspaceCollectionPaths
-    });
+      collectionPathnames: workspaceCollectionPaths
+    };
   });
 
   (collections.collections || []).forEach((collection) => {
@@ -109,7 +110,24 @@ const serializeSnapshot = async (state) => {
       return;
     }
 
-    serializedCollectionPaths.add(normalizePath(collection.pathname));
+    const normalizedPath = normalizePath(collection.pathname);
+    serializedCollectionPaths.add(normalizedPath);
+
+    // Find which workspace this collection belongs to
+    const workspacePathname = Object.keys(snapshot.workspaces).find((wp) => {
+      const ws = snapshot.workspaces[wp];
+      return ws.collectionPathnames.some((cp) => normalizePath(cp) === normalizedPath);
+    }) || '';
+
+    snapshot.collections[collection.pathname] = {
+      workspacePathname,
+      environment: {
+        collection: collection.activeEnvironmentUid || '',
+        global: globalEnvironments.activeGlobalEnvironmentUid || ''
+      },
+      isOpen: !collection.collapsed,
+      isMounted: collection.mountStatus === 'mounted'
+    };
 
     // Get transient directory for this collection to filter transient tabs
     const transientDirectory = collections.tempDirectories?.[collection.uid];
@@ -123,24 +141,26 @@ const serializeSnapshot = async (state) => {
       (t) => t.collectionUid === collection.uid && t.uid === tabs.activeTabUid && !shouldExcludeTab(t, transientDirectory)
     );
 
-    snapshot.collections.push({
-      pathname: collection.pathname,
-      environment: {
-        collection: collection.activeEnvironmentUid || '',
-        global: globalEnvironments.activeGlobalEnvironmentUid || ''
-      },
-      isOpen: !collection.collapsed,
-      isMounted: collection.mountStatus === 'mounted',
+    snapshot.tabs[collection.pathname] = {
       activeTab: serializeActiveTab(activeTabInCollection, collection),
       tabs: collectionTabs
-    });
+    };
   });
 
-  // Preserve collections from existing snapshot that aren't currently loaded in Redux
-  if (existingSnapshot?.collections) {
-    existingSnapshot.collections.forEach((existingCollection) => {
-      if (!serializedCollectionPaths.has(normalizePath(existingCollection.pathname))) {
-        snapshot.collections.push(existingCollection);
+  // Preserve collections and tabs from existing snapshot that aren't currently loaded in Redux
+  if (existingSnapshot) {
+    const existingCollections = existingSnapshot.collections || {};
+    const existingTabs = existingSnapshot.tabs || {};
+
+    Object.keys(existingCollections).forEach((pathname) => {
+      if (!serializedCollectionPaths.has(normalizePath(pathname))) {
+        snapshot.collections[pathname] = existingCollections[pathname];
+      }
+    });
+
+    Object.keys(existingTabs).forEach((pathname) => {
+      if (!serializedCollectionPaths.has(normalizePath(pathname))) {
+        snapshot.tabs[pathname] = existingTabs[pathname];
       }
     });
   }
@@ -160,7 +180,7 @@ const scheduleSave = (getState) => {
     try {
       const state = getState();
       const snapshot = await serializeSnapshot(state);
-      await ipcRenderer.invoke('renderer:save-snapshot', snapshot);
+      await ipcRenderer.invoke('renderer:snapshot:save', snapshot);
     } catch (err) {
       console.error('Failed to save snapshot:', err);
     }

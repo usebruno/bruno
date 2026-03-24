@@ -25,24 +25,25 @@ const activeTabSchema = yup.object({
   value: yup.string().required()
 });
 
+const tabsEntrySchema = yup.object({
+  activeTab: activeTabSchema.nullable(),
+  tabs: yup.array().of(tabSchema).required()
+});
+
 const collectionSchema = yup.object({
-  pathname: yup.string().required(),
+  workspacePathname: yup.string().required(),
   environment: yup.object({
     collection: yup.string(),
     global: yup.string()
   }).required(),
   isOpen: yup.boolean().required(),
-  isMounted: yup.boolean().required(),
-  activeTab: activeTabSchema.nullable(),
-  tabs: yup.array().of(tabSchema).required()
+  isMounted: yup.boolean().required()
 });
 
 const workspaceSchema = yup.object({
-  pathname: yup.string().required(),
-  activeCollectionUid: yup.string().nullable(),
-  environment: yup.string().defined(),
+  lastActiveCollectionPathname: yup.string().nullable(),
   sorting: yup.string().defined(),
-  collections: yup.array().of(yup.string()).required()
+  collectionPathnames: yup.array().of(yup.string()).required()
 });
 
 const devToolsSchema = yup.object({
@@ -53,17 +54,37 @@ const devToolsSchema = yup.object({
 });
 
 const snapshotSchema = yup.object({
-  version: yup.number().required(),
   activeWorkspacePath: yup.string().nullable(),
   extras: yup.object({
     devTools: devToolsSchema.required()
   }).required(),
-  workspaces: yup.array().of(workspaceSchema).required(),
-  collections: yup.array().of(collectionSchema).required()
+  workspaces: yup.lazy((value) =>
+    yup.object(
+      Object.keys(value || {}).reduce((acc, key) => {
+        acc[key] = workspaceSchema;
+        return acc;
+      }, {})
+    )
+  ),
+  collections: yup.lazy((value) =>
+    yup.object(
+      Object.keys(value || {}).reduce((acc, key) => {
+        acc[key] = collectionSchema;
+        return acc;
+      }, {})
+    )
+  ),
+  tabs: yup.lazy((value) =>
+    yup.object(
+      Object.keys(value || {}).reduce((acc, key) => {
+        acc[key] = tabsEntrySchema;
+        return acc;
+      }, {})
+    )
+  )
 });
 
 const emptySnapshot = {
-  version: 1,
   activeWorkspacePath: null,
   extras: {
     devTools: {
@@ -73,8 +94,9 @@ const emptySnapshot = {
       tabData: {}
     }
   },
-  workspaces: [],
-  collections: []
+  workspaces: {},
+  collections: {},
+  tabs: {}
 };
 
 class SnapshotManager {
@@ -86,13 +108,33 @@ class SnapshotManager {
     });
   }
 
+  // --- Reads ---
+
   getSnapshot() {
     return this.store.store;
   }
 
+  getActiveWorkspacePath() {
+    return this.store.get('activeWorkspacePath', null);
+  }
+
+  getWorkspace(pathname) {
+    return this.store.get(`workspaces.${this._escapeKey(pathname)}`, null);
+  }
+
+  getCollection(pathname) {
+    return this.store.get(`collections.${this._escapeKey(pathname)}`, null);
+  }
+
+  getTabs(collectionPathname) {
+    return this.store.get(`tabs.${this._escapeKey(collectionPathname)}`, null);
+  }
+
+  // --- Writes ---
+
   saveSnapshot(data) {
     try {
-      snapshotSchema.validateSync(data, { strict: true });
+      snapshotSchema.validateSync(data, { strict: false });
       this.store.store = data;
       return true;
     } catch (err) {
@@ -101,14 +143,34 @@ class SnapshotManager {
     }
   }
 
-  getWorkspace(pathname) {
-    const workspaces = this.store.get('workspaces', []);
-    return workspaces.find((w) => w.pathname === pathname) || null;
+  setActiveWorkspacePath(pathname) {
+    this.store.set('activeWorkspacePath', pathname);
   }
 
-  getCollection(pathname) {
-    const collections = this.store.get('collections', []);
-    return collections.find((c) => c.pathname === pathname) || null;
+  setWorkspace(pathname, data) {
+    this.store.set(`workspaces.${this._escapeKey(pathname)}`, data);
+  }
+
+  setCollection(pathname, data) {
+    this.store.set(`collections.${this._escapeKey(pathname)}`, data);
+  }
+
+  setTabs(collectionPathname, data) {
+    this.store.set(`tabs.${this._escapeKey(collectionPathname)}`, data);
+  }
+
+  removeWorkspace(pathname) {
+    this.store.delete(`workspaces.${this._escapeKey(pathname)}`);
+  }
+
+  removeCollection(pathname) {
+    this.store.delete(`collections.${this._escapeKey(pathname)}`);
+    this.store.delete(`tabs.${this._escapeKey(pathname)}`);
+  }
+
+  // electron-store uses dot notation for nested paths, so we need to escape dots in pathnames
+  _escapeKey(pathname) {
+    return pathname.replace(/\./g, '\\.');
   }
 }
 

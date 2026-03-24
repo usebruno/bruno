@@ -18,7 +18,6 @@ import { setSnapshotReady } from '../app';
 import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab } from '../logs';
 import { normalizePath } from 'utils/common/path';
 import { hydrateTabs, getActiveTabFromSnapshot } from 'utils/snapshot';
-import { seedActiveCollectionUidCache } from '../../middlewares/snapshot/middleware';
 import toast from 'react-hot-toast';
 
 const { ipcRenderer } = window;
@@ -357,7 +356,7 @@ export const switchWorkspace = (workspaceUid) => {
 
     // Load workspace snapshot
     const workspaceSnapshot = workspace.pathname
-      ? await ipcRenderer.invoke('renderer:get-workspace-snapshot', workspace.pathname).catch(() => null)
+      ? await ipcRenderer.invoke('renderer:snapshot:get-workspace', workspace.pathname).catch(() => null)
       : null;
 
     // Load global environments
@@ -388,9 +387,10 @@ export const switchWorkspace = (workspaceUid) => {
       dispatch(addTab({ uid: `${scratchCollection.uid}-environments`, collectionUid: scratchCollection.uid, type: 'workspaceEnvironments' }));
     }
 
-    // Restore active collection from snapshot
-    const activeCollection = workspaceSnapshot?.activeCollectionUid
-      ? getState().collections.collections.find((c) => c.uid === workspaceSnapshot.activeCollectionUid)
+    // Restore active collection from snapshot using lastActiveCollectionPathname
+    const lastActiveCollectionPathname = workspaceSnapshot?.lastActiveCollectionPathname || null;
+    const activeCollection = lastActiveCollectionPathname
+      ? getState().collections.collections.find((c) => normalizePath(c.pathname) === normalizePath(lastActiveCollectionPathname))
       : null;
 
     if (activeCollection) {
@@ -405,7 +405,7 @@ export const switchWorkspace = (workspaceUid) => {
         })).catch((err) => console.error('Failed to mount active collection:', err));
       }
 
-      // Focus the active tab from the collection snapshot
+      // Focus the active tab from the collection's tab snapshot
       const activeTab = await getActiveTabFromSnapshot(activeCollection.pathname, activeCollection);
 
       if (activeTab) {
@@ -529,10 +529,8 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
 
     let shouldSwitch = false;
     try {
-      const snapshot = await ipcRenderer.invoke('renderer:get-snapshot');
+      const snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
       const activeWorkspacePath = snapshot?.activeWorkspacePath;
-
-      seedActiveCollectionUidCache(snapshot);
 
       const currentState = getState();
       if (!currentState.app.snapshotReady && snapshot?.extras?.devTools) {

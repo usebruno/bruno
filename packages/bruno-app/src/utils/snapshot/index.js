@@ -178,12 +178,12 @@ export const hydrateTabs = async (collections, dispatch, restoreTabs) => {
 
   await Promise.all(
     collections.map(async (collection) => {
-      const collectionSnapshot = await ipcRenderer.invoke('renderer:get-collection-snapshot', collection.pathname).catch(() => null);
-      if (collectionSnapshot?.tabs?.length > 0) {
+      const tabsSnapshot = await ipcRenderer.invoke('renderer:snapshot:get-tabs', collection.pathname).catch(() => null);
+      if (tabsSnapshot?.tabs?.length > 0) {
         dispatch(restoreTabs({
           collection,
-          tabs: collectionSnapshot.tabs,
-          activeTab: collectionSnapshot.activeTab
+          tabs: tabsSnapshot.tabs,
+          activeTab: tabsSnapshot.activeTab
         }));
       }
     })
@@ -193,18 +193,18 @@ export const hydrateTabs = async (collections, dispatch, restoreTabs) => {
 export const getActiveTabFromSnapshot = async (collectionPathname, collection) => {
   const { ipcRenderer } = window;
 
-  const collectionSnapshot = await ipcRenderer.invoke('renderer:get-collection-snapshot', collectionPathname).catch(() => null);
-  if (!collectionSnapshot?.activeTab || !collectionSnapshot?.tabs?.length) return null;
+  const tabsSnapshot = await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname).catch(() => null);
+  if (!tabsSnapshot?.activeTab || !tabsSnapshot?.tabs?.length) return null;
 
-  const { accessor, value } = collectionSnapshot.activeTab;
+  const { accessor, value } = tabsSnapshot.activeTab;
   let snapshotTab = null;
 
   if (accessor === 'type') {
-    snapshotTab = collectionSnapshot.tabs.find((t) => t.type === value);
+    snapshotTab = tabsSnapshot.tabs.find((t) => t.type === value);
   } else if (accessor === 'pathname') {
-    snapshotTab = collectionSnapshot.tabs.find((t) => t.pathname === value);
+    snapshotTab = tabsSnapshot.tabs.find((t) => t.pathname === value);
   } else if (accessor === 'pathname::exampleName') {
-    snapshotTab = collectionSnapshot.tabs.find((t) => `${t.pathname}::${t.exampleName}` === value);
+    snapshotTab = tabsSnapshot.tabs.find((t) => `${t.pathname}::${t.exampleName}` === value);
   }
 
   if (!snapshotTab) return null;

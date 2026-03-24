@@ -2963,13 +2963,16 @@ export const mountCollection
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
 
             try {
-              const collectionSnapshot = await ipcRenderer.invoke('renderer:get-collection-snapshot', collectionPathname);
-              if (collectionSnapshot?.tabs?.length > 0) {
-                dispatch(restoreTabs({
-                  collectionUid,
-                  tabs: collectionSnapshot.tabs,
-                  activeTab: collectionSnapshot.activeTab
-                }));
+              const tabsSnapshot = await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname);
+              if (tabsSnapshot?.tabs?.length > 0) {
+                const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
+                if (collection) {
+                  dispatch(restoreTabs({
+                    collection,
+                    tabs: tabsSnapshot.tabs,
+                    activeTab: tabsSnapshot.activeTab
+                  }));
+                }
               }
             } catch (err) {
               console.error('Failed to restore tabs from snapshot:', err);
