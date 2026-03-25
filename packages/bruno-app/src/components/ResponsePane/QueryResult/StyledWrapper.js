@@ -53,9 +53,25 @@ const StyledWrapper = styled.div`
       border: solid 1px ${(props) => props.theme.border.border2};
       border-radius: ${(props) => props.theme.border.radius.sm};
       background-color: ${(props) => props.theme.background.base};
+      color: ${(props) => props.theme.text};
 
       &:focus {
         outline: none;
+      }
+    }
+
+    .filter-history {
+      background-color: ${(props) => props.theme.background.base};
+      border: solid 1px ${(props) => props.theme.border.border2};
+      border-radius: ${(props) => props.theme.border.radius.sm};
+      box-shadow: ${(props) => props.theme.shadow.md};
+
+      li {
+        color: ${(props) => props.theme.text};
+
+        &:hover {
+          background-color: ${(props) => props.theme.background.surface1};
+        }
       }
     }
   }

@@ -1,6 +1,9 @@
 import { debounce } from 'lodash';
 import { useTheme } from 'providers/Theme/index';
 import React, { useMemo, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { updateResponseFilterHistory, deleteResponseFilterHistoryEntry } from 'providers/ReduxStore/slices/collections';
+import { persistResponseFilterHistory } from 'providers/ReduxStore/slices/collections/actions';
 import { formatResponse, getContentType } from 'utils/common';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
 import LargeResponseWarning from '../LargeResponseWarning';
@@ -100,10 +103,12 @@ const QueryResult = ({
   selectedFormat, // one of the options in PREVIEW_FORMAT_OPTIONS
   selectedTab // 'editor' or 'preview'
 }) => {
+  const dispatch = useDispatch();
   const contentType = getContentType(headers);
   const [filter, setFilter] = useState(null);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
   const { displayedTheme } = useTheme();
+  const filterHistory = item.responseFilterHistory || [];
 
   const responseSize = useMemo(() => {
     const response = item.response || {};
@@ -137,6 +142,26 @@ const QueryResult = ({
   const debouncedResultFilterOnChange = debounce((e) => {
     setFilter(e.target.value);
   }, 250);
+
+  const handleFilterCommit = (value) => {
+    if (value && value.trim()) {
+      dispatch(updateResponseFilterHistory({
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        filter: value.trim()
+      }));
+      dispatch(persistResponseFilterHistory(collection.uid, item.uid));
+    }
+  };
+
+  const handleFilterHistoryDelete = (value) => {
+    dispatch(deleteResponseFilterHistoryEntry({
+      collectionUid: collection.uid,
+      itemUid: item.uid,
+      filter: value
+    }));
+    dispatch(persistResponseFilterHistory(collection.uid, item.uid));
+  };
 
   const previewMode = useMemo(() => {
     // Derive preview mode based on selected format
@@ -213,7 +238,7 @@ const QueryResult = ({
               />
             </div>
             {queryFilterEnabled && (
-              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={codeMirrorMode} />
+              <QueryResultFilter onChange={debouncedResultFilterOnChange} onCommit={handleFilterCommit} onDeleteHistory={handleFilterHistoryDelete} mode={codeMirrorMode} filterHistory={filterHistory} />
             )}
           </div>
         </div>

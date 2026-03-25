@@ -61,7 +61,8 @@ import {
   updateCollectionVar,
   addTransientDirectory,
   addSaveTransientRequestModal,
-  updatePathParam
+  updatePathParam,
+  hydrateResponseFilterHistory
 } from './index';
 
 import { each } from 'lodash';
@@ -2809,7 +2810,7 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
         resolve();
         return;
       }
-      const { pathname, selectedEnvironment } = collectionSnapshotData;
+      const { pathname, selectedEnvironment, requestFilterHistory } = collectionSnapshotData;
       const collection = findCollectionByPathname(state.collections.collections, pathname);
       const collectionCopy = cloneDeep(collection);
       const collectionUid = collectionCopy?.uid;
@@ -2822,13 +2823,49 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
         }
       }
 
-      // todo: add any other redux state that you want to save
+      // restore per-request filter history
+      if (requestFilterHistory && collectionUid) {
+        dispatch(hydrateResponseFilterHistory({ collectionUid, requestFilterHistory }));
+      }
 
       resolve();
     } catch (error) {
       reject(error);
     }
   });
+};
+
+/**
+ * Persists the response filter history for a collection item to the UI state snapshot on disk.
+ *
+ * @param {string|number} collectionUid - The UID of the collection containing the item.
+ * @param {string|number} itemUid - The UID of the request item whose filter history should be saved.
+ * @returns {Function} An async Redux thunk that reads current state and invokes the
+ *   `renderer:update-ui-state-snapshot` IPC channel to write the item's
+ *   `responseFilterHistory` array to disk. No Redux actions are dispatched.
+ */
+export const persistResponseFilterHistory = (collectionUid, itemUid) => async (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) return;
+
+  const item = findItemInCollection(collection, itemUid);
+  if (!item || !item.pathname) return;
+
+  const history = item.responseFilterHistory || [];
+  const { ipcRenderer } = window;
+  try {
+    await ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
+      type: 'REQUEST_FILTER_HISTORY',
+      data: {
+        collectionPath: collection.pathname,
+        itemPathname: item.pathname,
+        history
+      }
+    });
+  } catch (error) {
+    console.error('Failed to persist response filter history', error);
+  }
 };
 
 export const fetchOauth2Credentials = (payload) => async (dispatch, getState) => {

@@ -45,12 +45,26 @@ class UiStateSnapshotStore {
     this.setCollectionByPathname({ collection });
   }
 
+  updateRequestFilterHistory({ collectionPath, itemPathname, history }) {
+    const collection = this.getCollectionByPathname({ pathname: collectionPath });
+    if (!collection.requestFilterHistory) {
+      collection.requestFilterHistory = {};
+    }
+    collection.requestFilterHistory[itemPathname] = history;
+    this.setCollectionByPathname({ collection });
+  }
+
   update({ type, data }) {
     switch (type) {
-      case 'COLLECTION_ENVIRONMENT':
+      case 'COLLECTION_ENVIRONMENT': {
         const { collectionPath, environmentName } = data;
         this.updateCollectionEnvironment({ collectionPath, environmentName });
         break;
+      }
+      case 'REQUEST_FILTER_HISTORY': {
+        this.updateRequestFilterHistory(data);
+        break;
+      }
       default:
         break;
     }
