@@ -1,11 +1,9 @@
 import React from 'react';
-import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
 import { get } from 'lodash';
 import TimelineItem from './TimelineItem/index';
 import GrpcTimelineItem from './GrpcTimelineItem/index';
-import { updateTimelineExpandedItems } from 'providers/ReduxStore/slices/tabs';
 
 const getEffectiveAuthSource = (collection, item) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
