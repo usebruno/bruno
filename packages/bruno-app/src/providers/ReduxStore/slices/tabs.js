@@ -90,7 +90,6 @@ export const tabsSlice = createSlice({
         responseViewTab: null,
         responseFilter: null,
         responseFilterExpanded: false,
-        timelineExpandedItems: {},
         gqlDocsOpen: false,
         tableColumnWidths: {},
         scriptPaneTab: null,
