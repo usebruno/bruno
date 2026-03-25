@@ -115,9 +115,6 @@ const Wrapper = styled.div`
 
   .runner-section {
     font-size: ${(props) => props.theme.font.size.sm};
-    border: 1px solid ${(props) => props.theme.input.border};
-    border-radius: ${(props) => props.theme.border.radius.base};
-    padding: 0.75rem;
 
     div:has(> .single-line-editor) {
       height: 1.875rem;

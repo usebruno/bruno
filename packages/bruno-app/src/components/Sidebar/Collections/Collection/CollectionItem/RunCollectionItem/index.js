@@ -22,9 +22,6 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
   // tags for the collection run
   const tags = get(collection, 'runnerTags', { include: [], exclude: [] });
 
-  // have tags been enabled for the collection run
-  const tagsEnabled = get(collection, 'runnerTagsEnabled', false);
-
   const onSubmit = (recursive) => {
     dispatch(
       addTab({
@@ -34,7 +31,7 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
       })
     );
     if (!isCollectionRunInProgress) {
-      dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive, delay ? Number(delay) : null, tagsEnabled && tags));
+      dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive, delay ? Number(delay) : null, tags));
     }
     onClose();
   };
@@ -98,7 +95,7 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
           </div>
 
           {/* Tags for the collection run */}
-          <RunnerTags collectionUid={collection.uid} className="mb-6" radioName="modal-filter-mode" />
+          <RunnerTags collectionUid={collection.uid} className="mb-6" />
 
           <div className="flex justify-end bruno-modal-footer">
             <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-3">

@@ -3,8 +3,8 @@ import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
-import { resetCollectionRunner, updateRunnerTagsDetails } from 'providers/ReduxStore/slices/collections';
-import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading, getRequestItemsForCollectionRun } from 'utils/collections';
+import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
+import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink } from '@tabler/icons';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
@@ -81,7 +81,6 @@ export default function RunnerResults({ collection }) {
   const [delay, setDelay] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [selectedRequestItems, setSelectedRequestItems] = useState([]);
-  const [configureMode, setConfigureMode] = useState(false);
   // ref for the runner output body
   const runnerBodyRef = useRef();
 
@@ -91,15 +90,8 @@ export default function RunnerResults({ collection }) {
   // tags for the collection run
   const tags = get(collection, 'runnerTags', { include: [], exclude: [] });
 
-  // have tags been enabled for the collection run
-  const tagsEnabled = get(collection, 'runnerTagsEnabled', false);
-
   // have tags been added for the collection run
   const areTagsAdded = tags.include.length > 0 || tags.exclude.length > 0;
-
-  const requestItemsForCollectionRun = getRequestItemsForCollectionRun({ recursive: true, tags, items: collection.items });
-  const totalRequestItemsCountForCollectionRun = requestItemsForCollectionRun.length;
-  const shouldDisableCollectionRun = totalRequestItemsCountForCollectionRun <= 0;
 
   const items = cloneDeep(get(collection, 'runnerResult.items', []))
     .map((item) => {
@@ -165,23 +157,13 @@ export default function RunnerResults({ collection }) {
   }, [filteredItems]);
 
   useEffect(() => {
-    const runnerInfo = get(collection, 'runnerResult.info', {});
-    if (runnerInfo.status === 'running') {
-      setConfigureMode(false);
-    }
-  }, [collection.runnerResult]);
-
-  useEffect(() => {
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
     if (savedConfiguration) {
-      if (savedConfiguration.selectedRequestItems && configureMode) {
-        setSelectedRequestItems(savedConfiguration.selectedRequestItems);
-      }
       if (savedConfiguration.delay !== undefined && delay === null) {
         setDelay(savedConfiguration.delay);
       }
     }
-  }, [collection.runnerConfiguration, configureMode, delay]);
+  }, [collection.runnerConfiguration, delay]);
 
   const ensureCollectionIsMounted = () => {
     if (collection.mountStatus === 'mounted') {
@@ -195,13 +177,8 @@ export default function RunnerResults({ collection }) {
   };
 
   const runCollection = () => {
-    if (configureMode && selectedRequestItems.length > 0) {
-      dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, selectedRequestItems, delay));
-      dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags, selectedRequestItems));
-    } else {
-      dispatch(updateRunnerConfiguration(collection.uid, [], [], delay));
-      dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags));
-    }
+    dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, selectedRequestItems, delay));
+    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tags, selectedRequestItems));
   };
 
   const runAgain = () => {
@@ -216,7 +193,7 @@ export default function RunnerResults({ collection }) {
         runnerInfo.folderUid,
         true,
         Number(savedDelay),
-        tagsEnabled && tags,
+        tags,
         savedSelectedItems
       )
     );
@@ -228,25 +205,12 @@ export default function RunnerResults({ collection }) {
         collectionUid: collection.uid
       })
     );
-    setSelectedRequestItems([]);
-    setConfigureMode(false);
     setDelay(null);
   };
 
   const cancelExecution = () => {
     dispatch(cancelRunnerExecution(runnerInfo.cancelTokenUid));
   };
-
-  const toggleConfigureMode = () => {
-    dispatch(updateRunnerTagsDetails({ collectionUid: collection.uid, tagsEnabled: false }));
-    setConfigureMode(!configureMode);
-  };
-
-  useEffect(() => {
-    if (tagsEnabled) {
-      setConfigureMode(false);
-    }
-  }, [tagsEnabled]);
 
   const totalRequestsInCollection = getTotalRequestCountInCollection(collectionCopy);
   const filterCounts = {
@@ -279,53 +243,35 @@ export default function RunnerResults({ collection }) {
             {/* Timings */}
             <div className="runner-section-title mt-6">Timings</div>
             <div className="runner-section mt-2">
-              <div className="flex items-center justify-between gap-4">
-                <label className="flex-1">Delay between requests (ms)</label>
-                <input
-                  type="number"
-                  className="block textbox w-[60%]"
-                  placeholder="e.g. 5"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                  value={delay}
-                  onChange={(e) => setDelay(e.target.value)}
-                />
-              </div>
+              <label>Delay between requests (ms)</label>
+              <input
+                type="number"
+                className="block textbox w-full mt-2"
+                placeholder="e.g. 5"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                data-testid="runner-delay-input"
+                value={delay}
+                onChange={(e) => setDelay(e.target.value)}
+              />
             </div>
 
             {/* Filters */}
             <div className="runner-section-title mt-6">Filters</div>
             <div className="runner-section mt-2 mb-6">
               {/* Tags for the collection run */}
-              <RunnerTags collectionUid={collection.uid} className="mb-4" />
-
-              {/* Configure requests option */}
-              <div className="run-config-option flex flex-col">
-                <div className="flex gap-2">
-                  <input
-                    className="cursor-pointer"
-                    id="filter-config"
-                    type="radio"
-                    name="filter-mode"
-                    checked={configureMode}
-                    onChange={toggleConfigureMode}
-                  />
-                  <label htmlFor="filter-config" className="block">Configure requests to run</label>
-                </div>
-              </div>
+              <RunnerTags collectionUid={collection.uid} />
             </div>
 
             <div className="flex flex-row gap-2">
               <Button
                 type="submit"
-                disabled={shouldDisableCollectionRun || (configureMode && selectedRequestItems.length === 0) || isCollectionLoading}
+                disabled={selectedRequestItems.length === 0 || isCollectionLoading}
                 onClick={runCollection}
               >
-                {configureMode && selectedRequestItems.length > 0
-                  ? `Run ${selectedRequestItems.length} Selected Request${selectedRequestItems.length > 1 ? 's' : ''}`
-                  : 'Run Collection'}
+                Run {selectedRequestItems.length} Request{selectedRequestItems.length !== 1 ? 's' : ''}
               </Button>
 
               <Button type="button" variant="ghost" onClick={resetRunner}>
@@ -334,15 +280,14 @@ export default function RunnerResults({ collection }) {
             </div>
           </div>
 
-          {configureMode && (
-            <div className="run-config-panel w-1/2 border-l">
-              <RunConfigurationPanel
-                collection={collection}
-                selectedItems={selectedRequestItems}
-                setSelectedItems={setSelectedRequestItems}
-              />
-            </div>
-          )}
+          <div className="run-config-panel w-1/2 border-l">
+            <RunConfigurationPanel
+              collection={collection}
+              selectedItems={selectedRequestItems}
+              setSelectedItems={setSelectedRequestItems}
+              tags={tags}
+            />
+          </div>
         </div>
       </StyledWrapper>
     );
@@ -409,7 +354,7 @@ export default function RunnerResults({ collection }) {
         <div
           className="flex flex-col w-1/2"
         >
-          {tagsEnabled && areTagsAdded && (
+          {areTagsAdded && (
             <div className="pb-2 text-xs flex flex-row gap-1">
               Tags:
               <div className="flex flex-row items-center gap-x-2">
@@ -467,7 +412,7 @@ export default function RunnerResults({ collection }) {
                         </span>
                       )}
                     </div>
-                    {tagsEnabled && areTagsAdded && item?.tags?.length > 0 && (
+                    {areTagsAdded && item?.tags?.length > 0 && (
                       <div className="pl-7 text-xs text-muted">
                         Tags: {item.tags.filter((t) => tags.include.includes(t)).join(', ')}
                       </div>
