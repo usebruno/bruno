@@ -19,9 +19,10 @@ const getDescriptionPrefix = (variable) => {
   if (desc.includes('\'\'\'')) {
     return '@description("' + escapeDescriptionDouble(desc) + '")\n';
   }
-  const descHasNewline = desc.includes('\n') || desc.includes('\r');
+
+  const descHasNewline = desc.includes('\r\n') || desc.includes('\r') || desc.includes('\n');
   if (descHasNewline) {
-    const indented = desc.split('\n').map((line) => '  ' + line).join('\n');
+    const indented = desc.split(/\r\n|\r|\n/g).map((line) => '  ' + line).join('\n');
     return '@description(\'\'\'\n' + indented + '\n\'\'\')\n';
   }
   return '@description(\'\'\'' + desc.replace(/\\/g, '\\\\') + '\'\'\')\n';
