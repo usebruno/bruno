@@ -1,6 +1,7 @@
 import React from 'react';
 import { Validator } from 'jsonschema';
 import toast from 'react-hot-toast';
+import { parseToRgb } from 'polished';
 import themes from 'themes/index';
 import themeSchema from 'themes/schema';
 import useLocalStorage from 'hooks/useLocalStorage/index';
@@ -54,7 +55,10 @@ export const ThemeProvider = (props) => {
     if (window.ipcRenderer) {
       const isLight = effectiveTheme === 'light';
       const variantName = isLight ? themeVariantLight : themeVariantDark;
-      const themeBg = themes[variantName]?.bg || (isLight ? '#ffffff' : '#1e1e1e');
+      const rawBg = themes[variantName]?.bg || (isLight ? '#ffffff' : '#1e1e1e');
+      // Convert to hex — Electron's backgroundColor only accepts hex colors
+      const { red, green, blue } = parseToRgb(rawBg);
+      const themeBg = `#${[red, green, blue].map((c) => c.toString(16).padStart(2, '0')).join('')}`;
       window.ipcRenderer.send('renderer:theme-change', storedTheme, themeBg);
     }
   }, [storedTheme, themeVariantLight, themeVariantDark]);
