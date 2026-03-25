@@ -12,8 +12,8 @@ import { usePersistedState } from 'hooks/usePersistedState/index';
 const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2, hideTimestamp = false }) => {
   const { theme } = useTheme();
   const [isCollapsed, _toggleCollapse] = usePersistedState({
-    default: false,
-    key: `timeline-` + item.uid + '-' + collection.uid + '-' + timestamp
+    key: `timeline-${timestamp}`,
+    default: false
   });
   const [activeTab, setActiveTab] = useState('request');
   const toggleCollapse = () => _toggleCollapse((prev) => !prev);

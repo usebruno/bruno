@@ -32,6 +32,7 @@ import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
 import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
+import { PersistedScopeProvider } from 'hooks/usePersistedState/PersistedScopeProvider';
 import ResponseExample from 'components/ResponseExample';
 import WorkspaceOverview from 'components/WorkspaceHome/WorkspaceOverview';
 import Preferences from 'components/Preferences';
@@ -359,50 +360,52 @@ const RequestTabPanel = () => {
       };
 
   return (
-    <StyledWrapper
-      className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${
-        isVerticalLayout ? 'vertical-layout' : ''
-      }`}
-    >
-      <div className="pt-3 pb-3 px-4">
-        {renderQueryUrl()}
-      </div>
-      <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}>
-        <section className="request-pane">
+    <PersistedScopeProvider scope={focusedTab.uid}>
+      <StyledWrapper
+        className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${
+          isVerticalLayout ? 'vertical-layout' : ''
+        }`}
+      >
+        <div className="pt-3 pb-3 px-4">
+          {renderQueryUrl()}
+        </div>
+        <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}>
+          <section className="request-pane">
+            <div
+              className="px-4 h-full"
+              style={requestPaneStyle}
+            >
+              {renderRequestPane()}
+            </div>
+          </section>
+
           <div
-            className="px-4 h-full"
-            style={requestPaneStyle}
+            className="dragbar-wrapper"
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              resetPaneBoundaries();
+            }}
+            onMouseDown={handleDragbarMouseDown}
           >
-            {renderRequestPane()}
+            <div className="dragbar-handle" />
           </div>
+
+          <section className="response-pane flex-grow overflow-x-auto">
+            {renderResponsePane()}
+          </section>
         </section>
 
-        <div
-          className="dragbar-wrapper"
-          onDoubleClick={(e) => {
-            e.preventDefault();
-            resetPaneBoundaries();
-          }}
-          onMouseDown={handleDragbarMouseDown}
-        >
-          <div className="dragbar-handle" />
-        </div>
-
-        <section className="response-pane flex-grow overflow-x-auto">
-          {renderResponsePane()}
-        </section>
-      </section>
-
-      {item.type === 'graphql-request' ? (
-        <div className={`graphql-docs-explorer-container ${showGqlDocs ? '' : 'hidden'}`}>
-          <DocExplorer schema={schema} ref={(r) => (docExplorerRef.current = r)}>
-            <button className="mr-2" onClick={toggleDocs} aria-label="Close Documentation Explorer">
-              {'\u2715'}
-            </button>
-          </DocExplorer>
-        </div>
-      ) : null}
-    </StyledWrapper>
+        {item.type === 'graphql-request' ? (
+          <div className={`graphql-docs-explorer-container ${showGqlDocs ? '' : 'hidden'}`}>
+            <DocExplorer schema={schema} ref={(r) => (docExplorerRef.current = r)}>
+              <button className="mr-2" onClick={toggleDocs} aria-label="Close Documentation Explorer">
+                {'\u2715'}
+              </button>
+            </DocExplorer>
+          </div>
+        ) : null}
+      </StyledWrapper>
+    </PersistedScopeProvider>
   );
 };
 

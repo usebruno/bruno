@@ -29,8 +29,8 @@ const EventTypeNames = {
 
 const GrpcTimelineItem = ({ timestamp, request, response, eventType, collection, eventData, item }) => {
   const [isExpanded, onToggleExpand] = usePersistedState({
-    default: false,
-    key: `grpc-timeline-item-${collection.uid}-${item.uid}-${timestamp}`
+    key: `grpc-timeline-${timestamp}`,
+    default: false
   });
   const toggleCollapse = () => onToggleExpand(!isExpanded);
 

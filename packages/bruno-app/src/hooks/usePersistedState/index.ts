@@ -1,42 +1,48 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useState, useEffect } from 'react';
+import { usePersistedScope } from './PersistedScopeProvider';
 
 type Options<T> = {
   key: string;
   default: T;
-  clearOnUnmount: boolean;
 };
 
-export function usePersistedState<T>(options: Options<T>): [T, Dispatch<SetStateAction<T>>
-] {
+export { PersistedScopeProvider, clearPersistedScope } from './PersistedScopeProvider';
+
+export function usePersistedState<T>(options: Options<T>): [T, Dispatch<SetStateAction<T>>] {
+  const scope = usePersistedScope();
+  const storageKey = scope ? `persisted::${scope}::${options.key}` : options.key;
+
   const [state, setState] = useState<T>(options.default ?? undefined);
 
   useEffect(() => {
-    const { clearOnUnmount = false } = options;
-    const raw = localStorage.getItem(options.key);
+    const raw = localStorage.getItem(storageKey);
     const existingState = JSON.parse(raw);
 
     if (existingState !== undefined) {
       setState(existingState);
     }
 
-    if (clearOnUnmount) {
-      return () => {
-        localStorage.removeItem(options.key);
-      };
-    }
-
     return;
-  }, [options.key, options.clearOnUnmount]);
+  }, [storageKey]);
 
-  const onSet = useCallback((value: T) => {
-    setState(value);
-    let _next = value;
-    if (typeof value === 'function') {
-      _next = value(state);
-    }
-    localStorage.setItem(options.key, JSON.stringify(_next));
-  }, [options.key, state]);
+  const onSet = useCallback(
+    (value: T | ((prev: T) => T)) => {
+      let _next: T;
+      if (typeof value === 'function') {
+        setState((prev) => {
+          _next = (value as (prev: T) => T)(prev);
+          localStorage.setItem(storageKey, JSON.stringify(_next));
+          return _next;
+        });
+      } else {
+        _next = value;
+        setState(_next);
+        localStorage.setItem(storageKey, JSON.stringify(_next));
+      }
+    },
+    [storageKey]
+  );
 
   return [state, onSet];
 }
