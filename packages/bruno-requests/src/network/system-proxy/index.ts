@@ -66,16 +66,20 @@ export class SystemProxyResolver {
   }
 
   getEnvironmentVariables(): ProxyConfiguration {
-    const { http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY, no_proxy, NO_PROXY, all_proxy, ALL_PROXY } = process.env;
+    const { http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY, no_proxy, NO_PROXY, all_proxy, ALL_PROXY, grpc_proxy, GRPC_PROXY, no_grpc_proxy, NO_GRPC_PROXY } = process.env;
 
     const httpProxy = http_proxy || HTTP_PROXY || all_proxy || ALL_PROXY || '';
     const httpsProxy = https_proxy || HTTPS_PROXY || all_proxy || ALL_PROXY || '';
+    const grpcProxy = grpc_proxy || GRPC_PROXY || '';
     const noProxy = no_proxy || NO_PROXY || '';
+    const noGrpcProxy = no_grpc_proxy || NO_GRPC_PROXY || '';
 
     return {
       http_proxy: httpProxy ? normalizeProxyUrl(httpProxy) : null,
       https_proxy: httpsProxy ? normalizeProxyUrl(httpsProxy) : null,
+      grpc_proxy: grpcProxy ? normalizeProxyUrl(grpcProxy) : null,
       no_proxy: noProxy ? normalizeNoProxy(noProxy) : null,
+      no_grpc_proxy: noGrpcProxy ? normalizeNoProxy(noGrpcProxy) : null,
       source: 'environment'
     };
   }
@@ -94,7 +98,9 @@ export async function getSystemProxy(): Promise<ProxyConfiguration> {
     return {
       http_proxy: proxyEnvironmentVariables?.http_proxy || systemProxyEnvironmentVariables?.http_proxy,
       https_proxy: proxyEnvironmentVariables?.https_proxy || systemProxyEnvironmentVariables?.https_proxy,
+      grpc_proxy: proxyEnvironmentVariables?.grpc_proxy || null,
       no_proxy: proxyEnvironmentVariables?.no_proxy || systemProxyEnvironmentVariables?.no_proxy,
+      no_grpc_proxy: proxyEnvironmentVariables?.no_grpc_proxy || null,
       source: hasEnvironmentProxy ? `${systemProxyEnvironmentVariables?.source} + environment` : systemProxyEnvironmentVariables?.source
     };
   } catch (error) {

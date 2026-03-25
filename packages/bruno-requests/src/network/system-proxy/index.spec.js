@@ -24,6 +24,8 @@ describe('SystemProxyResolver Integration', () => {
     delete process.env.HTTPS_PROXY;
     delete process.env.no_proxy;
     delete process.env.NO_PROXY;
+    delete process.env.grpc_proxy;
+    delete process.env.no_grpc_proxy;
   });
 
   afterEach(() => {
@@ -46,7 +48,9 @@ describe('SystemProxyResolver Integration', () => {
       expect(result).toEqual({
         http_proxy: 'http://proxy.usebruno.com:8080',
         https_proxy: 'https://proxy.usebruno.com:8082',
+        grpc_proxy: null,
         no_proxy: null,
+        no_grpc_proxy: null,
         source: 'environment'
       });
     });
@@ -60,7 +64,9 @@ describe('SystemProxyResolver Integration', () => {
       expect(result).toEqual({
         http_proxy: 'http://proxy.usebruno.com:8081',
         https_proxy: null,
+        grpc_proxy: null,
         no_proxy: 'localhost,127.0.0.1',
+        no_grpc_proxy: null,
         source: 'environment'
       });
     });
@@ -71,7 +77,9 @@ describe('SystemProxyResolver Integration', () => {
       expect(result).toEqual({
         http_proxy: null,
         https_proxy: null,
+        grpc_proxy: null,
         no_proxy: null,
+        no_grpc_proxy: null,
         source: 'environment'
       });
     });
@@ -180,7 +188,9 @@ describe('SystemProxyResolver Integration', () => {
       expect(result).toEqual({
         http_proxy: 'http://env-proxy.usebruno.com:9090',
         https_proxy: 'https://system-proxy.usebruno.com:8443',
+        grpc_proxy: null,
         no_proxy: 'localhost',
+        no_grpc_proxy: null,
         source: 'windows-system + environment'
       });
     });
@@ -208,7 +218,9 @@ describe('SystemProxyResolver Integration', () => {
       expect(result).toEqual({
         http_proxy: 'http://system-proxy.usebruno.com:8080',
         https_proxy: 'https://system-proxy.usebruno.com:8443',
+        grpc_proxy: null,
         no_proxy: 'localhost',
+        no_grpc_proxy: null,
         source: 'macos-system'
       });
     });
@@ -234,7 +246,9 @@ describe('SystemProxyResolver Integration', () => {
       expect(result).toEqual({
         http_proxy: 'http://proxy.usebruno.com:8080',
         https_proxy: 'https://proxy.usebruno.com:8443',
+        grpc_proxy: null,
         no_proxy: null,
+        no_grpc_proxy: null,
         source: 'environment'
       });
     });
@@ -262,7 +276,9 @@ describe('SystemProxyResolver Integration', () => {
       expect(result).toEqual({
         http_proxy: null,
         https_proxy: null,
+        grpc_proxy: null,
         no_proxy: null,
+        no_grpc_proxy: null,
         source: 'macos-system'
       });
     });
