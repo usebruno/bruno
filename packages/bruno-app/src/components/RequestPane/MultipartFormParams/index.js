@@ -122,11 +122,9 @@ const MultipartFormParams = ({ item, collection }) => {
       name: 'Value',
       placeholder: 'Value',
       width: '35%',
-      render: ({ row, value, onChange, isLastEmptyRow }) => {
+      render: ({ row, value, onChange }) => {
         const isFile = row.type === 'file';
         const fileName = isFile ? getFileName(value) : null;
-        const hasTextValue = !isFile && value && value.length > 0;
-
         if (fileName) {
           return (
             <div className="flex items-center file-value-cell">
@@ -160,15 +158,13 @@ const MultipartFormParams = ({ item, collection }) => {
                 placeholder={!value ? 'Value' : ''}
               />
             </div>
-            {!hasTextValue && !isLastEmptyRow && (
-              <button
-                className="upload-btn ml-1"
-                onClick={() => handleBrowseFiles(row, onChange)}
-                title="Select file"
-              >
-                <IconUpload size={16} />
-              </button>
-            )}
+            <button
+              className="upload-btn ml-1"
+              onClick={() => handleBrowseFiles(row, onChange)}
+              title="Select file"
+            >
+              <IconUpload size={16} />
+            </button>
           </div>
         );
       }
