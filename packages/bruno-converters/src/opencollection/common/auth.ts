@@ -51,6 +51,7 @@ const fromOpenCollectionOAuth2 = (auth: AuthOAuth2): BrunoAuth => {
       bearer: null,
       digest: null,
       ntlm: null,
+      oauth1: null,
       oauth2: {
         grantType: base.grantType || 'client_credentials',
         username: base.username || null,
@@ -502,7 +503,7 @@ export const toOpenCollectionAuth = (auth: BrunoAuth | null | undefined): Auth |
         signatureEncoding: auth.oauth1?.signatureEncoding || 'HMAC-SHA1',
         privateKey: auth.oauth1?.privateKeyType === 'file'
           ? { type: 'file' as const, value: auth.oauth1?.privateKey || '' }
-          : (auth.oauth1?.privateKey || ''),
+          : { type: 'text' as const, value: auth.oauth1?.privateKey || '' },
         timestamp: auth.oauth1?.timestamp || '',
         nonce: auth.oauth1?.nonce || '',
         version: auth.oauth1?.version || '1.0',
