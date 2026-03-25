@@ -179,7 +179,7 @@ const ResponsePane = ({ item, collection }) => {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item} timelineExpandedItems={focusedTab?.timelineExpandedItems || {}} activeTabUid={activeTabUid} />;
+        return <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />;
       }
       case 'tests': {
         return (

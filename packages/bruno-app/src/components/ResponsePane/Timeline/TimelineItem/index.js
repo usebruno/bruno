@@ -7,21 +7,16 @@ import Method from './Common/Method/index';
 import Status from './Common/Status/index';
 import { RelativeTime } from './Common/Time/index';
 import StyledWrapper from './StyledWrapper';
+import { usePersistedState } from 'hooks/usePersistedState/index';
 
-const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2, hideTimestamp = false, isExpanded, onToggleExpand }) => {
+const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2, hideTimestamp = false }) => {
   const { theme } = useTheme();
-  const [localIsCollapsed, setLocalIsCollapsed] = useState(false);
+  const [isCollapsed, _toggleCollapse] = usePersistedState({
+    default: false,
+    key: `timeline-` + item.uid + '-' + collection.uid + '-' + timestamp
+  });
   const [activeTab, setActiveTab] = useState('request');
-
-  const isCollapsed = isExpanded !== undefined ? isExpanded : localIsCollapsed;
-  const toggleCollapse = () => {
-    if (onToggleExpand) {
-      // Pass !isCollapsed: if currently collapsed (isCollapsed=false), pass true to mean "expanded"
-      onToggleExpand(!isCollapsed);
-    } else {
-      setLocalIsCollapsed((prev) => !prev);
-    }
-  };
+  const toggleCollapse = () => _toggleCollapse((prev) => !prev);
   const { method, status, statusCode, statusText, url = '' } = request || {};
   const { status: responseStatus, statusCode: responseStatusCode, statusText: responseStatusText } = response || {};
   const showNetworkLogs = response.timeline && response.timeline.length > 0;

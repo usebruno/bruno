@@ -202,21 +202,6 @@ export const tabsSlice = createSlice({
         tab.docsEditing = action.payload.docsEditing;
       }
     },
-    updateTimelineExpandedItems: (state, action) => {
-      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
-
-      if (tab) {
-        const { index, isExpanded } = action.payload;
-        if (!tab.timelineExpandedItems) {
-          tab.timelineExpandedItems = {};
-        }
-        if (isExpanded) {
-          tab.timelineExpandedItems[index] = true;
-        } else {
-          delete tab.timelineExpandedItems[index];
-        }
-      }
-    },
     updateGqlDocsOpen: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -337,7 +322,6 @@ export const {
   updateResponseFilter,
   updateResponseFilterExpanded,
   updateDocsEditing,
-  updateTimelineExpandedItems,
   updateGqlDocsOpen,
   updateTableColumnWidths,
   updateScriptPaneTab,

@@ -45,17 +45,10 @@ const getEffectiveAuthSource = (collection, item) => {
   return effectiveSource;
 };
 
-const Timeline = ({ collection, item, timelineExpandedItems = {}, activeTabUid }) => {
-  const dispatch = useDispatch();
+const Timeline = ({ collection, item, activeTabUid }) => {
   // Get the effective auth source if auth mode is inherit
   const authSource = getEffectiveAuthSource(collection, item);
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
-
-  const handleToggleExpand = (index, isExpanded) => {
-    if (activeTabUid) {
-      dispatch(updateTimelineExpandedItems({ uid: activeTabUid, index, isExpanded }));
-    }
-  };
 
   // Filter timeline entries based on new rules
   const combinedTimeline = ([...(collection?.timeline || [])]).filter((obj) => {
@@ -96,8 +89,6 @@ const Timeline = ({ collection, item, timelineExpandedItems = {}, activeTabUid }
                     eventData={eventData}
                     item={item}
                     collection={collection}
-                    isExpanded={!!timelineExpandedItems[index]}
-                    onToggleExpand={(isExpanded) => handleToggleExpand(index, isExpanded)}
                   />
                 </div>
               );
@@ -112,8 +103,6 @@ const Timeline = ({ collection, item, timelineExpandedItems = {}, activeTabUid }
                   response={response}
                   item={item}
                   collection={collection}
-                  isExpanded={!!timelineExpandedItems[index]}
-                  onToggleExpand={(isExpanded) => handleToggleExpand(index, isExpanded)}
                 />
               </div>
             );
@@ -138,8 +127,6 @@ const Timeline = ({ collection, item, timelineExpandedItems = {}, activeTabUid }
                           item={item}
                           collection={collection}
                           isOauth2={true}
-                          isExpanded={!!timelineExpandedItems[`${index}-${idx}`]}
-                          onToggleExpand={(isExpanded) => handleToggleExpand(`${index}-${idx}`, isExpanded)}
                         />
                       </div>
                     ))
