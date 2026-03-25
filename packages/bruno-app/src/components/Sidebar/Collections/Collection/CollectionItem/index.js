@@ -231,7 +231,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           uid: item.uid,
           collectionUid: collectionUid,
           requestPaneTab: getDefaultRequestPaneTab(item),
-          type: 'request'
+          type: item.type,
+          pathname: item.pathname
         })
       );
     } else {
@@ -239,7 +240,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         addTab({
           uid: item.uid,
           collectionUid: collectionUid,
-          type: 'folder-settings'
+          type: 'folder-settings',
+          pathname: item.pathname
         })
       );
       if (item.collapsed) {
@@ -531,7 +533,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         addTab({
           uid: item.uid,
           collectionUid,
-          type: 'folder-settings'
+          type: 'folder-settings',
+          pathname: item.pathname
         })
       );
     }

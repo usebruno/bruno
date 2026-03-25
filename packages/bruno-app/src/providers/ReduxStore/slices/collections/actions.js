@@ -65,7 +65,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, updateResponsePaneScrollPosition, restoreTabs } from 'providers/ReduxStore/slices/tabs';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
@@ -2954,12 +2954,29 @@ export const loadLargeRequest
 export const mountCollection
   = ({ collectionUid, collectionPathname, brunoConfig }) =>
     (dispatch, getState) => {
+      const { ipcRenderer } = window;
       dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
       return new Promise(async (resolve, reject) => {
         callIpc('renderer:mount-collection', { collectionUid, collectionPathname, brunoConfig })
-          .then((transientDirPath) => {
+          .then(async (transientDirPath) => {
             dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
+
+            try {
+              const tabsSnapshot = await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname);
+              if (tabsSnapshot?.tabs?.length > 0) {
+                const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
+                if (collection) {
+                  dispatch(restoreTabs({
+                    collection,
+                    tabs: tabsSnapshot.tabs,
+                    activeTab: tabsSnapshot.activeTab
+                  }));
+                }
+              }
+            } catch (err) {
+              console.error('Failed to restore tabs from snapshot:', err);
+            }
           })
           .then(resolve)
           .catch(() => {
