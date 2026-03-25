@@ -58,8 +58,7 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
       const args = vmArgs.map((a) => vm.dump(a));
       return marshallToVm(nativeList[methodName](...args), vm);
     });
-    vm.setProp(targetObj, methodName, fn);
-    fn.dispose();
+    fn.consume((handle) => vm.setProp(targetObj, methodName, handle));
   }
 
   // Sync read object methods — need cleanCircularJson
@@ -68,8 +67,7 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
       const args = vmArgs.map((a) => vm.dump(a));
       return marshallToVm(cleanCircularJson(nativeList[methodName](...args)), vm);
     });
-    vm.setProp(targetObj, methodName, fn);
-    fn.dispose();
+    fn.consume((handle) => vm.setProp(targetObj, methodName, handle));
   }
 
   // Async write methods — _prefix bridge pattern

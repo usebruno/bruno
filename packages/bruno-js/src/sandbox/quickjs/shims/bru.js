@@ -353,7 +353,7 @@ const addBruShimToContext = (vm, bru) => {
   const { evalCode: cookiesEvalCode } = createPropertyListBridge(vm, bru.cookies, bruCookiesObject, {
     globalPath: 'globalThis.bru.cookies',
     syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
-    syncReadObjectMethods: ['one', 'all', 'idx'],
+    syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
     asyncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'delete'],
     withIterators: true
   });

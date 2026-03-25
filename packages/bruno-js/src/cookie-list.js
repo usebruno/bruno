@@ -1,17 +1,78 @@
 const PropertyList = require('./property-list');
 
 /**
- * CookieList - A PropertyList subclass for cookie management.
+ * CookieList — the `bru.cookies` API for reading and writing cookies in scripts.
  *
- * All read/iteration/search/transformation methods (get, one, all, idx, count,
- * indexOf, has, find, filter, each, map, reduce, toObject, toString, toJSON)
- * are inherited from ReadOnlyPropertyList in dynamic mode.
+ * Extends PropertyList in dynamic mode: the cookie list is freshly read from the
+ * cookie jar on every access, and write operations delegate to the jar rather
+ * than mutating an in-memory array.
  *
- * Write methods (add, upsert, remove, clear, delete) override PropertyList's
- * sync mutations with async cookie jar delegation.
+ * ---
  *
- * jar() provides direct access to the underlying cookie jar with URL
- * interpolation applied to all URL arguments.
+ * ## Cookie object shape
+ *
+ * Every cookie surfaced by this list is a plain object:
+ *
+ * ```js
+ * { key, value, domain, path, secure, httpOnly, expires }
+ * ```
+ *
+ * ---
+ *
+ * ## Read methods (inherited from ReadOnlyPropertyList)
+ *
+ * | Method             | Description                                      | Example return value                  |
+ * |--------------------|--------------------------------------------------|---------------------------------------|
+ * | `get(name)`        | Value of the first cookie with `key === name`    | `'abc123'`                            |
+ * | `one(name)`        | Full cookie object for `key === name`            | `{ key: 'sid', value: 'abc123', … }`  |
+ * | `all()`            | Cloned array of all cookie objects               | `[{ key: 'sid', … }, …]`             |
+ * | `idx(index)`       | Cookie at positional index                       | `{ key: 'sid', … }`                   |
+ * | `count()`          | Number of cookies for the current request URL    | `3`                                   |
+ *
+ * ## Search methods (inherited)
+ *
+ * | Method             | Description                                      | Example return value |
+ * |--------------------|--------------------------------------------------|----------------------|
+ * | `has(name)`        | `true` if a cookie with that key exists          | `true`               |
+ * | `has(name, value)` | `true` if key exists **and** value matches        | `false`              |
+ * | `find(predicate)`  | First cookie matching the predicate function     | `{ key: 'sid', … }` |
+ * | `filter(predicate)`| Array of cookies matching the predicate          | `[{ key: … }, …]`   |
+ * | `indexOf(item)`    | Index of a structurally-equal cookie, or `-1`    | `0`                  |
+ *
+ * ## Iteration methods (inherited)
+ *
+ * | Method                  | Description                                  |
+ * |-------------------------|----------------------------------------------|
+ * | `each(fn)`              | Calls `fn(cookie, index)` for every cookie   |
+ * | `map(fn)`               | Returns a new array of mapped values         |
+ * | `reduce(fn, initial?)`  | Reduces cookies to a single value            |
+ *
+ * ## Transform methods (inherited)
+ *
+ * | Method        | Description                                         | Example return value               |
+ * |---------------|-----------------------------------------------------|-------------------------------------|
+ * | `toObject()`  | `{ key: value }` map of all cookies                 | `{ sid: 'abc123', lang: 'en' }`     |
+ * | `toString()`  | Semicolon-separated `key=value` string               | `'sid=abc123; lang=en'`             |
+ * | `toJSON()`    | Same as `all()` — suitable for `JSON.stringify()`    | `[{ key: 'sid', … }]`              |
+ *
+ * ## Write methods (CookieList overrides)
+ *
+ * | Method                   | Description                                          |
+ * |--------------------------|------------------------------------------------------|
+ * | `add(cookieObj, cb?)`    | Alias for `upsert()` — sets a cookie in the jar      |
+ * | `upsert(cookieObj, cb?)` | Sets (or replaces) a cookie in the jar                |
+ * | `remove(name, cb?)`      | Deletes a single cookie by name (no-op if missing)    |
+ * | `delete(name, cb?)`      | Alias for `remove()`                                  |
+ * | `clear(cb?)`             | Removes **all** cookies for the current request URL   |
+ *
+ * ## Jar access
+ *
+ * | Method  | Description                                                              |
+ * |---------|--------------------------------------------------------------------------|
+ * | `jar()` | Returns a jar handle with URL interpolation for cross-URL cookie access  |
+ *
+ * The jar handle exposes: `getCookie`, `getCookies`, `setCookie`, `setCookies`,
+ * `deleteCookie`, `deleteCookies`, `hasCookie`, and `clear`.
  */
 class CookieList extends PropertyList {
   /**
@@ -42,10 +103,35 @@ class CookieList extends PropertyList {
 
   // ── Write methods (cookie jar delegation) ─────────────────────────────
 
+  /**
+   * Add a cookie to the jar (alias for {@link CookieList#upsert}).
+   *
+   * @param {object} cookieObj - Cookie object with at least `key` and `value`.
+   * @param {Function} [callback] - Optional `(error) => void` callback. If omitted, returns a Promise.
+   * @returns {Promise<void>|void} A Promise when no callback is given.
+   * @example
+   * // Promise usage
+   * await bru.cookies.add({ key: 'lang', value: 'en' });
+   *
+   * // Callback usage
+   * bru.cookies.add({ key: 'lang', value: 'en' }, (err) => { if (err) throw err; });
+   */
   add(cookieObj, callback) {
     return this.upsert(cookieObj, callback);
   }
 
+  /**
+   * Set (or replace) a cookie in the jar for the current request URL.
+   *
+   * If a cookie with the same key already exists for this URL, it is overwritten.
+   * Rejects with an error if `cookieObj` is not a non-null object.
+   *
+   * @param {object} cookieObj - Cookie object with at least `key` and `value`.
+   * @param {Function} [callback] - Optional `(error) => void` callback. If omitted, returns a Promise.
+   * @returns {Promise<void>|void} A Promise when no callback is given.
+   * @example
+   * await bru.cookies.upsert({ key: 'sid', value: 'abc123', secure: true });
+   */
   upsert(cookieObj, callback) {
     if (!cookieObj || typeof cookieObj !== 'object') {
       const error = new Error('cookieObj must be a non-null object');
@@ -61,8 +147,18 @@ class CookieList extends PropertyList {
     return jar.setCookie(url, cookieObj, callback);
   }
 
-  // Removing a non-existent or empty-named cookie is a no-op (like Map.delete),
-  // unlike upsert() which rejects invalid input since it's a programming error.
+  /**
+   * Remove a single cookie by name from the current request URL.
+   *
+   * A no-op if `name` is falsy or if no cookie with that name exists
+   * (analogous to `Map.prototype.delete`).
+   *
+   * @param {string} name - The cookie key to remove.
+   * @param {Function} [callback] - Optional `(error) => void` callback. If omitted, returns a Promise.
+   * @returns {Promise<void>|void} A Promise when no callback is given.
+   * @example
+   * await bru.cookies.remove('sid');
+   */
   remove(name, callback) {
     const url = this._getUrl();
     if (!url || !name) {
@@ -88,12 +184,45 @@ class CookieList extends PropertyList {
     return jar.deleteCookies(url, callback);
   }
 
+  /**
+   * Delete a cookie by name (alias for {@link CookieList#remove}).
+   *
+   * @param {string} name - The cookie key to delete.
+   * @param {Function} [callback] - Optional `(error) => void` callback. If omitted, returns a Promise.
+   * @returns {Promise<void>|void} A Promise when no callback is given.
+   * @example
+   * await bru.cookies.delete('sid');
+   */
   delete(name, callback) {
     return this.remove(name, callback);
   }
 
   // ── Cookie-specific method ────────────────────────────────────────────
 
+  /**
+   * Returns a jar handle for cross-URL cookie operations.
+   *
+   * Unlike the CookieList methods (which are scoped to the current request URL),
+   * the jar handle lets you read/write cookies for **any** URL. All URL arguments
+   * are automatically interpolated with environment/collection variables.
+   *
+   * @returns {{ getCookie, getCookies, setCookie, setCookies, deleteCookie, deleteCookies, hasCookie, clear }}
+   * @example
+   * const jar = bru.cookies.jar();
+   *
+   * // Read a cookie from a different URL
+   * const token = await jar.getCookie('{{authBaseUrl}}/login', 'access_token');
+   *
+   * // Set a cookie on a specific URL
+   * await jar.setCookie('{{apiBaseUrl}}', { key: 'sid', value: 'abc' });
+   * await jar.setCookie('{{apiBaseUrl}}', 'theme', 'dark');
+   *
+   * // Check if a cookie exists
+   * const exists = await jar.hasCookie('{{apiBaseUrl}}', 'sid');
+   *
+   * // Clear ALL cookies globally
+   * await jar.clear();
+   */
   jar() {
     const cookieJar = this._createCookieJar();
 
