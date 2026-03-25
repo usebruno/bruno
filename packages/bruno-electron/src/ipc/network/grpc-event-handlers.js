@@ -10,9 +10,83 @@ const path = require('node:path');
 const prepareGrpcRequest = require('./prepare-grpc-request');
 const { normalizeAndResolvePath } = require('../../utils/filesystem');
 const { configureRequest } = require('./prepare-grpc-request');
+const { shouldUseProxy } = require('../../utils/proxy-util');
 
 // Creating grpcClient at module level so it can be accessed from window-all-closed event
 let grpcClient;
+
+/**
+ * Resolve proxy configuration for gRPC requests.
+ * @grpc/grpc-js only supports HTTP protocol proxies (HTTP CONNECT tunneling).
+ * SOCKS and HTTPS proxy protocols are not supported.
+ *
+ * Always returns an object so that @grpc/grpc-js's built-in env var proxy
+ * (grpc_proxy/http_proxy/https_proxy) is disabled — Bruno controls all proxy behavior.
+ *
+ * @param {string} proxyMode - 'on', 'system', or 'off'
+ * @param {Object} proxyConfig - Raw proxy config from getCertsAndProxyConfig
+ * @param {string} requestUrl - The gRPC request URL
+ * @param {Object} interpolationOptions - Variable interpolation options
+ * @returns {{ proxyUrl: string | null }}
+ */
+const resolveGrpcProxyConfig = (proxyMode, proxyConfig, requestUrl, interpolationOptions) => {
+  if (proxyMode === 'on') {
+    const shouldProxy = shouldUseProxy(requestUrl, get(proxyConfig, 'bypassProxy', ''));
+    if (!shouldProxy) return { proxyUrl: null };
+
+    const protocol = interpolateString(get(proxyConfig, 'protocol', ''), interpolationOptions) || '';
+    if (protocol.includes('socks') || protocol === 'https') {
+      console.warn(`gRPC proxy: "${protocol}" protocol not supported. Only HTTP proxies are supported for gRPC connections.`);
+      return { proxyUrl: null };
+    }
+
+    const hostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
+    const port = interpolateString(String(get(proxyConfig, 'port', '')), interpolationOptions);
+    const authEnabled = !get(proxyConfig, 'auth.disabled', false);
+    const portStr = port ? `:${port}` : '';
+
+    if (authEnabled) {
+      const username = encodeURIComponent(
+        interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions)
+      );
+      const password = encodeURIComponent(
+        interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions)
+      );
+      return { proxyUrl: `http://${username}:${password}@${hostname}${portStr}` };
+    }
+    return { proxyUrl: `http://${hostname}${portStr}` };
+  }
+
+  if (proxyMode === 'system') {
+    const { http_proxy, https_proxy, grpc_proxy, no_proxy, no_grpc_proxy } = proxyConfig || {};
+    // Prefer gRPC-specific no_grpc_proxy over general no_proxy
+    const noProxyList = no_grpc_proxy || no_proxy || '';
+    const shouldProxy = shouldUseProxy(requestUrl, noProxyList);
+    if (!shouldProxy) return { proxyUrl: null };
+
+    // Prefer grpc_proxy (gRPC-specific) over general http/https proxy
+    // This matches @grpc/grpc-js precedence: grpc_proxy > https_proxy > http_proxy
+    const systemProxy = grpc_proxy || https_proxy || http_proxy;
+    if (!systemProxy) return { proxyUrl: null };
+
+    try {
+      const parsed = new URL(systemProxy);
+      if (parsed.protocol !== 'http:') {
+        console.warn(
+          `gRPC proxy: "${parsed.protocol}" system proxy protocol not supported. Only HTTP proxies are supported for gRPC connections.`
+        );
+        return { proxyUrl: null };
+      }
+      return { proxyUrl: systemProxy };
+    } catch (e) {
+      console.warn('Invalid system proxy URL for gRPC:', systemProxy);
+      return { proxyUrl: null };
+    }
+  }
+
+  // proxyMode is 'off' — no proxy, but still disable env var proxy
+  return { proxyUrl: null };
+};
 
 /**
  * Extract protobuf include directories from collection config
@@ -84,8 +158,8 @@ const registerGrpcEventHandlers = (window) => {
         certsAndProxyConfig
       );
 
-      // Extract certificate information from the config
-      const { httpsAgentRequestFields } = certsAndProxyConfig;
+      // Extract certificate and proxy information from the config
+      const { httpsAgentRequestFields, proxyMode, proxyConfig, interpolationOptions } = certsAndProxyConfig;
 
       // Configure verify options
       const verifyOptions = {
@@ -99,6 +173,9 @@ const registerGrpcEventHandlers = (window) => {
       const passphrase = httpsAgentRequestFields.passphrase;
       const pfx = httpsAgentRequestFields.pfx;
 
+      // Resolve proxy configuration for gRPC
+      const grpcProxyConfig = resolveGrpcProxyConfig(proxyMode, proxyConfig, preparedRequest.url, interpolationOptions);
+
       const requestSent = {
         type: 'request',
         url: preparedRequest.url,
@@ -106,12 +183,16 @@ const registerGrpcEventHandlers = (window) => {
         methodType: preparedRequest.methodType,
         headers: preparedRequest.headers,
         body: preparedRequest.body,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        proxy: {
+          mode: proxyMode,
+          url: grpcProxyConfig.proxyUrl || null
+        }
       };
 
       const includeDirs = getProtobufIncludeDirs(collection);
 
-      // Start gRPC connection with the processed request and certificates
+      // Start gRPC connection with the processed request, certificates, and proxy
       await grpcClient.startConnection({
         request: preparedRequest,
         collection,
@@ -121,7 +202,8 @@ const registerGrpcEventHandlers = (window) => {
         passphrase,
         pfx,
         verifyOptions,
-        includeDirs
+        includeDirs,
+        proxyConfig: grpcProxyConfig
       });
 
       sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);
@@ -236,8 +318,8 @@ const registerGrpcEventHandlers = (window) => {
         certsAndProxyConfig
       );
 
-      // Extract certificate information from the config
-      const { httpsAgentRequestFields } = certsAndProxyConfig;
+      // Extract certificate and proxy information from the config
+      const { httpsAgentRequestFields, proxyMode, proxyConfig, interpolationOptions } = certsAndProxyConfig;
 
       // Configure verify options
       const verifyOptions = {
@@ -250,6 +332,9 @@ const registerGrpcEventHandlers = (window) => {
       const certificateChain = httpsAgentRequestFields.cert;
       const passphrase = httpsAgentRequestFields.passphrase;
       const pfx = httpsAgentRequestFields.pfx;
+
+      // Resolve proxy configuration for gRPC
+      const grpcProxyConfig = resolveGrpcProxyConfig(proxyMode, proxyConfig, preparedRequest.url, interpolationOptions);
 
       // Send OAuth credentials update if available
       if (preparedRequest?.oauth2Credentials) {
@@ -272,7 +357,8 @@ const registerGrpcEventHandlers = (window) => {
         passphrase,
         pfx,
         verifyOptions,
-        sendEvent
+        sendEvent,
+        proxyConfig: grpcProxyConfig
       });
 
       return { success: true, methods: safeParseJSON(safeStringifyJSON(methods)) };

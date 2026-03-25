@@ -10,7 +10,8 @@ import {
   IconCircleCheck,
   IconCircleX,
   IconX,
-  IconSend
+  IconSend,
+  IconArrowsRightLeft
 } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
@@ -74,6 +75,28 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       case 'request':
         return (
           <div className="content-request">
+            {effectiveRequest.proxy && effectiveRequest.proxy.mode !== 'off' && (
+              <div>
+                <div className="content-request-label mb-1">
+                  <IconArrowsRightLeft size={14} strokeWidth={1.5} className="inline-block mr-1" />
+                  Proxy
+                </div>
+                <div className="content-box">
+                  {effectiveRequest.proxy.url ? (
+                    <div>
+                      Using {effectiveRequest.proxy.mode === 'system' ? 'system ' : ''}proxy: {effectiveRequest.proxy.url}
+                    </div>
+                  ) : (
+                    <div className="empty-text">
+                      {effectiveRequest.proxy.mode === 'system'
+                        ? 'No system proxy configured for this request'
+                        : 'Proxy enabled but not applicable for this request'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {effectiveRequest.headers && Object.keys(effectiveRequest.headers).length > 0 && (
               <div>
                 <div className="content-request-label mb-1">Metadata</div>
