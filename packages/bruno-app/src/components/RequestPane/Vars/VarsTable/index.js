@@ -13,7 +13,6 @@ import { variableNameRegex } from 'utils/common/regex';
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -44,6 +43,26 @@ const VarsTable = ({ item, collection, vars, varType }) => {
     return null;
   }, []);
 
+  const descriptionColumn = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ value, onChange, rowIndex }) => (
+      <MultiLineEditor
+        value={value || ''}
+        name={`${rowIndex}.description`}
+        theme={storedTheme}
+        onSave={onSave}
+        onChange={onChange}
+        allowNewlines={true}
+        onRun={handleRun}
+        collection={collection}
+        item={item}
+      />
+    )
+  };
+
   const columns = [
     {
       key: 'name',
@@ -61,9 +80,10 @@ const VarsTable = ({ item, collection, vars, varType }) => {
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
-      render: ({ value, onChange }) => (
+      render: ({ value, onChange, rowIndex }) => (
         <MultiLineEditor
           value={value || ''}
+          name={`${rowIndex}.value`}
           theme={storedTheme}
           onSave={onSave}
           onChange={onChange}
@@ -73,12 +93,14 @@ const VarsTable = ({ item, collection, vars, varType }) => {
           placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
     name: '',
     value: '',
+    description: '',
     ...(varType === 'response' ? { local: false } : {})
   };
 

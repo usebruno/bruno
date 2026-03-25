@@ -1,0 +1,9 @@
+{
+  "collections": {
+    "{{collectionPath}}": {
+      "brunoConfig": {
+        "jsSandboxMode": "safe"
+      }
+    }
+  }
+}

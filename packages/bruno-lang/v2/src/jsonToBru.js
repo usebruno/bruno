@@ -6,6 +6,56 @@ const jsonToExampleBru = require('./example/jsonToBru');
 const enabled = (items = [], key = 'enabled') => items.filter((item) => item[key]);
 const disabled = (items = [], key = 'enabled') => items.filter((item) => !item[key]);
 
+/** JSON-style escape for use inside double-quoted @description("..."). */
+const escapeDescriptionDouble = (s) =>
+  String(s)
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t');
+
+/**
+ * Emit @description as a prefix line before a key:value pair.
+ *
+ * Normal forms:
+ *   Single-line:  @description('''desc''')
+ *   Multiline:    @description('''
+ *                   line1
+ *                   line2
+ *                 ''')
+ *
+ * Fallback form (when description itself contains '''):
+ *   @description("line1\nline2\nline3")
+ *
+ *   The triple-quoted grammar rule is  descriptionTripleContent = (~"'''" any)*
+ *   so the parser treats the first ''' it encounters as the closing delimiter —
+ *   there is no escape mechanism inside '''...'''. The double-quoted form is the
+ *   only safe representation, with newlines encoded as \n escape sequences.
+ *
+ *   This is a known readability trade-off: a long multiline description that
+ *   contains ''' (e.g. Python docstrings, SQL literals, bru format examples)
+ *   will appear as a single opaque escaped line in the file. Fixing it cleanly
+ *   would require a grammar change to introduce an escape for ''' inside the
+ *   triple-quoted block (e.g. \'\'\').
+ *
+ * Note: leading/trailing newlines in the description are stripped by .trim()
+ * before serialization, so they will not survive a save/reload cycle.
+ */
+const getDescriptionPrefix = (item) => {
+  const desc = item && item.description && String(item.description).trim();
+  if (!desc) return '';
+  if (desc.includes('\'\'\'')) {
+    return '@description("' + escapeDescriptionDouble(desc) + '")\n';
+  }
+  const descHasNewline = desc.includes('\n') || desc.includes('\r');
+  if (descHasNewline) {
+    const indented = desc.split('\n').map((line) => '  ' + line).join('\n');
+    return '@description(\'\'\'\n' + indented + '\n\'\'\')\n';
+  }
+  return '@description(\'\'\'' + desc.replace(/\\/g, '\\\\') + '\'\'\')\n';
+};
+
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
   if (!text || !text.length) return text;
@@ -128,7 +178,7 @@ const jsonToBru = (json) => {
       if (enabled(queryParams).length) {
         bru += `\n${indentString(
           enabled(queryParams)
-            .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `${getDescriptionPrefix(item)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
             .join('\n')
         )}`;
       }
@@ -136,7 +186,7 @@ const jsonToBru = (json) => {
       if (disabled(queryParams).length) {
         bru += `\n${indentString(
           disabled(queryParams)
-            .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `${getDescriptionPrefix(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
             .join('\n')
         )}`;
       }
@@ -147,7 +197,7 @@ const jsonToBru = (json) => {
     if (pathParams.length) {
       bru += 'params:path {';
 
-      bru += `\n${indentString(pathParams.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(pathParams.map((item) => `${getDescriptionPrefix(item)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
 
       bru += '\n}\n\n';
     }
@@ -158,7 +208,7 @@ const jsonToBru = (json) => {
     if (enabled(headers).length) {
       bru += `\n${indentString(
         enabled(headers)
-          .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${getDescriptionPrefix(item)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -166,7 +216,7 @@ const jsonToBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
-          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${getDescriptionPrefix(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -506,14 +556,14 @@ ${indentString(body.sparql)}
 
     if (enabled(body.formUrlEncoded).length) {
       const enabledValues = enabled(body.formUrlEncoded)
-        .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+        .map((item) => `${getDescriptionPrefix(item)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(enabledValues)}\n`;
     }
 
     if (disabled(body.formUrlEncoded).length) {
       const disabledValues = disabled(body.formUrlEncoded)
-        .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+        .map((item) => `${getDescriptionPrefix(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(disabledValues)}\n`;
     }
@@ -529,12 +579,13 @@ ${indentString(body.sparql)}
       bru += `\n${indentString(
         multipartForms
           .map((item) => {
-            const enabled = item.enabled ? '' : '~';
+            const enabledPrefix = item.enabled ? '' : '~';
             const contentType
               = item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
+            const descPrefix = getDescriptionPrefix(item);
 
             if (item.type === 'text') {
-              return `${enabled}${getKeyString(item.name)}: ${getValueString(item.value)}${contentType}`;
+              return `${descPrefix}${enabledPrefix}${getKeyString(item.name)}: ${getValueString(item.value)}${contentType}`;
             }
 
             if (item.type === 'file') {
@@ -542,7 +593,7 @@ ${indentString(body.sparql)}
               const filestr = filepaths.join('|');
 
               const value = `@file(${filestr})`;
-              return `${enabled}${getKeyString(item.name)}: ${value}${contentType}`;
+              return `${descPrefix}${enabledPrefix}${getKeyString(item.name)}: ${value}${contentType}`;
             }
           })
           .join('\n')
@@ -641,19 +692,19 @@ ${indentString(body.sparql)}
     bru += `vars:pre-request {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => `${getDescriptionPrefix(item)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => `${getDescriptionPrefix(item)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => `${getDescriptionPrefix(item)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => `${getDescriptionPrefix(item)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -667,19 +718,19 @@ ${indentString(body.sparql)}
     bru += `vars:post-response {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => `${getDescriptionPrefix(item)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => `${getDescriptionPrefix(item)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => `${getDescriptionPrefix(item)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => `${getDescriptionPrefix(item)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -691,7 +742,7 @@ ${indentString(body.sparql)}
     if (enabled(assertions).length) {
       bru += `\n${indentString(
         enabled(assertions)
-          .map((item) => `${item.name}: ${getValueString(item.value)}`)
+          .map((item) => `${getDescriptionPrefix(item)}${item.name}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -699,7 +750,7 @@ ${indentString(body.sparql)}
     if (disabled(assertions).length) {
       bru += `\n${indentString(
         disabled(assertions)
-          .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${getDescriptionPrefix(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }

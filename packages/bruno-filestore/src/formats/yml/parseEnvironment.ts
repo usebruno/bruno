@@ -15,7 +15,7 @@ const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | 
 
   return variables.map((v): BrunoEnvironmentVariable => {
     if (isSecretVariable(v)) {
-      return {
+      const secretVar: BrunoEnvironmentVariable = {
         uid: uuid(),
         name: ensureString(v.name),
         value: '',
@@ -23,6 +23,10 @@ const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | 
         enabled: v.disabled !== true,
         secret: true
       };
+      if (v.description != null) {
+        secretVar.description = ensureString(v.description);
+      }
+      return secretVar;
     }
     const variable: BrunoEnvironmentVariable = {
       uid: uuid(),
@@ -32,6 +36,9 @@ const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | 
       enabled: v.disabled !== true,
       secret: false
     };
+    if (v.description != null) {
+      variable.description = ensureString(v.description);
+    }
     return variable;
   });
 };

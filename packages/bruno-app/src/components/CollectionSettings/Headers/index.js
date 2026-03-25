@@ -5,6 +5,7 @@ import { useTheme } from 'providers/Theme';
 import { setCollectionHeaders } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
@@ -49,6 +50,23 @@ const Headers = ({ collection }) => {
     return null;
   }, []);
 
+  const descriptionColumn = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ value, onChange }) => (
+      <MultiLineEditor
+        value={value || ''}
+        theme={storedTheme}
+        onSave={handleSave}
+        onChange={onChange}
+        allowNewlines={true}
+        collection={collection}
+      />
+    )
+  };
+
   const columns = [
     {
       key: 'name',
@@ -83,7 +101,8 @@ const Headers = ({ collection }) => {
           placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
@@ -120,7 +139,7 @@ const Headers = ({ collection }) => {
         defaultRow={defaultRow}
         getRowError={getRowError}
       />
-      <div className="flex justify-end mt-2">
+      <div className="flex justify-end mt-2 gap-2">
         <button className="text-link select-none" onClick={toggleBulkEditMode}>
           Bulk Edit
         </button>

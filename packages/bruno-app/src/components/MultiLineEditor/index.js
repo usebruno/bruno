@@ -105,6 +105,7 @@ class MultiLineEditor extends Component {
       if (this.props.onChange) {
         this.props.onChange(this.cachedValue);
       }
+      requestAnimationFrame(() => this.editor?.refresh());
     }
   };
 
@@ -165,6 +166,7 @@ class MultiLineEditor extends Component {
         this.editor.setValue(nextValue);
         this.editor.setCursor(cursor);
       }
+      requestAnimationFrame(() => this.editor?.refresh());
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
       // If the secret flag has changed, update the editor to reflect the change
@@ -226,7 +228,7 @@ class MultiLineEditor extends Component {
   render() {
     const wrapperClass = `multi-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`;
     return (
-      <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
+      <div data-testid={`test-multiline-editor-${this.props.name}`} className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
         <StyledWrapper ref={this.editorRef} className={wrapperClass} />
         {this.secretEye(this.props.isSecret)}
       </div>

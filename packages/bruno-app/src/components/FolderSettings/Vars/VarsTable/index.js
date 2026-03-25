@@ -13,7 +13,6 @@ import { setFolderVars } from 'providers/ReduxStore/slices/collections/index';
 const VarsTable = ({ folder, collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-
   const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
 
   const handleVarsChange = useCallback((updatedVars) => {
@@ -34,6 +33,25 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
     return null;
   }, []);
 
+  const descriptionColumn = {
+    key: 'description',
+    name: 'Description',
+    placeholder: 'Description',
+    width: '25%',
+    render: ({ value, onChange, rowIndex }) => (
+      <MultiLineEditor
+        value={value || ''}
+        name={`${rowIndex}.description`}
+        theme={storedTheme}
+        onSave={onSave}
+        onChange={onChange}
+        allowNewlines={true}
+        collection={collection}
+        item={folder}
+      />
+    )
+  };
+
   const columns = [
     {
       key: 'name',
@@ -51,9 +69,10 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
-      render: ({ value, onChange }) => (
+      render: ({ value, onChange, rowIndex }) => (
         <MultiLineEditor
           value={value || ''}
+          name={`${rowIndex}.value`}
           theme={storedTheme}
           onSave={onSave}
           onChange={onChange}
@@ -62,12 +81,14 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
           placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
     name: '',
     value: '',
+    description: '',
     ...(varType === 'response' ? { local: false } : {})
   };
 

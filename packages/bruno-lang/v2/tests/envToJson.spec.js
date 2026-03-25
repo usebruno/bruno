@@ -35,6 +35,61 @@ vars {
     expect(output).toEqual(expected);
   });
 
+  it('should parse @description in vars', () => {
+    const input = `
+vars {
+  @description('''Base API URL.''')
+  url: http://localhost:3000
+  @description("Server port")
+  port: 3000
+}`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true,
+          secret: false,
+          description: 'Base API URL.'
+        },
+        {
+          name: 'port',
+          value: '3000',
+          enabled: true,
+          secret: false,
+          description: 'Server port'
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse disabled variable with @description', () => {
+    const input = `
+vars {
+  @description("Disabled base URL")
+  ~url: http://localhost:3000
+}`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: false,
+          secret: false,
+          description: 'Disabled base URL'
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
   it('should parse multiple var lines', () => {
     const input = `
 vars {
@@ -391,6 +446,86 @@ vars {
     expect(output).toEqual(expected);
   });
 
+  it('should parse @description with emoji', () => {
+    const input = `
+vars {
+  @description('''API key 🔐 required''')
+  token: secret
+  @description('''Region 🌍 selector''')
+  region: us-east
+}`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'token',
+          value: 'secret',
+          enabled: true,
+          secret: false,
+          description: 'API key 🔐 required'
+        },
+        {
+          name: 'region',
+          value: 'us-east',
+          enabled: true,
+          secret: false,
+          description: 'Region 🌍 selector'
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse @description with double-quoted \\n escape sequence as LF', () => {
+    const input = `
+vars {
+  @description("First\\nSecond\\nThird")
+  note: val
+}`;
+
+    const output = parser(input);
+    expect(output.variables[0]).toMatchObject({
+      name: 'note',
+      value: 'val',
+      description: 'First\nSecond\nThird'
+    });
+  });
+
+  it('should parse @description with double-quoted \\r\\n escape sequence as CRLF', () => {
+    const input = `
+vars {
+  @description("Line one\\r\\nLine two")
+  note: val
+}`;
+
+    const output = parser(input);
+    expect(output.variables[0]).toMatchObject({
+      name: 'note',
+      value: 'val',
+      description: 'Line one\r\nLine two'
+    });
+  });
+
+  it('should parse triple-quoted @description with literal newlines', () => {
+    const input = `
+vars {
+  @description('''
+    Line one
+    Line two
+  ''')
+  note: val
+}`;
+
+    const output = parser(input);
+    expect(output.variables[0]).toMatchObject({
+      name: 'note',
+      value: 'val',
+      description: 'Line one\nLine two'
+    });
+  });
+
   it('should parse multiple multiline variables', () => {
     const input = `
 vars {
@@ -424,5 +559,70 @@ vars {
     };
 
     expect(output).toEqual(expected);
+  });
+
+  it('consecutive @description prefixes: first orphaned becomes empty row, last applies to key', () => {
+    const input = `
+vars {
+  @description('''Single-line desc''')
+  host: http://localhost:3000
+  @description('''empty description''')
+  @description('''
+    Line one
+    Line two
+  ''')
+  token: abc123
+  plain: no-description
+  @description("has ''' triple quotes inside")
+  tricky: value
+}`;
+
+    const output = parser(input);
+    expect(output.variables).toHaveLength(5);
+
+    // host — single-line description
+    expect(output.variables[0]).toMatchObject({
+      name: 'host',
+      value: 'http://localhost:3000',
+      enabled: true,
+      secret: false,
+      description: 'Single-line desc'
+    });
+
+    // orphaned @description('''empty description''') — becomes an empty-key row with that description
+    expect(output.variables[1]).toMatchObject({
+      name: '',
+      value: '',
+      enabled: true,
+      secret: false,
+      description: 'empty description'
+    });
+
+    // token — gets the LAST (multiline) description; the first was consumed by the orphaned row above
+    expect(output.variables[2]).toMatchObject({
+      name: 'token',
+      value: 'abc123',
+      enabled: true,
+      secret: false,
+      description: 'Line one\nLine two'
+    });
+
+    // plain — no description
+    expect(output.variables[3]).toMatchObject({
+      name: 'plain',
+      value: 'no-description',
+      enabled: true,
+      secret: false
+    });
+    expect(output.variables[3].description).toBeUndefined();
+
+    // tricky — description containing ''' stored as double-quoted form
+    expect(output.variables[4]).toMatchObject({
+      name: 'tricky',
+      value: 'value',
+      enabled: true,
+      secret: false,
+      description: 'has \'\'\' triple quotes inside'
+    });
   });
 });

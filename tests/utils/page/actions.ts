@@ -578,7 +578,7 @@ const addEnvironmentVariable = async (
 
     // Wait for the CodeMirror editor in the row to be ready
     const variableRow = page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) });
-    const codeMirror = variableRow.locator('.CodeMirror');
+    const codeMirror = variableRow.getByTestId(`test-multiline-editor-${index}.value`);
     await codeMirror.waitFor({ state: 'visible' });
     await codeMirror.click();
     await page.keyboard.type(variable.value);

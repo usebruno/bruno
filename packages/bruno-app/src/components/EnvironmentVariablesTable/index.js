@@ -31,6 +31,8 @@ const TableRow = React.memo(
   }
 );
 
+const columns = ['name', 'value', 'description', 'secret'];
+
 const EnvironmentVariablesTable = ({
   environment,
   collection,
@@ -48,7 +50,7 @@ const EnvironmentVariablesTable = ({
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
   const [tableHeight, setTableHeight] = useState(MIN_H);
-  const [columnWidths, setColumnWidths] = useState({ name: '30%', value: 'auto' });
+  const [columnWidths, setColumnWidths] = useState({ name: '30%', value: 'auto', description: '25%' });
   const [resizing, setResizing] = useState(null);
   const [pinnedData, setPinnedData] = useState({ query: '', uids: new Set() });
 
@@ -62,7 +64,12 @@ const EnvironmentVariablesTable = ({
 
     const startX = e.clientX;
     const startWidth = currentCell.offsetWidth;
-    const nextColumnKey = 'value';
+
+    const colIndex = columns.indexOf(columnKey) + 1;
+    if (colIndex >= columns.length - 1) return;
+
+    const matchedNextCol = columns[colIndex];
+    const nextColumnKey = matchedNextCol ?? columns.at(-1);
     const nextColumnStartWidth = nextCell.offsetWidth;
 
     setResizing(columnKey);
@@ -73,9 +80,14 @@ const EnvironmentVariablesTable = ({
       const maxShrink = startWidth - MIN_COLUMN_WIDTH;
       const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
 
-      setColumnWidths({
-        [columnKey]: `${startWidth + clampedDiff}px`,
-        [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
+      setColumnWidths((prev) => {
+        const next = {
+          ...prev,
+          [columnKey]: `${startWidth + clampedDiff}px`,
+          [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
+        };
+        console.log({ next });
+        return next;
       });
     };
 
@@ -101,7 +113,6 @@ const EnvironmentVariablesTable = ({
   }, [searchQuery]);
 
   const prevEnvUidRef = useRef(null);
-  const prevEnvVariablesRef = useRef(environment.variables);
   const mountedRef = useRef(false);
 
   let _collection = collection ? cloneDeep(collection) : {};
@@ -113,14 +124,15 @@ const EnvironmentVariablesTable = ({
   const initialValues = useMemo(() => {
     const vars = environment.variables || [];
     return [
-      ...vars,
+      ...vars.map((v) => ({ ...v, description: v.description ?? '' })),
       {
         uid: uuid(),
         name: '',
         value: '',
         type: 'text',
         secret: false,
-        enabled: true
+        enabled: true,
+        description: ''
       }
     ];
   }, [environment.uid, environment.variables]);
@@ -146,7 +158,8 @@ const EnvironmentVariablesTable = ({
         secret: Yup.boolean(),
         type: Yup.string(),
         uid: Yup.string(),
-        value: Yup.mixed().nullable()
+        value: Yup.mixed().nullable(),
+        description: Yup.string().nullable()
       })
     ),
     validate: (values) => {
@@ -173,30 +186,29 @@ const EnvironmentVariablesTable = ({
     onSubmit: () => {}
   });
 
-  // Restore draft values on mount or environment switch
+  // Restore draft values on mount or environment switch (not on external filesystem reloads)
   useEffect(() => {
     const isMount = !mountedRef.current;
     const envChanged = prevEnvUidRef.current !== null && prevEnvUidRef.current !== environment.uid;
-    const variablesReloaded = !isMount && !envChanged && prevEnvVariablesRef.current !== environment.variables;
 
     prevEnvUidRef.current = environment.uid;
-    prevEnvVariablesRef.current = environment.variables;
     mountedRef.current = true;
 
-    if ((isMount || envChanged || variablesReloaded) && hasDraftForThisEnv && draft?.variables) {
+    if ((isMount || envChanged) && hasDraftForThisEnv && draft?.variables) {
       formik.setValues([
-        ...draft.variables,
+        ...draft.variables.map((v) => ({ ...v, description: v.description ?? '' })),
         {
           uid: uuid(),
           name: '',
           value: '',
           type: 'text',
           secret: false,
-          enabled: true
+          enabled: true,
+          description: ''
         }
       ]);
     }
-  }, [environment.uid, environment.variables, hasDraftForThisEnv, draft?.variables]);
+  }, [environment.uid, hasDraftForThisEnv, draft?.variables]);
 
   const savedValuesJson = useMemo(() => {
     return JSON.stringify((environment.variables || []).map(stripEnvVarUid));
@@ -291,7 +303,8 @@ const EnvironmentVariablesTable = ({
               value: '',
               type: 'text',
               secret: false,
-              enabled: true
+              enabled: true,
+              description: ''
             }
           ];
 
@@ -311,7 +324,8 @@ const EnvironmentVariablesTable = ({
         value: '',
         type: 'text',
         secret: false,
-        enabled: true
+        enabled: true,
+        description: ''
       };
       setTimeout(() => {
         formik.setFieldValue(formik.values.length, newVariable, false);
@@ -368,7 +382,8 @@ const EnvironmentVariablesTable = ({
             value: '',
             type: 'text',
             secret: false,
-            enabled: true
+            enabled: true,
+            description: ''
           }
         ];
         formik.resetForm({ values: newValues });
@@ -383,14 +398,15 @@ const EnvironmentVariablesTable = ({
   const handleReset = useCallback(() => {
     const originalVars = environment.variables || [];
     const resetValues = [
-      ...originalVars,
+      ...originalVars.map((v) => ({ ...v, description: v.description ?? '' })),
       {
         uid: uuid(),
         name: '',
         value: '',
         type: 'text',
         secret: false,
-        enabled: true
+        enabled: true,
+        description: ''
       }
     ];
     formik.resetForm({ values: resetValues });
@@ -431,14 +447,19 @@ const EnvironmentVariablesTable = ({
             ? String(variable.value)
             : '';
       const valueMatch = valueText.toLowerCase().includes(query);
-      return !!(nameMatch || valueMatch);
+      const descriptionMatch
+        = variable.description && typeof variable.description === 'string'
+          ? variable.description.toLowerCase().includes(query)
+          : false;
+
+      return !!(nameMatch || valueMatch || descriptionMatch);
     });
   }, [formik.values, searchQuery, pinnedData]);
 
   const isSearchActive = !!searchQuery?.trim();
 
   return (
-    <StyledWrapper className={resizing ? 'is-resizing' : ''}>
+    <StyledWrapper className={`${resizing ? 'is-resizing' : ''} has-description-column`.trim()}>
       {isSearchActive && filteredVariables.length === 0 ? (
         <div className="no-results">No results found for &ldquo;{searchQuery.trim()}&rdquo;</div>
       ) : (
@@ -459,12 +480,20 @@ const EnvironmentVariablesTable = ({
                   onMouseDown={(e) => handleResizeStart(e, 'name')}
                 />
               </td>
-              <td style={{ width: columnWidths.value }}>Value</td>
-              <td className="text-center">Secret</td>
-              <td></td>
+              <td style={{ width: columnWidths.value }}>
+                Value
+                <div
+                  className={`resize-handle ${resizing === 'value' ? 'resizing' : ''}`}
+                  style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
+                  onMouseDown={(e) => handleResizeStart(e, 'value')}
+                />
+              </td>
+              <td style={{ width: columnWidths.description }}>Description</td>
+              <td className="text-center secret-column">Secret</td>
+              <td className="actions-column"></td>
             </tr>
           )}
-          fixedItemHeight={35}
+          defaultItemHeight={35}
           computeItemKey={(virtualIndex, item) => `${environment.uid}-${item.index}`}
           itemContent={(virtualIndex, { variable, index: actualIndex }) => {
             const isLastRow = actualIndex === formik.values.length - 1;
@@ -510,43 +539,53 @@ const EnvironmentVariablesTable = ({
                   </div>
                 </td>
                 <td
-                  className="flex flex-row flex-nowrap items-center"
                   style={{ width: columnWidths.value }}
                 >
-                  <div
-                    className="overflow-hidden grow w-full relative"
-                    onFocus={() => handleRowFocus(variable.uid)}
-                  >
-                    <MultiLineEditor
-                      theme={storedTheme}
-                      collection={_collection}
-                      name={`${actualIndex}.value`}
-                      value={variable.value}
-                      placeholder={isLastEmptyRow ? 'Value' : ''}
-                      isSecret={variable.secret}
-                      readOnly={typeof variable.value !== 'string'}
-                      onChange={(newValue) => {
-                        formik.setFieldValue(`${actualIndex}.value`, newValue, true);
-                        // Clear ephemeral metadata when user manually edits the value
-                        if (variable.ephemeral) {
-                          formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
-                          formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
-                        }
-                      }}
-                      onSave={handleSave}
-                    />
-                  </div>
-                  {typeof variable.value !== 'string' && (
-                    <span className="ml-2 flex items-center">
-                      <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
-                      <Tooltip
-                        anchorId={`${variable.uid}-disabled-info-icon`}
-                        content="Non-string values set via scripts are read-only and can only be updated through scripts."
-                        place="top"
+                  <div className="flex flex-row flex-nowrap items-start w-full" onFocus={() => handleRowFocus(variable.uid)}>
+                    <div className="overflow-hidden grow w-full relative">
+                      <MultiLineEditor
+                        theme={storedTheme}
+                        collection={_collection}
+                        name={`${actualIndex}.value`}
+                        value={variable.value}
+                        placeholder={isLastEmptyRow ? 'Value' : ''}
+                        isSecret={variable.secret}
+                        readOnly={typeof variable.value !== 'string'}
+                        onChange={(newValue) => {
+                          formik.setFieldValue(`${actualIndex}.value`, newValue, true);
+                          // Clear ephemeral metadata when user manually edits the value
+                          if (variable.ephemeral) {
+                            formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
+                            formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
+                          }
+                        }}
+                        onSave={handleSave}
                       />
-                    </span>
-                  )}
-                  {renderExtraValueContent && renderExtraValueContent(variable)}
+                    </div>
+                    {typeof variable.value !== 'string' && (
+                      <span className="ml-2 flex items-center flex-shrink-0">
+                        <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
+                        <Tooltip
+                          anchorId={`${variable.uid}-disabled-info-icon`}
+                          content="Non-string values set via scripts are read-only and can only be updated through scripts."
+                          place="top"
+                        />
+                      </span>
+                    )}
+                    {renderExtraValueContent && renderExtraValueContent(variable)}
+                  </div>
+                </td>
+                <td style={{ width: columnWidths.description }}>
+                  <MultiLineEditor
+                    theme={storedTheme}
+                    collection={_collection}
+                    name={`${actualIndex}.description`}
+                    value={variable.description ?? ''}
+                    readOnly={false}
+                    onChange={(newValue) => formik.setFieldValue(`${actualIndex}.description`, newValue, true)}
+                    onSave={handleSave}
+                    allowNewlines={true}
+                  />
                 </td>
                 <td className="text-center">
                   {!isLastEmptyRow && (
