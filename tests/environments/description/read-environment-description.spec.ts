@@ -1,7 +1,7 @@
-import { test, expect } from '../../../playwright';
+import { test, expect, Page } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
 
-const openEnvironmentConfigure = async (page, envName: string) => {
+const openEnvironmentConfigure = async (page: Page, envName: string) => {
   const locators = buildCommonLocators(page);
   await locators.environment.currentEnvironment().click();
   await expect(locators.environment.envOption(envName)).toBeVisible();
