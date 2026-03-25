@@ -1,0 +1,32 @@
+info:
+  name: mqtt-settings-test
+  type: mqtt
+  seq: 3
+
+mqtt:
+  url: mqtt://test.mosquitto.org:1883
+  publish:
+    topic: bruno/e2e/settings
+    qos: 1
+    retain: false
+    payload:
+      type: text
+      data: hello
+  subscriptions:
+    - topic: bruno/e2e/settings
+      qos: 1
+      enabled: true
+  settings:
+    clientId: bruno-e2e-settings
+    mqttVersion: "3.1.1"
+    keepAlive: 30
+    cleanSession: true
+    connectTimeout: 15000
+    username: ""
+    password: ""
+    ssl:
+      enabled: false
+      rejectUnauthorized: true
+      caCert: ""
+      clientCert: ""
+      clientKey: ""

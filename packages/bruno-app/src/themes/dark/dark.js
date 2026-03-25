@@ -270,7 +270,8 @@ const darkTheme = {
 
     grpc: palette.hues.TEAL,
     ws: palette.hues.ORANGE,
-    gql: palette.hues.PINK
+    gql: palette.hues.PINK,
+    mqtt: palette.hues.CYAN
   },
 
   requestTabPanel: {

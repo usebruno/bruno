@@ -34,6 +34,7 @@
     "socks-proxy-agent": "~8.0.5",
     "system-ca": "^2.0.1",
     "tough-cookie": "^6.0.0",
+    "mqtt": "^5.10.4",
     "ws": "^8.18.3",
     "shell-env": "^4.0.1"
   },

@@ -1,6 +1,6 @@
 import React from 'react';
-import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode } from '@tabler/icons';
-import { newHttpRequest, newWsRequest, newGrpcRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode, IconBroadcast } from '@tabler/icons';
+import { newHttpRequest, newWsRequest, newGrpcRequest, newMqttRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { generateUniqueRequestName } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
@@ -38,6 +38,9 @@ const createRequest = async ({ dispatch, collection, itemUid, requestType }) => 
         break;
       case 'grpc':
         await dispatch(newGrpcRequest(baseParams));
+        break;
+      case 'mqtt':
+        await dispatch(newMqttRequest(baseParams));
         break;
     }
   } catch (err) {
@@ -78,6 +81,12 @@ export const createEmptyStateMenuItems = ({ dispatch, collection, itemUid }) => 
       label: 'WebSocket',
       leftSection: <IconPlugConnected size={16} strokeWidth={2} />,
       onClick: handleCreate('websocket')
+    },
+    {
+      id: 'mqtt',
+      label: 'MQTT',
+      leftSection: <IconBroadcast size={16} strokeWidth={2} />,
+      onClick: handleCreate('mqtt')
     }
   ];
 };

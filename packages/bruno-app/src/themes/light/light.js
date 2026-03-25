@@ -262,7 +262,8 @@ const lightTheme = {
 
     grpc: palette.hues.INDIGO,
     ws: palette.hues.ORANGE,
-    gql: palette.hues.PINK
+    gql: palette.hues.PINK,
+    mqtt: palette.hues.TEAL
   },
 
   requestTabPanel: {

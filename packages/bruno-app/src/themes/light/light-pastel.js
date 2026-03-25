@@ -240,7 +240,8 @@ const lightPastelTheme = {
     },
     grpc: '#7a70b5', // Dusty periwinkle
     ws: '#c57a92', // Dusty rose
-    gql: '#7a70b5' // Dusty periwinkle
+    gql: '#7a70b5', // Dusty periwinkle
+    mqtt: '#5a9e8f' // Sage teal
   },
 
   requestTabPanel: {

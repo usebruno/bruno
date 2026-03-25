@@ -245,7 +245,8 @@ const vscodeDarkTheme = {
     },
     grpc: colors.CYAN,
     ws: colors.YELLOW,
-    gql: colors.PURPLE
+    gql: colors.PURPLE,
+    mqtt: colors.CYAN
   },
 
   requestTabPanel: {
