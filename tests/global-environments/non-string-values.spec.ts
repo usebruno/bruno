@@ -68,7 +68,7 @@ test.describe('Global Environment Variables - Non-string Values', () => {
       await expect(numericRow.locator('.CodeMirror-line').first()).toContainText(/170001/);
 
       // Verify that typing into the input does not mutate the value.
-      await numericRow.locator('.CodeMirror').click();
+      await numericRow.getByTestId(/^test-multiline-editor-\d+\.value$/).click();
       await page.keyboard.type('999');
       await expect(numericRow.locator('.CodeMirror-line').first()).toContainText(/170001/);
 
@@ -95,7 +95,7 @@ test.describe('Global Environment Variables - Non-string Values', () => {
       await expect(booleanRow.locator('.CodeMirror-line').first()).toContainText(/true/);
 
       // Verify that typing into the input does not mutate the value.
-      await booleanRow.locator('.CodeMirror').click();
+      await booleanRow.getByTestId(/^test-multiline-editor-\d+\.value$/).click();
       await page.keyboard.type('false');
       await expect(booleanRow.locator('.CodeMirror-line').first()).toContainText(/true/);
 
@@ -114,7 +114,7 @@ test.describe('Global Environment Variables - Non-string Values', () => {
       const stringRow = stringInput.locator('xpath=ancestor::tr');
 
       await expect(stringRow.locator('.CodeMirror-line').first()).toContainText('hello world');
-      await stringRow.locator('.CodeMirror').click();
+      await stringRow.getByTestId(/^test-multiline-editor-\d+\.value$/).click();
       await page.keyboard.type(' updated');
 
       // Verify the user edit persists in the UI.
