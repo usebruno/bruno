@@ -66,13 +66,12 @@ const StyledWrapper = styled.div`
     opacity: 0.7;
 
     &:hover {
-      background-color: ${(props) => props.theme.status.danger.background};
-      color: ${(props) => props.theme.colors.text.danger};
+      color: ${(props) => props.theme.text};
       opacity: 1;
     }
 
     &:focus-visible {
-      outline: 2px solid ${(props) => props.theme.colors.text.danger};
+      outline: 2px solid ${(props) => props.theme.text};
       outline-offset: 1px;
     }
   }
