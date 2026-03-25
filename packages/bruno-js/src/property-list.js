@@ -17,7 +17,7 @@ class PropertyList extends ReadOnlyPropertyList {
    * Guard that throws in dynamic mode. Called by all mutation methods.
    * @param {string} method - Name of the calling method (for error message)
    */
-  _ensureStaticMode(method) {
+  #ensureStaticMode(method) {
     if (this._dynamic) {
       throw new Error(`${method}() is not supported in dynamic mode. Override in subclass.`);
     }
@@ -30,7 +30,7 @@ class PropertyList extends ReadOnlyPropertyList {
    * @param {object} item
    */
   add(item) {
-    this._ensureStaticMode('add');
+    this.#ensureStaticMode('add');
     this._items.push(item);
   }
 
@@ -47,7 +47,7 @@ class PropertyList extends ReadOnlyPropertyList {
    * @param {object} item
    */
   prepend(item) {
-    this._ensureStaticMode('prepend');
+    this.#ensureStaticMode('prepend');
     this._items.unshift(item);
   }
 
@@ -57,8 +57,8 @@ class PropertyList extends ReadOnlyPropertyList {
    * @param {string|object} before - Key string or item object to insert before
    */
   insert(item, before) {
-    this._ensureStaticMode('insert');
-    const idx = this._findIndex(before);
+    this.#ensureStaticMode('insert');
+    const idx = this.#findIndex(before);
     if (idx === -1) {
       this._items.push(item);
     } else {
@@ -72,8 +72,8 @@ class PropertyList extends ReadOnlyPropertyList {
    * @param {string|object} after - Key string or item object to insert after
    */
   insertAfter(item, after) {
-    this._ensureStaticMode('insertAfter');
-    const idx = this._findIndex(after);
+    this.#ensureStaticMode('insertAfter');
+    const idx = this.#findIndex(after);
     if (idx === -1) {
       this._items.push(item);
     } else {
@@ -86,7 +86,7 @@ class PropertyList extends ReadOnlyPropertyList {
    * @param {Function|string|object} predicate
    */
   remove(predicate) {
-    this._ensureStaticMode('remove');
+    this.#ensureStaticMode('remove');
     if (typeof predicate === 'function') {
       this._items = this._items.filter((item) => !predicate(item));
     } else if (typeof predicate === 'string') {
@@ -103,7 +103,7 @@ class PropertyList extends ReadOnlyPropertyList {
    * Remove all items from the list.
    */
   clear() {
-    this._ensureStaticMode('clear');
+    this.#ensureStaticMode('clear');
     this._items = [];
   }
 
@@ -112,7 +112,7 @@ class PropertyList extends ReadOnlyPropertyList {
    * @param {object} item
    */
   upsert(item) {
-    this._ensureStaticMode('upsert');
+    this.#ensureStaticMode('upsert');
     const key = item[this._keyProperty];
     const idx = this._items.findIndex((i) => i[this._keyProperty] === key);
     if (idx !== -1) {
@@ -127,7 +127,7 @@ class PropertyList extends ReadOnlyPropertyList {
    * @param {Array} items
    */
   populate(items) {
-    this._ensureStaticMode('populate');
+    this.#ensureStaticMode('populate');
     this._items = Array.isArray(items) ? [...items] : [];
   }
 
@@ -136,7 +136,7 @@ class PropertyList extends ReadOnlyPropertyList {
    * @param {Array} items
    */
   repopulate(items) {
-    this._ensureStaticMode('repopulate');
+    this.#ensureStaticMode('repopulate');
     this.populate(items);
   }
 
@@ -146,7 +146,7 @@ class PropertyList extends ReadOnlyPropertyList {
    * @param {boolean} [prune=false] - If true, clear existing items first
    */
   assimilate(source, prune) {
-    this._ensureStaticMode('assimilate');
+    this.#ensureStaticMode('assimilate');
     if (prune) {
       this._items = [];
     }
@@ -170,7 +170,7 @@ class PropertyList extends ReadOnlyPropertyList {
    * @param {string|object} ref
    * @returns {number}
    */
-  _findIndex(ref) {
+  #findIndex(ref) {
     if (typeof ref === 'string') {
       return this._items.findIndex((i) => i[this._keyProperty] === ref);
     }

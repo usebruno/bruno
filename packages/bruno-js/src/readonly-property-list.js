@@ -5,27 +5,37 @@
  * - Static mode: items stored internally in an array (for headers, query params, etc.)
  * - Dynamic mode: a dataSource function returns fresh items on every read (for cookies)
  *
- * Items are plain objects with a key property (configurable via keyProperty).
+ * Items are plain objects with a configurable key property (keyProperty) and value property (valueProperty).
  *
  * This base class provides only read/search/iteration/transform methods.
  * See PropertyList for static-mode mutation methods.
  * See CookieList for async cookie-jar write methods.
+ *
+ * Convention:
+ *   #field / #method  – truly private, inaccessible to subclasses
+ *   _field / _method  – protected, intended for subclass access only
  */
 class ReadOnlyPropertyList {
+  // ── Private fields (not accessible by subclasses) ────────────────────
+  #valueProperty;
+  #dataSource;
+
   /**
    * @param {object} options
    * @param {string} [options.keyProperty='key'] - The property name used as the unique key
+   * @param {string} [options.valueProperty='value'] - The property name used as the value
    * @param {Function} [options.dataSource] - Dynamic data source function (returns array of items)
    * @param {Array} [options.items] - Initial items for static mode
    */
   // Items are stored in an array (not a Map) to support positional access (idx, indexOf),
   // ordered insertion (insert, insertAfter, prepend in PropertyList), and duplicate keys.
   // At typical list sizes (cookies, headers) the O(n) key lookup is negligible.
-  constructor({ keyProperty = 'key', dataSource, items } = {}) {
+  constructor({ keyProperty = 'key', valueProperty = 'value', dataSource, items } = {}) {
     this._keyProperty = keyProperty;
+    this.#valueProperty = valueProperty;
     this._dynamic = typeof dataSource === 'function';
     if (this._dynamic) {
-      this._dataSource = dataSource;
+      this.#dataSource = dataSource;
     } else {
       this._items = Array.isArray(items) ? [...items] : [];
     }
@@ -36,8 +46,8 @@ class ReadOnlyPropertyList {
    * In dynamic mode, calls the dataSource function.
    * In static mode, returns the internal array.
    */
-  _getItems() {
-    return this._dynamic ? this._dataSource() : this._items;
+  #getItems() {
+    return this._dynamic ? this.#dataSource() : this._items;
   }
 
   // ── Retrieval ──────────────────────────────────────────────────────────
@@ -48,11 +58,11 @@ class ReadOnlyPropertyList {
    * @returns {*} The value property of the matching item, or undefined
    */
   get(name) {
-    const items = this._getItems();
+    const items = this.#getItems();
     // Use findLast so that duplicate keys resolve to the last entry,
     // consistent with toObject() which also gives last-wins semantics.
     const item = items.findLast((i) => i[this._keyProperty] === name);
-    return item ? item.value : undefined;
+    return item ? item[this.#valueProperty] : undefined;
   }
 
   /**
@@ -61,7 +71,7 @@ class ReadOnlyPropertyList {
    * @returns {object|undefined}
    */
   one(name) {
-    const items = this._getItems();
+    const items = this.#getItems();
     // Use findLast so that duplicate keys resolve to the last entry,
     // consistent with get() and toObject() which also give last-wins semantics.
     return items.findLast((i) => i[this._keyProperty] === name);
@@ -72,7 +82,7 @@ class ReadOnlyPropertyList {
    * @returns {Array}
    */
   all() {
-    return [...this._getItems()];
+    return [...this.#getItems()];
   }
 
   /**
@@ -81,7 +91,7 @@ class ReadOnlyPropertyList {
    * @returns {object|undefined}
    */
   idx(index) {
-    return this._getItems()[index];
+    return this.#getItems()[index];
   }
 
   /**
@@ -89,7 +99,7 @@ class ReadOnlyPropertyList {
    * @returns {number}
    */
   count() {
-    return this._getItems().length;
+    return this.#getItems().length;
   }
 
   /**
@@ -101,10 +111,10 @@ class ReadOnlyPropertyList {
    */
   indexOf(item) {
     if (!item || typeof item !== 'object') return -1;
-    const items = this._getItems();
+    const items = this.#getItems();
     const keyProp = this._keyProperty;
     return items.findIndex(
-      (i) => i[keyProp] === item[keyProp] && i.value === item.value
+      (i) => i[keyProp] === item[keyProp] && i[this.#valueProperty] === item[this.#valueProperty]
     );
   }
 
@@ -118,9 +128,9 @@ class ReadOnlyPropertyList {
    * @returns {boolean}
    */
   has(name, value) {
-    const items = this._getItems();
+    const items = this.#getItems();
     if (value !== undefined) {
-      return items.some((i) => i[this._keyProperty] === name && i.value === value);
+      return items.some((i) => i[this._keyProperty] === name && i[this.#valueProperty] === value);
     }
     return items.some((i) => i[this._keyProperty] === name);
   }
@@ -131,7 +141,7 @@ class ReadOnlyPropertyList {
    * @returns {object|undefined}
    */
   find(predicate) {
-    return this._getItems().find(predicate);
+    return this.#getItems().find(predicate);
   }
 
   /**
@@ -140,7 +150,7 @@ class ReadOnlyPropertyList {
    * @returns {Array}
    */
   filter(predicate) {
-    return this._getItems().filter(predicate);
+    return this.#getItems().filter(predicate);
   }
 
   // ── Iteration ──────────────────────────────────────────────────────────
@@ -150,7 +160,7 @@ class ReadOnlyPropertyList {
    * @param {Function} fn - Called with (item, index)
    */
   each(fn) {
-    this._getItems().forEach(fn);
+    this.#getItems().forEach(fn);
   }
 
   /**
@@ -159,7 +169,7 @@ class ReadOnlyPropertyList {
    * @returns {Array}
    */
   map(fn) {
-    return this._getItems().map(fn);
+    return this.#getItems().map(fn);
   }
 
   /**
@@ -169,7 +179,7 @@ class ReadOnlyPropertyList {
    * @returns {*}
    */
   reduce(fn, ...rest) {
-    return rest.length ? this._getItems().reduce(fn, rest[0]) : this._getItems().reduce(fn);
+    return rest.length ? this.#getItems().reduce(fn, rest[0]) : this.#getItems().reduce(fn);
   }
 
   // ── Transformation ─────────────────────────────────────────────────────
@@ -180,8 +190,8 @@ class ReadOnlyPropertyList {
    */
   toObject() {
     const result = {};
-    for (const item of this._getItems()) {
-      result[item[this._keyProperty]] = item.value;
+    for (const item of this.#getItems()) {
+      result[item[this._keyProperty]] = item[this.#valueProperty];
     }
     return result;
   }
@@ -191,8 +201,8 @@ class ReadOnlyPropertyList {
    * @returns {string}
    */
   toString() {
-    return this._getItems()
-      .map((i) => `${i[this._keyProperty]}=${i.value}`)
+    return this.#getItems()
+      .map((i) => `${i[this._keyProperty]}=${i[this.#valueProperty]}`)
       .join('; ');
   }
 
