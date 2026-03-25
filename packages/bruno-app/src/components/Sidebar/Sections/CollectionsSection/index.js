@@ -36,6 +36,7 @@ import WelcomeModal from 'components/WelcomeModal';
 import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
+import useKeybinding from 'hooks/useKeybinding';
 
 const CollectionsSection = () => {
   const [showSearch, setShowSearch] = useState(false);
@@ -57,6 +58,12 @@ const CollectionsSection = () => {
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [showCloneGitModal, setShowCloneGitModal] = useState(false);
   const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
+
+  // Import collection shortcut
+  useKeybinding('importCollection', () => {
+    setImportCollectionModalOpen(true);
+    return false;
+  });
 
   // Default to true (don't show modal) so that:
   // 1. Existing users who upgrade (no hasSeenWelcomeModal in their prefs) don't see it

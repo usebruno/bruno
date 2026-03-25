@@ -57,6 +57,7 @@ import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
+import useKeybinding from 'hooks/useKeybinding';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
@@ -92,6 +93,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
+
+  // Clone shortcut — only active when this item's tab is focused
+  useKeybinding('cloneItem', () => {
+    setCloneItemModalOpen(true);
+    return false;
+  }, { enabled: isTabForItemActive, deps: [isTabForItemActive] });
 
   const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
 
