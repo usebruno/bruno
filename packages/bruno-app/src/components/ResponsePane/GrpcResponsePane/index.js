@@ -152,7 +152,7 @@ const GrpcResponsePane = ({ item, collection }) => {
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {!item?.response ? (
           focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
-            <Timeline collection={collection} item={item} timelineExpandedItems={focusedTab?.timelineExpandedItems || {}} activeTabUid={activeTabUid} />
+            <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />
           ) : null
         ) : (
           <>{getTabPanel(focusedTab.responsePaneTab)}</>
