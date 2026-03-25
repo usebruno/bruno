@@ -23,18 +23,11 @@ export default defineConfig({
       testDir: './tests',
       testIgnore: [
         'ssl/**', // custom CA certificate tests require separate server setup and certificate generation
-        'grpc/**',
-        'protobuf/**'
       ]
     },
     {
       name: 'ssl',
       testDir: './tests/ssl'
-    },
-    {
-      name: 'grpc',
-      testDir: './tests',
-      testMatch: ['grpc/**', 'protobuf/**']
     }
   ],
 
