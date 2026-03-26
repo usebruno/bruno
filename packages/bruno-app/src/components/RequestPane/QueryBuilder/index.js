@@ -3,6 +3,7 @@ import { IconCloudDownload, IconFileUpload, IconAlertTriangle, IconChevronRight,
 import { getRootFields } from 'utils/graphql/queryBuilder';
 import useQueryBuilder from 'hooks/useQueryBuilder';
 import QueryBuilderTree from './QueryBuilderTree';
+import ErrorBoundary from './ErrorBoundary';
 import StyledWrapper from './StyledWrapper';
 
 const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, variablesValue, loadSchema, isSchemaLoading, schemaError }) => {
@@ -144,68 +145,70 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
   }
 
   return (
-    <StyledWrapper>
-      <div className="query-builder-search">
-        <input
-          type="text"
-          placeholder="Search operations..."
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-        />
-      </div>
+    <ErrorBoundary>
+      <StyledWrapper>
+        <div className="query-builder-search">
+          <input
+            type="text"
+            placeholder="Search operations..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+        </div>
 
-      <div className="query-builder-tree">
-        {availableRootTypes.map((rootType) => {
-          const isExpanded = effectiveExpandedRootTypes.has(rootType);
-          const fields = filteredFieldsByType[rootType] || [];
-          const isDisabled = activeRootType !== null && activeRootType !== rootType;
+        <div className="query-builder-tree">
+          {availableRootTypes.map((rootType) => {
+            const isExpanded = effectiveExpandedRootTypes.has(rootType);
+            const fields = filteredFieldsByType[rootType] || [];
+            const isDisabled = activeRootType !== null && activeRootType !== rootType;
 
-          return (
-            <div key={rootType} className={isDisabled ? 'root-type-disabled' : ''}>
-              <button
-                type="button"
-                className="root-type-node"
-                onClick={() => !isDisabled && toggleRootType(rootType)}
-                aria-expanded={isExpanded}
-                disabled={isDisabled}
-              >
-                <span className="field-chevron">
-                  {isExpanded && !isDisabled ? (
-                    <IconChevronDown size={14} strokeWidth={2} />
+            return (
+              <div key={rootType} className={isDisabled ? 'root-type-disabled' : ''}>
+                <button
+                  type="button"
+                  className="root-type-node"
+                  onClick={() => !isDisabled && toggleRootType(rootType)}
+                  aria-expanded={isExpanded}
+                  disabled={isDisabled}
+                >
+                  <span className="field-chevron">
+                    {isExpanded && !isDisabled ? (
+                      <IconChevronDown size={14} strokeWidth={2} />
+                    ) : (
+                      <IconChevronRight size={14} strokeWidth={2} />
+                    )}
+                  </span>
+                  <span className="root-type-name">{rootType}</span>
+                  <span className="root-type-count">{(rootFieldsByType[rootType] || []).length}</span>
+                </button>
+                {isExpanded && !isDisabled && (
+                  fields.length > 0 ? (
+                    <QueryBuilderTree
+                      fields={fields}
+                      depth={1}
+                      selections={selections}
+                      expandedPaths={expandedPaths}
+                      argValues={argValues}
+                      enabledArgs={enabledArgs}
+                      onToggleCheck={toggleField}
+                      onToggleExpand={toggleExpand}
+                      onToggleArg={toggleArg}
+                      onArgChange={setArgValue}
+                      onToggleInputField={toggleInputField}
+                      onSetInputFieldValue={setInputFieldValue}
+                    />
                   ) : (
-                    <IconChevronRight size={14} strokeWidth={2} />
-                  )}
-                </span>
-                <span className="root-type-name">{rootType}</span>
-                <span className="root-type-count">{(rootFieldsByType[rootType] || []).length}</span>
-              </button>
-              {isExpanded && !isDisabled && (
-                fields.length > 0 ? (
-                  <QueryBuilderTree
-                    fields={fields}
-                    depth={1}
-                    selections={selections}
-                    expandedPaths={expandedPaths}
-                    argValues={argValues}
-                    enabledArgs={enabledArgs}
-                    onToggleCheck={toggleField}
-                    onToggleExpand={toggleExpand}
-                    onToggleArg={toggleArg}
-                    onArgChange={setArgValue}
-                    onToggleInputField={toggleInputField}
-                    onSetInputFieldValue={setInputFieldValue}
-                  />
-                ) : (
-                  <div className="empty-state">
-                    {searchText ? 'No matching fields.' : 'No fields available.'}
-                  </div>
-                )
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </StyledWrapper>
+                    <div className="empty-state">
+                      {searchText ? 'No matching fields.' : 'No fields available.'}
+                    </div>
+                  )
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </StyledWrapper>
+    </ErrorBoundary>
   );
 };
 
