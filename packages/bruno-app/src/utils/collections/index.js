@@ -770,6 +770,19 @@ export const transformRequestToSaveToFilesystem = (item) => {
     };
   }
 
+  // Save body variants
+  if (_item.request.bodyVariants && _item.request.bodyVariants.length > 0) {
+    // Sync the current body back to the active variant before saving
+    const variants = _item.request.bodyVariants.map((variant) => {
+      if (variant.uid === _item.request.activeBodyVariantUid) {
+        return { ...variant, body: { ...itemToSave.request.body } };
+      }
+      return variant;
+    });
+    itemToSave.request.bodyVariants = variants;
+    itemToSave.request.activeBodyVariantUid = _item.request.activeBodyVariantUid;
+  }
+
   return itemToSave;
 };
 
