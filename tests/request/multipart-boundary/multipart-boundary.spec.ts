@@ -22,7 +22,7 @@ const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a'
 test.describe.serial('Multipart boundary preservation', () => {
   const collectionName = 'multipart-boundary-test';
   const requestName = 'Boundary Test';
-  const testServerUrl = 'https://httpbin.org/post';
+  const testServerUrl = 'http://localhost:8081/headers';
   const customBoundary = 'my-custom-boundary-12345';
 
   test.beforeAll(async ({ page, createTmpDir }) => {
@@ -30,7 +30,7 @@ test.describe.serial('Multipart boundary preservation', () => {
     await createCollection(page, collectionName, collectionPath);
     await createRequest(page, requestName, collectionName, {
       url: testServerUrl,
-      method: 'POST'
+      method: 'GET'
     });
   });
 
@@ -113,7 +113,7 @@ value1\r
     await test.step('Create a new request without boundary', async () => {
       await createRequest(page, requestNameNoBoundary, collectionName, {
         url: testServerUrl,
-        method: 'POST'
+        method: 'GET'
       });
     });
 
