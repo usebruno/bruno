@@ -352,6 +352,28 @@ function makeAxiosInstance({
             }
           };
 
+          // Strip sensitive auth headers when redirecting to a different origin
+          // (matches curl 7.58+ and browser behavior, see CVE-2018-1000007)
+          try {
+            // URL.URL is the WHATWG URL class — line 1's `require('url')` shadows the global `URL`
+            const originalOrigin = new URL.URL(error.config.url).origin;
+            const redirectOrigin = new URL.URL(redirectUrl).origin;
+            if (originalOrigin !== redirectOrigin) {
+              delete requestConfig.headers['authorization'];
+              delete requestConfig.headers['Authorization'];
+              delete requestConfig.headers['proxy-authorization'];
+              delete requestConfig.headers['Proxy-Authorization'];
+
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Stripped Authorization headers: redirect crosses origin (${originalOrigin} → ${redirectOrigin})`
+              });
+            }
+          } catch (_) {
+            // If URL parsing fails, skip origin check — headers pass through unchanged
+          }
+
           // Apply proper HTTP redirect behavior based on status code
           const statusCode = error.response.status;
           const originalMethod = (error.config.method || 'get').toLowerCase();
