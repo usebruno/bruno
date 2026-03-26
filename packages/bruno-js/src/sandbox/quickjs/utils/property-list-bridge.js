@@ -32,6 +32,39 @@ const createAsyncBridge = (vm, targetObj, propName, nativeMethod) => {
  * - Async write methods: `_prefix` bridge pattern (native callback → QuickJS promise)
  * - Returns `{ evalCode }` string containing `callWithCallback` helper + async wrappers + iterators
  *
+ * @example
+ * In shims/bru.js, wiring up bru.cookies takes a single call:
+ *
+ * const { evalCode: cookiesEvalCode } = createPropertyListBridge(vm, bru.cookies, bruCookiesObject, {
+ *   globalPath: 'globalThis.bru.cookies',
+ *   syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
+ *   syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
+ *   asyncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'delete'],
+ *   withIterators: true
+ * });
+ *
+ * Without this factory, each method would require manual boilerplate like the
+ * hand-written jar() bridge in bru.js (~100 lines), where every method needs:
+ *
+ *   const _fn = vm.newFunction('_method', (...vmArgs) => {
+ *     const promise = vm.newPromise();
+ *     nativeObj.method(vm.dump(vmArgs[0]), (err, result) => {
+ *       if (err) {
+ *         promise.reject(marshallToVm(cleanJson(err), vm));
+ *       } else {
+ *         promise.resolve(marshallToVm(cleanCircularJson(result), vm));
+ *       }
+ *     });
+ *     promise.settled.then(vm.runtime.executePendingJobs);
+ *     return promise.handle;
+ *   });
+ *   _fn.consume((handle) => vm.setProp(obj, '_method', handle));
+ *
+ * …repeated for every method, plus separate evalCode for async wrappers.
+ *
+ * To wire up a new PropertyList-backed object, add one createPropertyListBridge
+ * call instead of duplicating all that boilerplate.
+ *
  * @param {Object} vm - QuickJS VM instance
  * @param {Object} nativeList - Native PropertyList instance
  * @param {Object} targetObj - QuickJS object handle to attach methods to
@@ -70,12 +103,19 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
     fn.consume((handle) => vm.setProp(targetObj, methodName, handle));
   }
 
-  // Async write methods — _prefix bridge pattern
+  // Async write methods — two-phase setup:
+  // Phase 1 (native): Register `_prefixed` bridge functions (e.g. `_add`, `_remove`) via
+  // createAsyncBridge. These are QuickJS promise-based wrappers that call the native method's
+  // callback API and resolve with `undefined` (write-only).
+  // Phase 2 (evalCode): Generates JS code eval'd in the VM that:
+  //   1. Defines a `callWithCallback` helper supporting both `await method(args)` and
+  //      `method(args, callback)` calling styles.
+  //   2. Captures `_prefixed` direct references, then overwrites the public method name with
+  //      a wrapper that auto-detects whether the last argument is a callback.
   for (const methodName of asyncWriteMethods) {
     createAsyncBridge(vm, targetObj, `_${methodName}`, (...a) => nativeList[methodName](...a));
   }
 
-  // Build evalCode string for async wrappers and iterators
   let evalCode = '';
 
   if (asyncWriteMethods.length > 0) {
@@ -103,6 +143,10 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
     }
   }
 
+  // Iterators — these can't be bridged as syncReadObjectMethods because they take a callback
+  // function as an argument, and functions can't cross the native↔VM boundary (vm.dump() can't
+  // serialize them). Instead, we pull the data into the VM via `all()`, then run the array
+  // operation inside the VM where the callback lives. Requires `all` in `syncReadObjectMethods`.
   if (withIterators) {
     evalCode += `const _allNative = ${globalPath}.all;
     ${globalPath}.each = (fn) => { _allNative().forEach(fn); };

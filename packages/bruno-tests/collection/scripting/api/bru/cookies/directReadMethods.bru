@@ -68,6 +68,14 @@ tests {
     expect(str).to.contain('alpha=one');
   });
 
+  test("toJSON() should return cloned array of all cookies", function() {
+    const json = bru.cookies.toJSON();
+    expect(json).to.be.an('array');
+    expect(json.length).to.be.at.least(2);
+    expect(json[0]).to.have.property('key');
+    expect(json[0]).to.have.property('value');
+  });
+
   const jar = bru.cookies.jar()
   await jar.clear()
 }
