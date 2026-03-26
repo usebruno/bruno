@@ -1,0 +1,16 @@
+name: 'Start Test Server - Linux'
+description: 'Start the bruno-tests mock server for OAuth1 CLI tests on Linux'
+runs:
+  using: 'composite'
+  steps:
+    - name: Start test server
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        cd packages/bruno-tests
+
+        echo "starting test server in background"
+        node src/index.js &
+
+        echo "server started with PID: $!"
