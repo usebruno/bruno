@@ -32,7 +32,7 @@ import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
 import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
-import { PersistedScopeProvider } from 'hooks/usePersistedState/PersistedScopeProvider';
+import { ScopedPersistenceProvider } from 'hooks/usePersistedState/PersistedScopeProvider';
 import ResponseExample from 'components/ResponseExample';
 import WorkspaceOverview from 'components/WorkspaceHome/WorkspaceOverview';
 import Preferences from 'components/Preferences';
@@ -360,7 +360,7 @@ const RequestTabPanel = () => {
       };
 
   return (
-    <PersistedScopeProvider scope={focusedTab.uid}>
+    <ScopedPersistenceProvider scope={focusedTab.uid}>
       <StyledWrapper
         className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${
           isVerticalLayout ? 'vertical-layout' : ''
@@ -405,7 +405,7 @@ const RequestTabPanel = () => {
           </div>
         ) : null}
       </StyledWrapper>
-    </PersistedScopeProvider>
+    </ScopedPersistenceProvider>
   );
 };
 

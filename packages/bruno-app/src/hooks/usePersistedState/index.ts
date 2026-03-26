@@ -1,16 +1,16 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useState, useEffect } from 'react';
-import { usePersistedScope } from './PersistedScopeProvider';
+import { usePersistenceScope } from './PersistedScopeProvider';
 
 type Options<T> = {
   key: string;
   default: T;
 };
 
-export { PersistedScopeProvider, clearPersistedScope } from './PersistedScopeProvider';
+export { ScopedPersistenceProvider as PersistedScopeProvider, clearPersistedScope } from './PersistedScopeProvider';
 
 export function usePersistedState<T>(options: Options<T>): [T, Dispatch<SetStateAction<T>>] {
-  const scope = usePersistedScope();
+  const scope = usePersistenceScope();
   const storageKey = scope ? `persisted::${scope}::${options.key}` : options.key;
 
   const [state, setState] = useState<T>(options.default ?? undefined);

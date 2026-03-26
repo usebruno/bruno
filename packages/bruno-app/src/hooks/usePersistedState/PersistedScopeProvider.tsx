@@ -3,14 +3,14 @@ import * as React from "react"
 import { ReactNode } from 'react';
 import { createContext, useContext } from 'react';
 
-export const PersistedScopeContext = createContext<string>('');
+export const ScopedPersistedContext = createContext<string>('');
 
-export function usePersistedScope(): string {
-  return useContext(PersistedScopeContext);
+export function usePersistenceScope(): string {
+  return useContext(ScopedPersistedContext);
 }
 
-export function PersistedScopeProvider({ scope, children }: { scope: string; children: ReactNode }) {
-  return <PersistedScopeContext.Provider value={scope}>{children}</PersistedScopeContext.Provider>;
+export function ScopedPersistenceProvider({ scope, children }: { scope: string; children: ReactNode }) {
+  return <ScopedPersistedContext.Provider value={scope}>{children}</ScopedPersistedContext.Provider>;
 }
 
 export function clearPersistedScope(scope: string) {
