@@ -90,6 +90,7 @@ import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
+import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
@@ -3146,6 +3147,7 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
   // Find transient items and group by temp directory before closing tabs
   const transientByTempDir = {};
   each(tabUids, (tabUid) => {
+    clearPersistedScope(tabUid);
     for (const collection of collections) {
       const item = findItemInCollection(collection, tabUid);
       if (item?.isTransient && item.pathname) {

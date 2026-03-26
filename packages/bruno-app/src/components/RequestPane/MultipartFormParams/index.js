@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { IconUpload, IconX, IconFile } from '@tabler/icons';
 import {
@@ -11,6 +11,7 @@ import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import MultiLineEditor from 'components/MultiLineEditor';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import path from 'utils/common/path';
@@ -19,7 +20,17 @@ import { isWindowsOS } from 'utils/common/platform';
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const params = item.draft ? get(item, 'draft.request.body.multipartForm') : get(item, 'request.body.multipartForm');
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const multipartFormWidths = focusedTab?.tableColumnWidths?.['multipart-form'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
@@ -202,12 +213,15 @@ const MultipartFormParams = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full">
       <EditableTable
+        tableId="multipart-form"
         columns={columns}
         rows={params || []}
         onChange={handleParamsChange}
         defaultRow={defaultRow}
         reorderable={true}
         onReorder={handleParamDrag}
+        columnWidths={multipartFormWidths}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('multipart-form', widths)}
       />
     </StyledWrapper>
   );
