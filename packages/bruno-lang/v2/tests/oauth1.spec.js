@@ -48,7 +48,7 @@ auth:oauth1 {
       accessTokenSecret: 'my_token_secret',
       callbackUrl: 'https://example.com/callback',
       verifier: 'my_verifier',
-      signatureEncoding: 'HMAC-SHA1',
+      signatureMethod: 'HMAC-SHA1',
       privateKey: 'my_private_key',
       privateKeyType: 'text',
       timestamp: '1234567890',
@@ -227,9 +227,9 @@ auth:oauth1 {
   });
 
   it('should parse all signature methods correctly', () => {
-    const signatureEncodings = ['HMAC-SHA1', 'HMAC-SHA256', 'HMAC-SHA512', 'RSA-SHA1', 'RSA-SHA256', 'RSA-SHA512', 'PLAINTEXT'];
+    const signatureMethods = ['HMAC-SHA1', 'HMAC-SHA256', 'HMAC-SHA512', 'RSA-SHA1', 'RSA-SHA256', 'RSA-SHA512', 'PLAINTEXT'];
 
-    for (const method of signatureEncodings) {
+    for (const method of signatureMethods) {
       const input = `
 meta {
   name: OAuth1 ${method}
@@ -260,7 +260,7 @@ auth:oauth1 {
 `.trim();
 
       const result = bruToJson(input);
-      expect(result.auth.oauth1.signatureEncoding).toBe(method);
+      expect(result.auth.oauth1.signatureMethod).toBe(method);
     }
   });
 
@@ -373,7 +373,7 @@ auth:oauth1 {
       accessTokenSecret: 'col_token_secret',
       callbackUrl: 'https://col.example.com/cb',
       verifier: 'col_verifier',
-      signatureEncoding: 'HMAC-SHA256',
+      signatureMethod: 'HMAC-SHA256',
       privateKey: 'col_private_key',
       privateKeyType: 'text',
       timestamp: '9999999999',
@@ -473,7 +473,7 @@ describe('OAuth1 jsonToBru (request-level)', () => {
           accessTokenSecret: 'ts',
           callbackUrl: 'https://example.com/cb',
           verifier: 'v',
-          signatureEncoding: 'HMAC-SHA1',
+          signatureMethod: 'HMAC-SHA1',
           privateKey: 'pk',
           privateKeyType: 'text',
           timestamp: '123',
@@ -517,7 +517,7 @@ describe('OAuth1 jsonToBru (request-level)', () => {
           accessTokenSecret: '',
           callbackUrl: '',
           verifier: '',
-          signatureEncoding: 'RSA-SHA1',
+          signatureMethod: 'RSA-SHA1',
           privateKey: 'keys/private.pem',
           privateKeyType: 'file',
           timestamp: '',
@@ -549,7 +549,7 @@ describe('OAuth1 jsonToBru (request-level)', () => {
           accessTokenSecret: '',
           callbackUrl: '',
           verifier: '',
-          signatureEncoding: 'RSA-SHA1',
+          signatureMethod: 'RSA-SHA1',
           privateKey: pem,
           privateKeyType: 'text',
           timestamp: '',
@@ -581,7 +581,7 @@ describe('OAuth1 jsonToBru (request-level)', () => {
           accessTokenSecret: '',
           callbackUrl: '',
           verifier: '',
-          signatureEncoding: 'HMAC-SHA1',
+          signatureMethod: 'HMAC-SHA1',
           privateKey: '',
           privateKeyType: 'text',
           timestamp: '',
@@ -625,7 +625,7 @@ describe('OAuth1 jsonToCollectionBru (collection/folder-level)', () => {
           accessTokenSecret: 'col_ts',
           callbackUrl: '',
           verifier: '',
-          signatureEncoding: 'HMAC-SHA256',
+          signatureMethod: 'HMAC-SHA256',
           privateKey: '',
           privateKeyType: 'text',
           timestamp: '',
@@ -661,7 +661,7 @@ describe('OAuth1 jsonToCollectionBru (collection/folder-level)', () => {
           accessTokenSecret: '',
           callbackUrl: '',
           verifier: '',
-          signatureEncoding: 'RSA-SHA1',
+          signatureMethod: 'RSA-SHA1',
           privateKey: 'certs/key.pem',
           privateKeyType: 'file',
           timestamp: '',
@@ -696,7 +696,7 @@ describe('OAuth1 round-trip (request-level)', () => {
           accessTokenSecret: 'ts',
           callbackUrl: 'https://example.com/cb',
           verifier: 'ver',
-          signatureEncoding: 'HMAC-SHA1',
+          signatureMethod: 'HMAC-SHA1',
           privateKey: 'inline_pk',
           privateKeyType: 'text',
           timestamp: '1234567890',
@@ -728,7 +728,7 @@ describe('OAuth1 round-trip (request-level)', () => {
           accessTokenSecret: 'ts',
           callbackUrl: '',
           verifier: '',
-          signatureEncoding: 'RSA-SHA1',
+          signatureMethod: 'RSA-SHA1',
           privateKey: 'keys/private.pem',
           privateKeyType: 'file',
           timestamp: '',
@@ -763,7 +763,7 @@ describe('OAuth1 round-trip (request-level)', () => {
           accessTokenSecret: '',
           callbackUrl: '',
           verifier: '',
-          signatureEncoding: 'RSA-SHA256',
+          signatureMethod: 'RSA-SHA256',
           privateKey: pem,
           privateKeyType: 'text',
           timestamp: '',
@@ -797,7 +797,7 @@ describe('OAuth1 round-trip (collection-level)', () => {
           accessTokenSecret: 'ts',
           callbackUrl: 'https://example.com/cb',
           verifier: 'ver',
-          signatureEncoding: 'HMAC-SHA512',
+          signatureMethod: 'HMAC-SHA512',
           privateKey: '',
           privateKeyType: 'text',
           timestamp: '',
@@ -828,7 +828,7 @@ describe('OAuth1 round-trip (collection-level)', () => {
           accessTokenSecret: '',
           callbackUrl: '',
           verifier: '',
-          signatureEncoding: 'RSA-SHA512',
+          signatureMethod: 'RSA-SHA512',
           privateKey: 'keys/rsa.pem',
           privateKeyType: 'file',
           timestamp: '',

@@ -392,7 +392,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               accessTokenSecret: get(si.request, 'auth.oauth1.accessTokenSecret', ''),
               callbackUrl: get(si.request, 'auth.oauth1.callbackUrl', ''),
               verifier: get(si.request, 'auth.oauth1.verifier', ''),
-              signatureEncoding: get(si.request, 'auth.oauth1.signatureEncoding', 'HMAC-SHA1'),
+              signatureMethod: get(si.request, 'auth.oauth1.signatureMethod', 'HMAC-SHA1'),
               privateKey: get(si.request, 'auth.oauth1.privateKey', ''),
               privateKeyType: get(si.request, 'auth.oauth1.privateKeyType', 'text'),
               timestamp: get(si.request, 'auth.oauth1.timestamp', ''),

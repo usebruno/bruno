@@ -292,7 +292,7 @@ export const fromOpenCollectionAuth = (auth: Auth | undefined): BrunoAuth => {
           accessTokenSecret: oauth1Auth.accessTokenSecret || null,
           callbackUrl: oauth1Auth.callbackUrl || null,
           verifier: oauth1Auth.verifier || null,
-          signatureEncoding: (oauth1Auth.signatureEncoding as BrunoAuthOauth1['signatureEncoding']) || 'HMAC-SHA1',
+          signatureMethod: (oauth1Auth.signatureEncoding as BrunoAuthOauth1['signatureMethod']) || 'HMAC-SHA1',
           privateKey: (typeof oauth1Auth.privateKey === 'object' && oauth1Auth.privateKey ? oauth1Auth.privateKey.value : oauth1Auth.privateKey) || null,
           privateKeyType: (typeof oauth1Auth.privateKey === 'object' && oauth1Auth.privateKey ? oauth1Auth.privateKey.type : 'text') as BrunoAuthOauth1['privateKeyType'],
           timestamp: oauth1Auth.timestamp || null,
@@ -500,7 +500,7 @@ export const toOpenCollectionAuth = (auth: BrunoAuth | null | undefined): Auth |
         accessTokenSecret: auth.oauth1?.accessTokenSecret || '',
         callbackUrl: auth.oauth1?.callbackUrl || '',
         verifier: auth.oauth1?.verifier || '',
-        signatureEncoding: auth.oauth1?.signatureEncoding || 'HMAC-SHA1',
+        signatureEncoding: auth.oauth1?.signatureMethod || 'HMAC-SHA1',
         privateKey: auth.oauth1?.privateKeyType === 'file'
           ? { type: 'file' as const, value: auth.oauth1?.privateKey || '' }
           : { type: 'text' as const, value: auth.oauth1?.privateKey || '' },

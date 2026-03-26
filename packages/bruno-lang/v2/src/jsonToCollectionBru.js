@@ -151,7 +151,7 @@ ${indentString(`access_token: ${auth?.oauth1?.accessToken || ''}`)}
 ${indentString(`token_secret: ${auth?.oauth1?.accessTokenSecret || ''}`)}
 ${indentString(`callback_url: ${auth?.oauth1?.callbackUrl || ''}`)}
 ${indentString(`verifier: ${auth?.oauth1?.verifier || ''}`)}
-${indentString(`signature_method: ${auth?.oauth1?.signatureEncoding || ''}`)}
+${indentString(`signature_method: ${auth?.oauth1?.signatureMethod || ''}`)}
 ${indentString(`private_key: ${auth?.oauth1?.privateKeyType === 'file' ? `@file(${auth?.oauth1?.privateKey || ''})` : getValueString(auth?.oauth1?.privateKey || '')}`)}
 ${indentString(`timestamp: ${auth?.oauth1?.timestamp || ''}`)}
 ${indentString(`nonce: ${auth?.oauth1?.nonce || ''}`)}

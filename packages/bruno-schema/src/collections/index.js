@@ -206,7 +206,7 @@ const authOAuth1Schema = Yup.object({
   accessTokenSecret: Yup.string().nullable(),
   callbackUrl: Yup.string().nullable(),
   verifier: Yup.string().nullable(),
-  signatureEncoding: Yup.string().oneOf(['HMAC-SHA1', 'HMAC-SHA256', 'HMAC-SHA512', 'RSA-SHA1', 'RSA-SHA256', 'RSA-SHA512', 'PLAINTEXT']).nullable(),
+  signatureMethod: Yup.string().oneOf(['HMAC-SHA1', 'HMAC-SHA256', 'HMAC-SHA512', 'RSA-SHA1', 'RSA-SHA256', 'RSA-SHA512', 'PLAINTEXT']).nullable(),
   privateKey: Yup.string().nullable(),
   privateKeyType: Yup.string().oneOf(['file', 'text']).nullable(),
   timestamp: Yup.string().nullable(),

@@ -45,7 +45,7 @@ export interface AuthOauth1 {
   accessTokenSecret?: string | null;
   callbackUrl?: string | null;
   verifier?: string | null;
-  signatureEncoding?: 'HMAC-SHA1' | 'HMAC-SHA256' | 'HMAC-SHA512' | 'RSA-SHA1' | 'RSA-SHA256' | 'RSA-SHA512' | 'PLAINTEXT' | null;
+  signatureMethod?: 'HMAC-SHA1' | 'HMAC-SHA256' | 'HMAC-SHA512' | 'RSA-SHA1' | 'RSA-SHA256' | 'RSA-SHA512' | 'PLAINTEXT' | null;
   privateKey?: string | null;
   privateKeyType?: 'file' | 'text' | null;
   timestamp?: string | null;

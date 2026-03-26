@@ -235,7 +235,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         accessTokenSecret: authValues.tokenSecret || '',
         callbackUrl: authValues.callback || null,
         verifier: authValues.verifier || null,
-        signatureEncoding: authValues.signatureMethod || 'HMAC-SHA1',
+        signatureMethod: authValues.signatureMethod || 'HMAC-SHA1',
         privateKey: authValues.privateKey || null,
         privateKeyType: 'text',
         timestamp: authValues.timestamp || null,

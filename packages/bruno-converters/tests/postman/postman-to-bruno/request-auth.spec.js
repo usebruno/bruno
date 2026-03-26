@@ -383,7 +383,7 @@ describe('Request Authentication', () => {
         accessTokenSecret: 'token_secret',
         callbackUrl: 'https://www.example.com',
         verifier: 'verifier',
-        signatureEncoding: 'HMAC-SHA1',
+        signatureMethod: 'HMAC-SHA1',
         privateKey: null,
         privateKeyType: 'text',
         timestamp: null,
@@ -474,7 +474,7 @@ describe('Request Authentication', () => {
     const result = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth.mode).toBe('oauth1');
-    expect(result.items[0].request.auth.oauth1.signatureEncoding).toBe('RSA-SHA1');
+    expect(result.items[0].request.auth.oauth1.signatureMethod).toBe('RSA-SHA1');
     expect(result.items[0].request.auth.oauth1.privateKey).toBe(privateKey);
     expect(result.items[0].request.auth.oauth1.privateKeyType).toBe('text');
     expect(result.items[0].request.auth.oauth1.placement).toBe('header');

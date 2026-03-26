@@ -348,7 +348,7 @@ export function applyOAuth1ToRequest(request: {
     accessTokenSecret?: string;
     callbackUrl?: string;
     verifier?: string;
-    signatureEncoding?: string;
+    signatureMethod?: string;
     privateKey?: string;
     privateKeyType?: string;
     timestamp?: string;
@@ -361,7 +361,7 @@ export function applyOAuth1ToRequest(request: {
 }, collectionPath?: string): void {
   const {
     consumerKey, consumerSecret, accessToken, accessTokenSecret,
-    callbackUrl, verifier, signatureEncoding, privateKey, privateKeyType, timestamp, nonce,
+    callbackUrl, verifier, signatureMethod, privateKey, privateKeyType, timestamp, nonce,
     version, realm, placement, includeBodyHash
   } = request.oauth1config;
 
@@ -384,7 +384,7 @@ export function applyOAuth1ToRequest(request: {
 
   const authorizer = createOAuth1Authorizer({
     consumer: { key: consumerKey, secret: consumerSecret },
-    signature_method: (signatureEncoding || 'HMAC-SHA1') as SignatureMethod,
+    signature_method: (signatureMethod || 'HMAC-SHA1') as SignatureMethod,
     version: version || '1.0',
     realm: realm || undefined,
     private_key: resolvedPrivateKey
@@ -422,7 +422,7 @@ export function applyOAuth1ToRequest(request: {
     const bodyStr = request.data
       ? (typeof request.data === 'string' ? request.data : JSON.stringify(request.data))
       : '';
-    const bodyHash = computeBodyHash(bodyStr, (signatureEncoding || 'HMAC-SHA1') as SignatureMethod);
+    const bodyHash = computeBodyHash(bodyStr, (signatureMethod || 'HMAC-SHA1') as SignatureMethod);
     dataPairs.push(['oauth_body_hash', bodyHash]);
   }
 

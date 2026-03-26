@@ -136,7 +136,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
         </div>
       </div>
 
-      {!oauth1.signatureEncoding?.startsWith('RSA-') && (
+      {!oauth1.signatureMethod?.startsWith('RSA-') && (
         <div className="flex items-center gap-4 w-full">
           <label className="block min-w-[140px]">Consumer Secret</label>
           <div className="single-line-editor-wrapper flex-1 flex items-center">
@@ -207,20 +207,20 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
             items={Object.entries(signatureMethodLabels).map(([value, label]) => ({
               id: value,
               label,
-              onClick: () => handleChange('signatureEncoding', value)
+              onClick: () => handleChange('signatureMethod', value)
             }))}
-            selectedItemId={oauth1.signatureEncoding}
+            selectedItemId={oauth1.signatureMethod}
             placement="bottom-end"
           >
             <div className="flex items-center justify-end oauth1-dropdown-label select-none">
-              {signatureMethodLabels[oauth1.signatureEncoding] || 'HMAC-SHA1'}
+              {signatureMethodLabels[oauth1.signatureMethod] || 'HMAC-SHA1'}
               <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
           </MenuDropdown>
         </div>
       </div>
 
-      {oauth1.signatureEncoding?.startsWith('RSA-') && (
+      {oauth1.signatureMethod?.startsWith('RSA-') && (
         <div className="flex items-start gap-4 w-full">
           <label className="block min-w-[140px] mt-1">Private Key</label>
           {isFileRef ? (
