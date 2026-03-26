@@ -26,6 +26,21 @@ const createRedirectConfig = (error, redirectUrl) => {
     headers: { ...error.config.headers }
   };
 
+  // Strip sensitive auth headers when redirecting to a different origin
+  // (matches curl 7.58+ and browser behavior, see CVE-2018-1000007)
+  try {
+    const originalOrigin = new URL(error.config.url).origin;
+    const redirectOrigin = new URL(redirectUrl).origin;
+    if (originalOrigin !== redirectOrigin) {
+      delete requestConfig.headers['authorization'];
+      delete requestConfig.headers['Authorization'];
+      delete requestConfig.headers['proxy-authorization'];
+      delete requestConfig.headers['Proxy-Authorization'];
+    }
+  } catch (_) {
+    // If URL parsing fails, skip origin check — headers pass through unchanged
+  }
+
   const statusCode = error.response.status;
   const originalMethod = (error.config.method || 'get').toLowerCase();
 
