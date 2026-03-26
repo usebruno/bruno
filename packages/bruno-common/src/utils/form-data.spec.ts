@@ -196,4 +196,16 @@ describe('extractBoundaryFromContentType', () => {
   it('should handle empty string', () => {
     expect(extractBoundaryFromContentType('')).toBeNull();
   });
+
+  it('should extract boundary from quoted value', () => {
+    expect(extractBoundaryFromContentType('multipart/mixed; boundary="my-boundary"')).toBe('my-boundary');
+  });
+
+  it('should extract quoted boundary with spaces', () => {
+    expect(extractBoundaryFromContentType('multipart/mixed; boundary="my boundary value"')).toBe('my boundary value');
+  });
+
+  it('should extract quoted boundary when other params exist', () => {
+    expect(extractBoundaryFromContentType('multipart/mixed; charset=utf-8; boundary="my-boundary"')).toBe('my-boundary');
+  });
 });

@@ -53,6 +53,6 @@ export const extractBoundaryFromContentType = (contentType: unknown): string | n
   if (typeof contentType !== 'string') {
     return null;
   }
-  const match = contentType.match(/boundary=([^;\s]+)/i);
-  return match ? match[1] : null;
+  const match = contentType.match(/boundary="([^"]+)"|boundary=([^;\s]+)/i);
+  return match ? (match[1] || match[2]) : null;
 };
