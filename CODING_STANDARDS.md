@@ -75,6 +75,8 @@ Remember, these rules are here to make our codebase harmonious. If something doe
   - Avoid: `import * as React from "react";` then `React.useCallback(...)`
 - Add `data-testid` to testable elements for Playwright
 - Co-locate utilities that are truly component-specific next to the component, otherwise place shared items under a common folder
+- Avoid mixed controlled and uncontrolled state in react components. The component is either controlled or un-controlled, state needs to have one source of truth instead of being computed by props and then re-computed internally. 
+- SHOULD: use derived state variables instead of adding un-needed `React.useState` / `useState` hooks.
 
 
 ## Readability and Abstractions
