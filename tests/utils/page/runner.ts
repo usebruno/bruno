@@ -12,7 +12,7 @@ export const buildRunnerLocators = (page: Page) => ({
   failedButton: () => page.locator('button').filter({ hasText: /^Failed/ }),
   skippedButton: () => page.locator('button').filter({ hasText: /^Skipped/ }),
   resetButton: () => page.getByRole('button', { name: 'Reset' }),
-  runCollectionButton: () => page.getByRole('button', { name: 'Run Collection' }),
+  runCollectionButton: () => page.getByTestId('runner-run-button'),
   runAgainButton: () => page.getByRole('button', { name: 'Run Again' }),
   configPanel: () => page.getByTestId('runner-config-panel'),
   configCounter: () => page.getByTestId('runner-config-counter'),
