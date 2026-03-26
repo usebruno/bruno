@@ -652,7 +652,7 @@ class GrpcClient {
     const { targetHost, proxyChannelOptions } = this.#resolveProxyTarget(host, proxyConfig);
 
     const mergedChannelOptions = { ...channelOptions, ...proxyChannelOptions };
-    if (userAgentValue) {
+    if (userAgentValue && !channelOptions?.['grpc.primary_user_agent']) {
       mergedChannelOptions['grpc.primary_user_agent'] = userAgentValue;
     }
 
@@ -759,7 +759,7 @@ class GrpcClient {
     const { targetHost, proxyChannelOptions } = this.#resolveProxyTarget(host, proxyConfig);
 
     const mergedChannelOptions = { ...channelOptions, ...proxyChannelOptions };
-    if (userAgentValue) {
+    if (userAgentValue && !channelOptions?.['grpc.primary_user_agent']) {
       mergedChannelOptions['grpc.primary_user_agent'] = userAgentValue;
     }
 
