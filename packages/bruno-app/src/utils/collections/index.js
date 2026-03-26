@@ -804,6 +804,10 @@ export const transformCollectionRootToSave = (collection) => {
 export const transformFolderRootToSave = (folder) => {
   const _folder = folder.draft ? folder.draft : folder.root;
   const folderRootToSave = {
+    meta: {
+      name: folder.name,
+      seq: folder.seq
+    },
     docs: _folder.docs,
     request: {
       auth: _folder?.request?.auth,
