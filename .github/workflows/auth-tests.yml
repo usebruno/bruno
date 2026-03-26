@@ -1,0 +1,61 @@
+name: Auth Tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  tests-for-linux:
+    name: Auth Tests - Linux
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Setup Feature Dependencies
+        uses: ./.github/actions/auth/linux/setup-feature-specific-deps
+
+      - name: Run Auth E2E Tests
+        uses: ./.github/actions/auth/linux/run-auth-e2e-tests
+
+  tests-for-macos:
+    name: Auth Tests - macOS
+    timeout-minutes: 60
+    runs-on: macos-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Run Auth E2E Tests
+        uses: ./.github/actions/auth/macos/run-auth-e2e-tests
+
+  tests-for-windows:
+    name: Auth Tests - Windows
+    timeout-minutes: 60
+    runs-on: windows-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Run Auth E2E Tests
+        uses: ./.github/actions/auth/windows/run-auth-e2e-tests
