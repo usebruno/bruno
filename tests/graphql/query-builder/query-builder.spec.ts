@@ -1,15 +1,15 @@
-import { test, expect } from '../../../playwright';
+import { test, expect, Page } from '../../../playwright';
 import { closeAllCollections, openRequest } from '../../utils/page';
 
-const qb = (page) => page.locator('.graphql-query-builder-container');
+const qb = (page: Page) => page.locator('.graphql-query-builder-container');
 
-const getQueryEditorContent = async (page) => {
+const getQueryEditorContent = async (page: Page) => {
   const editor = page.locator('[aria-label="Query Editor"] .CodeMirror').first();
   await expect(editor).toBeVisible();
-  return await editor.evaluate((el) => (el as any).CodeMirror?.getValue() || '');
+  return await editor.evaluate((el) => (el as any).CodeMirror?.getValue() || '') as string;
 };
 
-const ensureVariablesPaneOpen = async (page) => {
+const ensureVariablesPaneOpen = async (page: Page) => {
   const variablesEditor = page.locator('.variables-section .CodeMirror').first();
   if (!(await variablesEditor.isVisible())) {
     await page.locator('.variables-header').click();
@@ -17,10 +17,10 @@ const ensureVariablesPaneOpen = async (page) => {
   }
 };
 
-const getVariablesEditorContent = async (page) => {
+const getVariablesEditorContent = async (page: Page) => {
   await ensureVariablesPaneOpen(page);
   const editor = page.locator('.variables-section .CodeMirror').first();
-  return await editor.evaluate((el) => (el as any).CodeMirror?.getValue() || '');
+  return await editor.evaluate((el) => (el as any).CodeMirror?.getValue() || '') as string;
 };
 
 test.describe('GraphQL Query Builder', () => {
