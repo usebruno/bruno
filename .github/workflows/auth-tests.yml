@@ -23,11 +23,11 @@ jobs:
       - name: Setup Feature Dependencies
         uses: ./.github/actions/auth/oauth1/linux/setup-feature-specific-deps
 
-      - name: Start Test Server
-        uses: ./.github/actions/auth/oauth1/linux/start-test-server
-
       - name: Run Auth E2E Tests
         uses: ./.github/actions/auth/oauth1/linux/run-auth-e2e-tests
+
+      - name: Start Test Server
+        uses: ./.github/actions/auth/oauth1/linux/start-test-server
 
       - name: Run OAuth1 CLI Tests
         uses: ./.github/actions/auth/oauth1/linux/run-oauth1-cli-tests
@@ -46,11 +46,11 @@ jobs:
       - name: Setup Node Dependencies
         uses: ./.github/actions/common/setup-node-deps
 
-      - name: Start Test Server
-        uses: ./.github/actions/auth/oauth1/macos/start-test-server
-
       - name: Run Auth E2E Tests
         uses: ./.github/actions/auth/oauth1/macos/run-auth-e2e-tests
+
+      - name: Start Test Server
+        uses: ./.github/actions/auth/oauth1/macos/start-test-server
 
       - name: Run OAuth1 CLI Tests
         uses: ./.github/actions/auth/oauth1/macos/run-oauth1-cli-tests
@@ -69,11 +69,11 @@ jobs:
       - name: Setup Node Dependencies
         uses: ./.github/actions/common/setup-node-deps
 
-      - name: Start Test Server
-        uses: ./.github/actions/auth/oauth1/windows/start-test-server
-      
       - name: Run Auth E2E Tests
         uses: ./.github/actions/auth/oauth1/windows/run-auth-e2e-tests
+
+      - name: Start Test Server
+        uses: ./.github/actions/auth/oauth1/windows/start-test-server
 
       - name: Run OAuth1 CLI Tests
         uses: ./.github/actions/auth/oauth1/windows/run-oauth1-cli-tests
