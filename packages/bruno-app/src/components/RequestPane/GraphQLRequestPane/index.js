@@ -3,7 +3,7 @@ import find from 'lodash/find';
 import get from 'lodash/get';
 import classnames from 'classnames';
 import { IconWand, IconDots, IconBook, IconDownload, IconRefresh, IconFile, IconChevronDown, IconChevronRight } from '@tabler/icons';
-import IconQueryBuilderToggle from 'components/Icons/IconQueryBuilderToggle';
+import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
 import ActionIcon from 'ui/ActionIcon';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab, updateQueryBuilderOpen, updateQueryBuilderWidth, updateVariablesPaneOpen, updateVariablesPaneHeight } from 'providers/ReduxStore/slices/tabs';
@@ -28,12 +28,6 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import Settings from 'components/RequestPane/Settings';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import AuthMode from '../Auth/AuthMode/index';
-
-const MenuIcon = ({ ref, ...props }) => (
-  <button ref={ref} className="graphql-menu-icon" title="More actions" {...props}>
-    <IconDots size={16} strokeWidth={1.5} />
-  </button>
-);
 
 const TAB_CONFIG = [
   { key: 'query', label: 'Query' },
@@ -315,10 +309,12 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
         label={showQueryBuilder ? 'Hide Query Builder' : 'Show Query Builder'}
         onClick={toggleQueryBuilder}
       >
-        <IconQueryBuilderToggle collapsed={!showQueryBuilder} size={16} strokeWidth={1.5} />
+        <IconSidebarToggle collapsed={!showQueryBuilder} size={16} strokeWidth={1.5} />
       </ActionIcon>
       <MenuDropdown items={queryMenuItems} placement="bottom-end">
-        <MenuIcon />
+        <ActionIcon label="More actions">
+          <IconDots size={16} strokeWidth={1.5} />
+        </ActionIcon>
       </MenuDropdown>
     </div>
   ) : null;

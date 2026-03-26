@@ -15,7 +15,7 @@ import {
 
 const MAX_DEPTH = 7;
 
-const PLACEHOLDER = '__bruno_placeholder__';
+export const PLACEHOLDER = '__bruno_placeholder__';
 
 const sanitizeQueryForParsing = (queryString) => {
   let sanitized = queryString.replace(/\(\s*\)/g, '');

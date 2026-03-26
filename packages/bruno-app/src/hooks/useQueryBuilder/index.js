@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { format } from 'prettier/standalone';
 import prettierPluginGraphql from 'prettier/parser-graphql';
-import { generateQueryString, getAvailableRootTypes, parseQueryToState, validateQueryForSync } from 'utils/graphql/queryBuilder';
+import { generateQueryString, getAvailableRootTypes, parseQueryToState, validateQueryForSync, PLACEHOLDER } from 'utils/graphql/queryBuilder';
 
 const DEBOUNCE_MS = 150;
 const SYNC_DEBOUNCE_MS = 400;
@@ -17,8 +17,6 @@ const isValidJson = (str) => {
 };
 
 const normalizeQuery = (q) => (q || '').replace(/\s+/g, ' ').trim();
-
-const PLACEHOLDER = '__bruno_placeholder__';
 
 const prettifyQuery = (query) => {
   try {

@@ -87,21 +87,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .graphql-menu-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 1.25rem;
-    width: 1.5rem;
-    border: 1px solid ${(props) => props.theme.workspace.border};
-    color: ${(props) => props.theme.dropdown.iconColor};
-    border-radius: 4px;
-
-    &:hover {
-      border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBorder} !important;
-      color: ${(props) => props.theme.text};
-    }
-  }
 `;
 
 export default StyledWrapper;

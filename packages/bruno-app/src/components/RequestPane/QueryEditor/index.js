@@ -11,6 +11,7 @@ import MD from 'markdown-it';
 import { format } from 'prettier/standalone';
 import prettierPluginGraphql from 'prettier/parser-graphql';
 import { getAllVariables } from 'utils/collections';
+import { PLACEHOLDER } from 'utils/graphql/queryBuilder';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import onHasCompletion from './onHasCompletion';
@@ -222,7 +223,6 @@ export default class QueryEditor extends React.Component {
 
       // Temporarily fill empty selection sets so prettier can parse the query
       // First preserve empty input objects (e.g. input: {}), then fill empty selection sets
-      const PLACEHOLDER = '__bruno_placeholder__';
       let sanitized = currentValue.replace(/(:\s*)\{\s*\}/g, '$1{ __empty: true }');
       sanitized = sanitized.replace(/\{\s*\}/g, `{ ${PLACEHOLDER} }`);
       let prettyQuery = format(sanitized, {

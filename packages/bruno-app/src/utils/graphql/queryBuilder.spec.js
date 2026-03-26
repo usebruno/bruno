@@ -209,7 +209,7 @@ describe('queryBuilder', () => {
       expect(children.unionTypes[1].path).toBe('Query.search.__on_Post');
     });
 
-    it('should return empty for null type', () => {
+    it('should return empty array for null type', () => {
       expect(getFieldChildren(null, 'Query.foo')).toEqual({ fields: [] });
     });
   });
@@ -247,7 +247,7 @@ describe('queryBuilder', () => {
       expect(fields.find((f) => f.name === 'age').isRequired).toBe(false);
     });
 
-    it('should return empty for null type', () => {
+    it('should return empty array for null type', () => {
       expect(getInputObjectFields(null)).toEqual([]);
     });
 
