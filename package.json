@@ -21,7 +21,7 @@
   "homepage": "https://usebruno.com",
   "devDependencies": {
     "@eslint/compat": "^1.3.2",
-    "@faker-js/faker": "^7.6.0",
+    "@faker-js/faker": "^10.4.0",
     "@jest/globals": "^29.2.0",
     "@opencollection/types": "~0.8.0",
     "@playwright/test": "^1.51.1",
