@@ -514,7 +514,7 @@ const ListArgRow = ({ arg, fieldPath, isArgEnabled, argValue, sectionIndent, onT
         {arg.isRequired && <span className="arg-required">!</span>}
         <span className="field-type">{arg.typeLabel}</span>
       </div>
-      {isExpanded && isArgEnabled && (
+      {isExpanded && (
         <ListArgValueInput
           values={argValue}
           onChange={(v) => onArgChange(fieldPath, arg.name, v)}
