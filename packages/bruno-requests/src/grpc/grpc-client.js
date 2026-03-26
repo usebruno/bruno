@@ -353,7 +353,7 @@ class GrpcClient {
    * SOCKS and HTTPS proxy protocols are not supported.
    *
    * When proxyConfig is an object (even with null proxyUrl), @grpc/grpc-js's
-   * built-in env var proxy (grpc_proxy/http_proxy/https_proxy) is disabled
+   * built-in env var proxy (http_proxy/https_proxy) is disabled
    * so that Bruno has full control over proxy behavior.
    *
    * @param {string} originalHost - The original gRPC server host:port
@@ -368,7 +368,7 @@ class GrpcClient {
     }
 
     // Bruno is managing proxy — disable @grpc/grpc-js built-in env var proxy
-    // so that grpc_proxy/http_proxy/https_proxy env vars don't interfere.
+    // so that http_proxy/https_proxy env vars don't interfere.
     // Use a local subchannel pool so that old proxy subchannels don't persist
     // in the global pool and retry against stale proxy addresses.
     const baseOptions = {

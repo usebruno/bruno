@@ -1,9 +1,7 @@
 export interface ProxyConfiguration {
   http_proxy?: string | null;
   https_proxy?: string | null;
-  grpc_proxy?: string | null;
   no_proxy?: string | null;
-  no_grpc_proxy?: string | null;
   source: string;
 };
 

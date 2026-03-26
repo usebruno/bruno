@@ -7,7 +7,7 @@ import StyledWrapper from '../StyledWrapper';
 const SystemProxy = () => {
   const dispatch = useDispatch();
   const systemProxyVariables = useSelector((state) => state.app.systemProxyVariables);
-  const { source, http_proxy, https_proxy, grpc_proxy, no_proxy, no_grpc_proxy } = systemProxyVariables || {};
+  const { source, http_proxy, https_proxy, no_proxy } = systemProxyVariables || {};
   const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState(null);
 
@@ -81,21 +81,9 @@ const SystemProxy = () => {
           </div>
           <div className="mb-1 flex items-center">
             <label className="settings-label">
-              grpc_proxy
-            </label>
-            <div className="system-proxy-value">{grpc_proxy || '-'}</div>
-          </div>
-          <div className="mb-1 flex items-center">
-            <label className="settings-label">
               no_proxy
             </label>
             <div className="system-proxy-value">{no_proxy || '-'}</div>
-          </div>
-          <div className="mb-1 flex items-center">
-            <label className="settings-label">
-              no_grpc_proxy
-            </label>
-            <div className="system-proxy-value">{no_grpc_proxy || '-'}</div>
           </div>
         </div>
         <span

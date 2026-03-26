@@ -21,7 +21,7 @@ let grpcClient;
  * SOCKS and HTTPS proxy protocols are not supported.
  *
  * Always returns an object so that @grpc/grpc-js's built-in env var proxy
- * (grpc_proxy/http_proxy/https_proxy) is disabled — Bruno controls all proxy behavior.
+ * (http_proxy/https_proxy) is disabled — Bruno controls all proxy behavior.
  *
  * @param {string} proxyMode - 'on', 'system', or 'off'
  * @param {Object} proxyConfig - Raw proxy config from getCertsAndProxyConfig
@@ -58,15 +58,11 @@ const resolveGrpcProxyConfig = (proxyMode, proxyConfig, requestUrl, interpolatio
   }
 
   if (proxyMode === 'system') {
-    const { http_proxy, https_proxy, grpc_proxy, no_proxy, no_grpc_proxy } = proxyConfig || {};
-    // Prefer gRPC-specific no_grpc_proxy over general no_proxy
-    const noProxyList = no_grpc_proxy || no_proxy || '';
-    const shouldProxy = shouldUseProxy(requestUrl, noProxyList);
+    const { http_proxy, https_proxy, no_proxy } = proxyConfig || {};
+    const shouldProxy = shouldUseProxy(requestUrl, no_proxy || '');
     if (!shouldProxy) return { proxyUrl: null };
 
-    // Prefer grpc_proxy (gRPC-specific) over general http/https proxy
-    // This matches @grpc/grpc-js precedence: grpc_proxy > https_proxy > http_proxy
-    const systemProxy = grpc_proxy || https_proxy || http_proxy;
+    const systemProxy = https_proxy || http_proxy;
     if (!systemProxy) return { proxyUrl: null };
 
     try {
