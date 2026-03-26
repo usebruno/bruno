@@ -94,11 +94,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
 
-  // Clone shortcut — only active when this item's tab is focused
+  // Clone shortcut — only active when this sidebar item has keyboard focus
   useKeybinding('cloneItem', () => {
     setCloneItemModalOpen(true);
     return false;
-  }, { enabled: isTabForItemActive, deps: [isTabForItemActive] });
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
   const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
 
