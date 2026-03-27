@@ -368,7 +368,7 @@ export const bruExampleToJson = (data: string | any, parsed: boolean = false, pa
     }
 
     /**
-     * Backward compat (pre-v3.0.2 - v3.2.0): Postman imports before PR #6876 stored status/statusText swapped
+     * Backward compatibility (pre-v3.0.2 - v3.2.0): Postman imports before PR #6876 stored status/statusText swapped
      * (code: "OK", text: "202" instead of code: 202, text: "OK"). Detect and swap back.
      * TODO(Sid / Shubh): Remove after v5 — all collections should be migrated by then.
      */
