@@ -3167,9 +3167,10 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
         collection.runnerConfiguration = {
+          ...collection.runnerConfiguration,
           selectedRequestItems: selectedRequestItems || [],
           requestItemsOrder: requestItemsOrder || [],
-          delay: delay
+          ...(delay !== undefined && { delay })
         };
       }
     },

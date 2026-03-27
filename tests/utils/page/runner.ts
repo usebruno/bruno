@@ -12,8 +12,14 @@ export const buildRunnerLocators = (page: Page) => ({
   failedButton: () => page.locator('button').filter({ hasText: /^Failed/ }),
   skippedButton: () => page.locator('button').filter({ hasText: /^Skipped/ }),
   resetButton: () => page.getByRole('button', { name: 'Reset' }),
-  runCollectionButton: () => page.getByRole('button', { name: 'Run Collection' }),
-  runAgainButton: () => page.getByRole('button', { name: 'Run Again' })
+  runCollectionButton: () => page.getByTestId('runner-run-button'),
+  runAgainButton: () => page.getByRole('button', { name: 'Run Again' }),
+  configPanel: () => page.getByTestId('runner-config-panel'),
+  configCounter: () => page.getByTestId('runner-config-counter'),
+  selectAllButton: () => page.getByTestId('runner-select-all'),
+  configResetButton: () => page.getByTestId('runner-config-reset'),
+  requestItems: () => page.getByTestId('runner-request-item'),
+  delayInput: () => page.getByTestId('runner-delay-input')
 });
 
 /**
@@ -30,6 +36,35 @@ export const getRunnerResultCounts = async (page: Page) => {
   const skipped = parseInt(await locators.skippedButton().locator('span').innerText());
 
   return { totalRequests, passed, failed, skipped };
+};
+
+/**
+ * Opens the runner tab for a collection without starting a run
+ * @param page - The Playwright page object
+ * @param collectionName - The name of the collection to open the runner for
+ * @returns void
+ */
+export const openRunnerTab = async (page: Page, collectionName: string) => {
+  await test.step(`Open runner tab for "${collectionName}"`, async () => {
+    const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
+    await collectionContainer.waitFor({ state: 'visible' });
+
+    const actionsContainer = collectionContainer.locator('.collection-actions');
+    await collectionContainer.hover();
+    await actionsContainer.waitFor({ state: 'visible' });
+
+    const icon = actionsContainer.locator('.icon');
+    await icon.waitFor({ state: 'visible', timeout: 5000 });
+    await icon.click();
+
+    const runMenuItem = page.getByText('Run', { exact: true });
+    await runMenuItem.waitFor({ state: 'visible' });
+    await runMenuItem.click();
+
+    // Wait for the config panel to load
+    const locators = buildRunnerLocators(page);
+    await locators.configPanel().waitFor({ state: 'visible', timeout: 10000 });
+  });
 };
 
 /**
