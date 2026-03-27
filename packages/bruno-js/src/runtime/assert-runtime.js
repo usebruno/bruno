@@ -276,7 +276,7 @@ class AssertRuntime {
       requestUrl: request?.url
     });
     const req = new BrunoRequest(request);
-    const res = createResponseParser(response)
+    const res = createResponseParser(response);
 
     const bruContext = {
       bru,
