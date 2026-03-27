@@ -4,6 +4,7 @@ import { getRootFields } from 'utils/graphql/queryBuilder';
 import useQueryBuilder from 'hooks/useQueryBuilder';
 import QueryBuilderTree from './QueryBuilderTree';
 import ErrorBoundary from './ErrorBoundary';
+import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
 const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, variablesValue, loadSchema, isSchemaLoading, schemaError }) => {
@@ -88,14 +89,29 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
               <IconAlertTriangle size={32} strokeWidth={1.5} className="empty-state-icon warning" />
               <div className="empty-state-title">Failed to Load Schema</div>
               <div className="empty-state-description">{schemaError.message}</div>
-              <button
-                className="empty-state-btn"
-                onClick={() => loadSchema('introspection')}
-                disabled={isSchemaLoading}
-              >
-                <IconCloudDownload size={16} strokeWidth={1.5} />
-                {isSchemaLoading ? 'Loading...' : 'Try Again'}
-              </button>
+              <div className="empty-state-actions">
+                <Button
+                  variant="outline"
+                  color="secondary"
+                  fullWidth
+                  icon={<IconCloudDownload size={16} strokeWidth={1.5} />}
+                  loading={isSchemaLoading}
+                  disabled={isSchemaLoading}
+                  onClick={() => loadSchema('introspection')}
+                >
+                  Try Again
+                </Button>
+                <Button
+                  variant="outline"
+                  color="secondary"
+                  fullWidth
+                  icon={<IconFileUpload size={16} strokeWidth={1.5} />}
+                  disabled={isSchemaLoading}
+                  onClick={() => loadSchema('file')}
+                >
+                  Upload Schema File
+                </Button>
+              </div>
             </>
           ) : (
             <>
@@ -103,24 +119,31 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
               <div className="empty-state-description">
                 Load a GraphQL schema to explore operations and build queries visually.
               </div>
-              <button
-                className="empty-state-btn"
-                onClick={() => loadSchema('introspection')}
-                disabled={isSchemaLoading}
-              >
-                <IconCloudDownload size={16} strokeWidth={1.5} />
-                {isSchemaLoading ? 'Loading...' : 'Load from Introspection'}
-              </button>
+              <div className="empty-state-actions">
+                <Button
+                  variant="outline"
+                  color="secondary"
+                  fullWidth
+                  icon={<IconCloudDownload size={16} strokeWidth={1.5} />}
+                  loading={isSchemaLoading}
+                  disabled={isSchemaLoading}
+                  onClick={() => loadSchema('introspection')}
+                >
+                  Load from Introspection
+                </Button>
+                <Button
+                  variant="outline"
+                  color="secondary"
+                  fullWidth
+                  icon={<IconFileUpload size={16} strokeWidth={1.5} />}
+                  disabled={isSchemaLoading}
+                  onClick={() => loadSchema('file')}
+                >
+                  Upload Schema File
+                </Button>
+              </div>
             </>
           )}
-          <button
-            className="empty-state-btn"
-            onClick={() => loadSchema('file')}
-            disabled={isSchemaLoading}
-          >
-            <IconFileUpload size={16} strokeWidth={1.5} />
-            Upload Schema File
-          </button>
         </div>
       </StyledWrapper>
     );

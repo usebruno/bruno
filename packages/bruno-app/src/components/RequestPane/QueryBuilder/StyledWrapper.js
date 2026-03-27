@@ -365,29 +365,16 @@ const StyledWrapper = styled.div`
       word-break: break-word;
     }
 
-    .empty-state-btn {
+    .empty-state-actions {
       display: flex;
-      align-items: center;
-      justify-content: center;
+      flex-direction: column;
       gap: 8px;
       width: 100%;
       max-width: 240px;
-      padding: 8px 16px;
-      border: 1px solid ${(props) => props.theme.border.border1};
-      border-radius: 6px;
-      background: transparent;
-      color: ${(props) => props.theme.text};
-      font-size: 13px;
-      cursor: pointer;
 
-      &:hover {
-        background: ${(props) => props.theme.background.surface0};
-        border-color: ${(props) => props.theme.colors.text.muted};
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+      button {
+        border-color: ${(props) => props.theme.border.border1};
+        color: ${(props) => props.theme.colors.text.muted};
       }
     }
   }
