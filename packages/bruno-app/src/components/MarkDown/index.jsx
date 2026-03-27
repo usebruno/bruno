@@ -35,7 +35,7 @@ const Markdown = ({ collectionPath, onDoubleClick, content }) => {
   };
 
   const md = new MarkdownIt(markdownItOptions).use(MarkdownItReplaceLink);
-  const htmlFromMarkdown = useMemo(() => md.render(content || ''), [content]);
+  const htmlFromMarkdown = useMemo(() => md.render(content || ''), [content, collectionPath]);
   const cleanHTML = useMemo(() => DOMPurify.sanitize(htmlFromMarkdown), [htmlFromMarkdown]);
 
   return (
