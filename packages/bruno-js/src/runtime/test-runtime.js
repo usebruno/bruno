@@ -49,7 +49,8 @@ class TestRuntime {
       oauth2CredentialVariables,
       collectionName,
       promptVariables,
-      certsAndProxyConfig
+      certsAndProxyConfig,
+      requestUrl: request?.url
     });
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
