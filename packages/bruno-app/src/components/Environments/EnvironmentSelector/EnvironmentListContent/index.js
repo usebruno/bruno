@@ -22,7 +22,7 @@ const EnvironmentListContent = ({
               onClick={() => onEnvironmentSelect(null)}
             >
               <span className="w-2 shrink-0" />
-              <span className="italic opacity-50">No Environment</span>
+              <span>No Environment</span>
             </div>
             <ToolHint
               anchorSelect="[data-tooltip-content]"
