@@ -399,7 +399,7 @@ export const bruExampleToJson = (data: string | any, parsed: boolean = false, pa
           name: header.name,
           value: header.value
         })),
-        status: Number(status) || null,
+        status: Number(status) || 200,
         statusText: statusText || 'OK',
         body: {
           type: _.get(json, 'response.body.type', 'json'),
