@@ -385,6 +385,12 @@ class GrpcClient {
       return { targetHost: originalHost, proxyChannelOptions: baseOptions };
     }
 
+    // We replicate what @grpc/grpc-js's internal mapProxyName() does:
+    // redirect the channel target to the proxy and set http_connect_target/creds
+    // so that getProxiedConnection() performs the HTTP CONNECT handshake.
+    // These channel options are marked "internal" in channel-options.ts, but
+    // there is no public programmatic proxy API — the only alternative is
+    // setting process-wide env vars (http_proxy), which is racy.
     const proxyUrl = new URL(proxyConfig.proxyUrl);
     const proxyChannelOptions = {
       ...baseOptions,
@@ -588,8 +594,6 @@ class GrpcClient {
     includeDirs = [],
     proxyConfig
   }) {
-    this.#cancelAndCloseConnection(request.uid);
-
     const credentials = this.#getChannelCredentials({
       url: request.url,
       rootCertificate,
