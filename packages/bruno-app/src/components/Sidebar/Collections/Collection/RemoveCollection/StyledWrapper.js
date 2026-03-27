@@ -12,6 +12,9 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
     margin-bottom: 4px;
     cursor: default !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     &:hover {
       background: none !important;
     }
@@ -23,6 +26,24 @@ const StyledWrapper = styled.div`
   }
   .warning-icon {
     color: ${(props) => props.theme.status.warning.text};
+  }
+
+  .warning-text {
+    color: ${(props) => props.theme.status.warning.text};
+  }
+  .draft-list-item {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+  .transient-hint {
+    color: ${(props) => props.theme.colors.text.warning};
+  }
+  .transient-item {
+    background-color: ${(props) => props.theme.background.surface0};
+    border: 1px solid ${(props) => props.theme.border.border0};
+    border-radius: 4px;
+  }
+  .transient-item-name {
+    color: ${(props) => props.theme.text};
   }
 `;
 

@@ -63,7 +63,7 @@ const StyledWrapper = styled.div`
         height: 100%;
         cursor: col-resize;
         background: transparent;
-        z-index: 100;
+        z-index: 10;
 
         &:hover,
         &.resizing {
