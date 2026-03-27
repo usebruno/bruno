@@ -7,6 +7,7 @@ import StyledWrapper from './StyledWrapper';
 const MIN_COLUMN_WIDTH = 80;
 
 const EditableTable = ({
+  tableId, // Not being used kept to maintain uniqueness & pass similar in onColumnWidthsChange
   columns,
   rows,
   onChange,
@@ -20,20 +21,20 @@ const EditableTable = ({
   reorderable = false,
   onReorder,
   showAddRow = true,
-  testId = 'editable-table'
+  testId = 'editable-table',
+  columnWidths,
+  onColumnWidthsChange
 }) => {
   const tableRef = useRef(null);
   const emptyRowUidRef = useRef(null);
   const [hoveredRow, setHoveredRow] = useState(null);
   const [resizing, setResizing] = useState(null);
   const [tableHeight, setTableHeight] = useState(0);
-  const [columnWidths, setColumnWidths] = useState(() => {
-    const initialWidths = {};
-    columns.forEach((col) => {
-      initialWidths[col.key] = col.width || 'auto';
-    });
-    return initialWidths;
-  });
+  const widths = columnWidths || {};
+
+  const handleColumnWidthsChange = useCallback((newWidths) => {
+    onColumnWidthsChange?.(newWidths);
+  }, [onColumnWidthsChange]);
 
   const handleResizeStart = useCallback((e, columnKey) => {
     e.preventDefault();
@@ -59,11 +60,13 @@ const EditableTable = ({
       const maxShrink = startWidth - MIN_COLUMN_WIDTH;
       const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
 
-      setColumnWidths((prev) => ({
-        ...prev,
+      const newWidths = {
+        ...widths,
         [columnKey]: `${startWidth + clampedDiff}px`,
         [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
-      }));
+      };
+
+      handleColumnWidthsChange(newWidths);
     };
 
     const handleMouseUp = () => {
@@ -88,7 +91,7 @@ const EditableTable = ({
         });
 
         if (Object.keys(newWidths).length > 0) {
-          setColumnWidths((prev) => ({ ...prev, ...newWidths }));
+          handleColumnWidthsChange({ ...widths, ...newWidths });
         }
       }
       setResizing(null);
@@ -98,7 +101,7 @@ const EditableTable = ({
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [columns, showCheckbox]);
+  }, [columns, showCheckbox, widths, handleColumnWidthsChange]);
 
   // Track table height for resize handles
   useEffect(() => {
@@ -118,8 +121,8 @@ const EditableTable = ({
   }, [rows.length]);
 
   const getColumnWidth = useCallback((column) => {
-    return columnWidths[column.key] || column.width || 'auto';
-  }, [columnWidths]);
+    return widths[column.key] || column.width || 'auto';
+  }, [widths]);
 
   const createEmptyRow = useCallback(() => {
     const newUid = uuid();

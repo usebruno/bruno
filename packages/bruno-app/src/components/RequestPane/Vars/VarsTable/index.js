@@ -1,8 +1,9 @@
 import React, { useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { moveVar, setRequestVars } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
 import EditableTable from 'components/EditableTable';
@@ -13,6 +14,16 @@ import { variableNameRegex } from 'utils/common/regex';
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const varsWidths = focusedTab?.tableColumnWidths?.['request-vars'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
@@ -57,7 +68,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
       name: varType === 'request' ? 'Value' : (
         <div className="flex items-center">
           <span>Expr</span>
-          <InfoTip content="You can write any valid JS expression here" infotipId={`request-${varType}-var`} />
+          <InfoTip className="tooltip-mod" content="You can write any valid JS expression here" infotipId={`request-${varType}-var`} />
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
@@ -85,6 +96,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
   return (
     <StyledWrapper className="w-full">
       <EditableTable
+        tableId="request-vars"
         columns={columns}
         rows={vars || []}
         onChange={handleVarsChange}
@@ -92,6 +104,8 @@ const VarsTable = ({ item, collection, vars, varType }) => {
         getRowError={getRowError}
         reorderable={true}
         onReorder={handleVarDrag}
+        columnWidths={varsWidths}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('request-vars', widths)}
       />
     </StyledWrapper>
   );

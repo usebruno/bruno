@@ -107,35 +107,29 @@ const compiledReplacements = Object.entries(extendedReplacements).map(([pattern,
 
 const processRegexReplacement = (code) => {
   for (const { regex, replacement } of compiledReplacements) {
-    if (regex.test(code)) {
-      code = code.replace(regex, replacement);
-    }
-  }
-  if ((code.includes('pm.') || code.includes('postman.'))) {
-    code = code.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
+    code = code.replace(regex, replacement);
   }
   return code;
 };
 
-const postmanTranslation = (script, options = {}) => {
+const postmanTranslation = (script) => {
   let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
+  let translatedScript;
 
   try {
-    let translatedCode = translateCode(modifiedScript);
-    if ((translatedCode.includes('pm.') || translatedCode.includes('postman.'))) {
-      translatedCode = translatedCode.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
-    }
-    return translatedCode;
+    translatedScript = translateCode(modifiedScript);
   } catch (e) {
     console.warn('Error in postman translation:', e);
 
     try {
-      return processRegexReplacement(modifiedScript);
+      translatedScript = processRegexReplacement(modifiedScript);
     } catch (e) {
       console.warn('Error in postman translation:', e);
-      return modifiedScript;
+      translatedScript = modifiedScript;
     }
   }
+
+  return translatedScript;
 };
 
 export default postmanTranslation;

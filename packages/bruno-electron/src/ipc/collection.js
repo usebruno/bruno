@@ -1172,7 +1172,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             if (item.type === 'folder') {
               let sanitizedFolderName = sanitizeName(item?.filename || item?.name);
               const folderPath = path.join(currentPath, sanitizedFolderName);
-              fs.mkdirSync(folderPath);
+              fs.mkdirSync(folderPath, { recursive: true });
 
               if (item?.root?.meta?.name) {
                 const folderFilePath = path.join(folderPath, `folder.${format}`);
@@ -1257,11 +1257,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         // Save OpenAPI spec file for sync support
         if (rawOpenAPISpec && brunoConfig.openapi?.length) {
-          const importSourceUrl = brunoConfig.openapi[0].sourceUrl;
           const specContent = typeof rawOpenAPISpec === 'string'
             ? rawOpenAPISpec
             : JSON.stringify(rawOpenAPISpec, null, 2);
-          await saveSpecAndUpdateMetadata({ collectionPath, specContent, sourceUrl: importSourceUrl });
+          await saveSpecAndUpdateMetadata({ collectionPath, specContent });
         }
 
         const { size, filesCount } = await getCollectionStats(collectionPath);
@@ -1444,6 +1443,40 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           moveRequestUid(pathnamesBefore[index], pathnamesAfter[index]);
         });
       }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:move-item-cross-format', async (event, { targetDirname, sourcePathname, sourceFormat, targetFormat }) => {
+    try {
+      if (!fs.existsSync(sourcePathname)) {
+        throw new Error(`Source path: ${sourcePathname} does not exist`);
+      }
+      if (!fs.existsSync(targetDirname)) {
+        throw new Error(`Target directory: ${targetDirname} does not exist`);
+      }
+
+      const sourceBasename = path.basename(sourcePathname);
+      const filenameWithoutExt = sourceBasename.replace(/\.(bru|yml|yaml)$/, '');
+      const targetExt = targetFormat === 'yml' ? 'yml' : 'bru';
+      const targetFilename = `${filenameWithoutExt}.${targetExt}`;
+      const targetPathname = path.join(targetDirname, targetFilename);
+
+      if (fs.existsSync(targetPathname)) {
+        throw new Error(`A file with the name "${targetFilename}" already exists in the target location`);
+      }
+
+      const sourceContent = await fs.promises.readFile(sourcePathname, 'utf8');
+      const parsedRequest = parseRequest(sourceContent, { format: sourceFormat });
+      const finalContent = stringifyRequest(parsedRequest, { format: targetFormat });
+
+      await writeFile(targetPathname, finalContent);
+      await removePath(sourcePathname);
+
+      moveRequestUid(sourcePathname, targetPathname);
+
+      return { newPathname: targetPathname };
     } catch (error) {
       return Promise.reject(error);
     }

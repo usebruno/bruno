@@ -1,5 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
-import { setIsCreatingCollection } from 'providers/ReduxStore/slices/app';
+import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
@@ -19,7 +18,7 @@ import {
 
 import { importCollection, openCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
-import { savePreferences } from 'providers/ReduxStore/slices/app';
+import { savePreferences, setIsCreatingCollection } from 'providers/ReduxStore/slices/app';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection, flattenItems, isItemTransientRequest } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
@@ -59,22 +58,6 @@ const CollectionsSection = () => {
   const [showCloneGitModal, setShowCloneGitModal] = useState(false);
   const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
 
-  // Listen for sidebar-search-open hotkey event
-  useEffect(() => {
-    const handleSidebarSearch = () => {
-      setShowSearch(true);
-      // Focus the search input after it's rendered
-      setTimeout(() => {
-        const searchInput = document.querySelector('.collection-search-input');
-        if (searchInput) {
-          searchInput.focus();
-        }
-      }, 50);
-    };
-
-    window.addEventListener('sidebar-search-open', handleSidebarSearch);
-    return () => window.removeEventListener('sidebar-search-open', handleSidebarSearch);
-  }, []);
   // Default to true (don't show modal) so that:
   // 1. Existing users who upgrade (no hasSeenWelcomeModal in their prefs) don't see it
   // 2. The modal doesn't flash before preferences are loaded from the electron process

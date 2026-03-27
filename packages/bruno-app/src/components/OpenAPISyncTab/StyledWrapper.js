@@ -68,6 +68,12 @@ const StyledWrapper = styled.div`
     margin: 0.5rem 0 0 0;
   }
 
+  .setup-error {
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.danger};
+    margin: 0.5rem 0 0 0;
+  }
+
   .setup-features {
     display: flex;
     flex-direction: column;
@@ -137,6 +143,7 @@ const StyledWrapper = styled.div`
       align-items: center;
       gap: 6px;
       font-size: 11px;
+      margin-top: 0.35rem;
 
       .spec-url-value {
         font-family: monospace;
@@ -339,6 +346,14 @@ const StyledWrapper = styled.div`
       font-size: 13px;
       font-weight: 500;
       color: ${(props) => props.theme.text};
+
+      svg {
+        opacity: 0.3;
+      }
+
+      &:hover svg {
+        opacity: 0.6;
+      }
     }
   }
 
@@ -522,6 +537,7 @@ const StyledWrapper = styled.div`
 
   .sync-summary-cards {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
   }
 
@@ -609,7 +625,7 @@ const StyledWrapper = styled.div`
     .settings-label {
       font-size: 11px;
       font-weight: 600;
-      color: ${(props) => props.theme.colors.text.subtext0};
+      color: ${(props) => props.theme.text};
       display: block;
       margin-bottom: 5px;
     }
@@ -654,7 +670,7 @@ const StyledWrapper = styled.div`
 
     .toggle-description {
       font-size: 11px;
-      color: ${(props) => props.theme.colors.text.muted};
+      color: ${(props) => props.theme.text};
       margin-top: 2px;
     }
 
@@ -954,7 +970,7 @@ const StyledWrapper = styled.div`
         &.type-local-only { background: ${(props) => props.theme.colors.text.muted}; }
         &.type-in-sync { background: ${(props) => props.theme.colors.text.green}; }
         &.type-conflict { background: ${(props) => props.theme.colors.text.danger}; }
-        &.type-spec-modified { background: ${(props) => props.theme.colors.text.info}; }
+        &.type-spec-modified { background: ${(props) => props.theme.colors.text.warning}; }
         &.type-collection-drift { background: ${(props) => props.theme.colors.text.warning}; }
       }
 
@@ -972,8 +988,8 @@ const StyledWrapper = styled.div`
         height: 1.25rem;
         padding: 0 0.3rem;
         font-size: ${(props) => props.theme.font.size.xs};
-        color: ${(props) => props.theme.colors.text.subtext0};
-        background: ${(props) => props.theme.background.surface0};
+        color: ${(props) => props.theme.colors.text.subtext1};
+        background: ${(props) => props.theme.background.surface1};
         border-radius: 999px;
       }
 
@@ -1235,7 +1251,6 @@ const StyledWrapper = styled.div`
   .disconnect-modal {
     .disconnect-message {
       font-size: ${(props) => props.theme.font.size.sm};
-      color: ${(props) => props.theme.colors.text.muted};
       line-height: 1.5;
       margin-bottom: 1.5rem;
     }
@@ -1265,7 +1280,7 @@ const StyledWrapper = styled.div`
   .action-confirm-modal {
     .confirm-message {
       font-size: ${(props) => props.theme.font.size.sm};
-      color: ${(props) => props.theme.colors.text.muted};
+      color: ${(props) => props.theme.text};
       line-height: 1.5;
       margin-bottom: 1.5rem;
     }
@@ -1488,11 +1503,15 @@ const StyledWrapper = styled.div`
     .text-diff-container {
       border-radius: ${(props) => props.theme.border.radius.sm};
       border: 1px solid ${(props) => props.theme.border.border1};
-      overflow: hidden;
+      overflow: auto;
 
       .diff-column-headers {
         display: flex;
         border-bottom: 1px solid ${(props) => props.theme.border.border1};
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: ${(props) => props.theme.bg};
 
         .diff-column-label {
           flex: 1;
@@ -1624,6 +1643,16 @@ const StyledWrapper = styled.div`
       }
     }
 
+    .text-diff-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 2rem;
+      color: ${(props) => props.theme.colors.text.muted};
+      font-size: ${(props) => props.theme.font.size.sm};
+    }
+
     .text-diff-empty {
       padding: 2rem;
       text-align: center;
@@ -1646,8 +1675,9 @@ const StyledWrapper = styled.div`
       }
 
       .spec-diff-body {
-        max-height: calc(80vh - 140px);
-        overflow: auto;
+        .text-diff-container {
+          max-height: calc(80vh - 140px);
+        }
       }
     }
 
@@ -1704,6 +1734,15 @@ const StyledWrapper = styled.div`
         border-color: ${(props) => props.theme.status.info.text};
         color: ${(props) => props.theme.status.info.text};
         background: ${(props) => props.theme.status.info.background};
+      }
+
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      .spinner-icon {
+        animation: spin 1s linear infinite;
       }
     }
 
@@ -2166,10 +2205,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  &.review-active {
-    padding-bottom: 0;
-  }
-
   /* URL/File mode toggle in setup form and settings modal */
   .setup-mode-toggle {
     display: inline-flex;
@@ -2178,7 +2213,7 @@ const StyledWrapper = styled.div`
     align-self: stretch;
     gap: 2px;
     padding: 2px;
-    background: ${(props) => props.theme.background.surface2};
+    background: ${(props) => props.theme.background.surface1};
     border-radius: ${(props) => props.theme.border.radius.md};
   }
 
@@ -2186,7 +2221,7 @@ const StyledWrapper = styled.div`
     padding: 0 0.65rem;
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
-    color: ${(props) => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.text};
     background: transparent;
     border: none;
     border-radius: calc(${(props) => props.theme.border.radius.md} - 3px);
@@ -2265,6 +2300,26 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 0.5rem;
     flex-shrink: 0;
+  }
+
+  .beta-feedback-inline {
+    margin-top: 2rem;
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.colors.text.muted};
+
+    .beta-feedback-link {
+      background: none;
+      border: none;
+      padding: 0;
+      color: ${(props) => props.theme.status.info.text};
+      cursor: pointer;
+      font-size: inherit;
+      text-decoration: underline;
+
+      &:hover {
+        opacity: 0.8;
+      }
+    }
   }
 `;
 

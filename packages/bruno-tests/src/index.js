@@ -9,6 +9,7 @@ const multipartRouter = require('./multipart');
 const redirectRouter = require('./redirect');
 const mixRouter = require('./mix');
 const wsRouter = require('./ws');
+const setupGraphQL = require('./graphql');
 
 const app = new express();
 const port = process.env.PORT || 8081;
@@ -69,6 +70,12 @@ const server = require('http').createServer(app);
 
 server.on('upgrade', wsRouter);
 
-server.listen(port, function () {
-  console.log(`Testbench started on port: ${port}`);
-});
+setupGraphQL(app).then(() => {
+  server.listen(port, function () {
+    console.log(`Testbench started on port: ${port}`);
+  });
+})
+  .catch((error) => {
+    console.error('Failed to initialize GraphQL', error);
+    process.exit(1);
+  });

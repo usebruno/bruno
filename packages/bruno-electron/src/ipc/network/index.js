@@ -8,7 +8,7 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
 const { encodeUrl } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
@@ -447,12 +447,17 @@ const registerNetworkIpc = (mainWindow) => {
     channel, // 'main:run-request-event' | 'main:run-folder-event'
     basePayload, // request-level or runner-level identifiers
     scriptType, // 'pre-request' | 'post-response' | 'test'
-    error // optional Error
+    error, // optional Error
+    collectionPath, // optional path to the collection root
+    scriptMetadata // optional metadata for line mapping
   }) => {
+    const errorContext = error ? formatErrorWithContextV2(error, scriptType, scriptMetadata, collectionPath) : null;
+
     mainWindow.webContents.send(channel, {
       type: `${scriptType}-script-execution`,
       ...basePayload,
-      errorMessage: error ? (error.message || `An error occurred in ${scriptType.replace('-', ' ')} script`) : null
+      errorMessage: error ? (error.message || `An error occurred in ${scriptType.replace('-', ' ')} script`) : null,
+      errorContext
     });
   };
 
@@ -594,17 +599,17 @@ const registerNetworkIpc = (mainWindow) => {
       // if `data` is of string type - return as-is (assumes already encoded)
     }
 
-    if (contentTypeHeader && contentTypeHeader.startsWith('multipart/')) {
+    const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
+    if (typeof contentType === 'string' && contentType.startsWith('multipart/')) {
       if (!isFormData(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);
         request.data = form;
-        if (contentTypeHeader !== 'multipart/form-data') {
+        if (contentType !== 'multipart/form-data') {
           // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
           const formHeaders = form.getHeaders();
-          const ct = contentTypeHeader;
-          formHeaders['content-type'] = `${ct}; boundary=${form.getBoundary()}`;
+          formHeaders['content-type'] = `${contentType}; boundary=${form.getBoundary()}`;
           form.getHeaders = function () {
             return formHeaders;
           };
@@ -816,7 +821,9 @@ const registerNetworkIpc = (mainWindow) => {
         channel: 'main:run-request-event',
         basePayload: { requestUid, collectionUid, itemUid: item.uid },
         scriptType: 'pre-request',
-        error: preRequestError
+        error: preRequestError,
+        collectionPath,
+        scriptMetadata: request.script?.reqMetadata
       });
 
       if (preRequestError) {
@@ -996,7 +1003,10 @@ const registerNetworkIpc = (mainWindow) => {
           channel: 'main:run-request-event',
           basePayload: { requestUid, collectionUid, itemUid: item.uid },
           scriptType: 'post-response',
-          error: postResponseError
+          error: postResponseError,
+          itemPathname: item.pathname,
+          collectionPath,
+          scriptMetadata: request.script?.resMetadata
         });
 
         // run assertions
@@ -1089,7 +1099,10 @@ const registerNetworkIpc = (mainWindow) => {
             channel: 'main:run-request-event',
             basePayload: { requestUid, collectionUid, itemUid: item.uid },
             scriptType: 'test',
-            error: testError
+            error: testError,
+            itemPathname: item.pathname,
+            collectionPath,
+            scriptMetadata: request.testsMetadata
           });
 
           const domainsWithCookiesTest = await getDomainsWithCookies();
@@ -1463,7 +1476,10 @@ const registerNetworkIpc = (mainWindow) => {
               channel: 'main:run-folder-event',
               basePayload: eventData,
               scriptType: 'pre-request',
-              error: preRequestError
+              error: preRequestError,
+              itemPathname: item.pathname,
+              collectionPath,
+              scriptMetadata: request.script?.reqMetadata
             });
 
             const domainsWithCookiesPreRequest = await getDomainsWithCookies();
@@ -1691,7 +1707,10 @@ const registerNetworkIpc = (mainWindow) => {
               channel: 'main:run-folder-event',
               basePayload: eventData,
               scriptType: 'post-response',
-              error: postResponseError
+              error: postResponseError,
+              itemPathname: item.pathname,
+              collectionPath,
+              scriptMetadata: request.script?.resMetadata
             });
 
             const domainsWithCookiesPostResponse = await getDomainsWithCookies();
@@ -1803,7 +1822,10 @@ const registerNetworkIpc = (mainWindow) => {
                 channel: 'main:run-folder-event',
                 basePayload: eventData,
                 scriptType: 'test',
-                error: testError
+                error: testError,
+                itemPathname: item.pathname,
+                collectionPath,
+                scriptMetadata: request.testsMetadata
               });
 
               const domainsWithCookiesTest = await getDomainsWithCookies();

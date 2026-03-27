@@ -88,7 +88,12 @@ export const tabsSlice = createSlice({
         responsePaneScrollPosition: null,
         responseFormat: null,
         responseViewTab: null,
+        responseFilter: null,
+        responseFilterExpanded: false,
+        gqlDocsOpen: false,
+        tableColumnWidths: {},
         scriptPaneTab: null,
+        docsEditing: false,
         type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
@@ -161,6 +166,13 @@ export const tabsSlice = createSlice({
         tab.responsePaneScrollPosition = action.payload.scrollY;
       }
     },
+    updateRequestBodyScrollPosition: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.requestBodyScrollPosition = action.payload.scrollY;
+      }
+    },
     updateResponseFormat: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -175,11 +187,77 @@ export const tabsSlice = createSlice({
         tab.responseViewTab = action.payload.responseViewTab;
       }
     },
+    updateResponseFilter: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseFilter = action.payload.responseFilter;
+      }
+    },
+    updateResponseFilterExpanded: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseFilterExpanded = action.payload.responseFilterExpanded;
+      }
+    },
+    updateDocsEditing: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.docsEditing = action.payload.docsEditing;
+      }
+    },
+    updateGqlDocsOpen: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.gqlDocsOpen = action.payload.gqlDocsOpen;
+      }
+    },
+    updateTableColumnWidths: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        if (!tab.tableColumnWidths) {
+          tab.tableColumnWidths = {};
+        }
+        tab.tableColumnWidths[action.payload.tableId] = action.payload.widths;
+      }
+    },
     updateScriptPaneTab: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
       if (tab) {
         tab.scriptPaneTab = action.payload.scriptPaneTab;
+      }
+    },
+    updateQueryBuilderOpen: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.queryBuilderOpen = action.payload.queryBuilderOpen;
+      }
+    },
+    updateQueryBuilderWidth: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.queryBuilderWidth = action.payload.queryBuilderWidth;
+      }
+    },
+    updateVariablesPaneOpen: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.variablesPaneOpen = action.payload.variablesPaneOpen;
+      }
+    },
+    updateVariablesPaneHeight: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.variablesPaneHeight = action.payload.variablesPaneHeight;
       }
     },
     closeTabs: (state, action) => {
@@ -273,13 +351,23 @@ export const {
   updateRequestPaneTab,
   updateResponsePaneTab,
   updateResponsePaneScrollPosition,
+  updateRequestBodyScrollPosition,
   updateResponseFormat,
   updateResponseViewTab,
+  updateResponseFilter,
+  updateResponseFilterExpanded,
+  updateDocsEditing,
+  updateGqlDocsOpen,
+  updateTableColumnWidths,
   updateScriptPaneTab,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
-  reorderTabs
+  reorderTabs,
+  updateQueryBuilderOpen,
+  updateQueryBuilderWidth,
+  updateVariablesPaneOpen,
+  updateVariablesPaneHeight
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

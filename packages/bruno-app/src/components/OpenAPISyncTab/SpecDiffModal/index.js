@@ -1,11 +1,13 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useTheme } from 'providers/Theme/index';
+import { IconLoader2 } from '@tabler/icons';
 import Modal from 'components/Modal';
 import StatusBadge from 'ui/StatusBadge';
 
 const SpecDiffModal = ({ specDrift, onClose }) => {
   const diffRef = useRef(null);
   const { displayedTheme } = useTheme();
+  const [isRendering, setIsRendering] = useState(true);
 
   const addedCount = specDrift?.added?.length || 0;
   const modifiedCount = specDrift?.modified?.length || 0;
@@ -17,7 +19,11 @@ const SpecDiffModal = ({ specDrift, onClose }) => {
 
   useEffect(() => {
     const { Diff2Html } = window;
-    if (!diffRef?.current || !Diff2Html || !specDrift?.unifiedDiff) return;
+    if (!diffRef?.current || !Diff2Html || !specDrift?.unifiedDiff) {
+      setIsRendering(false);
+      return;
+    }
+    setIsRendering(true);
     const diffHtml = Diff2Html.html(specDrift.unifiedDiff, {
       drawFileList: false,
       matching: 'lines',
@@ -29,6 +35,7 @@ const SpecDiffModal = ({ specDrift, onClose }) => {
     });
     // Safe: Diff2Html is loaded from a local static bundle (public/static/diff2Html.js)
     diffRef.current.innerHTML = diffHtml;
+    setIsRendering(false);
   }, [displayedTheme, specDrift?.unifiedDiff]);
 
   return (
@@ -40,8 +47,8 @@ const SpecDiffModal = ({ specDrift, onClose }) => {
     >
       <div className="spec-diff-modal">
         <div className="spec-diff-badges">
+          {modifiedCount > 0 && <StatusBadge status="warning">Updated: {modifiedCount}</StatusBadge>}
           {addedCount > 0 && <StatusBadge status="success">Added: {addedCount}</StatusBadge>}
-          {modifiedCount > 0 && <StatusBadge status="info">Updated: {modifiedCount}</StatusBadge>}
           {removedCount > 0 && <StatusBadge status="danger">Removed: {removedCount}</StatusBadge>}
           {versionLabel && <StatusBadge>{versionLabel}</StatusBadge>}
         </div>
@@ -60,7 +67,13 @@ const SpecDiffModal = ({ specDrift, onClose }) => {
                   <span className="diff-column-label">{specDrift?.storedSpecMissing ? 'Current Spec (missing)' : 'Current Spec'}</span>
                   <span className="diff-column-label">Updated Spec</span>
                 </div>
-                <div ref={diffRef}></div>
+                {isRendering && (
+                  <div className="text-diff-loading">
+                    <IconLoader2 className="animate-spin" size={20} strokeWidth={1.5} />
+                    <span>Loading diff...</span>
+                  </div>
+                )}
+                <div ref={diffRef} style={{ display: isRendering ? 'none' : 'block' }}></div>
               </>
             ) : (
               <div className="text-diff-empty">No text diff available.</div>

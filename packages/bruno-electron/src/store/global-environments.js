@@ -2,6 +2,7 @@ const _ = require('lodash');
 const Store = require('electron-store');
 const { encryptStringSafe, decryptStringSafe } = require('../utils/encryption');
 const { environmentSchema } = require('@usebruno/schema');
+const { posixifyPath } = require('../utils/filesystem');
 
 class GlobalEnvironmentsStore {
   constructor() {
@@ -86,15 +87,41 @@ class GlobalEnvironmentsStore {
     return this.store.get('activeGlobalEnvironmentUid', null);
   }
 
+  setActiveGlobalEnvironmentUid(uid) {
+    return this.store.set('activeGlobalEnvironmentUid', uid);
+  }
+
+  getActiveGlobalEnvironmentUidForWorkspace(workspacePath) {
+    if (!workspacePath) return undefined;
+    const key = posixifyPath(workspacePath);
+    const mapping = this.store.get('activeGlobalEnvironmentUidByWorkspace', {});
+    if (key in mapping) {
+      return mapping[key];
+    }
+    return undefined;
+  }
+
+  setActiveGlobalEnvironmentUidForWorkspace(workspacePath, uid) {
+    if (!workspacePath) return;
+    const key = posixifyPath(workspacePath);
+    const mapping = this.store.get('activeGlobalEnvironmentUidByWorkspace', {});
+    mapping[key] = uid || null;
+    this.store.set('activeGlobalEnvironmentUidByWorkspace', mapping);
+  }
+
+  removeActiveGlobalEnvironmentUidForWorkspace(workspacePath) {
+    if (!workspacePath) return;
+    const key = posixifyPath(workspacePath);
+    const mapping = this.store.get('activeGlobalEnvironmentUidByWorkspace', {});
+    delete mapping[key];
+    this.store.set('activeGlobalEnvironmentUidByWorkspace', mapping);
+  }
+
   setGlobalEnvironments(globalEnvironments) {
     globalEnvironments = this.filterValidEnvironments(globalEnvironments);
 
     globalEnvironments = this.encryptGlobalEnvironmentVariables({ globalEnvironments });
     return this.store.set('environments', globalEnvironments);
-  }
-
-  setActiveGlobalEnvironmentUid(uid) {
-    return this.store.set('activeGlobalEnvironmentUid', uid);
   }
 
   addGlobalEnvironment({ uid, name, variables = [], color }) {

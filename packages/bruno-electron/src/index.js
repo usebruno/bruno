@@ -203,6 +203,9 @@ app.on('ready', async () => {
 
   Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
+  const WindowStateStore = require('./store/window-state');
+  const windowStateStore = new WindowStateStore();
+  const themeBg = windowStateStore.getThemeBg();
 
   mainWindow = new BrowserWindow({
     x,
@@ -212,12 +215,12 @@ app.on('ready', async () => {
     minWidth: 700,
     minHeight: 400,
     show: false,
+    backgroundColor: themeBg,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
-      webviewTag: true,
-      zoomFactor: 1.0
+      webviewTag: true
     },
     title: 'Bruno',
     icon: path.join(__dirname, 'about/256x256.png'),
@@ -247,29 +250,8 @@ app.on('ready', async () => {
     }
   });
 
-  // Handle zoom shortcuts
-  ipcMain.on('main:zoom-in', () => {
-    if (mainWindow && mainWindow.webContents) {
-      const currentZoom = mainWindow.webContents.getZoomLevel();
-      mainWindow.webContents.setZoomLevel(currentZoom + 0.5);
-    }
-  });
-
-  ipcMain.on('main:zoom-out', () => {
-    if (mainWindow && mainWindow.webContents) {
-      const currentZoom = mainWindow.webContents.getZoomLevel();
-      mainWindow.webContents.setZoomLevel(currentZoom - 0.5);
-    }
-  });
-
-  ipcMain.on('main:zoom-reset', () => {
-    if (mainWindow && mainWindow.webContents) {
-      mainWindow.webContents.setZoomLevel(0);
-    }
-  });
-
   ipcMain.on('renderer:window-close', () => {
-    // if (!isWindows && !isLinux) return;
+    if (!isWindows && !isLinux) return;
     mainWindow.close();
   });
 
@@ -503,6 +485,14 @@ app.on('window-all-closed', app.quit);
 // Open collection from Recent menu (#1521)
 app.on('open-file', (event, path) => {
   openCollection(mainWindow, collectionWatcher, path);
+});
+
+// Register the global shortcuts
+app.on('browser-window-focus', () => {
+  // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
+  globalShortcut.register('Ctrl+=', () => {
+    incrementZoomAndPersist(10);
+  });
 });
 
 // Disable global shortcuts when not focused

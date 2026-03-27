@@ -68,7 +68,7 @@ const Cache = () => {
       debouncedSave(formik.values);
     }
     return () => {
-      debouncedSave.cancel();
+      debouncedSave.flush();
     };
   }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 

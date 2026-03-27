@@ -1,9 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { v4 as uuid } from 'uuid';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { IconLoader2, IconClock } from '@tabler/icons';
-import { selectTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
+import { setTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
 import OpenAPISyncHeader from './OpenAPISyncHeader';
@@ -38,9 +37,6 @@ const OpenAPISyncTab = ({ collection }) => {
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
   const isConfigured = !!openApiSyncConfig?.sourceUrl;
 
-  const tabUiState = useSelector(selectTabUiState(collection.uid));
-  const viewMode = tabUiState.viewMode || 'tabs';
-
   const handleViewSpec = () => {
     dispatch(addTab({
       uid: uuid(),
@@ -51,7 +47,10 @@ const OpenAPISyncTab = ({ collection }) => {
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const activeTab = useSelector((state) => state.openapiSync?.tabUiState?.[collection.uid]?.activeTab) || 'overview';
+  const setActiveTab = useCallback((tab) => {
+    dispatch(setTabUiState({ collectionUid: collection.uid, activeTab: tab }));
+  }, [dispatch, collection.uid]);
 
   const hasDriftData = collectionDrift && !collectionDrift.noStoredSpec;
   const collectionChangesCount = hasDriftData
@@ -84,8 +83,8 @@ const OpenAPISyncTab = ({ collection }) => {
   ], [collectionChangesCount, specUpdatesCount]);
 
   return (
-    <StyledWrapper className={`flex flex-col h-full relative px-4 pt-4 overflow-auto ${viewMode === 'review' ? ' review-active' : ''}`}>
-      <div className="sync-page max-w-screen-xl">
+    <StyledWrapper className="flex flex-col h-full relative px-4 pt-4 overflow-auto">
+      <div className="sync-page w-full">
 
         {/* Setup form when not configured */}
         {!isConfigured && (
@@ -93,6 +92,8 @@ const OpenAPISyncTab = ({ collection }) => {
             sourceUrl={sourceUrl}
             setSourceUrl={setSourceUrl}
             isLoading={isLoading}
+            error={error}
+            setError={setError}
             onConnect={handleConnect}
           />
         )}
@@ -128,53 +129,35 @@ const OpenAPISyncTab = ({ collection }) => {
                   remoteDrift={remoteDrift}
                   onTabSelect={setActiveTab}
                   error={error}
-                  isLoading={isLoading}
-                  fileNotFound={fileNotFound}
                   onOpenSettings={() => setShowSettingsModal(true)}
                 />
+                <p className="beta-feedback-inline">
+                  OpenAPI Sync is in Beta — we'd love to hear your feedback and suggestions.{' '}
+                  <button
+                    type="button"
+                    className="beta-feedback-link"
+                    onClick={() => window?.ipcRenderer?.openExternal('https://github.com/usebruno/bruno/discussions/7401')}
+                  >
+                    Share feedback
+                  </button>
+                </p>
               </div>
             )}
 
             {activeTab === 'collection-changes' && (
               <div className="sync-tab-content">
-                {isDriftLoading && !collectionDrift && (
-                  <div className="state-message">
-                    <IconLoader2 size={24} className="animate-spin" />
-                    <span>Checking collection status...</span>
-                  </div>
-                )}
-                {collectionDrift && !collectionDrift.noStoredSpec ? (
-                  <CollectionStatusSection
-                    collection={collection}
-                    collectionDrift={collectionDrift}
-                    reloadDrift={reloadDrift}
-                    specDrift={specDrift}
-                    storedSpec={storedSpec}
-                    lastSyncDate={openApiSyncConfig?.lastSyncDate}
-                    onOpenEndpoint={openEndpointInTab}
-                  />
-                ) : !isDriftLoading && (
-                  <>
-                    <div className="spec-update-banner warning">
-                      <div className="banner-left">
-                        <div className="status-dot warning" />
-                        <span className="banner-title">
-                          {openApiSyncConfig?.lastSyncDate
-                            ? 'Last synced spec is required to show collection changes. Restore the latest spec from the source to track future changes..'
-                            : 'Collection changes will be available after the initial sync'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="sync-review-empty-state mt-5">
-                      <IconClock size={40} className="empty-state-icon" />
-                      <h4>{openApiSyncConfig?.lastSyncDate ? 'Last Synced Spec missing from storage' : 'Waiting for initial sync'}</h4>
-                      <p>{openApiSyncConfig?.lastSyncDate
-                        ? 'Restore the latest spec from the source to track future changes..'
-                        : 'Once you sync your collection with the spec, changes will appear here.'}
-                      </p>
-                    </div>
-                  </>
-                )}
+
+                <CollectionStatusSection
+                  collection={collection}
+                  collectionDrift={collectionDrift}
+                  reloadDrift={reloadDrift}
+                  specDrift={specDrift}
+                  storedSpec={storedSpec}
+                  lastSyncDate={openApiSyncConfig?.lastSyncDate}
+                  onOpenEndpoint={openEndpointInTab}
+                  isLoading={isDriftLoading || isLoading}
+                  onTabSelect={setActiveTab}
+                />
               </div>
             )}
 
@@ -198,6 +181,7 @@ const OpenAPISyncTab = ({ collection }) => {
             )}
           </>
         )}
+
       </div>
 
       {showSettingsModal && (

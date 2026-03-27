@@ -1,3 +1,4 @@
+const fs = require('fs');
 const { ipcMain, nativeTheme } = require('electron');
 const { getPreferences, savePreferences } = require('../store/preferences');
 const { getGitVersion } = require('../utils/git');
@@ -6,6 +7,7 @@ const { getCachedSystemProxy, fetchSystemProxy } = require('../store/system-prox
 const { resolveDefaultLocation } = require('../utils/default-location');
 const onboardUser = require('../app/onboarding');
 const LastOpenedCollections = require('../store/last-opened-collections');
+const WindowStateStore = require('../store/window-state');
 const { clearAgentCache } = require('@usebruno/requests');
 
 const registerPreferencesIpc = (mainWindow) => {
@@ -20,7 +22,7 @@ const registerPreferencesIpc = (mainWindow) => {
     const preferences = getPreferences();
 
     // Set the default location if it hasn't been set by the user
-    if (!preferences.general?.defaultLocation) {
+    if (!preferences.general?.defaultLocation || !fs.existsSync(preferences.general.defaultLocation)) {
       preferences.general ??= {};
       preferences.general.defaultLocation = resolveDefaultLocation();
       await savePreferences(preferences);
@@ -65,8 +67,13 @@ const registerPreferencesIpc = (mainWindow) => {
     }
   });
 
-  ipcMain.on('renderer:theme-change', (event, theme) => {
+  ipcMain.on('renderer:theme-change', (event, theme, themeBg) => {
     nativeTheme.themeSource = theme;
+    const windowStateStore = new WindowStateStore();
+    windowStateStore.setThemeMode(theme);
+    if (themeBg) {
+      windowStateStore.setThemeBg(themeBg);
+    }
   });
 
   ipcMain.handle('renderer:get-system-proxy-variables', async () => {

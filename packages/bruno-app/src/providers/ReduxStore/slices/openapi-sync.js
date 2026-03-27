@@ -8,8 +8,10 @@ const initialState = {
   pollingEnabled: true,
   // Last poll timestamp
   lastPollTime: null,
-  // Map of collectionUid -> { activeTab, viewMode, expandedSections, expandedRows }
-  tabUiState: {}
+  // Map of collectionUid -> { activeTab, expandedSections, expandedRows }
+  tabUiState: {},
+  // Map of collectionUid -> { title, version, endpointCount } (persists across tab navigations)
+  storedSpecMeta: {}
 };
 
 export const openapiSyncSlice = createSlice({
@@ -33,6 +35,11 @@ export const openapiSyncSlice = createSlice({
       const { collectionUid } = action.payload;
       delete state.collectionUpdates[collectionUid];
       delete state.tabUiState[collectionUid];
+      delete state.storedSpecMeta[collectionUid];
+    },
+    setStoredSpecMeta: (state, action) => {
+      const { collectionUid, title, version, endpointCount } = action.payload;
+      state.storedSpecMeta[collectionUid] = { title, version, endpointCount };
     },
     setPollingEnabled: (state, action) => {
       state.pollingEnabled = action.payload;
@@ -116,7 +123,8 @@ export const {
   toggleRowExpanded,
   setLastPollTime,
   setReviewDecision,
-  setReviewDecisions
+  setReviewDecisions,
+  setStoredSpecMeta
 } = openapiSyncSlice.actions;
 
 // Lightweight thunk for polling — only checks hash, no deep comparison
@@ -197,6 +205,11 @@ export const checkActiveWorkspaceCollectionsForUpdates = () => async (dispatch, 
 // Selector to get UI state for a specific collection's sync tab
 export const selectTabUiState = (collectionUid) => (state) => {
   return state.openapiSync?.tabUiState?.[collectionUid] || {};
+};
+
+// Selector for stored spec metadata (title, version, endpointCount)
+export const selectStoredSpecMeta = (collectionUid) => (state) => {
+  return state.openapiSync?.storedSpecMeta?.[collectionUid] || null;
 };
 
 export default openapiSyncSlice.reducer;

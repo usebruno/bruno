@@ -1,8 +1,7 @@
 module.exports = {
   rootDir: '.',
   transform: {
-    '^.+\\.[jt]sx?$': '<rootDir>/jest/transformers/babel-with-esm-replacements.cjs'
-    // '^.+\\.[jt]sx?$': [require("./jest/transformers/with-replacements.cjs"),'babel-jest']
+    '^.+\\.[jt]sx?$': 'babel-jest'
   },
   transformIgnorePatterns: [
     '/node_modules/(?!strip-json-comments|nanoid|xml-formatter)/'
