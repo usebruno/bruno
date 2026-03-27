@@ -432,5 +432,74 @@ for (const mode of ['safe', 'developer'] as const) {
         await expect(testsTab).toHaveClass(/active/);
       });
     });
+
+    test('18. Runner: clicking request name in result list opens request editor tab', async ({ pageWithUserData: page }) => {
+      test.setTimeout(2 * 60 * 1000);
+
+      await test.step('Close all existing request tabs and run collection', async () => {
+        await closeAllTabs(page);
+        await runCollection(page, 'script-errors-test');
+      });
+
+      await test.step('Click request name from runner results list', async () => {
+        const requestName = 'test-script-error';
+        const requestNameLink = commonLocators.runnerResults.requestNameInItem(requestName);
+        await expect(requestNameLink).toBeVisible();
+        await requestNameLink.click();
+      });
+
+      await test.step('Verify request editor tab is opened', async () => {
+        const activeTab = commonLocators.tabs.activeRequestTab();
+        await expect(activeTab).toContainText('test-script-error');
+      });
+    });
+
+    test('19. Runner: clicking request name in detail pane header opens request editor tab', async ({ pageWithUserData: page }) => {
+      test.setTimeout(2 * 60 * 1000);
+
+      await test.step('Close all existing request tabs and run collection', async () => {
+        await closeAllTabs(page);
+        await runCollection(page, 'script-errors-test');
+      });
+
+      await test.step('Open runner detail pane and click request name in header', async () => {
+        const requestName = 'test-script-error';
+        const resultItem = commonLocators.runnerResults.itemPath(requestName);
+        await resultItem.locator('.link').first().click();
+
+        const selectedPaneRequestName = commonLocators.runnerResults.selectedPaneRequestName();
+        await expect(selectedPaneRequestName).toContainText(requestName);
+        await selectedPaneRequestName.click();
+      });
+
+      await test.step('Verify request editor tab is opened', async () => {
+        const activeTab = commonLocators.tabs.activeRequestTab();
+        await expect(activeTab).toContainText('test-script-error');
+      });
+    });
+
+    test('20. Runner: request names expose interactive hover affordance', async ({ pageWithUserData: page }) => {
+      test.setTimeout(2 * 60 * 1000);
+
+      await test.step('Close all existing request tabs and run collection', async () => {
+        await closeAllTabs(page);
+        await runCollection(page, 'script-errors-test');
+      });
+
+      await test.step('Verify request name is keyboard and mouse interactive', async () => {
+        const requestNameLink = commonLocators.runnerResults.requestNameInItem('test-script-error');
+        await expect(requestNameLink).toBeVisible();
+        await expect(requestNameLink).toHaveAttribute('title', 'Click to open request in editor');
+        await expect(requestNameLink).toHaveAttribute('role', 'button');
+        await expect(requestNameLink).toHaveAttribute('tabindex', '0');
+      });
+
+      await test.step('Verify hover style changes from dotted to solid underline', async () => {
+        const requestNameLink = commonLocators.runnerResults.requestNameInItem('test-script-error');
+        await expect(requestNameLink).toHaveCSS('text-decoration-style', 'dotted');
+        await requestNameLink.hover();
+        await expect(requestNameLink).toHaveCSS('text-decoration-style', 'solid');
+      });
+    });
   });
 }
