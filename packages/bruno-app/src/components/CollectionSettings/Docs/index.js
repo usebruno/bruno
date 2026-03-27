@@ -2,9 +2,11 @@ import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
 import { updateCollectionDocs, deleteCollectionDraft } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { getAllVariables } from 'utils/collections/index';
+import { interpolate } from '@usebruno/common';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
@@ -18,6 +20,17 @@ const Docs = ({ collection }) => {
   const [isEditing, setIsEditing] = useState(false);
   const docs = collection.draft?.root ? get(collection, 'draft.root.docs', '') : get(collection, 'root.docs', '');
   const preferences = useSelector((state) => state.app.preferences);
+
+  const interpolatedDocs = useMemo(() => {
+    if (!docs) return docs;
+    try {
+      const variables = getAllVariables(collection);
+      return interpolate(docs, variables);
+    } catch (e) {
+      console.warn('Failed to interpolate documentation variables:', e);
+      return docs;
+    }
+  }, [docs, collection]);
 
   const toggleViewMode = () => {
     setIsEditing((prev) => !prev);
@@ -87,7 +100,7 @@ const Docs = ({ collection }) => {
           <div className="h-[1px] min-h-[500px]">
             {
               docs?.length > 0
-                ? <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
+                ? <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={interpolatedDocs} />
                 : <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={documentationPlaceholder} />
             }
           </div>
