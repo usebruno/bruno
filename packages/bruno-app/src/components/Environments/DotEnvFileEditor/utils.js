@@ -31,10 +31,13 @@ export const rawToVariables = (rawContent) => {
     if (value.startsWith('\'') && value.endsWith('\'')) {
       // Single-quoted values are fully literal in dotenv — no unescaping
       value = value.slice(1, -1);
-    } else if (value.startsWith('"') && value.endsWith('"')) {
-      // Double-quoted values: only \n and \r are escape sequences in dotenv
+    } else if (value.startsWith('`') && value.endsWith('`')) {
+      // Backtick-quoted values are fully literal in dotenv — no unescaping
       value = value.slice(1, -1);
-      value = value.replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+    } else if (value.startsWith('"') && value.endsWith('"')) {
+      // Double-quoted values: unescape \", \n, and \r (the escapes we produce)
+      value = value.slice(1, -1);
+      value = value.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\r/g, '\r');
     }
 
     if (name) {

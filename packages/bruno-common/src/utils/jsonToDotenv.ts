@@ -39,11 +39,17 @@ export const jsonToDotenv = (variables: DotenvVariable[]): string => {
 
       // Hash (#) requires quoting — dotenv treats it as comment start in unquoted values
       if (value.includes('#')) {
-        // Prefer single quotes (fully literal), fall back to double quotes if value contains '
+        // Prefer single quotes (fully literal)
         if (!value.includes('\'')) {
           return `${v.name}='${value}'`;
         }
-        return `${v.name}="${value}"`;
+        // Fall back to backtick quotes (also fully literal, supports both ' and ")
+        if (!value.includes('`')) {
+          return `${v.name}=\`${value}\``;
+        }
+        // Extremely rare: value has #, ', and ` — escape " for double quotes
+        const escapedValue = value.replace(/"/g, '\\"');
+        return `${v.name}="${escapedValue}"`;
       }
 
       // Everything else can be unquoted — dotenv preserves \, ", ' in unquoted values

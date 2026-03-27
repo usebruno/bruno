@@ -57,10 +57,16 @@ describe('jsonToDotenv', () => {
       expect(output).toBe('PASSWORD=\'ABC#DEF\'\nSECRET=\'key#123\'');
     });
 
-    test('it should double-quote values containing hash and single quote', () => {
+    test('it should backtick-quote values containing hash and single quote', () => {
       const variables = [{ name: 'MIXED', value: 'it\'s#complex' }];
       const output = jsonToDotenv(variables);
-      expect(output).toBe('MIXED="it\'s#complex"');
+      expect(output).toBe('MIXED=`it\'s#complex`');
+    });
+
+    test('it should backtick-quote values containing hash, single quote, and double quote', () => {
+      const variables = [{ name: 'ALL', value: 'it\'s#"complex"' }];
+      const output = jsonToDotenv(variables);
+      expect(output).toBe('ALL=`it\'s#"complex"`');
     });
 
     test('it should double-quote values containing newlines and escape them', () => {
@@ -146,6 +152,13 @@ describe('jsonToDotenv', () => {
       const serialized = jsonToDotenv(variables);
       const parsed = dotenvToJson(serialized);
       expect(parsed.APOSTROPHE).toBe('it\'s working');
+    });
+
+    test('it should preserve values with hash, single quote, and double quote through round-trip', () => {
+      const variables = [{ name: 'COMPLEX', value: 'it\'s#"complex"' }];
+      const serialized = jsonToDotenv(variables);
+      const parsed = dotenvToJson(serialized);
+      expect(parsed.COMPLEX).toBe('it\'s#"complex"');
     });
 
     test('it should preserve empty values through round-trip', () => {
