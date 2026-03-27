@@ -28,9 +28,13 @@ export const rawToVariables = (rawContent) => {
     const name = trimmedLine.substring(0, equalIndex).trim();
     let value = trimmedLine.substring(equalIndex + 1);
 
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith('\'') && value.endsWith('\''))) {
+    if (value.startsWith('\'') && value.endsWith('\'')) {
+      // Single-quoted values are fully literal in dotenv — no unescaping
       value = value.slice(1, -1);
-      value = value.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    } else if (value.startsWith('"') && value.endsWith('"')) {
+      // Double-quoted values: only \n and \r are escape sequences in dotenv
+      value = value.slice(1, -1);
+      value = value.replace(/\\n/g, '\n').replace(/\\r/g, '\r');
     }
 
     if (name) {
