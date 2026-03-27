@@ -481,3 +481,4 @@ if (app && typeof app.on === 'function') {
 }
 
 module.exports = registerGrpcEventHandlers;
+module.exports.resolveGrpcProxyConfig = resolveGrpcProxyConfig;
