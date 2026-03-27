@@ -232,6 +232,34 @@ export const tabsSlice = createSlice({
         tab.scriptPaneTab = action.payload.scriptPaneTab;
       }
     },
+    updateQueryBuilderOpen: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.queryBuilderOpen = action.payload.queryBuilderOpen;
+      }
+    },
+    updateQueryBuilderWidth: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.queryBuilderWidth = action.payload.queryBuilderWidth;
+      }
+    },
+    updateVariablesPaneOpen: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.variablesPaneOpen = action.payload.variablesPaneOpen;
+      }
+    },
+    updateVariablesPaneHeight: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.variablesPaneHeight = action.payload.variablesPaneHeight;
+      }
+    },
     closeTabs: (state, action) => {
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
@@ -335,7 +363,11 @@ export const {
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
-  reorderTabs
+  reorderTabs,
+  updateQueryBuilderOpen,
+  updateQueryBuilderWidth,
+  updateVariablesPaneOpen,
+  updateVariablesPaneHeight
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;
