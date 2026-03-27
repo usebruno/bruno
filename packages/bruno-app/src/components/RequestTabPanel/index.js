@@ -370,7 +370,7 @@ const RequestTabPanel = () => {
           {renderQueryUrl()}
         </div>
         <section ref={mainSectionRef} className={`main flex ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto`}>
-          <section className="request-pane">
+          <section className="request-pane" data-testid="request-pane">
             <div
               className="px-4 h-full"
               style={requestPaneStyle}
@@ -390,7 +390,7 @@ const RequestTabPanel = () => {
             <div className="dragbar-handle" />
           </div>
 
-          <section className="response-pane flex-grow overflow-x-auto">
+          <section className="response-pane flex-grow overflow-x-auto" data-testid="response-pane">
             {renderResponsePane()}
           </section>
         </section>

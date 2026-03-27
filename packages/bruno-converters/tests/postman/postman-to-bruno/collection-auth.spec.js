@@ -38,6 +38,7 @@ describe('Collection Authentication', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -97,6 +98,7 @@ describe('Collection Authentication', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -150,6 +152,7 @@ describe('Collection Authentication', () => {
       },
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -209,6 +212,7 @@ describe('Collection Authentication', () => {
         value: 'apikey',
         placement: 'header'
       },
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -269,6 +273,7 @@ describe('Collection Authentication', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: {
         username: 'digest auth',
@@ -318,6 +323,7 @@ describe('Collection Authentication', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -364,6 +370,7 @@ describe('Collection Authentication', () => {
       },
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
