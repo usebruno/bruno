@@ -6,6 +6,7 @@ import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunn
 import { resetCollectionRunner, updateRunnerTagsDetails } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading, getRequestItemsForCollectionRun } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink } from '@tabler/icons';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import RunnerTags from './RunnerTags/index';
@@ -237,6 +238,11 @@ export default function RunnerResults({ collection }) {
     dispatch(cancelRunnerExecution(runnerInfo.cancelTokenUid));
   };
 
+  const navigateToRequestEditor = (item) => {
+    if (!item?.uid || !collection?.uid) return;
+    dispatch(addTab({ uid: item.uid, collectionUid: collection.uid, type: 'request' }));
+  };
+
   const toggleConfigureMode = () => {
     dispatch(updateRunnerTagsDetails({ collectionUid: collection.uid, tagsEnabled: false }));
     setConfigureMode(!configureMode);
@@ -439,7 +445,17 @@ export default function RunnerResults({ collection }) {
                           : null}
                       </span>
                       <span
-                        className={`mr-1 ml-2 ${item.status == 'skipped' ? 'skipped-request' : anyTestFailed(item) ? 'danger' : ''}`}
+                        className={`runner-request-name-link mr-1 ml-2 ${item.status == 'skipped' ? 'skipped-request' : anyTestFailed(item) ? 'danger' : ''}`}
+                        role="button"
+                        tabIndex={0}
+                        title="Click to open request in editor"
+                        onClick={() => navigateToRequestEditor(item)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            navigateToRequestEditor(item);
+                          }
+                        }}
                       >
                         {item.displayName}
                       </span>
@@ -556,7 +572,21 @@ export default function RunnerResults({ collection }) {
             <div className="flex flex-col w-full overflow-hidden">
               <div className="flex items-center justify-between mb-4 font-medium">
                 <div className="flex items-center">
-                  <span className="mr-2">{selectedItem.displayName}</span>
+                  <span
+                    className="runner-request-name-link mr-2"
+                    role="button"
+                    tabIndex={0}
+                    title="Click to open request in editor"
+                    onClick={() => navigateToRequestEditor(selectedItem)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigateToRequestEditor(selectedItem);
+                      }
+                    }}
+                  >
+                    {selectedItem.displayName}
+                  </span>
                   <span>
                     {allTestsPassed(selectedItem)
                       ? <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />

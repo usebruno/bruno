@@ -166,6 +166,27 @@ const Wrapper = styled.div`
       }
     }
   }
+
+  .runner-request-name-link {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 0 0.15rem;
+    transition: background-color 0.15s ease, text-decoration-color 0.15s ease, opacity 0.15s ease;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+
+    &:hover {
+      background-color: ${(props) => props.theme.background.surface1};
+      text-decoration-style: solid;
+      opacity: 0.9;
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${(props) => props.theme.tabs.active.border};
+      outline-offset: 2px;
+    }
+  }
 `;
 
 export default Wrapper;

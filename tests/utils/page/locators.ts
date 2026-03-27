@@ -92,7 +92,11 @@ export const buildCommonLocators = (page: Page) => ({
     item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
   },
   runnerResults: {
-    itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })
+    itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name }),
+    requestNameInItem: (name: string) =>
+      page.getByTestId('runner-result-item').filter({ hasText: name }).locator('.runner-request-name-link').first(),
+    selectedPaneRequestName: () =>
+      page.locator('.runner-request-name-link[role="button"]').last()
   },
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
