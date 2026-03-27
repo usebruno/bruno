@@ -177,7 +177,8 @@ export default function RunnerResults({ collection }) {
   };
 
   const runCollection = () => {
-    dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, selectedRequestItems, delay));
+    const savedOrder = get(collection, 'runnerConfiguration.requestItemsOrder', selectedRequestItems);
+    dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, savedOrder, delay));
     dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tags, selectedRequestItems));
   };
 
