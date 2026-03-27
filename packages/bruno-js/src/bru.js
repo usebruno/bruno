@@ -8,25 +8,25 @@ const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
   /**
-   * @param {object} options
-   * @param {string} options.runtime - The runtime environment ('quickjs' or 'nodevm')
-   * @param {object} [options.envVariables] - Environment variables
-   * @param {object} [options.runtimeVariables] - Runtime variables
-   * @param {object} [options.processEnvVars] - Process environment variables
-   * @param {string} [options.collectionPath] - Path to the collection
-   * @param {object} [options.collectionVariables] - Collection-level variables
-   * @param {object} [options.folderVariables] - Folder-level variables
-   * @param {object} [options.requestVariables] - Request-level variables
-   * @param {object} [options.globalEnvironmentVariables] - Global environment variables
-   * @param {object} [options.oauth2CredentialVariables] - OAuth2 credential variables
-   * @param {string} [options.collectionName] - Name of the collection
-   * @param {object} [options.promptVariables] - Prompt variables
-   * @param {object} [options.certsAndProxyConfig] - Configuration for bru.sendRequest (proxy, certs, TLS)
-   * @param {string} [options.certsAndProxyConfig.collectionPath] - Path to the collection
-   * @param {object} [options.certsAndProxyConfig.options] - TLS and proxy options
-   * @param {object} [options.certsAndProxyConfig.clientCertificates] - Client certificate configuration
-   * @param {object} [options.certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
-   * @param {object} [options.certsAndProxyConfig.systemProxyConfig] - System proxy configuration
+   * @param {object} options - Single options object (destructured)
+   * @property {string} options.runtime - The runtime environment ('quickjs' or 'nodevm')
+   * @property {object} [options.envVariables={}] - Environment variables
+   * @property {object} [options.runtimeVariables={}] - Runtime variables
+   * @property {object} [options.processEnvVars={}] - Process environment variables (deep cloned)
+   * @property {string} [options.collectionPath] - Path to the collection
+   * @property {object} [options.collectionVariables={}] - Collection-level variables
+   * @property {object} [options.folderVariables={}] - Folder-level variables
+   * @property {object} [options.requestVariables={}] - Request-level variables
+   * @property {object} [options.globalEnvironmentVariables={}] - Global environment variables
+   * @property {object} [options.oauth2CredentialVariables={}] - OAuth2 credential variables
+   * @property {string} [options.collectionName] - Name of the collection
+   * @property {object} [options.promptVariables={}] - Prompt variables
+   * @property {object} [options.certsAndProxyConfig] - Configuration for bru.sendRequest (proxy, certs, TLS)
+   * @property {string} [options.certsAndProxyConfig.collectionPath] - Path to the collection
+   * @property {object} [options.certsAndProxyConfig.options] - TLS and proxy options
+   * @property {object} [options.certsAndProxyConfig.clientCertificates] - Client certificate configuration
+   * @property {object} [options.certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
+   * @property {object} [options.certsAndProxyConfig.systemProxyConfig] - System proxy configuration
    */
   constructor({
     runtime,
