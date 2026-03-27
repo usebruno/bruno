@@ -138,7 +138,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         try {
           request.data = request?.data?.map((d) => ({
             ...d,
-            value: _interpolate(d?.value)
+            value: Array.isArray(d?.value) ? d.value.map((v) => _interpolate(v)) : _interpolate(d?.value)
           }));
         } catch (err) {}
       }
