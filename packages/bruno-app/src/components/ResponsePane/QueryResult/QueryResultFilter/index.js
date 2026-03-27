@@ -69,12 +69,14 @@ const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, m
       {isExpanded && mode.includes('json') && (
         <div className="filter-type-toggle flex items-center pointer-events-auto">
           <button
+            type="button"
             className={`toggle-btn ${filterType === 'jsonpath' ? 'active' : ''}`}
             onClick={() => handleFilterTypeChange('jsonpath')}
           >
             JSONPath
           </button>
           <button
+            type="button"
             className={`toggle-btn ${filterType === 'jq' ? 'active' : ''}`}
             onClick={() => handleFilterTypeChange('jq')}
           >
