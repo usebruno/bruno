@@ -24,7 +24,6 @@ const Wrapper = styled.div`
   }
 
   .file-value-cell {
-    padding: 4px 0;
 
     .file-name {
       font-size: 12px;

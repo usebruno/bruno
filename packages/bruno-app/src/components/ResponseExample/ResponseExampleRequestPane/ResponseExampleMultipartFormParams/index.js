@@ -190,9 +190,15 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
           return (
             <div className="flex items-center file-value-cell">
               <IconFile size={16} className="text-muted mr-1" />
-              <span className="file-name flex-1 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
-                {fileName}
-              </span>
+              <div className="file-name flex-1 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
+                <SingleLineEditor
+                  theme={storedTheme}
+                  value={fileName}
+                  readOnly={true}
+                  collection={collection}
+                  item={item}
+                />
+              </div>
               <button
                 className="clear-file-btn ml-1"
                 onClick={() => handleClearFile(row)}
