@@ -104,6 +104,16 @@ describe('jsonToDotenv', () => {
       const output = jsonToDotenv(variables);
       expect(output).toBe('CRLF_VALUE="line1\\r\\nline2"');
     });
+
+    test('it should quote values with leading or trailing whitespace', () => {
+      const variables = [
+        { name: 'LEADING', value: '  hello' },
+        { name: 'TRAILING', value: 'hello  ' },
+        { name: 'BOTH', value: '  hello  ' }
+      ];
+      const output = jsonToDotenv(variables);
+      expect(output).toBe('LEADING=\'  hello\'\nTRAILING=\'hello  \'\nBOTH=\'  hello  \'');
+    });
   });
 
   describe('round-trip with dotenvToJson', () => {
@@ -159,6 +169,19 @@ describe('jsonToDotenv', () => {
       const serialized = jsonToDotenv(variables);
       const parsed = dotenvToJson(serialized);
       expect(parsed.COMPLEX).toBe('it\'s#"complex"');
+    });
+
+    test('it should preserve values with leading/trailing whitespace through round-trip', () => {
+      const variables = [
+        { name: 'LEADING', value: '  hello' },
+        { name: 'TRAILING', value: 'hello  ' },
+        { name: 'BOTH', value: '  hello  ' }
+      ];
+      const serialized = jsonToDotenv(variables);
+      const parsed = dotenvToJson(serialized);
+      expect(parsed.LEADING).toBe('  hello');
+      expect(parsed.TRAILING).toBe('hello  ');
+      expect(parsed.BOTH).toBe('  hello  ');
     });
 
     test('it should preserve empty values through round-trip', () => {
