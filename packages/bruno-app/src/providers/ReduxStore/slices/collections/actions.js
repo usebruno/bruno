@@ -2692,7 +2692,7 @@ export const openMultipleCollections = (collectionPaths, options = {}) => () => 
     ipcRenderer.invoke('renderer:open-multiple-collections', collectionPaths, options)
       .then(resolve)
       .catch((err) => {
-        reject();
+        reject(err);
       });
   });
 };
@@ -3134,7 +3134,10 @@ export const scanForBrunoFiles = (dir) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     ipcRenderer
       .invoke('renderer:scan-for-bruno-files', dir)
-      .then(resolve)
+      .then((res) => {
+        console.log('scan done', res);
+        resolve(res);
+      })
       .catch((err) => {
         reject();
       });
