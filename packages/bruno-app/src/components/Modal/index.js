@@ -21,6 +21,9 @@ const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
 const ModalContent = ({ children }) => <div className="bruno-modal-content px-4 py-4">{children}</div>;
 
 const ModalFooter = ({
+  hidePromptToggle,
+  savePromptValues,
+  setSavePromptValues,
   confirmText,
   cancelText,
   handleSubmit,
@@ -39,6 +42,10 @@ const ModalFooter = ({
 
   return (
     <div className="flex justify-end p-4 bruno-modal-footer">
+      <span className={hidePromptToggle ? 'hidden' : 'mr-auto content-center'}>
+        <input id="promptToggle" name="promptToggle" type="checkbox" checked={savePromptValues} onChange={() => setSavePromptValues((prev) => !prev)} className="align-middle" />
+        <label className="ml-2 select-none" htmlFor="promptToggle">Remember prompt value</label>
+      </span>
       <span className={hideCancel ? 'hidden' : 'mr-2'}>
         <Button type="button" color="secondary" variant="ghost" onClick={handleCancel}>
           {cancelText}
@@ -62,6 +69,9 @@ const ModalFooter = ({
 const Modal = ({
   size,
   title,
+  hidePromptToggle = true,
+  savePromptValues = false,
+  setSavePromptValues = () => {},
   customHeader,
   confirmText,
   cancelText,
@@ -143,6 +153,9 @@ const Modal = ({
         />
         <ModalContent>{children}</ModalContent>
         <ModalFooter
+          hidePromptToggle={hidePromptToggle}
+          savePromptValues={savePromptValues}
+          setSavePromptValues={setSavePromptValues}
           confirmText={confirmText}
           cancelText={cancelText}
           handleCancel={() => closeModal({ type: 'button' })}
