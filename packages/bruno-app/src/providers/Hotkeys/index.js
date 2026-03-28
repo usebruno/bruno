@@ -1,22 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
 import find from 'lodash/find';
 import Mousetrap from 'mousetrap';
 import { useSelector, useDispatch } from 'react-redux';
-import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
 import GlobalSearchModal from 'components/GlobalSearchModal';
-import {
-  sendRequest,
-  saveRequest,
-  saveCollectionRoot,
-  saveFolderRoot,
-  saveCollectionSettings,
-  closeTabs
-} from 'providers/ReduxStore/slices/collections/actions';
-import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { addTab, reorderTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
-import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import SaveRequestsModal from 'providers/App/ConfirmAppClose/SaveRequestsModal';
+import filter from 'lodash/filter';
+import each from 'lodash/each';
+import { findCollectionByUid, findItemInCollection, flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
+import { addTab, focusTab, reorderTabs, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
+import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { toggleSidebarCollapse, toggleSidebarSearch, savePreferences } from 'providers/ReduxStore/slices/app';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
 export const HotkeysContext = React.createContext();
@@ -30,6 +25,9 @@ export const HotkeysProvider = (props) => {
   const keybindingsEnabled = useSelector((state) => state.app.preferences?.keybindingsEnabled !== false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showGlobalSearchModal, setShowGlobalSearchModal] = useState(false);
+  const [showSaveRequestsModal, setShowSaveRequestsModal] = useState(false);
+  const [tabUidsToClose, setTabUidsToClose] = useState([]);
+  const preferences = useSelector((state) => state.app.preferences);
 
   const getCurrentCollection = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -38,6 +36,13 @@ export const HotkeysProvider = (props) => {
 
       return collection;
     }
+  };
+
+  // Get tabs scoped to the active tab's collection
+  const getCollectionTabs = () => {
+    const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+    if (!activeTab) return [];
+    return tabs.filter((t) => t.collectionUid === activeTab.collectionUid);
   };
 
   // Helper: get Mousetrap combos for an action, merged with user overrides
@@ -56,78 +61,6 @@ export const HotkeysProvider = (props) => {
     if (!combos) return;
     Mousetrap.unbind(combos);
   };
-
-  // save hotkey
-  useEffect(() => {
-    bindAction('save', (e) => {
-      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if (activeTab) {
-        if (activeTab.type === 'environment-settings' || activeTab.type === 'global-environment-settings') {
-          window.dispatchEvent(new CustomEvent('environment-save'));
-          return false;
-        }
-
-        const collection = findCollectionByUid(collections, activeTab.collectionUid);
-        if (collection) {
-          const item = findItemInCollection(collection, activeTab.uid);
-          if (item && item.uid) {
-            if (activeTab.type === 'folder-settings') {
-              dispatch(saveFolderRoot(collection.uid, item.uid));
-            } else {
-              dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
-            }
-          } else if (activeTab.type === 'collection-settings') {
-            dispatch(saveCollectionSettings(collection.uid));
-          }
-        }
-      }
-
-      return false; // this stops the event bubbling
-    });
-
-    return () => {
-      unbindAction('save');
-    };
-  }, [activeTabUid, tabs, saveRequest, collections, dispatch, userKeyBindings, keybindingsEnabled]);
-
-  // send request
-  useEffect(() => {
-    bindAction('sendRequest', (e) => {
-      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if (activeTab) {
-        const collection = findCollectionByUid(collections, activeTab.collectionUid);
-
-        if (collection) {
-          const item = findItemInCollection(collection, activeTab.uid);
-          if (item) {
-            if (item.type === 'grpc-request') {
-              const request = item.draft ? item.draft.request : item.request;
-              if (!request.url) {
-                toast.error('Please enter a valid gRPC server URL');
-                return;
-              }
-              if (!request.method) {
-                toast.error('Please select a gRPC method');
-                return;
-              }
-            }
-
-            dispatch(sendRequest(item, collection.uid)).catch((err) =>
-              toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
-                duration: 5000
-              })
-            );
-          }
-        }
-      }
-
-      return false; // this stops the event bubbling
-    });
-
-    return () => {
-      unbindAction('sendRequest');
-    };
-  }, [activeTabUid, tabs, saveRequest, collections, userKeyBindings, keybindingsEnabled]);
 
   // edit environments
   useEffect(() => {
@@ -188,58 +121,67 @@ export const HotkeysProvider = (props) => {
     };
   }, [userKeyBindings, keybindingsEnabled]);
 
-  // close tab hotkey
-  useEffect(() => {
-    bindAction('closeTab', (e) => {
-      if (activeTabUid) {
-        dispatch(
-          closeTabs({
-            tabUids: [activeTabUid]
-          })
-        );
-      }
-
-      return false; // this stops the event bubbling
-    });
-
-    return () => {
-      unbindAction('closeTab');
-    };
-  }, [activeTabUid, userKeyBindings, keybindingsEnabled]);
-
-  // Switch to the previous tab
+  // Switch to the previous tab (active-collection-tabs-only)
   useEffect(() => {
     bindAction('switchToPreviousTab', (e) => {
-      dispatch(
-        switchTab({
-          direction: 'pageup'
-        })
-      );
-
-      return false; // this stops the event bubbling
+      const collectionTabs = getCollectionTabs();
+      if (collectionTabs.length === 0) return false;
+      const currentIndex = collectionTabs.findIndex((t) => t.uid === activeTabUid);
+      const prevIndex = (currentIndex - 1 + collectionTabs.length) % collectionTabs.length;
+      dispatch(focusTab({ uid: collectionTabs[prevIndex].uid }));
+      return false;
     });
 
     return () => {
       unbindAction('switchToPreviousTab');
     };
-  }, [dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
 
-  // Switch to the next tab
+  // Switch to the next tab (active-collection-tabs-only)
   useEffect(() => {
     bindAction('switchToNextTab', (e) => {
-      dispatch(
-        switchTab({
-          direction: 'pagedown'
-        })
-      );
-
-      return false; // this stops the event bubbling
+      const collectionTabs = getCollectionTabs();
+      if (collectionTabs.length === 0) return false;
+      const currentIndex = collectionTabs.findIndex((t) => t.uid === activeTabUid);
+      const nextIndex = (currentIndex + 1) % collectionTabs.length;
+      dispatch(focusTab({ uid: collectionTabs[nextIndex].uid }));
+      return false;
     });
 
     return () => {
       unbindAction('switchToNextTab');
     };
-  }, [dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
+
+  // Switch to tab at position (Cmd+1 through Cmd+8) and last tab (Cmd+9) — collection-scoped
+  useEffect(() => {
+    for (let i = 1; i <= 8; i++) {
+      bindAction(`switchToTab${i}`, (e) => {
+        const collectionTabs = getCollectionTabs();
+        const tab = collectionTabs[i - 1];
+        if (tab) {
+          dispatch(focusTab({ uid: tab.uid }));
+        }
+        return false;
+      });
+    }
+
+    bindAction('switchToLastTab', (e) => {
+      const collectionTabs = getCollectionTabs();
+      const lastTab = collectionTabs[collectionTabs.length - 1];
+      if (lastTab) {
+        dispatch(focusTab({ uid: lastTab.uid }));
+      }
+      return false;
+    });
+
+    return () => {
+      for (let i = 1; i <= 8; i++) {
+        unbindAction(`switchToTab${i}`);
+      }
+      unbindAction('switchToLastTab');
+    };
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Close all tabs
   useEffect(() => {
@@ -250,11 +192,8 @@ export const HotkeysProvider = (props) => {
 
         if (collection) {
           const tabUids = tabs.filter((tab) => tab.collectionUid === collection.uid).map((tab) => tab.uid);
-          dispatch(
-            closeTabs({
-              tabUids: tabUids
-            })
-          );
+          setTabUidsToClose(tabUids);
+          setShowSaveRequestsModal(true);
         }
       }
 
@@ -263,6 +202,76 @@ export const HotkeysProvider = (props) => {
 
     return () => {
       unbindAction('closeAllTabs');
+    };
+  }, [activeTabUid, tabs, collections, userKeyBindings, keybindingsEnabled]);
+
+  // Reopen last closed tab (active-collection-tabs-only)
+  useEffect(() => {
+    bindAction('reopenLastClosedTab', (e) => {
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if (activeTab) {
+        dispatch(reopenLastClosedTab({ collectionUid: activeTab.collectionUid }));
+      }
+      return false;
+    });
+
+    return () => {
+      unbindAction('reopenLastClosedTab');
+    };
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
+
+  // Save all tabs (active-collection-tabs-only)
+  useEffect(() => {
+    bindAction('saveAllTabs', (e) => {
+      const collection = getCurrentCollection();
+      if (!collection) return false;
+      const collectionUid = collection.uid;
+
+      const requestDrafts = [];
+      const collectionDrafts = [];
+      const folderDrafts = [];
+
+      // Collection settings draft
+      if (collection.draft) {
+        collectionDrafts.push({ collectionUid });
+      }
+
+      // Environment draft
+      if (collection.environmentsDraft) {
+        const { environmentUid, variables } = collection.environmentsDraft;
+        const environment = findEnvironmentInCollection(collection, environmentUid);
+        if (environment && variables) {
+          dispatch(saveEnvironment(variables, environmentUid, collectionUid));
+        }
+      }
+
+      // Request and folder drafts
+      const items = flattenItems(collection.items);
+      const requests = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item));
+      each(requests, (draft) => {
+        requestDrafts.push({ ...draft, collectionUid });
+      });
+
+      const folders = filter(items, (item) => item.type === 'folder' && item.draft);
+      each(folders, (folder) => {
+        folderDrafts.push({ folderUid: folder.uid, collectionUid });
+      });
+
+      if (collectionDrafts.length > 0) {
+        dispatch(saveMultipleCollections(collectionDrafts));
+      }
+      if (folderDrafts.length > 0) {
+        dispatch(saveMultipleFolders(folderDrafts));
+      }
+      if (requestDrafts.length > 0) {
+        dispatch(saveMultipleRequests(requestDrafts));
+      }
+
+      return false;
+    });
+
+    return () => {
+      unbindAction('saveAllTabs');
     };
   }, [activeTabUid, tabs, collections, dispatch, userKeyBindings, keybindingsEnabled]);
 
@@ -278,29 +287,192 @@ export const HotkeysProvider = (props) => {
     };
   }, [dispatch, userKeyBindings, keybindingsEnabled]);
 
-  // Move tab left
+  // Sidebar search
+  useEffect(() => {
+    bindAction('sidebarSearch', (e) => {
+      dispatch(toggleSidebarSearch());
+      return false;
+    });
+
+    return () => {
+      unbindAction('sidebarSearch');
+    };
+  }, [dispatch, userKeyBindings, keybindingsEnabled]);
+
+  // Open terminal — context-aware:
+  // focusedSidebarPath: null = no sidebar focus, '' = request focused (no-op), '/path' = folder/collection
+  const focusedSidebarPath = useSelector((state) => state.app.focusedSidebarPath);
+  const activeWorkspace = useSelector((state) => {
+    const { workspaces, activeWorkspaceUid } = state.workspaces;
+    return workspaces?.find((w) => w.uid === activeWorkspaceUid);
+  });
+
+  useEffect(() => {
+    bindAction('openTerminal', (e) => {
+      // 1. Sidebar focus takes priority
+      if (focusedSidebarPath) {
+        openDevtoolsAndSwitchToTerminal(dispatch, focusedSidebarPath);
+        return false;
+      }
+      if (focusedSidebarPath === '') {
+        // Request focused in sidebar → no-op
+        return false;
+      }
+
+      // 2. No sidebar focus → check active tab type
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if (activeTab) {
+        if (activeTab.type === 'collection-settings' && activeTab.collectionUid) {
+          const collection = findCollectionByUid(collections, activeTab.collectionUid);
+          if (collection?.pathname) {
+            openDevtoolsAndSwitchToTerminal(dispatch, collection.pathname);
+            return false;
+          }
+        } else if (activeTab.type === 'folder-settings' && activeTab.collectionUid && activeTab.uid) {
+          const collection = findCollectionByUid(collections, activeTab.collectionUid);
+          if (collection) {
+            const item = findItemInCollection(collection, activeTab.uid);
+            if (item?.pathname) {
+              openDevtoolsAndSwitchToTerminal(dispatch, item.pathname);
+              return false;
+            }
+          }
+        }
+      }
+
+      // 3. Default to workspace root
+      if (activeWorkspace?.pathname) {
+        openDevtoolsAndSwitchToTerminal(dispatch, activeWorkspace.pathname);
+      }
+      return false;
+    });
+
+    return () => {
+      unbindAction('openTerminal');
+    };
+  }, [focusedSidebarPath, activeTabUid, tabs, collections, activeWorkspace, dispatch, userKeyBindings, keybindingsEnabled]);
+
+  // Move tab left (active-collection-tabs-only)
   useEffect(() => {
     bindAction('moveTabLeft', (e) => {
-      dispatch(reorderTabs({ direction: -1 }));
-      return false; // this stops the event bubbling
+      const collectionTabs = getCollectionTabs();
+      const currentIndex = collectionTabs.findIndex((t) => t.uid === activeTabUid);
+      if (currentIndex <= 0) return false; // already at leftmost position in collection
+      dispatch(reorderTabs({ sourceUid: activeTabUid, targetUid: collectionTabs[currentIndex - 1].uid }));
+      return false;
     });
 
     return () => {
       unbindAction('moveTabLeft');
     };
-  }, [dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
 
-  // Move tab right
+  // Move tab right (active-collection-tabs-only)
   useEffect(() => {
     bindAction('moveTabRight', (e) => {
-      dispatch(reorderTabs({ direction: 1 }));
-      return false; // this stops the event bubbling
+      const collectionTabs = getCollectionTabs();
+      const currentIndex = collectionTabs.findIndex((t) => t.uid === activeTabUid);
+      if (currentIndex < 0 || currentIndex >= collectionTabs.length - 1) return false; // already at rightmost
+      dispatch(reorderTabs({ sourceUid: activeTabUid, targetUid: collectionTabs[currentIndex + 1].uid }));
+      return false;
     });
 
     return () => {
       unbindAction('moveTabRight');
     };
-  }, [dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
+
+  // Open preferences
+  useEffect(() => {
+    bindAction('openPreferences', (e) => {
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      const collectionUid = activeTab?.collectionUid || activeWorkspace?.scratchCollectionUid;
+
+      dispatch(
+        addTab({
+          type: 'preferences',
+          uid: collectionUid ? `${collectionUid}-preferences` : 'preferences',
+          collectionUid
+        })
+      );
+      return false;
+    });
+
+    return () => {
+      unbindAction('openPreferences');
+    };
+  }, [activeTabUid, tabs, activeWorkspace, dispatch, userKeyBindings, keybindingsEnabled]);
+
+  // Change layout orientation
+  useEffect(() => {
+    bindAction('changeLayout', (e) => {
+      const orientation = preferences?.layout?.responsePaneOrientation || 'horizontal';
+      const newOrientation = orientation === 'horizontal' ? 'vertical' : 'horizontal';
+      dispatch(savePreferences({
+        ...preferences,
+        layout: {
+          ...preferences?.layout,
+          responsePaneOrientation: newOrientation
+        }
+      }));
+      return false;
+    });
+
+    return () => {
+      unbindAction('changeLayout');
+    };
+  }, [preferences, dispatch, userKeyBindings, keybindingsEnabled]);
+
+  // Zoom in
+  useEffect(() => {
+    bindAction('zoomIn', () => {
+      const { ipcRenderer } = window;
+      ipcRenderer?.invoke('renderer:zoom-in');
+      return false;
+    });
+
+    return () => {
+      unbindAction('zoomIn');
+    };
+  }, [userKeyBindings, keybindingsEnabled]);
+
+  // Zoom out
+  useEffect(() => {
+    bindAction('zoomOut', () => {
+      const { ipcRenderer } = window;
+      ipcRenderer?.invoke('renderer:zoom-out');
+      return false;
+    });
+
+    return () => {
+      unbindAction('zoomOut');
+    };
+  }, [userKeyBindings, keybindingsEnabled]);
+
+  // Reset zoom
+  useEffect(() => {
+    bindAction('resetZoom', () => {
+      const { ipcRenderer } = window;
+      ipcRenderer?.invoke('renderer:reset-zoom');
+      return false;
+    });
+
+    return () => {
+      unbindAction('resetZoom');
+    };
+  }, [userKeyBindings, keybindingsEnabled]);
+
+  // Close Bruno
+  useEffect(() => {
+    bindAction('closeBruno', () => {
+      window.close();
+      return false;
+    });
+
+    return () => {
+      unbindAction('closeBruno');
+    };
+  }, [userKeyBindings, keybindingsEnabled]);
 
   const currentCollection = getCurrentCollection();
 
@@ -311,6 +483,16 @@ export const HotkeysProvider = (props) => {
       )}
       {showGlobalSearchModal && (
         <GlobalSearchModal isOpen={showGlobalSearchModal} onClose={() => setShowGlobalSearchModal(false)} />
+      )}
+      {showSaveRequestsModal && (
+        <SaveRequestsModal
+          forCloseTabs={true}
+          tabUidsToClose={tabUidsToClose}
+          onClose={() => {
+            setShowSaveRequestsModal(false);
+            setTabUidsToClose([]);
+          }}
+        />
       )}
       <div>{props.children}</div>
     </HotkeysContext.Provider>

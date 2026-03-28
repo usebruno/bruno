@@ -26,7 +26,7 @@ import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveReq
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
-import { copyRequest } from 'providers/ReduxStore/slices/app';
+import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import RenameCollectionItem from './RenameCollectionItem';
@@ -39,7 +39,6 @@ import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from '
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
-import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from './CollectionItemInfo/index';
 import CollectionItemIcon from './CollectionItemIcon';
@@ -94,9 +93,24 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
 
-  // Clone shortcut — only active when this sidebar item has keyboard focus
+  // Sidebar shortcuts — only active when this sidebar item has keyboard focus
   useKeybinding('cloneItem', () => {
     setCloneItemModalOpen(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
+  useKeybinding('copyItem', () => {
+    handleCopyItem();
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
+  useKeybinding('pasteItem', () => {
+    handlePasteItem();
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
+  useKeybinding('renameItem', () => {
+    setRenameItemModalOpen(true);
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
@@ -551,12 +565,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const handlePasteItem = () => {
-    // Determine target folder: if item is a folder, paste into it; otherwise paste into parent folder
-    let targetFolderUid = item.uid;
-    if (!isFolder) {
-      const parentFolder = findParentItemInCollection(collection, item.uid);
-      targetFolderUid = parentFolder ? parentFolder.uid : null;
-    }
+    // Paste as sibling: find the parent folder so the pasted item appears next to the focused item
+    const parentFolder = findParentItemInCollection(collection, item.uid);
+    const targetFolderUid = parentFolder ? parentFolder.uid : null;
 
     dispatch(pasteItem(collectionUid, targetFolderUid))
       .then(() => {
@@ -567,38 +578,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       });
   };
 
-  // Keyboard shortcuts handler
-  const handleKeyDown = (e) => {
-    // Detect Mac by checking both metaKey and platform
-    const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
-    const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
-
-    const [macRenameKey, winRenameKey] = getKeyBindingsForActionAllOS('renameItem');
-    const renameKey = isMac ? macRenameKey : winRenameKey;
-
-    // Only trigger rename if no modifier keys are pressed (allow Cmd+Enter for run request)
-    const hasModifier = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
-    if (e.key.toLowerCase() === renameKey && !hasModifier) {
-      e.preventDefault();
-      e.stopPropagation();
-      setRenameItemModalOpen(true);
-    } else if (isModifierPressed && e.key.toLowerCase() === 'c') {
-      e.preventDefault();
-      e.stopPropagation();
-      handleCopyItem();
-    } else if (isModifierPressed && e.key.toLowerCase() === 'v') {
-      e.preventDefault();
-      e.stopPropagation();
-      handlePasteItem();
-    }
-  };
-
   const handleFocus = () => {
     setIsKeyboardFocused(true);
+    // For folders, set the folder path; for requests, set empty string (no terminal)
+    dispatch(setFocusedSidebarPath(isFolder ? item.pathname : ''));
   };
 
   const handleBlur = () => {
     setIsKeyboardFocused(false);
+    dispatch(setFocusedSidebarPath(null));
   };
 
   return (
@@ -641,7 +629,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           drag(drop(node));
         }}
         tabIndex={0}
-        onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onContextMenu={handleContextMenu}

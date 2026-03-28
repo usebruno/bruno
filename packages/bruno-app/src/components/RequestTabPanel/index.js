@@ -31,6 +31,7 @@ import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
 import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
+import useKeybinding from 'hooks/useKeybinding';
 import ResponseExample from 'components/ResponseExample';
 import WorkspaceOverview from 'components/WorkspaceHome/WorkspaceOverview';
 import Preferences from 'components/Preferences';
@@ -56,6 +57,16 @@ const RequestTabPanel = () => {
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
+
+  // Send request shortcut — handler ref is updated after early returns when item is available
+  const handleRunRef = useRef(null);
+  const isRequestTab = focusedTab && ['request', 'grpc-request', 'ws-request', 'graphql-request'].includes(focusedTab.type);
+  useKeybinding('sendRequest', () => {
+    if (handleRunRef.current) {
+      handleRunRef.current();
+    }
+    return false;
+  }, { enabled: !!isRequestTab, deps: [isRequestTab] });
 
   // Use ref to avoid stale closure in event handlers
   const isVerticalLayoutRef = useRef(isVerticalLayout);
@@ -297,6 +308,7 @@ const RequestTabPanel = () => {
         }));
     }
   };
+  handleRunRef.current = handleRun;
 
   const renderQueryUrl = () => {
     if (isGrpcRequest) {
