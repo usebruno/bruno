@@ -128,10 +128,9 @@ const CollectionsSection = () => {
     const currentIndex = COLLECTION_SORT_ORDERS.indexOf(collectionSortOrder);
     const order = COLLECTION_SORT_ORDERS[(currentIndex + 1) % COLLECTION_SORT_ORDERS.length];
 
-    dispatch(savePreferences({
-      ...preferences,
-      collectionSortOrder: order
-    })).catch(() => {
+    dispatch(sortCollections({ order }));
+    dispatch(savePreferences({ ...preferences, collectionSortOrder: order })).catch(() => {
+      dispatch(sortCollections({ order: collectionSortOrder }));
       toast.error('Failed to save preferences');
     });
   };
