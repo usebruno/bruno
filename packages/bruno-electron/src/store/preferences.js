@@ -1,6 +1,7 @@
 const Yup = require('yup');
 const Store = require('electron-store');
 const { get, merge } = require('lodash');
+const { COLLECTION_SORT_ORDERS } = require('@usebruno/common');
 
 /**
  * The preferences are stored in the electron store 'preferences.json'.
@@ -133,7 +134,7 @@ const preferencesSchema = Yup.object().shape({
       enabled: Yup.boolean()
     })
   }).optional(),
-  collectionSortOrder: Yup.string().oneOf(['default', 'alphabetical', 'reverseAlphabetical']).optional()
+  collectionSortOrder: Yup.string().oneOf(COLLECTION_SORT_ORDERS).optional()
 });
 
 class PreferencesStore {
