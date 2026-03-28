@@ -373,13 +373,21 @@ const authSchema = Yup.object({
   .strict()
   .nullable();
 
+const decoratorSchema = Yup.object({
+  type: Yup.string().required('decorator type is required'),
+  args: Yup.array().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 const requestParamsSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().nullable(),
   value: Yup.string().nullable(),
   description: Yup.string().nullable(),
   type: Yup.string().oneOf(['query', 'path']).required('type is required'),
-  enabled: Yup.boolean()
+  enabled: Yup.boolean(),
+  decorators: Yup.array().of(decoratorSchema).nullable()
 })
   .noUnknown(true)
   .strict();

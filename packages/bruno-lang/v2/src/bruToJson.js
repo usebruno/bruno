@@ -190,25 +190,136 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   });
 };
 
+/**
+ * Extract inline decorators from the end of a value string
+ * Format: "actualValue @decorator1("arg1", "arg2") @decorator2"
+ *
+ * @param {string} value - The value string potentially containing inline decorators
+ * @returns {{ value: string, decorators: Array<{ type: string, args: any[] }> }}
+ */
+/**
+ * Convert parsed decorator args (array) to new object format for known types
+ * @param {string} type - Decorator type
+ * @param {any[]} args - Parsed args array
+ * @returns {object} - Args in new object format
+ */
+const convertArgsToObjectFormat = (type, args) => {
+  if (!args || args.length === 0) {
+    return {};
+  }
+
+  // Convert based on type
+  switch (type) {
+    case 'choices':
+      return { options: args };
+    case 'string':
+      // First arg is pattern
+      return args[0] ? { pattern: args[0] } : {};
+    case 'number':
+      // Args could be [min, max] or named
+      if (args.length >= 1) {
+        const result = {};
+        if (args[0] !== undefined) result.min = String(args[0]);
+        if (args[1] !== undefined) result.max = String(args[1]);
+        return result;
+      }
+      return {};
+    default:
+      // For unknown types, keep as array for backwards compatibility
+      return args;
+  }
+};
+
+const extractInlineDecorators = (value) => {
+  if (!value || typeof value !== 'string') {
+    return { value: value || '', decorators: [] };
+  }
+
+  const decorators = [];
+  let remaining = value;
+
+  // Pattern to match decorator at the end with preceding whitespace: @word or @word(...)
+  const decoratorEndPattern = /\s+@(\w+)(?:\(([^)]*)\))?\s*$/;
+
+  // Pattern to match decorator at the start (entire value is just decorators)
+  const decoratorStartPattern = /^@(\w+)(?:\(([^)]*)\))?\s*/;
+
+  // Keep extracting decorators from the end until no more found
+  let match;
+  while ((match = remaining.match(decoratorEndPattern))) {
+    const [fullMatch, type, argsString] = match;
+
+    let parsedArgs = [];
+    if (argsString !== undefined && argsString.trim() !== '') {
+      try {
+        parsedArgs = JSON.parse(`[${argsString}]`);
+      } catch (e) {
+        break;
+      }
+    }
+
+    // Convert to new object format
+    const args = convertArgsToObjectFormat(type, parsedArgs);
+    decorators.unshift({ type, args });
+    remaining = remaining.slice(0, remaining.length - fullMatch.length);
+  }
+
+  // If no decorators found yet, check if the entire value starts with @ (empty value case)
+  if (decorators.length === 0 && remaining.trim().startsWith('@')) {
+    while ((match = remaining.match(decoratorStartPattern))) {
+      const [fullMatch, type, argsString] = match;
+
+      let parsedArgs = [];
+      if (argsString !== undefined && argsString.trim() !== '') {
+        try {
+          parsedArgs = JSON.parse(`[${argsString}]`);
+        } catch (e) {
+          break;
+        }
+      }
+
+      // Convert to new object format
+      const args = convertArgsToObjectFormat(type, parsedArgs);
+      decorators.push({ type, args });
+      remaining = remaining.slice(fullMatch.length);
+    }
+  }
+
+  return {
+    value: remaining.trim(),
+    decorators
+  };
+};
+
 const mapRequestParams = (pairList = [], type) => {
   if (!pairList.length) {
     return [];
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
-    let value = pair[name];
+    let rawValue = pair[name];
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
       name = name.slice(1);
       enabled = false;
     }
 
-    return {
+    // Extract inline decorators from the value
+    const { value, decorators } = extractInlineDecorators(rawValue);
+
+    const param = {
       name,
       value,
       enabled,
       type
     };
+
+    // Only add decorators if present
+    if (decorators.length > 0) {
+      param.decorators = decorators;
+    }
+
+    return param;
   });
 };
 

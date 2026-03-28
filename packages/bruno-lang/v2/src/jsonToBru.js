@@ -13,6 +13,86 @@ const stripLastLine = (text) => {
   return text.replace(/(\r?\n)$/, '');
 };
 
+/**
+ * Format decorators to inline syntax
+ * Supports both old format (args as array) and new format (args as object)
+ * @param {Array<{ type: string, args: any[] | object }>} decorators
+ * @returns {string}
+ */
+const formatDecoratorsInline = (decorators) => {
+  if (!decorators || !Array.isArray(decorators) || decorators.length === 0) {
+    return '';
+  }
+
+  return decorators
+    .map((decorator) => {
+      if (!decorator || !decorator.type) {
+        return '';
+      }
+
+      const args = decorator.args;
+
+      // No args case
+      if (!args) {
+        return `@${decorator.type}`;
+      }
+
+      // Old format: args is an array
+      if (Array.isArray(args)) {
+        if (args.length === 0) {
+          return `@${decorator.type}`;
+        }
+        const argsStr = args.map((arg) => JSON.stringify(arg)).join(', ');
+        return `@${decorator.type}(${argsStr})`;
+      }
+
+      // New format: args is an object
+      if (typeof args === 'object') {
+        // For choices type, serialize options array
+        if (decorator.type === 'choices' && args.options && Array.isArray(args.options)) {
+          if (args.options.length === 0) {
+            return `@${decorator.type}`;
+          }
+          const argsStr = args.options.map((opt) => JSON.stringify(opt)).join(', ');
+          return `@${decorator.type}(${argsStr})`;
+        }
+
+        // For other types, serialize non-empty args as key=value pairs
+        const argParts = [];
+        for (const [key, value] of Object.entries(args)) {
+          if (value !== undefined && value !== '' && value !== false) {
+            argParts.push(`${key}=${JSON.stringify(value)}`);
+          }
+        }
+
+        if (argParts.length === 0) {
+          return `@${decorator.type}`;
+        }
+        return `@${decorator.type}(${argParts.join(', ')})`;
+      }
+
+      return `@${decorator.type}`;
+    })
+    .filter(Boolean)
+    .join(' ');
+};
+
+/**
+ * Get value string with inline decorators appended
+ * @param {string} value
+ * @param {Array} decorators
+ * @returns {string}
+ */
+const getValueWithDecorators = (value, decorators) => {
+  const valueStr = getValueString(value);
+  const decoratorsStr = formatDecoratorsInline(decorators);
+
+  if (decoratorsStr) {
+    return `${valueStr} ${decoratorsStr}`;
+  }
+  return valueStr;
+};
+
 const jsonToBru = (json) => {
   const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples } = json;
 
@@ -128,7 +208,7 @@ const jsonToBru = (json) => {
       if (enabled(queryParams).length) {
         bru += `\n${indentString(
           enabled(queryParams)
-            .map((item) => `${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `${getKeyString(item.name)}: ${getValueWithDecorators(item.value, item.decorators)}`)
             .join('\n')
         )}`;
       }
@@ -136,7 +216,7 @@ const jsonToBru = (json) => {
       if (disabled(queryParams).length) {
         bru += `\n${indentString(
           disabled(queryParams)
-            .map((item) => `~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `~${getKeyString(item.name)}: ${getValueWithDecorators(item.value, item.decorators)}`)
             .join('\n')
         )}`;
       }
@@ -147,7 +227,21 @@ const jsonToBru = (json) => {
     if (pathParams.length) {
       bru += 'params:path {';
 
-      bru += `\n${indentString(pathParams.map((item) => `${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      if (enabled(pathParams).length) {
+        bru += `\n${indentString(
+          enabled(pathParams)
+            .map((item) => `${getKeyString(item.name)}: ${getValueWithDecorators(item.value, item.decorators)}`)
+            .join('\n')
+        )}`;
+      }
+
+      if (disabled(pathParams).length) {
+        bru += `\n${indentString(
+          disabled(pathParams)
+            .map((item) => `~${getKeyString(item.name)}: ${getValueWithDecorators(item.value, item.decorators)}`)
+            .join('\n')
+        )}`;
+      }
 
       bru += '\n}\n\n';
     }
