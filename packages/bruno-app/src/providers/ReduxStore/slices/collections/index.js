@@ -151,6 +151,22 @@ const initiatedWsResponse = {
   trailers: []
 };
 
+/**
+ * Syncs enabled query params from the params array into the URL string.
+ * Called on file load/change to ensure the URL includes query params
+ * defined in the .bru file's params:query block.
+ */
+const syncQueryParamsToUrl = (request) => {
+  if (!request || !request.params) return;
+  const enabledQueryParams = filter(request.params, (p) => p.enabled && p.type === 'query');
+  if (enabledQueryParams.length === 0) return;
+  const parts = splitOnFirst(request.url, '?');
+  const query = stringifyQueryParams(enabledQueryParams);
+  if (query && query.length) {
+    request.url = parts[0] + '?' + query;
+  }
+};
+
 export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
@@ -2709,6 +2725,7 @@ export const collectionsSlice = createSlice({
             currentItem.seq = file.data.seq;
             currentItem.tags = file.data.tags;
             currentItem.request = mergeRequestWithPreservedUids(currentItem.request, file.data.request);
+            syncQueryParamsToUrl(currentItem.request);
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
             currentItem.settings = file.data.settings;
@@ -2720,6 +2737,7 @@ export const collectionsSlice = createSlice({
             currentItem.error = file.error;
             currentItem.isTransient = isTransientFile;
           } else {
+            syncQueryParamsToUrl(file.data.request);
             currentSubItems.push({
               uid: file.data.uid,
               name: file.data.name,
@@ -2828,6 +2846,7 @@ export const collectionsSlice = createSlice({
             item.seq = file.data.seq;
             item.tags = file.data.tags;
             item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
+            syncQueryParamsToUrl(item.request);
             item.settings = file.data.settings;
             item.examples = file.data.examples;
             item.filename = file.meta.name;
