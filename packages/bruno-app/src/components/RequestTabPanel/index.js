@@ -60,13 +60,9 @@ const RequestTabPanel = () => {
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
 
-  // Send request shortcut — handler ref is updated after early returns when item is available
-  const handleRunRef = useRef(null);
   const isRequestTab = focusedTab && ['request', 'grpc-request', 'ws-request', 'graphql-request'].includes(focusedTab.type);
   useKeybinding('sendRequest', () => {
-    if (handleRunRef.current) {
-      handleRunRef.current();
-    }
+    handleRun();
     return false;
   }, { enabled: !!isRequestTab, deps: [isRequestTab] });
 
@@ -315,8 +311,6 @@ const RequestTabPanel = () => {
         }));
     }
   };
-  handleRunRef.current = handleRun;
-
   const renderQueryUrl = () => {
     if (isGrpcRequest) {
       return <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />;
