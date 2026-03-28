@@ -8,6 +8,7 @@ import ResponseClear from '../ResponseClear';
 import ResponseLayoutToggle, { useResponseLayoutToggle } from '../ResponseLayoutToggle';
 import ResponseCopy from '../ResponseCopy/index';
 import StyledWrapper from './StyledWrapper';
+import { REQUEST_TYPES } from 'utils/common/constants';
 
 const StyledMenuIcon = styled.button`
   display: flex;
@@ -138,7 +139,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     }
   ];
 
-  if (!['http-request', 'graphql-request'].includes(item.type)) {
+  if (![REQUEST_TYPES.HTTP_REQUEST, REQUEST_TYPES.GRAPHQL_REQUEST].includes(item.type)) {
     return null;
   }
 
@@ -146,7 +147,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     <StyledWrapper className="response-pane-actions-wrapper">
       <div className="actions-dropdown">
         <MenuDropdown
-          items={item.type !== 'graphql-request' ? menuItems : gqlMenuItems}
+          items={item.type !== REQUEST_TYPES.GRAPHQL_REQUEST ? menuItems : gqlMenuItems}
           placement="bottom-end"
           data-testid="response-actions-menu"
         >
