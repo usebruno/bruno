@@ -36,6 +36,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
     ? get(preferences, 'general.defaultLocation', '')
     : (activeWorkspace?.pathname ? path.join(activeWorkspace.pathname, 'collections') : '');
   const inputRef = useRef();
+  const selectAllRef = useRef();
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -55,6 +56,15 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
       inputRef.current.focus();
     }
   }, []);
+
+  const areAllCollectionsSelected = collectionPaths.length > 0 && selectedCollectionPaths.length === collectionPaths.length;
+  const areSomeCollectionsSelected = selectedCollectionPaths.length > 0 && selectedCollectionPaths.length < collectionPaths.length;
+
+  useEffect(() => {
+    if (selectAllRef?.current) {
+      selectAllRef.current.indeterminate = areSomeCollectionsSelected;
+    }
+  }, [areSomeCollectionsSelected]);
 
   const cloneInProgress = () => {
     setSteps((prev) => [
@@ -161,6 +171,12 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
       prevSelected.includes(collection)
         ? prevSelected.filter((c) => c !== collection)
         : [...prevSelected, collection]
+    );
+  };
+
+  const handleToggleSelectAllCollections = () => {
+    setSelectedCollectionPaths((prevSelected) =>
+      prevSelected.length === collectionPaths.length ? [] : [...collectionPaths]
     );
   };
 
@@ -342,6 +358,16 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                       <h3 className="text-sm mb-2">
                         {collectionPaths.length} bruno collections found. Please select the collections to open:
                       </h3>
+                      <label className="flex items-center space-x-2 mb-2">
+                        <input
+                          type="checkbox"
+                          ref={selectAllRef}
+                          checked={areAllCollectionsSelected}
+                          onChange={handleToggleSelectAllCollections}
+                          className="form-checkbox"
+                        />
+                        <span>Select all</span>
+                      </label>
                       <ul>
                         {collectionPaths.map((collection) => (
                           <li key={collection} className="mb-2">
