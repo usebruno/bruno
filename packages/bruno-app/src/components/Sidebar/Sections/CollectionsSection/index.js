@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,6 +16,7 @@ import {
   IconTerminal2
 } from '@tabler/icons';
 
+import { COLLECTION_SORT_ORDERS } from '@usebruno/common';
 import { importCollection, openCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { savePreferences, setIsCreatingCollection } from 'providers/ReduxStore/slices/app';
@@ -124,22 +125,14 @@ const CollectionsSection = () => {
   };
 
   const handleSortCollections = () => {
-    let order;
-    switch (collectionSortOrder) {
-      case 'default':
-        order = 'alphabetical';
-        break;
-      case 'alphabetical':
-        order = 'reverseAlphabetical';
-        break;
-      case 'reverseAlphabetical':
-        order = 'default';
-        break;
-      default:
-        order = 'default';
-        break;
-    }
+    const currentIndex = COLLECTION_SORT_ORDERS.indexOf(collectionSortOrder);
+    const order = COLLECTION_SORT_ORDERS[(currentIndex + 1) % COLLECTION_SORT_ORDERS.length];
+
     dispatch(sortCollections({ order }));
+    dispatch(savePreferences({ ...preferences, collectionSortOrder: order })).catch(() => {
+      dispatch(sortCollections({ order: collectionSortOrder }));
+      toast.error('Failed to save preferences');
+    });
   };
 
   const getSortIcon = () => {
@@ -325,6 +318,12 @@ const CollectionsSection = () => {
       )}
     </>
   );
+
+  useEffect(() => {
+    if (preferences.collectionSortOrder && collections.length > 0) {
+      dispatch(sortCollections({ order: preferences.collectionSortOrder }));
+    }
+  }, [preferences.collectionSortOrder, collections.length]);
 
   return (
     <>
