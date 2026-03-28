@@ -82,6 +82,8 @@ const EnvironmentList = ({
   const envUids = environments ? environments.map((env) => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
 
+  const globalEnvironmentDraftUid = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft?.environmentUid);
+
   const handleDotEnvModifiedChange = useCallback((modified) => {
     setIsDotEnvModified(modified);
     if (modified) {
@@ -89,10 +91,10 @@ const EnvironmentList = ({
         environmentUid: `dotenv:${selectedDotEnvFile}`,
         variables: []
       }));
-    } else {
+    } else if (globalEnvironmentDraftUid?.startsWith('dotenv:')) {
       dispatch(clearGlobalEnvironmentDraft());
     }
-  }, [dispatch, selectedDotEnvFile]);
+  }, [dispatch, selectedDotEnvFile, globalEnvironmentDraftUid]);
 
   useEffect(() => {
     if (dotEnvFiles.length === 0) {

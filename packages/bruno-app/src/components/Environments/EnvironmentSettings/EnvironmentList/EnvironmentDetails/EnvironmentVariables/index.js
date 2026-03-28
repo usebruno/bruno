@@ -103,6 +103,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
 
   return (
     <EnvironmentVariablesTable
+      key={environment?.uid}
       environment={environment}
       collection={collection}
       onSave={handleSave}

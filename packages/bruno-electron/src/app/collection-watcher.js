@@ -552,58 +552,84 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const unlink = (win, pathname, collectionUid, collectionPath) => {
-  console.log(`watcher unlink: ${pathname}`);
-
-  if (isEnvironmentsFolder(pathname, collectionPath)) {
-    return unlinkEnvironmentFile(win, pathname, collectionUid);
-  }
-
-  const format = getCollectionFormat(collectionPath);
-  if (hasRequestExtension(pathname, format)) {
-    const basename = path.basename(pathname);
-    const dirname = path.dirname(pathname);
-
-    if (basename === 'opencollection.yml' && path.normalize(dirname) === path.normalize(collectionPath)) {
+  try {
+    if (!fs.existsSync(collectionPath)) {
       return;
     }
+    console.log(`watcher unlink: ${pathname}`);
 
-    const file = {
-      meta: {
-        collectionUid,
-        pathname,
-        name: basename
+    if (isEnvironmentsFolder(pathname, collectionPath)) {
+      return unlinkEnvironmentFile(win, pathname, collectionUid);
+    }
+
+    let format;
+    try {
+      format = getCollectionFormat(collectionPath);
+    } catch (error) {
+      console.error(`Error getting collection format for: ${collectionPath}`, error);
+      return;
+    }
+    if (hasRequestExtension(pathname, format)) {
+      const basename = path.basename(pathname);
+      const dirname = path.dirname(pathname);
+
+      if (basename === 'opencollection.yml' && path.normalize(dirname) === path.normalize(collectionPath)) {
+        return;
       }
-    };
-    win.webContents.send('main:collection-tree-updated', 'unlink', file);
+
+      const file = {
+        meta: {
+          collectionUid,
+          pathname,
+          name: basename
+        }
+      };
+      win.webContents.send('main:collection-tree-updated', 'unlink', file);
+    }
+  } catch (err) {
+    console.error(`Error processing unlink event for: ${pathname}`, err);
   }
 };
 
 const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
-  const envDirectory = path.join(collectionPath, 'environments');
-
-  if (path.normalize(pathname) === path.normalize(envDirectory)) {
-    return;
-  }
-
-  const format = getCollectionFormat(collectionPath);
-  const folderFilePath = path.join(pathname, `folder.${format}`);
-
-  let name = path.basename(pathname);
-
-  if (fs.existsSync(folderFilePath)) {
-    let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
-    let folderData = await parseFolder(folderFileContent, { format });
-    name = folderData?.meta?.name || name;
-  }
-
-  const directory = {
-    meta: {
-      collectionUid,
-      pathname,
-      name
+  try {
+    if (!fs.existsSync(collectionPath)) {
+      return;
     }
-  };
-  win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
+    const envDirectory = path.join(collectionPath, 'environments');
+
+    if (path.normalize(pathname) === path.normalize(envDirectory)) {
+      return;
+    }
+
+    let format;
+    try {
+      format = getCollectionFormat(collectionPath);
+    } catch (error) {
+      console.error(`Error getting collection format for: ${collectionPath}`, error);
+      return;
+    }
+    const folderFilePath = path.join(pathname, `folder.${format}`);
+
+    let name = path.basename(pathname);
+
+    if (fs.existsSync(folderFilePath)) {
+      let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
+      let folderData = await parseFolder(folderFileContent, { format });
+      name = folderData?.meta?.name || name;
+    }
+
+    const directory = {
+      meta: {
+        collectionUid,
+        pathname,
+        name
+      }
+    };
+    win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
+  } catch (err) {
+    console.error(`Error processing unlinkDir event for: ${pathname}`, err);
+  }
 };
 
 const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {

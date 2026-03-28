@@ -1,0 +1,55 @@
+import React from 'react';
+import StyledWrapper from './StyledWrapper';
+
+const renderLine = (line, highlightClass, hunkIdx) => {
+  const isHighlighted = line.isHighlighted || line.isError;
+  const key = hunkIdx != null ? `${hunkIdx}-${line.lineNumber}` : line.lineNumber;
+  return (
+    <div
+      key={key}
+      className={`code-line ${isHighlighted ? highlightClass : ''}`}
+      data-testid={isHighlighted ? 'code-line-error' : 'code-line'}
+    >
+      <span className="code-line-number">{line.lineNumber}</span>
+      <span className="code-line-content">
+        {isHighlighted ? '> ' : '  '}{line.content}
+      </span>
+    </div>
+  );
+};
+
+const CodeSnippet = ({ lines, hunks, variant = 'error' }) => {
+  const highlightClass = variant === 'warning' ? 'highlighted-warning' : 'highlighted-error';
+
+  if (hunks?.length) {
+    return (
+      <StyledWrapper>
+        <div className="code-snippet" data-testid="code-snippet">
+          {hunks.map((hunk, idx) => (
+            <React.Fragment key={idx}>
+              {hunk.hasSeparatorBefore && (
+                <div className="code-line code-line-separator">
+                  <span className="code-line-number"></span>
+                  <span className="code-line-content separator-content">{'\u22EE'}</span>
+                </div>
+              )}
+              {hunk.lines.map((line) => renderLine(line, highlightClass, idx))}
+            </React.Fragment>
+          ))}
+        </div>
+      </StyledWrapper>
+    );
+  }
+
+  if (!lines?.length) return null;
+
+  return (
+    <StyledWrapper>
+      <div className="code-snippet" data-testid="code-snippet">
+        {lines.map((line) => renderLine(line, highlightClass))}
+      </div>
+    </StyledWrapper>
+  );
+};
+
+export default CodeSnippet;

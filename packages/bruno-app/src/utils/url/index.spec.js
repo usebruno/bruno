@@ -156,6 +156,20 @@ describe('Url Utils - parsePathParams', () => {
     expect(params).toEqual([]);
   });
 
+  it('should NOT treat colons in datetime values as path parameters', () => {
+    const params = parsePathParams(
+      'https://api10.successfactors.com/odata/v2/EmpJob(seqNumber=1L,startDate=datetime\'2021-08-29T00:00:00\',userId=\'213668\')'
+    );
+    expect(params).toEqual([]);
+  });
+
+  it('should still parse named path params in OData segments with datetime values', () => {
+    const params = parsePathParams(
+      'https://example.com/odata/EmpJob(startDate=datetime\'2021-08-29T00:00:00\',userId=:userId)'
+    );
+    expect(params).toEqual([{ name: 'userId', value: '' }]);
+  });
+
   it('should NOT treat embedded colons as path parameters (regression fix)', () => {
     // This test case reproduces the bug reported in issue #5805
     const params = parsePathParams('/start/1:2:AHLS-HASD/form');
@@ -285,6 +299,33 @@ describe('Url Utils - splitOnFirst', () => {
   it('should split on first - case 5', () => {
     const params = splitOnFirst('a=1&b=2', '&');
     expect(params).toEqual(['a=1', 'b=2']);
+  });
+
+  it('should skip ? inside {{ }} template variables', () => {
+    const url = 'https://example.com/domain/{{?domain_id}}?include_dcv=true&include_validation=true';
+    const params = splitOnFirst(url, '?');
+    expect(params).toEqual([
+      'https://example.com/domain/{{?domain_id}}',
+      'include_dcv=true&include_validation=true'
+    ]);
+  });
+
+  it('should handle multiple prompt variables in URL path', () => {
+    const url = 'http://localhost:{{?port}}/api/{{?resource}}?key=value';
+    const params = splitOnFirst(url, '?');
+    expect(params).toEqual([
+      'http://localhost:{{?port}}/api/{{?resource}}',
+      'key=value'
+    ]);
+  });
+
+  it('should handle prompt variable in query param value', () => {
+    const url = 'https://example.com/api?token={{?token}}&active=true';
+    const params = splitOnFirst(url, '?');
+    expect(params).toEqual([
+      'https://example.com/api',
+      'token={{?token}}&active=true'
+    ]);
   });
 });
 

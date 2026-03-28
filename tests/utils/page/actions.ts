@@ -1,5 +1,5 @@
 import { test, expect, Page } from '../../../playwright';
-import { buildCommonLocators } from './locators';
+import { buildCommonLocators, buildScriptErrorLocators } from './locators';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -320,6 +320,42 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
     await locators.dropdown.item('Delete').click();
     await locators.modal.button('Delete').click();
     await expect(request).not.toBeVisible();
+  });
+};
+
+/**
+ * Delete a collection permanently from disk via the workspace overview page
+ * @param page - The page object
+ * @param collectionName - The name of the collection to delete
+ * @returns void
+ */
+const deleteCollectionFromOverview = async (page: Page, collectionName: string) => {
+  await test.step(`Delete collection "${collectionName}" from workspace overview`, async () => {
+    // Navigate to workspace overview
+    await page.locator('.home-button').click();
+    const overviewTab = page.locator('.request-tab').filter({ hasText: 'Overview' });
+    await overviewTab.click();
+
+    // Find the collection card and open its menu
+    const collectionCard = page.locator('.collection-card').filter({ hasText: collectionName });
+    await collectionCard.waitFor({ state: 'visible', timeout: 5000 });
+    await collectionCard.locator('.collection-menu').click();
+
+    // Click Delete from the dropdown
+    await page.locator('.dropdown-item').filter({ hasText: 'Delete' }).click();
+
+    // Wait for delete confirmation modal
+    const deleteModal = page.locator('.bruno-modal').filter({ hasText: 'Delete Collection' });
+    await deleteModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Type 'delete' to confirm
+    await deleteModal.locator('#delete-confirm-input').fill('delete');
+
+    // Click the Delete button
+    await deleteModal.getByRole('button', { name: 'Delete', exact: true }).click();
+
+    // Wait for modal to close
+    await deleteModal.waitFor({ state: 'hidden', timeout: 10000 });
   });
 };
 
@@ -766,14 +802,13 @@ const getResponseBody = async (page: Page): Promise<string> => {
   return await page.locator('.response-pane').innerText();
 };
 
-const selectRequestPaneTab = async (page: Page, tabName: string) => {
-  await test.step(`Wait for request to open up "${tabName}"`, async () => {
-    const requestPane = page.locator('.request-pane > .px-4');
-    await expect(requestPane).toBeVisible();
-    await expect(requestPane.locator('.tabs')).toBeVisible();
-  });
-  await test.step(`Select request pane tab "${tabName}"`, async () => {
-    const visibleTab = page.locator('.tabs').getByRole('tab', { name: tabName });
+const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) => {
+  await test.step(`Select tab "${tabName}" in ${paneSelector}`, async () => {
+    const pane = page.locator(paneSelector);
+    await expect(pane).toBeVisible();
+    await expect(pane.locator('.tabs')).toBeVisible();
+
+    const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
 
     // Check if tab is directly visible
     if (await visibleTab.isVisible()) {
@@ -782,21 +817,28 @@ const selectRequestPaneTab = async (page: Page, tabName: string) => {
       return;
     }
 
-    const overflowButton = page.locator('.tabs .more-tabs');
+    const overflowButton = pane.locator('.tabs .more-tabs');
     // Check if there's an overflow dropdown
     if (await overflowButton.isVisible()) {
       await overflowButton.click();
 
-      // Wait for dropdown to appear and click the menu item (overflow tabs are rendered as menuitems)
+      // Wait for dropdown to appear and click the menu item
       const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
       await dropdownItem.click();
       await expect(visibleTab).toContainClass('active');
       return;
     }
 
-    // If neither found, fail with a helpful message
     throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
   });
+};
+
+const selectResponsePaneTab = async (page: Page, tabName: string) => {
+  await selectPaneTab(page, '[data-testid="response-pane"]', tabName);
+};
+
+const selectRequestPaneTab = async (page: Page, tabName: string) => {
+  await selectPaneTab(page, '[data-testid="request-pane"] > .px-4', tabName);
 };
 
 /**
@@ -1011,6 +1053,101 @@ const closeAllTabs = async (page: Page) => {
   });
 };
 
+/**
+ * Create a new workspace via the title bar dropdown inline rename flow
+ * @param page - The page object
+ * @param workspaceName - The name of the workspace to create
+ * @returns void
+ */
+const createWorkspace = async (page: Page, workspaceName: string) => {
+  await test.step(`Create workspace "${workspaceName}"`, async () => {
+    await page.locator('.workspace-name-container').click();
+    await page.locator('.dropdown-item').filter({ hasText: 'Create workspace' }).click();
+
+    const renameInput = page.locator('.workspace-name-input');
+    await expect(renameInput).toBeVisible({ timeout: 5000 });
+    await renameInput.fill(workspaceName);
+    await renameInput.press('Enter');
+
+    await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('workspace-name')).toHaveText(workspaceName, { timeout: 5000 });
+  });
+};
+
+/**
+ * Switch to an existing workspace via the title bar dropdown
+ * @param page - The page object
+ * @param workspaceName - The name of the workspace to switch to
+ * @returns void
+ */
+const switchWorkspace = async (page: Page, workspaceName: string) => {
+  await test.step(`Switch to workspace "${workspaceName}"`, async () => {
+    await page.locator('.workspace-name-container').click();
+    await page.locator('.workspace-item, .dropdown-item').filter({ hasText: workspaceName }).click();
+    await expect(page.getByTestId('workspace-name')).toHaveText(workspaceName, { timeout: 5000 });
+  });
+};
+
+/**
+ * Navigate to a Script sub-tab (pre-request / post-response)
+ * @param page - The page object
+ * @param subTab - The sub-tab to select
+ */
+const selectScriptSubTab = async (page: Page, subTab: 'pre-request' | 'post-response') => {
+  await test.step(`Select Script sub-tab "${subTab}"`, async () => {
+    await selectRequestPaneTab(page, 'Script');
+    const trigger = buildCommonLocators(page).paneTabs.tabTrigger(subTab);
+    await trigger.click();
+    await expect(trigger).toContainClass('active');
+  });
+};
+
+/**
+ * Clear and type into a CodeMirror editor identified by test ID
+ * @param page - The page object
+ * @param editorTestId - The test ID of the editor container
+ * @param newContent - The content to type
+ */
+const editCodeMirrorEditor = async (page: Page, editorTestId: string, newContent: string) => {
+  await test.step(`Edit CodeMirror editor "${editorTestId}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const editor = locators.codeMirror.byTestId(editorTestId);
+    await editor.waitFor({ state: 'visible' });
+    const textarea = editor.locator('textarea[tabindex="0"]');
+    await textarea.focus();
+    const selectAll = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
+    await page.keyboard.press(selectAll);
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type(newContent, { delay: 5 });
+  });
+};
+
+/**
+ * Click send and wait for at least one error card to appear.
+ * @param page - The page object
+ */
+const sendAndWaitForErrorCard = async (page: Page) => {
+  await test.step('Send request and wait for error card', async () => {
+    const { request } = buildCommonLocators(page);
+    const scriptErrorLocators = buildScriptErrorLocators(page);
+    await request.sendButton().click();
+    await scriptErrorLocators.card().waitFor({ state: 'visible', timeout: 15000 });
+  });
+};
+
+/**
+ * Click send and wait for a response status code to appear.
+ * Used for requests that succeed at HTTP level but may have post-response/test errors.
+ * @param page - The page object
+ */
+const sendAndWaitForResponse = async (page: Page) => {
+  await test.step('Send request and wait for response', async () => {
+    const { request, response } = buildCommonLocators(page);
+    await request.sendButton().click();
+    await response.statusCode().waitFor({ state: 'visible', timeout: 15000 });
+  });
+};
+
 export {
   closeAllCollections,
   openCollection,
@@ -1020,6 +1157,7 @@ export {
   createTransientRequest,
   fillRequestUrl,
   deleteRequest,
+  deleteCollectionFromOverview,
   importCollection,
   removeCollection,
   createFolder,
@@ -1036,6 +1174,7 @@ export {
   getResponseBody,
   expectResponseContains,
   selectRequestPaneTab,
+  selectResponsePaneTab,
   sendRequestAndWaitForResponse,
   switchResponseFormat,
   switchToPreviewTab,
@@ -1045,7 +1184,13 @@ export {
   editAssertion,
   deleteAssertion,
   saveRequest,
-  closeAllTabs
+  closeAllTabs,
+  createWorkspace,
+  switchWorkspace,
+  selectScriptSubTab,
+  editCodeMirrorEditor,
+  sendAndWaitForErrorCard,
+  sendAndWaitForResponse
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

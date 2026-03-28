@@ -3,7 +3,8 @@ import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor/index';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
@@ -31,15 +32,6 @@ const TableRow = React.memo(
   }
 );
 
-const highlightText = (text, query) => {
-  if (!query?.trim() || !text) return text;
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-  const parts = text.split(regex);
-  return parts.map((part, i) =>
-    regex.test(part) ? <mark key={i} className="search-highlight">{part}</mark> : part
-  );
-};
-
 const EnvironmentVariablesTable = ({
   environment,
   collection,
@@ -51,16 +43,39 @@ const EnvironmentVariablesTable = ({
   renderExtraValueContent,
   searchQuery = ''
 }) => {
-  const { storedTheme, theme } = useTheme();
-  const valueMatchBg = theme?.colors?.accent ? `${theme.colors.accent}1a` : undefined;
+  const { storedTheme } = useTheme();
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+
+  const dispatch = useDispatch();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
   const [tableHeight, setTableHeight] = useState(MIN_H);
-  const [columnWidths, setColumnWidths] = useState({ name: '30%', value: 'auto' });
+
+  // Use environment UID as part of tableId so each environment has its own column widths
+  const tableId = `env-vars-table-${environment.uid}`;
+
+  // Get column widths from Redux - derived value (not state)
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const storedColumnWidths = focusedTab?.tableColumnWidths?.[tableId];
+
+  // Local state initialized from Redux (computed once on mount/environment change via key)
+  const [columnWidths, setColumnWidths] = useState(() => {
+    return storedColumnWidths || { name: '30%', value: 'auto' };
+  });
+
   const [resizing, setResizing] = useState(null);
-  const [focusedNameIndex, setFocusedNameIndex] = useState(null);
+  const [pinnedData, setPinnedData] = useState({ query: '', uids: new Set() });
+
+  const handleColumnWidthsChange = (id, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId: id, widths }));
+  };
+
+  // Store column widths in ref for access in event handlers
+  const columnWidthsRef = useRef(columnWidths);
+  columnWidthsRef.current = columnWidths;
 
   const handleResizeStart = useCallback((e, columnKey) => {
     e.preventDefault();
@@ -83,25 +98,35 @@ const EnvironmentVariablesTable = ({
       const maxShrink = startWidth - MIN_COLUMN_WIDTH;
       const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
 
-      setColumnWidths({
+      const newWidths = {
         [columnKey]: `${startWidth + clampedDiff}px`,
         [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
-      });
+      };
+      setColumnWidths(newWidths);
     };
 
     const handleMouseUp = () => {
       setResizing(null);
+      // Save to Redux after resize ends using ref for latest values
+      handleColumnWidthsChange(tableId, columnWidthsRef.current);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, []);
+  }, [handleColumnWidthsChange]);
 
   const handleTotalHeightChanged = useCallback((h) => {
     setTableHeight(h);
   }, []);
+
+  const handleRowFocus = useCallback((uid) => {
+    setPinnedData((prev) => ({
+      query: searchQuery,
+      uids: prev.query === searchQuery ? new Set([...prev.uids, uid]) : new Set([uid])
+    }));
+  }, [searchQuery]);
 
   const prevEnvUidRef = useRef(null);
   const prevEnvVariablesRef = useRef(environment.variables);
@@ -204,6 +229,10 @@ const EnvironmentVariablesTable = ({
   const savedValuesJson = useMemo(() => {
     return JSON.stringify((environment.variables || []).map(stripEnvVarUid));
   }, [environment.variables]);
+
+  useEffect(() => {
+    setPinnedData({ query: '', uids: new Set() });
+  }, [savedValuesJson]);
 
   // Sync modified state
   useEffect(() => {
@@ -358,6 +387,7 @@ const EnvironmentVariablesTable = ({
     onSave(cloneDeep(variablesToSave))
       .then(() => {
         toast.success('Changes saved successfully');
+        onDraftClear();
         const newValues = [
           ...variablesToSave,
           {
@@ -376,7 +406,7 @@ const EnvironmentVariablesTable = ({
         console.error(error);
         toast.error('An error occurred while saving the changes');
       });
-  }, [formik.values, environment.variables, onSave, setIsModified]);
+  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified]);
 
   const handleReset = useCallback(() => {
     const originalVars = environment.variables || [];
@@ -418,12 +448,20 @@ const EnvironmentVariablesTable = ({
 
     const query = searchQuery.toLowerCase().trim();
 
+    const effectivePins = pinnedData.query === searchQuery ? pinnedData.uids : new Set();
     return allVariables.filter(({ variable }) => {
+      if (effectivePins.has(variable.uid)) return true;
       const nameMatch = variable.name ? variable.name.toLowerCase().includes(query) : false;
-      const valueMatch = typeof variable.value === 'string' ? variable.value.toLowerCase().includes(query) : false;
+      const valueText
+        = typeof variable.value === 'string'
+          ? variable.value
+          : typeof variable.value === 'number' || typeof variable.value === 'boolean'
+            ? String(variable.value)
+            : '';
+      const valueMatch = valueText.toLowerCase().includes(query);
       return !!(nameMatch || valueMatch);
     });
-  }, [formik.values, searchQuery]);
+  }, [formik.values, searchQuery, pinnedData]);
 
   const isSearchActive = !!searchQuery?.trim();
 
@@ -460,11 +498,6 @@ const EnvironmentVariablesTable = ({
             const isLastRow = actualIndex === formik.values.length - 1;
             const isEmptyRow = !variable.name || variable.name.trim() === '';
             const isLastEmptyRow = isLastRow && isEmptyRow;
-            const activeQuery = searchQuery?.trim().toLowerCase();
-            const valueMatchesOnly = activeQuery
-              && !(variable.name?.toLowerCase().includes(activeQuery))
-              && typeof variable.value === 'string'
-              && variable.value.toLowerCase().includes(activeQuery);
 
             return (
               <>
@@ -475,8 +508,7 @@ const EnvironmentVariablesTable = ({
                       className="mousetrap"
                       name={`${actualIndex}.enabled`}
                       checked={variable.enabled}
-                      onChange={isSearchActive ? undefined : formik.handleChange}
-                      disabled={isSearchActive}
+                      onChange={formik.handleChange}
                     />
                   )}
                 </td>
@@ -494,29 +526,25 @@ const EnvironmentVariablesTable = ({
                         name={`${actualIndex}.name`}
                         value={variable.name}
                         placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Name' : ''}
-                        readOnly={isSearchActive}
-                        onChange={isSearchActive ? undefined : (e) => handleNameChange(actualIndex, e)}
-                        onFocus={() => !isSearchActive && setFocusedNameIndex(actualIndex)}
+                        onChange={(e) => handleNameChange(actualIndex, e)}
+                        onFocus={() => handleRowFocus(variable.uid)}
                         onBlur={() => {
-                          setFocusedNameIndex(null); if (!isSearchActive) handleNameBlur(actualIndex);
+                          handleNameBlur(actualIndex);
                         }}
-                        onKeyDown={isSearchActive ? undefined : (e) => handleNameKeyDown(actualIndex, e)}
-                        style={searchQuery?.trim() && focusedNameIndex !== actualIndex ? { color: 'transparent' } : undefined}
+                        onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
                       />
-                      {searchQuery?.trim() && focusedNameIndex !== actualIndex && (
-                        <div className="name-highlight-overlay">
-                          {highlightText(variable.name || '', searchQuery)}
-                        </div>
-                      )}
                     </div>
                     <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
                   </div>
                 </td>
                 <td
                   className="flex flex-row flex-nowrap items-center"
-                  style={{ width: columnWidths.value, ...(valueMatchesOnly && valueMatchBg ? { background: valueMatchBg } : {}) }}
+                  style={{ width: columnWidths.value }}
                 >
-                  <div className="overflow-hidden grow w-full relative">
+                  <div
+                    className="overflow-hidden grow w-full relative"
+                    onFocus={() => handleRowFocus(variable.uid)}
+                  >
                     <MultiLineEditor
                       theme={storedTheme}
                       collection={_collection}
@@ -524,7 +552,7 @@ const EnvironmentVariablesTable = ({
                       value={variable.value}
                       placeholder={isLastEmptyRow ? 'Value' : ''}
                       isSecret={variable.secret}
-                      readOnly={isSearchActive || typeof variable.value !== 'string'}
+                      readOnly={typeof variable.value !== 'string'}
                       onChange={(newValue) => {
                         formik.setFieldValue(`${actualIndex}.value`, newValue, true);
                         // Clear ephemeral metadata when user manually edits the value
@@ -555,14 +583,13 @@ const EnvironmentVariablesTable = ({
                       className="mousetrap"
                       name={`${actualIndex}.secret`}
                       checked={variable.secret}
-                      onChange={isSearchActive ? undefined : formik.handleChange}
-                      disabled={isSearchActive}
+                      onChange={formik.handleChange}
                     />
                   )}
                 </td>
                 <td>
                   {!isLastEmptyRow && (
-                    <button onClick={isSearchActive ? undefined : () => handleRemoveVar(variable.uid)} disabled={isSearchActive}>
+                    <button onClick={() => handleRemoveVar(variable.uid)}>
                       <IconTrash strokeWidth={1.5} size={18} />
                     </button>
                   )}

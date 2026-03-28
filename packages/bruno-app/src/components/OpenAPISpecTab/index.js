@@ -1,7 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { IconLoader2, IconCloud } from '@tabler/icons';
+import fastJsonFormat from 'fast-json-format';
 import SpecViewer from 'components/ApiSpecPanel/SpecViewer';
 import StyledWrapper from 'components/ApiSpecPanel/StyledWrapper';
+
+/**
+ * Pretty-print JSON content for readable display. YAML content is returned as-is.
+ */
+const prettyPrintSpec = (content) => {
+  if (!content) return content;
+  if (content.trimStart()[0] !== '{') return content;
+  try {
+    return fastJsonFormat(content);
+  } catch {
+    return content;
+  }
+};
 
 const OpenAPISpecTab = ({ collection }) => {
   const [specContent, setSpecContent] = useState(null);
@@ -19,8 +33,7 @@ const OpenAPISpecTab = ({ collection }) => {
     try {
       const { ipcRenderer } = window;
       const result = await ipcRenderer.invoke('renderer:read-openapi-spec', {
-        collectionPath: collection.pathname,
-        sourceUrl
+        collectionPath: collection.pathname
       });
       if (result.error) {
         // Local file not found — fall back to fetching from remote URL
@@ -37,14 +50,14 @@ const OpenAPISpecTab = ({ collection }) => {
             }
           });
           if (fetchResult.content) {
-            setSpecContent(fetchResult.content);
+            setSpecContent(prettyPrintSpec(fetchResult.content));
             setIsRemote(true);
             return;
           }
         }
         setError(result.error);
       } else {
-        setSpecContent(result.content);
+        setSpecContent(prettyPrintSpec(result.content));
       }
     } catch (err) {
       setError(err.message || 'Failed to read spec file');

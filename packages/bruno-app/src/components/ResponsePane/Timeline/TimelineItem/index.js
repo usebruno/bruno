@@ -7,10 +7,14 @@ import Method from './Common/Method/index';
 import Status from './Common/Status/index';
 import { RelativeTime } from './Common/Time/index';
 import StyledWrapper from './StyledWrapper';
+import { usePersistedState } from 'hooks/usePersistedState/index';
 
 const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2, hideTimestamp = false }) => {
   const { theme } = useTheme();
-  const [isCollapsed, _toggleCollapse] = useState(false);
+  const [isCollapsed, _toggleCollapse] = usePersistedState({
+    key: `timeline-${timestamp}`,
+    default: false
+  });
   const [activeTab, setActiveTab] = useState('request');
   const toggleCollapse = () => _toggleCollapse((prev) => !prev);
   const { method, status, statusCode, statusText, url = '' } = request || {};

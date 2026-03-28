@@ -1,0 +1,36 @@
+info:
+  name: OAuth1 HMAC-SHA512 200
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{localhost}}/api/auth/oauth1/resource"
+  auth:
+    type: oauth1
+    consumerKey: consumer_key_1
+    consumerSecret: consumer_secret_1
+    accessToken: access_token_1
+    accessTokenSecret: token_secret_1
+    signatureEncoding: HMAC-SHA512
+    version: "1.0"
+    placement: header
+    includeBodyHash: false
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.resource.name
+      operator: eq
+      value: oauth1-test-resource
+    - expression: res.body.resource.email
+      operator: eq
+      value: oauth1@example.com
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

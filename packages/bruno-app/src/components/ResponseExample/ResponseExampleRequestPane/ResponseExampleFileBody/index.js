@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { get } from 'lodash';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { updateResponseExampleFileBodyParams } from 'providers/ReduxStore/slices/collections';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import EditableTable from 'components/EditableTable';
@@ -14,6 +15,16 @@ import RadioButton from 'components/RadioButton';
 const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = false }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const fileBodyWidths = focusedTab?.tableColumnWidths?.['example-file-body'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   // Get file data from the specific example
   const params = useMemo(() => {
@@ -180,6 +191,9 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
   return (
     <StyledWrapper className="w-full mt-4">
       <EditableTable
+        tableId="example-file-body"
+        columnWidths={fileBodyWidths}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('example-file-body', widths)}
         columns={columns}
         rows={params || []}
         onChange={handleParamsChange}

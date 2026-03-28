@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { IconCheck } from '@tabler/icons';
 import Button from 'ui/Button';
-import { isValidUrl } from 'utils/url/index';
+import { isHttpUrl } from 'utils/url/index';
 import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { parseFileAsJsonOrYaml } from 'utils/importers/file-reader';
 
@@ -77,7 +77,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
                   try {
                     const data = await parseFileAsJsonOrYaml(file);
                     if (!isOpenApiSpec(data)) {
-                      setError('The selected file is not a valid OpenAPI specification');
+                      setError('The selected file is not a valid OpenAPI 3.x specification');
                       return;
                     }
                     const filePath = window.ipcRenderer.getFilePath(file);
@@ -100,7 +100,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
           <Button
             type="submit"
             size="sm"
-            disabled={mode === 'url' ? !isValidUrl(sourceUrl.trim()) : !sourceUrl.trim()}
+            disabled={mode === 'url' ? !isHttpUrl(sourceUrl.trim()) : !sourceUrl.trim()}
             loading={isLoading}
           >
             Connect
@@ -124,6 +124,17 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
           </div>
         ))}
       </div>
+
+      <p className="beta-feedback-inline">
+        OpenAPI Sync is in Beta — we'd love to hear your feedback and suggestions.{' '}
+        <button
+          type="button"
+          className="beta-feedback-link"
+          onClick={() => window?.ipcRenderer?.openExternal('https://github.com/usebruno/bruno/discussions/7401')}
+        >
+          Share feedback
+        </button>
+      </p>
     </div>
   );
 };
