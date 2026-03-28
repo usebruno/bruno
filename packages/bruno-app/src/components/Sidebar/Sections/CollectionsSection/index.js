@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
@@ -18,7 +18,7 @@ import {
 
 import { importCollection, openCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
-import { savePreferences, setIsCreatingCollection } from 'providers/ReduxStore/slices/app';
+import { savePreferences, setIsCreatingCollection, setCollectionSearchActive, clearImportCollectionModalOpen } from 'providers/ReduxStore/slices/app';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection, flattenItems, isItemTransientRequest } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
@@ -38,7 +38,8 @@ import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const CollectionsSection = () => {
-  const [showSearch, setShowSearch] = useState(false);
+  const { collectionSearchActive } = useSelector((state) => state.app);
+  const [showSearchLocal, setShowSearchLocal] = useState(false);
   const dispatch = useDispatch();
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
@@ -64,6 +65,15 @@ const CollectionsSection = () => {
   // Only genuinely new users will have hasSeenWelcomeModal explicitly set to false by onboarding
   const hasSeenWelcomeModal = get(preferences, 'onboarding.hasSeenWelcomeModal', true);
   const showWelcomeModal = !hasSeenWelcomeModal;
+
+  // Listen for importCollection shortcut from global command
+  const importModalOpen = useSelector((state) => state.app.importCollectionModalOpen);
+  useEffect(() => {
+    if (importModalOpen) {
+      setImportCollectionModalOpen(true);
+      dispatch(clearImportCollectionModalOpen());
+    }
+  }, [importModalOpen, dispatch]);
 
   const handleDismissWelcomeModal = () => {
     const updatedPreferences = {
@@ -120,7 +130,7 @@ const CollectionsSection = () => {
   };
 
   const handleToggleSearch = () => {
-    setShowSearch((prev) => !prev);
+    dispatch(setCollectionSearchActive(!collectionSearchActive));
   };
 
   const handleSortCollections = () => {
@@ -396,7 +406,7 @@ const CollectionsSection = () => {
         actions={sectionActions}
       >
         <Collections
-          showSearch={showSearch}
+          showSearch={collectionSearchActive}
           isCreatingCollection={isCreatingCollection}
           onCreateClick={() => dispatch(setIsCreatingCollection(true))}
           onDismissCreate={() => dispatch(setIsCreatingCollection(false))}

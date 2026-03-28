@@ -15,7 +15,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeTheme } = require('electron');
+const { BrowserWindow, app, session, Menu, ipcMain, nativeTheme } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
@@ -251,7 +251,7 @@ app.on('ready', async () => {
   });
 
   ipcMain.on('renderer:window-close', () => {
-    if (!isWindows && !isLinux) return;
+    // if (!isWindows && !isLinux) return;
     mainWindow.close();
   });
 
@@ -485,19 +485,6 @@ app.on('window-all-closed', app.quit);
 // Open collection from Recent menu (#1521)
 app.on('open-file', (event, path) => {
   openCollection(mainWindow, collectionWatcher, path);
-});
-
-// Register the global shortcuts
-app.on('browser-window-focus', () => {
-  // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
-  globalShortcut.register('Ctrl+=', () => {
-    incrementZoomAndPersist(10);
-  });
-});
-
-// Disable global shortcuts when not focused
-app.on('browser-window-blur', () => {
-  globalShortcut.unregisterAll();
 });
 
 /**

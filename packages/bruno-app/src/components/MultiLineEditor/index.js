@@ -55,16 +55,6 @@ class MultiLineEditor extends Component {
             this.props.onRun();
           }
         },
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
         'Cmd-F': () => {},
         'Ctrl-F': () => {},
         // Tabbing disabled to make tabindex work
@@ -89,6 +79,12 @@ class MultiLineEditor extends Component {
     );
 
     setupLinkAware(this.editor);
+
+    // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
+    const cmInput = this.editor.getInputField();
+    if (cmInput) {
+      cmInput.classList.add('mousetrap');
+    }
 
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);

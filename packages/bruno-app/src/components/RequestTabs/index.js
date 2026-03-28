@@ -29,6 +29,14 @@ const RequestTabs = () => {
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
 
+  useEffect(() => {
+    if (!activeTabUid) return;
+    const activeTabEl = tabsRef.current?.querySelector('.request-tab.active');
+    if (activeTabEl) {
+      activeTabEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [activeTabUid]);
+
   const createSetHasOverflow = useCallback((tabUid) => {
     return (hasOverflow) => {
       setTabOverflowStates((prev) => {

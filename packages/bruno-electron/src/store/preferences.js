@@ -67,7 +67,9 @@ const defaultPreferences = {
     sslSession: {
       enabled: false
     }
-  }
+  },
+  keyBindings: {},
+  keybindingsEnabled: true
 };
 
 const preferencesSchema = Yup.object().shape({
@@ -131,7 +133,9 @@ const preferencesSchema = Yup.object().shape({
     sslSession: Yup.object({
       enabled: Yup.boolean()
     })
-  }).optional()
+  }).optional(),
+  keyBindings: Yup.object(),
+  keybindingsEnabled: Yup.boolean()
 });
 
 class PreferencesStore {

@@ -1,298 +1,192 @@
-import React, { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
-import find from 'lodash/find';
+import React, { useRef, useEffect } from 'react';
 import Mousetrap from 'mousetrap';
-import { useSelector, useDispatch } from 'react-redux';
-import NetworkError from 'components/ResponsePane/NetworkError';
-import NewRequest from 'components/Sidebar/NewRequest';
-import GlobalSearchModal from 'components/GlobalSearchModal';
-import {
-  sendRequest,
-  saveRequest,
-  saveCollectionRoot,
-  saveFolderRoot,
-  saveCollectionSettings,
-  closeTabs
-} from 'providers/ReduxStore/slices/collections/actions';
-import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { addTab, reorderTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
-import { toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { useSelector } from 'react-redux';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
+
+import commandRegistry from '../../services/command-registry';
+import whenClauseResolver from '../../services/when-clause-resolver';
+import CommandInitializer from './CommandInitializer';
 
 export const HotkeysContext = React.createContext();
 
-export const HotkeysProvider = (props) => {
-  const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const collections = useSelector((state) => state.collections.collections);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const [showNewRequestModal, setShowNewRequestModal] = useState(false);
-  const [showGlobalSearchModal, setShowGlobalSearchModal] = useState(false);
+// List of all actions that are bound in this provider
+const BOUND_ACTIONS = [
+  // ===== TABS =====
+  'save',
+  'saveAllTabs',
+  'sendRequest',
+  'closeTab',
+  'closeAllTabs',
+  'switchToPreviousTab',
+  'switchToNextTab',
+  'moveTabLeft',
+  'moveTabRight',
+  // ===== Switch to tab at position 1-8 =====
+  'switchToTab1',
+  'switchToTab2',
+  'switchToTab3',
+  'switchToTab4',
+  'switchToTab5',
+  'switchToTab6',
+  'switchToTab7',
+  'switchToTab8',
+  'switchToLastTab',
+  'reopenLastClosedTab',
+  // ===== Terminal =====
+  'openTerminal',
+  // ===== SIDEBAR =====
+  'sidebarSearch',
+  'newRequest', // Will only be modal for now not transient request
+  'renameItem',
+  'cloneItem',
+  'copyItem',
+  'pasteItem',
+  // ===== LAYOUT =====
+  'changeLayout',
+  'openPreferences',
+  'closeBruno',
+  // ===== ZOOM =====
+  'zoomIn',
+  'zoomOut',
+  'resetZoom',
+  // ===== COLLECTIONS =====
+  'importCollection',
+  'editEnvironment',
+  'collapseSidebar',
+  'globalSearch'
+];
 
-  const getCurrentCollection = () => {
-    const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-    if (activeTab) {
-      const collection = findCollectionByUid(collections, activeTab.collectionUid);
+/**
+ * Unbind a single hotkey action.
+ */
+function unbindHotkey(action, userKeyBindings) {
+  const combos = getKeyBindingsForActionAllOS(action, userKeyBindings);
+  if (!combos?.length) return;
+  Mousetrap.unbind([...combos]);
+}
 
-      return collection;
+/**
+ * Unbind all known actions for the given user key bindings.
+ */
+function unbindAllHotkeys(userKeyBindings) {
+  BOUND_ACTIONS.forEach((action) => unbindHotkey(action, userKeyBindings));
+}
+
+/**
+ * Bind all hotkey actions.
+ *
+ * This is a GENERIC DISPATCHER that executes registered commands.
+ * Supports when clauses for context-aware keybinding execution.
+ *
+ * All business logic has been extracted to CommandInitializer.
+ */
+function bindAllHotkeys(userKeyBindings) {
+  BOUND_ACTIONS.forEach((action) => {
+    const combos = getKeyBindingsForActionAllOS(action, userKeyBindings);
+
+    if (!combos?.length) {
+      return;
     }
-  };
 
-  // save hotkey
-  useEffect(() => {
-    Mousetrap.bind([...getKeyBindingsForActionAllOS('save')], (e) => {
-      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if (activeTab) {
-        if (activeTab.type === 'environment-settings' || activeTab.type === 'global-environment-settings') {
-          window.dispatchEvent(new CustomEvent('environment-save'));
-          return false;
-        }
-
-        const collection = findCollectionByUid(collections, activeTab.collectionUid);
-        if (collection) {
-          const item = findItemInCollection(collection, activeTab.uid);
-          if (item && item.uid) {
-            if (activeTab.type === 'folder-settings') {
-              dispatch(saveFolderRoot(collection.uid, item.uid));
-            } else {
-              dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
-            }
-          } else if (activeTab.type === 'collection-settings') {
-            dispatch(saveCollectionSettings(collection.uid));
-          }
-        }
-      }
-
-      return false; // this stops the event bubbling
-    });
-
-    return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('save')]);
-    };
-  }, [activeTabUid, tabs, saveRequest, collections, dispatch]);
-
-  // send request (ctrl/cmd + enter)
-  useEffect(() => {
-    Mousetrap.bind([...getKeyBindingsForActionAllOS('sendRequest')], (e) => {
-      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if (activeTab) {
-        const collection = findCollectionByUid(collections, activeTab.collectionUid);
-
-        if (collection) {
-          const item = findItemInCollection(collection, activeTab.uid);
-          if (item) {
-            if (item.type === 'grpc-request') {
-              const request = item.draft ? item.draft.request : item.request;
-              if (!request.url) {
-                toast.error('Please enter a valid gRPC server URL');
-                return;
-              }
-              if (!request.method) {
-                toast.error('Please select a gRPC method');
-                return;
-              }
-            }
-
-            dispatch(sendRequest(item, collection.uid)).catch((err) =>
-              toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
-                duration: 5000
-              })
-            );
-          }
-        }
-      }
-
-      return false; // this stops the event bubbling
-    });
-
-    return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('sendRequest')]);
-    };
-  }, [activeTabUid, tabs, saveRequest, collections]);
-
-  // edit environments (ctrl/cmd + e)
-  useEffect(() => {
-    Mousetrap.bind([...getKeyBindingsForActionAllOS('editEnvironment')], (e) => {
-      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if (activeTab) {
-        const collection = findCollectionByUid(collections, activeTab.collectionUid);
-
-        if (collection) {
-          dispatch(
-            addTab({
-              uid: `${collection.uid}-environment-settings`,
-              collectionUid: collection.uid,
-              type: 'environment-settings'
-            })
-          );
-        }
-      }
-
-      return false; // this stops the event bubbling
-    });
-
-    return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('editEnvironment')]);
-    };
-  }, [activeTabUid, tabs, collections, dispatch]);
-
-  // new request (ctrl/cmd + b)
-  useEffect(() => {
-    Mousetrap.bind([...getKeyBindingsForActionAllOS('newRequest')], (e) => {
-      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if (activeTab) {
-        const collection = findCollectionByUid(collections, activeTab.collectionUid);
-
-        if (collection) {
-          setShowNewRequestModal(true);
-        }
-      }
-
-      return false; // this stops the event bubbling
-    });
-
-    return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('newRequest')]);
-    };
-  }, [activeTabUid, tabs, collections, setShowNewRequestModal]);
-
-  // global search (ctrl/cmd + k)
-  useEffect(() => {
-    Mousetrap.bind([...getKeyBindingsForActionAllOS('globalSearch')], (e) => {
-      setShowGlobalSearchModal(true);
-
-      return false; // stop bubbling
-    });
-
-    return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('globalSearch')]);
-    };
-  }, []);
-
-  // close tab hotkey
-  useEffect(() => {
-    Mousetrap.bind([...getKeyBindingsForActionAllOS('closeTab')], (e) => {
-      if (activeTabUid) {
-        dispatch(
-          closeTabs({
-            tabUids: [activeTabUid]
-          })
-        );
-      }
-
-      return false; // this stops the event bubbling
-    });
-
-    return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('closeTab')]);
-    };
-  }, [activeTabUid]);
-
-  // Switch to the previous tab
-  useEffect(() => {
-    Mousetrap.bind([...getKeyBindingsForActionAllOS('switchToPreviousTab')], (e) => {
-      dispatch(
-        switchTab({
-          direction: 'pageup'
-        })
+    Mousetrap.bind([...combos], (e) => {
+      const target = e.target || document.activeElement;
+      const isInCodeMirror = !!target?.closest('.CodeMirror');
+      const isInputField = !isInCodeMirror && (
+        target?.tagName === 'INPUT'
+        || target?.tagName === 'TEXTAREA'
+        || target?.getAttribute('contenteditable') === 'true'
       );
+      const hasSelection = !isInCodeMirror && window.getSelection()?.toString()?.length > 0;
 
-      return false; // this stops the event bubbling
-    });
+      const metadata = commandRegistry.getMetadata(action);
+      const whenClause = metadata?.when || 'always';
+      const scope = metadata?.scope || 'sidebar';
+      const whenClausePasses = whenClauseResolver.evaluate(whenClause);
 
-    return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('switchToPreviousTab')]);
-    };
-  }, [dispatch]);
+      // --- Scope-based routing ---
 
-  // Switch to the next tab
-  useEffect(() => {
-    Mousetrap.bind([...getKeyBindingsForActionAllOS('switchToNextTab')], (e) => {
-      dispatch(
-        switchTab({
-          direction: 'pagedown'
-        })
-      );
-
-      return false; // this stops the event bubbling
-    });
-
-    return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('switchToNextTab')]);
-    };
-  }, [dispatch]);
-
-  // Close all tabs
-  useEffect(() => {
-    Mousetrap.bind([...getKeyBindingsForActionAllOS('closeAllTabs')], (e) => {
-      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if (activeTab) {
-        const collection = findCollectionByUid(collections, activeTab.collectionUid);
-
-        if (collection) {
-          const tabUids = tabs.filter((tab) => tab.collectionUid === collection.uid).map((tab) => tab.uid);
-          dispatch(
-            closeTabs({
-              tabUids: tabUids
-            })
-          );
-        }
+      if (scope === 'global') {
+        // Always execute, regardless of input focus
+        if (!whenClausePasses) return false;
+        e?.preventDefault?.();
+        commandRegistry.execute(action);
+        return false;
       }
 
-      return false; // this stops the event bubbling
-    });
+      if (scope === 'passthrough') {
+        // If in input, has selection, or when-clause fails → let browser handle it
+        if (isInputField || hasSelection || !whenClausePasses) return true;
+        e?.preventDefault?.();
+        commandRegistry.execute(action);
+        return false;
+      }
 
-    return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('closeAllTabs')]);
-    };
-  }, [activeTabUid, tabs, collections, dispatch]);
-
-  // Collapse sidebar (ctrl/cmd + \)
-  useEffect(() => {
-    Mousetrap.bind([...getKeyBindingsForActionAllOS('collapseSidebar')], (e) => {
-      dispatch(toggleSidebarCollapse());
+      // scope === 'sidebar' (default)
+      // Blocked in input fields, requires when-clause
+      if (isInputField || hasSelection) return true;
+      if (!whenClausePasses) return false;
+      e?.preventDefault?.();
+      commandRegistry.execute(action);
       return false;
     });
+  });
+}
 
-    return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('collapseSidebar')]);
-    };
-  }, [dispatch]);
+// -----------------------
+// Provider (manages hotkey lifecycle)
+// -----------------------
+export const HotkeysProvider = (props) => {
+  const preferences = useSelector((state) => state.app.preferences);
+  const userKeyBindings = preferences?.keyBindings || {};
+  const keybindingsEnabled = preferences?.keybindingsEnabled !== false;
+  const prevKeyBindingsRef = useRef(undefined);
 
-  // Move tab left
+  // Update whenClauseResolver with active tab type when it changes
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const sidebarItemFocused = useSelector((state) => state.app.sidebarItemFocused);
+
   useEffect(() => {
-    Mousetrap.bind([...getKeyBindingsForActionAllOS('moveTabLeft')], (e) => {
-      dispatch(reorderTabs({ direction: -1 }));
-      return false; // this stops the event bubbling
-    });
+    if (activeTabUid && tabs?.length) {
+      const activeTab = tabs.find((t) => t.uid === activeTabUid);
+      if (activeTab) {
+        whenClauseResolver.setActiveTabType(activeTab.type);
+      }
+    }
+    // Also update tabs count
+    whenClauseResolver.setTabsCount(tabs?.length || 0);
+  }, [activeTabUid, tabs]);
 
-    return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('moveTabLeft')]);
-    };
-  }, [dispatch]);
-
-  // Move tab right
+  // Sync sidebarItemFocused to whenClauseResolver
   useEffect(() => {
-    Mousetrap.bind([...getKeyBindingsForActionAllOS('moveTabRight')], (e) => {
-      dispatch(reorderTabs({ direction: 1 }));
-      return false; // this stops the event bubbling
-    });
+    whenClauseResolver.setSidebarItemFocused(sidebarItemFocused);
+  }, [sidebarItemFocused]);
+
+  // Bind/rebind hotkeys whenever user preferences or enabled state changes
+  useEffect(() => {
+    // Store previous bindings before updating
+    const prevBindings = prevKeyBindingsRef.current;
+
+    // Unbind previous bindings (if any)
+    if (prevBindings !== undefined) {
+      unbindAllHotkeys(prevBindings);
+    }
+
+    // Only bind if keybindings are enabled
+    if (keybindingsEnabled) {
+      bindAllHotkeys(userKeyBindings);
+    }
+    prevKeyBindingsRef.current = userKeyBindings;
 
     return () => {
-      Mousetrap.unbind([...getKeyBindingsForActionAllOS('moveTabRight')]);
+      // Cleanup on unmount
+      unbindAllHotkeys(userKeyBindings);
     };
-  }, [dispatch]);
-
-  const currentCollection = getCurrentCollection();
+  }, [userKeyBindings, keybindingsEnabled]);
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
-      {showNewRequestModal && (
-        <NewRequest collectionUid={currentCollection?.uid} onClose={() => setShowNewRequestModal(false)} />
-      )}
-      {showGlobalSearchModal && (
-        <GlobalSearchModal isOpen={showGlobalSearchModal} onClose={() => setShowGlobalSearchModal(false)} />
-      )}
+      <CommandInitializer />
       <div>{props.children}</div>
     </HotkeysContext.Provider>
   );

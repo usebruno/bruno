@@ -134,18 +134,6 @@ export default class QueryEditor extends React.Component {
             this.props.onMergeQuery();
           }
         },
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-            return false;
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-            return false;
-          }
-        },
         'Cmd-F': 'findPersistent',
         'Ctrl-F': 'findPersistent'
       }
@@ -159,6 +147,12 @@ export default class QueryEditor extends React.Component {
     this.addOverlay();
 
     setupLinkAware(editor);
+
+    // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
+    const cmInput = editor.getInputField();
+    if (cmInput) {
+      cmInput.classList.add('mousetrap');
+    }
   }
 
   componentDidUpdate(prevProps) {

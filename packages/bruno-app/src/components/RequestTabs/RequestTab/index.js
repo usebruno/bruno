@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
-import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { makeTabPermanent, clearCloseConfirmation } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
@@ -55,6 +55,50 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   }, [item]);
 
   const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
+
+  // Listen for close confirmation requests from keybindings
+  useEffect(() => {
+    if (tab.showCloseConfirmation) {
+      // Determine which modal to show based on tab type
+      if (tab.type === 'request' || tab.type === 'grpc-request' || tab.type === 'ws-request' || tab.type === 'graphql-request') {
+        if (hasChanges) {
+          setShowConfirmClose(true);
+        } else {
+          // No changes, close directly
+          if (item?.type === 'ws-request') {
+            closeWsConnection(item.uid);
+          }
+          dispatch(closeTabs({ tabUids: [tab.uid] }));
+        }
+      } else if (tab.type === 'collection-settings') {
+        if (collection?.draft) {
+          setShowConfirmCollectionClose(true);
+        } else {
+          dispatch(closeTabs({ tabUids: [tab.uid] }));
+        }
+      } else if (tab.type === 'folder-settings') {
+        if (folder?.draft) {
+          setShowConfirmFolderClose(true);
+        } else {
+          dispatch(closeTabs({ tabUids: [tab.uid] }));
+        }
+      } else if (tab.type === 'environment-settings') {
+        if (collection?.environmentsDraft) {
+          setShowConfirmEnvironmentClose(true);
+        } else {
+          dispatch(closeTabs({ tabUids: [tab.uid] }));
+        }
+      } else if (tab.type === 'global-environment-settings') {
+        if (globalEnvironmentDraft) {
+          setShowConfirmGlobalEnvironmentClose(true);
+        } else {
+          dispatch(closeTabs({ tabUids: [tab.uid] }));
+        }
+      }
+      // Clear the flag after handling
+      dispatch(clearCloseConfirmation({ uid: tab.uid }));
+    }
+  }, [tab.showCloseConfirmation]);
 
   const isWS = item?.type === 'ws-request';
 

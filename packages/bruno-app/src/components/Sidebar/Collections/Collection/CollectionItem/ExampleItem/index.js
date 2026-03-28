@@ -6,7 +6,7 @@ import {
   cloneResponseExample
 } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import { insertTaskIntoQueue, setSidebarItemFocused, setSidebarSelectedItem, clearRenameModalItem, setCloneModalItem, clearCloneModalItem, cloneModalItem } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
 import { IconDots, IconEdit, IconCopy, IconTrash, IconCode } from '@tabler/icons';
 import ExampleIcon from 'components/Icons/ExampleIcon';
@@ -34,6 +34,10 @@ const ExampleItem = ({ example, item, collection }) => {
   const exampleRef = useRef(null);
   const menuDropdownRef = useRef(null);
 
+  // Subscribe to renameModalItem for global rename command
+  const renameModalItem = useSelector((state) => state.app.renameModalItem);
+  const cloneModalItem = useSelector((state) => state.app.cloneModalItem);
+
   // Calculate indentation: item depth + 1 for examples
   const indents = range((item.depth || 0) + 1);
 
@@ -60,6 +64,43 @@ const ExampleItem = ({ example, item, collection }) => {
   useEffect(() => {
     setEditName(example.name);
   }, [example.name]);
+
+  // Listen for renameModalItem from global command system
+  useEffect(() => {
+    if (renameModalItem && renameModalItem.uid === example.uid) {
+      setShowRenameModal(true);
+      dispatch(clearRenameModalItem());
+    }
+  }, [renameModalItem, example.uid, dispatch]);
+
+  // Listen for cloneModalItem from global command - examples clone directly without modal
+  useEffect(() => {
+    if (cloneModalItem && cloneModalItem.uid === example.uid) {
+      handleClone(); // Examples clone directly without showing a modal
+      dispatch(clearCloneModalItem());
+    }
+  }, [cloneModalItem, example.uid, dispatch]);
+
+  // Handle keyboard focus - dispatch to Redux for global command system
+  const handleFocus = () => {
+    dispatch(setSidebarItemFocused(true));
+    dispatch(setSidebarSelectedItem({
+      uid: example.uid,
+      collectionUid: collection.uid,
+      type: 'response-example',
+      name: example.name,
+      itemUid: item.uid // Include parent request uid for example rename
+    }));
+  };
+
+  const handleBlur = (e) => {
+    // Only clear global focus if focus is leaving the sidebar entirely
+    const relatedTarget = e?.relatedTarget;
+    const sidebar = e?.currentTarget?.closest('.sidebar, .collections-sidebar');
+    if (!sidebar || !sidebar.contains(relatedTarget)) {
+      dispatch(setSidebarItemFocused(false));
+    }
+  };
 
   useEffect(() => {
     if (isExampleActive && exampleRef.current) {
@@ -186,6 +227,9 @@ const ExampleItem = ({ example, item, collection }) => {
       onClick={handleExampleClick}
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      tabIndex={0}
     >
       {indents && indents.length
         ? indents.map((i) => (
