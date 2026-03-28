@@ -14,7 +14,8 @@ const {
   mergeAuth,
   getFormattedCollectionOauth2Credentials
 } = require('../../utils/collection');
-const { getProcessEnvVars } = require('../../store/process-env');
+const { getProcessEnvVars, getEnvironmentDotEnvVars } = require('../../store/process-env');
+const { safeMergeEnvDotEnvVars } = require('../../utils/env-dotenv-merge');
 const {
   getOAuth2TokenUsingPasswordCredentials,
   getOAuth2TokenUsingClientCredentials,
@@ -70,6 +71,11 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
   }
 
   const envVars = getEnvVars(environment);
+  // Merge per-environment dotenv variables (override .yml env vars)
+  const envDotEnvVars = collection.workspacePath && environment?.name
+    ? getEnvironmentDotEnvVars(collection.workspacePath, environment.name)
+    : {};
+  safeMergeEnvDotEnvVars(envVars, envDotEnvVars);
   const processEnvVars = getProcessEnvVars(collection.uid);
   const { promptVariables = {} } = collection;
 

@@ -1,5 +1,6 @@
 /**
- * This file stores all the process.env variables under collection and workspace scope
+ * This file stores process.env variables and per-environment dotenv variables
+ * under collection and workspace scope.
  *
  * process.env variables are sourced from 3 places:
  * 1. .env file in the workspace root
@@ -8,6 +9,9 @@
  *
  * Priority (highest to lowest): collection .env > workspace .env > OS process.env
  *
+ * Per-environment dotenv variables are loaded from environments/<environment-name>.env
+ * files in the workspace root. These override environment (.yml) variables at request time.
+ *
  * Multiple collections can be opened in the same electron app.
  * Each collection's .env file can have different values for the same process.env variable.
  */
@@ -15,6 +19,7 @@
 const dotEnvVars = {};
 const workspaceDotEnvVars = {};
 const collectionWorkspaceMap = {};
+const environmentDotEnvVars = {};
 
 // collectionUid is a hash based on the collection path
 const getProcessEnvVars = (collectionUid) => {
@@ -52,6 +57,52 @@ const clearCollectionWorkspace = (collectionUid) => {
   delete collectionWorkspaceMap[collectionUid];
 };
 
+const getWorkspacePath = (collectionUid) => {
+  return collectionWorkspaceMap[collectionUid];
+};
+
+/**
+ * Fallback lookup: find a workspace path that is a parent of the given collection path.
+ * Used when collectionWorkspaceMap has not been populated yet (race condition).
+ */
+const findWorkspacePathByCollectionPath = (collectionPath) => {
+  if (!collectionPath) return undefined;
+  const path = require('path');
+  const normalizedCollectionPath = path.resolve(collectionPath);
+  for (const workspacePath of Object.values(collectionWorkspaceMap)) {
+    const normalizedWorkspacePath = path.resolve(workspacePath);
+    if (normalizedCollectionPath.startsWith(normalizedWorkspacePath + path.sep) || normalizedCollectionPath === normalizedWorkspacePath) {
+      return workspacePath;
+    }
+  }
+  return undefined;
+};
+
+const setEnvironmentDotEnvVars = (workspacePath, environmentName, data) => {
+  const key = `${workspacePath}::${environmentName}`;
+  environmentDotEnvVars[key] = data;
+};
+
+const getEnvironmentDotEnvVars = (workspacePath, environmentName) => {
+  const key = `${workspacePath}::${environmentName}`;
+  return environmentDotEnvVars[key] || {};
+};
+
+const clearEnvironmentDotEnvVars = (workspacePath, environmentName) => {
+  if (environmentName) {
+    const key = `${workspacePath}::${environmentName}`;
+    delete environmentDotEnvVars[key];
+  } else {
+    // Clear all env dotenvs for this workspace
+    const prefix = `${workspacePath}::`;
+    Object.keys(environmentDotEnvVars).forEach((key) => {
+      if (key.startsWith(prefix)) {
+        delete environmentDotEnvVars[key];
+      }
+    });
+  }
+};
+
 module.exports = {
   getProcessEnvVars,
   setDotEnvVars,
@@ -59,5 +110,10 @@ module.exports = {
   setWorkspaceDotEnvVars,
   clearWorkspaceDotEnvVars,
   setCollectionWorkspace,
-  clearCollectionWorkspace
+  clearCollectionWorkspace,
+  getWorkspacePath,
+  findWorkspacePathByCollectionPath,
+  setEnvironmentDotEnvVars,
+  getEnvironmentDotEnvVars,
+  clearEnvironmentDotEnvVars
 };

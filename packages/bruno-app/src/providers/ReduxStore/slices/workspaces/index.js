@@ -118,6 +118,23 @@ export const workspacesSlice = createSlice({
       }
     },
 
+    setEnvironmentDotEnvVariables: (state, action) => {
+      const { workspaceUid, environmentName, variables, exists, filename } = action.payload;
+      const workspace = state.workspaces.find((w) => w.uid === workspaceUid);
+
+      if (workspace) {
+        if (!workspace.environmentDotEnvFiles) {
+          workspace.environmentDotEnvFiles = {};
+        }
+
+        if (exists) {
+          workspace.environmentDotEnvFiles[environmentName] = { filename, variables, exists };
+        } else {
+          delete workspace.environmentDotEnvFiles[environmentName];
+        }
+      }
+    },
+
     // Set scratch collection info on workspace
     setWorkspaceScratchCollection: (state, action) => {
       const { workspaceUid, scratchCollectionUid, scratchTempDirectory } = action.payload;
@@ -140,7 +157,8 @@ export const {
   updateWorkspaceLoadingState,
   workspaceDotEnvUpdateEvent,
   setWorkspaceDotEnvVariables,
-  setWorkspaceScratchCollection
+  setWorkspaceScratchCollection,
+  setEnvironmentDotEnvVariables
 } = workspacesSlice.actions;
 
 export default workspacesSlice.reducer;

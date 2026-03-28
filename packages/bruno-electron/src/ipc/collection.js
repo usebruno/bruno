@@ -67,7 +67,8 @@ const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
-const { getProcessEnvVars } = require('../store/process-env');
+const { getProcessEnvVars, getEnvironmentDotEnvVars } = require('../store/process-env');
+const { safeMergeEnvDotEnvVars } = require('../utils/env-dotenv-merge');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
@@ -1645,6 +1646,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
         const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
         const envVars = getEnvVars(environment);
+        // Merge per-environment dotenv variables (override .yml env vars)
+        const envDotEnvVars = collection.workspacePath && environment?.name
+          ? getEnvironmentDotEnvVars(collection.workspacePath, environment.name)
+          : {};
+        safeMergeEnvDotEnvVars(envVars, envDotEnvVars);
         const processEnvVars = getProcessEnvVars(collectionUid);
         const partialItem = { uid: itemUid };
         const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
@@ -1776,6 +1782,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
         const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
         const envVars = getEnvVars(environment);
+        // Merge per-environment dotenv variables (override .yml env vars)
+        const envDotEnvVars = collection.workspacePath && environment?.name
+          ? getEnvironmentDotEnvVars(collection.workspacePath, environment.name)
+          : {};
+        safeMergeEnvDotEnvVars(envVars, envDotEnvVars);
         const processEnvVars = getProcessEnvVars(collectionUid);
         const partialItem = { uid: itemUid };
         const requestTreePath = getTreePathFromCollectionToItem(collection, partialItem);
