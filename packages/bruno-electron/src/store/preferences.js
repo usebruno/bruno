@@ -256,6 +256,10 @@ class PreferencesStore {
       this.store.set('preferences', preferences);
     }
 
+    if (preferences.collectionSortOrder && !COLLECTION_SORT_ORDERS.includes(preferences.collectionSortOrder)) {
+      preferences.collectionSortOrder = 'default';
+    }
+
     return merge({}, defaultPreferences, preferences);
   }
 
