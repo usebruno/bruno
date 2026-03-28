@@ -37,7 +37,7 @@
     "@typescript-eslint/parser": "^8.39.0",
     "concurrently": "^8.2.2",
     "cross-env": "10.1.0",
-    "eslint": "^9.26.0",
+    "eslint": "^9.39.4",
     "eslint-plugin-diff": "^2.0.3",
     "fs-extra": "^11.1.1",
     "globals": "^16.1.0",
@@ -93,7 +93,6 @@
     ]
   },
   "overrides": {
-    "fast-xml-parser": "5.5.7",
     "rollup": "3.30.0",
     "pbkdf2":"3.1.5",
     "electron-store": {
