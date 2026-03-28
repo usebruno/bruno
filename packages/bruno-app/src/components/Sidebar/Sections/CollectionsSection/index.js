@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
@@ -139,7 +139,13 @@ const CollectionsSection = () => {
         order = 'default';
         break;
     }
-    dispatch(sortCollections({ order }));
+
+    dispatch(savePreferences({
+      ...preferences,
+      collectionSortOrder: order
+    })).catch(() => {
+      toast.error('Failed to save preferences');
+    });
   };
 
   const getSortIcon = () => {
@@ -325,6 +331,12 @@ const CollectionsSection = () => {
       )}
     </>
   );
+
+  useEffect(() => {
+    if (preferences.collectionSortOrder && collections.length > 0) {
+      dispatch(sortCollections({ order: preferences.collectionSortOrder }));
+    }
+  }, [preferences.collectionSortOrder, collections.length]);
 
   return (
     <>

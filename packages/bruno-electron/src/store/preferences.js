@@ -67,7 +67,8 @@ const defaultPreferences = {
     sslSession: {
       enabled: false
     }
-  }
+  },
+  collectionSortOrder: 'default'
 };
 
 const preferencesSchema = Yup.object().shape({
@@ -131,7 +132,8 @@ const preferencesSchema = Yup.object().shape({
     sslSession: Yup.object({
       enabled: Yup.boolean()
     })
-  }).optional()
+  }).optional(),
+  collectionSortOrder: Yup.string().oneOf(['default', 'alphabetical', 'reverseAlphabetical']).optional()
 });
 
 class PreferencesStore {
