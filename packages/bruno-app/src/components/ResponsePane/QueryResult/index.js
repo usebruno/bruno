@@ -1,7 +1,8 @@
 import { debounce } from 'lodash';
 import { useTheme } from 'providers/Theme/index';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { formatResponse, getContentType } from 'utils/common';
+import { runJqFilter } from 'utils/common/jq-service';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
 import LargeResponseWarning from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';
@@ -105,8 +106,29 @@ const QueryResult = ({
   onFilterExpandChange
 }) => {
   const contentType = getContentType(headers);
+  const [filterType, setFilterType] = useState('jsonpath');
+  const [jqResult, setJqResult] = useState(null);
+  const [jqError, setJqError] = useState(null);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
   const { displayedTheme } = useTheme();
+
+  // Local state for immediate input feedback; Redux `filter` is used for expensive operations
+  const [filterInput, setFilterInput] = useState(filter || '');
+  const onFilterChangeRef = useRef(onFilterChange);
+  useEffect(() => { onFilterChangeRef.current = onFilterChange; });
+
+  const debouncedFilterChange = useMemo(
+    () => debounce((value) => {
+      onFilterChangeRef.current?.(value);
+    }, 300),
+    []
+  );
+  useEffect(() => () => debouncedFilterChange.cancel(), [debouncedFilterChange]);
+
+  // Sync local input when Redux filter changes externally (e.g. tab switch)
+  useEffect(() => {
+    setFilterInput(filter || '');
+  }, [filter]);
 
   const responseSize = useMemo(() => {
     const response = item.response || {};
@@ -127,20 +149,51 @@ const QueryResult = ({
     return detectContentTypeFromBase64(dataBuffer);
   }, [dataBuffer, isLargeResponse]);
 
+  // Run jq filter asynchronously when filterType is 'jq'
+  useEffect(() => {
+    if (filterType !== 'jq' || !filter) {
+      setJqResult(null);
+      setJqError(null);
+      return;
+    }
+    let cancelled = false;
+    setJqResult(null);
+    setJqError(null);
+    runJqFilter(data, filter)
+      .then((result) => {
+        if (!cancelled) {
+          setJqResult(result);
+          setJqError(null);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setJqResult(null);
+          setJqError(err.message);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [data, filter, filterType]);
+
   const formattedData = useMemo(
     () => {
       if (isLargeResponse && !showLargeResponse) {
         return '';
       }
-      return formatResponse(data, dataBuffer, selectedFormat, filter);
+      // For jq mode with an active filter, use the async result
+      if (filterType === 'jq' && filter) {
+        return jqResult ?? formatResponse(data, dataBuffer, selectedFormat, null);
+      }
+      // For JSONPath mode, pass filter to formatResponse as before
+      const jsonPathFilter = filterType === 'jsonpath' ? filter : null;
+      return formatResponse(data, dataBuffer, selectedFormat, jsonPathFilter);
     },
-    [data, dataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse]
+    [data, dataBuffer, selectedFormat, filter, filterType, jqResult, isLargeResponse, showLargeResponse]
   );
 
   const handleFilterChange = (value) => {
-    if (onFilterChange) {
-      onFilterChange(value);
-    }
+    setFilterInput(value);
+    debouncedFilterChange(value);
   };
 
   const previewMode = useMemo(() => {
@@ -219,11 +272,14 @@ const QueryResult = ({
             </div>
             {queryFilterEnabled && (
               <QueryResultFilter
-                filter={filter}
+                filter={filterInput}
                 filterExpanded={filterExpanded}
                 onChange={handleFilterChange}
                 onExpandChange={onFilterExpandChange}
                 mode={codeMirrorMode}
+                filterType={filterType}
+                onFilterTypeChange={setFilterType}
+                jqError={jqError}
               />
             )}
           </div>
