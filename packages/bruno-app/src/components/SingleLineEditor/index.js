@@ -180,6 +180,10 @@ class SingleLineEditor extends Component {
         this.cachedValue = nextValue;
         this.editor.setValue(nextValue);
         this.editor.setCursor(cursor);
+        // Re-apply masking after setValue() since it destroys all CodeMirror marks
+        if (this.maskedEditor && this.maskedEditor.isEnabled()) {
+          this.maskedEditor.update();
+        }
 
         // Update newline markers after value change
         if (this.props.showNewlineArrow) {

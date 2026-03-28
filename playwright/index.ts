@@ -309,7 +309,7 @@ export const test = baseTest.extend<
 
       const templateVars: Record<string, string> = {};
       if (collectionFixturePath) {
-        templateVars.collectionPath = collectionFixturePath;
+        templateVars.collectionPath = collectionFixturePath.split(path.sep).join('/');
       }
 
       // Close the previous app (from pageWithUserData) before launching a new one
@@ -338,7 +338,7 @@ export const test = baseTest.extend<
 
     const templateVars: Record<string, string> = {};
     if (collectionFixturePath) {
-      templateVars.collectionPath = collectionFixturePath;
+      templateVars.collectionPath = collectionFixturePath.split(path.sep).join('/');
     }
 
     const app = await reuseOrLaunchElectronApp({ initUserDataPath: tmpAppDataDir, testFile: testInfo.file, templateVars });

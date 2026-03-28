@@ -122,6 +122,14 @@ describe('Examples functionality', () => {
 
       expect(output).toEqual(expected);
     });
+
+    it('should parse swapped status/statusText from pre-fix Postman imports', () => {
+      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'bruToJson-swapped-status.bru'), 'utf8');
+      const expected = require('./fixtures/json/bruToJson-swapped-status.json');
+      const output = bruToJson(input);
+
+      expect(output).toEqual(expected);
+    });
   });
 
   describe('jsonToBru conversion', () => {

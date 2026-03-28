@@ -1,0 +1,33 @@
+info:
+  name: OAuth1 HMAC-SHA256 401
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{localhost}}/api/auth/oauth1/resource"
+  auth:
+    type: oauth1
+    consumerKey: consumer_key_1
+    consumerSecret: wrong_secret
+    accessToken: access_token_1
+    accessTokenSecret: token_secret_1
+    signatureEncoding: HMAC-SHA256
+    version: "1.0"
+    placement: header
+    includeBodyHash: false
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "401"
+    - expression: res.body.error
+      operator: eq
+      value: Invalid signature
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

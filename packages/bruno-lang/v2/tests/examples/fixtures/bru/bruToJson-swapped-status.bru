@@ -1,0 +1,36 @@
+meta {
+  name: Test API
+  type: http
+}
+
+get {
+  url: https://api.example.com/test
+}
+
+example {
+  name: Swapped Status Example
+  description: Example with swapped status and statusText from pre-fix Postman import
+
+  request: {
+    url: https://api.example.com/users/123
+    method: get
+    mode: none
+  }
+
+  response: {
+    status: {
+      code: Accepted
+      text: 202
+    }
+
+    body: {
+      type: json
+      content: '''
+        {
+          "id": 123,
+          "name": "John Doe"
+        }
+      '''
+    }
+  }
+}

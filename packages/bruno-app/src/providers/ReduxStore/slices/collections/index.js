@@ -549,6 +549,7 @@ export const collectionsSlice = createSlice({
             collectionUid: collection.uid,
             folderUid: null,
             itemUid: item.uid,
+            requestUid: item.requestUid,
             timestamp: timestamp,
             data: {
               request: item.requestSent || item.request,
@@ -1016,6 +1017,10 @@ export const collectionsSlice = createSlice({
             case 'ntlm':
               item.draft.request.auth.mode = 'ntlm';
               item.draft.request.auth.ntlm = action.payload.content;
+              break;
+            case 'oauth1':
+              item.draft.request.auth.mode = 'oauth1';
+              item.draft.request.auth.oauth1 = action.payload.content;
               break;
             case 'oauth2':
               item.draft.request.auth.mode = 'oauth2';
@@ -2121,6 +2126,9 @@ export const collectionsSlice = createSlice({
           case 'ntlm':
             set(collection, 'draft.root.request.auth.ntlm', action.payload.content);
             break;
+          case 'oauth1':
+            set(collection, 'draft.root.request.auth.oauth1', action.payload.content);
+            break;
           case 'oauth2':
             set(collection, 'draft.root.request.auth.oauth2', action.payload.content);
             break;
@@ -2453,6 +2461,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'ntlm':
             set(folder, 'draft.request.auth.ntlm', action.payload.content);
+            break;
+          case 'oauth1':
+            set(folder, 'draft.request.auth.oauth1', action.payload.content);
             break;
           case 'apikey':
             set(folder, 'draft.request.auth.apikey', action.payload.content);
@@ -2984,6 +2995,23 @@ export const collectionsSlice = createSlice({
               item.requestState = 'sending';
               item.cancelTokenUid = cancelTokenUid;
             }
+
+            // If response was already received (race condition: responseReceived fired before
+            // request-sent arrived), retroactively update the timeline entry that was created
+            // with the raw item.request fallback so it has the actual sent request data.
+            if (item.requestState === 'received' && Array.isArray(collection.timeline)) {
+              for (let i = collection.timeline.length - 1; i >= 0; i--) {
+                const entry = collection.timeline[i];
+                if (entry.itemUid === item.uid && entry.requestUid === requestUid && entry.type === 'request') {
+                  entry.data.request = requestSent;
+                  if (requestSent.timestamp) {
+                    entry.timestamp = requestSent.timestamp;
+                    entry.data.timestamp = requestSent.timestamp;
+                  }
+                  break;
+                }
+              }
+            }
           }
 
           if (type === 'assertion-results') {
@@ -3139,9 +3167,10 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
         collection.runnerConfiguration = {
+          ...collection.runnerConfiguration,
           selectedRequestItems: selectedRequestItems || [],
           requestItemsOrder: requestItemsOrder || [],
-          delay: delay
+          ...(delay !== undefined && { delay })
         };
       }
     },

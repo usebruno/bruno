@@ -367,6 +367,17 @@ export const bruExampleToJson = (data: string | any, parsed: boolean = false, pa
         transformedType = 'http-request';
     }
 
+    /**
+     * Backward compatibility (pre-v3.0.2 - v3.2.0): Postman imports before PR #6876 stored status/statusText swapped
+     * (code: "OK", text: "202" instead of code: 202, text: "OK"). Detect and swap back.
+     * TODO(Sid / Shubh): Remove after v5 — all collections should be migrated by then.
+     */
+    let status = _.get(json, 'response.status', '200');
+    let statusText = _.get(json, 'response.statusText', 'OK');
+    if (isNaN(Number(status)) && !isNaN(Number(statusText))) {
+      [status, statusText] = [statusText, status];
+    }
+
     // Follow the same structure as the main request, but with missing fields for examples
     const transformedJson = {
       type: transformedType,
@@ -388,8 +399,8 @@ export const bruExampleToJson = (data: string | any, parsed: boolean = false, pa
           name: header.name,
           value: header.value
         })),
-        status: String(_.get(json, 'response.status', '200')),
-        statusText: _.get(json, 'response.statusText', 'OK'),
+        status: Number(status) || 200,
+        statusText: statusText || 'OK',
         body: {
           type: _.get(json, 'response.body.type', 'json'),
           content: _.get(json, 'response.body.content', '')

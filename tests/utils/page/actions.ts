@@ -802,14 +802,13 @@ const getResponseBody = async (page: Page): Promise<string> => {
   return await page.locator('.response-pane').innerText();
 };
 
-const selectRequestPaneTab = async (page: Page, tabName: string) => {
-  await test.step(`Wait for request to open up "${tabName}"`, async () => {
-    const requestPane = page.locator('.request-pane > .px-4');
-    await expect(requestPane).toBeVisible();
-    await expect(requestPane.locator('.tabs')).toBeVisible();
-  });
-  await test.step(`Select request pane tab "${tabName}"`, async () => {
-    const visibleTab = page.locator('.tabs').getByRole('tab', { name: tabName });
+const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) => {
+  await test.step(`Select tab "${tabName}" in ${paneSelector}`, async () => {
+    const pane = page.locator(paneSelector);
+    await expect(pane).toBeVisible();
+    await expect(pane.locator('.tabs')).toBeVisible();
+
+    const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
 
     // Check if tab is directly visible
     if (await visibleTab.isVisible()) {
@@ -818,21 +817,28 @@ const selectRequestPaneTab = async (page: Page, tabName: string) => {
       return;
     }
 
-    const overflowButton = page.locator('.tabs .more-tabs');
+    const overflowButton = pane.locator('.tabs .more-tabs');
     // Check if there's an overflow dropdown
     if (await overflowButton.isVisible()) {
       await overflowButton.click();
 
-      // Wait for dropdown to appear and click the menu item (overflow tabs are rendered as menuitems)
+      // Wait for dropdown to appear and click the menu item
       const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
       await dropdownItem.click();
       await expect(visibleTab).toContainClass('active');
       return;
     }
 
-    // If neither found, fail with a helpful message
     throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
   });
+};
+
+const selectResponsePaneTab = async (page: Page, tabName: string) => {
+  await selectPaneTab(page, '[data-testid="response-pane"]', tabName);
+};
+
+const selectRequestPaneTab = async (page: Page, tabName: string) => {
+  await selectPaneTab(page, '[data-testid="request-pane"] > .px-4', tabName);
 };
 
 /**
@@ -1168,6 +1174,7 @@ export {
   getResponseBody,
   expectResponseContains,
   selectRequestPaneTab,
+  selectResponsePaneTab,
   sendRequestAndWaitForResponse,
   switchResponseFormat,
   switchToPreviewTab,
