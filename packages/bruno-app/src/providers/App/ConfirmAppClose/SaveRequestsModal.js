@@ -7,13 +7,14 @@ import { useDispatch } from 'react-redux';
 import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
-import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { saveGlobalEnvironment, clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
+import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
 
-const SaveRequestsModal = ({ onClose }) => {
+const SaveRequestsModal = ({ onClose, forCloseTabs = false, tabUidsToClose = [] }) => {
   const MAX_UNSAVED_ITEMS_TO_SHOW = 5;
   const collections = useSelector((state) => state.collections.collections);
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -26,7 +27,8 @@ const SaveRequestsModal = ({ onClose }) => {
     const collectionDrafts = [];
     const folderDrafts = [];
     const environmentDrafts = [];
-    const tabsByCollection = groupBy(tabs, (t) => t.collectionUid);
+    const relevantTabs = forCloseTabs ? tabs.filter((t) => tabUidsToClose.includes(t.uid)) : tabs;
+    const tabsByCollection = groupBy(relevantTabs, (t) => t.collectionUid);
 
     Object.keys(tabsByCollection).forEach((collectionUid) => {
       const collection = findCollectionByUid(collections, collectionUid);
@@ -95,18 +97,48 @@ const SaveRequestsModal = ({ onClose }) => {
     }
 
     return [...collectionDrafts, ...folderDrafts, ...environmentDrafts, ...requestDrafts];
-  }, [collections, tabs, globalEnvironments, globalEnvironmentDraft]);
+  }, [collections, tabs, globalEnvironments, globalEnvironmentDraft, forCloseTabs, tabUidsToClose]);
 
   const totalDraftsCount = allDrafts.length;
 
   useEffect(() => {
     if (totalDraftsCount === 0) {
-      return dispatch(completeQuitFlow());
+      if (forCloseTabs) {
+        dispatch(closeTabs({ tabUids: tabUidsToClose }));
+        onClose();
+      } else {
+        dispatch(completeQuitFlow());
+      }
     }
-  }, [totalDraftsCount, dispatch]);
+  }, [totalDraftsCount, dispatch, forCloseTabs, tabUidsToClose]);
 
   const closeWithoutSave = () => {
-    dispatch(completeQuitFlow());
+    if (forCloseTabs) {
+      // Discard all draft states before closing tabs
+      allDrafts.forEach((draft) => {
+        switch (draft.type) {
+          case 'collection':
+            dispatch(deleteCollectionDraft({ collectionUid: draft.collectionUid }));
+            break;
+          case 'folder':
+            dispatch(deleteFolderDraft({ collectionUid: draft.collectionUid, folderUid: draft.folderUid }));
+            break;
+          case 'collection-environment':
+            dispatch(clearEnvironmentsDraft({ collectionUid: draft.collectionUid }));
+            break;
+          case 'global-environment':
+            dispatch(clearGlobalEnvironmentDraft());
+            break;
+          default:
+            // Request drafts
+            dispatch(deleteRequestDraft({ collectionUid: draft.collectionUid, itemUid: draft.uid }));
+            break;
+        }
+      });
+      dispatch(closeTabs({ tabUids: tabUidsToClose }));
+    } else {
+      dispatch(completeQuitFlow());
+    }
     onClose();
   };
 
@@ -144,7 +176,11 @@ const SaveRequestsModal = ({ onClose }) => {
         await dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }));
       }
 
-      dispatch(completeQuitFlow());
+      if (forCloseTabs) {
+        dispatch(closeTabs({ tabUids: tabUidsToClose }));
+      } else {
+        dispatch(completeQuitFlow());
+      }
       onClose();
     } catch (error) {
       console.error('Error saving drafts:', error);

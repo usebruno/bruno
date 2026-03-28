@@ -605,7 +605,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" data-testid="create-new-request-button">
                   Create
                 </Button>
               </div>

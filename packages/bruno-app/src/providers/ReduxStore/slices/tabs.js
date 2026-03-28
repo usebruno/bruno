@@ -5,9 +5,12 @@ import last from 'lodash/last';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
+const MAX_RECENTLY_CLOSED_TABS = 50;
+
 const initialState = {
   tabs: [],
-  activeTabUid: null
+  activeTabUid: null,
+  recentlyClosedTabs: [] // LIFO stack of closed tabs, grouped by collection
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
@@ -265,6 +268,19 @@ export const tabsSlice = createSlice({
       const tabUids = action.payload.tabUids || [];
 
       const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
+
+      // Push closed tabs onto the recently closed stack (LIFO)
+      const closedTabs = state.tabs.filter((t) =>
+        tabUids.includes(t.uid) && !nonClosableTypes.includes(t.type)
+      );
+      if (closedTabs.length > 0) {
+        state.recentlyClosedTabs.push(...closedTabs);
+        // Trim to max size
+        if (state.recentlyClosedTabs.length > MAX_RECENTLY_CLOSED_TABS) {
+          state.recentlyClosedTabs = state.recentlyClosedTabs.slice(-MAX_RECENTLY_CLOSED_TABS);
+        }
+      }
+
       state.tabs = filter(state.tabs, (t) =>
         !tabUids.includes(t.uid) || nonClosableTypes.includes(t.type)
       );
@@ -338,6 +354,21 @@ export const tabsSlice = createSlice({
       tabs.splice(targetIdx, 0, moved);
 
       state.tabs = tabs;
+    },
+    reopenLastClosedTab: (state, action) => {
+      const { collectionUid } = action.payload;
+      // Find the last closed tab for this collection (LIFO)
+      const index = state.recentlyClosedTabs.findLastIndex((t) => t.collectionUid === collectionUid);
+      if (index === -1) return;
+
+      const [tab] = state.recentlyClosedTabs.splice(index, 1);
+
+      // Don't reopen if a tab with this uid already exists
+      const alreadyOpen = state.tabs.some((t) => t.uid === tab.uid);
+      if (alreadyOpen) return;
+
+      state.tabs.push(tab);
+      state.activeTabUid = tab.uid;
     }
   }
 });
@@ -364,6 +395,7 @@ export const {
   closeAllCollectionTabs,
   makeTabPermanent,
   reorderTabs,
+  reopenLastClosedTab,
   updateQueryBuilderOpen,
   updateQueryBuilderWidth,
   updateVariablesPaneOpen,
