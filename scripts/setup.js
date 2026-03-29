@@ -72,7 +72,7 @@ function forceInstallPlatformDeps() {
 
   const toInstall = deps[process.platform];
   execCommand(
-    `npm i --legacy-peer-deps --no-save --force ${toInstall.join(' ')}`,
+    `npm install --no-save --force ${toInstall.join(' ')}`,
     'Installing platform specific dependencies'
   );
 }
@@ -93,7 +93,7 @@ async function setup() {
     console.log(`${icons.success} Security patches applied`);
 
     // Install dependencies
-    execCommand('npm i --legacy-peer-deps', 'Installing dependencies');
+    execCommand('npm install', 'Installing dependencies');
     forceInstallPlatformDeps();
 
     // Build packages
@@ -115,6 +115,7 @@ async function setup() {
     process.exit(1);
   }
 }
+
 
 setup().catch((error) => {
   console.error(error);
