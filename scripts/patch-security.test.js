@@ -2,8 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// The module under test — doesn't exist yet
-const { patchSecurityVulnerabilities } = require('./patch-security');
+const { patchSecurityVulnerabilities, buildForceInstallArgs } = require('./patch-security');
 
 function makeTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-patch-test-'));
@@ -29,12 +28,8 @@ function readFile(dir, relPath) {
   return fs.readFileSync(path.join(dir, relPath), 'utf8');
 }
 
-afterEach(() => {
-  // cleanup handled by OS tmpdir
-});
-
 describe('patchSecurityVulnerabilities', () => {
-  test('adds security overrides to root package.json', () => {
+  test('does not add transitive-dep overrides to root package.json', () => {
     const tmp = makeTmpDir();
     writeJson(tmp, 'package.json', {
       name: 'test-root',
@@ -46,12 +41,11 @@ describe('patchSecurityVulnerabilities', () => {
     patchSecurityVulnerabilities(tmp);
 
     const root = readJson(tmp, 'package.json');
-    expect(root.overrides.tar).toBe('>=7.5.11');
-    expect(root.overrides.undici).toBe('>=6.24.0');
-    expect(root.overrides['fast-xml-parser']).toBe('>=5.5.7');
-    expect(root.overrides.pbkdf2).toBe('>=3.1.3');
     // preserves existing overrides
     expect(root.overrides.rollup).toBe('3.30.0');
+    // does NOT add transitive-dep overrides (they conflict with force-install)
+    expect(root.overrides.tar).toBeUndefined();
+    expect(root.overrides.pbkdf2).toBeUndefined();
   });
 
   test('replaces rollup-plugin-terser with @rollup/plugin-terser in devDependencies', () => {
@@ -74,7 +68,6 @@ describe('patchSecurityVulnerabilities', () => {
     const pkg = readJson(tmp, 'packages/foo/package.json');
     expect(pkg.devDependencies['rollup-plugin-terser']).toBeUndefined();
     expect(pkg.devDependencies['@rollup/plugin-terser']).toBe('^1.0.0');
-    // leaves other deps alone
     expect(pkg.devDependencies['@rollup/plugin-commonjs']).toBe('^23.0.2');
   });
 
@@ -177,6 +170,30 @@ describe('patchSecurityVulnerabilities', () => {
     expect(config).not.toContain('rollup-plugin-terser');
   });
 
+  test('patches rollup-plugin-terser require in non-config JS files within workspace', () => {
+    const tmp = makeTmpDir();
+    writeJson(tmp, 'package.json', {
+      name: 'test-root',
+      workspaces: ['packages/foo'],
+      overrides: {}
+    });
+    writeJson(tmp, 'packages/foo/package.json', {
+      name: 'foo',
+      devDependencies: { 'rollup-plugin-terser': '^7.0.2' }
+    });
+    writeFile(
+      tmp,
+      'packages/foo/src/sandbox/bundle-libraries.js',
+      "const rollup = require('rollup');\nconst { terser } = require('rollup-plugin-terser');\nmodule.exports = {};\n"
+    );
+
+    patchSecurityVulnerabilities(tmp);
+
+    const bundler = readFile(tmp, 'packages/foo/src/sandbox/bundle-libraries.js');
+    expect(bundler).toContain("const terser = require('@rollup/plugin-terser')");
+    expect(bundler).not.toContain('rollup-plugin-terser');
+  });
+
   test('skips packages without vulnerable deps', () => {
     const tmp = makeTmpDir();
     writeJson(tmp, 'package.json', {
@@ -194,5 +211,41 @@ describe('patchSecurityVulnerabilities', () => {
 
     const pkg = readJson(tmp, 'packages/clean/package.json');
     expect(pkg).toEqual(original);
+  });
+});
+
+describe('buildForceInstallArgs', () => {
+  test('returns array of pkg@version strings for all force-install targets', () => {
+    const args = buildForceInstallArgs();
+    expect(Array.isArray(args)).toBe(true);
+    expect(args.length).toBeGreaterThan(0);
+    for (const arg of args) {
+      expect(arg).toMatch(/^[@a-z].*@\d/);
+    }
+    expect(args).toContain('pbkdf2@3.1.5');
+    expect(args).toContain('undici@6.24.1');
+    expect(args).toContain('picomatch@2.3.2');
+    expect(args).toContain('glob@10.5.0');
+  });
+});
+
+describe('patchSecurityVulnerabilities adds force-install versions to root devDependencies', () => {
+  test('adds FORCE_INSTALL_VERSIONS as root devDependencies for hoisting', () => {
+    const tmp = makeTmpDir();
+    writeJson(tmp, 'package.json', {
+      name: 'test-root',
+      workspaces: ['packages/foo'],
+      devDependencies: { jest: '^29.2.0' }
+    });
+    writeJson(tmp, 'packages/foo/package.json', { name: 'foo' });
+
+    patchSecurityVulnerabilities(tmp);
+
+    const root = readJson(tmp, 'package.json');
+    expect(root.devDependencies.pbkdf2).toBe('3.1.5');
+    expect(root.devDependencies.undici).toBe('6.24.1');
+    expect(root.devDependencies['fast-xml-parser']).toBe('5.5.9');
+    // preserves existing devDeps
+    expect(root.devDependencies.jest).toBe('^29.2.0');
   });
 });
