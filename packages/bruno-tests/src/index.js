@@ -13,6 +13,7 @@ const setupGraphQL = require('./graphql');
 
 const app = new express();
 const port = process.env.PORT || 8081;
+const crossOriginPort = process.env.CROSS_ORIGIN_PORT || 8082;
 
 app.use(cors());
 
@@ -66,13 +67,22 @@ app.get('/redirect-to-ping', function (req, res) {
   return res.redirect('/ping');
 });
 
+app.get('/redirect-to-headers', function (req, res) {
+  return res.redirect('/headers');
+});
+
 const server = require('http').createServer(app);
 
 server.on('upgrade', wsRouter);
 
+const crossOriginServer = require('http').createServer(app);
+
 setupGraphQL(app).then(() => {
   server.listen(port, function () {
     console.log(`Testbench started on port: ${port}`);
+  });
+  crossOriginServer.listen(crossOriginPort, function () {
+    console.log(`Cross-origin testbench started on port: ${crossOriginPort}`);
   });
 })
   .catch((error) => {
