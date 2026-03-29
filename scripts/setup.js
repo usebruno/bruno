@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const { patchSecurityVulnerabilities, buildForceInstallArgs } = require('./patch-security');
 
+const repoRoot = path.resolve(__dirname, '..');
+
 const icons = {
   clean: '🧹',
   delete: '🗑️',
@@ -16,7 +18,7 @@ const icons = {
 const execCommand = (command, description) => {
   try {
     console.log(`\n${icons.working} ${description}...`);
-    execSync(command, { stdio: 'inherit' });
+    execSync(command, { stdio: 'inherit', cwd: repoRoot });
     console.log(`${icons.success} ${description} completed`);
   } catch (error) {
     console.error(`${icons.error} ${description} failed`);
@@ -81,7 +83,7 @@ async function setup() {
   try {
     // Clean up node_modules (if exists)
     console.log(`\n${icons.clean} Cleaning up node_modules directories...`);
-    const nodeModulesPaths = glob('.', 'node_modules');
+    const nodeModulesPaths = glob(repoRoot, 'node_modules');
     for (const dir of nodeModulesPaths) {
       console.log(`${icons.delete} Removing ${dir}`);
       fs.rmSync(dir, { recursive: true, force: true });
@@ -89,7 +91,7 @@ async function setup() {
 
     // Patch known security vulnerabilities in package.json files before install
     console.log(`\n🔒 Patching security vulnerabilities...`);
-    patchSecurityVulnerabilities();
+    patchSecurityVulnerabilities(repoRoot);
     console.log(`${icons.success} Security patches applied`);
 
     // Install dependencies
