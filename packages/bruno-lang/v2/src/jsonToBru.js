@@ -10,7 +10,11 @@ const serializeAnnotations = (decorations) => {
   if (!decorations?.length) return '';
   return (
     decorations
-      .map((a) => (a.value !== undefined ? `@${a.name}('${a.value}')` : `@${a.name}`))
+      .map((a) => {
+        if (a.value === undefined) return `@${a.name}`;
+        const quote = a.value.includes('\'') ? '"' : '\'';
+        return `@${a.name}(${quote}${a.value}${quote})`;
+      })
       .join(' ') + ' '
   );
 };

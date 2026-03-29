@@ -70,7 +70,7 @@ const grammar = ohm.grammar(`Bru {
   pairannotations = annotationentry*
 
   // Dictionary Blocks
-  dictionary = st* "{" pairlist? tagend
+  dictionary = st* "{" st* pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
   pair = st* pairannotations st* (quoted_key | key) st* ":" st* value st*
   disable_char = "~"
@@ -356,7 +356,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       {}
     );
   },
-  dictionary(_1, _2, pairlist, _3) {
+  dictionary(_1, _2, _3, pairlist, _4) {
     return pairlist.ast;
   },
   pairlist(_1, pair, _2, rest, _3) {
