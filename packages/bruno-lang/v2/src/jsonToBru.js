@@ -6,12 +6,15 @@ const jsonToExampleBru = require('./example/jsonToBru');
 const enabled = (items = [], key = 'enabled') => items.filter((item) => item[key]);
 const disabled = (items = [], key = 'enabled') => items.filter((item) => !item[key]);
 
-const serializeAnnotations = (decorations) => {
-  if (!decorations?.length) return '';
+const serializeAnnotations = (annotations) => {
+  if (!annotations?.length) return '';
   return (
-    decorations
+    annotations
       .map((a) => {
         if (a.value === undefined) return `@${a.name}`;
+        if (a.value.includes('\n')) {
+          return `@${a.name}('''\n${indentString(a.value)}\n''')`;
+        }
         const quote = a.value.includes('\'') ? '"' : '\'';
         return `@${a.name}(${quote}${a.value}${quote})`;
       })

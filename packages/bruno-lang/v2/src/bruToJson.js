@@ -64,7 +64,9 @@ const grammar = ohm.grammar(`Bru {
   annotationchar = ~("(" | ")" | " " | "\\t" | "\\r" | "\\n" | ":") any
   annotationargchar = ~")" any
   annotationargvalue = annotationargchar*
-  annotationargs = "(" annotationargvalue ")"
+  annotationmultilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+  annotationargscontents = annotationmultilinetextblock | annotationargvalue
+  annotationargs = "(" annotationargscontents ")"
   annotation = "@" annotationname annotationargs?
   annotationentry = st* annotation ~":" st* nl?
   pairannotations = annotationentry*
@@ -388,6 +390,27 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       return raw.slice(1, -1);
     }
     return raw;
+  },
+  annotationmultilinetextblock(_1, content, _2) {
+    const lines = content.sourceString.split('\n');
+    let minIndent = Infinity;
+    lines.forEach((line) => {
+      if (line.trim() !== '') {
+        const indent = line.match(/^[ \t]*/)[0].length;
+        minIndent = Math.min(minIndent, indent);
+      }
+    });
+    if (!isFinite(minIndent)) minIndent = 0;
+    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent)));
+    // strip leading and trailing blank/whitespace-only lines
+    let start = 0;
+    while (start < dedented.length && dedented[start].trim() === '') start++;
+    let end = dedented.length - 1;
+    while (end >= 0 && dedented[end].trim() === '') end--;
+    return dedented.slice(start, end + 1).join('\n');
+  },
+  annotationargscontents(alt) {
+    return alt.ast;
   },
   annotationargs(_open, value, _close) {
     return value.ast;

@@ -261,6 +261,29 @@ headers {
     expect(output.headers[0].annotations).toEqual([{ name: 'description', value: 'col1\tcol2' }]);
   });
 
+  it('multiline string values', () => {
+    const input = `headers { 
+  @description('''
+    make it rain
+    make it rain2
+  ''') 
+  key: value
+}`;
+    const output = parser(input);
+    expect(output.headers[0].annotations).toEqual([{ name: 'description', value: 'make it rain\nmake it rain2' }]);
+  });
+
+  it('serializeAnnotations — multiline value uses triple-quote delimiters and roundtrips correctly', () => {
+    const json = {
+      meta: { name: 'test', type: 'http', seq: 1 },
+      http: { method: 'get', url: 'https://example.com' },
+      headers: [{ name: 'x-key', value: 'val', enabled: true, annotations: [{ name: 'description', value: 'line one\nline two' }] }]
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('@description(\'\'\'\n    line one\n    line two\n  \'\'\') x-key: val'); const parsed = parser(bru);
+    expect(parsed.headers[0].annotations).toEqual([{ name: 'description', value: 'line one\nline two' }]);
+  });
+
   it('serializeAnnotations — empty string value roundtrips correctly', () => {
     const json = {
       meta: { name: 'test', type: 'http', seq: 1 },
