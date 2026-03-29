@@ -1,7 +1,11 @@
 import { AxiosRequestConfig } from 'axios';
+import { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { makeAxiosInstance } from '../network';
 import { getHttpHttpsAgents } from '../utils/http-https-agents';
 import type { GetHttpHttpsAgentsParams } from '../utils/http-https-agents';
+import cookiesModule from '../cookies';
+
+const { getCookieStringForUrl, saveCookies } = cookiesModule;
 
 type T_SendRequestCallback = (error: any, response: any) => void;
 
@@ -11,6 +15,68 @@ type T_SendRequestCallback = (error: any, response: any) => void;
  * extracted from the actual request.
  */
 type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'>;
+
+/**
+ * Attaches cookie jar interceptors to an axios instance.
+ *
+ * The request interceptor reads stored cookies for the resolved URL and merges
+ * them into the outgoing `Cookie` header (respecting any cookies already set by
+ * the caller).  The response interceptor — on both success and error paths —
+ * persists any `Set-Cookie` headers returned by the server.
+ *
+ * URL resolution uses `baseURL` when present so that relative paths are expanded
+ * consistently across request and response handlers.
+ *
+ * All errors are swallowed so that cookie-jar failures never abort a request.
+ *
+ * @param axiosInstance - The axios instance to instrument
+ */
+const attachCookieInterceptors = (axiosInstance: ReturnType<typeof makeAxiosInstance>) => {
+  axiosInstance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+    try {
+      if (config.url) {
+        const fullUrl = config.baseURL
+          ? new URL(config.url, config.baseURL).toString()
+          : config.url;
+        const cookieString = getCookieStringForUrl(fullUrl);
+        if (cookieString) {
+          const existing = config.headers?.get
+            ? (config.headers.get('Cookie') as string | undefined)
+            : undefined;
+          const merged = existing ? `${existing}; ${cookieString}` : cookieString;
+          if (config.headers?.set) {
+            config.headers.set('Cookie', merged);
+          }
+        }
+      }
+    } catch { /* never break the request */ }
+    return config;
+  });
+
+  axiosInstance.interceptors.response.use(
+    (response: AxiosResponse) => {
+      try {
+        const cfg = response.config;
+        const url = cfg?.url
+          ? (cfg.baseURL ? new URL(cfg.url, cfg.baseURL).toString() : cfg.url)
+          : undefined;
+        if (url && response.headers) saveCookies(url, response.headers);
+      } catch { /* ignore */ }
+      return response;
+    },
+    (error: any) => {
+      try {
+        const cfg = error?.config;
+        const url = cfg?.url
+          ? (cfg.baseURL ? new URL(cfg.url, cfg.baseURL).toString() : cfg.url)
+          : undefined;
+        const headers = error?.response?.headers;
+        if (url && headers) saveCookies(url, headers);
+      } catch { /* ignore */ }
+      return Promise.reject(error);
+    }
+  );
+};
 
 /**
  * Creates a sendRequest function configured with proxy and certificate settings.
@@ -45,6 +111,7 @@ const createSendRequest = (config?: SendRequestConfig) => {
     }
 
     const axiosInstance = makeAxiosInstance();
+    attachCookieInterceptors(axiosInstance);
 
     if (!callback) {
       return await axiosInstance(normalizedConfig);
