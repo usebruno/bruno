@@ -38,7 +38,7 @@ console.log(`\n${colors.bright}${colors.yellow}🚀 Starting Bruno development e
 const webProcess = spawn('npm', ['run', 'dev'], {
   cwd: webDir,
   stdio: ['inherit', 'pipe', 'pipe'],
-  shell: true
+  shell: process.platform === 'win32'
 });
 
 webProcess.stdout.on('data', (data) => {
@@ -71,7 +71,7 @@ function startElectron(port) {
   electronProcess = spawn('npm', ['run', 'dev'], {
     cwd: electronDir,
     stdio: 'inherit',
-    shell: true,
+    shell: process.platform === 'win32',
     env: {
       ...process.env,
       BRUNO_DEV_PORT: port
