@@ -38,7 +38,7 @@
     "rollup-plugin-dts": "^5.0.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-terser": "^7.0.2",
-    "typescript": "^4.8.4"
+    "typescript": "^5.8.3"
   },
   "overrides": {
     "rollup": "3.29.5"
