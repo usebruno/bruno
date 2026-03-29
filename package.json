@@ -50,7 +50,20 @@
     "randomstring": "^1.2.2",
     "rimraf": "^6.0.1",
     "storybook": "^10.1.10",
-    "ts-jest": "^29.2.6"
+    "ts-jest": "^29.2.6",
+    "@aws-sdk/client-sts": "3.1019.0",
+    "fast-xml-parser": "5.5.9",
+    "flatted": "3.4.2",
+    "form-data": "4.0.5",
+    "glob": "10.5.0",
+    "immutable": "5.1.5",
+    "minimatch": "3.1.5",
+    "path-to-regexp": "0.1.13",
+    "pbkdf2": "3.1.5",
+    "picomatch": "2.3.2",
+    "svgo": "2.8.2",
+    "tar": "7.5.13",
+    "undici": "6.24.1"
   },
   "scripts": {
     "setup": "node ./scripts/setup.js",
@@ -93,7 +106,7 @@
     ]
   },
   "overrides": {
-    "rollup": "3.29.5",
+    "rollup": "3.30.0",
     "electron-store": {
       "conf": {
         "json-schema-typed": "8.0.1"
