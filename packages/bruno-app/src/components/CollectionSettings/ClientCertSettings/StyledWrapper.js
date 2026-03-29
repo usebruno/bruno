@@ -19,6 +19,19 @@ const StyledWrapper = styled.div`
     button.remove-certificate {
       color: ${(props) => props.theme.colors.text.danger};
     }
+
+    .certificate-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .cert-enabled-checkbox {
+    margin-right: 0.5rem;
+    width: 16px;
+    height: 16px;
+    accent-color: ${(props) => props.theme.colors.text.yellow};
   }
 
   .textbox {
