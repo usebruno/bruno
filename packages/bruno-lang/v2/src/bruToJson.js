@@ -3,6 +3,10 @@ const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
 const parseExample = require('./example/bruToJson');
 
+// this is done to avoid breaking existing pairlist mapping so
+// the key is hidden and not added into the json automatically
+const ANNOTATIONS_KEY = Symbol('annotations');
+
 /**
  * A Bru file is made up of blocks.
  * There are three types of blocks
@@ -55,10 +59,20 @@ const grammar = ohm.grammar(`Bru {
   multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter st* contenttypeannotation?
   contenttypeannotation = "@contentType(" (~")" any)* ")"
 
+  // Annotation support (decorators on pairs)
+  annotationname = annotationchar+
+  annotationchar = ~("(" | ")" | " " | "\\t" | "\\r" | "\\n" | ":") any
+  annotationargchar = ~")" any
+  annotationargvalue = annotationargchar*
+  annotationargs = "(" annotationargvalue ")"
+  annotation = "@" annotationname annotationargs?
+  annotationentry = st* annotation ~":" st* nl?
+  pairannotations = annotationentry*
+
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = st* (quoted_key | key) st* ":" st* value st*
+  pair = st* pairannotations st* (quoted_key | key) st* ":" st* value st*
   disable_char = "~"
   quote_char = "\\""
   esc_char = "\\\\"
@@ -168,12 +182,12 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
     let value = pair[name];
+    const rawAnnotations = pair[ANNOTATIONS_KEY];
 
     if (!parseEnabled) {
-      return {
-        name,
-        value
-      };
+      const result = { name, value };
+      if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+      return result;
     }
 
     let enabled = true;
@@ -182,11 +196,9 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       enabled = false;
     }
 
-    return {
-      name,
-      value,
-      enabled
-    };
+    const result = { name, value, enabled };
+    if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+    return result;
   });
 };
 
@@ -197,18 +209,16 @@ const mapRequestParams = (pairList = [], type) => {
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
     let value = pair[name];
+    const rawAnnotations = pair[ANNOTATIONS_KEY];
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
       name = name.slice(1);
       enabled = false;
     }
 
-    return {
-      name,
-      value,
-      enabled,
-      type
-    };
+    const result = { name, value, enabled, type };
+    if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+    return result;
   });
 };
 
@@ -352,13 +362,47 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   pairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  pair(_1, key, _2, _3, _4, value, _5) {
+  pairannotations(entries) {
+    return entries.ast;
+  },
+  annotationentry(_1, annotation, _2, _3) {
+    return annotation.ast;
+  },
+  annotation(_at, name, argsIter) {
+    const annotObj = { name: name.ast };
+    const argsArr = argsIter.ast;
+    if (argsArr.length > 0) {
+      annotObj.value = argsArr[0];
+    }
+    return annotObj;
+  },
+  annotationname(chars) {
+    return chars.sourceString;
+  },
+  annotationargvalue(chars) {
+    const raw = chars.sourceString;
+    if (
+      raw.length >= 2
+      && ((raw[0] === '\'' && raw[raw.length - 1] === '\'') || (raw[0] === '"' && raw[raw.length - 1] === '"'))
+    ) {
+      return raw.slice(1, -1);
+    }
+    return raw;
+  },
+  annotationargs(_open, value, _close) {
+    return value.ast;
+  },
+  pair(_1, annotations, _keyindent, key, _2, _3, _4, value, _5) {
     let res = {};
     if (Array.isArray(value.ast)) {
       res[key.ast] = value.ast;
-      return res;
+    } else {
+      res[key.ast] = value.ast ? value.ast.trim() : '';
     }
-    res[key.ast] = value.ast ? value.ast.trim() : '';
+    const annotationList = annotations.ast;
+    if (annotationList && annotationList.length > 0) {
+      res[ANNOTATIONS_KEY] = annotationList;
+    }
     return res;
   },
   esc_quote_char(_1, quote) {
