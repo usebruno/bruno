@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { IconUpload, IconX, IconFile } from '@tabler/icons';
 import {
@@ -11,6 +11,7 @@ import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import MultiLineEditor from 'components/MultiLineEditor';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import path from 'utils/common/path';
@@ -19,7 +20,17 @@ import { isWindowsOS } from 'utils/common/platform';
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const params = item.draft ? get(item, 'draft.request.body.multipartForm') : get(item, 'request.body.multipartForm');
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const multipartFormWidths = focusedTab?.tableColumnWidths?.['multipart-form'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
@@ -122,11 +133,9 @@ const MultipartFormParams = ({ item, collection }) => {
       name: 'Value',
       placeholder: 'Value',
       width: '35%',
-      render: ({ row, value, onChange, isLastEmptyRow }) => {
+      render: ({ row, value, onChange }) => {
         const isFile = row.type === 'file';
         const fileName = isFile ? getFileName(value) : null;
-        const hasTextValue = !isFile && value && value.length > 0;
-
         if (fileName) {
           return (
             <div className="flex items-center file-value-cell">
@@ -138,9 +147,15 @@ const MultipartFormParams = ({ item, collection }) => {
                 <IconX size={16} />
               </button>
               <IconFile size={16} className="text-muted mr-1" />
-              <span className="file-name flex-1 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
-                {fileName}
-              </span>
+              <div className="file-name flex-1 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
+                <SingleLineEditor
+                  theme={storedTheme}
+                  value={fileName}
+                  readOnly={true}
+                  collection={collection}
+                  item={item}
+                />
+              </div>
             </div>
           );
         }
@@ -160,15 +175,13 @@ const MultipartFormParams = ({ item, collection }) => {
                 placeholder={!value ? 'Value' : ''}
               />
             </div>
-            {!hasTextValue && !isLastEmptyRow && (
-              <button
-                className="upload-btn ml-1"
-                onClick={() => handleBrowseFiles(row, onChange)}
-                title="Select file"
-              >
-                <IconUpload size={16} />
-              </button>
-            )}
+            <button
+              className="upload-btn ml-1"
+              onClick={() => handleBrowseFiles(row, onChange)}
+              title="Select file"
+            >
+              <IconUpload size={16} />
+            </button>
           </div>
         );
       }
@@ -202,12 +215,15 @@ const MultipartFormParams = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full">
       <EditableTable
+        tableId="multipart-form"
         columns={columns}
         rows={params || []}
         onChange={handleParamsChange}
         defaultRow={defaultRow}
         reorderable={true}
         onReorder={handleParamDrag}
+        columnWidths={multipartFormWidths}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('multipart-form', widths)}
       />
     </StyledWrapper>
   );

@@ -161,7 +161,7 @@ class GlobalEnvironmentsManager {
     }
   }
 
-  async saveGlobalEnvironment(workspacePath, { environmentUid, variables }) {
+  async saveGlobalEnvironment(workspacePath, { environmentUid, variables, color }) {
     try {
       if (!workspacePath) {
         throw new Error('Workspace path is required');
@@ -177,6 +177,10 @@ class GlobalEnvironmentsManager {
         name: envFile.name,
         variables: variables
       };
+
+      if (color) {
+        environment.color = color;
+      }
 
       if (this.envHasSecrets(environment)) {
         environmentSecretsStore.storeEnvSecrets(workspacePath, environment);

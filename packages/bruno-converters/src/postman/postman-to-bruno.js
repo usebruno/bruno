@@ -11,6 +11,7 @@ const AUTH_TYPES = Object.freeze({
   AWSV4: 'awsv4',
   APIKEY: 'apikey',
   DIGEST: 'digest',
+  OAUTH1: 'oauth1',
   OAUTH2: 'oauth2',
   NOAUTH: 'noauth',
   NONE: 'none'
@@ -226,6 +227,25 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         password: authValues.password || ''
       };
       break;
+    case AUTH_TYPES.OAUTH1:
+      requestObject.auth.oauth1 = {
+        consumerKey: authValues.consumerKey || '',
+        consumerSecret: authValues.consumerSecret || '',
+        accessToken: authValues.token || '',
+        accessTokenSecret: authValues.tokenSecret || '',
+        callbackUrl: authValues.callback || null,
+        verifier: authValues.verifier || null,
+        signatureMethod: authValues.signatureMethod || 'HMAC-SHA1',
+        privateKey: authValues.privateKey || null,
+        privateKeyType: 'text',
+        timestamp: authValues.timestamp || null,
+        nonce: authValues.nonce || null,
+        version: authValues.version || '1.0',
+        realm: authValues.realm || null,
+        placement: authValues.addParamsToHeader === false ? 'query' : 'header',
+        includeBodyHash: authValues.includeBodyHash || false
+      };
+      break;
     case AUTH_TYPES.OAUTH2:
       const findValueUsingKey = (key) => authValues[key] || '';
 
@@ -327,6 +347,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               bearer: null,
               awsv4: null,
               apikey: null,
+              oauth1: null,
               oauth2: null,
               digest: null
             },
@@ -391,6 +412,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
             bearer: null,
             awsv4: null,
             apikey: null,
+            oauth1: null,
             oauth2: null,
             digest: null
           },
@@ -617,7 +639,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               example.request.headers.push({
                 uid: uuid(),
                 name: header.key ?? '',
-                value: header.value ?? '',
+                value: String(header.value ?? ''),
                 description: transformDescription(header.description),
                 enabled: !header.disabled
               });
@@ -718,7 +740,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               example.response.headers.push({
                 uid: uuid(),
                 name: header.key ?? '',
-                value: header.value ?? '',
+                value: String(header.value ?? ''),
                 description: transformDescription(header.description),
                 enabled: true
               });
@@ -788,6 +810,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
           bearer: null,
           awsv4: null,
           apikey: null,
+          oauth1: null,
           oauth2: null,
           digest: null
         },

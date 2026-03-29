@@ -22,11 +22,11 @@ const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
-const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2 } = require('@usebruno/requests');
+const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
 const { getCACertificates, transformProxyConfig, getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
-const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -570,7 +570,12 @@ const runSingleRequest = async function (
         if (contentType !== 'multipart/form-data') {
           // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
           const formHeaders = form.getHeaders();
-          formHeaders['content-type'] = `${contentType}; boundary=${form.getBoundary()}`;
+          const existingBoundary = extractBoundaryFromContentType(contentType);
+          if (existingBoundary) {
+            formHeaders['content-type'] = contentType;
+          } else {
+            formHeaders['content-type'] = `${contentType}; boundary=${form.getBoundary()}`;
+          }
           form.getHeaders = function () {
             return formHeaders;
           };
@@ -694,6 +699,14 @@ const runSingleRequest = async function (
       if (request.ntlmConfig) {
         axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
         delete request.ntlmConfig;
+      }
+
+      if (request.oauth1config) {
+        try {
+          applyOAuth1ToRequest(request, collectionPath);
+        } catch (error) {
+          throw new Error(`OAuth1 signing failed: ${error.message}`);
+        }
       }
 
       if (request.awsv4config) {

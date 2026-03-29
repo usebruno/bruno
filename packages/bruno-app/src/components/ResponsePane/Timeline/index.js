@@ -43,7 +43,7 @@ const getEffectiveAuthSource = (collection, item) => {
   return effectiveSource;
 };
 
-const Timeline = ({ collection, item }) => {
+const Timeline = ({ collection, item, activeTabUid }) => {
   // Get the effective auth source if auth mode is inherit
   const authSource = getEffectiveAuthSource(collection, item);
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';

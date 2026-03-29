@@ -90,6 +90,7 @@ import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
+import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
@@ -1111,6 +1112,10 @@ export const handleCollectionItemDrop
       const draggedItemDirectory = findParentItemInCollection(sourceCollection, draggedItemUid) || sourceCollection;
       const draggedItemDirectoryItems = cloneDeep(draggedItemDirectory.items);
 
+      const sourceFormat = sourceCollection?.format || 'bru';
+      const targetFormat = collection?.format || 'bru';
+      const isCrossFormatMove = isCrossCollectionMove && sourceFormat !== targetFormat;
+
       const handleMoveToNewLocation = async ({
         draggedItem,
         draggedItemDirectoryItems,
@@ -1123,10 +1128,22 @@ export const handleCollectionItemDrop
         const { pathname: draggedItemPathname, uid: draggedItemUid } = draggedItem;
 
         const newDirname = path.dirname(newPathname);
-        await dispatch(moveItem({
-          targetDirname: newDirname,
-          sourcePathname: draggedItemPathname
-        }));
+
+        if (isCrossFormatMove && isItemARequest(draggedItem)) {
+          const { ipcRenderer } = window;
+          const result = await ipcRenderer.invoke('renderer:move-item-cross-format', {
+            targetDirname: newDirname,
+            sourcePathname: draggedItemPathname,
+            sourceFormat,
+            targetFormat
+          });
+          newPathname = result.newPathname;
+        } else {
+          await dispatch(moveItem({
+            targetDirname: newDirname,
+            sourcePathname: draggedItemPathname
+          }));
+        }
 
         // Update sequences in the source directory
         if (draggedItemDirectoryItems?.length) {
@@ -1190,6 +1207,11 @@ export const handleCollectionItemDrop
           if (!newPathname) return;
           if (targetItemPathname?.startsWith(draggedItemPathname)) return;
 
+          if (isCrossFormatMove && isItemAFolder(draggedItem)) {
+            toast.error('Moving folders between collections with different formats is not supported');
+            return;
+          }
+
           // Discard operation if dragging a root item to the collection name (same location)
           const isTargetTheCollection = targetItemPathname === collection.pathname;
           const isDraggedItemAtRoot = draggedItemDirectory === sourceCollection;
@@ -1209,6 +1231,11 @@ export const handleCollectionItemDrop
           } else {
             await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem });
           }
+
+          if (isCrossCollectionMove) {
+            dispatch(closeTabs({ tabUids: [draggedItemUid] }));
+          }
+
           resolve();
         } catch (error) {
           console.error(error);
@@ -3146,6 +3173,7 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
   // Find transient items and group by temp directory before closing tabs
   const transientByTempDir = {};
   each(tabUids, (tabUid) => {
+    clearPersistedScope(tabUid);
     for (const collection of collections) {
       const item = findItemInCollection(collection, tabUid);
       if (item?.isTransient && item.pathname) {
