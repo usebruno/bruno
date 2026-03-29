@@ -41,7 +41,7 @@ const generateSampleMessageFromFields = (fields, options = {}) => {
       switch (field.type) {
         case 'TYPE_DOUBLE':
         case 'TYPE_FLOAT':
-          value = faker.number.float({ min: 0, max: 1000, multipleOf: 0.01 });
+          value = faker.number.float({ min: 0, max: 1000, precision: 0.01 });
           break;
         case 'TYPE_INT32':
         case 'TYPE_INT64':
