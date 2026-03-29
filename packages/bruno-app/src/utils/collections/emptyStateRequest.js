@@ -56,10 +56,11 @@ export const createEmptyStateMenuItems = ({ dispatch, collection, itemUid }) => 
 
   return [
     {
-      id: 'http',
-      label: 'HTTP',
-      leftSection: <IconApi size={16} strokeWidth={2} />,
-      onClick: handleCreate('http')
+      'id': 'http',
+      'label': 'HTTP',
+      'leftSection': <IconApi size={16} strokeWidth={2} />,
+      'onClick': handleCreate('http'),
+      'data-onboarding': 'add-http-request-option'
     },
     {
       id: 'graphql',

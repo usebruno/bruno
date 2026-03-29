@@ -472,6 +472,7 @@ const Collection = ({ collection, searchText }) => {
         onFocus={handleFocus}
         onBlur={handleBlur}
         data-testid="sidebar-collection-row"
+        data-onboarding="collection-row"
       >
         <div
           className="flex flex-grow items-center overflow-hidden"
@@ -521,7 +522,7 @@ const Collection = ({ collection, searchText }) => {
               return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
             })}
             {showEmptyCollectionMessage ? (
-              <div className="empty-collection-message">
+              <div className="empty-collection-message" data-onboarding="empty-collection-message">
                 <div className="indent-block" style={{ width: 16, minWidth: 16, height: '100%' }}>
                   &nbsp;
                 </div>
@@ -531,8 +532,9 @@ const Collection = ({ collection, searchText }) => {
                     placement="bottom-start"
                     appendTo={dropdownContainerRef?.current || document.body}
                     popperOptions={{ strategy: 'fixed' }}
+                    data-onboarding="add-request-menu"
                   >
-                    <button className="ml-1 add-request-link">+ Add request</button>
+                    <button className="ml-1 add-request-link" data-onboarding="add-request-link">+ Add request</button>
                   </MenuDropdown>
                 </div>
               </div>

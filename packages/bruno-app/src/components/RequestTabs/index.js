@@ -109,7 +109,7 @@ const RequestTabs = () => {
 
   // Todo: Must support ephemeral requests
   return (
-    <StyledWrapper>
+    <StyledWrapper data-onboarding="request-tabs">
       {newRequestModalOpen && (
         <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}
