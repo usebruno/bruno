@@ -1,7 +1,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { patchSecurityVulnerabilities } = require('./patch-security');
+const { patchSecurityVulnerabilities, buildForceInstallArgs } = require('./patch-security');
 
 const icons = {
   clean: '🧹',
@@ -72,7 +72,7 @@ function forceInstallPlatformDeps() {
 
   const toInstall = deps[process.platform];
   execCommand(
-    `npm install --no-save --force ${toInstall.join(' ')}`,
+    `npm install --no-save --force --legacy-peer-deps ${toInstall.join(' ')}`,
     'Installing platform specific dependencies'
   );
 }
@@ -98,7 +98,6 @@ async function setup() {
 
     // Force-install patched versions of vulnerable transitive deps.
     // --legacy-peer-deps disables npm overrides, so we install them explicitly.
-    const { buildForceInstallArgs } = require('./patch-security');
     const secPkgs = buildForceInstallArgs();
     execCommand(
       `npm install --no-save --legacy-peer-deps ${secPkgs.join(' ')}`,

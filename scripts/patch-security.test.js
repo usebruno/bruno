@@ -4,9 +4,20 @@ const os = require('os');
 
 const { patchSecurityVulnerabilities, buildForceInstallArgs } = require('./patch-security');
 
+const tmpDirs = [];
+
 function makeTmpDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-patch-test-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-patch-test-'));
+  tmpDirs.push(dir);
+  return dir;
 }
+
+afterEach(() => {
+  while (tmpDirs.length) {
+    const dir = tmpDirs.pop();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 function writeJson(dir, relPath, obj) {
   const full = path.join(dir, relPath);
