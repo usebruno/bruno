@@ -169,25 +169,18 @@ class SingleLineEditor extends Component {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
-      const nextValue = String(this.props.value ?? '');
-      const currentValue = this.editor.getValue();
-      if (this.editor.hasFocus?.() && currentValue !== nextValue && nextValue !== '') {
-        this.cachedValue = currentValue;
-      } else {
-        const cursor = this.editor.getCursor();
-        this.cachedValue = nextValue;
-        this.editor.setValue(nextValue);
-        this.editor.setCursor(cursor);
-        // Re-apply masking after setValue() since it destroys all CodeMirror marks
-        if (this.maskedEditor && this.maskedEditor.isEnabled()) {
-          this.maskedEditor.update();
-        }
+      const cursor = this.editor.getCursor();
+      this.cachedValue = String(this.props.value);
+      this.editor.setValue(String(this.props.value) || '');
+      this.editor.setCursor(cursor);
+      // Re-apply masking after setValue() since it destroys all CodeMirror marks
+      if (this.maskedEditor && this.maskedEditor.isEnabled()) {
+        this.maskedEditor.update();
+      }
 
-        // Update newline markers after value change
-        if (this.props.showNewlineArrow) {
-          this._updateNewlineMarkers();
-        }
+      // Update newline markers after value change
+      if (this.props.showNewlineArrow) {
+        this._updateNewlineMarkers();
       }
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
