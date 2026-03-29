@@ -214,6 +214,76 @@ describe('patchSecurityVulnerabilities', () => {
   });
 });
 
+describe('patchSecurityVulnerabilities applies override patches to root overrides', () => {
+  test('updates vulnerable override versions in root package.json', () => {
+    const tmp = makeTmpDir();
+    writeJson(tmp, 'package.json', {
+      name: 'test-root',
+      workspaces: ['packages/foo'],
+      overrides: { rollup: '3.29.5' }
+    });
+    writeJson(tmp, 'packages/foo/package.json', { name: 'foo' });
+
+    patchSecurityVulnerabilities(tmp);
+
+    const root = readJson(tmp, 'package.json');
+    expect(root.overrides.rollup).toBe('3.30.0');
+  });
+
+  test('preserves unrelated overrides while patching', () => {
+    const tmp = makeTmpDir();
+    writeJson(tmp, 'package.json', {
+      name: 'test-root',
+      workspaces: ['packages/foo'],
+      overrides: {
+        rollup: '3.29.5',
+        'electron-store': { conf: { 'json-schema-typed': '8.0.1' } }
+      }
+    });
+    writeJson(tmp, 'packages/foo/package.json', { name: 'foo' });
+
+    patchSecurityVulnerabilities(tmp);
+
+    const root = readJson(tmp, 'package.json');
+    expect(root.overrides.rollup).toBe('3.30.0');
+    expect(root.overrides['electron-store']).toEqual({ conf: { 'json-schema-typed': '8.0.1' } });
+  });
+
+  test('deletes lockfile when overrides change', () => {
+    const tmp = makeTmpDir();
+    writeJson(tmp, 'package.json', {
+      name: 'test-root',
+      workspaces: ['packages/foo'],
+      overrides: { rollup: '3.29.5' }
+    });
+    writeJson(tmp, 'packages/foo/package.json', { name: 'foo' });
+    fs.writeFileSync(path.join(tmp, 'package-lock.json'), '{"stale": true}');
+
+    patchSecurityVulnerabilities(tmp);
+
+    expect(fs.existsSync(path.join(tmp, 'package-lock.json'))).toBe(false);
+  });
+});
+
+describe('patchSecurityVulnerabilities pins workspace devDependencies', () => {
+  test('updates exact-pinned @rsbuild/plugin-styled-components to caret range', () => {
+    const tmp = makeTmpDir();
+    writeJson(tmp, 'package.json', {
+      name: 'test-root',
+      workspaces: ['packages/app']
+    });
+    writeJson(tmp, 'packages/app/package.json', {
+      name: 'app',
+      devDependencies: { '@rsbuild/plugin-styled-components': '1.1.0' }
+    });
+
+    patchSecurityVulnerabilities(tmp);
+
+    const pkg = readJson(tmp, 'packages/app/package.json');
+    expect(pkg.devDependencies['@rsbuild/plugin-styled-components']).toBe('^1.1.0');
+  });
+});
+
 describe('buildForceInstallArgs', () => {
   test('returns array of pkg@version strings for all force-install targets', () => {
     const args = buildForceInstallArgs();
@@ -247,5 +317,21 @@ describe('patchSecurityVulnerabilities adds force-install versions to root devDe
     expect(root.devDependencies['fast-xml-parser']).toBe('5.5.9');
     // preserves existing devDeps
     expect(root.devDependencies.jest).toBe('^29.2.0');
+  });
+
+  test('deletes package-lock.json so npm resolves fresh versions', () => {
+    const tmp = makeTmpDir();
+    writeJson(tmp, 'package.json', {
+      name: 'test-root',
+      workspaces: ['packages/foo'],
+      devDependencies: {}
+    });
+    writeJson(tmp, 'packages/foo/package.json', { name: 'foo' });
+    // Create a stale lockfile
+    fs.writeFileSync(path.join(tmp, 'package-lock.json'), '{"stale": true}');
+
+    patchSecurityVulnerabilities(tmp);
+
+    expect(fs.existsSync(path.join(tmp, 'package-lock.json'))).toBe(false);
   });
 });

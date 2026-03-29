@@ -93,8 +93,17 @@ async function setup() {
     console.log(`${icons.success} Security patches applied`);
 
     // Install dependencies
-    execCommand('npm install', 'Installing dependencies');
+    execCommand('npm install --legacy-peer-deps', 'Installing dependencies');
     forceInstallPlatformDeps();
+
+    // Force-install patched versions of vulnerable transitive deps.
+    // --legacy-peer-deps disables npm overrides, so we install them explicitly.
+    const { buildForceInstallArgs } = require('./patch-security');
+    const secPkgs = buildForceInstallArgs();
+    execCommand(
+      `npm install --no-save --legacy-peer-deps ${secPkgs.join(' ')}`,
+      'Patching vulnerable transitive dependencies'
+    );
 
     // Build packages
     execCommand('npm run build:graphql-docs', 'Building graphql-docs');

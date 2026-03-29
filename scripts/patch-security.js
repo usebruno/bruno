@@ -10,7 +10,13 @@ const REPLACE_DEV_DEPS = {
 };
 
 const PIN_DEPS = {
-  '@aws-sdk/credential-providers': '3.1019.0'
+  '@aws-sdk/credential-providers': '3.1019.0',
+  '@rsbuild/plugin-styled-components': '^1.1.0'
+};
+
+// Patches for root-level npm overrides (simple string values only).
+const OVERRIDE_PATCHES = {
+  rollup: '3.30.0'
 };
 
 // Exact versions to force-install after `npm install`, bypassing broken
@@ -75,8 +81,23 @@ function patchSecurityVulnerabilities(rootDir) {
       rootChanged = true;
     }
   }
+  // Patch root-level overrides
+  if (rootPkg.overrides) {
+    for (const [dep, ver] of Object.entries(OVERRIDE_PATCHES)) {
+      if (typeof rootPkg.overrides[dep] === 'string' && rootPkg.overrides[dep] !== ver) {
+        rootPkg.overrides[dep] = ver;
+        rootChanged = true;
+      }
+    }
+  }
+
   if (rootChanged) {
     writeJson(rootPkgPath, rootPkg);
+    // Delete stale lockfile so npm resolves fresh versions with the new devDeps
+    const lockPath = path.join(rootDir, 'package-lock.json');
+    if (fs.existsSync(lockPath)) {
+      fs.unlinkSync(lockPath);
+    }
   }
 
   // Workspace packages
@@ -138,4 +159,4 @@ function buildForceInstallArgs() {
   return Object.entries(FORCE_INSTALL_VERSIONS).map(([pkg, ver]) => `${pkg}@${ver}`);
 }
 
-module.exports = { patchSecurityVulnerabilities, buildForceInstallArgs, REPLACE_DEV_DEPS, PIN_DEPS, FORCE_INSTALL_VERSIONS };
+module.exports = { patchSecurityVulnerabilities, buildForceInstallArgs, REPLACE_DEV_DEPS, PIN_DEPS, OVERRIDE_PATCHES, FORCE_INSTALL_VERSIONS };
