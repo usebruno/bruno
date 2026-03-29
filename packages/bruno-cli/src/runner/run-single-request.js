@@ -165,7 +165,9 @@ const runSingleRequest = async function (
           status: 'skipped',
           statusText: errorMsg,
           data: null,
-          responseTime: 0
+          responseTime: 0,
+          duration: 0,
+          size: 0
         },
         error: null,
         status: 'skipped',
@@ -260,7 +262,9 @@ const runSingleRequest = async function (
               status: 'skipped',
               statusText: 'request skipped via pre-request script',
               data: null,
-              responseTime: 0
+              responseTime: 0,
+              duration: 0,
+              size: 0
             },
             error: null,
             status: 'skipped',
@@ -311,7 +315,9 @@ const runSingleRequest = async function (
             headers: null,
             data: null,
             url: null,
-            responseTime: 0
+            responseTime: 0,
+            duration: 0,
+            size: 0
           },
           error: error?.message || 'An error occurred while executing the pre-request script.',
           status: 'error',
@@ -775,7 +781,9 @@ const runSingleRequest = async function (
             headers: null,
             data: null,
             url: null,
-            responseTime: 0
+            responseTime: 0,
+            duration: 0,
+            size: 0
           },
           error: err?.message || err?.errors?.map((e) => e?.message)?.at(0) || err?.code || 'Request Failed!',
           status: 'error',
@@ -970,7 +978,9 @@ const runSingleRequest = async function (
         headers: response.headers,
         data: response.data,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
-        responseTime
+        responseTime,
+        duration: responseTime,
+        size: response.dataBuffer ? Buffer.byteLength(response.dataBuffer) : 0
       },
       error: null,
       status: 'pass',
@@ -999,7 +1009,9 @@ const runSingleRequest = async function (
         headers: null,
         data: null,
         url: null,
-        responseTime: 0
+        responseTime: 0,
+        duration: 0,
+        size: 0
       },
       status: 'error',
       error: err.message,
