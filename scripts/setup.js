@@ -1,6 +1,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { patchSecurityVulnerabilities } = require('./patch-security');
 
 const icons = {
   clean: '🧹',
@@ -85,6 +86,11 @@ async function setup() {
       console.log(`${icons.delete} Removing ${dir}`);
       fs.rmSync(dir, { recursive: true, force: true });
     }
+
+    // Patch known security vulnerabilities in package.json files before install
+    console.log(`\n🔒 Patching security vulnerabilities...`);
+    patchSecurityVulnerabilities();
+    console.log(`${icons.success} Security patches applied`);
 
     // Install dependencies
     execCommand('npm i --legacy-peer-deps', 'Installing dependencies');
