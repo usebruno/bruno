@@ -37,6 +37,11 @@ const DraggableTab = ({ id, onMoveTab, index, children, className, onClick }) =>
       role="tab"
       style={{ opacity: isDragging || isOver ? 0 : 1 }}
       onClick={onClick}
+      onMouseDown={(event) => {
+        if (event.button === 1) {
+          event.preventDefault();
+        }
+      }}
       data-handler-id={handlerId}
     >
       {children}
