@@ -36,7 +36,22 @@ class ScriptRuntime {
     const assertionResults = request?.assertionResults || [];
     const certsAndProxyConfig = request?.certsAndProxyConfig;
     const scriptPath = request?.pathname;
-    const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig);
+    const bru = new Bru({
+      runtime: this.runtime,
+      envVariables,
+      runtimeVariables,
+      processEnvVars,
+      collectionPath,
+      collectionVariables,
+      folderVariables,
+      requestVariables,
+      globalEnvironmentVariables,
+      oauth2CredentialVariables,
+      collectionName,
+      promptVariables,
+      certsAndProxyConfig,
+      requestUrl: request?.url
+    });
     const req = new BrunoRequest(request);
 
     // extend bru with result getter methods
@@ -155,7 +170,22 @@ class ScriptRuntime {
     const assertionResults = request?.assertionResults || {};
     const certsAndProxyConfig = request?.certsAndProxyConfig;
     const scriptPath = request?.pathname;
-    const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig);
+    const bru = new Bru({
+      runtime: this.runtime,
+      envVariables,
+      runtimeVariables,
+      processEnvVars,
+      collectionPath,
+      collectionVariables,
+      folderVariables,
+      requestVariables,
+      globalEnvironmentVariables,
+      oauth2CredentialVariables,
+      collectionName,
+      promptVariables,
+      certsAndProxyConfig,
+      requestUrl: request?.url
+    });
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
 

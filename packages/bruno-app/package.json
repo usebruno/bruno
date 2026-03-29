@@ -100,6 +100,7 @@
     "@babel/core": "^7.27.1",
     "@babel/preset-env": "^7.27.2",
     "@babel/preset-react": "^7.27.1",
+    "@babel/preset-typescript": "^7.22.0",
     "@rsbuild/core": "^1.1.2",
     "@rsbuild/plugin-babel": "^1.0.3",
     "@rsbuild/plugin-node-polyfill": "^1.4.4",

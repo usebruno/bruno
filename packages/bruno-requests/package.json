@@ -31,11 +31,11 @@
     "http-proxy-agent": "~7.0.2",
     "https-proxy-agent": "~7.0.6",
     "is-ip": "^5.0.1",
+    "shell-env": "^4.0.1",
     "socks-proxy-agent": "~8.0.5",
     "system-ca": "^2.0.1",
     "tough-cookie": "^6.0.0",
-    "ws": "^8.18.3",
-    "shell-env": "^4.0.1"
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.22.0",

@@ -164,6 +164,10 @@ class MultiLineEditor extends Component {
         this.cachedValue = nextValue;
         this.editor.setValue(nextValue);
         this.editor.setCursor(cursor);
+        // Re-apply masking after setValue() since it destroys all CodeMirror marks
+        if (this.maskedEditor && this.maskedEditor.isEnabled()) {
+          this.maskedEditor.update();
+        }
       }
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {

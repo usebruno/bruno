@@ -1,0 +1,48 @@
+import type { Dispatch, SetStateAction } from 'react';
+import { useCallback, useState, useEffect } from 'react';
+import { usePersistenceScope } from './PersistedScopeProvider';
+
+type Options<T> = {
+  key: string;
+  default: T;
+};
+
+export { ScopedPersistenceProvider as PersistedScopeProvider, clearPersistedScope } from './PersistedScopeProvider';
+
+export function usePersistedState<T>(options: Options<T>): [T, Dispatch<SetStateAction<T>>] {
+  const scope = usePersistenceScope();
+  const storageKey = scope ? `persisted::${scope}::${options.key}` : options.key;
+
+  const [state, setState] = useState<T>(options.default ?? undefined);
+
+  useEffect(() => {
+    const raw = localStorage.getItem(storageKey);
+    const existingState = JSON.parse(raw);
+
+    if (existingState !== undefined) {
+      setState(existingState);
+    }
+
+    return;
+  }, [storageKey]);
+
+  const onSet = useCallback(
+    (value: T | ((prev: T) => T)) => {
+      let _next: T;
+      if (typeof value === 'function') {
+        setState((prev) => {
+          _next = (value as (prev: T) => T)(prev);
+          localStorage.setItem(storageKey, JSON.stringify(_next));
+          return _next;
+        });
+      } else {
+        _next = value;
+        setState(_next);
+        localStorage.setItem(storageKey, JSON.stringify(_next));
+      }
+    },
+    [storageKey]
+  );
+
+  return [state, onSet];
+}

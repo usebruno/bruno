@@ -411,6 +411,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -422,6 +423,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -466,6 +468,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -511,6 +514,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -522,6 +526,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -566,6 +571,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -577,6 +583,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -626,6 +633,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -637,6 +645,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -1101,6 +1110,7 @@ const expectedOutput = {
               bearer: null,
               awsv4: null,
               apikey: null,
+              oauth1: null,
               oauth2: null,
               digest: null
             },
@@ -1130,6 +1140,7 @@ const expectedOutput = {
             bearer: null,
             awsv4: null,
             apikey: null,
+            oauth1: null,
             oauth2: null,
             digest: null
           },
@@ -1154,6 +1165,7 @@ const expectedOutput = {
           bearer: null,
           awsv4: null,
           apikey: null,
+          oauth1: null,
           oauth2: null,
           digest: null
         },
@@ -1184,6 +1196,7 @@ const expectedOutput = {
         bearer: null,
         awsv4: null,
         apikey: null,
+        oauth1: null,
         oauth2: null,
         digest: null
       },

@@ -1,5 +1,6 @@
 const { cleanJson, cleanCircularJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
+const { createPropertyListBridge } = require('../utils/property-list-bridge');
 
 const addBruShimToContext = (vm, bru) => {
   const bruObject = vm.newObject();
@@ -349,6 +350,13 @@ const addBruShimToContext = (vm, bru) => {
   sleep.consume((handle) => vm.setProp(bruObject, 'sleep', handle));
 
   let bruCookiesObject = vm.newObject();
+  const { evalCode: cookiesEvalCode } = createPropertyListBridge(vm, bru.cookies, bruCookiesObject, {
+    globalPath: 'globalThis.bru.cookies',
+    syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
+    syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
+    asyncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'delete'],
+    withIterators: true
+  });
 
   const _jarFn = vm.newFunction('_jar', () => {
     const nativeJar = bru.cookies.jar();
@@ -523,6 +531,10 @@ const addBruShimToContext = (vm, bru) => {
         }
       }
     };
+
+    {
+      ${cookiesEvalCode}
+    }
 
     globalThis.bru.cookies.jar = () => {
       const _jar = globalThis.bru.cookies._jar();
