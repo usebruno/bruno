@@ -1,4 +1,5 @@
 import { test, expect, Page } from '../../../playwright';
+import process from 'node:process';
 import { buildCommonLocators, buildScriptErrorLocators } from './locators';
 
 type SandboxMode = 'safe' | 'developer';
@@ -262,7 +263,9 @@ const createRequest = async (
       await locators.actions.collectionItemActions(parentName).click();
     } else {
       await locators.sidebar.collection(parentName).hover();
-      await locators.actions.collectionActions(parentName).click();
+      const collectionAction = locators.actions.collectionActions(parentName);
+      await expect(collectionAction).toBeVisible({ timeout: 2000 });
+      await collectionAction.click();
     }
 
     await locators.dropdown.item('New Request').click();
