@@ -1,14 +1,8 @@
 const setupGraphQL = async (app) => {
   // Dynamic import because `graphql-yoga` is a pure ESM module.
   const { createYoga, createSchema } = await import('graphql-yoga');
-  const { useDisableIntrospection } = await import('@graphql-yoga/plugin-disable-introspection');
 
   const yoga = createYoga({
-    plugins: [
-      useDisableIntrospection({
-        isDisabled: () => false
-      })
-    ],
     schema: createSchema({
       typeDefs: /* GraphQL */ `
         type Company {
