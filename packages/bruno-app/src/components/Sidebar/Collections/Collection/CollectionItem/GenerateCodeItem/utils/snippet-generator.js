@@ -87,7 +87,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       result = addCurlAuthFlags(result, effectiveAuth);
     }
     if (!shouldInterpolate) {
-      result = result.replace(harUrl, templateUrl);
+      result = result.replaceAll(harUrl, templateUrl);
     }
 
     // Respect encodeUrl setting: when not explicitly true, replace HTTPSnippet's encoded path+query with the raw version.

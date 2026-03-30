@@ -1359,4 +1359,29 @@ describe('generateSnippet – URL interpolation behavior', () => {
     expect(result).not.toContain('{{host}}');
     expect(result).not.toContain(':userId');
   });
+
+  it('should preserve template URL when rawUrl is set and shouldInterpolate is false', () => {
+    const item = {
+      uid: 'url-test-rawurl',
+      request: {
+        method: 'GET',
+        url: '{{host}}/ping',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      },
+      rawUrl: 'https://api.example.com/ping'
+    };
+
+    const result = generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('{{host}}/ping');
+    expect(result).not.toContain('https://api.example.com/ping');
+  });
 });
