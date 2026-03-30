@@ -25,6 +25,7 @@
     "express": "^4.21.2",
     "graphql": "^16.10.0",
     "graphql-yoga": "^5.10.6",
+    "express-basic-auth": "^1.2.1",
     "fast-xml-parser": "^5.5.7",
     "http-proxy": "^1.18.1",
     "js-yaml": "^4.1.1",
