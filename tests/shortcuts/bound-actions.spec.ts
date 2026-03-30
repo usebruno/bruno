@@ -1,9 +1,9 @@
-import { test, expect } from '../../playwright';
+import { test, expect, Page } from '../../playwright';
 import { createCollection, createRequest, openRequest, closeAllCollections, createFolder, openCollection } from '../utils/page';
 
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 
-const openKeybindingsTab = async (page) => {
+const openKeybindingsTab = async (page: Page) => {
   await page.getByRole('button', { name: 'Open Preferences' }).click();
   await page.getByRole('tab', { name: 'Keybindings' }).click();
   await expect(page.locator('.section-header').filter({ hasText: 'Keybindings' })).toBeVisible();
@@ -14,7 +14,7 @@ const openKeybindingsTab = async (page) => {
  * Using the close button avoids depending on any keyboard shortcut that may
  * have just been reconfigured.
  */
-const closePreferencesTab = async (page) => {
+const closePreferencesTab = async (page: Page) => {
   const prefTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
   await prefTab.hover();
   await prefTab.getByTestId('request-tab-close-icon').click({ force: true });
@@ -35,11 +35,13 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 5000 });
   });
 
+  test.afterAll(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
   test.describe('TABS', () => {
     test.describe('SHORTCUT: Close Tab', () => {
       test('default Cmd/Ctrl+W closes the active tab', async ({ page, createTmpDir }) => {
-        await closeAllCollections(page);
-
         const path = await createTmpDir('kb-collection-path');
         await createCollection(page, 'kb-collection', path);
         await createRequest(page, 'req-1', 'kb-collection');
