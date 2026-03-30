@@ -88,7 +88,7 @@ const grammar = ohm.grammar(`Bru {
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
   assertpairlist = optionalnl* assertpair (~tagend stnl* assertpair)* (~tagend space)*
-  assertpair = st* assertkey st* ":" st* value st*
+  assertpair = st* pairannotations st* assertkey st* ":" st* value st*
   assertkey = ~tagend assertkeychar*
   assertkeychar = ~(tagend | nl | ":") any
 
@@ -434,9 +434,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   assertpairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  assertpair(_1, key, _2, _3, _4, value, _5) {
+  assertpair(_1, annotations, _2, key, _3, _4, _5, value, _6) {
     let res = {};
     res[key.ast] = value.ast ? value.ast.trim() : '';
+    const annotationList = annotations.ast;
+    if (annotationList && annotationList.length > 0) {
+      res[ANNOTATIONS_KEY] = annotationList;
+    }
     return res;
   },
   assertkey(chars) {

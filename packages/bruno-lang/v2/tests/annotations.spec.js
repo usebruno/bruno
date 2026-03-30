@@ -16,6 +16,18 @@ headers {
     ]);
   });
 
+  it('inline annotations in asserts', () => {
+    const input = `
+assert {
+  @description('hello') res.status: eq 200
+}
+`;
+    const output = parser(input);
+    expect(output.assertions).toEqual([
+      { name: 'res.status', value: 'eq 200', enabled: true, annotations: [{ name: 'description', value: 'hello' }] }
+    ]);
+  });
+
   it('above-line annotation', () => {
     const input = `
 headers {
@@ -412,5 +424,53 @@ headers {
     };
     const bru = jsonToBru(json);
     expect(bru).toContain('@description(\'say "hello"\') x-key: val');
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - headers', () => {
+    const input = `headers {
+  @description('hello') key: value
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+
+    expect(input).toEqual(output);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - headers', () => {
+    const input = {
+      headers: [{ name: 'x-key', value: 'val', enabled: true, annotations: [{ name: 'description', value: 'say "hello"' }] }]
+    };
+    const stringified = jsonToBru(input);
+    const output = parser(stringified);
+
+    expect(input).toEqual(output);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - asserts', () => {
+    const input = `assert {
+  @description('make it rain') res.status: eq 200
+}
+`;
+
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+
+    expect(input).toEqual(output);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - asserts', () => {
+    const input = {
+      assertions: [
+        {
+          annotations: [{ name: 'description', value: 'hello' }],
+          name: 'res.status', value: 'eq 200', enabled: true }
+      ]
+    };
+
+    const parsed = jsonToBru(input);
+    const output = parser(parsed);
+
+    expect(input).toEqual(output);
   });
 });
