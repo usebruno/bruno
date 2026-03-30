@@ -486,7 +486,7 @@ export const HotkeysProvider = (props) => {
       )}
       {showSaveRequestsModal && (
         <SaveRequestsModal
-          forCloseTabs={true}
+          forceCloseTabs={true}
           tabUidsToClose={tabUidsToClose}
           onClose={() => {
             setShowSaveRequestsModal(false);

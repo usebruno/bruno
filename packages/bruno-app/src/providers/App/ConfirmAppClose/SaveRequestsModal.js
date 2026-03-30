@@ -14,7 +14,7 @@ import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
 
-const SaveRequestsModal = ({ onClose, forCloseTabs = false, tabUidsToClose = [] }) => {
+const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [] }) => {
   const MAX_UNSAVED_ITEMS_TO_SHOW = 5;
   const collections = useSelector((state) => state.collections.collections);
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -27,7 +27,7 @@ const SaveRequestsModal = ({ onClose, forCloseTabs = false, tabUidsToClose = [] 
     const collectionDrafts = [];
     const folderDrafts = [];
     const environmentDrafts = [];
-    const relevantTabs = forCloseTabs ? tabs.filter((t) => tabUidsToClose.includes(t.uid)) : tabs;
+    const relevantTabs = forceCloseTabs ? tabs.filter((t) => tabUidsToClose.includes(t.uid)) : tabs;
     const tabsByCollection = groupBy(relevantTabs, (t) => t.collectionUid);
 
     Object.keys(tabsByCollection).forEach((collectionUid) => {
@@ -97,23 +97,23 @@ const SaveRequestsModal = ({ onClose, forCloseTabs = false, tabUidsToClose = [] 
     }
 
     return [...collectionDrafts, ...folderDrafts, ...environmentDrafts, ...requestDrafts];
-  }, [collections, tabs, globalEnvironments, globalEnvironmentDraft, forCloseTabs, tabUidsToClose]);
+  }, [collections, tabs, globalEnvironments, globalEnvironmentDraft, forceCloseTabs, tabUidsToClose]);
 
   const totalDraftsCount = allDrafts.length;
 
   useEffect(() => {
     if (totalDraftsCount === 0) {
-      if (forCloseTabs) {
+      if (forceCloseTabs) {
         dispatch(closeTabs({ tabUids: tabUidsToClose }));
         onClose();
       } else {
         dispatch(completeQuitFlow());
       }
     }
-  }, [totalDraftsCount, dispatch, forCloseTabs, tabUidsToClose]);
+  }, [totalDraftsCount, dispatch, forceCloseTabs, tabUidsToClose]);
 
   const closeWithoutSave = () => {
-    if (forCloseTabs) {
+    if (forceCloseTabs) {
       // Discard all draft states before closing tabs
       allDrafts.forEach((draft) => {
         switch (draft.type) {
@@ -176,7 +176,7 @@ const SaveRequestsModal = ({ onClose, forCloseTabs = false, tabUidsToClose = [] 
         await dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }));
       }
 
-      if (forCloseTabs) {
+      if (forceCloseTabs) {
         dispatch(closeTabs({ tabUids: tabUidsToClose }));
       } else {
         dispatch(completeQuitFlow());

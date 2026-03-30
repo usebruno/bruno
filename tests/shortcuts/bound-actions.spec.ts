@@ -1225,24 +1225,27 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
 
     test.describe('SHORTCUT: Collapse Sidebar', () => {
-      test('default expand sidebar using default Cmd/Ctrl+\\', async ({ page, createTmpDir }) => {
-        // Get initial sidebar state
-        const width = await page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width);
-
-        expect(width).not.toBe('0px');
-
+      test('default collapse sidebar using default Cmd/Ctrl+\\', async ({ page, createTmpDir }) => {
         await expect(page.getByTestId('collections')).toBeVisible();
 
         // Press Cmd/Ctrl+\ to collapse sidebar
         await page.keyboard.press(`${modifier}+Backslash`);
-        await page.waitForTimeout(1000);
 
-        const newWidth = await page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width);
+        await expect.poll(
+          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width),
+          { timeout: 5000 }
+        ).toBe('0px');
 
-        expect(newWidth).toBe('0px');
+        // Press Cmd/Ctrl+\ to collapse expanded sidebar
+        await page.keyboard.press(`${modifier}+Backslash`);
+
+        await expect.poll(
+          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width),
+          { timeout: 5000 }
+        ).toBe('250px');
       });
 
-      test('should collapse sidebar using customized Cmd/Ctrl+Shift+B', async ({ page, createTmpDir }) => {
+      test('should expand -> collapse -> expand the sidebar using customized Shift+G', async ({ page, createTmpDir }) => {
         // Remap collapseSidebar to Shift+G
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-collapseSidebar');
@@ -1257,19 +1260,30 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyG');
         await page.keyboard.up('Shift');
 
+        await closePreferencesTab(page);
+
+        // Trigger the remapped shortcut to collapse sidebar
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyG');
         await page.keyboard.up('KeyG');
         await page.keyboard.up('Shift');
 
-        // Get initial sidebar state
-        const width = await page.locator('aside.sidebar').evaluate((el) =>
-          getComputedStyle(el).width
-        );
+        // Verify sidebar collapsed to 0px
+        await expect.poll(
+          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width),
+          { timeout: 5000 }
+        ).toBe('0px');
 
-        await page.waitForTimeout(1000);
+        // Trigger the remapped shortcut to expand sidebar
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('KeyG');
+        await page.keyboard.up('KeyG');
+        await page.keyboard.up('Shift');
 
-        expect(width).not.toBe('255px');
+        await expect.poll(
+          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width),
+          { timeout: 5000 }
+        ).toBe('250px');
       });
     });
   });
