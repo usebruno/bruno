@@ -177,7 +177,7 @@ describe('createCollectionFromBrunoObject', () => {
     expect(parsed.examples).toBeDefined();
     expect(parsed.examples).toHaveLength(1);
     expect(parsed.examples[0].name).toBe('Success Response');
-    expect(parsed.examples[0].response.status).toBe('200');
+    expect(Number(parsed.examples[0].response.status)).toBe(200);
     expect(parsed.examples[0].response.body.content).toContain('John');
   });
 
