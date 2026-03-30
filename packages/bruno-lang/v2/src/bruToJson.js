@@ -393,21 +393,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   annotationmultilinetextblock(_1, content, _2) {
     const lines = content.sourceString.split('\n');
-    let minIndent = Infinity;
-    lines.forEach((line) => {
-      if (line.trim() !== '') {
-        const indent = line.match(/^[ \t]*/)[0].length;
-        minIndent = Math.min(minIndent, indent);
-      }
-    });
-    if (!isFinite(minIndent)) minIndent = 0;
-    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent)));
-    // strip leading and trailing blank/whitespace-only lines
-    let start = 0;
-    while (start < dedented.length && dedented[start].trim() === '') start++;
-    let end = dedented.length - 1;
-    while (end >= 0 && dedented[end].trim() === '') end--;
-    return dedented.slice(start, end + 1).join('\n');
+    // NOTE: the number 4 is taken from the `multilinetextblock` implementation
+    let minIndent = 4;
+    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent))).filter(Boolean).join('\n');
+    return dedented;
   },
   annotationargscontents(alt) {
     return alt.ast;
