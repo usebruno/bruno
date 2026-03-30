@@ -111,6 +111,11 @@ function setupProxyAgents({
   interpolationOptions,
   timeline
 }) {
+  // Clear stale agents so we always recreate them for the current URL
+  // (handles protocol switches, host changes, and proxy-bypass rules on redirects).
+  delete requestConfig.httpAgent;
+  delete requestConfig.httpsAgent;
+
   const disableCache = !preferencesUtil.isSslSessionCachingEnabled();
 
   // Ensure TLS options are properly set
