@@ -1016,7 +1016,8 @@ const deleteAssertion = async (page: Page, rowIndex: number) => {
  */
 const saveRequest = async (page: Page) => {
   await test.step('Save request', async () => {
-    await page.keyboard.press('Meta+s');
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
     await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 3000 });
     await page.waitForTimeout(200);
   });
