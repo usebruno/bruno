@@ -2,6 +2,7 @@ import each from 'lodash/each';
 import get from 'lodash/get';
 import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTag, sanitizeTags } from '../common';
+import { swagger2ToBruno } from './swagger2-to-bruno';
 
 // Content type patterns for matching MIME type variants
 // These patterns handle structured types with many variants (e.g., application/ld+json, application/vnd.api+json)
@@ -1410,12 +1411,6 @@ export const parseOpenApiCollection = (data, options = {}) => {
     // Currently parsing of openapi spec is "do your best", that is
     // allows "invalid" openapi spec
 
-    // Assumes v3 if not defined. v2 is not supported yet
-    if (collectionData.openapi && !collectionData.openapi.startsWith('3')) {
-      throw new Error('Only OpenAPI v3 is supported currently.');
-      return;
-    }
-
     brunoCollection.name = collectionData.info?.title?.trim() || 'Untitled Collection';
 
     let servers = collectionData.servers || [];
@@ -1625,6 +1620,9 @@ export const openApiToBruno = (openApiSpecification, options = {}) => {
   try {
     if (typeof openApiSpecification !== 'object') {
       openApiSpecification = jsyaml.load(openApiSpecification);
+    }
+    if (openApiSpecification.swagger && openApiSpecification.swagger.startsWith('2')) {
+      return swagger2ToBruno(openApiSpecification, options);
     }
 
     const collection = parseOpenApiCollection(openApiSpecification, options);
