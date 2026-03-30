@@ -62,8 +62,13 @@ const grammar = ohm.grammar(`Bru {
   // Annotation support (decorators on pairs)
   annotationname = annotationchar+
   annotationchar = ~("(" | ")" | " " | "\\t" | "\\r" | "\\n" | ":") any
-  annotationargchar = ~")" any
-  annotationargvalue = annotationargchar*
+  annotationsinglequotedargchar = ~"'" any
+  annotationsinglequotedarg = "'" annotationsinglequotedargchar* "'"
+  annotationdoublequotedargchar = ~"\\"" any
+  annotationdoublequotedarg = "\\"" annotationdoublequotedargchar* "\\""
+  annotationunquotedargchar = ~")" any
+  annotationunquotedarg = annotationunquotedargchar*
+  annotationargvalue = annotationsinglequotedarg | annotationdoublequotedarg | annotationunquotedarg
   annotationmultilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
   annotationargscontents = annotationmultilinetextblock | annotationargvalue
   annotationargs = "(" annotationargscontents ")"
@@ -381,22 +386,26 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   annotationname(chars) {
     return chars.sourceString;
   },
-  annotationargvalue(chars) {
-    const raw = chars.sourceString;
-    if (
-      raw.length >= 2
-      && ((raw[0] === '\'' && raw[raw.length - 1] === '\'') || (raw[0] === '"' && raw[raw.length - 1] === '"'))
-    ) {
-      return raw.slice(1, -1);
-    }
-    return raw;
+  annotationsinglequotedarg(_open, chars, _close) {
+    return chars.sourceString;
+  },
+  annotationdoublequotedarg(_open, chars, _close) {
+    return chars.sourceString;
+  },
+  annotationunquotedarg(chars) {
+    return chars.sourceString;
+  },
+  annotationargvalue(alt) {
+    return alt.ast;
   },
   annotationmultilinetextblock(_1, content, _2) {
     const lines = content.sourceString.split('\n');
     // NOTE: the number 4 is taken from the `multilinetextblock` implementation
     let minIndent = 4;
-    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent))).filter(Boolean).join('\n');
-    return dedented;
+    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent)));
+    if (dedented.length > 0 && dedented[0] === '') dedented.shift();
+    if (dedented.length > 0 && dedented[dedented.length - 1] === '') dedented.pop();
+    return dedented.join('\n');
   },
   annotationargscontents(alt) {
     return alt.ast;

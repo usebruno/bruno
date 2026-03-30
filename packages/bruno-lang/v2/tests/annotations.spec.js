@@ -477,6 +477,46 @@ headers {
 
     expect(input).toEqual(output);
   });
+
+  it('paren inside single-quoted annotation arg — Token (JWT)', () => {
+    const input = `headers {
+  @description('Token (JWT)') key: value
+}
+`;
+    const output = parser(input);
+    expect(output.headers[0].annotations).toEqual([{ name: 'description', value: 'Token (JWT)' }]);
+  });
+
+  it('paren inside double-quoted annotation arg — Result (OK)', () => {
+    const input = `headers {
+  @description("Result (OK)") key: value
+}
+`;
+    const output = parser(input);
+    expect(output.headers[0].annotations).toEqual([{ name: 'description', value: 'Result (OK)' }]);
+  });
+
+  it('multiple parens inside single-quoted annotation arg', () => {
+    const input = `headers {
+  @description('func(a, b) returns (c)') key: value
+}
+`;
+    const output = parser(input);
+    expect(output.headers[0].annotations).toEqual([{ name: 'description', value: 'func(a, b) returns (c)' }]);
+  });
+
+  it('roundtrip — value containing parens survives json→bru→json — Token (JWT)', () => {
+    const json = {
+      meta: { name: 'test', type: 'http', seq: 1 },
+      http: { method: 'get', url: 'https://example.com' },
+      headers: [
+        { name: 'Authorization', value: 'Bearer token', enabled: true, annotations: [{ name: 'description', value: 'Token (JWT)' }] }
+      ]
+    };
+    const bru = jsonToBru(json);
+    const parsed = parser(bru);
+    expect(parsed.headers[0].annotations).toEqual([{ name: 'description', value: 'Token (JWT)' }]);
+  });
 });
 
 describe('env pair annotations', () => {
