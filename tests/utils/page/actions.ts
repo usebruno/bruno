@@ -153,7 +153,8 @@ const createUntitledRequest = async (
       await tagInput.press('Enter');
       await page.waitForTimeout(200);
       await expect(page.locator('.tag-item', { hasText: tag })).toBeVisible();
-      await page.keyboard.press('Meta+s');
+      const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+      await page.keyboard.press(saveShortcut);
       await page.waitForTimeout(200);
     }
 
