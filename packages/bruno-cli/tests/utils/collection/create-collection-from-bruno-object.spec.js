@@ -124,6 +124,63 @@ describe('createCollectionFromBrunoObject', () => {
     expect(nestedRequest).toHaveProperty('request.method', 'GET');
   });
 
+  it('writes examples from imported collection items', async () => {
+    createOutputDir();
+
+    await createCollectionFromBrunoObject(
+      {
+        name: 'examples-collection',
+        items: [
+          {
+            type: 'http-request',
+            name: 'Get Users',
+            filename: 'get-users.bru',
+            seq: 1,
+            request: {
+              method: 'GET',
+              url: 'https://api.example.com/users'
+            },
+            examples: [
+              {
+                uid: 'ex1',
+                name: 'Success Response',
+                type: 'http-request',
+                request: {
+                  url: 'https://api.example.com/users',
+                  method: 'GET',
+                  headers: [],
+                  params: [],
+                  body: { mode: 'none' }
+                },
+                response: {
+                  status: 200,
+                  statusText: 'OK',
+                  headers: [{ uid: 'h1', name: 'Content-Type', value: 'application/json', enabled: true }],
+                  body: {
+                    type: 'json',
+                    content: JSON.stringify([{ id: 1, name: 'John' }], null, 2)
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      outputDir,
+      { format: 'bru' }
+    );
+
+    const httpPath = path.join(outputDir, 'get-users.bru');
+    expect(fs.existsSync(httpPath)).toBe(true);
+
+    const parsed = parseBruRequestFromPath(httpPath);
+    expect(parsed.examples).toBeDefined();
+    expect(parsed.examples).toHaveLength(1);
+    expect(parsed.examples[0].name).toBe('Success Response');
+    expect(parsed.examples[0].response.status).toBe('200');
+    expect(parsed.examples[0].response.body.content).toContain('John');
+  });
+
   it('throws for unsupported item types', async () => {
     createOutputDir();
 
