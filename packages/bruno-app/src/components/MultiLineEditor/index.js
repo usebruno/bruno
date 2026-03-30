@@ -20,6 +20,7 @@ class MultiLineEditor extends Component {
     this.editorRef = React.createRef();
     this.variables = {};
     this.readOnly = props.readOnly || false;
+    this._hasUncommittedUserEdits = false;
 
     this.state = {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
@@ -92,6 +93,7 @@ class MultiLineEditor extends Component {
 
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
+    this.editor.on('blur', this._onBlur);
     this.addOverlay(variables);
 
     // Initialize masking if this is a secret field
@@ -101,11 +103,16 @@ class MultiLineEditor extends Component {
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
+      this._hasUncommittedUserEdits = true;
       this.cachedValue = this.editor.getValue();
       if (this.props.onChange) {
         this.props.onChange(this.cachedValue);
       }
     }
+  };
+
+  _onBlur = () => {
+    this._hasUncommittedUserEdits = false;
   };
 
   /** Enable or disable masking the rendered content of the editor */
@@ -153,20 +160,24 @@ class MultiLineEditor extends Component {
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
       this.editor.setOption('readOnly', this.props.readOnly);
     }
-    if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
-      const nextValue = String(this.props.value ?? '');
-      const currentValue = this.editor.getValue();
-      if (this.editor.hasFocus?.() && currentValue !== nextValue) {
-        this.cachedValue = currentValue;
+    if (this.props.value !== prevProps.value && this.editor) {
+      if (this.props.value === this.cachedValue) {
+        this._hasUncommittedUserEdits = false;
       } else {
-        const cursor = this.editor.getCursor();
-        this.cachedValue = nextValue;
-        this.editor.setValue(nextValue);
-        this.editor.setCursor(cursor);
-        // Re-apply masking after setValue() since it destroys all CodeMirror marks
-        if (this.maskedEditor && this.maskedEditor.isEnabled()) {
-          this.maskedEditor.update();
+        const nextValue = String(this.props.value ?? '');
+        const currentValue = this.editor.getValue();
+        if (this._hasUncommittedUserEdits && currentValue !== nextValue) {
+          this.cachedValue = currentValue;
+        } else {
+          this._hasUncommittedUserEdits = false;
+          const cursor = this.editor.getCursor();
+          this.cachedValue = nextValue;
+          this.editor.setValue(nextValue);
+          this.editor.setCursor(cursor);
+          // Re-apply masking after setValue() since it destroys all CodeMirror marks
+          if (this.maskedEditor && this.maskedEditor.isEnabled()) {
+            this.maskedEditor.update();
+          }
         }
       }
     }
@@ -192,6 +203,9 @@ class MultiLineEditor extends Component {
     if (this.maskedEditor) {
       this.maskedEditor.destroy();
       this.maskedEditor = null;
+    }
+    if (this.editor) {
+      this.editor.off('blur', this._onBlur);
     }
     this.editor.getWrapperElement().remove();
   }

@@ -20,6 +20,7 @@ class SingleLineEditor extends Component {
     this.editorRef = React.createRef();
     this.variables = {};
     this.readOnly = props.readOnly || false;
+    this._hasUncommittedUserEdits = false;
 
     this.state = {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
@@ -99,6 +100,7 @@ class SingleLineEditor extends Component {
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);
+    this.editor.on('blur', this._onBlur);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
@@ -128,6 +130,7 @@ class SingleLineEditor extends Component {
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
+      this._hasUncommittedUserEdits = true;
       this.cachedValue = this.editor.getValue();
       if (this.props.onChange && (this.props.value !== this.cachedValue)) {
         this.props.onChange(this.cachedValue);
@@ -140,7 +143,14 @@ class SingleLineEditor extends Component {
     }
   };
 
-  _onPaste = (_, event) => this.props.onPaste?.(event);
+  _onPaste = (_, event) => {
+    this._hasUncommittedUserEdits = false;
+    this.props.onPaste?.(event);
+  };
+
+  _onBlur = () => {
+    this._hasUncommittedUserEdits = false;
+  };
 
   componentDidUpdate(prevProps) {
     // Ensure the changes caused by this update are not interpreted as
@@ -168,25 +178,29 @@ class SingleLineEditor extends Component {
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
-    if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
-      const nextValue = String(this.props.value ?? '');
-      const currentValue = this.editor.getValue();
-      if (this.editor.hasFocus?.() && currentValue !== nextValue && nextValue !== '') {
-        this.cachedValue = currentValue;
+    if (this.props.value !== prevProps.value && this.editor) {
+      if (this.props.value === this.cachedValue) {
+        this._hasUncommittedUserEdits = false;
       } else {
-        const cursor = this.editor.getCursor();
-        this.cachedValue = nextValue;
-        this.editor.setValue(nextValue);
-        this.editor.setCursor(cursor);
-        // Re-apply masking after setValue() since it destroys all CodeMirror marks
-        if (this.maskedEditor && this.maskedEditor.isEnabled()) {
-          this.maskedEditor.update();
-        }
+        const nextValue = String(this.props.value ?? '');
+        const currentValue = this.editor.getValue();
+        if (this._hasUncommittedUserEdits && currentValue !== nextValue && nextValue !== '') {
+          this.cachedValue = currentValue;
+        } else {
+          this._hasUncommittedUserEdits = false;
+          const cursor = this.editor.getCursor();
+          this.cachedValue = nextValue;
+          this.editor.setValue(nextValue);
+          this.editor.setCursor(cursor);
+          // Re-apply masking after setValue() since it destroys all CodeMirror marks
+          if (this.maskedEditor && this.maskedEditor.isEnabled()) {
+            this.maskedEditor.update();
+          }
 
-        // Update newline markers after value change
-        if (this.props.showNewlineArrow) {
-          this._updateNewlineMarkers();
+          // Update newline markers after value change
+          if (this.props.showNewlineArrow) {
+            this._updateNewlineMarkers();
+          }
         }
       }
     }
@@ -212,6 +226,7 @@ class SingleLineEditor extends Component {
       }
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
+      this.editor.off('blur', this._onBlur);
       this._clearNewlineMarkers();
       this.editor.getWrapperElement().remove();
       this.editor = null;

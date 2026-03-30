@@ -50,6 +50,7 @@ export default class QueryEditor extends React.Component {
     // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
+    this._hasUncommittedUserEdits = false;
   }
 
   componentDidMount() {
@@ -155,6 +156,7 @@ export default class QueryEditor extends React.Component {
       editor.on('keyup', this._onKeyUp);
       editor.on('hasCompletion', this._onHasCompletion);
       editor.on('beforeChange', this._onBeforeChange);
+      editor.on('blur', this._onBlur);
     }
     this.addOverlay();
 
@@ -173,15 +175,19 @@ export default class QueryEditor extends React.Component {
       this.editor.options.jump.schema = this.props.schema;
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
-    if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
-      const nextValue = this.props.value ?? '';
-      const currentValue = this.editor.getValue();
-      if (this.editor.hasFocus?.() && currentValue !== nextValue) {
-        this.cachedValue = currentValue;
+    if (this.props.value !== prevProps.value && this.editor) {
+      if (this.props.value === this.cachedValue) {
+        this._hasUncommittedUserEdits = false;
       } else {
-        this.cachedValue = nextValue;
-        this.editor.setValue(nextValue);
+        const nextValue = this.props.value ?? '';
+        const currentValue = this.editor.getValue();
+        if (this._hasUncommittedUserEdits && currentValue !== nextValue) {
+          this.cachedValue = currentValue;
+        } else {
+          this._hasUncommittedUserEdits = false;
+          this.cachedValue = nextValue;
+          this.editor.setValue(nextValue);
+        }
       }
     }
 
@@ -205,6 +211,7 @@ export default class QueryEditor extends React.Component {
       this.editor.off('keyup', this._onKeyUp);
       this.editor.off('hasCompletion', this._onHasCompletion);
       this.editor.off('beforeChange', this._onBeforeChange);
+      this.editor.off('blur', this._onBlur);
       // Remove the CodeMirror DOM element so React 18 Strict Mode's
       // unmount-remount cycle doesn't leave an orphaned instance behind.
       const wrapper = this.editor.getWrapperElement();
@@ -271,8 +278,13 @@ export default class QueryEditor extends React.Component {
     }
   };
 
+  _onBlur = () => {
+    this._hasUncommittedUserEdits = false;
+  };
+
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
+      this._hasUncommittedUserEdits = true;
       this.cachedValue = this.editor.getValue();
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);

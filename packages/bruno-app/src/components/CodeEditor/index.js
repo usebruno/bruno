@@ -33,6 +33,7 @@ export default class CodeEditor extends React.Component {
     // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
+    this._hasUncommittedUserEdits = false;
     this.searchResultsCountElementId = 'search-results-count';
     this.searchBarRef = createRef();
 
@@ -197,6 +198,7 @@ export default class CodeEditor extends React.Component {
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
+      editor.on('blur', this._onBlur);
       editor.scrollTo(null, this.props.initialScroll);
       this.addOverlay();
 
@@ -232,18 +234,22 @@ export default class CodeEditor extends React.Component {
       this.editor.options.jump.schema = this.props.schema;
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
-    if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
-      const nextValue = this.props.value ?? '';
-      const currentValue = this.editor.getValue();
-      // Skip updating only when focused and editable; read-only editors (e.g. response viewer) must always show new value
-      if (this.editor.hasFocus?.() && currentValue !== nextValue && !this.props.readOnly) {
-        this.cachedValue = currentValue;
+    if (this.props.value !== prevProps.value && this.editor) {
+      if (this.props.value === this.cachedValue) {
+        this._hasUncommittedUserEdits = false;
       } else {
-        const cursor = this.editor.getCursor();
-        this.cachedValue = nextValue;
-        this.editor.setValue(nextValue);
-        this.editor.setCursor(cursor);
+        const nextValue = this.props.value ?? '';
+        const currentValue = this.editor.getValue();
+        // Skip updating only when user is actively editing and editor is editable; read-only editors must always show new value
+        if (this._hasUncommittedUserEdits && currentValue !== nextValue && !this.props.readOnly) {
+          this.cachedValue = currentValue;
+        } else {
+          this._hasUncommittedUserEdits = false;
+          const cursor = this.editor.getCursor();
+          this.cachedValue = nextValue;
+          this.editor.setValue(nextValue);
+          this.editor.setCursor(cursor);
+        }
       }
     }
 
@@ -295,6 +301,7 @@ export default class CodeEditor extends React.Component {
 
       this.editor?._destroyLinkAware?.();
       this.editor.off('change', this._onEdit);
+      this.editor.off('blur', this._onBlur);
 
       // Clean up lint error tooltip
       this.cleanupLintErrorTooltip?.();
@@ -349,8 +356,13 @@ export default class CodeEditor extends React.Component {
     this.editor.setOption('mode', 'brunovariables');
   };
 
+  _onBlur = () => {
+    this._hasUncommittedUserEdits = false;
+  };
+
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
+      this._hasUncommittedUserEdits = true;
       this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
       this.cachedValue = this.editor.getValue();
       if (this.props.onEdit) {
