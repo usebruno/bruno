@@ -2,7 +2,7 @@ const rollup = require('rollup');
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const fs = require('fs');
-const { terser } = require('rollup-plugin-terser');
+const terser = require('@rollup/plugin-terser').default;
 
 const bundleLibraries = async () => {
   const codeScript = `

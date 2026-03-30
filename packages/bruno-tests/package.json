@@ -28,6 +28,7 @@
     "fast-xml-parser": "^5.0.8",
     "graphql": "^16.10.0",
     "graphql-yoga": "^5.10.6",
+    "fast-xml-parser": "^5.5.7",
     "http-proxy": "^1.18.1",
     "js-yaml": "^4.1.1",
     "jsonwebtoken": "^9.0.3",
