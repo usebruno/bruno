@@ -1,6 +1,22 @@
 const _ = require('lodash');
 const { getValueString, indentString } = require('./utils');
 
+const serializeAnnotations = (annotations) => {
+  if (!annotations?.length) return '';
+  return (
+    annotations
+      .map((a) => {
+        if (a.value === undefined) return `@${a.name}`;
+        if (a.value.includes('\n')) {
+          return `@${a.name}('''\n${indentString(a.value)}\n''')`;
+        }
+        const quote = a.value.includes('\'') ? '"' : '\'';
+        return `@${a.name}(${quote}${a.value}${quote})`;
+      })
+      .join(' ') + ' '
+  );
+};
+
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);
   const color = _.get(json, 'color', null);
@@ -8,10 +24,10 @@ const envToJson = (json) => {
   const vars = variables
     .filter((variable) => !variable.secret)
     .map((variable) => {
-      const { name, value, enabled } = variable;
+      const { name, value, enabled, annotations } = variable;
       const prefix = enabled ? '' : '~';
 
-      return indentString(`${prefix}${name}: ${getValueString(value)}`);
+      return indentString(`${serializeAnnotations(annotations)}${prefix}${name}: ${getValueString(value)}`);
     });
 
   const secretVars = variables

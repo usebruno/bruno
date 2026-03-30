@@ -1,5 +1,9 @@
 const parser = require('../src/bruToJson');
 const jsonToBru = require('../src/jsonToBru');
+const envParser = require('../src/envToJson');
+const jsonToEnv = require('../src/jsonToEnv');
+const collectionParser = require('../src/collectionBruToJson');
+const jsonToCollectionBru = require('../src/jsonToCollectionBru');
 const fs = require('fs');
 const path = require('path');
 
@@ -472,5 +476,283 @@ headers {
     const output = parser(parsed);
 
     expect(input).toEqual(output);
+  });
+});
+
+describe('env pair annotations', () => {
+  it('inline annotation with string arg on a var', () => {
+    const input = `vars {
+  @description('my api key') API_KEY: abc123
+}
+`;
+    const output = envParser(input);
+    expect(output.variables).toEqual([
+      { name: 'API_KEY', value: 'abc123', enabled: true, secret: false, annotations: [{ name: 'description', value: 'my api key' }] }
+    ]);
+  });
+
+  it('above-line annotation on a var', () => {
+    const input = `vars {
+  @deprecated
+  OLD_KEY: old_value
+}
+`;
+    const output = envParser(input);
+    expect(output.variables).toEqual([
+      { name: 'OLD_KEY', value: 'old_value', enabled: true, secret: false, annotations: [{ name: 'deprecated' }] }
+    ]);
+  });
+
+  it('annotation without args on a var', () => {
+    const input = `vars {
+  @string API_KEY: abc
+}
+`;
+    const output = envParser(input);
+    expect(output.variables[0].annotations).toEqual([{ name: 'string' }]);
+  });
+
+  it('multiple annotations on a var', () => {
+    const input = `vars {
+  @string @description('base url') BASE_URL: http://localhost
+}
+`;
+    const output = envParser(input);
+    expect(output.variables[0].annotations).toEqual([{ name: 'string' }, { name: 'description', value: 'base url' }]);
+  });
+
+  it('disabled var with annotation', () => {
+    const input = `vars {
+  @deprecated ~OLD_KEY: old_value
+}
+`;
+    const output = envParser(input);
+    expect(output.variables).toEqual([
+      { name: 'OLD_KEY', value: 'old_value', enabled: false, secret: false, annotations: [{ name: 'deprecated' }] }
+    ]);
+  });
+
+  it('no annotation — output unchanged (backward compat)', () => {
+    const input = `vars {
+  API_KEY: abc123
+}
+`;
+    const output = envParser(input);
+    expect(output.variables[0]).not.toHaveProperty('annotations');
+    expect(output.variables[0]).toEqual({ name: 'API_KEY', value: 'abc123', enabled: true, secret: false });
+  });
+
+  it('secret vars are unaffected by annotation support', () => {
+    const input = `vars:secret [
+  SECRET_KEY
+]
+`;
+    const output = envParser(input);
+    expect(output.variables).toEqual([{ name: 'SECRET_KEY', value: '', enabled: true, secret: true }]);
+  });
+
+  it('serializeAnnotations in jsonToEnv — annotation without value', () => {
+    const json = {
+      variables: [{ name: 'API_KEY', value: 'abc', enabled: true, secret: false, annotations: [{ name: 'deprecated' }] }]
+    };
+    const bru = jsonToEnv(json);
+    expect(bru).toContain('@deprecated API_KEY: abc');
+  });
+
+  it('serializeAnnotations in jsonToEnv — annotation with value', () => {
+    const json = {
+      variables: [{ name: 'BASE_URL', value: 'http://localhost', enabled: true, secret: false, annotations: [{ name: 'description', value: 'base url' }] }]
+    };
+    const bru = jsonToEnv(json);
+    expect(bru).toContain('@description(\'base url\') BASE_URL: http://localhost');
+  });
+
+  it('serializeAnnotations in jsonToEnv — disabled var with annotation', () => {
+    const json = {
+      variables: [{ name: 'OLD_KEY', value: 'old', enabled: false, secret: false, annotations: [{ name: 'deprecated' }] }]
+    };
+    const bru = jsonToEnv(json);
+    expect(bru).toContain('@deprecated ~OLD_KEY: old');
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - env vars', () => {
+    const input = `vars {
+  @description('api key') API_KEY: abc123
+}
+`;
+    const parsed = envParser(input);
+    const output = jsonToEnv(parsed);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - env vars', () => {
+    const input = {
+      variables: [{ name: 'API_KEY', value: 'abc123', enabled: true, secret: false, annotations: [{ name: 'description', value: 'api key' }] }]
+    };
+    const bru = jsonToEnv(input);
+    const output = envParser(bru);
+    expect(output).toEqual(input);
+  });
+});
+
+describe('collection pair annotations', () => {
+  it('inline annotation on a header', () => {
+    const input = `headers {
+  @description('content type') content-type: application/json
+}
+`;
+    const output = collectionParser(input);
+    expect(output.headers).toEqual([
+      { name: 'content-type', value: 'application/json', enabled: true, annotations: [{ name: 'description', value: 'content type' }] }
+    ]);
+  });
+
+  it('above-line annotation on a header', () => {
+    const input = `headers {
+  @deprecated
+  old-header: old-value
+}
+`;
+    const output = collectionParser(input);
+    expect(output.headers).toEqual([
+      { name: 'old-header', value: 'old-value', enabled: true, annotations: [{ name: 'deprecated' }] }
+    ]);
+  });
+
+  it('annotation on a query param', () => {
+    const input = `query {
+  @string q: search
+}
+`;
+    const output = collectionParser(input);
+    expect(output.query).toEqual([
+      { name: 'q', value: 'search', enabled: true, annotations: [{ name: 'string' }] }
+    ]);
+  });
+
+  it('disabled header with annotation', () => {
+    const input = `headers {
+  @deprecated ~x-old: value
+}
+`;
+    const output = collectionParser(input);
+    expect(output.headers).toEqual([
+      { name: 'x-old', value: 'value', enabled: false, annotations: [{ name: 'deprecated' }] }
+    ]);
+  });
+
+  it('annotation on vars:pre-request', () => {
+    const input = `vars:pre-request {
+  @description('base url') BASE_URL: http://localhost
+}
+`;
+    const output = collectionParser(input);
+    expect(output.vars.req).toEqual([
+      { name: 'BASE_URL', value: 'http://localhost', enabled: true, local: false, annotations: [{ name: 'description', value: 'base url' }] }
+    ]);
+  });
+
+  it('annotation on vars:post-response', () => {
+    const input = `vars:post-response {
+  @string token: abc
+}
+`;
+    const output = collectionParser(input);
+    expect(output.vars.res).toEqual([
+      { name: 'token', value: 'abc', enabled: true, local: false, annotations: [{ name: 'string' }] }
+    ]);
+  });
+
+  it('local var (@-prefixed) is not misidentified as annotation', () => {
+    const input = `vars:pre-request {
+  @localVar: http://localhost
+}
+`;
+    const output = collectionParser(input);
+    expect(output.vars.req).toEqual([
+      { name: 'localVar', value: 'http://localhost', enabled: true, local: true }
+    ]);
+    expect(output.vars.req[0]).not.toHaveProperty('annotations');
+  });
+
+  it('no annotation — output unchanged (backward compat)', () => {
+    const input = `headers {
+  content-type: application/json
+}
+`;
+    const output = collectionParser(input);
+    expect(output.headers[0]).not.toHaveProperty('annotations');
+    expect(output.headers[0]).toEqual({ name: 'content-type', value: 'application/json', enabled: true });
+  });
+
+  it('serializeAnnotations in jsonToCollectionBru — header without value', () => {
+    const json = {
+      headers: [{ name: 'x-key', value: 'val', enabled: true, annotations: [{ name: 'string' }] }]
+    };
+    const bru = jsonToCollectionBru(json);
+    expect(bru).toContain('@string x-key: val');
+  });
+
+  it('serializeAnnotations in jsonToCollectionBru — header with annotation value', () => {
+    const json = {
+      headers: [{ name: 'content-type', value: 'application/json', enabled: true, annotations: [{ name: 'description', value: 'content type' }] }]
+    };
+    const bru = jsonToCollectionBru(json);
+    expect(bru).toContain('@description(\'content type\') content-type: application/json');
+  });
+
+  it('serializeAnnotations in jsonToCollectionBru — disabled header with annotation', () => {
+    const json = {
+      headers: [{ name: 'x-old', value: 'val', enabled: false, annotations: [{ name: 'deprecated' }] }]
+    };
+    const bru = jsonToCollectionBru(json);
+    expect(bru).toContain('@deprecated ~x-old: val');
+  });
+
+  it('serializeAnnotations in jsonToCollectionBru — query param with annotation', () => {
+    const json = {
+      query: [{ name: 'q', value: 'search', enabled: true, annotations: [{ name: 'string' }] }]
+    };
+    const bru = jsonToCollectionBru(json);
+    expect(bru).toContain('@string q: search');
+  });
+
+  it('serializeAnnotations in jsonToCollectionBru — vars:pre-request with annotation', () => {
+    const json = {
+      vars: {
+        req: [{ name: 'BASE_URL', value: 'http://localhost', enabled: true, local: false, annotations: [{ name: 'description', value: 'base url' }] }]
+      }
+    };
+    const bru = jsonToCollectionBru(json);
+    expect(bru).toContain('@description(\'base url\') BASE_URL: http://localhost');
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - collection headers', () => {
+    const input = `headers {
+  @description('content type') content-type: application/json
+}
+`;
+    const parsed = collectionParser(input);
+    const output = jsonToCollectionBru(parsed);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - collection headers', () => {
+    const input = {
+      headers: [{ name: 'content-type', value: 'application/json', enabled: true, annotations: [{ name: 'description', value: 'content type' }] }]
+    };
+    const bru = jsonToCollectionBru(input);
+    const output = collectionParser(bru);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - collection vars:pre-request', () => {
+    const input = `vars:pre-request {
+  @description('base url') BASE_URL: http://localhost
+}
+`;
+    const parsed = collectionParser(input);
+    const output = jsonToCollectionBru(parsed);
+    expect(output).toEqual(input);
   });
 });
