@@ -27,6 +27,20 @@ const setupGraphQL = async (app) => {
           author: User!
         }
 
+        type Company {
+          ceo: String
+          name: String
+          founder: String
+        }
+
+        input ICreate {
+          id: String!
+        }
+
+        type Message {
+          success: Boolean
+        }
+
         union SearchResult = User | Post
 
         input CreateUserInput {
@@ -48,6 +62,7 @@ const setupGraphQL = async (app) => {
         }
 
         type Query {
+          company: Company
           user(id: ID!): User
           users(limit: Int, offset: Int): [User!]!
           post(id: ID!): Post
@@ -55,6 +70,7 @@ const setupGraphQL = async (app) => {
         }
 
         type Mutation {
+          create(payload: ICreate!): Message
           createUser(input: CreateUserInput!): User!
           updateUser(id: ID!, input: UpdateUserInput!): User
           deleteUser(id: ID!): Boolean!
@@ -63,6 +79,11 @@ const setupGraphQL = async (app) => {
       `,
       resolvers: {
         Query: {
+          company: () => ({
+            ceo: 'Elon Musk',
+            name: 'SpaceX',
+            founder: 'Elon Musk'
+          }),
           user: (_parent, args) => ({
             id: args.id,
             name: 'John Doe',
@@ -84,6 +105,9 @@ const setupGraphQL = async (app) => {
           search: () => []
         },
         Mutation: {
+          create: () => ({
+            success: true
+          }),
           createUser: (_parent, { input }) => ({
             id: '3',
             ...input,
