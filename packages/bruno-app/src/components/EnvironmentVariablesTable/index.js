@@ -45,10 +45,10 @@ const EnvironmentVariablesTable = ({
 }) => {
   const { storedTheme } = useTheme();
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
-  const activeWorkspaceUid = useSelector((state) => state.workspaces?.activeWorkspaceUid);
-  const activeWorkspace = useSelector((state) =>
-    state.workspaces?.workspaces?.find((w) => w.uid === activeWorkspaceUid)
-  );
+  const activeWorkspace = useSelector((state) => {
+    const uid = state.workspaces?.activeWorkspaceUid;
+    return state.workspaces?.workspaces?.find((w) => w.uid === uid);
+  });
 
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
