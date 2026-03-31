@@ -24,6 +24,7 @@ const Wrapper = styled.div`
   }
 
   .file-value-cell {
+    width: 100%;
 
     .file-name {
       font-size: 12px;
@@ -32,6 +33,8 @@ const Wrapper = styled.div`
   }
 
   .value-cell {
+    width: 100%;
+
     .flex-1 {
       min-width: 0;
     }

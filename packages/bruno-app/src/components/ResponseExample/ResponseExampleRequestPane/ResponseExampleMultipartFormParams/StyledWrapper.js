@@ -69,6 +69,19 @@ const Wrapper = styled.div`
     }
   }
 
+  .upload-btn,
+  .clear-file-btn {
+    flex-shrink: 0;
+  }
+
+  .value-cell {
+    width: 100%;
+
+    .flex-1 {
+      min-width: 0;
+    }
+  }
+
   .delete-button {
     opacity: 0;
     visibility: hidden;
