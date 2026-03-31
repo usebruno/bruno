@@ -17,7 +17,7 @@ const serializeAnnotations = (annotations) => {
         const quote = a.value.includes('\'') ? '"' : '\'';
         return `@${a.name}(${quote}${a.value}${quote})`;
       })
-      .join(' ') + ' '
+      .join('\n') + '\n'
   );
 };
 

@@ -73,7 +73,7 @@ const grammar = ohm.grammar(`Bru {
   annotationargscontents = annotationmultilinetextblock | annotationargvalue
   annotationargs = "(" annotationargscontents ")"
   annotation = "@" annotationname annotationargs?
-  annotationentry = st* annotation ~":" st* nl?
+  annotationentry = st* annotation ~":" st* nl
   pairannotations = annotationentry*
 
   // Dictionary Blocks
