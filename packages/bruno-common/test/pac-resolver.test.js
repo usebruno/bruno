@@ -80,6 +80,71 @@ describe('pac-resolver wrapper', () => {
     expect(out).toEqual([]);
   });
 
+  test('rejects when fetch throws a network error', async () => {
+    const mockFetch = jest.fn().mockRejectedValue(new Error('ECONNREFUSED'));
+    jest.doMock('node-fetch', () => mockFetch);
+    jest.doMock('pac-resolver', () => jest.fn());
+
+    const { getPacResolver } = require('../src/net/pac-resolver');
+    await expect(getPacResolver({ pacUrl: 'http://unreachable/proxy.pac' })).rejects.toThrow('ECONNREFUSED');
+  });
+
+  test('rejects when PAC server returns a non-ok status', async () => {
+    const mockFetch = jest.fn().mockResolvedValue({ ok: false, status: 404 });
+    jest.doMock('node-fetch', () => mockFetch);
+    jest.doMock('pac-resolver', () => jest.fn());
+
+    const { getPacResolver } = require('../src/net/pac-resolver');
+    await expect(getPacResolver({ pacUrl: 'http://example.com/missing.pac' })).rejects.toThrow('Failed to fetch PAC (404)');
+  });
+
+  test('re-downloads PAC after cache TTL expires', async () => {
+    const mockFetch = jest.fn().mockResolvedValue({ ok: true, text: async () => 'script' });
+    jest.doMock('node-fetch', () => mockFetch);
+
+    const pacMock = jest.fn((script) => async (url, host) => 'DIRECT');
+    jest.doMock('pac-resolver', () => pacMock);
+
+    const { getPacResolver } = require('../src/net/pac-resolver');
+
+    const pacUrl = 'http://example.com/proxy.pac';
+    const ttlMs = 100;
+
+    // First call — downloads and caches
+    const w1 = await getPacResolver({ pacUrl, opts: { cacheTtlMs: ttlMs } });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    // Simulate TTL expiry by moving Date.now() forward
+    const realNow = Date.now;
+    Date.now = () => realNow() + ttlMs + 1;
+    try {
+      const w2 = await getPacResolver({ pacUrl, opts: { cacheTtlMs: ttlMs } });
+      // Should have been re-downloaded, so fetch called twice
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      // New wrapper instance after re-download
+      expect(w2).not.toBe(w1);
+    } finally {
+      Date.now = realNow;
+    }
+  });
+
+  test('resolve propagates error from a malformed PAC script', async () => {
+    const mockFetch = jest.fn().mockResolvedValue({ ok: true, text: async () => 'not valid JS {{{{' });
+    jest.doMock('node-fetch', () => mockFetch);
+
+    // Simulate pac-resolver compiling successfully but throwing at resolve time
+    const pacMock = jest.fn((script) => {
+      return async (url, host) => {
+        throw new Error('invalid PAC script');
+      };
+    });
+    jest.doMock('pac-resolver', () => pacMock);
+
+    const { getPacResolver } = require('../src/net/pac-resolver');
+    const wrapper = await getPacResolver({ pacUrl: 'http://example.com/bad.pac' });
+    await expect(wrapper.resolve('http://example.com/')).rejects.toThrow('invalid PAC script');
+  });
+
   test('clearCache clears entries by prefix and entirely', async () => {
     const mockFetch = jest.fn().mockResolvedValue({ ok: true, text: async () => 'script' });
     jest.doMock('node-fetch', () => mockFetch);
