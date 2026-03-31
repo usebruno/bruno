@@ -1,4 +1,5 @@
-const pac = require('pac-resolver');
+const { createPacResolver } = require('pac-resolver');
+const { getQuickJS } = require('quickjs-emscripten');
 const fetch = require('node-fetch');
 
 // Prefer native/global AbortController when available, otherwise try to use
@@ -8,7 +9,7 @@ if (!AbortController) {
   try {
     // this package may not be installed in all environments
     // requiring it is best-effort — if it fails we'll use a safe noop fallback below
-     
+
     AbortController = require('abort-controller');
   } catch (e) {
     AbortController = null;
@@ -18,6 +19,13 @@ const crypto = require('crypto');
 
 // Simple in-memory cache for compiled resolvers
 const CACHE = new Map();
+
+// QuickJS singleton — initialized once, reused for all PAC compilations
+let qjsPromise = null;
+function getQJS() {
+  if (!qjsPromise) qjsPromise = getQuickJS();
+  return qjsPromise;
+}
 
 function hash(input) {
   return crypto.createHash('sha256').update(input).digest('hex');
@@ -68,9 +76,10 @@ async function getPacResolver({ pacUrl, opts = {} }) {
       return cached.wrapper;
     }
 
-    // download
+    // download and compile using QuickJS sandbox (fixes CVE GHSA-9j49-mfvp-vmhm)
     const script = await downloadPac(pacUrl, opts.timeoutMs || 5000);
-    const resolverFn = pac(script);
+    const qjs = await getQJS();
+    const resolverFn = createPacResolver(qjs, script);
     const wrapper = createWrapper(resolverFn);
     CACHE.set(key, { wrapper, ts: Date.now() });
     return wrapper;
