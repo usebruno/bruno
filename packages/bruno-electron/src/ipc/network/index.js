@@ -1623,7 +1623,7 @@ const registerNetworkIpc = (mainWindow) => {
               const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.dataBuffer = dataBuffer;
-              response.responseTime = response.headers.get('request-duration');
+              response.responseTime = measureResponseTime(response.config, response.headers, false);
               response.headers.delete('request-duration');
 
               // save cookies
@@ -1661,7 +1661,7 @@ const registerNetworkIpc = (mainWindow) => {
               if (error?.response) {
                 error.response.data = await promisifyStream(error.response.data, currentAbortController, false);
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
-                error.response.responseTime = error.response.headers.get('request-duration');
+                error.response.responseTime = measureResponseTime(error.response.config, error.response.headers, false);
                 error.response.headers.delete('request-duration');
                 error.response.data = data;
                 error.response.dataBuffer = dataBuffer;
