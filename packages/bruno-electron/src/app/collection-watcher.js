@@ -958,6 +958,17 @@ class CollectionWatcher {
       .filter(([path, watcher]) => !!watcher)
       .map(([path, _watcher]) => path);
   }
+
+  closeAllWatchers() {
+    for (const [watchPath, watcher] of Object.entries(this.watchers)) {
+      if (watcher) {
+        try {
+          watcher.close();
+        } catch (err) {}
+      }
+    }
+    this.watchers = {};
+  }
 }
 
 const collectionWatcher = new CollectionWatcher();

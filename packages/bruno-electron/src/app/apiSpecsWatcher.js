@@ -141,6 +141,18 @@ class ApiSpecWatcher {
       delete this.watcherWorkspaces[watchPath];
     }
   }
+
+  closeAllWatchers() {
+    for (const [watchPath, watcher] of Object.entries(this.watchers)) {
+      if (watcher) {
+        try {
+          watcher.close();
+        } catch (err) {}
+      }
+    }
+    this.watchers = {};
+    this.watcherWorkspaces = {};
+  }
 }
 
 module.exports = ApiSpecWatcher;

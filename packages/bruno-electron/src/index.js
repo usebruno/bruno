@@ -387,6 +387,9 @@ app.on('ready', async () => {
 
   mainWindow.on('close', (e) => {
     e.preventDefault();
+    collectionWatcher.closeAllWatchers();
+    workspaceWatcher.closeAllWatchers();
+    apiSpecWatcher.closeAllWatchers();
     terminalManager.cleanup(mainWindow.webContents);
     ipcMain.emit('main:start-quit-flow');
   });
@@ -459,6 +462,9 @@ app.on('ready', async () => {
 
 // Quit the app once all windows are closed
 app.on('before-quit', () => {
+  collectionWatcher.closeAllWatchers();
+  workspaceWatcher.closeAllWatchers();
+  apiSpecWatcher.closeAllWatchers();
   // Release single instance lock to allow other instances to take over
   if (useSingleInstance && gotTheLock) {
     app.releaseSingleInstanceLock();
