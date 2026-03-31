@@ -1615,6 +1615,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       await page.keyboard.up('Alt');
 
       await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible({ timeout: 2000 });
+
+      // Rest Default - just in case to not fail shortcuts in other places
+      await openKeybindingsTab(page);
+      await page.getByTestId('reset-all-keybindings-btn').click({ timeout: 2000 });
     });
   });
 });

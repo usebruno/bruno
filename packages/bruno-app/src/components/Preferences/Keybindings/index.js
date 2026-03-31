@@ -798,6 +798,7 @@ const Keybindings = () => {
           <button
             onClick={resetAllKeybindings}
             className="reset-btn"
+            data-testid="reset-all-keybindings-btn"
           >
             Reset Default
           </button>
