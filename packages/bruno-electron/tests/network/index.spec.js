@@ -62,11 +62,14 @@ describe('index: promisifyStream', () => {
 describe('index: measureResponseTime', () => {
   it('returns elapsed ms from request-start-time for non-stream response', () => {
     jest.useFakeTimers();
-    jest.setSystemTime(1000000);
-    const config = { headers: { 'request-start-time': 1000000 - 150 } };
-    const headers = { get: () => null };
-    expect(measureResponseTime(config, headers, false)).toBe(150);
-    jest.useRealTimers();
+    try {
+      jest.setSystemTime(1000000);
+      const config = { headers: { 'request-start-time': 1000000 - 150 } };
+      const headers = { get: () => null };
+      expect(measureResponseTime(config, headers, false)).toBe(150);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('falls back to Number(request-duration) when request-start-time is absent', () => {
