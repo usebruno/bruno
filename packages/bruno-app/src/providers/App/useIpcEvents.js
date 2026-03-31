@@ -53,13 +53,11 @@ const useIpcEvents = () => {
 
     const { ipcRenderer } = window;
 
-    // Buffer for batching addFile/addDir events during collection mount.
-    // Instead of dispatching 3000 individual Redux actions (each triggering a React re-render),
-    // we accumulate events and flush them in a single batched dispatch.
+    // Two-phase batching:
+    // Phase 1: Quick first flush after 300ms to show tree skeleton (dirs + partial metadata)
+    // Phase 2: Hold everything, flush once when loading completes (full data in single render)
     let eventBuffer = [];
     let flushTimer = null;
-    const FLUSH_INTERVAL_MS = 1000;
-    const FLUSH_BATCH_SIZE = 5000;
 
     let _flushCount = 0;
     let _totalEventsDispatched = 0;
@@ -72,12 +70,12 @@ const useIpcEvents = () => {
         eventBuffer = [];
         _flushCount++;
         _totalEventsDispatched += events.length;
-        if (_flushCount === 1) _rendererStart = performance.now();
+        if (!_rendererStart) _rendererStart = performance.now();
         const t0 = performance.now();
         dispatch(collectionBatchAddEvents({ events }));
         const dispatchMs = performance.now() - t0;
         _totalDispatchMs += dispatchMs;
-        console.log(`[RENDERER-BATCH #${_flushCount}] events=${events.length}  dispatchMs=${dispatchMs.toFixed(1)}  totalEvents=${_totalEventsDispatched}  totalDispatchMs=${_totalDispatchMs.toFixed(1)}  wallClock=${(performance.now() - _rendererStart).toFixed(1)}ms`);
+        console.log(`[RENDERER-BATCH #${_flushCount}] phase=${_flushCount === 1 ? 'SKELETON' : 'FINAL'}  events=${events.length}  dispatchMs=${dispatchMs.toFixed(1)}  totalEvents=${_totalEventsDispatched}  wallClock=${(performance.now() - _rendererStart).toFixed(1)}ms`);
       }
       flushTimer = null;
     };
@@ -85,15 +83,10 @@ const useIpcEvents = () => {
     const bufferAddEvent = (type, val) => {
       eventBuffer.push({ type, val });
 
-      // Flush immediately if buffer is large enough
-      if (eventBuffer.length >= FLUSH_BATCH_SIZE) {
-        if (flushTimer) {
-          clearTimeout(flushTimer);
-        }
-        flushEventBuffer();
-      } else if (!flushTimer) {
-        // Schedule a flush after a short delay to catch remaining events
-        flushTimer = setTimeout(flushEventBuffer, FLUSH_INTERVAL_MS);
+      // Phase 1: schedule a quick first flush to show tree skeleton
+      // Phase 2: hold everything — final flush triggered by isLoading=false
+      if (_flushCount === 0 && !flushTimer) {
+        flushTimer = setTimeout(flushEventBuffer, 300);
       }
     };
 
@@ -383,6 +376,10 @@ const useIpcEvents = () => {
 
     const removeCollectionLoadingStateListener = ipcRenderer.on('main:collection-loading-state-updated', (val) => {
       dispatch(updateCollectionLoadingState(val));
+      // Flush all accumulated events when mount completes — single dispatch, single re-render
+      if (val.isLoading === false && eventBuffer.length > 0) {
+        flushEventBuffer();
+      }
       if (val.isLoading === false && _rendererStart > 0) {
         const wallClock = performance.now() - _rendererStart;
         console.log('\n══════════════════════════════════════════════════════');
@@ -438,10 +435,8 @@ const useIpcEvents = () => {
       removePersistentEnvVariablesUpdateListener();
       removeSystemResourcesListener();
       gitVersionListener();
-      // Flush any remaining buffered events and clear timer
-      if (flushTimer) {
-        clearTimeout(flushTimer);
-      }
+      // Flush any remaining buffered events on cleanup
+      if (flushTimer) clearTimeout(flushTimer);
       flushEventBuffer();
     };
   }, [isElectron]);
