@@ -58,14 +58,26 @@ const useIpcEvents = () => {
     // we accumulate events and flush them in a single batched dispatch.
     let eventBuffer = [];
     let flushTimer = null;
-    const FLUSH_INTERVAL_MS = 100;
-    const FLUSH_BATCH_SIZE = 200;
+    const FLUSH_INTERVAL_MS = 1000;
+    const FLUSH_BATCH_SIZE = 5000;
+
+    let _flushCount = 0;
+    let _totalEventsDispatched = 0;
+    let _totalDispatchMs = 0;
+    let _rendererStart = 0;
 
     const flushEventBuffer = () => {
       if (eventBuffer.length > 0) {
         const events = eventBuffer;
         eventBuffer = [];
+        _flushCount++;
+        _totalEventsDispatched += events.length;
+        if (_flushCount === 1) _rendererStart = performance.now();
+        const t0 = performance.now();
         dispatch(collectionBatchAddEvents({ events }));
+        const dispatchMs = performance.now() - t0;
+        _totalDispatchMs += dispatchMs;
+        console.log(`[RENDERER-BATCH #${_flushCount}] events=${events.length}  dispatchMs=${dispatchMs.toFixed(1)}  totalEvents=${_totalEventsDispatched}  totalDispatchMs=${_totalDispatchMs.toFixed(1)}  wallClock=${(performance.now() - _rendererStart).toFixed(1)}ms`);
       }
       flushTimer = null;
     };
@@ -371,6 +383,22 @@ const useIpcEvents = () => {
 
     const removeCollectionLoadingStateListener = ipcRenderer.on('main:collection-loading-state-updated', (val) => {
       dispatch(updateCollectionLoadingState(val));
+      if (val.isLoading === false && _rendererStart > 0) {
+        const wallClock = performance.now() - _rendererStart;
+        console.log('\n══════════════════════════════════════════════════════');
+        console.log('  RENDERER TIMING SUMMARY');
+        console.log('══════════════════════════════════════════════════════');
+        console.log(`  Total batch flushes:    ${_flushCount}`);
+        console.log(`  Total events received:  ${_totalEventsDispatched}`);
+        console.log(`  Sum of dispatch():      ${_totalDispatchMs.toFixed(1)}ms  (avg ${(_totalDispatchMs / (_flushCount || 1)).toFixed(1)}ms per batch)`);
+        console.log(`  Wall-clock (renderer):  ${wallClock.toFixed(1)}ms`);
+        console.log(`  Non-dispatch time:      ${(wallClock - _totalDispatchMs).toFixed(1)}ms (IPC wait + event loop)`);
+        console.log('══════════════════════════════════════════════════════\n');
+        _flushCount = 0;
+        _totalEventsDispatched = 0;
+        _totalDispatchMs = 0;
+        _rendererStart = 0;
+      }
     });
 
     const gitVersionListener = ipcRenderer.on('main:git-version', (val) => {

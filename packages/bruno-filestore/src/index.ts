@@ -56,11 +56,24 @@ export const stringifyRequest = (requestObj: BrunoItem, options: StringifyOption
 
 // request via worker
 let globalWorkerInstance: BruParserWorker | null = null;
+let currentConcurrency: number = 1;
 const getWorkerInstance = (): BruParserWorker => {
   if (!globalWorkerInstance) {
-    globalWorkerInstance = new BruParserWorker();
+    globalWorkerInstance = new BruParserWorker(currentConcurrency);
   }
   return globalWorkerInstance;
+};
+
+export const configureWorkerConcurrency = async (concurrency: number): Promise<void> => {
+  const newConcurrency = Math.max(1, Math.floor(concurrency));
+  if (newConcurrency === currentConcurrency && globalWorkerInstance) {
+    return;
+  }
+  if (globalWorkerInstance) {
+    await globalWorkerInstance.cleanup();
+    globalWorkerInstance = null;
+  }
+  currentConcurrency = newConcurrency;
 };
 
 export const parseRequestViaWorker = async (content: string, options: { format: CollectionFormat; filename?: string }): Promise<any> => {

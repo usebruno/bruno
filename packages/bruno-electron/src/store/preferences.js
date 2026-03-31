@@ -47,7 +47,9 @@ const defaultPreferences = {
   },
   beta: {
     'openapi-sync': false,
-    'sidebar-optimizations': false
+    'sidebar-optimizations': false,
+    'skip-loading-badge-event': false,
+    'parallel-workers': false
   },
   onboarding: {
     hasLaunchedBefore: false,
@@ -112,7 +114,9 @@ const preferencesSchema = Yup.object().shape({
   }),
   beta: Yup.object({
     'openapi-sync': Yup.boolean(),
-    'sidebar-optimizations': Yup.boolean()
+    'sidebar-optimizations': Yup.boolean(),
+    'skip-loading-badge-event': Yup.boolean(),
+    'parallel-workers': Yup.boolean()
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean(),

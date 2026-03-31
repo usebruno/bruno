@@ -2782,15 +2782,19 @@ export const collectionsSlice = createSlice({
     // This avoids 3000 separate dispatches (and 3000 React re-renders) during collection mount.
     collectionBatchAddEvents: (state, action) => {
       const { events } = action.payload;
+      const _t0 = performance.now();
+      let _addFileCount = 0, _addDirCount = 0, _collectionRootCount = 0, _folderRootCount = 0;
 
       for (const event of events) {
         if (event.type === 'addFile') {
+          _addFileCount++;
           const file = event.val;
           const isCollectionRoot = file.meta.collectionRoot ? true : false;
           const isFolderRoot = file.meta.folderRoot ? true : false;
           const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
 
           if (isCollectionRoot) {
+            _collectionRootCount++;
             if (collection) {
               collection.root = mergeRootWithPreservedUids(collection.root, file.data);
             }
@@ -2798,6 +2802,7 @@ export const collectionsSlice = createSlice({
           }
 
           if (isFolderRoot) {
+            _folderRootCount++;
             const folderPath = path.dirname(file.meta.pathname);
             const folderItem = findItemInCollectionByPathname(collection, folderPath);
             if (folderItem) {
@@ -2886,6 +2891,7 @@ export const collectionsSlice = createSlice({
             }
           }
         } else if (event.type === 'addDir') {
+          _addDirCount++;
           const dir = event.val;
           const collection = findCollectionByUid(state.collections, dir.meta.collectionUid);
 
@@ -2923,6 +2929,8 @@ export const collectionsSlice = createSlice({
           }
         }
       }
+      const _reducerMs = performance.now() - _t0;
+      console.log(`[REDUX-BATCH] events=${events.length}  reducerMs=${_reducerMs.toFixed(1)}  addFile=${_addFileCount}  addDir=${_addDirCount}  collectionRoot=${_collectionRootCount}  folderRoot=${_folderRootCount}`);
     },
     collectionChangeFileEvent: (state, action) => {
       const { file } = action.payload;

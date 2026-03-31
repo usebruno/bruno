@@ -14,7 +14,8 @@ const {
   parseRequest,
   parseRequestViaWorker,
   parseCollection,
-  parseFolder
+  parseFolder,
+  configureWorkerConcurrency
 } = require('@usebruno/filestore');
 
 const { uuid } = require('../utils/common');
@@ -26,6 +27,87 @@ const UiStateSnapshot = require('../store/ui-state-snapshot');
 const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
+const { preferencesUtil } = require('../store/preferences');
+const { performance } = require('perf_hooks');
+
+// ── Parsing performance tracker ──
+const _parseTimings = {
+  files: [],
+  mountStart: 0,
+  reset() {
+    this.files = [];
+    this.mountStart = performance.now();
+  },
+  add(entry) {
+    this.files.push(entry);
+  },
+  printSummary() {
+    if (this.files.length === 0) return;
+    const totalMount = performance.now() - this.mountStart;
+    const totalRead = this.files.reduce((sum, f) => sum + (f.readMs || 0), 0);
+    const totalMetaParse = this.files.reduce((sum, f) => sum + (f.metaParseMs || 0), 0);
+    const totalQueueWait = this.files.reduce((sum, f) => sum + (f.queueWaitMs || 0), 0);
+    const totalActualParse = this.files.reduce((sum, f) => sum + (f.actualParseMs || 0), 0);
+    const workerFiles = this.files.filter((f) => f.flowPath === 'worker');
+    const nonWorkerFiles = this.files.filter((f) => f.flowPath === 'non-worker');
+
+    // Group by worker threadId to see distribution
+    const byThread = {};
+    workerFiles.forEach((f) => {
+      const tid = f.threadId || 'unknown';
+      if (!byThread[tid]) byThread[tid] = { count: 0, totalParseMs: 0 };
+      byThread[tid].count++;
+      byThread[tid].totalParseMs += (f.actualParseMs || 0);
+    });
+
+    // Group by file size buckets
+    const sizeBuckets = { '<1KB': [], '1-10KB': [], '10-100KB': [], '100KB+': [] };
+    this.files.forEach((f) => {
+      if (f.sizeBytes < 1024) sizeBuckets['<1KB'].push(f);
+      else if (f.sizeBytes < 10240) sizeBuckets['1-10KB'].push(f);
+      else if (f.sizeBytes < 102400) sizeBuckets['10-100KB'].push(f);
+      else sizeBuckets['100KB+'].push(f);
+    });
+
+    // Sort by actual parse time
+    const sorted = [...this.files].sort((a, b) => (b.actualParseMs || 0) - (a.actualParseMs || 0));
+    const top10 = sorted.slice(0, 10);
+    const bottom5 = sorted.slice(-5);
+
+    console.log('\n═══════════════════════════════════════════════════════════');
+    console.log('  PARSE TIMING SUMMARY');
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log(`  Total files:            ${this.files.length} (${workerFiles.length} via worker, ${nonWorkerFiles.length} direct)`);
+    console.log(`  Wall-clock mount:       ${totalMount.toFixed(1)}ms`);
+    console.log(`  Sum of readFile:        ${totalRead.toFixed(1)}ms  (avg ${(totalRead / this.files.length).toFixed(2)}ms)`);
+    console.log(`  Sum of parseFileMeta:   ${totalMetaParse.toFixed(1)}ms  (avg ${(totalMetaParse / this.files.length).toFixed(2)}ms)`);
+    console.log(`  Sum of ACTUAL parse:    ${totalActualParse.toFixed(1)}ms  (avg ${(totalActualParse / (workerFiles.length || 1)).toFixed(2)}ms)`);
+    console.log(`  Sum of queue wait:      ${totalQueueWait.toFixed(1)}ms  (avg ${(totalQueueWait / (workerFiles.length || 1)).toFixed(2)}ms)`);
+    console.log('───────────────────────────────────────────────────────────');
+    console.log('  WORKER THREAD DISTRIBUTION:');
+    Object.entries(byThread).forEach(([tid, info]) => {
+      console.log(`    Thread ${tid}: ${info.count} files, total parse ${info.totalParseMs.toFixed(1)}ms, avg ${(info.totalParseMs / info.count).toFixed(2)}ms`);
+    });
+    console.log('───────────────────────────────────────────────────────────');
+    console.log('  FILE SIZE DISTRIBUTION:');
+    Object.entries(sizeBuckets).forEach(([bucket, files]) => {
+      if (files.length === 0) return;
+      const avgParse = files.reduce((s, f) => s + (f.actualParseMs || 0), 0) / files.length;
+      const totalParse = files.reduce((s, f) => s + (f.actualParseMs || 0), 0);
+      console.log(`    ${bucket}: ${files.length} files, total parse ${totalParse.toFixed(1)}ms, avg ${avgParse.toFixed(2)}ms`);
+    });
+    console.log('───────────────────────────────────────────────────────────');
+    console.log('  TOP 10 SLOWEST (by actual parse in worker):');
+    top10.forEach((f, i) => {
+      console.log(`    ${i + 1}. ${f.name}  parse=${(f.actualParseMs || 0).toFixed(1)}ms  queueWait=${(f.queueWaitMs || 0).toFixed(1)}ms  thread=${f.threadId || '-'}  size=${f.sizeBytes}B`);
+    });
+    console.log('  BOTTOM 5 FASTEST:');
+    bottom5.forEach((f) => {
+      console.log(`    - ${f.name}  parse=${(f.actualParseMs || 0).toFixed(1)}ms  queueWait=${(f.queueWaitMs || 0).toFixed(1)}ms  thread=${f.threadId || '-'}  size=${f.sizeBytes}B`);
+    });
+    console.log('═══════════════════════════════════════════════════════════\n');
+  }
+};
 const dotEnvWatcher = require('./dotenv-watcher');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
@@ -309,21 +391,54 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       }
     };
 
+    const _fname = path.basename(pathname);
+    const _fileNum = _parseTimings.files.length + 1;
+    let _shouldLog = _fileNum <= 5 || _fileNum % 500 === 0;
+    const _log = (step, detail = '') => {
+      if (!_shouldLog) return;
+      const elapsed = (performance.now() - _parseTimings.mountStart).toFixed(1);
+      console.log(`[FLOW] t=${elapsed}ms  #${_fileNum}  ${_fname}  ${step}${detail ? '  ' + detail : ''}`);
+    };
+
+    const _t0 = performance.now();
     const fileStats = fs.statSync(pathname);
+    // Also log all 100KB+ files
+    if (fileStats.size > 102400) _shouldLog = true;
+    _log('STEP-1: statSync + readFileSync START', `size=${fileStats.size}B`);
     let content = fs.readFileSync(pathname, 'utf8');
+    const _tRead = performance.now();
+    _log('STEP-2: readFile DONE', `readMs=${(_tRead - _t0).toFixed(1)}`);
 
     // If worker thread is not used, we can directly parse the file
     if (!useWorkerThread) {
       try {
+        _log('STEP-3: parseRequest (non-worker) START');
+        const _tParse0 = performance.now();
         file.data = await parseRequest(content, { format });
+        const _tParse1 = performance.now();
+        _log('STEP-4: parseRequest DONE', `parseMs=${(_tParse1 - _tParse0).toFixed(1)}`);
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
         hydrateRequestWithUuid(file.data, pathname);
+        _log('STEP-5: IPC send addFile (final, non-worker)');
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        _parseTimings.add({
+          name: _fname,
+          readMs: _tRead - _t0,
+          metaParseMs: 0,
+          actualParseMs: _tParse1 - _tParse0,
+          queueWaitMs: 0,
+          roundTripMs: _tParse1 - _tParse0,
+          totalMs: _tParse1 - _t0,
+          sizeBytes: fileStats.size,
+          threadId: 'main',
+          flowPath: 'non-worker'
+        });
       } catch (error) {
         console.error(error);
       } finally {
+        _log('STEP-6: markFileAsProcessed (non-worker)');
         watcher.markFileAsProcessed(win, collectionUid, pathname);
       }
       return;
@@ -337,31 +452,70 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         type: 'http-request'
       };
 
+      _log('STEP-3: parseFileMeta START');
+      const _tMeta0 = performance.now();
       const metaJson = parseFileMeta(content, format);
+      const _tMeta1 = performance.now();
+      _log('STEP-4: parseFileMeta DONE', `metaMs=${(_tMeta1 - _tMeta0).toFixed(2)}`);
+
       file.data = metaJson;
       file.partial = true;
       file.loading = false;
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
+      _log('STEP-5: IPC send addFile (partial=true, loading=false)');
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
       if (fileStats.size < MAX_FILE_SIZE) {
-        // This is to update the loading indicator in the UI
-        file.data = metaJson;
-        file.partial = false;
-        file.loading = true;
-        hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        const skipLoadingBadge = preferencesUtil.isBetaFeatureEnabled('skip-loading-badge-event');
 
-        // This is to update the file info in the UI
+        if (!skipLoadingBadge) {
+          file.data = metaJson;
+          file.partial = false;
+          file.loading = true;
+          hydrateRequestWithUuid(file.data, pathname);
+          _log('STEP-6: IPC send addFile (partial=false, loading=true) [LOADING BADGE]');
+          win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        } else {
+          _log('STEP-6: SKIPPED loading badge (beta flag ON)');
+        }
+
+        _log('STEP-7: parseRequestViaWorker START (enqueue to worker)');
+        const _tWorker0 = performance.now();
         file.data = await parseRequestViaWorker(content, {
           format,
           filename: pathname
         });
+        const _tWorker1 = performance.now();
+
+        const _timing = file.data?.__workerTiming;
+        const _actualParseMs = _timing?.parseMs || 0;
+        const _threadId = _timing?.threadId;
+        if (file.data?.__workerTiming) delete file.data.__workerTiming;
+
+        const _roundTripMs = _tWorker1 - _tWorker0;
+        _log('STEP-8: parseRequestViaWorker DONE', `thread=${_threadId}  actualParse=${_actualParseMs.toFixed(1)}ms  queueWait=${(_roundTripMs - _actualParseMs).toFixed(1)}ms  roundTrip=${_roundTripMs.toFixed(1)}ms`);
+
         file.partial = false;
         file.loading = false;
         hydrateRequestWithUuid(file.data, pathname);
+        _log('STEP-9: IPC send addFile (partial=false, loading=false) [FINAL DATA]');
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
+
+        _parseTimings.add({
+          name: _fname,
+          readMs: _tRead - _t0,
+          metaParseMs: _tMeta1 - _tMeta0,
+          actualParseMs: _actualParseMs,
+          queueWaitMs: _roundTripMs - _actualParseMs,
+          roundTripMs: _roundTripMs,
+          totalMs: _tWorker1 - _t0,
+          sizeBytes: fileStats.size,
+          threadId: _threadId,
+          flowPath: 'worker'
+        });
+      } else {
+        _log('STEP-7: SKIPPED worker parse (file >= MAX_FILE_SIZE)');
       }
     } catch (error) {
       file.data = {
@@ -377,6 +531,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
     } finally {
+      _log('STEP-10: markFileAsProcessed');
       watcher.markFileAsProcessed(win, collectionUid, pathname);
     }
   }
@@ -389,7 +544,10 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
-  let name = path.basename(pathname);
+  const _dirName = path.basename(pathname);
+  const _elapsed = () => (performance.now() - _parseTimings.mountStart).toFixed(1);
+
+  let name = _dirName;
   let seq;
 
   const format = getCollectionFormat(collectionPath);
@@ -397,8 +555,11 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
 
   try {
     if (fs.existsSync(folderFilePath)) {
+      console.log(`[FLOW-DIR] t=${_elapsed()}ms  ${_dirName}/  STEP-1: readFileSync folder.${format}`);
       let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
+      console.log(`[FLOW-DIR] t=${_elapsed()}ms  ${_dirName}/  STEP-2: parseFolder START`);
       let folderData = await parseFolder(folderFileContent, { format });
+      console.log(`[FLOW-DIR] t=${_elapsed()}ms  ${_dirName}/  STEP-3: parseFolder DONE`);
       name = folderData?.meta?.name || name;
       seq = folderData?.meta?.seq;
     }
@@ -417,6 +578,7 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
     }
   };
 
+  console.log(`[FLOW-DIR] t=${_elapsed()}ms  ${_dirName}/  STEP-4: IPC send addDir`);
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
@@ -688,10 +850,23 @@ class CollectionWatcher {
     // If discovery is complete and no pending files, mark as not loading
     if (!state.isDiscovering && state.pendingFiles.size === 0 && state.isProcessing) {
       state.isProcessing = false;
+      _parseTimings.printSummary();
       win.webContents.send('main:collection-loading-state-updated', {
         collectionUid,
         isLoading: false
       });
+
+      // Scale down to 1 worker after mount completes to release memory,
+      // but only if no other collections are still loading
+      const parallelWorkers = preferencesUtil.isBetaFeatureEnabled('parallel-workers');
+      if (parallelWorkers) {
+        const anyStillLoading = Object.values(this.loadingStates).some(
+          (s) => s.isDiscovering || s.isProcessing
+        );
+        if (!anyStillLoading) {
+          configureWorkerConcurrency(1);
+        }
+      }
     }
   }
 
@@ -722,7 +897,26 @@ class CollectionWatcher {
       this.watchers[watchPath].close();
     }
 
+    // Configure worker concurrency based on beta flag (checked per collection open)
+    const parallelWorkers = preferencesUtil.isBetaFeatureEnabled('parallel-workers');
+    const sidebarOptimizations = preferencesUtil.isBetaFeatureEnabled('sidebar-optimizations');
+    const skipLoadingBadge = preferencesUtil.isBetaFeatureEnabled('skip-loading-badge-event');
+    configureWorkerConcurrency(parallelWorkers ? 4 : 1);
+
+    console.log('\n══════════════════════════════════════════════════════');
+    console.log('  [MOUNT-START] Collection mount initiated');
+    console.log('══════════════════════════════════════════════════════');
+    console.log(`  Path:               ${watchPath}`);
+    console.log(`  CollectionUid:      ${collectionUid}`);
+    console.log(`  useWorkerThread:    ${useWorkerThread}`);
+    console.log(`  Beta flags:`);
+    console.log(`    sidebar-optimizations:    ${sidebarOptimizations}`);
+    console.log(`    skip-loading-badge-event: ${skipLoadingBadge}`);
+    console.log(`    parallel-workers:         ${parallelWorkers} (concurrency=${parallelWorkers ? 4 : 1})`);
+    console.log('══════════════════════════════════════════════════════\n');
+
     this.initializeLoadingState(collectionUid);
+    _parseTimings.reset();
 
     this.startCollectionDiscovery(win, collectionUid);
 
