@@ -45,7 +45,7 @@
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
     "aws4-axios": "^3.3.0",
-    "axios": "1.8.3",
+    "axios": "1.13.6",
     "axios-ntlm": "^1.4.2",
     "chai": "^4.3.7",
     "chokidar": "^3.5.3",

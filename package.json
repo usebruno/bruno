@@ -93,7 +93,7 @@
     ]
   },
   "overrides": {
-    "axios":"1.9.0",
+    "axios":"1.13.6",
     "rollup": "3.30.0",
     "pbkdf2":"3.1.5",
     "electron-store": {
