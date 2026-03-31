@@ -65,7 +65,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, updateResponsePaneScrollPosition, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
@@ -3207,4 +3207,12 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
       console.error('Failed to delete transient request files:', err);
     }
   }
+};
+
+/**
+ * Reopen last closed tab from the tabs slice stack and ensure active tab/workspace consistency.
+ */
+export const reopenClosedTab = ({ collectionUid } = {}) => async (dispatch) => {
+  dispatch(reopenLastClosedTab({ collectionUid }));
+  await dispatch(ensureActiveTabInCurrentWorkspace());
 };
