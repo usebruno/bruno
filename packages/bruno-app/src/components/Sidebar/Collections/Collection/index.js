@@ -27,6 +27,7 @@ import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/s
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -52,6 +53,7 @@ import StatusBadge from 'ui/StatusBadge';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
+import useKeybinding from 'hooks/useKeybinding';
 
 // Delay before showing empty collection state (ms)
 // This prevents flicker from race condition between loading state and item batch updates
@@ -202,25 +204,30 @@ const Collection = ({ collection, searchText }) => {
       });
   };
 
-  // Keyboard shortcuts handler for collection
-  const handleKeyDown = (e) => {
-    // Detect Mac by checking both metaKey and platform
-    const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
-    const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
+  // Sidebar shortcuts — only active when this collection has keyboard focus
+  useKeybinding('cloneItem', () => {
+    setShowCloneCollectionModalOpen(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
-    if (isModifierPressed && e.key.toLowerCase() === 'v') {
-      e.preventDefault();
-      e.stopPropagation();
-      handlePasteItem();
-    }
-  };
+  useKeybinding('renameItem', () => {
+    setShowRenameCollectionModal(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
+  useKeybinding('pasteItem', () => {
+    handlePasteItem();
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
   const handleFocus = () => {
     setIsKeyboardFocused(true);
+    dispatch(setFocusedSidebarPath(collection.pathname));
   };
 
   const handleBlur = () => {
     setIsKeyboardFocused(false);
+    dispatch(setFocusedSidebarPath(null));
   };
 
   const isCollectionItem = (itemType) => {
@@ -468,7 +475,6 @@ const Collection = ({ collection, searchText }) => {
           drag(drop(node));
         }}
         tabIndex={0}
-        onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
         data-testid="sidebar-collection-row"

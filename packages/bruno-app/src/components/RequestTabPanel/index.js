@@ -32,6 +32,7 @@ import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
 import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
+import useKeybinding from 'hooks/useKeybinding';
 import { ScopedPersistenceProvider } from 'hooks/usePersistedState/PersistedScopeProvider';
 import ResponseExample from 'components/ResponseExample';
 import WorkspaceOverview from 'components/WorkspaceHome/WorkspaceOverview';
@@ -58,6 +59,12 @@ const RequestTabPanel = () => {
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
+
+  const isRequestTab = focusedTab && ['request', 'grpc-request', 'ws-request', 'graphql-request'].includes(focusedTab.type);
+  useKeybinding('sendRequest', () => {
+    handleRun();
+    return false;
+  }, { enabled: !!isRequestTab, deps: [isRequestTab] });
 
   // Use ref to avoid stale closure in event handlers
   const isVerticalLayoutRef = useRef(isVerticalLayout);
@@ -304,7 +311,6 @@ const RequestTabPanel = () => {
         }));
     }
   };
-
   const renderQueryUrl = () => {
     if (isGrpcRequest) {
       return <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />;
