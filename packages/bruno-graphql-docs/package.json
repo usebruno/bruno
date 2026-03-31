@@ -35,6 +35,6 @@
     "markdown-it": "^13.0.1"
   },
   "overrides": {
-    "rollup":"3.29.5"
+    "rollup":"3.30.0"
   }
 }
