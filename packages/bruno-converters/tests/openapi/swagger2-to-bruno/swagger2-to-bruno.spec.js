@@ -166,6 +166,45 @@ paths:
     expect(baseUrlVar.value).toBe('https://petstore.swagger.io/v2');
   });
 
+  it('should create multiple environments for multiple schemes', () => {
+    const spec = {
+      swagger: '2.0',
+      info: { title: 'Multi Scheme API', version: '1.0' },
+      host: 'petstore.swagger.io',
+      basePath: '/v2',
+      schemes: ['https', 'http'],
+      paths: {
+        '/test': {
+          get: { summary: 'Test', responses: { 200: { description: 'OK' } } }
+        }
+      }
+    };
+    const collection = swagger2ToBruno(spec);
+
+    expect(collection.environments.length).toBe(2);
+    expect(collection.environments[0].variables[0].value).toBe('https://petstore.swagger.io/v2');
+    expect(collection.environments[1].variables[0].value).toBe('http://petstore.swagger.io/v2');
+    expect(collection.environments[0].name).toBe('Environment 1');
+    expect(collection.environments[1].name).toBe('Environment 2');
+  });
+
+  it('should handle basePath without host', () => {
+    const spec = {
+      swagger: '2.0',
+      info: { title: 'BasePath Only API', version: '1.0' },
+      basePath: '/api/v1',
+      paths: {
+        '/test': {
+          get: { summary: 'Test', responses: { 200: { description: 'OK' } } }
+        }
+      }
+    };
+    const collection = swagger2ToBruno(spec);
+
+    expect(collection.environments.length).toBe(1);
+    expect(collection.environments[0].variables[0].value).toBe('/api/v1');
+  });
+
   it('should default scheme to https when schemes is empty', () => {
     const spec = {
       swagger: '2.0',
