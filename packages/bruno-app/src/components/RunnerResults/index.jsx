@@ -81,6 +81,7 @@ export default function RunnerResults({ collection }) {
   const [delay, setDelay] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [selectedRequestItems, setSelectedRequestItems] = useState([]);
+  const isReRunningRef = useRef(false);
   // ref for the runner output body
   const runnerBodyRef = useRef();
 
@@ -165,6 +166,13 @@ export default function RunnerResults({ collection }) {
     }
   }, [collection.runnerConfiguration, delay]);
 
+  useEffect(() => {
+    if (isReRunningRef.current
+      && (items?.length > 0 || runnerInfo?.status === 'ended' || runnerInfo?.status === 'cancelled')) {
+      isReRunningRef.current = false;
+    }
+  }, [items, runnerInfo?.status]);
+
   const ensureCollectionIsMounted = () => {
     if (collection.mountStatus === 'mounted') {
       return;
@@ -184,6 +192,7 @@ export default function RunnerResults({ collection }) {
 
   const runAgain = () => {
     ensureCollectionIsMounted();
+    isReRunningRef.current = true;
     // Get the saved configuration to determine what to run
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
     const savedSelectedItems = savedConfiguration?.selectedRequestItems || [];
@@ -201,6 +210,7 @@ export default function RunnerResults({ collection }) {
   };
 
   const resetRunner = () => {
+    isReRunningRef.current = false;
     dispatch(
       resetCollectionRunner({
         collectionUid: collection.uid
@@ -222,7 +232,7 @@ export default function RunnerResults({ collection }) {
   };
 
   let isCollectionLoading = areItemsLoading(collection);
-  if (!items || !items.length) {
+  if ((!items || !items.length) && !isReRunningRef.current) {
     return (
       <StyledWrapper className="pl-4 overflow-hidden h-full">
         <div className="flex overflow-hidden max-h-full h-full">
