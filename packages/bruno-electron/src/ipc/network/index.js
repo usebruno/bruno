@@ -105,6 +105,14 @@ const promisifyStream = async (stream, abortController, closeOnFirst) => {
   });
 };
 
+const measureResponseTime = (config, headers, isStream) => {
+  const startTime = config?.headers?.['request-start-time'];
+  if (!isStream && startTime != null) {
+    return Date.now() - startTime;
+  }
+  return Number(headers.get('request-duration')) || 0;
+};
+
 const configureRequest = async (
   collectionUid,
   collection,
@@ -1028,13 +1036,8 @@ const registerNetworkIpc = (mainWindow) => {
 
         if (!isResponseStream) {
           response.data = await promisifyStream(response.data);
-          // Measure after full body download. The interceptor only captures TTFB
-          // (because responseType='stream'), so re-measure here for non-stream responses.
-          responseTime = Date.now() - response.config.headers['request-start-time'];
-        } else {
-          // For SSE/event-stream responses, TTFB from the interceptor is appropriate.
-          responseTime = response.headers.get('request-duration');
         }
+        responseTime = measureResponseTime(response.config, response.headers, isResponseStream);
         // Prevents the duration on leaking to the actual result
         response.headers.delete('request-duration');
       } catch (error) {
@@ -1053,16 +1056,13 @@ const registerNetworkIpc = (mainWindow) => {
         }
         if (error?.response) {
           response = error.response;
-          // Prevents the duration on leaking to the actual result
-          response.headers.delete('request-duration');
           isResponseStream = hasStreamHeaders(response.headers);
           if (!isResponseStream) {
             response.data = await promisifyStream(response.data);
-            // Same fix as the happy path: measure after full body download.
-            responseTime = Date.now() - response.config.headers['request-start-time'];
-          } else {
-            responseTime = response.headers.get('request-duration');
           }
+          responseTime = measureResponseTime(response.config, response.headers, isResponseStream);
+          // Prevents the duration on leaking to the actual result
+          response.headers.delete('request-duration');
         } else {
           await executeRequestOnFailHandler(request, error);
 
@@ -2282,3 +2282,4 @@ module.exports.executeRequestOnFailHandler = executeRequestOnFailHandler;
 module.exports.buildResponseBodyFromStreamChunks = buildResponseBodyFromStreamChunks;
 module.exports.promisifyStream = promisifyStream;
 module.exports.hasStreamHeaders = hasStreamHeaders;
+module.exports.measureResponseTime = measureResponseTime;
