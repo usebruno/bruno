@@ -907,10 +907,14 @@ const registerNetworkIpc = (mainWindow) => {
 
         if (!isResponseStream) {
           response.data = await promisifyStream(response.data);
+          // Measure after full body download. The interceptor only captures TTFB
+          // (because responseType='stream'), so re-measure here for non-stream responses.
+          responseTime = Date.now() - response.config.headers['request-start-time'];
+        } else {
+          // For SSE/event-stream responses, TTFB from the interceptor is appropriate.
+          responseTime = response.headers.get('request-duration');
         }
-
         // Prevents the duration on leaking to the actual result
-        responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
       } catch (error) {
         deleteCancelToken(cancelTokenUid);
@@ -928,13 +932,15 @@ const registerNetworkIpc = (mainWindow) => {
         }
         if (error?.response) {
           response = error.response;
-
           // Prevents the duration on leaking to the actual result
-          responseTime = response.headers.get('request-duration');
           response.headers.delete('request-duration');
           isResponseStream = hasStreamHeaders(response.headers);
           if (!isResponseStream) {
             response.data = await promisifyStream(response.data);
+            // Same fix as the happy path: measure after full body download.
+            responseTime = Date.now() - response.config.headers['request-start-time'];
+          } else {
+            responseTime = response.headers.get('request-duration');
           }
         } else {
           await executeRequestOnFailHandler(request, error);
@@ -2004,3 +2010,5 @@ module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
 module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;
 module.exports.executeRequestOnFailHandler = executeRequestOnFailHandler;
+module.exports.promisifyStream = promisifyStream;
+module.exports.hasStreamHeaders = hasStreamHeaders;
