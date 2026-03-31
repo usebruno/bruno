@@ -59,8 +59,6 @@ class SingleLineEditor extends Component {
       readOnly: this.props.readOnly,
       extraKeys: {
         'Enter': runHandler,
-        'Ctrl-Enter': runHandler,
-        'Cmd-Enter': runHandler,
         'Alt-Enter': () => {
           if (this.props.allowNewlines) {
             this.editor.setValue(this.editor.getValue() + '\n');
@@ -69,9 +67,6 @@ class SingleLineEditor extends Component {
             this.props.onRun();
           }
         },
-        'Shift-Enter': runHandler,
-        'Cmd-S': saveHandler,
-        'Ctrl-S': saveHandler,
         'Cmd-F': noopHandler,
         'Ctrl-F': noopHandler,
         // Tabbing disabled to make tabindex work
@@ -108,6 +103,12 @@ class SingleLineEditor extends Component {
       this._updateNewlineMarkers();
     }
     setupLinkAware(this.editor);
+
+    // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
+    const cmInput = this.editor.getInputField();
+    if (cmInput) {
+      cmInput.classList.add('mousetrap');
+    }
   }
 
   /** Enable or disable masking the rendered content of the editor */

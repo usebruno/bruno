@@ -1,4 +1,5 @@
 import { test, expect, Page } from '../../../playwright';
+import process from 'node:process';
 import { buildCommonLocators, buildScriptErrorLocators } from './locators';
 
 type SandboxMode = 'safe' | 'developer';
@@ -153,7 +154,8 @@ const createUntitledRequest = async (
       await tagInput.press('Enter');
       await page.waitForTimeout(200);
       await expect(page.locator('.tag-item', { hasText: tag })).toBeVisible();
-      await page.keyboard.press('Meta+s');
+      const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+      await page.keyboard.press(saveShortcut);
       await page.waitForTimeout(200);
     }
 
@@ -261,7 +263,9 @@ const createRequest = async (
       await locators.actions.collectionItemActions(parentName).click();
     } else {
       await locators.sidebar.collection(parentName).hover();
-      await locators.actions.collectionActions(parentName).click();
+      const collectionAction = locators.actions.collectionActions(parentName);
+      await expect(collectionAction).toBeVisible({ timeout: 2000 });
+      await collectionAction.click();
     }
 
     await locators.dropdown.item('New Request').click();
@@ -486,7 +490,7 @@ const createFolder = async (
     }
 
     await locators.dropdown.item('New Folder').click();
-    await page.getByPlaceholder('Folder Name').fill(folderName);
+    await page.getByTestId('new-folder-input').fill(folderName);
     await locators.modal.button('Create').click();
     await expect(locators.sidebar.folder(folderName)).toBeVisible();
   });
@@ -1016,7 +1020,8 @@ const deleteAssertion = async (page: Page, rowIndex: number) => {
  */
 const saveRequest = async (page: Page) => {
   await test.step('Save request', async () => {
-    await page.keyboard.press('Meta+s');
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
     await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 3000 });
     await page.waitForTimeout(200);
   });

@@ -580,14 +580,14 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
             )}
             {/* Runner - always visible */}
             <ToolHint text="Runner" toolhintId="RunnerToolhintId" place="bottom">
-              <ActionIcon onClick={handleRun} aria-label="Runner" size="sm">
+              <ActionIcon onClick={handleRun} aria-label="Runner" size="sm" data-testid="runner">
                 <IconRun size={16} strokeWidth={1.5} />
               </ActionIcon>
             </ToolHint>
             {/* JS Sandbox Mode - always visible */}
             <JsSandboxMode collection={collection} />
             {/* Overflow menu */}
-            <MenuDropdown items={overflowMenuItems} placement="bottom-end">
+            <MenuDropdown items={overflowMenuItems} placement="bottom-end" data-testid="more-actions">
               <ActionIcon label="More actions" size="sm" style={{ border: `1px solid ${theme.border.border1}`, borderRadius: theme.border.radius.base, width: 24, marginRight: 4, marginLeft: 4 }}>
                 <IconDots size={16} strokeWidth={1.5} />
               </ActionIcon>
