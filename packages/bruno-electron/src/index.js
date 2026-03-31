@@ -393,7 +393,6 @@ app.on('ready', async () => {
 
   mainWindow.on('close', (e) => {
     e.preventDefault();
-    closeAllWatchers();
     terminalManager.cleanup(mainWindow.webContents);
     ipcMain.emit('main:start-quit-flow');
   });
