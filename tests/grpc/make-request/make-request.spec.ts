@@ -201,4 +201,90 @@ test.describe('make grpc requests', () => {
       await page.keyboard.press(saveShortcut);
     });
   });
+
+  test('make unary request with comments in body', async ({ pageWithUserData: page }) => {
+    await setupGrpcTest(page);
+    const locators = buildGrpcCommonLocators(page);
+
+    await test.step('select unary method', async () => {
+      await locators.sidebar.request('SayHello').click();
+      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/SayHello');
+    });
+
+    await test.step('verify gRPC unary request is opened successfully', async () => {
+      await expect(locators.method.indicator()).toContainText('gRPC');
+      await expect(locators.request.queryUrlContainer().locator('.CodeMirror')).toBeVisible();
+      await expect(locators.request.sendButton()).toBeVisible();
+      await expect(locators.request.messagesContainer()).toBeVisible();
+    });
+
+    await test.step('edit body content with comments', async () => {
+      // Find the message editor container
+      const messageContainer = locators.request.messagesContainer().locator('.message-container').first();
+      await expect(messageContainer).toBeVisible();
+
+      // Find the CodeMirror editor within the editor-container
+      const bodyEditor = messageContainer.locator('.editor-container .CodeMirror').first();
+      await expect(bodyEditor).toBeVisible();
+
+      // Click on the editor to focus it
+      await bodyEditor.click();
+
+      // Select all content and clear it
+      await page.keyboard.press('Meta+a');
+      await page.keyboard.press('Backspace');
+
+      // Type JSON content with single-line comment
+      const jsonContent = `{
+  "greeting": "test" // This is a comment
+}`;
+      await page.keyboard.insertText(jsonContent);
+    });
+
+    await test.step('send request', async () => {
+      await locators.request.sendButton().click();
+      await expect(locators.response.statusCode()).toBeVisible({ timeout: 2000 });
+      await expect(locators.response.statusText()).toBeVisible({ timeout: 2000 });
+      await expect(locators.response.statusCode()).toHaveText(/0/);
+      await expect(locators.response.statusText()).toHaveText(/OK/);
+    });
+
+    await test.step('verify response message count', async () => {
+      await expect(locators.response.tabCount()).toHaveText('1');
+    });
+
+    await test.step('verify response items are rendered', async () => {
+      await expect(locators.response.content()).toBeVisible();
+      await expect(locators.response.container()).toBeVisible();
+      await expect(locators.response.singleResponse()).toBeVisible();
+    });
+
+    await test.step('reset message content to original', async () => {
+      // Find the message editor container
+      const messageContainer = locators.request.messagesContainer().locator('.message-container').first();
+      await expect(messageContainer).toBeVisible();
+
+      // Find the CodeMirror editor within the editor-container
+      const bodyEditor = messageContainer.locator('.editor-container .CodeMirror').first();
+      await expect(bodyEditor).toBeVisible();
+
+      // Click on the editor to focus it
+      await bodyEditor.click();
+
+      // Select all content and clear it
+      await page.keyboard.press('Meta+a');
+      await page.keyboard.press('Backspace');
+
+      // Restore original content
+      const originalContent = `{
+  "greeting": "amoveo"
+}`;
+      await page.keyboard.insertText(originalContent);
+    });
+
+    /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
+    await test.step('save request via shortcut', async () => {
+      await page.keyboard.press('Meta+s');
+    });
+  });
 });
