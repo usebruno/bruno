@@ -961,11 +961,9 @@ class CollectionWatcher {
 
   closeAllWatchers() {
     for (const [watchPath, watcher] of Object.entries(this.watchers)) {
-      if (watcher) {
-        try {
-          watcher.close();
-        } catch (err) {}
-      }
+      try {
+        watcher?.close();
+      } catch (err) {}
     }
     this.watchers = {};
   }
