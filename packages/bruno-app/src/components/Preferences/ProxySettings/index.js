@@ -18,7 +18,19 @@ const ProxySettings = ({ close }) => {
   const proxySchema = Yup.object({
     disabled: Yup.boolean().optional(),
     inherit: Yup.boolean().required(),
-    pacUrl: Yup.string().optional().url('Specify a valid PAC URL').max(2048).nullable(),
+    pacUrl: Yup.string()
+      .optional()
+      .test('pac-url', 'Specify a valid PAC URL', (value) => {
+        if (!value) return true;
+        try {
+          const u = new URL(value);
+          return u.protocol === 'http:' || u.protocol === 'https:';
+        } catch {
+          return false;
+        }
+      })
+      .max(2048)
+      .nullable(),
     config: Yup.object({
       protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
       hostname: Yup.string().max(1024),
