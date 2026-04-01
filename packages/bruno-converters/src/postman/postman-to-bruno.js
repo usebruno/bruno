@@ -77,10 +77,10 @@ const isItemAFolder = (item) => {
 /**
  * Postman allows non-string values (e.g. numbers) in fields like header values,
  * query param values, etc. Bruno expects these to be strings.
- * This helper converts non-null values to strings, defaulting null/undefined to ''.
+ * This helper converts non-null values to strings, defaulting null/undefined to the fallback.
  */
-const ensureString = (value) => {
-  if (value == null) return '';
+const ensureString = (value, fallback = '') => {
+  if (value == null) return fallback;
   if (typeof value === 'string') return value;
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
@@ -282,15 +282,15 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         consumerSecret: ensureString(authValues.consumerSecret),
         accessToken: ensureString(authValues.token),
         accessTokenSecret: ensureString(authValues.tokenSecret),
-        callbackUrl: authValues.callback != null ? ensureString(authValues.callback) : null,
-        verifier: authValues.verifier != null ? ensureString(authValues.verifier) : null,
-        signatureMethod: authValues.signatureMethod || 'HMAC-SHA1',
-        privateKey: authValues.privateKey != null ? ensureString(authValues.privateKey) : null,
+        callbackUrl: ensureString(authValues.callback, null),
+        verifier: ensureString(authValues.verifier, null),
+        signatureMethod: ensureString(authValues.signatureMethod, 'HMAC-SHA1'),
+        privateKey: ensureString(authValues.privateKey, null),
         privateKeyType: 'text',
-        timestamp: authValues.timestamp != null ? ensureString(authValues.timestamp) : null,
-        nonce: authValues.nonce != null ? ensureString(authValues.nonce) : null,
-        version: authValues.version != null ? ensureString(authValues.version) : '1.0',
-        realm: authValues.realm != null ? ensureString(authValues.realm) : null,
+        timestamp: ensureString(authValues.timestamp, null),
+        nonce: ensureString(authValues.nonce, null),
+        version: ensureString(authValues.version, '1.0'),
+        realm: ensureString(authValues.realm, null),
         placement: authValues.addParamsToHeader === false ? 'query' : 'header',
         includeBodyHash: authValues.includeBodyHash || false
       };
