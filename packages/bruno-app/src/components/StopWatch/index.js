@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 const StopWatch = ({ startTime }) => {
-  const [currentTime, setCurrentTime] = useState(Date.now());
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
 
   useEffect(() => {
     if (!startTime) return;

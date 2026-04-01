@@ -107,7 +107,9 @@ module.exports = runESMImports().then(() => defineConfig([
     },
     rules: {
       'no-undef': 'error',
-      'react-hooks/rules-of-hooks': 'error'
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/purity': 'error',
+      'react-hooks/set-state-in-render': 'error'
     }
   },
   {
