@@ -1660,6 +1660,11 @@ const registerNetworkIpc = (mainWindow) => {
                 error.response.data = data;
                 error.response.dataBuffer = dataBuffer;
 
+                // save cookies (4XX/5XX responses can also set cookies)
+                if (preferencesUtil.shouldStoreCookies()) {
+                  saveCookies(request.url, error.response.headers);
+                }
+
                 timeEnd = Date.now();
                 response = {
                   status: error.response.status,
