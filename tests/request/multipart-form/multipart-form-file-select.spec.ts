@@ -24,6 +24,7 @@ test.describe.serial('Multipart Form - File Select Without Key', () => {
     // Create a temp file that the mocked dialog will "select"
     testFilePath = path.join(tmpDir, 'test-file.txt');
     await fs.promises.writeFile(testFilePath, 'hello world');
+    expect(fs.existsSync(testFilePath)).toBe(true);
 
     await electronApp.evaluate(({ dialog }, filePath: string) => {
       (dialog as any).__originalShowOpenDialog = dialog.showOpenDialog;
@@ -67,8 +68,9 @@ test.describe.serial('Multipart Form - File Select Without Key', () => {
 
     await test.step('Verify the file name appears in the row', async () => {
       const fileCell = table.allRows().locator('.file-value-cell').first();
-      await expect(fileCell).toBeVisible();
-      await expect(fileCell).toContainText('test-file.txt');
+
+      await expect(fileCell).toBeVisible({ timeout: 5000 });
+      await expect(fileCell).toContainText('test-file.txt', { timeout: 5000 });
     });
   });
 });
