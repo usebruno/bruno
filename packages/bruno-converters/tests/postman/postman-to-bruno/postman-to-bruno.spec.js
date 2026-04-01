@@ -875,6 +875,81 @@ describe('postman-collection', () => {
     // Form URL-encoded should have string values
     expect(item.request.body.formUrlEncoded[0].value).toBe('5000');
   });
+
+  it('should convert numeric values to strings in example request and response fields', async () => {
+    const collectionWithNumericExamples = {
+      info: {
+        _postman_id: 'test-numeric-examples',
+        name: 'collection with numeric example values',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with numeric example',
+          request: {
+            method: 'GET',
+            header: [],
+            url: { raw: 'https://example.com/api' }
+          },
+          response: [
+            {
+              name: 'Example with numerics',
+              originalRequest: {
+                method: 'GET',
+                header: [
+                  { key: 'X-Account-Id', value: 42 }
+                ],
+                url: {
+                  raw: 'https://example.com/api/:id?page=1',
+                  protocol: 'https',
+                  host: ['example', 'com'],
+                  path: ['api', ':id'],
+                  query: [
+                    { key: 'page', value: 1 }
+                  ],
+                  variable: [
+                    { key: 'id', value: 99 }
+                  ]
+                },
+                body: {
+                  mode: 'urlencoded',
+                  urlencoded: [
+                    { key: 'retries', value: 3 }
+                  ]
+                }
+              },
+              status: 'OK',
+              code: 200,
+              header: [
+                { key: 'X-RateLimit-Remaining', value: 0 }
+              ],
+              body: '{"ok": true}'
+            }
+          ]
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNumericExamples);
+    const example = brunoCollection.items[0].examples[0];
+
+    // Example request headers
+    expect(example.request.headers[0].value).toBe('42');
+
+    // Example request query params
+    const queryParams = example.request.params.filter((p) => p.type === 'query');
+    expect(queryParams[0].value).toBe('1');
+
+    // Example request path params
+    const pathParams = example.request.params.filter((p) => p.type === 'path');
+    expect(pathParams[0].value).toBe('99');
+
+    // Example request form URL-encoded
+    expect(example.request.body.formUrlEncoded[0].value).toBe('3');
+
+    // Example response headers
+    expect(example.response.headers[0].value).toBe('0');
+  });
 });
 
 // Simple Collection (postman)
