@@ -234,7 +234,7 @@ export default class CodeEditor extends React.Component {
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       const cursor = this.editor.getCursor();
-      this.cachedValue = String(this.props.value);
+      this.cachedValue = String(this?.props?.value ?? '');
       this.editor.setValue(String(this.props.value) || '');
       this.editor.setCursor(cursor);
     }
