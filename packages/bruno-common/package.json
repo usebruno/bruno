@@ -36,11 +36,6 @@
     "watch": "rollup -c -w",
     "prepack": "npm run test && npm run build"
   },
-  "dependencies": {
-    "node-fetch": "^2.6.7",
-    "pac-resolver": "^7.0.1",
-    "quickjs-emscripten": "^0.32.0"
-  },
   "devDependencies": {
     "@babel/preset-env": "^7.26.9",
     "@babel/preset-typescript": "^7.27.0",

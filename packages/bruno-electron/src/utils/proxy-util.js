@@ -8,7 +8,7 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
 const { getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
 const { preferencesUtil } = require('../store/preferences');
-const { getPacResolver } = require('../../../bruno-common/src/net/pac-resolver');
+const { getPacResolver } = require('./pac-resolver');
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -218,7 +218,7 @@ async function setupProxyAgents({
     const pacUrl = get(proxyConfig, 'pacUrl');
     if (pacUrl) {
       try {
-        const resolver = await getPacResolver({ pacUrl });
+        const resolver = await getPacResolver({ pacUrl, httpsAgentRequestFields });
         const directives = await resolver.resolve(requestConfig.url);
         if (directives && directives.length) {
           const first = directives[0];
