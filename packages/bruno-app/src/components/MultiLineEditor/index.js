@@ -78,12 +78,19 @@ class MultiLineEditor extends Component {
 
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
+    this.editor.on('blur', this._onBlur);
     this.addOverlay(variables);
 
     // Initialize masking if this is a secret field
     this.setState({ maskInput: this.props.isSecret });
     this._enableMaskedEditor(this.props.isSecret);
   }
+
+  _onBlur = () => {
+    if (this.editor) {
+      this.editor.setCursor(this.editor.getCursor());
+    }
+  };
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
@@ -172,7 +179,11 @@ class MultiLineEditor extends Component {
       this.maskedEditor.destroy();
       this.maskedEditor = null;
     }
-    this.editor.getWrapperElement().remove();
+    if (this.editor) {
+      this.editor.off('change', this._onEdit);
+      this.editor.off('blur', this._onBlur);
+      this.editor.getWrapperElement().remove();
+    }
   }
 
   addOverlay = (variables) => {
