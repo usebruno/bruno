@@ -1,6 +1,9 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { patchSecurityVulnerabilities, buildForceInstallArgs } = require('./patch-security');
+
+const repoRoot = path.resolve(__dirname, '..');
 
 const icons = {
   clean: '🧹',
@@ -15,7 +18,7 @@ const icons = {
 const execCommand = (command, description) => {
   try {
     console.log(`\n${icons.working} ${description}...`);
-    execSync(command, { stdio: 'inherit' });
+    execSync(command, { stdio: 'inherit', cwd: repoRoot });
     console.log(`${icons.success} ${description} completed`);
   } catch (error) {
     console.error(`${icons.error} ${description} failed`);
@@ -71,7 +74,7 @@ function forceInstallPlatformDeps() {
 
   const toInstall = deps[process.platform];
   execCommand(
-    `npm i --legacy-peer-deps --no-save --force ${toInstall.join(' ')}`,
+    `npm install --no-save --force --legacy-peer-deps ${toInstall.join(' ')}`,
     'Installing platform specific dependencies'
   );
 }
@@ -80,15 +83,28 @@ async function setup() {
   try {
     // Clean up node_modules (if exists)
     console.log(`\n${icons.clean} Cleaning up node_modules directories...`);
-    const nodeModulesPaths = glob('.', 'node_modules');
+    const nodeModulesPaths = glob(repoRoot, 'node_modules');
     for (const dir of nodeModulesPaths) {
       console.log(`${icons.delete} Removing ${dir}`);
       fs.rmSync(dir, { recursive: true, force: true });
     }
 
+    // Patch known security vulnerabilities in package.json files before install
+    console.log(`\n🔒 Patching security vulnerabilities...`);
+    patchSecurityVulnerabilities(repoRoot);
+    console.log(`${icons.success} Security patches applied`);
+
     // Install dependencies
-    execCommand('npm i --legacy-peer-deps', 'Installing dependencies');
+    execCommand('npm install --legacy-peer-deps', 'Installing dependencies');
     forceInstallPlatformDeps();
+
+    // Force-install patched versions of vulnerable transitive deps.
+    // --legacy-peer-deps disables npm overrides, so we install them explicitly.
+    const secPkgs = buildForceInstallArgs();
+    execCommand(
+      `npm install --no-save --legacy-peer-deps ${secPkgs.join(' ')}`,
+      'Patching vulnerable transitive dependencies'
+    );
 
     // Build packages
     execCommand('npm run build:graphql-docs', 'Building graphql-docs');
@@ -109,6 +125,7 @@ async function setup() {
     process.exit(1);
   }
 }
+
 
 setup().catch((error) => {
   console.error(error);
