@@ -5,7 +5,8 @@ import { IconGripVertical, IconCheck } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { isItemARequest } from 'utils/collections';
+import { isItemARequest, isItemAFolder } from 'utils/collections';
+import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { cloneDeep, get } from 'lodash';
 import Button from 'ui/Button/index';
@@ -187,20 +188,25 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
     const processItems = (items) => {
       if (!items?.length) return;
 
-      items.forEach((item) => {
-        if (isItemARequest(item) && !item.partial && !item.isTransient) {
-          const relativePath = path.relative(collection.pathname, path.dirname(item.pathname));
-          const folderPath = relativePath !== '.' ? relativePath : '';
+      const folderItems = sortByNameThenSequence(items.filter((item) => isItemAFolder(item) && !item.isTransient));
+      const requestItems = items
+        .filter((item) => isItemARequest(item) && !item.partial && !item.isTransient)
+        .sort((a, b) => a.seq - b.seq);
 
-          result.push({
-            ...item,
-            folderPath: folderPath.replace(/\\/g, '/')
-          });
+      folderItems.forEach((folder) => {
+        if (folder.items?.length) {
+          processItems(folder.items);
         }
+      });
 
-        if (item.items?.length) {
-          processItems(item.items);
-        }
+      requestItems.forEach((item) => {
+        const relativePath = path.relative(collection.pathname, path.dirname(item.pathname));
+        const folderPath = relativePath !== '.' ? relativePath : '';
+
+        result.push({
+          ...item,
+          folderPath: folderPath.replace(/\\/g, '/')
+        });
       });
     };
 
