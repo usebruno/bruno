@@ -1,5 +1,7 @@
 const axios = require('axios');
-const https = require('node:https');
+const fs = require('fs').promises;
+const https = require('https');
+const { fileURLToPath } = require('url');
 const { createPacResolver } = require('pac-resolver');
 const { getQuickJS } = require('quickjs-emscripten');
 
@@ -22,6 +24,11 @@ function getQJS() {
  * does not need to authenticate the client).
  */
 async function downloadPac(pacUrl, tlsOptions, timeoutMs) {
+  if (pacUrl.startsWith('file://')) {
+    const filePath = fileURLToPath(pacUrl);
+    return fs.readFile(filePath, 'utf8');
+  }
+
   const config = {
     timeout: timeoutMs,
     proxy: false,

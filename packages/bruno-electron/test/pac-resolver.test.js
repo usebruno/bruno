@@ -20,6 +20,20 @@ describe('pac-resolver (electron)', () => {
     return { mockQjs, createPacResolverMock };
   };
 
+  /** Mock fs.promises.readFile for success */
+  const mockFsReadSuccess = (content) => {
+    jest.doMock('fs', () => ({
+      promises: { readFile: jest.fn().mockResolvedValue(content) }
+    }));
+  };
+
+  /** Mock fs.promises.readFile to throw */
+  const mockFsReadError = (err) => {
+    jest.doMock('fs', () => ({
+      promises: { readFile: jest.fn().mockRejectedValue(err) }
+    }));
+  };
+
   /** Mock axios.get for success */
   const mockAxiosSuccess = (text) => {
     jest.doMock('axios', () => ({ get: jest.fn().mockResolvedValue({ data: text }) }));
@@ -65,7 +79,7 @@ describe('pac-resolver (electron)', () => {
     setupPacMocks(async () => 'DIRECT');
 
     const mockAgentConstructor = jest.fn();
-    jest.doMock('node:https', () => ({ Agent: mockAgentConstructor }));
+    jest.doMock('https', () => ({ Agent: mockAgentConstructor }));
 
     const { getPacResolver } = require('../src/utils/pac-resolver');
 
@@ -88,7 +102,7 @@ describe('pac-resolver (electron)', () => {
     setupPacMocks(async () => 'DIRECT');
 
     const mockAgentConstructor = jest.fn();
-    jest.doMock('node:https', () => ({ Agent: mockAgentConstructor }));
+    jest.doMock('https', () => ({ Agent: mockAgentConstructor }));
 
     const { getPacResolver } = require('../src/utils/pac-resolver');
     await getPacResolver({ pacUrl: 'http://example.com/proxy.pac' });
@@ -171,6 +185,87 @@ describe('pac-resolver (electron)', () => {
     const { getPacResolver } = require('../src/utils/pac-resolver');
     const wrapper = await getPacResolver({ pacUrl: 'http://example.com/bad.pac' });
     await expect(wrapper.resolve('http://example.com/')).rejects.toThrow('invalid PAC script');
+  });
+
+  /** file:// PAC tests */
+  test('reads PAC from filesystem for file:// URL and does not call axios', async () => {
+    const pacScript = 'function FindProxyForURL(url, host) { return "PROXY p.example:8080"; }';
+    mockFsReadSuccess(pacScript);
+    const { mockQjs, createPacResolverMock } = setupPacMocks(async () => 'PROXY p.example:8080');
+    const axiosGetMock = jest.fn();
+    jest.doMock('axios', () => ({ get: axiosGetMock }));
+
+    const { getPacResolver } = require('../src/utils/pac-resolver');
+    const { promises: { readFile } } = require('fs');
+
+    const pacUrl = 'file:///Users/test/proxy.pac';
+    const wrapper = await getPacResolver({ pacUrl });
+
+    expect(readFile).toHaveBeenCalledWith('/Users/test/proxy.pac', 'utf8');
+    expect(axiosGetMock).not.toHaveBeenCalled();
+    expect(createPacResolverMock).toHaveBeenCalledWith(mockQjs, pacScript);
+
+    const directives = await wrapper.resolve('http://foo.example/');
+    expect(directives).toEqual(['PROXY p.example:8080']);
+  });
+
+  test('resolves Windows file:// URL to correct OS path', async () => {
+    const pacScript = 'function FindProxyForURL(url, host) { return "DIRECT"; }';
+    mockFsReadSuccess(pacScript);
+    setupPacMocks(async () => 'DIRECT');
+
+    // Mock fileURLToPath to simulate Windows path resolution
+    jest.doMock('url', () => ({
+      fileURLToPath: jest.fn(() => 'C:\\Users\\test\\proxy.pac')
+    }));
+
+    const { getPacResolver } = require('../src/utils/pac-resolver');
+    const { promises: { readFile } } = require('fs');
+    const { fileURLToPath } = require('url');
+
+    await getPacResolver({ pacUrl: 'file:///C:/Users/test/proxy.pac' });
+
+    expect(fileURLToPath).toHaveBeenCalledWith('file:///C:/Users/test/proxy.pac');
+    expect(readFile).toHaveBeenCalledWith('C:\\Users\\test\\proxy.pac', 'utf8');
+  });
+
+  test('rejects when file:// PAC file does not exist', async () => {
+    const err = Object.assign(new Error('no such file or directory'), { code: 'ENOENT' });
+    mockFsReadError(err);
+    jest.doMock('pac-resolver', () => ({ createPacResolver: jest.fn() }));
+    jest.doMock('quickjs-emscripten', () => ({ getQuickJS: jest.fn(async () => ({})) }));
+
+    const { getPacResolver } = require('../src/utils/pac-resolver');
+    await expect(getPacResolver({ pacUrl: 'file:///nonexistent/proxy.pac' })).rejects.toThrow('no such file or directory');
+  });
+
+  test('caches resolver for file:// URL and reads file only once', async () => {
+    mockFsReadSuccess('script');
+    const { createPacResolverMock } = setupPacMocks(async () => 'DIRECT');
+
+    const { getPacResolver } = require('../src/utils/pac-resolver');
+    const { promises: { readFile } } = require('fs');
+
+    const pacUrl = 'file:///Users/test/proxy.pac';
+    const w1 = await getPacResolver({ pacUrl });
+    const w2 = await getPacResolver({ pacUrl });
+
+    expect(w1).toBe(w2);
+    expect(readFile).toHaveBeenCalledTimes(1);
+    expect(createPacResolverMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('does not create https.Agent for file:// URL', async () => {
+    mockFsReadSuccess('script');
+    setupPacMocks(async () => 'DIRECT');
+
+    const mockAgentConstructor = jest.fn();
+    jest.doMock('https', () => ({ Agent: mockAgentConstructor }));
+
+    const { getPacResolver } = require('../src/utils/pac-resolver');
+    await getPacResolver({ pacUrl: 'file:///Users/test/proxy.pac' });
+
+    expect(mockAgentConstructor).not.toHaveBeenCalled();
   });
 
   test('clearCache clears entries by prefix and entirely', async () => {
