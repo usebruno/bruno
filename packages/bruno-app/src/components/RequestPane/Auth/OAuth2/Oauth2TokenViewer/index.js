@@ -6,8 +6,6 @@ import { getAllVariables } from 'utils/collections/index';
 import { interpolate } from '@usebruno/common';
 
 const TokenSection = ({ title, token }) => {
-  if (!token) return null;
-
   const [isExpanded, setIsExpanded] = useState(false);
   const [decodedToken, setDecodedToken] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -25,6 +23,8 @@ const TokenSection = ({ title, token }) => {
       }
     }
   }, [token]);
+
+  if (!token) return null;
 
   const handleCopy = async (text) => {
     await navigator.clipboard.writeText(text);
@@ -94,8 +94,6 @@ const formatExpiryTime = (seconds) => {
 };
 
 const ExpiryTimer = ({ expiresIn }) => {
-  if (!expiresIn) return null;
-
   const calculateTimeLeft = () => Math.max(0, Math.floor(expiresIn - Date.now() / 1000));
 
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft);
@@ -109,6 +107,8 @@ const ExpiryTimer = ({ expiresIn }) => {
 
     return () => clearInterval(timer);
   }, [expiresIn]);
+
+  if (!expiresIn) return null;
 
   return (
     <div
