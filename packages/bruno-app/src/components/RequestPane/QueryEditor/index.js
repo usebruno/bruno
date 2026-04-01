@@ -152,15 +152,10 @@ export default class QueryEditor extends React.Component {
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
-      const nextValue = this.props.value ?? '';
-      const currentValue = this.editor.getValue();
-      if (this.editor.hasFocus?.() && currentValue !== nextValue) {
-        this.cachedValue = currentValue;
-      } else {
-        this.cachedValue = nextValue;
-        this.editor.setValue(nextValue);
-      }
+      const cursor = this.editor.getCursor();
+      this.cachedValue = String(this.props.value);
+      this.editor.setValue(String(this.props.value) || '');
+      this.editor.setCursor(cursor);
     }
 
     if (this.props.theme !== prevProps.theme && this.editor) {
