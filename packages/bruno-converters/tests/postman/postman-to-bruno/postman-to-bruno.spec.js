@@ -852,6 +852,21 @@ describe('postman-collection', () => {
               ]
             }
           }
+        },
+        {
+          name: 'request with numeric multipart form values',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                { key: 'retries', value: 3, type: 'text' },
+                { key: 'priority', value: 0, type: 'text' }
+              ]
+            }
+          }
         }
       ]
     };
@@ -874,6 +889,11 @@ describe('postman-collection', () => {
 
     // Form URL-encoded should have string values
     expect(item.request.body.formUrlEncoded[0].value).toBe('5000');
+
+    // Multipart form should have string values
+    const multipartItem = brunoCollection.items[1];
+    expect(multipartItem.request.body.multipartForm[0].value).toBe('3');
+    expect(multipartItem.request.body.multipartForm[1].value).toBe('0');
   });
 
   it('should convert numeric values to strings in example request and response fields', async () => {
