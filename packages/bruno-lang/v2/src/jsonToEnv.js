@@ -1,21 +1,5 @@
 const _ = require('lodash');
-const { getValueString, indentString } = require('./utils');
-
-const serializeAnnotations = (annotations) => {
-  if (!annotations?.length) return '';
-  return (
-    annotations
-      .map((a) => {
-        if (a.value === undefined) return `@${a.name}`;
-        if (a.value.includes('\n')) {
-          return `@${a.name}('''\n${indentString(a.value)}\n''')`;
-        }
-        const quote = a.value.includes('\'') ? '"' : '\'';
-        return `@${a.name}(${quote}${a.value}${quote})`;
-      })
-      .join('\n') + '\n'
-  );
-};
+const { getValueString, indentString, serializeAnnotations } = require('./utils');
 
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);

@@ -1,25 +1,9 @@
 const _ = require('lodash');
 
-const { indentString, getValueString, getKeyString } = require('./utils');
+const { indentString, getValueString, getKeyString, serializeAnnotations } = require('./utils');
 
 const enabled = (items = []) => items.filter((item) => item.enabled);
 const disabled = (items = []) => items.filter((item) => !item.enabled);
-
-const serializeAnnotations = (annotations) => {
-  if (!annotations?.length) return '';
-  return (
-    annotations
-      .map((a) => {
-        if (a.value === undefined) return `@${a.name}`;
-        if (a.value.includes('\n')) {
-          return `@${a.name}('''\n${indentString(a.value)}\n''')`;
-        }
-        const quote = a.value.includes('\'') ? '"' : '\'';
-        return `@${a.name}(${quote}${a.value}${quote})`;
-      })
-      .join('\n') + '\n'
-  );
-};
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
