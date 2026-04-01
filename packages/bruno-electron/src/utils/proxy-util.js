@@ -235,7 +235,8 @@ async function setupProxyAgents({
             requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
           } else if (/^SOCKS/i.test(first)) {
             const hostPort = first.split(/\s+/)[1];
-            const proxyUri = `socks5://${hostPort}`;
+            const proto = /^SOCKS4\s/i.test(first) ? 'socks4' : 'socks5';
+            const proxyUri = `${proto}://${hostPort}`;
             requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
             requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
           }

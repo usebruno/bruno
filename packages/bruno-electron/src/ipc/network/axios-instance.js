@@ -210,9 +210,6 @@ function makeAxiosInstance({
         timeline
       });
     } catch (err) {
-      if (err.timeline) {
-        timeline = err.timeline;
-      }
       timeline.push({
         timestamp: new Date(),
         type: 'error',
