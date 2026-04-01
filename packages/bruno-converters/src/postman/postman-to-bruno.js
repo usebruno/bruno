@@ -77,10 +77,10 @@ const isItemAFolder = (item) => {
 /**
  * Postman allows non-string values (e.g. numbers) in fields like header values,
  * query param values, etc. Bruno expects these to be strings.
- * This helper converts non-null values to strings, defaulting null/undefined to the fallback.
+ * Converts non-null/non-empty values to strings, returns fallback for null/undefined/empty.
  */
 const ensureString = (value, fallback = '') => {
-  if (value == null) return fallback;
+  if (value == null || value === '') return fallback;
   if (typeof value === 'string') return value;
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
