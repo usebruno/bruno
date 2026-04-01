@@ -76,13 +76,50 @@ const isItemAFolder = (item) => {
 /**
  * Postman allows non-string values (e.g. numbers) in fields like header values,
  * query param values, etc. Bruno expects these to be strings.
- * This helper converts non-null values to strings, defaulting null/undefined to ''.
+ * Converts non-null/non-empty values to strings, returns fallback for null/undefined/empty.
  */
-const ensureString = (value) => {
-  if (value == null) return '';
+const ensureString = (value, fallback = '') => {
+  if (value == null || value === '') return fallback;
   if (typeof value === 'string') return value;
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
+};
+
+/**
+ * Postman's schema allows headers as strings in the format "Key: Value".
+ * This parses a single string header into an object.
+ */
+const parseStringHeader = (header) => {
+  const colonIndex = header.indexOf(':');
+  if (colonIndex === -1) return { key: header.trim(), value: '' };
+  return {
+    key: header.substring(0, colonIndex).trim(),
+    value: header.substring(colonIndex + 1).trim()
+  };
+};
+
+/**
+ * Postman's schema allows the header field to be:
+ * 1. An array of objects (most common)
+ * 2. An array with mixed string and object items
+ * 3. A single concatenated string (e.g. "Key1: Value1\r\nKey2: Value2")
+ * 4. null
+ *
+ * This normalizes all forms into an array of header objects.
+ */
+const normalizeHeaders = (headers) => {
+  if (!headers) return [];
+
+  if (typeof headers === 'string') {
+    return headers.split(/\r?\n/).filter(Boolean).map(parseStringHeader);
+  }
+
+  if (!Array.isArray(headers)) return [];
+
+  return headers.map((header) => {
+    if (typeof header === 'string') return parseStringHeader(header);
+    return header;
+  });
 };
 
 const convertV21Auth = (array) => {
@@ -206,40 +243,40 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
   switch (auth.type) {
     case AUTH_TYPES.BASIC:
       requestObject.auth.basic = {
-        username: authValues.username || '',
-        password: authValues.password || ''
+        username: ensureString(authValues.username),
+        password: ensureString(authValues.password)
       };
       break;
     case AUTH_TYPES.BEARER:
       requestObject.auth.bearer = {
-        token: authValues.token || ''
+        token: ensureString(authValues.token)
       };
       break;
     case AUTH_TYPES.AWSV4:
       requestObject.auth.awsv4 = {
-        accessKeyId: authValues.accessKey || '',
-        secretAccessKey: authValues.secretKey || '',
-        sessionToken: authValues.sessionToken || '',
-        service: authValues.service || '',
-        region: authValues.region || '',
+        accessKeyId: ensureString(authValues.accessKey),
+        secretAccessKey: ensureString(authValues.secretKey),
+        sessionToken: ensureString(authValues.sessionToken),
+        service: ensureString(authValues.service),
+        region: ensureString(authValues.region),
         profileName: ''
       };
       break;
     case AUTH_TYPES.APIKEY:
       requestObject.auth.apikey = {
-        key: authValues.key || '',
-        value: authValues.value?.toString() || '', // Convert the value to a string as Postman's schema does not rigidly define the type of it,
+        key: ensureString(authValues.key),
+        value: ensureString(authValues.value),
         placement: 'header' // By default we are placing the apikey values in headers!
       };
       break;
     case AUTH_TYPES.DIGEST:
       requestObject.auth.digest = {
-        username: authValues.username || '',
-        password: authValues.password || ''
+        username: ensureString(authValues.username),
+        password: ensureString(authValues.password)
       };
       break;
-    case AUTH_TYPES.OAUTH2:
-      const findValueUsingKey = (key) => authValues[key] || '';
+    case AUTH_TYPES.OAUTH2: {
+      const findValueUsingKey = (key) => ensureString(authValues[key]);
 
       // Maps Postman's grant_type to the Bruno's grantType string expected in the target object
       const oauth2GrantTypeMaps = {
@@ -298,6 +335,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
           break;
       }
       break;
+    }
     default:
       requestObject.auth.mode = AUTH_TYPES.NONE;
       console.warn('Unexpected auth.type:', auth.type, '- Mode set, but no specific config generated.');
@@ -534,7 +572,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         brunoRequestItem.request.body.graphql = parseGraphQLRequest(i.request.body.graphql);
       }
 
-      each(i.request.header, (header) => {
+      each(normalizeHeaders(i.request.header), (header) => {
         if (header.key == null && header.value == null) return;
         brunoRequestItem.request.headers.push({
           uid: uuid(),
@@ -623,8 +661,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           };
 
           // Convert original request headers
-          if (originalRequest.header && Array.isArray(originalRequest.header)) {
-            originalRequest.header.forEach((header) => {
+          if (originalRequest.header) {
+            normalizeHeaders(originalRequest.header).forEach((header) => {
               if (header.key == null && header.value == null) return;
               example.request.headers.push({
                 uid: uuid(),
@@ -724,8 +762,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           }
 
           // Convert response headers
-          if (response.header && Array.isArray(response.header)) {
-            response.header.forEach((header) => {
+          if (response.header) {
+            normalizeHeaders(response.header).forEach((header) => {
               if (header.key == null && header.value == null) return;
               example.response.headers.push({
                 uid: uuid(),
@@ -748,8 +786,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
 
 const searchLanguageByHeader = (headers) => {
   let contentType;
-  each(headers, (header) => {
-    if (header.key.toLowerCase() === 'content-type' && !header.disabled) {
+  each(normalizeHeaders(headers), (header) => {
+    if (header.key?.toLowerCase() === 'content-type' && !header.disabled) {
       if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(header.value)) {
         contentType = 'json';
       } else if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(header.value)) {
@@ -762,14 +800,14 @@ const searchLanguageByHeader = (headers) => {
 };
 
 const getBodyTypeFromContentTypeHeader = (headers) => {
-  // Check if headers is null, undefined, or not an array
-  if (!headers || !Array.isArray(headers)) {
+  const normalizedHeaders = normalizeHeaders(headers);
+  if (!normalizedHeaders.length) {
     return 'text';
   }
 
-  const contentTypeHeader = headers.find((header) => header.key.toLowerCase() === 'content-type');
-  if (contentTypeHeader) {
-    const contentType = contentTypeHeader.value?.toLowerCase();
+  const contentTypeHeader = normalizedHeaders.find((header) => header.key?.toLowerCase() === 'content-type');
+  if (contentTypeHeader && typeof contentTypeHeader.value === 'string') {
+    const contentType = contentTypeHeader.value.toLowerCase();
     if (contentType?.includes('application/json')) {
       return 'json';
     } else if (contentType?.includes('application/xml') || contentType?.includes('text/xml')) {

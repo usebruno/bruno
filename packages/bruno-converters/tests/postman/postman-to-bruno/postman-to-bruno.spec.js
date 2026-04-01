@@ -924,6 +924,182 @@ describe('postman-collection', () => {
     // Example response headers
     expect(example.response.headers[0].value).toBe('0');
   });
+
+  it('should convert numeric auth values to strings (array-backed v2.1 format)', async () => {
+    const collectionWithNumericAuth = {
+      info: {
+        _postman_id: 'test-numeric-auth',
+        name: 'collection with numeric auth values',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with numeric bearer token',
+          request: {
+            method: 'GET',
+            header: [],
+            url: { raw: 'https://example.com/api' },
+            auth: {
+              type: 'bearer',
+              bearer: [
+                { key: 'token', value: 123 }
+              ]
+            }
+          }
+        },
+        {
+          name: 'request with numeric apikey values',
+          request: {
+            method: 'GET',
+            header: [],
+            url: { raw: 'https://example.com/api' },
+            auth: {
+              type: 'apikey',
+              apikey: [
+                { key: 'key', value: 456 },
+                { key: 'value', value: 789 }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNumericAuth);
+
+    // Bearer token should be stringified
+    expect(brunoCollection.items[0].request.auth.mode).toBe('bearer');
+    expect(brunoCollection.items[0].request.auth.bearer.token).toBe('123');
+
+    // API key fields should be stringified
+    expect(brunoCollection.items[1].request.auth.mode).toBe('apikey');
+    expect(brunoCollection.items[1].request.auth.apikey.key).toBe('456');
+    expect(brunoCollection.items[1].request.auth.apikey.value).toBe('789');
+  });
+
+  it('should convert numeric auth values to strings (object-backed format)', async () => {
+    const collectionWithObjectAuth = {
+      info: {
+        _postman_id: 'test-object-auth',
+        name: 'collection with object-backed auth',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with object-backed basic auth',
+          request: {
+            method: 'GET',
+            header: [],
+            url: { raw: 'https://example.com/api' },
+            auth: {
+              type: 'basic',
+              basic: {
+                username: 12345,
+                password: 67890
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithObjectAuth);
+
+    expect(brunoCollection.items[0].request.auth.mode).toBe('basic');
+    expect(brunoCollection.items[0].request.auth.basic.username).toBe('12345');
+    expect(brunoCollection.items[0].request.auth.basic.password).toBe('67890');
+  });
+
+  it('should parse string headers in request header arrays', async () => {
+    const collectionWithStringHeaders = {
+      info: {
+        _postman_id: 'test-string-headers',
+        name: 'collection with string headers',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with string headers',
+          request: {
+            method: 'GET',
+            header: [
+              'Content-Type: application/json',
+              { key: 'X-Custom', value: 'test' },
+              'Authorization: Bearer token123'
+            ],
+            url: { raw: 'https://example.com/api' }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithStringHeaders);
+    const headers = brunoCollection.items[0].request.headers;
+
+    expect(headers).toHaveLength(3);
+    expect(headers[0].name).toBe('Content-Type');
+    expect(headers[0].value).toBe('application/json');
+    expect(headers[1].name).toBe('X-Custom');
+    expect(headers[1].value).toBe('test');
+    expect(headers[2].name).toBe('Authorization');
+    expect(headers[2].value).toBe('Bearer token123');
+  });
+
+  it('should parse a single concatenated string as the header field', async () => {
+    const collectionWithConcatenatedHeaders = {
+      info: {
+        _postman_id: 'test-concat-headers',
+        name: 'collection with concatenated header string',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with concatenated header',
+          request: {
+            method: 'GET',
+            header: 'Content-Type: application/json\r\nHost: example.com',
+            url: { raw: 'https://example.com/api' }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithConcatenatedHeaders);
+    const headers = brunoCollection.items[0].request.headers;
+
+    expect(headers).toHaveLength(2);
+    expect(headers[0].name).toBe('Content-Type');
+    expect(headers[0].value).toBe('application/json');
+    expect(headers[1].name).toBe('Host');
+    expect(headers[1].value).toBe('example.com');
+  });
+
+  it('should handle string headers with no value', async () => {
+    const collectionWithNoValueHeader = {
+      info: {
+        _postman_id: 'test-no-value-header',
+        name: 'collection with no-value string header',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with no-value header',
+          request: {
+            method: 'GET',
+            header: ['X-No-Value'],
+            url: { raw: 'https://example.com/api' }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNoValueHeader);
+    const headers = brunoCollection.items[0].request.headers;
+
+    expect(headers).toHaveLength(1);
+    expect(headers[0].name).toBe('X-No-Value');
+    expect(headers[0].value).toBe('');
+  });
 });
 
 // Simple Collection (postman)
