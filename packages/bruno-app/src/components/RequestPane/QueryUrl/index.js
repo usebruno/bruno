@@ -112,6 +112,11 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         url: request.url
       }));
 
+      // Update URL in the editor UI
+      if (editorRef.current?.editor) {
+        editorRef.current.editor.setValue(request.url);
+      }
+
       // Update method
       dispatch(updateRequestMethod({
         method: request.method.toUpperCase(), // Convert to uppercase
@@ -193,6 +198,11 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           url: request.url
         })
       );
+
+      // Update URL in the editor UI
+      if (editorRef.current?.editor) {
+        editorRef.current.editor.setValue(request.url);
+      }
 
       // Update method
       if (request.method) {
