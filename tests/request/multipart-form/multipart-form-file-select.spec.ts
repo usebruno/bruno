@@ -8,7 +8,13 @@ test.describe.serial('Multipart Form - File Select Without Key', () => {
   let tmpDir: string;
   let testFilePath: string;
 
-  test.afterAll(async ({ page }) => {
+  test.afterAll(async ({ page, electronApp }) => {
+    await electronApp.evaluate(({ dialog }) => {
+      if ((dialog as any).__originalShowOpenDialog) {
+        dialog.showOpenDialog = (dialog as any).__originalShowOpenDialog;
+        delete (dialog as any).__originalShowOpenDialog;
+      }
+    });
     await closeAllCollections(page);
   });
 
