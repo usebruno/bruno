@@ -78,8 +78,7 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/max-len': ['off'],
       '@stylistic/jsx-one-expression-per-line': ['off'],
       '@stylistic/max-statements-per-line': ['off'],
-      '@stylistic/no-mixed-operators': ['off'],
-      'no-case-declarations': 'error'
+      '@stylistic/no-mixed-operators': ['off']
     }
   },
   {
@@ -179,7 +178,8 @@ module.exports = runESMImports().then(() => defineConfig([
       }
     },
     rules: {
-      'no-undef': 'error'
+      'no-undef': 'error',
+      'no-case-declarations': 'error'
     }
   },
   {
