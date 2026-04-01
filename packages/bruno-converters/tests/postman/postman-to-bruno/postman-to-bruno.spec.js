@@ -970,6 +970,97 @@ describe('postman-collection', () => {
     // Example response headers
     expect(example.response.headers[0].value).toBe('0');
   });
+
+  it('should parse string headers in request header arrays', async () => {
+    const collectionWithStringHeaders = {
+      info: {
+        _postman_id: 'test-string-headers',
+        name: 'collection with string headers',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with string headers',
+          request: {
+            method: 'GET',
+            header: [
+              'Content-Type: application/json',
+              { key: 'X-Custom', value: 'test' },
+              'Authorization: Bearer token123'
+            ],
+            url: { raw: 'https://example.com/api' }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithStringHeaders);
+    const headers = brunoCollection.items[0].request.headers;
+
+    expect(headers).toHaveLength(3);
+    expect(headers[0].name).toBe('Content-Type');
+    expect(headers[0].value).toBe('application/json');
+    expect(headers[1].name).toBe('X-Custom');
+    expect(headers[1].value).toBe('test');
+    expect(headers[2].name).toBe('Authorization');
+    expect(headers[2].value).toBe('Bearer token123');
+  });
+
+  it('should parse a single concatenated string as the header field', async () => {
+    const collectionWithConcatenatedHeaders = {
+      info: {
+        _postman_id: 'test-concat-headers',
+        name: 'collection with concatenated header string',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with concatenated header',
+          request: {
+            method: 'GET',
+            header: 'Content-Type: application/json\r\nHost: example.com',
+            url: { raw: 'https://example.com/api' }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithConcatenatedHeaders);
+    const headers = brunoCollection.items[0].request.headers;
+
+    expect(headers).toHaveLength(2);
+    expect(headers[0].name).toBe('Content-Type');
+    expect(headers[0].value).toBe('application/json');
+    expect(headers[1].name).toBe('Host');
+    expect(headers[1].value).toBe('example.com');
+  });
+
+  it('should handle string headers with no value', async () => {
+    const collectionWithNoValueHeader = {
+      info: {
+        _postman_id: 'test-no-value-header',
+        name: 'collection with no-value string header',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with no-value header',
+          request: {
+            method: 'GET',
+            header: ['X-No-Value'],
+            url: { raw: 'https://example.com/api' }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNoValueHeader);
+    const headers = brunoCollection.items[0].request.headers;
+
+    expect(headers).toHaveLength(1);
+    expect(headers[0].name).toBe('X-No-Value');
+    expect(headers[0].value).toBe('');
+  });
 });
 
 // Simple Collection (postman)
