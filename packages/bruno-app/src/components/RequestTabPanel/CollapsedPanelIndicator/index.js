@@ -19,8 +19,9 @@ const CollapsedPanelIndicator = ({
   const handlePointerDown = useCallback((e) => {
     if (e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
+    e.currentTarget.style.cursor = isVertical ? 'row-resize' : 'col-resize';
     pointerDownRef.current = { x: e.clientX, y: e.clientY };
-  }, []);
+  }, [isVertical]);
 
   const handlePointerMove = useCallback((e) => {
     if (!pointerDownRef.current) return;
@@ -36,6 +37,7 @@ const CollapsedPanelIndicator = ({
   const handlePointerUp = useCallback((e) => {
     if (!pointerDownRef.current) return;
     pointerDownRef.current = null;
+    e.currentTarget.style.cursor = '';
     e.currentTarget.releasePointerCapture(e.pointerId);
     onExpand();
   }, [onExpand]);
@@ -43,6 +45,7 @@ const CollapsedPanelIndicator = ({
   const handlePointerCancel = useCallback((e) => {
     if (!pointerDownRef.current) return;
     pointerDownRef.current = null;
+    e.currentTarget.style.cursor = '';
     e.currentTarget.releasePointerCapture(e.pointerId);
   }, []);
 

@@ -12,8 +12,9 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
   }
 
-  &:focus {
-    outline: none;
+  &:focus-visible {
+    outline: 1px solid ${(props) => props.theme.requestTabPanel.dragbar.activeBorder};
+    outline-offset: -1px;
   }
 
   .panel-label {
