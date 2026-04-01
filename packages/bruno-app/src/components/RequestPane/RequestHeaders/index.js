@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -12,6 +12,7 @@ import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from '../../BulkEditor';
 import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
+import { usePersistedState } from 'hooks/usePersistedState/index';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
@@ -22,6 +23,37 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const wrapperRef = useRef(null);
+  const saveTimeoutRef = useRef(null);
+  const [headersScrollTop, setHeadersScrollTop] = usePersistedState({
+    key: `headers-scroll-${item.uid}`,
+    default: 0
+  });
+
+  // Track scroll on .flex-boundary (the nearest scrollable ancestor),
+  // since .table-container has no height constraint and never scrolls itself.
+  // Saves on debounced scroll (not on unmount) to avoid re-writing after clearPersistedScope.
+  useEffect(() => {
+    const el = wrapperRef.current?.closest('.flex-boundary');
+    if (!el) return;
+
+    if (headersScrollTop) {
+      el.scrollTop = headersScrollTop;
+    }
+
+    const onScroll = () => {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => {
+        setHeadersScrollTop(el.scrollTop);
+      }, 300);
+    };
+    el.addEventListener('scroll', onScroll);
+
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
 
   // Get column widths from Redux
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
@@ -132,7 +164,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   }
 
   return (
-    <StyledWrapper className="w-full">
+    <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
         tableId="request-headers"
         columns={columns}

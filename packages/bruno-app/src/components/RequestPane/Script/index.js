@@ -9,6 +9,7 @@ import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
+import { usePersistedEditorScroll } from 'hooks/usePersistedState/usePersistedEditorScroll';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -32,6 +33,9 @@ const Script = ({ item, collection }) => {
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+
+  const preReqScroll = usePersistedEditorScroll(preRequestEditorRef, `pre-req-scroll-${item.uid}`);
+  const postResScroll = usePersistedEditorScroll(postResponseEditorRef, `post-res-scroll-${item.uid}`);
 
   // Refresh CodeMirror when tab becomes visible
   useEffect(() => {
@@ -108,6 +112,7 @@ const Script = ({ item, collection }) => {
             onRun={onRun}
             onSave={onSave}
             showHintsFor={['req', 'bru']}
+            initialScroll={preReqScroll}
           />
         </TabsContent>
 
@@ -124,6 +129,7 @@ const Script = ({ item, collection }) => {
             onRun={onRun}
             onSave={onSave}
             showHintsFor={['req', 'res', 'bru']}
+            initialScroll={postResScroll}
           />
         </TabsContent>
       </Tabs>
