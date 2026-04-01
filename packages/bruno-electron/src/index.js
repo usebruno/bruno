@@ -206,13 +206,14 @@ app.on('ready', async () => {
   // Note: irrespective of the state of the shell,
   // try to fetch the system proxy information
   waitForShellEnv()
-    .finally(
-      () => {
-        fetchSystemProxy().catch((err) => {
-          console.warn('Failed to initialize system proxy cache:', err);
-        });
-      }
-    );
+    .catch((err) => {
+      console.warn('Shell env init failed:', err);
+    })
+    .finally(() => {
+      fetchSystemProxy().catch((err) => {
+        console.warn('Failed to initialize system proxy cache:', err);
+      });
+    });
 
   Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
