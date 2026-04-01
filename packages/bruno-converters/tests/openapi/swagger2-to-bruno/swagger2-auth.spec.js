@@ -240,8 +240,8 @@ describe('swagger2-to-bruno auth', () => {
     const publicReq = collection.items.find((i) => i.name === 'Public endpoint');
     const privateReq = collection.items.find((i) => i.name === 'Private endpoint');
 
-    // Public endpoint should inherit (explicitly empty security)
-    expect(publicReq.request.auth.mode).toBe('inherit');
+    // Public endpoint should have no auth (explicitly empty security overrides global)
+    expect(publicReq.request.auth.mode).toBe('none');
 
     // Private endpoint should have apikey auth
     expect(privateReq.request.auth.mode).toBe('apikey');

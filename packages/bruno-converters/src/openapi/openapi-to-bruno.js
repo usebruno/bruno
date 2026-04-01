@@ -1020,7 +1020,7 @@ export const openApiToBruno = (openApiSpecification, options = {}) => {
     if (typeof openApiSpecification !== 'object') {
       openApiSpecification = jsyaml.load(openApiSpecification);
     }
-    if (openApiSpecification.swagger && openApiSpecification.swagger.startsWith('2')) {
+    if (openApiSpecification.swagger && String(openApiSpecification.swagger).startsWith('2')) {
       return swagger2ToBruno(openApiSpecification, options);
     }
 

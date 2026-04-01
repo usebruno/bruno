@@ -50,13 +50,17 @@ const getParameterEntries = (param) => {
 
   // Handle array with enum items — collectionFormat dictates how values are serialized
   if (param.type === 'array' && param.items && param.items.enum && param.items.enum.length > 0) {
+    const collectionFormat = param.collectionFormat || 'csv';
+    const separators = { csv: ',', pipes: '|', ssv: ' ', tsv: '\t' };
+    const separator = separators[collectionFormat] || ',';
+
     if (param.default !== undefined && Array.isArray(param.default)) {
-      return [{ value: JSON.stringify(param.default), enabled: true }];
+      if (collectionFormat === 'multi') {
+        return param.default.map((value) => ({ value: String(value), enabled: true }));
+      }
+      return [{ value: param.default.map(String).join(separator), enabled: true }];
     }
 
-    const collectionFormat = param.collectionFormat || 'csv';
-
-    // multi → separate entries for each enum value (one param per value)
     if (collectionFormat === 'multi') {
       const defaultValue = param.items.default !== undefined ? String(param.items.default) : null;
       param.items.enum.forEach((enumValue, idx) => {
@@ -68,9 +72,6 @@ const getParameterEntries = (param) => {
       return entries;
     }
 
-    // csv, pipes, ssv, tsv → single entry with values joined by the appropriate separator
-    const separators = { csv: ',', pipes: '|', ssv: ' ', tsv: '\t' };
-    const separator = separators[collectionFormat] || ',';
     const joined = param.items.enum.map(String).join(separator);
     return [{ value: joined, enabled: param.required || false }];
   }
@@ -265,19 +266,20 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
     }
   }
 
-  // Handle explicit no-auth case where security: [] on the operation
   if (Array.isArray(op.security) && op.security.length === 0) {
-    brunoRequestItem.request.auth.mode = 'inherit';
+    brunoRequestItem.request.auth.mode = 'none';
   }
 
   let securityDef = null;
+  let requestedScopes = null;
   if (op.security && op.security.length > 0) {
     const schemeName = Object.keys(op.security[0])[0];
+    requestedScopes = op.security[0][schemeName];
     securityDef = request.global.security.getDefinition(schemeName);
   }
 
   if (securityDef) {
-    applyAuth(brunoRequestItem, securityDef);
+    applyAuth(brunoRequestItem, securityDef, requestedScopes);
   }
 
   // Handle response examples from Swagger 2.0 responses
@@ -426,7 +428,7 @@ const SWAGGER2_GRANT_TYPE_MAP = {
  * @param {Object} def - The Swagger 2.0 OAuth2 security definition
  * @returns {Object} Bruno OAuth2 config
  */
-const buildOAuth2Config = (def) => ({
+const buildOAuth2Config = (def, requestedScopes) => ({
   grantType: SWAGGER2_GRANT_TYPE_MAP[def.flow] || 'client_credentials',
   authorizationUrl: def.authorizationUrl || '{{oauth_authorize_url}}',
   accessTokenUrl: def.tokenUrl || '{{oauth_token_url}}',
@@ -434,7 +436,7 @@ const buildOAuth2Config = (def) => ({
   callbackUrl: '{{oauth_callback_url}}',
   clientId: '{{oauth_client_id}}',
   clientSecret: '{{oauth_client_secret}}',
-  scope: Object.keys(def.scopes || {}).join(' '),
+  scope: requestedScopes && requestedScopes.length > 0 ? requestedScopes.join(' ') : Object.keys(def.scopes || {}).join(' '),
   state: '{{oauth_state}}',
   credentialsPlacement: 'header',
   tokenPlacement: 'header',
@@ -449,7 +451,7 @@ const buildOAuth2Config = (def) => ({
  * @param {Object} brunoRequestItem - The Bruno request item to modify
  * @param {Object} def - The Swagger 2.0 security definition
  */
-const applyAuth = (brunoRequestItem, def) => {
+const applyAuth = (brunoRequestItem, def, requestedScopes) => {
   if (def.type === 'basic') {
     brunoRequestItem.request.auth.mode = 'basic';
     brunoRequestItem.request.auth.basic = { username: '{{username}}', password: '{{password}}' };
@@ -480,7 +482,7 @@ const applyAuth = (brunoRequestItem, def) => {
     }
   } else if (def.type === 'oauth2') {
     brunoRequestItem.request.auth.mode = 'oauth2';
-    brunoRequestItem.request.auth.oauth2 = buildOAuth2Config(def);
+    brunoRequestItem.request.auth.oauth2 = buildOAuth2Config(def, requestedScopes);
   }
 };
 

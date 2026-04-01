@@ -245,10 +245,11 @@ export const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
   // Add this schema to visited map
   visited.set(bodySchema, true);
 
-  let _jsonBody = {};
+  const _jsonBody = {};
   each(bodySchema.properties || {}, (prop, name) => {
     _jsonBody[name] = getDefaultValueForSchema(prop, visited);
   });
+  visited.delete(bodySchema);
   return _jsonBody;
 };
 
