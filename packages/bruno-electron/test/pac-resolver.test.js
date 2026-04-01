@@ -20,17 +20,17 @@ describe('pac-resolver (electron)', () => {
     return { mockQjs, createPacResolverMock };
   };
 
-  /** Mock fs.promises.readFile for success */
+  /** Mock fs/promises readFile for success */
   const mockFsReadSuccess = (content) => {
-    jest.doMock('fs', () => ({
-      promises: { readFile: jest.fn().mockResolvedValue(content) }
+    jest.doMock('fs/promises', () => ({
+      readFile: jest.fn().mockResolvedValue(content)
     }));
   };
 
-  /** Mock fs.promises.readFile to throw */
+  /** Mock fs/promises readFile to throw */
   const mockFsReadError = (err) => {
-    jest.doMock('fs', () => ({
-      promises: { readFile: jest.fn().mockRejectedValue(err) }
+    jest.doMock('fs/promises', () => ({
+      readFile: jest.fn().mockRejectedValue(err)
     }));
   };
 
@@ -196,7 +196,7 @@ describe('pac-resolver (electron)', () => {
     jest.doMock('axios', () => ({ get: axiosGetMock }));
 
     const { getPacResolver } = require('../src/utils/pac-resolver');
-    const { promises: { readFile } } = require('fs');
+    const { readFile } = require('fs/promises');
 
     const pacUrl = 'file:///Users/test/proxy.pac';
     const wrapper = await getPacResolver({ pacUrl });
@@ -220,7 +220,7 @@ describe('pac-resolver (electron)', () => {
     }));
 
     const { getPacResolver } = require('../src/utils/pac-resolver');
-    const { promises: { readFile } } = require('fs');
+    const { readFile } = require('fs/promises');
     const { fileURLToPath } = require('url');
 
     await getPacResolver({ pacUrl: 'file:///C:/Users/test/proxy.pac' });
@@ -244,7 +244,7 @@ describe('pac-resolver (electron)', () => {
     const { createPacResolverMock } = setupPacMocks(async () => 'DIRECT');
 
     const { getPacResolver } = require('../src/utils/pac-resolver');
-    const { promises: { readFile } } = require('fs');
+    const { readFile } = require('fs/promises');
 
     const pacUrl = 'file:///Users/test/proxy.pac';
     const w1 = await getPacResolver({ pacUrl });
