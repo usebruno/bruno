@@ -39,7 +39,6 @@ describe('shell-env-state', () => {
 
     it('resolves when the underlying promise resolves', async () => {
       mockInitialize = jest.fn(() => Promise.resolve('shell-ready'));
-      ({ waitForShellEnv } = require('../shell-env-state'));
 
       await expect(waitForShellEnv()).resolves.toBe('shell-ready');
     });
@@ -59,7 +58,6 @@ describe('shell-env-state', () => {
     it('propagates rejection from the underlying initializer', async () => {
       const err = new Error('shell init failed');
       mockInitialize = jest.fn(() => Promise.reject(err));
-      ({ waitForShellEnv } = require('../shell-env-state'));
 
       await expect(waitForShellEnv()).rejects.toThrow('shell init failed');
     });
