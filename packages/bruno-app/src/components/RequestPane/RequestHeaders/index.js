@@ -30,9 +30,11 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     default: 0
   });
 
-  // Track scroll on .flex-boundary (the nearest scrollable ancestor),
-  // since .table-container has no height constraint and never scrolls itself.
-  // Saves on debounced scroll (not on unmount) to avoid re-writing after clearPersistedScope.
+  /**
+   * Track scroll on .flex-boundary (the nearest scrollable ancestor),
+   * since .table-container has no height constraint and never scrolls itself.
+   * Saves on debounced scroll (not on unmount) to avoid re-writing after clearPersistedScope.
+   * */
   useEffect(() => {
     const el = wrapperRef.current?.closest('.flex-boundary');
     if (!el) return;
