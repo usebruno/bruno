@@ -426,20 +426,20 @@ const RequestTabPanel = () => {
 
     return isVerticalLayout
       ? {
-        height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
-        minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
-        width: '100%'
-      }
+          height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
+          minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
+          width: '100%'
+        }
       : {
-        width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
-      };
+          width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
+        };
   };
 
   return (
     <ScopedPersistenceProvider scope={focusedTab.uid}>
       <StyledWrapper
         className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${isVerticalLayout ? 'vertical-layout' : ''
-          } ${requestPaneCollapsed ? 'request-collapsed' : ''} ${responsePaneCollapsed ? 'response-collapsed' : ''}`}
+        } ${requestPaneCollapsed ? 'request-collapsed' : ''} ${responsePaneCollapsed ? 'response-collapsed' : ''}`}
       >
         <div className="query-url-wrapper pt-3 pb-4 px-4">
           {renderQueryUrl()}
