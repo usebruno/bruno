@@ -3,7 +3,7 @@ const path = require('path');
 const { execSync } = require('node:child_process');
 const isDev = require('electron-is-dev');
 const os = require('os');
-const { initializeShellEnv } = require('@usebruno/requests');
+const { initializeShellEnv, waitForShellEnv } = require('./store/shell-env-state');
 const { percentageToZoomLevel } = require('@usebruno/common');
 
 if (isDev) {
@@ -181,8 +181,7 @@ if (useSingleInstance && !gotTheLock) {
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
-  // Ensure shell environment is loaded before any operations that need it
-  await initializeShellEnv();
+  initializeShellEnv();
 
   if (isDev) {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
@@ -203,8 +202,10 @@ app.on('ready', async () => {
 
   // Initialize system proxy cache early (non-blocking)
   const { fetchSystemProxy } = require('./store/system-proxy');
-  fetchSystemProxy().catch((err) => {
-    console.warn('Failed to initialize system proxy cache:', err);
+  waitForShellEnv().then(() => {
+    fetchSystemProxy().catch((err) => {
+      console.warn('Failed to initialize system proxy cache:', err);
+    });
   });
 
   Menu.setApplicationMenu(menu);
