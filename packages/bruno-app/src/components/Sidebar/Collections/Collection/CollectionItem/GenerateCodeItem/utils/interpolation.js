@@ -32,7 +32,7 @@ export const interpolateBody = (body, variables = {}) => {
   const interpolatedBody = cloneDeep(body);
 
   switch (body.mode) {
-    case 'json':
+    case 'json': {
       let parsed = body.json;
       // If it's already a string, use it directly; if it's an object, stringify it first
       if (typeof parsed === 'object') {
@@ -46,6 +46,7 @@ export const interpolateBody = (body, variables = {}) => {
         interpolatedBody.json = parsed;
       }
       break;
+    }
 
     case 'text':
       interpolatedBody.text = interpolate(body.text, variables);

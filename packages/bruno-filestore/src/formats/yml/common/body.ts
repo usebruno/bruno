@@ -21,35 +21,39 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
     case 'none':
       return undefined;
 
-    case 'json':
+    case 'json': {
       const rawBody: RawBody = {
         type: 'json',
         data: body.json || ''
       };
       return rawBody;
+    }
 
-    case 'text':
+    case 'text': {
       const textBody: RawBody = {
         type: 'text',
         data: body.text || ''
       };
       return textBody;
+    }
 
-    case 'xml':
+    case 'xml': {
       const xmlBody: RawBody = {
         type: 'xml',
         data: body.xml || ''
       };
       return xmlBody;
+    }
 
-    case 'sparql':
+    case 'sparql': {
       const sparqlBody: RawBody = {
         type: 'sparql',
         data: body.sparql || ''
       };
       return sparqlBody;
+    }
 
-    case 'formUrlEncoded':
+    case 'formUrlEncoded': {
       const formEntries: FormUrlEncodedEntry[] = body.formUrlEncoded?.map((entry: BrunoKeyValue): FormUrlEncodedEntry => {
         const formEntry: FormUrlEncodedEntry = {
           name: entry.name || '',
@@ -72,8 +76,9 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
         ...(formEntries.length > 0 && { data: formEntries })
       } as FormUrlEncodedBody;
       return formBody;
+    }
 
-    case 'multipartForm':
+    case 'multipartForm': {
       const multipartEntries: MultipartFormEntry[] = body.multipartForm?.map((entry): MultipartFormEntry => {
         const multipartEntry: MultipartFormEntry = {
           name: entry.name || '',
@@ -101,8 +106,9 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
         ...(multipartEntries.length > 0 && { data: multipartEntries })
       } as MultipartFormBody;
       return multipartBody;
+    }
 
-    case 'file':
+    case 'file': {
       const fileEntries: FileBodyEntry[] = body.file?.map((file): FileBodyEntry => {
         return {
           filePath: file.filePath || '',
@@ -116,6 +122,7 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
         ...(fileEntries.length > 0 && { data: fileEntries })
       } as FileBody;
       return fileBody;
+    }
 
     case 'graphql':
       // GraphQL body is handled separately in GraphQL request stringify
