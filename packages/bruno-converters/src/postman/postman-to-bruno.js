@@ -295,7 +295,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         includeBodyHash: authValues.includeBodyHash || false
       };
       break;
-    case AUTH_TYPES.OAUTH2:
+    case AUTH_TYPES.OAUTH2: {
       const findValueUsingKey = (key) => ensureString(authValues[key]);
 
       // Maps Postman's grant_type to the Bruno's grantType string expected in the target object
@@ -355,6 +355,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
           break;
       }
       break;
+    }
     default:
       requestObject.auth.mode = AUTH_TYPES.NONE;
       console.warn('Unexpected auth.type:', auth.type, '- Mode set, but no specific config generated.');
@@ -827,8 +828,8 @@ const getBodyTypeFromContentTypeHeader = (headers) => {
   }
 
   const contentTypeHeader = normalizedHeaders.find((header) => header.key?.toLowerCase() === 'content-type');
-  if (contentTypeHeader) {
-    const contentType = contentTypeHeader.value?.toLowerCase();
+  if (contentTypeHeader && typeof contentTypeHeader.value === 'string') {
+    const contentType = contentTypeHeader.value.toLowerCase();
     if (contentType?.includes('application/json')) {
       return 'json';
     } else if (contentType?.includes('application/xml') || contentType?.includes('text/xml')) {

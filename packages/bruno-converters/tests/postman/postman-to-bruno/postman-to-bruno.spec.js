@@ -971,6 +971,91 @@ describe('postman-collection', () => {
     expect(example.response.headers[0].value).toBe('0');
   });
 
+  it('should convert numeric auth values to strings (array-backed v2.1 format)', async () => {
+    const collectionWithNumericAuth = {
+      info: {
+        _postman_id: 'test-numeric-auth',
+        name: 'collection with numeric auth values',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with numeric bearer token',
+          request: {
+            method: 'GET',
+            header: [],
+            url: { raw: 'https://example.com/api' },
+            auth: {
+              type: 'bearer',
+              bearer: [
+                { key: 'token', value: 123 }
+              ]
+            }
+          }
+        },
+        {
+          name: 'request with numeric apikey values',
+          request: {
+            method: 'GET',
+            header: [],
+            url: { raw: 'https://example.com/api' },
+            auth: {
+              type: 'apikey',
+              apikey: [
+                { key: 'key', value: 456 },
+                { key: 'value', value: 789 }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNumericAuth);
+
+    // Bearer token should be stringified
+    expect(brunoCollection.items[0].request.auth.mode).toBe('bearer');
+    expect(brunoCollection.items[0].request.auth.bearer.token).toBe('123');
+
+    // API key fields should be stringified
+    expect(brunoCollection.items[1].request.auth.mode).toBe('apikey');
+    expect(brunoCollection.items[1].request.auth.apikey.key).toBe('456');
+    expect(brunoCollection.items[1].request.auth.apikey.value).toBe('789');
+  });
+
+  it('should convert numeric auth values to strings (object-backed format)', async () => {
+    const collectionWithObjectAuth = {
+      info: {
+        _postman_id: 'test-object-auth',
+        name: 'collection with object-backed auth',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with object-backed basic auth',
+          request: {
+            method: 'GET',
+            header: [],
+            url: { raw: 'https://example.com/api' },
+            auth: {
+              type: 'basic',
+              basic: {
+                username: 12345,
+                password: 67890
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithObjectAuth);
+
+    expect(brunoCollection.items[0].request.auth.mode).toBe('basic');
+    expect(brunoCollection.items[0].request.auth.basic.username).toBe('12345');
+    expect(brunoCollection.items[0].request.auth.basic.password).toBe('67890');
+  });
+
   it('should parse string headers in request header arrays', async () => {
     const collectionWithStringHeaders = {
       info: {
