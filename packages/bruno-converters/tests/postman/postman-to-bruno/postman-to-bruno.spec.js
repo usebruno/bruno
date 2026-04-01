@@ -815,6 +815,161 @@ describe('postman-collection', () => {
     expect(params[2].value).toBe('');
     expect(params[2].type).toBe('query');
   });
+
+  it('should convert numeric values to strings in headers, params, and body fields', async () => {
+    const collectionWithNumericValues = {
+      info: {
+        _postman_id: 'test-numeric-values',
+        name: 'collection with numeric values',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with numeric values',
+          request: {
+            method: 'POST',
+            header: [
+              { key: 'X-Account-Id', value: 0 },
+              { key: 'X-Retry-Count', value: 3 }
+            ],
+            url: {
+              raw: 'https://example.com/api/:accountId',
+              protocol: 'https',
+              host: ['example', 'com'],
+              path: ['api', ':accountId'],
+              query: [
+                { key: 'limit', value: 100 },
+                { key: 'offset', value: 0 }
+              ],
+              variable: [
+                { key: 'accountId', value: 0 }
+              ]
+            },
+            body: {
+              mode: 'urlencoded',
+              urlencoded: [
+                { key: 'timeout', value: 5000 }
+              ]
+            }
+          }
+        },
+        {
+          name: 'request with numeric multipart form values',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                { key: 'retries', value: 3, type: 'text' },
+                { key: 'priority', value: 0, type: 'text' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNumericValues);
+    const item = brunoCollection.items[0];
+
+    // Headers should have string values
+    expect(item.request.headers[0].value).toBe('0');
+    expect(item.request.headers[1].value).toBe('3');
+
+    // Query params should have string values
+    const queryParams = item.request.params.filter((p) => p.type === 'query');
+    expect(queryParams[0].value).toBe('100');
+    expect(queryParams[1].value).toBe('0');
+
+    // Path params should have string values
+    const pathParams = item.request.params.filter((p) => p.type === 'path');
+    expect(pathParams[0].value).toBe('0');
+
+    // Form URL-encoded should have string values
+    expect(item.request.body.formUrlEncoded[0].value).toBe('5000');
+
+    // Multipart form should have string values
+    const multipartItem = brunoCollection.items[1];
+    expect(multipartItem.request.body.multipartForm[0].value).toBe('3');
+    expect(multipartItem.request.body.multipartForm[1].value).toBe('0');
+  });
+
+  it('should convert numeric values to strings in example request and response fields', async () => {
+    const collectionWithNumericExamples = {
+      info: {
+        _postman_id: 'test-numeric-examples',
+        name: 'collection with numeric example values',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with numeric example',
+          request: {
+            method: 'GET',
+            header: [],
+            url: { raw: 'https://example.com/api' }
+          },
+          response: [
+            {
+              name: 'Example with numerics',
+              originalRequest: {
+                method: 'GET',
+                header: [
+                  { key: 'X-Account-Id', value: 42 }
+                ],
+                url: {
+                  raw: 'https://example.com/api/:id?page=1',
+                  protocol: 'https',
+                  host: ['example', 'com'],
+                  path: ['api', ':id'],
+                  query: [
+                    { key: 'page', value: 1 }
+                  ],
+                  variable: [
+                    { key: 'id', value: 99 }
+                  ]
+                },
+                body: {
+                  mode: 'urlencoded',
+                  urlencoded: [
+                    { key: 'retries', value: 3 }
+                  ]
+                }
+              },
+              status: 'OK',
+              code: 200,
+              header: [
+                { key: 'X-RateLimit-Remaining', value: 0 }
+              ],
+              body: '{"ok": true}'
+            }
+          ]
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNumericExamples);
+    const example = brunoCollection.items[0].examples[0];
+
+    // Example request headers
+    expect(example.request.headers[0].value).toBe('42');
+
+    // Example request query params
+    const queryParams = example.request.params.filter((p) => p.type === 'query');
+    expect(queryParams[0].value).toBe('1');
+
+    // Example request path params
+    const pathParams = example.request.params.filter((p) => p.type === 'path');
+    expect(pathParams[0].value).toBe('99');
+
+    // Example request form URL-encoded
+    expect(example.request.body.formUrlEncoded[0].value).toBe('3');
+
+    // Example response headers
+    expect(example.response.headers[0].value).toBe('0');
+  });
 });
 
 // Simple Collection (postman)
