@@ -269,7 +269,7 @@ export const BODY_TYPE_HANDLERS = [
         if (bodySchema.example !== undefined) {
           body.json = JSON.stringify(bodySchema.example, null, 2);
         } else if (bodySchema.type === 'array') {
-          body.json = JSON.stringify(bodySchema.items ? [buildEmptyJsonBody(bodySchema.items)] : [], null, 2);
+          body.json = JSON.stringify(bodySchema.items ? [getDefaultValueForSchema(bodySchema.items)] : [], null, 2);
         } else {
           body.json = JSON.stringify(buildEmptyJsonBody(bodySchema), null, 2);
         }
@@ -334,7 +334,7 @@ export const BODY_TYPE_HANDLERS = [
     }
   },
   {
-    match: (mimeType) => ['text/plain', 'application/octet-stream', '*/*'].includes(mimeType),
+    match: (mimeType) => mimeType?.startsWith('text/') || ['application/octet-stream', '*/*'].includes(mimeType),
     mode: 'text',
     handle: (body, bodySchema) => {
       // Use example from schema if available
@@ -449,6 +449,13 @@ export const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName
     }))
   };
 
+  const responseBodyType = getBodyTypeFromContentType(contentType);
+  const responseBodyContent = responseBodyType === 'xml' && exampleValue !== null && typeof exampleValue === 'object'
+    ? buildXmlBody({ example: exampleValue })
+    : typeof exampleValue === 'object'
+      ? JSON.stringify(exampleValue, null, 2)
+      : exampleValue;
+
   const brunoExample = {
     uid: uuid(),
     itemUid: brunoRequestItem.uid,
@@ -475,8 +482,8 @@ export const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName
         }
       ] : [],
       body: {
-        type: getBodyTypeFromContentType(contentType),
-        content: typeof exampleValue === 'object' ? JSON.stringify(exampleValue, null, 2) : exampleValue
+        type: responseBodyType,
+        content: responseBodyContent
       }
     }
   };
