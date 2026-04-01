@@ -275,7 +275,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
               addWarning(`Failed to parse XML in request body: ${error.message}`, item?.name);
             }
             break;
-          case 'multipartForm':
+          case 'multipartForm': {
             if (!body?.multipartForm) break;
             let multipartFormToKeyValue = body?.multipartForm.reduce((acc, f) => {
               acc[f?.name] = f.value;
@@ -297,7 +297,8 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
               $ref: `#/components/requestBodies/${requestBodyId}`
             };
             break;
-          case 'formUrlEncoded':
+          }
+          case 'formUrlEncoded': {
             if (!body?.formUrlEncoded) break;
             let formUrlEncodedToKeyValue = body?.formUrlEncoded.reduce((acc, f) => {
               acc[f?.name] = f.value;
@@ -319,6 +320,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
               $ref: `#/components/requestBodies/${requestBodyId}`
             };
             break;
+          }
           case 'text':
             if (!body?.text) break;
             pathBody['requestBody'] = {
@@ -358,7 +360,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
               [securitySchemaId]: []
             };
             break;
-          case 'oauth2':
+          case 'oauth2': {
             if (!auth?.oauth2?.grantType) break;
             const { authorizationUrl, accessTokenUrl, callbackUrl, scope } = auth?.oauth2;
             switch (auth?.oauth2?.grantType) {
@@ -425,6 +427,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                 break;
             }
             break;
+          }
           case 'awsv4':
             components.securitySchemes[securitySchemaId] = {
               'type': 'apiKey',

@@ -63,7 +63,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           includeBodyHash: get(collectionAuth, 'oauth1.includeBodyHash')
         };
         break;
-      case 'wsse':
+      case 'wsse': {
         const username = get(collectionAuth, 'wsse.username', '');
         const password = get(collectionAuth, 'wsse.password', '');
 
@@ -80,7 +80,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           'X-WSSE'
         ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
         break;
-      case 'apikey':
+      }
+      case 'apikey': {
         const apiKeyAuth = get(collectionAuth, 'apikey');
         if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
@@ -90,7 +91,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
         }
         break;
-      case 'oauth2':
+      }
+      case 'oauth2': {
         const grantType = get(collectionAuth, 'oauth2.grantType');
         switch (grantType) {
           case 'password':
@@ -175,6 +177,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             break;
         }
         break;
+      }
     }
   }
 
@@ -231,7 +234,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           includeBodyHash: get(request, 'auth.oauth1.includeBodyHash')
         };
         break;
-      case 'oauth2':
+      case 'oauth2': {
         const grantType = get(request, 'auth.oauth2.grantType');
         switch (grantType) {
           case 'password':
@@ -316,7 +319,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             break;
         }
         break;
-      case 'wsse':
+      }
+      case 'wsse': {
         const username = get(request, 'auth.wsse.username', '');
         const password = get(request, 'auth.wsse.password', '');
 
@@ -333,7 +337,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           'X-WSSE'
         ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
         break;
-      case 'apikey':
+      }
+      case 'apikey': {
         const apiKeyAuth = get(request, 'auth.apikey');
         if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
@@ -343,6 +348,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
         }
         break;
+      }
     }
   }
 
