@@ -2,6 +2,7 @@ const { initializeShellEnv: _initializeShellEnv } = require('@usebruno/requests'
 
 const TIMEOUT_MS = 60_000;
 
+/** @type {null | Promise<any>} */
 let _promise = null;
 
 const _initWithTimeout = () => {
