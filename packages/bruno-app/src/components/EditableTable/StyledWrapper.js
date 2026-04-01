@@ -12,7 +12,6 @@ const StyledWrapper = styled.div`
   }
 
   .table-container {
-    overflow: auto;
     border-radius: ${(props) => props.theme.border.radius.base};
     border: solid 1px ${(props) => props.theme.border.border0};
   }
