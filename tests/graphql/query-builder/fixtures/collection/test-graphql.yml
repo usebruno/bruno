@@ -5,7 +5,7 @@ info:
 
 graphql:
   method: POST
-  url: https://graphql.anilist.co
+  url: http://localhost:8081/api/graphql
   body:
     query: |-
 

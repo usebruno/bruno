@@ -122,6 +122,12 @@ const focusMainWindow = () => {
   }
 };
 
+const closeAllWatchers = () => {
+  collectionWatcher.closeAllWatchers();
+  workspaceWatcher.closeAllWatchers();
+  apiSpecWatcher.closeAllWatchers();
+};
+
 // Parse protocol URL from command line arguments (if any)
 appProtocolUrl = getAppProtocolUrlFromArgv(process.argv);
 
@@ -459,6 +465,7 @@ app.on('ready', async () => {
 
 // Quit the app once all windows are closed
 app.on('before-quit', () => {
+  closeAllWatchers();
   // Release single instance lock to allow other instances to take over
   if (useSingleInstance && gotTheLock) {
     app.releaseSingleInstanceLock();

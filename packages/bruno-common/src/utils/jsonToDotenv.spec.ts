@@ -48,49 +48,71 @@ describe('jsonToDotenv', () => {
   });
 
   describe('special character handling', () => {
-    test('it should quote values containing hash (#)', () => {
+    test('it should single-quote values containing hash (#)', () => {
       const variables = [
         { name: 'PASSWORD', value: 'ABC#DEF' },
         { name: 'SECRET', value: 'key#123' }
       ];
       const output = jsonToDotenv(variables);
-      expect(output).toBe('PASSWORD="ABC#DEF"\nSECRET="key#123"');
+      expect(output).toBe('PASSWORD=\'ABC#DEF\'\nSECRET=\'key#123\'');
     });
 
-    test('it should quote values containing newlines and escape them', () => {
+    test('it should backtick-quote values containing hash and single quote', () => {
+      const variables = [{ name: 'MIXED', value: 'it\'s#complex' }];
+      const output = jsonToDotenv(variables);
+      expect(output).toBe('MIXED=`it\'s#complex`');
+    });
+
+    test('it should backtick-quote values containing hash, single quote, and double quote', () => {
+      const variables = [{ name: 'ALL', value: 'it\'s#"complex"' }];
+      const output = jsonToDotenv(variables);
+      expect(output).toBe('ALL=`it\'s#"complex"`');
+    });
+
+    test('it should double-quote values containing newlines and escape them', () => {
       const variables = [{ name: 'MULTILINE', value: 'line1\nline2' }];
       const output = jsonToDotenv(variables);
       expect(output).toBe('MULTILINE="line1\\nline2"');
     });
 
-    test('it should quote and escape values containing double quotes', () => {
+    test('it should leave values with double quotes unquoted', () => {
       const variables = [{ name: 'QUOTED', value: 'say "hello"' }];
       const output = jsonToDotenv(variables);
-      expect(output).toBe('QUOTED="say \\"hello\\""');
+      expect(output).toBe('QUOTED=say "hello"');
     });
 
-    test('it should quote values containing single quotes', () => {
+    test('it should leave values with single quotes unquoted', () => {
       const variables = [{ name: 'APOSTROPHE', value: 'it\'s fine' }];
       const output = jsonToDotenv(variables);
-      expect(output).toBe('APOSTROPHE="it\'s fine"');
+      expect(output).toBe('APOSTROPHE=it\'s fine');
     });
 
-    test('it should quote and escape values containing backslashes', () => {
+    test('it should leave values with backslashes unquoted', () => {
       const variables = [{ name: 'PATH', value: 'C:\\Users\\name' }];
       const output = jsonToDotenv(variables);
-      expect(output).toBe('PATH="C:\\\\Users\\\\name"');
+      expect(output).toBe('PATH=C:\\Users\\name');
     });
 
-    test('it should quote and escape values containing carriage returns', () => {
+    test('it should double-quote and escape values containing carriage returns', () => {
       const variables = [{ name: 'CR_VALUE', value: 'line1\rline2' }];
       const output = jsonToDotenv(variables);
       expect(output).toBe('CR_VALUE="line1\\rline2"');
     });
 
-    test('it should quote and escape values containing CRLF (Windows line endings)', () => {
+    test('it should double-quote and escape values containing CRLF', () => {
       const variables = [{ name: 'CRLF_VALUE', value: 'line1\r\nline2' }];
       const output = jsonToDotenv(variables);
       expect(output).toBe('CRLF_VALUE="line1\\r\\nline2"');
+    });
+
+    test('it should quote values with leading or trailing whitespace', () => {
+      const variables = [
+        { name: 'LEADING', value: '  hello' },
+        { name: 'TRAILING', value: 'hello  ' },
+        { name: 'BOTH', value: '  hello  ' }
+      ];
+      const output = jsonToDotenv(variables);
+      expect(output).toBe('LEADING=\'  hello\'\nTRAILING=\'hello  \'\nBOTH=\'  hello  \'');
     });
   });
 
@@ -121,11 +143,45 @@ describe('jsonToDotenv', () => {
       expect(parsed.HASH_SPACE).toBe('value # comment-like');
     });
 
+    test('it should preserve values with backslashes through round-trip', () => {
+      const variables = [{ name: 'PATH', value: 'C:\\Users\\name' }];
+      const serialized = jsonToDotenv(variables);
+      const parsed = dotenvToJson(serialized);
+      expect(parsed.PATH).toBe('C:\\Users\\name');
+    });
+
+    test('it should preserve values with double quotes through round-trip', () => {
+      const variables = [{ name: 'QUOTED', value: 'say "hello"' }];
+      const serialized = jsonToDotenv(variables);
+      const parsed = dotenvToJson(serialized);
+      expect(parsed.QUOTED).toBe('say "hello"');
+    });
+
     test('it should preserve values with single quotes through round-trip', () => {
       const variables = [{ name: 'APOSTROPHE', value: 'it\'s working' }];
       const serialized = jsonToDotenv(variables);
       const parsed = dotenvToJson(serialized);
       expect(parsed.APOSTROPHE).toBe('it\'s working');
+    });
+
+    test('it should preserve values with hash, single quote, and double quote through round-trip', () => {
+      const variables = [{ name: 'COMPLEX', value: 'it\'s#"complex"' }];
+      const serialized = jsonToDotenv(variables);
+      const parsed = dotenvToJson(serialized);
+      expect(parsed.COMPLEX).toBe('it\'s#"complex"');
+    });
+
+    test('it should preserve values with leading/trailing whitespace through round-trip', () => {
+      const variables = [
+        { name: 'LEADING', value: '  hello' },
+        { name: 'TRAILING', value: 'hello  ' },
+        { name: 'BOTH', value: '  hello  ' }
+      ];
+      const serialized = jsonToDotenv(variables);
+      const parsed = dotenvToJson(serialized);
+      expect(parsed.LEADING).toBe('  hello');
+      expect(parsed.TRAILING).toBe('hello  ');
+      expect(parsed.BOTH).toBe('  hello  ');
     });
 
     test('it should preserve empty values through round-trip', () => {
@@ -146,6 +202,39 @@ describe('jsonToDotenv', () => {
       expect(parsed.DB_PASSWORD).toBe('P@ss#w0rd!123');
       expect(parsed.API_SECRET).toBe('abc#def$ghi%jkl');
       expect(parsed.JWT_SECRET).toBe('secret-key#with-special_chars');
+    });
+
+    test('it should not double-escape backslashes on repeated round-trips', () => {
+      const variables = [{ name: 'PATH', value: 'C:\\Users\\name' }];
+      // Simulate multiple save/load cycles
+      let serialized = jsonToDotenv(variables);
+      let parsed = dotenvToJson(serialized);
+      expect(parsed.PATH).toBe('C:\\Users\\name');
+
+      // Second round-trip
+      serialized = jsonToDotenv([{ name: 'PATH', value: parsed.PATH }]);
+      parsed = dotenvToJson(serialized);
+      expect(parsed.PATH).toBe('C:\\Users\\name');
+
+      // Third round-trip
+      serialized = jsonToDotenv([{ name: 'PATH', value: parsed.PATH }]);
+      parsed = dotenvToJson(serialized);
+      expect(parsed.PATH).toBe('C:\\Users\\name');
+    });
+
+    test('it should not double-escape double quotes on repeated round-trips', () => {
+      const variables = [{ name: 'VAL', value: 'say "hello"' }];
+      let serialized = jsonToDotenv(variables);
+      let parsed = dotenvToJson(serialized);
+      expect(parsed.VAL).toBe('say "hello"');
+
+      serialized = jsonToDotenv([{ name: 'VAL', value: parsed.VAL }]);
+      parsed = dotenvToJson(serialized);
+      expect(parsed.VAL).toBe('say "hello"');
+
+      serialized = jsonToDotenv([{ name: 'VAL', value: parsed.VAL }]);
+      parsed = dotenvToJson(serialized);
+      expect(parsed.VAL).toBe('say "hello"');
     });
   });
 });

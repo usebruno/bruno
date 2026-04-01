@@ -68,11 +68,28 @@ const getValueUrl = (url) => {
   return `'''\n${indentString(url, 2)}\n'''`;
 };
 
+function serializeAnnotations(annotations) {
+  if (!annotations?.length) return '';
+  return (
+    annotations
+      .map((a) => {
+        if (a.value === undefined) return `@${a.name}`;
+        if (a.value.includes('\n')) {
+          return `@${a.name}('''\n${indentString(a.value)}\n''')`;
+        }
+        const quote = a.value.includes('\'') ? '"' : '\'';
+        return `@${a.name}(${quote}${a.value}${quote})`;
+      })
+      .join('\n') + '\n'
+  );
+};
+
 module.exports = {
   safeParseJson,
   indentString,
   outdentString,
   getValueString,
   getKeyString,
-  getValueUrl
+  getValueUrl,
+  serializeAnnotations
 };

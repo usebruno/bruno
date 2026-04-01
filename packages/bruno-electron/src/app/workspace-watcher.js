@@ -224,6 +224,24 @@ class WorkspaceWatcher {
   hasWatcher(workspacePath) {
     return Boolean(this.watchers[workspacePath]);
   }
+
+  closeAllWatchers() {
+    for (const [watchPath, watcher] of Object.entries(this.watchers)) {
+      try {
+        watcher?.close();
+      } catch (err) {}
+    }
+    this.watchers = {};
+
+    for (const [watchPath, watcher] of Object.entries(this.environmentWatchers)) {
+      try {
+        watcher?.close();
+      } catch (err) {}
+    }
+    this.environmentWatchers = {};
+
+    dotEnvWatcher.closeAll();
+  }
 }
 
 module.exports = WorkspaceWatcher;

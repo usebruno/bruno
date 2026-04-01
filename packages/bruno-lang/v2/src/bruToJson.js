@@ -3,6 +3,10 @@ const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
 const parseExample = require('./example/bruToJson');
 
+// this is done to avoid breaking existing pairlist mapping so
+// the key is hidden and not added into the json automatically
+const ANNOTATIONS_KEY = Symbol('annotations');
+
 /**
  * A Bru file is made up of blocks.
  * There are three types of blocks
@@ -55,10 +59,27 @@ const grammar = ohm.grammar(`Bru {
   multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter st* contenttypeannotation?
   contenttypeannotation = "@contentType(" (~")" any)* ")"
 
+  // Annotation support (decorators on pairs)
+  annotationname = annotationchar+
+  annotationchar = ~("(" | ")" | " " | "\\t" | "\\r" | "\\n" | ":") any
+  annotationsinglequotedargchar = ~"'" any
+  annotationsinglequotedarg = "'" annotationsinglequotedargchar* "'"
+  annotationdoublequotedargchar = ~"\\"" any
+  annotationdoublequotedarg = "\\"" annotationdoublequotedargchar* "\\""
+  annotationunquotedargchar = ~")" any
+  annotationunquotedarg = annotationunquotedargchar*
+  annotationargvalue = annotationsinglequotedarg | annotationdoublequotedarg | annotationunquotedarg
+  annotationmultilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+  annotationargscontents = annotationmultilinetextblock | annotationargvalue
+  annotationargs = "(" annotationargscontents ")"
+  annotation = "@" annotationname annotationargs?
+  annotationentry = st* annotation ~":" st* nl
+  pairannotations = annotationentry*
+
   // Dictionary Blocks
-  dictionary = st* "{" pairlist? tagend
+  dictionary = st* "{" st* pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = st* (quoted_key | key) st* ":" st* value st*
+  pair = st* pairannotations st* (quoted_key | key) st* ":" st* value st*
   disable_char = "~"
   quote_char = "\\""
   esc_char = "\\\\"
@@ -72,7 +93,7 @@ const grammar = ohm.grammar(`Bru {
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
   assertpairlist = optionalnl* assertpair (~tagend stnl* assertpair)* (~tagend space)*
-  assertpair = st* assertkey st* ":" st* value st*
+  assertpair = st* pairannotations st* assertkey st* ":" st* value st*
   assertkey = ~tagend assertkeychar*
   assertkeychar = ~(tagend | nl | ":") any
 
@@ -168,12 +189,12 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
     let value = pair[name];
+    const rawAnnotations = pair[ANNOTATIONS_KEY];
 
     if (!parseEnabled) {
-      return {
-        name,
-        value
-      };
+      const result = { name, value };
+      if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+      return result;
     }
 
     let enabled = true;
@@ -182,11 +203,9 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       enabled = false;
     }
 
-    return {
-      name,
-      value,
-      enabled
-    };
+    const result = { name, value, enabled };
+    if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+    return result;
   });
 };
 
@@ -197,18 +216,16 @@ const mapRequestParams = (pairList = [], type) => {
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
     let value = pair[name];
+    const rawAnnotations = pair[ANNOTATIONS_KEY];
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
       name = name.slice(1);
       enabled = false;
     }
 
-    return {
-      name,
-      value,
-      enabled,
-      type
-    };
+    const result = { name, value, enabled, type };
+    if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+    return result;
   });
 };
 
@@ -346,19 +363,67 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       {}
     );
   },
-  dictionary(_1, _2, pairlist, _3) {
+  dictionary(_1, _2, _3, pairlist, _4) {
     return pairlist.ast;
   },
   pairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  pair(_1, key, _2, _3, _4, value, _5) {
+  pairannotations(entries) {
+    return entries.ast;
+  },
+  annotationentry(_1, annotation, _2, _3) {
+    return annotation.ast;
+  },
+  annotation(_at, name, argsIter) {
+    const annotObj = { name: name.ast };
+    const argsArr = argsIter.ast;
+    if (argsArr.length > 0) {
+      annotObj.value = argsArr[0];
+    }
+    return annotObj;
+  },
+  annotationname(chars) {
+    return chars.sourceString;
+  },
+  annotationsinglequotedarg(_open, chars, _close) {
+    return chars.sourceString;
+  },
+  annotationdoublequotedarg(_open, chars, _close) {
+    return chars.sourceString;
+  },
+  annotationunquotedarg(chars) {
+    return chars.sourceString;
+  },
+  annotationargvalue(alt) {
+    return alt.ast;
+  },
+  annotationmultilinetextblock(_1, content, _2) {
+    const lines = content.sourceString.split('\n');
+    // NOTE: the number 4 is taken from the `multilinetextblock` implementation
+    let minIndent = 4;
+    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent)));
+    if (dedented.length > 0 && dedented[0] === '') dedented.shift();
+    if (dedented.length > 0 && dedented[dedented.length - 1] === '') dedented.pop();
+    return dedented.join('\n');
+  },
+  annotationargscontents(alt) {
+    return alt.ast;
+  },
+  annotationargs(_open, value, _close) {
+    return value.ast;
+  },
+  pair(_1, annotations, _keyindent, key, _2, _3, _4, value, _5) {
     let res = {};
     if (Array.isArray(value.ast)) {
       res[key.ast] = value.ast;
-      return res;
+    } else {
+      res[key.ast] = value.ast ? value.ast.trim() : '';
     }
-    res[key.ast] = value.ast ? value.ast.trim() : '';
+    const annotationList = annotations.ast;
+    if (annotationList && annotationList.length > 0) {
+      res[ANNOTATIONS_KEY] = annotationList;
+    }
     return res;
   },
   esc_quote_char(_1, quote) {
@@ -378,9 +443,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   assertpairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  assertpair(_1, key, _2, _3, _4, value, _5) {
+  assertpair(_1, annotations, _2, key, _3, _4, _5, value, _6) {
     let res = {};
     res[key.ast] = value.ast ? value.ast.trim() : '';
+    const annotationList = annotations.ast;
+    if (annotationList && annotationList.length > 0) {
+      res[ANNOTATIONS_KEY] = annotationList;
+    }
     return res;
   },
   assertkey(chars) {
