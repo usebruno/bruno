@@ -1,14 +1,26 @@
 const { initializeShellEnv: _initializeShellEnv } = require('@usebruno/requests');
 
+const TIMEOUT_MS = 60_000;
+
 let _promise = null;
 
-const initializeShellEnv = () => {
-  if (!_promise) _promise = _initializeShellEnv();
+const _initWithTimeout = () => {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      _promise = null;
+      reject(new Error('Shell environment initialization timed out'));
+    }, TIMEOUT_MS);
+  });
+  return Promise.race([_initializeShellEnv(), timeout]).finally(() => clearTimeout(timer));
 };
 
-// Await this wherever shell env must be settled before proceeding
+const initializeShellEnv = () => {
+  if (!_promise) _promise = _initWithTimeout();
+};
+
 const waitForShellEnv = () => {
-  if (!_promise) _promise = _initializeShellEnv();
+  if (!_promise) _promise = _initWithTimeout();
   return _promise;
 };
 

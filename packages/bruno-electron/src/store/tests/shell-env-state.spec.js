@@ -63,5 +63,45 @@ describe('shell-env-state', () => {
 
       await expect(waitForShellEnv()).rejects.toThrow('shell init failed');
     });
+
+    describe('timeout', () => {
+      beforeEach(() => jest.useFakeTimers());
+      afterEach(() => jest.useRealTimers());
+
+      it('rejects after 60 seconds', async () => {
+        mockInitialize = jest.fn(() => new Promise(() => {})); // never resolves
+        ({ waitForShellEnv } = require('../shell-env-state'));
+
+        const p = waitForShellEnv();
+        jest.advanceTimersByTime(60_000);
+
+        await expect(p).rejects.toThrow('Shell environment initialization timed out');
+      });
+
+      it('resets the promise after timeout so next call retries', async () => {
+        mockInitialize = jest.fn(() => new Promise(() => {}));
+        ({ initializeShellEnv, waitForShellEnv } = require('../shell-env-state'));
+
+        const p = waitForShellEnv();
+        jest.advanceTimersByTime(60_000);
+        await expect(p).rejects.toThrow('timed out');
+
+        // After timeout _promise is null — next call should reinitialize
+        mockInitialize = jest.fn(() => Promise.resolve('retry-ok'));
+        const p2 = waitForShellEnv();
+        await expect(p2).resolves.toBe('retry-ok');
+        expect(mockInitialize).toHaveBeenCalledTimes(1);
+      });
+
+      it('does not time out if the initializer resolves in time', async () => {
+        mockInitialize = jest.fn(() => Promise.resolve('fast'));
+        ({ waitForShellEnv } = require('../shell-env-state'));
+
+        const p = waitForShellEnv();
+        jest.advanceTimersByTime(59_999);
+
+        await expect(p).resolves.toBe('fast');
+      });
+    });
   });
 });
