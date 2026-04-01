@@ -32,6 +32,7 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
     }
 
     const sequence = _.get(json, 'meta.seq');
+    const tags = _.get(json, 'meta.tags', []);
     const urlPath: Record<typeof requestType, string> = {
       'grpc-request': 'grpc.url',
       'ws-request': 'ws.url',
@@ -42,7 +43,7 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
       name: _.get(json, 'meta.name'),
       seq: !_.isNaN(sequence) ? Number(sequence) : 1,
       settings: _.get(json, 'settings', {}),
-      tags: _.get(json, 'meta.tags', []),
+      tags: Array.isArray(tags) ? tags : [],
       request: {
         // Preserving special characters in custom methods. Using _.upperCase strips special characters.
         method:
