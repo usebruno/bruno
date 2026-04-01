@@ -2,20 +2,7 @@ const { createPacResolver } = require('pac-resolver');
 const { getQuickJS } = require('quickjs-emscripten');
 const fetch = require('node-fetch');
 
-// Prefer native/global AbortController when available, otherwise try to use
-// fetch-provided AbortController or fall back to the 'abort-controller' package.
-let AbortController = globalThis.AbortController || (fetch && fetch.AbortController) || null;
-if (!AbortController) {
-  try {
-    // this package may not be installed in all environments
-    // requiring it is best-effort — if it fails we'll use a safe noop fallback below
-
-    AbortController = require('abort-controller');
-  } catch (e) {
-    AbortController = null;
-  }
-}
-const crypto = require('crypto');
+let AbortController = globalThis.AbortController;
 
 // Simple in-memory cache for compiled resolvers
 const CACHE = new Map();
@@ -27,22 +14,8 @@ function getQJS() {
   return qjsPromise;
 }
 
-function hash(input) {
-  return crypto.createHash('sha256').update(input).digest('hex');
-}
-
 async function downloadPac(pacUrl, timeoutMs = 5000) {
-  console.log(`Starting download of PAC from ${pacUrl} with timeout ${timeoutMs}ms`);
-  // create a real AbortController when possible; otherwise provide a noop
-  // controller so code can call `abort()` without throwing.
-  let controller;
-  if (AbortController) {
-    controller = new AbortController();
-  } else if (fetch && fetch.AbortController) {
-    controller = new fetch.AbortController();
-  } else {
-    controller = { signal: undefined, abort: () => { } };
-  }
+  const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(pacUrl, { signal: controller.signal });
@@ -68,37 +41,32 @@ async function getPacResolver({ pacUrl, opts = {} }) {
     throw new Error('pacUrl must be provided');
   }
 
-  if (pacUrl) {
-    const key = `url:${pacUrl}`;
-    const now = Date.now();
-    const cached = CACHE.get(key);
-    if (cached && now - cached.ts < cacheTtlMs) {
-      return cached.wrapper;
-    }
-
-    // download and compile using QuickJS sandbox (fixes CVE GHSA-9j49-mfvp-vmhm)
-    const script = await downloadPac(pacUrl, opts.timeoutMs || 5000);
-    const qjs = await getQJS();
-    const resolverFn = createPacResolver(qjs, script);
-    const wrapper = createWrapper(resolverFn);
-    CACHE.set(key, { wrapper, ts: Date.now() });
-    return wrapper;
+  const key = `url:${pacUrl}`;
+  const now = Date.now();
+  const cached = CACHE.get(key);
+  if (cached && now - cached.ts < cacheTtlMs) {
+    return cached.wrapper;
   }
+
+  // download and compile using QuickJS sandbox (fixes CVE GHSA-9j49-mfvp-vmhm)
+  // https://github.com/advisories/GHSA-9j49-mfvp-vmhm
+  const script = await downloadPac(pacUrl, opts.timeoutMs || 5000);
+  const qjs = await getQJS();
+  const resolverFn = createPacResolver(qjs, script);
+  const wrapper = createWrapper(resolverFn);
+  CACHE.set(key, { wrapper, ts: Date.now() });
+  return wrapper;
 }
 
 function createWrapper(resolverFn) {
   return {
     resolve: async (url) => {
-      try {
-        const u = new URL(url);
-        const host = u.hostname;
-        // resolverFn(url, host) => returns string like 'PROXY x:8080; DIRECT'
-        const out = await resolverFn(url, host);
-        if (!out || typeof out !== 'string') return [];
-        return out.split(';').map(s => s.trim()).filter(Boolean);
-      } catch (err) {
-        throw err;
-      }
+      const u = new URL(url);
+      const host = u.hostname;
+      // resolverFn(url, host) => returns string like 'PROXY x:8080; DIRECT'
+      const out = await resolverFn(url, host);
+      if (!out || typeof out !== 'string') return [];
+      return out.split(';').map(s => s.trim()).filter(Boolean);
     },
     dispose: () => {
       // noop for now — cache eviction handled globally
