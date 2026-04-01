@@ -74,6 +74,18 @@ const isItemAFolder = (item) => {
   return !item.request;
 };
 
+/**
+ * Postman allows non-string values (e.g. numbers) in fields like header values,
+ * query param values, etc. Bruno expects these to be strings.
+ * This helper converts non-null values to strings, defaulting null/undefined to ''.
+ */
+const ensureString = (value) => {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
+
 const convertV21Auth = (array) => {
   return array.reduce((accumulator, currentValue) => {
     accumulator[currentValue.key] = currentValue.value;
@@ -492,12 +504,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
             const isFile = param.type === 'file' || (param.type === 'default' && param.src);
             const value = isFile
               ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
-              : (Array.isArray(param.value) ? param.value.join('') : param.value ?? '');
+              : (Array.isArray(param.value) ? param.value.join('') : ensureString(param.value));
 
             brunoRequestItem.request.body.multipartForm.push({
               uid: uuid(),
               type: isFile ? 'file' : 'text',
-              name: param.key ?? '',
+              name: ensureString(param.key),
               value,
               description: transformDescription(param.description),
               enabled: !param.disabled,
@@ -512,8 +524,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
             if (param.key == null && param.value == null) return;
             brunoRequestItem.request.body.formUrlEncoded.push({
               uid: uuid(),
-              name: param.key ?? '',
-              value: param.value ?? '',
+              name: ensureString(param.key),
+              value: ensureString(param.value),
               description: transformDescription(param.description),
               enabled: !param.disabled
             });
@@ -548,8 +560,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         if (header.key == null && header.value == null) return;
         brunoRequestItem.request.headers.push({
           uid: uuid(),
-          name: header.key ?? '',
-          value: header.value ?? '',
+          name: ensureString(header.key),
+          value: ensureString(header.value),
           description: transformDescription(header.description),
           enabled: !header.disabled
         });
@@ -564,8 +576,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         }
         brunoRequestItem.request.params.push({
           uid: uuid(),
-          name: param.key ?? '',
-          value: param.value ?? '',
+          name: ensureString(param.key),
+          value: ensureString(param.value),
           description: transformDescription(param.description),
           type: 'query',
           enabled: !param.disabled
@@ -580,8 +592,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
 
         brunoRequestItem.request.params.push({
           uid: uuid(),
-          name: param.key,
-          value: param.value ?? '',
+          name: ensureString(param.key),
+          value: ensureString(param.value),
           description: transformDescription(param.description),
           type: 'path',
           enabled: true
@@ -638,8 +650,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               if (header.key == null && header.value == null) return;
               example.request.headers.push({
                 uid: uuid(),
-                name: header.key ?? '',
-                value: String(header.value ?? ''),
+                name: ensureString(header.key),
+                value: ensureString(header.value),
                 description: transformDescription(header.description),
                 enabled: !header.disabled
               });
@@ -654,8 +666,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               }
               example.request.params.push({
                 uid: uuid(),
-                name: param.key ?? '',
-                value: param.value ?? '',
+                name: ensureString(param.key),
+                value: ensureString(param.value),
                 description: transformDescription(param.description),
                 type: 'query',
                 enabled: !param.disabled
@@ -668,8 +680,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               if (!param.key) return;
               example.request.params.push({
                 uid: uuid(),
-                name: param.key,
-                value: param.value ?? '',
+                name: ensureString(param.key),
+                value: ensureString(param.value),
                 description: transformDescription(param.description),
                 type: 'path',
                 enabled: true
@@ -688,12 +700,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                   const isFile = param.type === 'file' || (param.type === 'default' && param.src);
                   const value = isFile
                     ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
-                    : (Array.isArray(param.value) ? param.value.join('') : param.value ?? '');
+                    : (Array.isArray(param.value) ? param.value.join('') : ensureString(param.value));
 
                   example.request.body.multipartForm.push({
                     uid: uuid(),
                     type: isFile ? 'file' : 'text',
-                    name: param.key ?? '',
+                    name: ensureString(param.key),
                     value,
                     description: transformDescription(param.description),
                     enabled: !param.disabled,
@@ -708,8 +720,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                   if (param.key == null && param.value == null) return;
                   example.request.body.formUrlEncoded.push({
                     uid: uuid(),
-                    name: param.key ?? '',
-                    value: param.value ?? '',
+                    name: ensureString(param.key),
+                    value: ensureString(param.value),
                     description: transformDescription(param.description),
                     enabled: !param.disabled
                   });
@@ -739,8 +751,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               if (header.key == null && header.value == null) return;
               example.response.headers.push({
                 uid: uuid(),
-                name: header.key ?? '',
-                value: String(header.value ?? ''),
+                name: ensureString(header.key),
+                value: ensureString(header.value),
                 description: transformDescription(header.description),
                 enabled: true
               });

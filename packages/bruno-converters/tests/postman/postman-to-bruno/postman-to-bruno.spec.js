@@ -815,6 +815,66 @@ describe('postman-collection', () => {
     expect(params[2].value).toBe('');
     expect(params[2].type).toBe('query');
   });
+
+  it('should convert numeric values to strings in headers, params, and body fields', async () => {
+    const collectionWithNumericValues = {
+      info: {
+        _postman_id: 'test-numeric-values',
+        name: 'collection with numeric values',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with numeric values',
+          request: {
+            method: 'POST',
+            header: [
+              { key: 'X-Account-Id', value: 0 },
+              { key: 'X-Retry-Count', value: 3 }
+            ],
+            url: {
+              raw: 'https://example.com/api/:accountId',
+              protocol: 'https',
+              host: ['example', 'com'],
+              path: ['api', ':accountId'],
+              query: [
+                { key: 'limit', value: 100 },
+                { key: 'offset', value: 0 }
+              ],
+              variable: [
+                { key: 'accountId', value: 0 }
+              ]
+            },
+            body: {
+              mode: 'urlencoded',
+              urlencoded: [
+                { key: 'timeout', value: 5000 }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithNumericValues);
+    const item = brunoCollection.items[0];
+
+    // Headers should have string values
+    expect(item.request.headers[0].value).toBe('0');
+    expect(item.request.headers[1].value).toBe('3');
+
+    // Query params should have string values
+    const queryParams = item.request.params.filter((p) => p.type === 'query');
+    expect(queryParams[0].value).toBe('100');
+    expect(queryParams[1].value).toBe('0');
+
+    // Path params should have string values
+    const pathParams = item.request.params.filter((p) => p.type === 'path');
+    expect(pathParams[0].value).toBe('0');
+
+    // Form URL-encoded should have string values
+    expect(item.request.body.formUrlEncoded[0].value).toBe('5000');
+  });
 });
 
 // Simple Collection (postman)
