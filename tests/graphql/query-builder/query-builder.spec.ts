@@ -6,7 +6,7 @@ const qb = (page: Page) => page.locator('.graphql-query-builder-container');
 const getQueryEditorContent = async (page: Page) => {
   const editor = page.locator('[aria-label="Query Editor"] .CodeMirror').first();
   await expect(editor).toBeVisible();
-  return await editor.evaluate((el) => (el as any).CodeMirror?.getValue() || '');
+  return await editor.evaluate((el) => (el as any).CodeMirror?.getValue() || '') as string;
 };
 
 const ensureVariablesPaneOpen = async (page: Page) => {
@@ -20,7 +20,7 @@ const ensureVariablesPaneOpen = async (page: Page) => {
 const getVariablesEditorContent = async (page: Page) => {
   await ensureVariablesPaneOpen(page);
   const editor = page.locator('.variables-section .CodeMirror').first();
-  return await editor.evaluate((el) => (el as any).CodeMirror?.getValue() || '');
+  return await editor.evaluate((el) => (el as any).CodeMirror?.getValue() || '') as string;
 };
 
 test.describe('GraphQL Query Builder', () => {
