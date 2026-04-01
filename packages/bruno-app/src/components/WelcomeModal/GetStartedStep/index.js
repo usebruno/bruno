@@ -24,7 +24,7 @@ const GetStartedStep = ({ onCreateCollection, onImportCollection, onOpenCollecti
           <IconDownload size={20} stroke={1.5} />
         </div>
         <div className="card-title">Import Collection</div>
-        <div className="card-desc">Bring in Postman, OpenAPI, or Insomnia</div>
+        <div className="card-desc">Bring in Postman, OpenAPI/Swagger, or Insomnia</div>
       </button>
     </div>
 
