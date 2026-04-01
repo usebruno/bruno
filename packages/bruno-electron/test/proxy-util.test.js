@@ -1,6 +1,6 @@
 const path = require('path');
 
-const pacResolverPath = path.resolve(__dirname, '..', '..', 'bruno-common', 'src', 'net', 'pac-resolver');
+const pacResolverPath = path.resolve(__dirname, '..', 'src', 'utils', 'pac-resolver');
 
 const jestClearModules = () => {
   jest.resetModules();
