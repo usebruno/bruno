@@ -8,7 +8,7 @@ import GrpcRequestPane from 'components/RequestPane/GrpcRequestPane/index';
 import ResponsePane from 'components/ResponsePane';
 import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
 import { findItemInCollection } from 'utils/collections';
-import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateGqlDocsOpen } from 'providers/ReduxStore/slices/tabs';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl/index';
@@ -298,13 +298,7 @@ const RequestTabPanel = () => {
       toast.error('Please enter a valid WebSocket URL');
       return;
     }
-
-    if (item.response?.stream?.running) {
-      dispatch(cancelRequest(item.cancelTokenUid, item, collection)).catch((err) =>
-        toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
-          duration: 5000
-        }));
-    } else if (item.requestState !== 'sending' && item.requestState !== 'queued') {
+    if (item.requestState !== 'sending' && item.requestState !== 'queued') {
       dispatch(sendRequest(item, collection.uid)).catch((err) =>
         toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
           duration: 5000
