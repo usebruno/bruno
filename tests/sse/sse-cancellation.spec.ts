@@ -15,20 +15,22 @@ test.describe('SSE Connection Cancellation', () => {
 
     await page.getByTestId('send-arrow-icon').click();
 
-    await page.waitForTimeout(1000);
+    // Poll until the SSE connection is established
+    await expect.poll(async () => {
+      const response = await page.request.get('http://localhost:8081/api/sse/connections');
+      const data = await response.json();
+      return data.activeConnections;
+    }, { timeout: 5000 }).toBe(1);
 
-    const initialResponse = await page.request.get('http://localhost:8081/api/sse/connections');
-    const initialData = await initialResponse.json();
-    expect(initialData.activeConnections).toBe(1);
+    // Resend the request (this should cancel the old connection and start a new one)
+    const resendShortcut = process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter';
+    await page.keyboard.press(resendShortcut);
 
-    // Press Cmd+Enter to resend the request (this should cancel the old connection and start a new one)
-    await page.keyboard.press('Meta+Enter');
-    await page.waitForTimeout(1500);
-
-    // Verify that only 1 connection is active (old one was closed, new one opened)
-    const finalResponse = await page.request.get('http://localhost:8081/api/sse/connections');
-    const finalData = await finalResponse.json();
-
-    expect(finalData.activeConnections).toBe(1);
+    // Poll until the old connection is closed and a new one is established
+    await expect.poll(async () => {
+      const response = await page.request.get('http://localhost:8081/api/sse/connections');
+      const data = await response.json();
+      return data.activeConnections;
+    }, { timeout: 5000 }).toBe(1);
   });
 });

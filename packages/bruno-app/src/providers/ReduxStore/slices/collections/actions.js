@@ -531,11 +531,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     }
 
     if (item.response?.stream?.running && item.cancelTokenUid) {
-      try {
-        await dispatch(cancelRequest(item.cancelTokenUid, item, collection));
-      } catch (err) {
-        console.error('Failed to cancel previous SSE connection:', err);
-      }
+      await dispatch(cancelRequest(item.cancelTokenUid, item, collection));
     }
 
     let collectionCopy = cloneDeep(collection);
