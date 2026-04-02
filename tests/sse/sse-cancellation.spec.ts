@@ -19,8 +19,8 @@ test.describe('SSE Connection Cancellation', () => {
     await expect.poll(async () => {
       const response = await page.request.get('http://localhost:8081/api/sse/connections');
       const data = await response.json();
-      return data.activeConnections;
-    }, { timeout: 5000 }).toBe(1);
+      return data.connectionIds;
+    }, { timeout: 5000 }).toStrictEqual([1]);
 
     // Resend the request (this should cancel the old connection and start a new one)
     const resendShortcut = process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter';
@@ -30,7 +30,7 @@ test.describe('SSE Connection Cancellation', () => {
     await expect.poll(async () => {
       const response = await page.request.get('http://localhost:8081/api/sse/connections');
       const data = await response.json();
-      return data.activeConnections;
-    }, { timeout: 5000 }).toBe(1);
+      return data.connectionIds;
+    }, { timeout: 5000 }).toStrictEqual([2]);
   });
 });
