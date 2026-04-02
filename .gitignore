@@ -55,9 +55,6 @@ bruno.iml
 .agent
 skills-lock.json
 
-.agents
-.agent
-skills-lock.json
 # Playwright
 /blob-report/
 

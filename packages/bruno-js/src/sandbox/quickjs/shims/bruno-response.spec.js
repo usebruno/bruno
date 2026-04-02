@@ -14,11 +14,25 @@ describe('bruno response shim', () => {
   });
 
   afterEach(() => {
-    vm = null;
+    if (vm) {
+      try {
+        vm.dispose();
+      } catch (err) {
+        console.error('Error disposing vm', err);
+      }
+      vm = null;
+    }
   });
 
   afterAll(() => {
-    module = null;
+    if (module) {
+      try {
+        module.dispose();
+      } catch (err) {
+        console.error('Error disposing module', err);
+      }
+      module = null;
+    }
   });
 
   it('forwards response query filter callbacks in safe mode', () => {
