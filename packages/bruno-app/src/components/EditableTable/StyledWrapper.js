@@ -12,7 +12,7 @@ const StyledWrapper = styled.div`
   }
 
   .table-container {
-    overflow: auto;
+    overflow: hidden;
     border-radius: ${(props) => props.theme.border.radius.base};
     border: solid 1px ${(props) => props.theme.border.border0};
   }
@@ -188,6 +188,31 @@ const StyledWrapper = styled.div`
     .icon-grip,
     .icon-minus {
       color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  .lazy-editor-placeholder {
+    width: 100%;
+    height: 1.875rem;
+    overflow: hidden;
+
+    input[type='text'] {
+      height: 1.875rem;
+      line-height: 1.875rem;
+      font-family: Inter, sans-serif;
+      font-weight: 400;
+      font-size: ${(props) => props.theme.font.size.base};
+      color: ${(props) => props.theme.text};
+      border: none;
+      cursor: default;
+      font-variant-ligatures: contextual;
+      letter-spacing: normal;
+
+      &::placeholder {
+        padding-left: 4px;
+        color: ${(props) => props.theme.codemirror.placeholder.color};
+        opacity: ${(props) => props.theme.codemirror.placeholder.opacity};
+      }
     }
   }
 
