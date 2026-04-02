@@ -1,7 +1,7 @@
 import { default as axios, AxiosRequestConfig, AxiosRequestHeaders, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import http from 'node:http';
 import https from 'node:https';
-import { fastLookup } from './fast-lookup';
+import { defaultAgentOptions } from './agent-defaults';
 
 /**
  *
@@ -28,18 +28,10 @@ type ModifiedAxiosResponse = AxiosResponse & {
   responseTime: number;
 };
 
-const agentOptions: http.AgentOptions = {
-  keepAlive: true,
-  maxSockets: 100,
-  maxFreeSockets: 10,
-  scheduling: 'fifo',
-  lookup: fastLookup as http.AgentOptions['lookup']
-};
-
 const baseRequestConfig: Partial<AxiosRequestConfig> = {
   proxy: false,
-  httpAgent: new http.Agent(agentOptions),
-  httpsAgent: new https.Agent(agentOptions),
+  httpAgent: new http.Agent(defaultAgentOptions),
+  httpsAgent: new https.Agent(defaultAgentOptions),
   transformRequest: function transformRequest(data: any, headers: AxiosRequestHeaders) {
     const contentType = headers.getContentType() || '';
     const hasJSONContentType = contentType.includes('json');

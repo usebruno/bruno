@@ -21,11 +21,12 @@ describe('fastLookup', () => {
   });
 
   it('should resolve a public hostname via dns.resolve4', (done) => {
-    fastLookup('google.com', {}, (err, address, family) => {
+    mockResolve('resolve4', ['93.184.216.34']);
+
+    fastLookup('example.com', {}, (err, address, family) => {
       expect(err).toBeNull();
-      expect(typeof address).toBe('string');
+      expect(address).toBe('93.184.216.34');
       expect(family).toBe(4);
-      expect(address).toMatch(/^\d+\.\d+\.\d+\.\d+$/);
       done();
     });
   });
