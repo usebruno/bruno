@@ -162,18 +162,26 @@ describe('axios-instance: DNS lookup behavior (GitHub #7343)', () => {
     expect(config.lookup).toBeUndefined();
   });
 
-  test('should preserve lookup functionality when redirecting localhost to localhost', async () => {
+  test('should replace inherited lookup with a fresh one when redirecting localhost to localhost', async () => {
+    // Simulates a redirect from one localhost endpoint to another:
+    // the inherited lookup from the original request should be replaced
+    // (not just kept) by a fresh localhost lookup function.
     const stubAdapter = createStubAdapter();
+    const inheritedLookup = (_hostname, _options, callback) => {
+      callback(null, '127.0.0.1', 4);
+    };
 
     await axiosInstance({
       url: 'http://localhost:3182/redirected',
       method: 'get',
-      adapter: stubAdapter
+      adapter: stubAdapter,
+      lookup: inheritedLookup // Simulates inherited lookup from redirect
     });
 
     const config = stubAdapter.getConfig();
-    // Should have lookup set for localhost
+    // Should have a lookup set for localhost, but it should be a fresh one
     expect(config.lookup).toBeDefined();
     expect(typeof config.lookup).toBe('function');
+    expect(config.lookup).not.toBe(inheritedLookup);
   });
 });
