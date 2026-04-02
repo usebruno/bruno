@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
 import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
-import { hasInvalidVariableNames } from 'utils/common/regex';
+import { getInvalidVariableNames } from 'utils/common/variables';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { saveGlobalEnvironment, clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
@@ -153,13 +153,6 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
       const collectionEnvironmentDrafts = allDrafts.filter((d) => d.type === 'collection-environment');
       const globalEnvironmentDrafts = allDrafts.filter((d) => d.type === 'global-environment');
 
-      const allEnvironmentDrafts = [...collectionEnvironmentDrafts, ...globalEnvironmentDrafts];
-      const hasInvalidEnvDraft = allEnvironmentDrafts.some((draft) => hasInvalidVariableNames(draft.variables));
-      if (hasInvalidEnvDraft) {
-        toast.error('Please fix validation errors before saving');
-        return;
-      }
-
       // Save all collection drafts
       if (collectionDrafts.length > 0) {
         await dispatch(saveMultipleCollections(collectionDrafts));
@@ -175,14 +168,27 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
         await dispatch(saveMultipleRequests(requestDrafts));
       }
 
-      // Save all collection environment drafts
-      for (const draft of collectionEnvironmentDrafts) {
-        await dispatch(saveEnvironment(draft.variables, draft.environmentUid, draft.collectionUid));
+      // Save environment drafts, skipping any with invalid variable names
+      const allEnvironmentDrafts = [...collectionEnvironmentDrafts, ...globalEnvironmentDrafts];
+      let hasSkippedEnvs = false;
+
+      for (const draft of allEnvironmentDrafts) {
+        const invalidNames = getInvalidVariableNames(draft.variables);
+        if (invalidNames.length > 0) {
+          hasSkippedEnvs = true;
+          toast.error(`Cannot save "${draft.name}": invalid variable name(s) — ${invalidNames.join(', ')}`);
+          continue;
+        }
+
+        if (draft.type === 'collection-environment') {
+          await dispatch(saveEnvironment(draft.variables, draft.environmentUid, draft.collectionUid));
+        } else {
+          await dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }));
+        }
       }
 
-      // Save all global environment drafts
-      for (const draft of globalEnvironmentDrafts) {
-        await dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }));
+      if (hasSkippedEnvs) {
+        return;
       }
 
       if (forceCloseTabs) {

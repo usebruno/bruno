@@ -1,6 +1,7 @@
 const { describe, it, expect } = require('@jest/globals');
 
-import { sanitizeName, validateName, hasInvalidVariableNames } from './regex';
+import { sanitizeName, validateName } from './regex';
+import { hasInvalidVariableNames } from './variables';
 
 describe('regex validators', () => {
   describe('sanitize name', () => {
@@ -182,6 +183,11 @@ describe('hasInvalidVariableNames', () => {
   });
 
   describe('invalid variable names', () => {
+    it('should return true for variable names with unicode letters (not in \\w)', () => {
+      const variables = [{ name: 'válid_ñame', value: 'test' }];
+      expect(hasInvalidVariableNames(variables)).toBe(true);
+    });
+
     it('should return true for variable names containing spaces', () => {
       const variables = [{ name: 'invalid name', value: 'test' }];
       expect(hasInvalidVariableNames(variables)).toBe(true);

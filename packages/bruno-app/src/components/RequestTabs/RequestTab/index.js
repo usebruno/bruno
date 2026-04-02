@@ -22,7 +22,7 @@ import NewRequest from 'components/Sidebar/NewRequest/index';
 import GradientCloseButton from './GradientCloseButton';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
-import { hasInvalidVariableNames } from 'utils/common/regex';
+import { getInvalidVariableNames } from 'utils/common/variables';
 import ExampleTab from '../ExampleTab';
 import toast from 'react-hot-toast';
 
@@ -357,8 +357,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                 window.addEventListener('dotenv-save-failed', onFailed, { once: true });
                 window.dispatchEvent(new Event('dotenv-save'));
               } else if (draft?.environmentUid && draft?.variables) {
-                if (hasInvalidVariableNames(draft.variables)) {
-                  toast.error('Please fix validation errors before saving');
+                const invalidNames = getInvalidVariableNames(draft.variables);
+                if (invalidNames.length > 0) {
+                  toast.error(`Invalid variable name(s): ${invalidNames.join(', ')}`);
                   return;
                 }
                 dispatch(saveEnvironment(draft.variables, draft.environmentUid, collection.uid))
@@ -407,8 +408,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                 window.addEventListener('dotenv-save-failed', onFailed, { once: true });
                 window.dispatchEvent(new Event('dotenv-save'));
               } else if (draft?.environmentUid && draft?.variables) {
-                if (hasInvalidVariableNames(draft.variables)) {
-                  toast.error('Please fix validation errors before saving');
+                const invalidNames = getInvalidVariableNames(draft.variables);
+                if (invalidNames.length > 0) {
+                  toast.error(`Invalid variable name(s): ${invalidNames.join(', ')}`);
                   return;
                 }
                 dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }))
