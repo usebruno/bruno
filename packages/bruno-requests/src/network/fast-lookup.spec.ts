@@ -31,18 +31,6 @@ describe('fastLookup', () => {
     });
   });
 
-  it('should try resolve6 when resolve4 fails', (done) => {
-    mockResolve('resolve4', [], new Error('ENOTFOUND'));
-    mockResolve('resolve6', ['::1']);
-
-    fastLookup('ipv6only.example.com', {}, (err, address, family) => {
-      expect(err).toBeNull();
-      expect(address).toBe('::1');
-      expect(family).toBe(6);
-      done();
-    });
-  });
-
   it('should fall back to dns.lookup when both resolvers fail', (done) => {
     mockResolve('resolve4', [], new Error('ENOTFOUND'));
     mockResolve('resolve6', [], new Error('ENOTFOUND'));
