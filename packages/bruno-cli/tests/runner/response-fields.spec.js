@@ -31,6 +31,7 @@ jest.mock('../../src/runner/awsv4auth-helper', () => ({
 }));
 jest.mock('../../src/utils/proxy-util', () => ({
   shouldUseProxy: jest.fn(() => false),
+  setupProxyAgents: jest.fn(),
   PatchedHttpsProxyAgent: jest.fn()
 }));
 jest.mock('../../src/utils/common', () => ({
