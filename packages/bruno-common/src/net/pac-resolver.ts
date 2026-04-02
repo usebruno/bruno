@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { createPacResolver } from 'pac-resolver';
 import { getQuickJS } from 'quickjs-emscripten';
 
-const CACHE = new Map<string, { wrapper: PacWrapper; ts: number }>();
+const CACHE = new Map<string, { wrapper: Promise<PacWrapper>; ts: number }>();
 
 type TlsOptions = {
   ca?: string | string[];
@@ -57,28 +57,38 @@ export async function getPacResolver({ pacUrl, httpsAgentRequestFields = {}, opt
   if (!pacUrl) throw new Error('pacUrl must be provided');
 
   const cacheTtlMs = opts.cacheTtlMs ?? 5 * 60 * 1000;
-  const key = `url:${pacUrl}`;
+  const caRaw = httpsAgentRequestFields.ca;
+  const caNorm = Array.isArray(caRaw) ? caRaw.join('|') : (caRaw ?? '');
+  const key = `url:${pacUrl}|ca:${caNorm}|ru:${httpsAgentRequestFields.rejectUnauthorized ?? ''}|mv:${httpsAgentRequestFields.minVersion ?? ''}`;
   const now = Date.now();
   const cached = CACHE.get(key);
   if (cached && now - cached.ts < cacheTtlMs) return cached.wrapper;
 
-  const script = await downloadPac(pacUrl, httpsAgentRequestFields, opts.timeoutMs ?? 5000);
+  const wrapperPromise: Promise<PacWrapper> = (async () => {
+    const script = await downloadPac(pacUrl, httpsAgentRequestFields, opts.timeoutMs ?? 5000);
 
-  // pac-resolver v7 uses QuickJS WASM sandbox — not affected by CVE GHSA-9j49-mfvp-vmhm (<v5)
-  const qjs = await getQuickJS();
-  const resolverFn = createPacResolver(qjs, script);
+    // pac-resolver v7 uses QuickJS WASM sandbox — not affected by CVE GHSA-9j49-mfvp-vmhm (<v5)
+    const qjs = await getQuickJS();
+    const resolverFn = createPacResolver(qjs, script);
 
-  const wrapper: PacWrapper = {
-    resolve: async (url: string) => {
-      const host = new URL(url).hostname;
-      const out = await resolverFn(url, host);
-      if (!out || typeof out !== 'string') return [];
-      return out.split(';').map((s) => s.trim()).filter(Boolean);
-    }
-  };
+    return {
+      resolve: async (url: string) => {
+        const host = new URL(url).hostname;
+        const out = await resolverFn(url, host);
+        if (!out || typeof out !== 'string') return [];
+        return out.split(';').map((s) => s.trim()).filter(Boolean);
+      }
+    };
+  })();
 
-  CACHE.set(key, { wrapper, ts: Date.now() });
-  return wrapper;
+  CACHE.set(key, { wrapper: wrapperPromise, ts: now });
+
+  try {
+    return await wrapperPromise;
+  } catch (err) {
+    CACHE.delete(key);
+    throw err;
+  }
 }
 
 export function clearPacCache(keyPrefix?: string): void {

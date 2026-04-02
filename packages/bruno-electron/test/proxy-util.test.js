@@ -1,7 +1,3 @@
-const path = require('path');
-
-const pacResolverPath = path.resolve(__dirname, '..', 'src', 'utils', 'pac-resolver');
-
 const jestClearModules = () => {
   jest.resetModules();
   jest.clearAllMocks();
@@ -23,12 +19,12 @@ const setupMocks = ({ pacDirectives = ['PROXY p.example:8080'] } = {}) => {
   }));
 
   // pac-resolver wrapper
-  jest.doMock(pacResolverPath, () => ({
+  jest.doMock('@usebruno/common/net', () => ({
     getPacResolver: jest.fn(async () => ({
       resolve: async () => pacDirectives,
       dispose: () => {}
     })),
-    clearCache: jest.fn()
+    clearPacCache: jest.fn()
   }));
 };
 
@@ -128,9 +124,9 @@ describe('proxy-util', () => {
       getOrCreateHttpsAgent: jest.fn(() => ({ type: 'https-agent' })),
       getOrCreateHttpAgent: jest.fn(() => ({ type: 'http-agent' }))
     }));
-    jest.doMock(pacResolverPath, () => ({
+    jest.doMock('@usebruno/common/net', () => ({
       getPacResolver: jest.fn(async () => { throw new Error('PAC fetch timeout'); }),
-      clearCache: jest.fn()
+      clearPacCache: jest.fn()
     }));
 
     const { setupProxyAgents } = require('../src/utils/proxy-util');
