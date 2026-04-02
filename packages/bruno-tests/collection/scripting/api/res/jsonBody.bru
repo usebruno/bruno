@@ -73,4 +73,60 @@ tests {
     const body = res.getBody();
     expect(body).to.not.have.jsonBody({ "wrong": "data" });
   });
+
+  // --- not.to.have.jsonBody ---
+
+  test("not.to.have.jsonBody(path) - negation for missing property", function() {
+    const body = res.getBody();
+    expect(body).not.to.have.jsonBody("nonexistent");
+  });
+
+  test("not.to.have.jsonBody(path, value) - negation for wrong value", function() {
+    const body = res.getBody();
+    expect(body).not.to.have.jsonBody("hello", "wrong");
+  });
+
+  test("not.to.have.jsonBody(object) - negation for deep inequality", function() {
+    const body = res.getBody();
+    expect(body).not.to.have.jsonBody({ "wrong": "data" });
+  });
+
+  test("not.to.have.jsonBody fails when body matches", function() {
+    const body = res.getBody();
+    let failed = false;
+    try {
+      expect(body).not.to.have.jsonBody("hello");
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  // --- to.have.not.jsonBody ---
+
+  test("to.have.not.jsonBody(path) - negation for missing property", function() {
+    const body = res.getBody();
+    expect(body).to.have.not.jsonBody("nonexistent");
+  });
+
+  test("to.have.not.jsonBody(path, value) - negation for wrong value", function() {
+    const body = res.getBody();
+    expect(body).to.have.not.jsonBody("hello", "wrong");
+  });
+
+  test("to.have.not.jsonBody(object) - negation for deep inequality", function() {
+    const body = res.getBody();
+    expect(body).to.have.not.jsonBody({ "wrong": "data" });
+  });
+
+  test("to.have.not.jsonBody fails when body matches", function() {
+    const body = res.getBody();
+    let failed = false;
+    try {
+      expect(body).to.have.not.jsonBody("hello");
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
 }

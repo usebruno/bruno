@@ -143,45 +143,33 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
         proto.jsonBody = function() {
           var obj = this._obj;
           var args = Array.prototype.slice.call(arguments);
-          var negate = this.__flags && this.__flags.negate;
 
           if (args.length === 0) {
-            var pass = typeof obj === 'object' && obj !== null;
-            if (negate ? pass : !pass) {
-              throw new DummyChaiAssertionError(
-                negate
-                  ? 'expected value not to be a JSON body'
-                  : 'expected value to be a JSON body (object or array)'
-              );
-            }
+            this.assert(
+              typeof obj === 'object' && obj !== null,
+              'expected value to be a JSON body (object or array)',
+              'expected value not to be a JSON body'
+            );
           } else if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
-            var pass = deepEqual(obj, args[0]);
-            if (negate ? pass : !pass) {
-              throw new DummyChaiAssertionError(
-                negate
-                  ? 'expected body to not deeply equal given object'
-                  : 'expected body to deeply equal given object'
-              );
-            }
+            this.assert(
+              deepEqual(obj, args[0]),
+              'expected body to deeply equal given object',
+              'expected body to not deeply equal given object'
+            );
           } else if (args.length === 1) {
             var result = getNestedValue(obj, String(args[0]));
-            if (negate ? result.found : !result.found) {
-              throw new DummyChaiAssertionError(
-                negate
-                  ? "expected body to not have nested property '" + args[0] + "'"
-                  : "expected body to have nested property '" + args[0] + "'"
-              );
-            }
+            this.assert(
+              result.found,
+              "expected body to have nested property '" + args[0] + "'",
+              "expected body to not have nested property '" + args[0] + "'"
+            );
           } else {
             var result = getNestedValue(obj, String(args[0]));
-            var pass = result.found && deepEqual(result.value, args[1]);
-            if (negate ? pass : !pass) {
-              throw new DummyChaiAssertionError(
-                negate
-                  ? "expected body to not have nested property '" + args[0] + "' equal to given value"
-                  : "expected body to have nested property '" + args[0] + "' equal to given value"
-              );
-            }
+            this.assert(
+              result.found && deepEqual(result.value, args[1]),
+              "expected body to have nested property '" + args[0] + "' equal to given value",
+              "expected body to not have nested property '" + args[0] + "' equal to given value"
+            );
           }
           return this;
         };

@@ -563,6 +563,34 @@ const complexTransformations = [
     }
   },
 
+  // pm.response.not.to.have.jsonBody(...) -> expect(res.getBody()).not.to.have.jsonBody(...)
+  {
+    pattern: 'pm.response.not.to.have.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('not.to.have.jsonBody')),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.have.not.jsonBody(...) -> expect(res.getBody()).to.have.not.jsonBody(...)
+  {
+    pattern: 'pm.response.to.have.not.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('to.have.not.jsonBody')),
+        args
+      );
+    }
+  },
+
   // Legacy postman.getResponseHeader(name) -> res.getHeader(name)
   {
     pattern: 'pm.getResponseHeader',
