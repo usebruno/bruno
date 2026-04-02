@@ -446,6 +446,23 @@ const prepareRequest = async (item = {}, collection = {}) => {
   axiosRequest.requestVariables = request.requestVariables;
   axiosRequest.oauth2CredentialVariables = getFormattedOauth2Credentials();
 
+  // When auth mode is none but the URL contains embedded credentials (user:pass@host),
+  // set basicAuth so Basic auth is sent preemptively (handled by interpolate-vars.js),
+  // and set digestConfig so the digest interceptor is registered as a fallback for servers
+  // that respond with a Digest challenge. The interceptor removes the Basic header and retries
+  // with Digest when a 401 Digest challenge is received.
+  if (!axiosRequest.digestConfig && !axiosRequest.basicAuth) {
+    try {
+      const parsedUrl = new URL(axiosRequest.url);
+      if (parsedUrl.username || parsedUrl.password) {
+        const username = decodeURIComponent(parsedUrl.username);
+        const password = decodeURIComponent(parsedUrl.password);
+        axiosRequest.basicAuth = { username, password };
+        axiosRequest.digestConfig = { username, password };
+      }
+    } catch (e) {}
+  }
+
   return axiosRequest;
 };
 

@@ -1,0 +1,20 @@
+meta {
+  name: Digest Auth 200
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://admin:password@www.httpfaker.org/api/auth/digest/auth/admin/password
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body.authenticated: isTruthy
+}
+
+settings {
+  encodeUrl: true
+}
