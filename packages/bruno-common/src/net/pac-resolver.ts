@@ -73,7 +73,12 @@ export async function getPacResolver({ pacUrl, httpsAgentRequestFields = {}, opt
 
     return {
       resolve: async (url: string) => {
-        const host = new URL(url).hostname;
+        let host: string;
+        try {
+          host = new URL(url).hostname;
+        } catch {
+          return [];
+        }
         const out = await resolverFn(url, host);
         if (!out || typeof out !== 'string') return [];
         return out.split(';').map((s) => s.trim()).filter(Boolean);
