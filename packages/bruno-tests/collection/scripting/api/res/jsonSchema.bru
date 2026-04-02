@@ -287,4 +287,56 @@ tests {
     }
     expect(failed).to.be.true;
   });
+
+  // --- not.to.have (negation) validations ---
+
+  test("not.to.have with mismatched type - body is object, not array", function() {
+    const schema = { type: 'array' };
+    expect(res.getBody()).not.to.have.jsonSchema(schema);
+  });
+
+  test("not.to.have with missing required field", function() {
+    const schema = {
+      type: 'object',
+      required: ['nonExistent']
+    };
+    expect(res.getBody()).not.to.have.jsonSchema(schema);
+  });
+
+  test("not.to.have fails when schema actually matches", function() {
+    const schema = { type: 'object' };
+    let failed = false;
+    try {
+      expect(res.getBody()).not.to.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  // --- to.have.not (negation) validations ---
+
+  test("to.have.not with mismatched type - body is object, not array", function() {
+    const schema = { type: 'array' };
+    expect(res.getBody()).to.have.not.jsonSchema(schema);
+  });
+
+  test("to.have.not with missing required field", function() {
+    const schema = {
+      type: 'object',
+      required: ['nonExistent']
+    };
+    expect(res.getBody()).to.have.not.jsonSchema(schema);
+  });
+
+  test("to.have.not fails when schema actually matches", function() {
+    const schema = { type: 'object' };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.have.not.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
 }
