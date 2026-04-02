@@ -84,17 +84,18 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
     `
       (function() {
         var Ajv = require('ajv');
+        var defaultAjv = new Ajv({ allErrors: true });
         var proto = Object.getPrototypeOf(expect(null));
         proto.jsonSchema = function(schema, ajvOptions) {
-          var ajv = new Ajv(ajvOptions || { allErrors: true });
+          var ajv = ajvOptions ? new Ajv(Object.assign({ allErrors: true }, ajvOptions)) : defaultAjv;
           var validate = ajv.compile(schema);
           var data = this._obj;
           var isValid = validate(data);
 
           this.assert(
             isValid,
-            'expected value to match JSON schema, validation errors: ' + (validate.errors ? JSON.stringify(validate.errors) : 'none'),
-            'expected value to not match JSON schema'
+            'expected ' + JSON.stringify(data) + ' to match JSON schema, validation errors: ' + (validate.errors ? JSON.stringify(validate.errors) : 'none'),
+            'expected ' + JSON.stringify(data) + ' to not match JSON schema'
           );
           return this;
         };

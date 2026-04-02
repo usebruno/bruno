@@ -26,9 +26,10 @@ chai.use(function (chai, utils) {
 });
 
 // Custom assertion for JSON Schema validation
+const defaultAjv = new Ajv({ allErrors: true });
 chai.use(function (chai) {
   chai.Assertion.addMethod('jsonSchema', function (schema, ajvOptions) {
-    const ajv = new Ajv(ajvOptions || { allErrors: true });
+    const ajv = ajvOptions ? new Ajv({ allErrors: true, ...ajvOptions }) : defaultAjv;
     const validate = ajv.compile(schema);
     const data = this._obj;
     const isValid = validate(data);
