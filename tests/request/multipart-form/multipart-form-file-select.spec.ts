@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest, openCollection, openRequest, selectRequestPaneTab } from '../../utils/page';
+import { closeAllCollections, createCollection, createRequest, openCollection, openRequest, saveRequest, selectRequestPaneTab } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -68,9 +68,11 @@ test.describe.serial('Multipart Form - File Select Without Key', () => {
 
     await test.step('Verify the file name appears in the row', async () => {
       const fileCell = table.allRows().locator('.file-value-cell').first();
-
-      await expect(fileCell).toBeVisible({ timeout: 5000 });
-      await expect(fileCell).toContainText('test-file.txt', { timeout: 5000 });
+      await expect(fileCell).toBeVisible();
+      await expect(fileCell).toContainText('test-file.txt');
     });
+
+    // Save the request to clear draft state
+    await saveRequest(page);
   });
 });
