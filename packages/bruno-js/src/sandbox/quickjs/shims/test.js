@@ -92,10 +92,12 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
           var data = this._obj;
           var isValid = validate(data);
 
+          var dataStr;
+          try { dataStr = JSON.stringify(data); } catch (e) { dataStr = '[unserializable value]'; }
           this.assert(
             isValid,
-            'expected ' + JSON.stringify(data) + ' to match JSON schema, validation errors: ' + (validate.errors ? JSON.stringify(validate.errors) : 'none'),
-            'expected ' + JSON.stringify(data) + ' to not match JSON schema'
+            'expected ' + dataStr + ' to match JSON schema, validation errors: ' + (validate.errors ? JSON.stringify(validate.errors) : 'none'),
+            'expected ' + dataStr + ' to not match JSON schema'
           );
           return this;
         };
