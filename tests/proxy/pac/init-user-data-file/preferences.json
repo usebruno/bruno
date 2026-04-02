@@ -8,7 +8,9 @@
     },
     "proxy": {
       "inherit": false,
-      "pacUrl": "{{pacFileUrl}}"
+      "config": {
+        "pacUrl": "{{pacFileUrl}}"
+      }
     }
   }
 }

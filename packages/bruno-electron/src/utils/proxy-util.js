@@ -8,7 +8,7 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
 const { getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
 const { preferencesUtil } = require('../store/preferences');
-const { getPacResolver } = require('@usebruno/common/net');
+const { getPacResolver } = require('@usebruno/requests');
 
 const DEFAULT_PORTS = {
   ftp: 21,

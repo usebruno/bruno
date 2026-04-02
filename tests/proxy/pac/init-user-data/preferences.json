@@ -8,7 +8,9 @@
     },
     "proxy": {
       "inherit": false,
-      "pacUrl": "http://localhost:18080/test.pac"
+      "config": {
+        "pacUrl": "http://localhost:18080/test.pac"
+      }
     }
   }
 }

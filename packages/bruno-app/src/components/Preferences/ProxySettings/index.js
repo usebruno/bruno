@@ -21,19 +21,6 @@ const ProxySettings = ({ close }) => {
   const proxySchema = Yup.object({
     disabled: Yup.boolean().optional(),
     inherit: Yup.boolean().required(),
-    pacUrl: Yup.string()
-      .optional()
-      .test('pac-url', 'Specify a valid PAC URL', (value) => {
-        if (!value) return true;
-        try {
-          const u = new URL(value);
-          return u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'file:';
-        } catch {
-          return false;
-        }
-      })
-      .max(2048)
-      .nullable(),
     config: Yup.object({
       protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
       hostname: Yup.string().max(1024),
@@ -48,6 +35,19 @@ const ProxySettings = ({ close }) => {
         username: Yup.string().max(1024),
         password: Yup.string().max(1024)
       }).optional(),
+      pacUrl: Yup.string()
+        .optional()
+        .test('pac-url', 'Specify a valid PAC URL', (value) => {
+          if (!value) return true;
+          try {
+            const u = new URL(value);
+            return u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'file:';
+          } catch {
+            return false;
+          }
+        })
+        .max(2048)
+        .nullable(),
       bypassProxy: Yup.string().optional().max(1024)
     }).required()
   });
@@ -56,11 +56,11 @@ const ProxySettings = ({ close }) => {
     initialValues: {
       disabled: preferences.proxy.disabled || false,
       inherit: preferences.proxy.inherit || false,
-      pacUrl: preferences.proxy.pacUrl || '',
       config: {
         protocol: preferences.proxy.config?.protocol || 'http',
         hostname: preferences.proxy.config?.hostname || '',
         port: preferences.proxy.config?.port || 0,
+        pacUrl: preferences.proxy.config?.pacUrl || '',
         auth: {
           disabled: preferences.proxy.config?.auth?.disabled || false,
           username: preferences.proxy.config?.auth?.username || '',
@@ -106,18 +106,21 @@ const ProxySettings = ({ close }) => {
   const [proxyMode, setProxyMode] = useState(() => {
     if (preferences.proxy.disabled) return 'off';
     if (preferences.proxy.inherit) return 'system';
-    if (preferences.proxy.pacUrl) return 'pac';
+    if (preferences.proxy.config?.pacUrl) return 'pac';
     return 'on';
   });
 
   useEffect(() => {
     if (formik.dirty && formik.isValid) {
+      // Don't auto-save PAC mode until a URL is actually entered — an empty pacUrl
+      // would save as non-PAC (the mode is inferred from pacUrl being truthy on load).
+      if (proxyMode === 'pac' && !formik.values.config.pacUrl) return;
       debouncedSave(formik.values);
     }
     return () => {
       debouncedSave.flush();
     };
-  }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
+  }, [formik.values, formik.dirty, formik.isValid, debouncedSave, proxyMode]);
 
   return (
     <StyledWrapper>
@@ -138,7 +141,7 @@ const ProxySettings = ({ close }) => {
                   setProxyMode('off');
                   formik.setFieldValue('disabled', true);
                   formik.setFieldValue('inherit', false);
-                  formik.setFieldValue('pacUrl', '');
+                  formik.setFieldValue('config.pacUrl', '');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -154,7 +157,7 @@ const ProxySettings = ({ close }) => {
                   setProxyMode('on');
                   formik.setFieldValue('disabled', false);
                   formik.setFieldValue('inherit', false);
-                  formik.setFieldValue('pacUrl', '');
+                  formik.setFieldValue('config.pacUrl', '');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -170,7 +173,7 @@ const ProxySettings = ({ close }) => {
                   setProxyMode('system');
                   formik.setFieldValue('disabled', false);
                   formik.setFieldValue('inherit', true);
-                  formik.setFieldValue('pacUrl', '');
+                  formik.setFieldValue('config.pacUrl', '');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -382,20 +385,20 @@ const ProxySettings = ({ close }) => {
         {proxyMode === 'pac' ? (
           <>
             <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="pacUrl">
+              <label className="settings-label" htmlFor="config.pacUrl">
                 PAC URL
               </label>
               <input
-                id="pacUrl"
+                id="config.pacUrl"
                 type="text"
-                name="pacUrl"
+                name="config.pacUrl"
                 className="block textbox pac-url-input"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
                 onChange={formik.handleChange}
-                value={formik.values.pacUrl || ''}
+                value={formik.values.config.pacUrl || ''}
                 placeholder="https://example.com/proxy.pac"
               />
               <Button
@@ -410,7 +413,7 @@ const ProxySettings = ({ close }) => {
                         const fileUrl = isWindowsOS()
                           ? 'file:///' + filePath.replace(/\\/g, '/')
                           : 'file://' + filePath;
-                        formik.setFieldValue('pacUrl', fileUrl);
+                        formik.setFieldValue('config.pacUrl', fileUrl);
                         toast.success('PAC file selected');
                       }
                     })
@@ -419,8 +422,8 @@ const ProxySettings = ({ close }) => {
               >
                 Browse
               </Button>
-              {formik.touched.pacUrl && formik.errors.pacUrl ? (
-                <div className="ml-3 text-red-500">{formik.errors.pacUrl}</div>
+              {formik.touched.config?.pacUrl && formik.errors.config?.pacUrl ? (
+                <div className="ml-3 text-red-500">{formik.errors.config.pacUrl}</div>
               ) : null}
             </div>
           </>

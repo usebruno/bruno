@@ -71,14 +71,4 @@ module.exports = [
     esmOutput: 'dist/utils/esm/index.js',
     dtsOutput: 'dist/utils/index.d.ts'
   }),
-  ...createBuildConfig({
-    inputDir: 'src/net/**/*',
-    input: 'src/net/index.ts',
-    cjsOutput: 'dist/net/cjs/index.js',
-    esmOutput: 'dist/net/esm/index.js',
-    dtsOutput: 'dist/net/index.d.ts',
-    // These deps contain WASM/binary internals that cannot be bundled by rollup.
-    // They are listed in dependencies so consumers have them available at runtime.
-    external: ['axios', 'pac-resolver', 'quickjs-emscripten']
-  })
 ];

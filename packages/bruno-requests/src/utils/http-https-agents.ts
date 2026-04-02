@@ -12,7 +12,7 @@ import { isEmpty, get, isUndefined, isNull } from 'lodash';
 import { getCACertificates } from './ca-cert';
 import { transformProxyConfig } from './proxy-util';
 import { getOrCreateHttpsAgent, getOrCreateHttpAgent } from './agent-cache';
-import { getPacResolver } from '@usebruno/common/net';
+import { getPacResolver } from './pac-resolver';
 import type { TimelineEntry } from './timeline-agent';
 
 const DEFAULT_PORTS: Record<string, number> = {
@@ -343,7 +343,7 @@ const getCertsAndProxyConfig = ({
       const globalProxyConfigData = get(appLevelProxyConfig, 'config', appLevelProxyConfig);
 
       if (!globalDisabled && !globalInherit) {
-        const pacUrl = get(appLevelProxyConfig, 'pacUrl');
+        const pacUrl = get(appLevelProxyConfig, 'config.pacUrl');
         if (pacUrl) {
           proxyConfig = { pacUrl };
           proxyMode = 'pac';
