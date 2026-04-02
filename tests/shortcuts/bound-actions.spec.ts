@@ -1260,8 +1260,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.press(`${modifier}+KeyC`);
         await page.keyboard.press(`${modifier}+KeyV`);
 
-        // Verify cloned request appears in sidebar
-        await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder (1)' })).toBeVisible({ timeout: 2000 });
+        // Verify copied item appears in sidebar as child of folder
+        await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder' })).toHaveCount(2);
       });
 
       test('customized Alt+C/V copy paste item for request', async ({ page, createTmpDir }) => {
@@ -1338,8 +1338,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyV');
         await page.keyboard.up('Alt');
 
-        // Verify cloned request appears in sidebar
-        await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder-copy-src (1)' })).toBeVisible({ timeout: 2000 });
+        // Verify copied item appears in sidebar as child of folder
+        await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder-copy-src' })).toHaveCount(2);
       });
     });
 
