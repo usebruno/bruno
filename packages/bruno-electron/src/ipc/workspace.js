@@ -702,6 +702,8 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     } catch (error) {
       console.error('Error initializing workspaces:', error);
     }
+
+    ipcMain.emit('main:workspaces-ready', win);
   });
 };
 
