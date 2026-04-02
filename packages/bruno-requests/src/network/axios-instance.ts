@@ -1,6 +1,7 @@
 import { default as axios, AxiosRequestConfig, AxiosRequestHeaders, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import http from 'node:http';
 import https from 'node:https';
+import { defaultAgentOptions } from './agent-defaults';
 
 /**
  *
@@ -29,8 +30,8 @@ type ModifiedAxiosResponse = AxiosResponse & {
 
 const baseRequestConfig: Partial<AxiosRequestConfig> = {
   proxy: false,
-  httpAgent: new http.Agent({ keepAlive: true }),
-  httpsAgent: new https.Agent({ keepAlive: true }),
+  httpAgent: new http.Agent(defaultAgentOptions),
+  httpsAgent: new https.Agent(defaultAgentOptions),
   transformRequest: function transformRequest(data: any, headers: AxiosRequestHeaders) {
     const contentType = headers.getContentType() || '';
     const hasJSONContentType = contentType.includes('json');
