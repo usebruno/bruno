@@ -673,7 +673,7 @@ const runSingleRequest = async function (
       response.dataBuffer = dataBuffer;
 
       // Prevents the duration on leaking to the actual result
-      responseTime = response.headers.get('request-duration');
+      responseTime = Number(response.headers.get('request-duration')) || 0;
       response.headers.delete('request-duration');
 
       // save cookies if enabled
@@ -911,6 +911,8 @@ const runSingleRequest = async function (
         data: response.data,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
         responseTime,
+        // In the GUI, duration is wall-clock time (timeEnd - timeStart).
+        // In the CLI we use responseTime as a close approximation.
         duration: responseTime,
         size: response.dataBuffer ? Buffer.byteLength(response.dataBuffer) : 0
       },
