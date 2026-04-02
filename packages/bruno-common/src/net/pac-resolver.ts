@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { readFile } from 'fs/promises';
-import https from 'https';
+import https, { type AgentOptions } from 'https';
 import { fileURLToPath } from 'url';
 import { createPacResolver } from 'pac-resolver';
 import { getQuickJS } from 'quickjs-emscripten';
@@ -30,11 +30,12 @@ async function downloadPac(pacUrl: string, tlsOptions: TlsOptions, timeoutMs: nu
   };
 
   if (pacUrl.startsWith('https://')) {
-    config.httpsAgent = new https.Agent({
+    const agentOpts: AgentOptions = {
       ca: tlsOptions.ca,
       rejectUnauthorized: tlsOptions.rejectUnauthorized,
-      minVersion: tlsOptions.minVersion
-    });
+      minVersion: tlsOptions.minVersion as AgentOptions['minVersion']
+    };
+    config.httpsAgent = new https.Agent(agentOpts);
   }
 
   try {
