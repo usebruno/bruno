@@ -12,6 +12,7 @@ import { useState } from 'react';
 import SystemProxy from './SystemProxy';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { isWindowsOS } from 'utils/common/platform';
+import Button from 'ui/Button';
 
 const ProxySettings = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -388,7 +389,7 @@ const ProxySettings = ({ close }) => {
                 id="pacUrl"
                 type="text"
                 name="pacUrl"
-                className="block textbox"
+                className="block textbox pac-url-input"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -397,9 +398,10 @@ const ProxySettings = ({ close }) => {
                 value={formik.values.pacUrl || ''}
                 placeholder="https://example.com/proxy.pac"
               />
-              <button
+              <Button
                 type="button"
-                className="btn btn-sm btn-secondary ml-2"
+                size="sm"
+                className="ml-2"
                 onClick={() => {
                   dispatch(browseFiles([{ name: 'PAC Files', extensions: ['pac', 'js'] }], []))
                     .then((filePaths) => {
@@ -416,7 +418,7 @@ const ProxySettings = ({ close }) => {
                 }}
               >
                 Browse
-              </button>
+              </Button>
               {formik.touched.pacUrl && formik.errors.pacUrl ? (
                 <div className="ml-3 text-red-500">{formik.errors.pacUrl}</div>
               ) : null}

@@ -5,7 +5,7 @@ const StyledWrapper = styled.div`
   flex-direction: column;
   gap: 1rem;
   width: 100%;
-  
+
   .settings-label {
     width: 100px;
   }
@@ -24,6 +24,10 @@ const StyledWrapper = styled.div`
       border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
       outline: none !important;
     }
+  }
+
+  .pac-url-input {
+    width: 265px;
   }
 
   .system-proxy-settings {

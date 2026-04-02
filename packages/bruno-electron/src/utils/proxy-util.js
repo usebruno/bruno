@@ -8,7 +8,7 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
 const { getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
 const { preferencesUtil } = require('../store/preferences');
-const { getPacResolver } = require('./pac-resolver');
+const { getPacResolver } = require('@usebruno/common/net');
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -227,7 +227,7 @@ async function setupProxyAgents({
         const directives = await resolver.resolve(requestConfig.url);
         if (directives && directives.length) {
           const first = directives[0];
-          timeline.push({ timestamp: new Date(), type: 'info', message: `PAC directives: ${directives.join('; ')}` });
+          if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `PAC directives: ${directives.join('; ')}` });
           if (/^(PROXY|HTTP)\s+/i.test(first)) {
             const hostPort = first.split(/\s+/)[1];
             const proxyUri = `http://${hostPort}`;
@@ -242,7 +242,7 @@ async function setupProxyAgents({
           }
         }
       } catch (err) {
-        timeline.push({ timestamp: new Date(), type: 'error', message: `PAC resolution failed: ${err.message}` });
+        if (timeline) timeline.push({ timestamp: new Date(), type: 'error', message: `PAC resolution failed: ${err.message}` });
       }
     }
   }

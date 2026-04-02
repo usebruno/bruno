@@ -20,6 +20,11 @@
       "require": "./dist/utils/cjs/index.js",
       "import": "./dist/utils/esm/index.js",
       "types": "./dist/utils/index.d.ts"
+    },
+    "./net": {
+      "require": "./dist/net/cjs/index.js",
+      "import": "./dist/net/esm/index.js",
+      "types": "./dist/net/index.d.ts"
     }
   },
   "files": [
@@ -35,6 +40,11 @@
     "build": "rollup -c rollup.config.js",
     "watch": "rollup -c -w",
     "prepack": "npm run test && npm run build"
+  },
+  "dependencies": {
+    "axios": "1.13.6",
+    "pac-resolver": "^7.0.1",
+    "quickjs-emscripten": "^0.32.0"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.26.9",
