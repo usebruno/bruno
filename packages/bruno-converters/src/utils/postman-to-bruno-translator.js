@@ -293,6 +293,59 @@ const complexTransformations = [
     }
   },
 
+  // --- Negated variants for to.have.* assertions ---
+
+  // pm.response.to.not.have.status -> expect(res.getStatus()).to.not.equal(arg)
+  {
+    pattern: 'pm.response.to.not.have.status',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier('to.not.equal')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.not.have.header -> expect(res.getHeaders()).to.not.have.property(args)
+  {
+    pattern: 'pm.response.to.not.have.header',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      if (args.length > 0) {
+        args[0] = j.callExpression(
+          j.memberExpression(args[0], j.identifier('toLowerCase')),
+          []
+        );
+      }
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getHeaders'), [])]),
+          j.identifier('to.not.have.property')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.not.have.body -> expect(res.getBody()).to.not.equal(arg)
+  {
+    pattern: 'pm.response.to.not.have.body',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.identifier('res.getBody()')]),
+          j.identifier('to.not.equal')
+        ),
+        args
+      );
+    }
+  },
+
   // Handle pm.execution.setNextRequest(null)
   {
     pattern: 'pm.execution.setNextRequest',
@@ -439,89 +492,97 @@ const complexTransformations = [
     }
   },
 
-  // pm.response.to.be.ok -> expect(res.getStatus()).to.be.within(200, 299)
+  // Lossy: positional header inserts → append (only keep the first arg, drop positional ref)
+  // pm.request.headers.prepend(item) -> req.headerList.add(item)
   {
-    pattern: 'pm.response.to.be.ok',
+    pattern: 'pm.request.headers.prepend',
     transform: (path, j) => {
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier('to.be.within')
-        ),
-        [j.literal(200), j.literal(299)]
-      );
+      const args = path.parent.value.arguments;
+      return j.callExpression(j.identifier('req.headerList.add'), args.length > 0 ? [args[0]] : []);
+    }
+  },
+  // pm.request.headers.insert(item, before) -> req.headerList.add(item)
+  {
+    pattern: 'pm.request.headers.insert',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(j.identifier('req.headerList.add'), args.length > 0 ? [args[0]] : []);
+    }
+  },
+  // pm.request.headers.insertAfter(item, after) -> req.headerList.add(item)
+  {
+    pattern: 'pm.request.headers.insertAfter',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(j.identifier('req.headerList.add'), args.length > 0 ? [args[0]] : []);
     }
   },
 
-  // pm.response.to.be.success -> expect(res.getStatus()).to.be.within(200, 299)
-  {
-    pattern: 'pm.response.to.be.success',
-    transform: (path, j) => {
+  // --- Data-driven status assertions (pm.response.to.be.*) ---
+  // Helper: build expect(res.getStatus()).<chain>(<litArgs>) AST node
+  ...(() => {
+    const buildStatusTransform = (chain, litArgs) => (path, j) => {
       return j.callExpression(
         j.memberExpression(
           j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier('to.be.within')
+          j.identifier(chain)
         ),
-        [j.literal(200), j.literal(299)]
+        litArgs.map((v) => j.literal(v))
       );
-    }
-  },
+    };
 
-  // pm.response.to.be.redirection -> expect(res.getStatus()).to.be.within(300, 399)
-  {
-    pattern: 'pm.response.to.be.redirection',
-    transform: (path, j) => {
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier('to.be.within')
-        ),
-        [j.literal(300), j.literal(399)]
-      );
-    }
-  },
+    const negateChain = (chain) => chain.replace('to.', 'to.not.');
 
-  // pm.response.to.be.clientError -> expect(res.getStatus()).to.be.within(400, 499)
-  {
-    pattern: 'pm.response.to.be.clientError',
-    transform: (path, j) => {
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier('to.be.within')
-        ),
-        [j.literal(400), j.literal(499)]
-      );
-    }
-  },
+    const statusAssertions = [
+      // Range-based assertions
+      { name: 'ok', chain: 'to.be.within', args: [200, 299] },
+      { name: 'success', chain: 'to.be.within', args: [200, 299] },
+      { name: 'info', chain: 'to.be.within', args: [100, 199] },
+      { name: 'redirection', chain: 'to.be.within', args: [300, 399] },
+      { name: 'clientError', chain: 'to.be.within', args: [400, 499] },
+      { name: 'serverError', chain: 'to.be.within', args: [500, 599] },
+      { name: 'error', chain: 'to.be.at.least', args: [400] },
+      // Specific status code assertions
+      { name: 'accepted', chain: 'to.equal', args: [202] },
+      { name: 'badRequest', chain: 'to.equal', args: [400] },
+      { name: 'unauthorized', chain: 'to.equal', args: [401] },
+      { name: 'forbidden', chain: 'to.equal', args: [403] },
+      { name: 'notFound', chain: 'to.equal', args: [404] },
+      { name: 'rateLimited', chain: 'to.equal', args: [429] }
+    ];
 
-  // pm.response.to.be.serverError -> expect(res.getStatus()).to.be.within(500, 599)
-  {
-    pattern: 'pm.response.to.be.serverError',
-    transform: (path, j) => {
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier('to.be.within')
-        ),
-        [j.literal(500), j.literal(599)]
-      );
-    }
-  },
+    const entries = [];
 
-  // pm.response.to.be.error -> expect(res.getStatus()).to.be.at.least(400)
-  {
-    pattern: 'pm.response.to.be.error',
-    transform: (path, j) => {
+    // Generate positive + negated entries for each status assertion
+    statusAssertions.forEach(({ name, chain, args }) => {
+      entries.push(
+        { pattern: `pm.response.to.be.${name}`, transform: buildStatusTransform(chain, args) },
+        { pattern: `pm.response.to.not.be.${name}`, transform: buildStatusTransform(negateChain(chain), args) },
+        { pattern: `pm.response.to.be.not.${name}`, transform: buildStatusTransform(negateChain(chain), args) }
+      );
+    });
+
+    // Special case: withoutBody (204 or 304)
+    const buildWithoutBodyTransform = (chain) => (path, j) => {
       return j.callExpression(
         j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier('to.be.at.least')
+          j.callExpression(j.identifier('expect'), [
+            j.arrayExpression([j.literal(204), j.literal(304)])
+          ]),
+          j.identifier(chain)
         ),
-        [j.literal(400)]
+        [j.callExpression(j.identifier('res.getStatus'), [])]
       );
-    }
-  },
+    };
+
+    entries.push(
+      { pattern: 'pm.response.to.be.withoutBody', transform: buildWithoutBodyTransform('to.include') },
+      { pattern: 'pm.response.to.not.be.withoutBody', transform: buildWithoutBodyTransform('to.not.include') },
+      { pattern: 'pm.response.to.be.not.withoutBody', transform: buildWithoutBodyTransform('to.not.include') }
+    );
+
+    return entries;
+  })(),
 
   // pm.response.to.have.jsonBody(...) -> expect(res.getBody()).to.have.jsonBody(...)
   {
