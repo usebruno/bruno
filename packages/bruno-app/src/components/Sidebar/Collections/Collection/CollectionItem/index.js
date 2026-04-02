@@ -57,6 +57,7 @@ import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useKeybinding from 'hooks/useKeybinding';
+import brunoClipboard from 'utils/bruno-clipboard';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
@@ -354,7 +355,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       }
     );
 
-    if (isFolder && hasCopiedItems) {
+    if (hasCopiedItems) {
       items.push({
         id: 'paste',
         leftSection: IconClipboard,
@@ -565,9 +566,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const handlePasteItem = () => {
-    // Paste as sibling: find the parent folder so the pasted item appears next to the focused item
-    const parentFolder = findParentItemInCollection(collection, item.uid);
-    const targetFolderUid = parentFolder ? parentFolder.uid : null;
+    const clipboard = brunoClipboard.read();
+    const copiedItem = clipboard.hasData ? clipboard.items[0] : null;
+    let targetFolderUid;
+
+    if (isFolder && copiedItem && !isItemAFolder(copiedItem)) {
+      // Focused on folder + copied item is a request/js-file → paste inside the folder
+      targetFolderUid = item.uid;
+    } else {
+      // Focused on request/js-file (anything) → paste as sibling
+      // Focused on folder + copied item is a folder → paste as sibling
+      const parentFolder = findParentItemInCollection(collection, item.uid);
+      targetFolderUid = parentFolder ? parentFolder.uid : null;
+    }
 
     dispatch(pasteItem(collectionUid, targetFolderUid))
       .then(() => {
