@@ -145,6 +145,180 @@ const Wrapper = styled.div`
   }
 
 
+  /* Iteration data loaded indicator */
+  .iteration-file-loaded {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.375rem 0.625rem;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background-color: ${(props) => props.theme.background.surface0};
+    border: 1px solid ${(props) => props.theme.border.border0};
+    font-size: ${(props) => props.theme.font.size.xs};
+    margin-top: 0.5rem;
+  }
+
+  .iteration-file-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+
+    .iteration-file-name {
+      font-weight: 600;
+      color: ${(props) => props.theme.colors.text.text};
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .iteration-file-meta {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  .iteration-file-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+
+    button {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-size: ${(props) => props.theme.font.size.xs};
+      color: ${(props) => props.theme.colors.text.muted};
+
+      &:hover {
+        color: ${(props) => props.theme.colors.text.text};
+      }
+
+      &.btn-remove:hover {
+        color: ${(props) => props.theme.colors.text.danger};
+      }
+    }
+  }
+
+  .run-config-section {
+    border: 1px solid ${(props) => props.theme.background.surface1};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 0.75rem;
+  }
+
+  .run-config-heading {
+    font-size: ${(props) => props.theme.font.size.sm};
+    font-weight: 700;
+    color: ${(props) => props.theme.colors.text.text};
+    margin-bottom: 0;
+  }
+
+  .textbox-with-suffix {
+    display: flex;
+    align-items: center;
+    height: 1.875rem;
+    border: 1px solid ${(props) => props.theme.input.border};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background-color: ${(props) => props.theme.input.bg};
+    overflow: hidden;
+
+    &:focus-within {
+      border-color: ${(props) => props.theme.input.focusBorder};
+    }
+
+    .textbox {
+      flex: 1;
+      height: 100%;
+      border: none;
+      background: transparent;
+      padding: 0.2rem 0.5rem;
+      outline: none;
+      font-size: ${(props) => props.theme.font.size.sm};
+      min-width: 0;
+    }
+
+    .textbox-suffix {
+      padding: 0 0.5rem;
+      font-size: ${(props) => props.theme.font.size.sm};
+      color: ${(props) => props.theme.colors.text.muted};
+      background-color: ${(props) => props.theme.background.mantle};
+      height: 100%;
+      display: flex;
+      align-items: center;
+      border-left: 1px solid ${(props) => props.theme.input.border};
+      flex-shrink: 0;
+    }
+  }
+
+  .iteration-data-link {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.textLink};
+    display: block;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .advanced-settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .advanced-setting-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    color: ${(props) => props.theme.colors.text.text};
+
+    input[type='checkbox'] {
+      cursor: pointer;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1px solid ${(props) => props.theme.input.border};
+      background-color: ${(props) => props.theme.input.bg};
+      flex-shrink: 0;
+      position: relative;
+
+      &:focus-visible {
+        outline: 2px solid ${(props) => props.theme.input.focusBorder};
+        outline-offset: 2px;
+      }
+
+      &:checked {
+        background-color: ${(props) => props.theme.primary.solid};
+        border-color: ${(props) => props.theme.primary.solid};
+
+        &::after {
+          content: '';
+          position: absolute;
+          left: 3px;
+          top: 1px;
+          width: 5px;
+          height: 8px;
+          border: 2px solid #fff;
+          border-top: none;
+          border-left: none;
+          transform: rotate(45deg);
+        }
+      }
+    }
+
+    span {
+      font-size: ${(props) => props.theme.font.size.sm};
+    }
+  }
+
   .filter-bar {
     display: flex;
     align-items: stretch;

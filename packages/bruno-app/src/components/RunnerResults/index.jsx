@@ -10,6 +10,7 @@ import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import RunnerTags from './RunnerTags/index';
 import RunConfigurationPanel from './RunConfigurationPanel';
+import IterationDataModal from './IterationDataModal';
 import Button from 'ui/Button/index';
 
 const getDisplayName = (fullPath, pathname, name = '') => {
@@ -81,6 +82,17 @@ export default function RunnerResults({ collection }) {
   const [delay, setDelay] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [selectedRequestItems, setSelectedRequestItems] = useState([]);
+  const [iterationDataFile, setIterationDataFile] = useState(null); // { filePath, rows }
+  const [iterationDataPending, setIterationDataPending] = useState(null); // preview before confirm
+  const [iterationCount, setIterationCount] = useState('');
+  const [advancedSettings, setAdvancedSettings] = useState({
+    persistResponses: true,
+    disableLogs: false,
+    bail: false,
+    keepVariableValues: false,
+    disableCookies: false,
+    saveCookiesAfterRun: true
+  });
   const isReRunningRef = useRef(false);
   // ref for the runner output body
   const runnerBodyRef = useRef();
@@ -157,14 +169,39 @@ export default function RunnerResults({ collection }) {
     }
   }, [filteredItems]);
 
+  // Restore runner config on mount
   useEffect(() => {
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
     if (savedConfiguration) {
       if (savedConfiguration.delay !== undefined && delay === null) {
         setDelay(savedConfiguration.delay);
       }
+      if (savedConfiguration.iterationDataFile !== undefined) {
+        setIterationDataFile(savedConfiguration.iterationDataFile);
+      }
+      if (savedConfiguration.iterationCount !== undefined) {
+        setIterationCount(savedConfiguration.iterationCount);
+      }
+      if (savedConfiguration.advancedSettings !== undefined) {
+        setAdvancedSettings(savedConfiguration.advancedSettings);
+      }
     }
-  }, [collection.runnerConfiguration, delay]);
+  }, []);
+
+  // Auto-save runner config to Redux whenever settings change
+  useEffect(() => {
+    const savedConfiguration = get(collection, 'runnerConfiguration', null);
+    const savedOrder = savedConfiguration?.requestItemsOrder || selectedRequestItems;
+    dispatch(updateRunnerConfiguration(
+      collection.uid,
+      selectedRequestItems,
+      savedOrder,
+      delay,
+      advancedSettings,
+      iterationDataFile,
+      iterationCount
+    ));
+  }, [iterationDataFile, iterationCount, advancedSettings, delay]);
 
   useEffect(() => {
     if (isReRunningRef.current
@@ -184,10 +221,50 @@ export default function RunnerResults({ collection }) {
     }));
   };
 
+  const selectIterationDataFile = async () => {
+    const { ipcRenderer } = window;
+    try {
+      const result = await ipcRenderer.invoke('renderer:load-iteration-data-file');
+      if (result) {
+        setIterationDataPending(result);
+      }
+    } catch (err) {
+      console.error('Failed to load iteration data file:', err);
+    }
+  };
+
+  const confirmIterationDataFile = () => {
+    setIterationDataFile(iterationDataPending);
+    setIterationDataPending(null);
+    setIterationCount(String(iterationDataPending.rows.length));
+  };
+
+  const cancelIterationDataFile = () => {
+    setIterationDataPending(null);
+  };
+
+  const clearIterationDataFile = () => {
+    setIterationDataFile(null);
+    setIterationCount('');
+  };
+
+  const getIterationData = () => {
+    const n = parseInt(iterationCount, 10);
+    const count = !isNaN(n) && n > 0 ? n : 1;
+
+    if (iterationDataFile && iterationDataFile.rows.length > 0) {
+      // If user typed a count lower than file rows, slice; if higher, cycle through rows
+      return Array.from({ length: count }, (_, i) => iterationDataFile.rows[i % iterationDataFile.rows.length]);
+    }
+
+    if (count > 1) {
+      return Array.from({ length: count }, () => ({}));
+    }
+    return null;
+  };
+
   const runCollection = () => {
-    const savedOrder = get(collection, 'runnerConfiguration.requestItemsOrder', selectedRequestItems);
-    dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, savedOrder, delay));
-    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tags, selectedRequestItems));
+    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tags, selectedRequestItems, getIterationData(), advancedSettings));
   };
 
   const runAgain = () => {
@@ -204,9 +281,20 @@ export default function RunnerResults({ collection }) {
         true,
         Number(savedDelay),
         tags,
-        savedSelectedItems
+        savedSelectedItems,
+        getIterationData()
       )
     );
+  };
+
+  const modifyRunner = () => {
+    isReRunningRef.current = false;
+    dispatch(
+      resetCollectionRunner({
+        collectionUid: collection.uid
+      })
+    );
+    // preserves iterationDataFile, iterationCount, delay and advancedSettings
   };
 
   const resetRunner = () => {
@@ -217,6 +305,8 @@ export default function RunnerResults({ collection }) {
       })
     );
     setDelay(null);
+    setIterationDataFile(null);
+    setIterationCount('');
   };
 
   const cancelExecution = () => {
@@ -235,6 +325,14 @@ export default function RunnerResults({ collection }) {
   if ((!items || !items.length) && !isReRunningRef.current) {
     return (
       <StyledWrapper className="pl-4 overflow-hidden h-full">
+        {iterationDataPending && (
+          <IterationDataModal
+            data={iterationDataPending}
+            onConfirm={confirmIterationDataFile}
+            onCancel={cancelIterationDataFile}
+            previewOnly={iterationDataFile !== null}
+          />
+        )}
         <div className="flex overflow-hidden max-h-full h-full">
           <div className="w-1/2 pr-4">
             <div className="font-medium mt-6 title flex items-center">
@@ -251,29 +349,123 @@ export default function RunnerResults({ collection }) {
             </div>
             {isCollectionLoading ? <div className="my-1 danger">Requests in this collection are still loading.</div> : null}
 
-            {/* Timings */}
-            <div className="runner-section-title mt-6">Timings</div>
-            <div className="runner-section mt-2">
-              <label>Delay between requests (ms)</label>
-              <input
-                type="number"
-                className="block textbox w-full mt-2"
-                placeholder="e.g. 5"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                data-testid="runner-delay-input"
-                value={delay}
-                onChange={(e) => setDelay(e.target.value)}
-              />
+            {/* Run configuration */}
+            <div className="run-config-section mt-6">
+              <div className="runner-section-title run-config-heading">Run configuration</div>
+
+              {/* Iterations + Delay side by side */}
+              <div className="flex gap-4 mt-3 items-start">
+                <div className="flex-1">
+                  <div className="runner-section-title">Iterations</div>
+                  <div className="runner-section mt-2">
+                    <input
+                      type="number"
+                      className="block textbox w-full"
+                      placeholder="1"
+                      min="1"
+                      autoComplete="off"
+                      data-testid="runner-iteration-count-input"
+                      value={iterationCount}
+                      onChange={(e) => setIterationCount(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex-1">
+                  <div className="runner-section-title">Delay</div>
+                  <div className="runner-section mt-2">
+                    <div className="textbox-with-suffix">
+                      <input
+                        type="number"
+                        className="textbox"
+                        placeholder="0"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
+                        data-testid="runner-delay-input"
+                        value={delay}
+                        onChange={(e) => setDelay(e.target.value)}
+                      />
+                      <span className="textbox-suffix">ms</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Test data file */}
+              <div className="mt-4">
+                <div className="runner-section-title">Test data file</div>
+                <div className="runner-section mt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={selectIterationDataFile}
+                    data-testid="runner-iteration-data-btn"
+                  >
+                    {iterationDataFile ? 'Change File' : 'Select File'}
+                  </Button>
+
+                  {iterationDataFile && (
+                    <div className="iteration-file-loaded">
+                      <div className="iteration-file-info">
+                        <span className="iteration-file-name" title={iterationDataFile.filePath}>
+                          {iterationDataFile.filePath.split(/[\\/]/).pop()}
+                        </span>
+                        <span className="iteration-file-meta">
+                          {iterationDataFile.rows.length} row{iterationDataFile.rows.length !== 1 ? 's' : ''}
+                          {' · '}
+                          {Object.keys(iterationDataFile.rows[0] || {}).length} variable{Object.keys(iterationDataFile.rows[0] || {}).length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div className="iteration-file-actions">
+                        <button onClick={() => setIterationDataPending(iterationDataFile)} title="Preview data">
+                          Preview
+                        </button>
+                        <button
+                          className="btn-remove"
+                          onClick={clearIterationDataFile}
+                          data-testid="runner-iteration-data-remove"
+                          title="Remove"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Filters */}
             <div className="runner-section-title mt-6">Filters</div>
             <div className="runner-section mt-2 mb-6">
-              {/* Tags for the collection run */}
               <RunnerTags collectionUid={collection.uid} />
+            </div>
+
+            {/* Advanced Settings */}
+            <div className="runner-section-title mt-2">Advanced Settings</div>
+            <div className="runner-section mt-2 mb-6">
+              <div className="advanced-settings-list">
+                {[
+                  { key: 'persistResponses', label: 'Persist responses for a session' },
+                  { key: 'disableLogs', label: 'Turn off logs during run' },
+                  { key: 'bail', label: 'Stop run if an error occurs' },
+                  { key: 'keepVariableValues', label: 'Keep variable values' },
+                  { key: 'disableCookies', label: 'Run collection without using stored cookies' },
+                  { key: 'saveCookiesAfterRun', label: 'Save cookies after collection run' }
+                ].map(({ key, label }) => (
+                  <label key={key} className="advanced-setting-row">
+                    <input
+                      type="checkbox"
+                      checked={advancedSettings[key]}
+                      onChange={(e) =>
+                        setAdvancedSettings((prev) => ({ ...prev, [key]: e.target.checked }))}
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
 
             <div className="flex flex-row gap-2">
@@ -351,6 +543,15 @@ export default function RunnerResults({ collection }) {
             </Button>
             <Button
               type="button"
+              onClick={modifyRunner}
+              size="sm"
+              variant="filled"
+              color="secondary"
+            >
+              Modify
+            </Button>
+            <Button
+              type="button"
               onClick={resetRunner}
               size="sm"
               variant="filled"
@@ -389,9 +590,11 @@ export default function RunnerResults({ collection }) {
 
           {/* Items list */}
           <div className="overflow-y-auto flex-1 " ref={runnerBodyRef}>
-            {filteredItems.map((item) => {
+            {filteredItems.map((item, idx) => {
+              const totalIterations = runnerInfo?.totalIterations || 1;
+              const showIterationBadge = totalIterations > 1 && item.iterationIndex !== undefined;
               return (
-                <div key={item.uid}>
+                <div key={`${item.uid}-${item.iterationIndex ?? 0}-${idx}`}>
                   <div className="item-path mt-2" data-testid="runner-result-item">
                     <div className="flex items-center">
                       <span>
@@ -410,6 +613,11 @@ export default function RunnerResults({ collection }) {
                       >
                         {item.displayName}
                       </span>
+                      {showIterationBadge && (
+                        <span className="text-xs text-muted ml-1 mr-1">
+                          [#{item.iterationIndex + 1}]
+                        </span>
+                      )}
                       {item.status !== 'error' && item.status !== 'skipped' && item.status !== 'completed' ? (
                         <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
                       ) : item.responseReceived?.status ? (

@@ -50,7 +50,9 @@ class ScriptRuntime {
       collectionName,
       promptVariables,
       certsAndProxyConfig,
-      requestUrl: request?.url
+      requestUrl: request?.url,
+      iterationData: request?.__brunoIterationData,
+      iterationIndex: request?.__brunoIterationIndex
     });
     const req = new BrunoRequest(request);
 
@@ -184,7 +186,9 @@ class ScriptRuntime {
       collectionName,
       promptVariables,
       certsAndProxyConfig,
-      requestUrl: request?.url
+      requestUrl: request?.url,
+      iterationData: request?.__brunoIterationData,
+      iterationIndex: request?.__brunoIterationIndex
     });
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
