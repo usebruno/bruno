@@ -7,7 +7,8 @@ export {
 
 export {
   buildFormUrlEncodedPayload,
-  isFormData
+  isFormData,
+  extractBoundaryFromContentType
 } from './form-data';
 
 export {

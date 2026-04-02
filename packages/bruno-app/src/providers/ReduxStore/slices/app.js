@@ -9,6 +9,8 @@ const initialState = {
   snapshotReady: false,
   leftSidebarWidth: 250,
   sidebarCollapsed: false,
+  showSidebarSearch: false,
+  focusedSidebarPath: null,
   screenWidth: 500,
   showHomePage: false,
   showApiSpecPage: false,
@@ -143,6 +145,12 @@ export const appSlice = createSlice({
     toggleSidebarCollapse: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed;
     },
+    toggleSidebarSearch: (state) => {
+      state.showSidebarSearch = !state.showSidebarSearch;
+    },
+    setFocusedSidebarPath: (state, action) => {
+      state.focusedSidebarPath = action.payload;
+    },
     updateGitOperationProgress: (state, action) => {
       const { uid, data } = action.payload;
       if (!state.gitOperationProgress[uid]) {
@@ -209,6 +217,8 @@ export const {
   updateSystemProxyVariables,
   updateGenerateCode,
   toggleSidebarCollapse,
+  toggleSidebarSearch,
+  setFocusedSidebarPath,
   updateGitOperationProgress,
   removeGitOperationProgress,
   setGitVersion,

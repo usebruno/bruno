@@ -446,12 +446,6 @@ function createAgents({
           httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpProxyAgentOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname });
         }
       }
-    } else {
-      // If proxy should not be used, only set HTTPS agent for HTTPS requests
-      if (isHttpsRequest) {
-        httpsAgent = getOrCreateHttpsAgent({ AgentClass: https.Agent, options: tlsOptions as any, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
-      }
-      // HTTP requests without proxy don't need a custom agent
     }
   } else if (proxyMode === 'system') {
     const http_proxy = get(systemProxyConfig, 'http_proxy');

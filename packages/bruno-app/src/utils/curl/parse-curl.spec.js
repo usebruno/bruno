@@ -902,7 +902,7 @@ describe('parseCurlCommand', () => {
           { name: 'test', value: 'urlquery' },
           { name: 'name', value: 'John%20Doe' },
           { name: 'email', value: 'john@example.com' },
-          { name: 'hello', value: '' }
+          { name: 'hello', value: undefined }
         ]
       });
     });

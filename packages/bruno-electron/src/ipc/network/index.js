@@ -1,6 +1,7 @@
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
+const { applyOAuth1ToRequest } = require('@usebruno/requests');
 const qs = require('qs');
 const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
@@ -35,7 +36,7 @@ const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
-const { buildFormUrlEncodedPayload, isFormData } = require('@usebruno/common').utils;
+const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -156,6 +157,14 @@ const configureRequest = async (
   if (request.ntlmConfig) {
     axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
     delete request.ntlmConfig;
+  }
+
+  if (request.oauth1config) {
+    try {
+      applyOAuth1ToRequest(request, collectionPath);
+    } catch (error) {
+      throw new Error(`OAuth1 signing failed: ${error.message}`);
+    }
   }
 
   if (request.oauth2) {
@@ -609,7 +618,12 @@ const registerNetworkIpc = (mainWindow) => {
         if (contentType !== 'multipart/form-data') {
           // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
           const formHeaders = form.getHeaders();
-          formHeaders['content-type'] = `${contentType}; boundary=${form.getBoundary()}`;
+          const existingBoundary = extractBoundaryFromContentType(contentType);
+          if (existingBoundary) {
+            formHeaders['content-type'] = contentType;
+          } else {
+            formHeaders['content-type'] = `${contentType}; boundary=${form.getBoundary()}`;
+          }
           form.getHeaders = function () {
             return formHeaders;
           };
@@ -1645,6 +1659,11 @@ const registerNetworkIpc = (mainWindow) => {
                 error.response.headers.delete('request-duration');
                 error.response.data = data;
                 error.response.dataBuffer = dataBuffer;
+
+                // save cookies (4XX/5XX responses can also set cookies)
+                if (preferencesUtil.shouldStoreCookies()) {
+                  saveCookies(request.url, error.response.headers);
+                }
 
                 timeEnd = Date.now();
                 response = {

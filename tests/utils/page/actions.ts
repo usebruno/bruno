@@ -1,5 +1,6 @@
 import { test, expect, Page } from '../../../playwright';
-import { buildCommonLocators } from './locators';
+import process from 'node:process';
+import { buildCommonLocators, buildScriptErrorLocators } from './locators';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -153,7 +154,8 @@ const createUntitledRequest = async (
       await tagInput.press('Enter');
       await page.waitForTimeout(200);
       await expect(page.locator('.tag-item', { hasText: tag })).toBeVisible();
-      await page.keyboard.press('Meta+s');
+      const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+      await page.keyboard.press(saveShortcut);
       await page.waitForTimeout(200);
     }
 
@@ -261,7 +263,9 @@ const createRequest = async (
       await locators.actions.collectionItemActions(parentName).click();
     } else {
       await locators.sidebar.collection(parentName).hover();
-      await locators.actions.collectionActions(parentName).click();
+      const collectionAction = locators.actions.collectionActions(parentName);
+      await expect(collectionAction).toBeVisible({ timeout: 2000 });
+      await collectionAction.click();
     }
 
     await locators.dropdown.item('New Request').click();
@@ -486,7 +490,7 @@ const createFolder = async (
     }
 
     await locators.dropdown.item('New Folder').click();
-    await page.getByPlaceholder('Folder Name').fill(folderName);
+    await page.getByTestId('new-folder-input').fill(folderName);
     await locators.modal.button('Create').click();
     await expect(locators.sidebar.folder(folderName)).toBeVisible();
   });
@@ -802,14 +806,13 @@ const getResponseBody = async (page: Page): Promise<string> => {
   return await page.locator('.response-pane').innerText();
 };
 
-const selectRequestPaneTab = async (page: Page, tabName: string) => {
-  await test.step(`Wait for request to open up "${tabName}"`, async () => {
-    const requestPane = page.locator('.request-pane > .px-4');
-    await expect(requestPane).toBeVisible();
-    await expect(requestPane.locator('.tabs')).toBeVisible();
-  });
-  await test.step(`Select request pane tab "${tabName}"`, async () => {
-    const visibleTab = page.locator('.tabs').getByRole('tab', { name: tabName });
+const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) => {
+  await test.step(`Select tab "${tabName}" in ${paneSelector}`, async () => {
+    const pane = page.locator(paneSelector);
+    await expect(pane).toBeVisible();
+    await expect(pane.locator('.tabs')).toBeVisible();
+
+    const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
 
     // Check if tab is directly visible
     if (await visibleTab.isVisible()) {
@@ -818,21 +821,28 @@ const selectRequestPaneTab = async (page: Page, tabName: string) => {
       return;
     }
 
-    const overflowButton = page.locator('.tabs .more-tabs');
+    const overflowButton = pane.locator('.tabs .more-tabs');
     // Check if there's an overflow dropdown
     if (await overflowButton.isVisible()) {
       await overflowButton.click();
 
-      // Wait for dropdown to appear and click the menu item (overflow tabs are rendered as menuitems)
+      // Wait for dropdown to appear and click the menu item
       const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
       await dropdownItem.click();
       await expect(visibleTab).toContainClass('active');
       return;
     }
 
-    // If neither found, fail with a helpful message
     throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
   });
+};
+
+const selectResponsePaneTab = async (page: Page, tabName: string) => {
+  await selectPaneTab(page, '[data-testid="response-pane"]', tabName);
+};
+
+const selectRequestPaneTab = async (page: Page, tabName: string) => {
+  await selectPaneTab(page, '[data-testid="request-pane"] > .px-4', tabName);
 };
 
 /**
@@ -1010,7 +1020,8 @@ const deleteAssertion = async (page: Page, rowIndex: number) => {
  */
 const saveRequest = async (page: Page) => {
   await test.step('Save request', async () => {
-    await page.keyboard.press('Meta+s');
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
     await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 3000 });
     await page.waitForTimeout(200);
   });
@@ -1082,6 +1093,66 @@ const switchWorkspace = async (page: Page, workspaceName: string) => {
   });
 };
 
+/**
+ * Navigate to a Script sub-tab (pre-request / post-response)
+ * @param page - The page object
+ * @param subTab - The sub-tab to select
+ */
+const selectScriptSubTab = async (page: Page, subTab: 'pre-request' | 'post-response') => {
+  await test.step(`Select Script sub-tab "${subTab}"`, async () => {
+    await selectRequestPaneTab(page, 'Script');
+    const trigger = buildCommonLocators(page).paneTabs.tabTrigger(subTab);
+    await trigger.click();
+    await expect(trigger).toContainClass('active');
+  });
+};
+
+/**
+ * Clear and type into a CodeMirror editor identified by test ID
+ * @param page - The page object
+ * @param editorTestId - The test ID of the editor container
+ * @param newContent - The content to type
+ */
+const editCodeMirrorEditor = async (page: Page, editorTestId: string, newContent: string) => {
+  await test.step(`Edit CodeMirror editor "${editorTestId}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const editor = locators.codeMirror.byTestId(editorTestId);
+    await editor.waitFor({ state: 'visible' });
+    const textarea = editor.locator('textarea[tabindex="0"]');
+    await textarea.focus();
+    const selectAll = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
+    await page.keyboard.press(selectAll);
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type(newContent, { delay: 5 });
+  });
+};
+
+/**
+ * Click send and wait for at least one error card to appear.
+ * @param page - The page object
+ */
+const sendAndWaitForErrorCard = async (page: Page) => {
+  await test.step('Send request and wait for error card', async () => {
+    const { request } = buildCommonLocators(page);
+    const scriptErrorLocators = buildScriptErrorLocators(page);
+    await request.sendButton().click();
+    await scriptErrorLocators.card().waitFor({ state: 'visible', timeout: 15000 });
+  });
+};
+
+/**
+ * Click send and wait for a response status code to appear.
+ * Used for requests that succeed at HTTP level but may have post-response/test errors.
+ * @param page - The page object
+ */
+const sendAndWaitForResponse = async (page: Page) => {
+  await test.step('Send request and wait for response', async () => {
+    const { request, response } = buildCommonLocators(page);
+    await request.sendButton().click();
+    await response.statusCode().waitFor({ state: 'visible', timeout: 15000 });
+  });
+};
+
 export {
   closeAllCollections,
   openCollection,
@@ -1108,6 +1179,7 @@ export {
   getResponseBody,
   expectResponseContains,
   selectRequestPaneTab,
+  selectResponsePaneTab,
   sendRequestAndWaitForResponse,
   switchResponseFormat,
   switchToPreviewTab,
@@ -1119,7 +1191,11 @@ export {
   saveRequest,
   closeAllTabs,
   createWorkspace,
-  switchWorkspace
+  switchWorkspace,
+  selectScriptSubTab,
+  editCodeMirrorEditor,
+  sendAndWaitForErrorCard,
+  sendAndWaitForResponse
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

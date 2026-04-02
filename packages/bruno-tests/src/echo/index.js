@@ -5,6 +5,15 @@ router.get('/path/*', (req, res) => {
   return res.json({ url: req.url });
 });
 
+// Echo back request headers - useful for testing header manipulation
+router.all('/headers', (req, res) => {
+  return res.json({
+    method: req.method,
+    headers: req.headers,
+    url: req.url
+  });
+});
+
 router.post('/json', (req, res) => {
   return res.json(req.body);
 });

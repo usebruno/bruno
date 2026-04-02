@@ -65,6 +65,13 @@ const ExampleTab = ({ tab, collection }) => {
     }
   };
 
+  // Prevent the browser's autoscroll (triggered on middle-button mousedown)
+  const handleMouseDown = (e) => {
+    if (e.button === 1) {
+      e.preventDefault();
+    }
+  };
+
   const handleMouseUp = (e) => {
     if (e.button === 1) {
       e.preventDefault();
@@ -83,6 +90,7 @@ const ExampleTab = ({ tab, collection }) => {
     return (
       <StyledWrapper
         className="flex items-center justify-between tab-container"
+        onMouseDown={handleMouseDown}
         onMouseUp={(e) => {
           if (e.button === 1) {
             e.preventDefault();
@@ -133,6 +141,7 @@ const ExampleTab = ({ tab, collection }) => {
         className={`flex items-center tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
+        onMouseDown={handleMouseDown}
         onMouseUp={(e) => {
           if (!hasChanges) return handleMouseUp(e);
 

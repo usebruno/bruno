@@ -67,6 +67,17 @@ const StyledWrapper = styled.div`
   }
 
 
+  .CodeMirror-matchingbracket {
+    background: ${(props) => props.theme.status.success.background} !important;
+    text-decoration: unset;
+  }
+
+  .CodeMirror-nonmatchingbracket {
+    color: ${(props) => props.theme.colors.text.danger} !important;
+    background: ${(props) => props.theme.status.danger.background} !important;
+    text-decoration: unset;
+  }
+
   .CodeMirror-search-hint {
     display: inline;
   }

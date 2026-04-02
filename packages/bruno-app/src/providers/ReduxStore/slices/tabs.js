@@ -6,9 +6,12 @@ import { isActiveTab as checkIsActiveTab, deserializeTab } from 'utils/snapshot'
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
+const MAX_RECENTLY_CLOSED_TABS = 50;
+
 const initialState = {
   tabs: [],
-  activeTabUid: null
+  activeTabUid: null,
+  recentlyClosedTabs: [] // LIFO stack of closed tabs, grouped by collection
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
@@ -93,7 +96,14 @@ export const tabsSlice = createSlice({
         responsePaneScrollPosition: null,
         responseFormat: null,
         responseViewTab: null,
+        responseFilter: null,
+        responseFilterExpanded: false,
+        gqlDocsOpen: false,
+        tableColumnWidths: {},
         scriptPaneTab: null,
+        docsEditing: false,
+        type: type || 'request',
+        ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
           ? preview
           : !nonReplaceableTabTypes.includes(type),
@@ -187,6 +197,44 @@ export const tabsSlice = createSlice({
         tab.responseViewTab = action.payload.responseViewTab;
       }
     },
+    updateResponseFilter: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseFilter = action.payload.responseFilter;
+      }
+    },
+    updateResponseFilterExpanded: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseFilterExpanded = action.payload.responseFilterExpanded;
+      }
+    },
+    updateDocsEditing: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.docsEditing = action.payload.docsEditing;
+      }
+    },
+    updateGqlDocsOpen: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.gqlDocsOpen = action.payload.gqlDocsOpen;
+      }
+    },
+    updateTableColumnWidths: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        if (!tab.tableColumnWidths) {
+          tab.tableColumnWidths = {};
+        }
+        tab.tableColumnWidths[action.payload.tableId] = action.payload.widths;
+      }
+    },
     updateScriptPaneTab: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -194,11 +242,52 @@ export const tabsSlice = createSlice({
         tab.scriptPaneTab = action.payload.scriptPaneTab;
       }
     },
+    updateQueryBuilderOpen: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.queryBuilderOpen = action.payload.queryBuilderOpen;
+      }
+    },
+    updateQueryBuilderWidth: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.queryBuilderWidth = action.payload.queryBuilderWidth;
+      }
+    },
+    updateVariablesPaneOpen: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.variablesPaneOpen = action.payload.variablesPaneOpen;
+      }
+    },
+    updateVariablesPaneHeight: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.variablesPaneHeight = action.payload.variablesPaneHeight;
+      }
+    },
     closeTabs: (state, action) => {
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
 
       const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
+
+      // Push closed tabs onto the recently closed stack (LIFO)
+      const closedTabs = state.tabs.filter((t) =>
+        tabUids.includes(t.uid) && !nonClosableTypes.includes(t.type)
+      );
+      if (closedTabs.length > 0) {
+        state.recentlyClosedTabs.push(...closedTabs);
+        // Trim to max size
+        if (state.recentlyClosedTabs.length > MAX_RECENTLY_CLOSED_TABS) {
+          state.recentlyClosedTabs = state.recentlyClosedTabs.slice(-MAX_RECENTLY_CLOSED_TABS);
+        }
+      }
+
       state.tabs = filter(state.tabs, (t) =>
         !tabUids.includes(t.uid) || nonClosableTypes.includes(t.type)
       );
@@ -309,6 +398,24 @@ export const tabsSlice = createSlice({
       if (!state.activeTabUid) {
         state.activeTabUid = state.tabs.find((t) => t.collectionUid === collectionUid)?.uid || null;
       }
+    },
+    reopenLastClosedTab: (state, action) => {
+      const collectionUid = action.payload?.collectionUid;
+      // Find the last closed tab for this collection (LIFO). If no collectionUid is
+      // available, reopen the latest closed tab globally.
+      const index = collectionUid
+        ? state.recentlyClosedTabs.findLastIndex((t) => t.collectionUid === collectionUid)
+        : state.recentlyClosedTabs.length - 1;
+      if (index === -1) return;
+
+      const [tab] = state.recentlyClosedTabs.splice(index, 1);
+
+      // Don't reopen if a tab with this uid already exists
+      const alreadyOpen = state.tabs.some((t) => t.uid === tab.uid);
+      if (alreadyOpen) return;
+
+      state.tabs.push(tab);
+      state.activeTabUid = tab.uid;
     }
   }
 });
@@ -325,13 +432,23 @@ export const {
   updateRequestBodyScrollPosition,
   updateResponseFormat,
   updateResponseViewTab,
+  updateResponseFilter,
+  updateResponseFilterExpanded,
+  updateDocsEditing,
+  updateGqlDocsOpen,
+  updateTableColumnWidths,
   updateScriptPaneTab,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
   reorderTabs,
   syncTabUid,
-  restoreTabs
+  restoreTabs,
+  reopenLastClosedTab,
+  updateQueryBuilderOpen,
+  updateQueryBuilderWidth,
+  updateVariablesPaneOpen,
+  updateVariablesPaneHeight
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

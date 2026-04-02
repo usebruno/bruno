@@ -1,7 +1,8 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import useKeybinding from 'hooks/useKeybinding';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
@@ -110,6 +111,13 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     menuDropdownRef.current?.show();
   };
 
+  // Prevent the browser's autoscroll (triggered on middle-button mousedown)
+  const handleMouseDown = (e) => {
+    if (e.button === 1) {
+      e.preventDefault();
+    }
+  };
+
   const handleMouseUp = (e) => {
     if (e.button === 1) {
       e.preventDefault();
@@ -178,6 +186,74 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
   const hasGlobalEnvironmentDraft = tab.type === 'global-environment-settings' && globalEnvironmentDraft;
 
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const isActive = tab.uid === activeTabUid;
+
+  // Close tab shortcut — draft-aware, only active for the focused tab
+  useKeybinding('closeTab', () => {
+    if (tab.type === 'request' || tab.type === 'grpc-request' || tab.type === 'ws-request' || tab.type === 'graphql-request') {
+      if (hasChanges) {
+        setShowConfirmClose(true);
+      } else {
+        if (item?.type === 'ws-request') {
+          closeWsConnection(item.uid);
+        }
+        dispatch(closeTabs({ tabUids: [tab.uid] }));
+      }
+    } else if (tab.type === 'collection-settings') {
+      if (collection?.draft) {
+        setShowConfirmCollectionClose(true);
+      } else {
+        dispatch(closeTabs({ tabUids: [tab.uid] }));
+      }
+    } else if (tab.type === 'folder-settings') {
+      if (folder?.draft) {
+        setShowConfirmFolderClose(true);
+      } else {
+        dispatch(closeTabs({ tabUids: [tab.uid] }));
+      }
+    } else if (tab.type === 'environment-settings') {
+      if (collection?.environmentsDraft) {
+        setShowConfirmEnvironmentClose(true);
+      } else {
+        dispatch(closeTabs({ tabUids: [tab.uid] }));
+      }
+    } else if (tab.type === 'global-environment-settings') {
+      if (globalEnvironmentDraft) {
+        setShowConfirmGlobalEnvironmentClose(true);
+      } else {
+        dispatch(closeTabs({ tabUids: [tab.uid] }));
+      }
+    } else {
+      dispatch(closeTabs({ tabUids: [tab.uid] }));
+    }
+    return false;
+  }, { enabled: isActive, deps: [isActive, tab, hasChanges, item, collection, folder, globalEnvironmentDraft] });
+
+  // Save shortcut — tab-type-aware, only active for the focused tab
+  useKeybinding('save', () => {
+    if (tab.type === 'environment-settings') {
+      if (collection?.environmentsDraft) {
+        const { environmentUid, variables } = collection.environmentsDraft;
+        dispatch(saveEnvironment(variables, environmentUid, collection.uid));
+      }
+    } else if (tab.type === 'global-environment-settings') {
+      if (globalEnvironmentDraft) {
+        const { environmentUid, variables } = globalEnvironmentDraft;
+        dispatch(saveGlobalEnvironment({ variables, environmentUid }));
+      }
+    } else if (tab.type === 'folder-settings') {
+      if (folder) {
+        dispatch(saveFolderRoot(collection.uid, folder.uid));
+      }
+    } else if (tab.type === 'collection-settings') {
+      dispatch(saveCollectionSettings(collection.uid));
+    } else if (item && item.uid) {
+      dispatch(saveRequest(tab.uid, tab.collectionUid));
+    }
+    return false;
+  }, { enabled: isActive, deps: [isActive, tab, item, collection, folder, globalEnvironmentDraft] });
+
   const handleCloseEnvironmentSettings = (event) => {
     if (!collection?.environmentsDraft) {
       return handleCloseClick(event);
@@ -202,6 +278,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return (
       <StyledWrapper
         className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
+        onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
       >
         {showConfirmCollectionClose && tab.type === 'collection-settings' && (
@@ -392,6 +469,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return (
       <StyledWrapper
         className="flex items-center justify-between tab-container px-2"
+        onMouseDown={handleMouseDown}
         onMouseUp={(e) => {
           if (e.button === 1) {
             e.preventDefault();
@@ -452,6 +530,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
+        onMouseDown={handleMouseDown}
         onMouseUp={(e) => {
           if (!hasChanges) return handleMouseUp(e);
 

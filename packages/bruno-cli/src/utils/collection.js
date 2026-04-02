@@ -641,7 +641,8 @@ const processCollectionItems = async (items = [], currentPath, options = {}) => 
           assertions: item.request?.assertions || [],
           tests: item.request?.tests || '',
           docs: item.request?.docs || ''
-        }
+        },
+        examples: item.examples || []
       };
 
       // Convert to YML format and write to file

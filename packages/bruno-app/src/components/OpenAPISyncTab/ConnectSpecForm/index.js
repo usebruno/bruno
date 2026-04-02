@@ -80,6 +80,10 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
                       setError('The selected file is not a valid OpenAPI 3.x specification');
                       return;
                     }
+                    if (data.swagger && String(data.swagger).startsWith('2')) {
+                      setError('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.');
+                      return;
+                    }
                     const filePath = window.ipcRenderer.getFilePath(file);
                     if (filePath) setSourceUrl(filePath);
                   } catch (err) {

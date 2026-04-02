@@ -404,6 +404,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                 aria-activedescendant={results.length > 0 ? `search-result-${selectedIndex}` : undefined}
                 role="combobox"
                 aria-autocomplete="list"
+                data-testid="global-search-input"
               />
               {query && (
                 <button
