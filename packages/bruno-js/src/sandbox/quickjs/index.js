@@ -109,7 +109,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     vm.evalCode(
       `
         (${bundledCode})()
-        ${getRequireCode({ enableLocalModules: true })}
+        ${getRequireCode()}
       `
     );
 

@@ -42,8 +42,6 @@ describe('require shim tests', () => {
   describe('getRequireCode', () => {
     it('should return a string', () => {
       expect(typeof getRequireCode()).toBe('string');
-      expect(typeof getRequireCode({ enableLocalModules: false })).toBe('string');
-      expect(typeof getRequireCode({ enableLocalModules: true })).toBe('string');
     });
 
     it('should contain require function definition', () => {
@@ -55,13 +53,13 @@ describe('require shim tests', () => {
 
   describe('addRequireShimToContext', () => {
     it('should add require function to the VM context', () => {
-      addRequireShimToContext(vm, { enableLocalModules: false });
+      addRequireShimToContext(vm);
       const typeOfRequire = evalAndDump('typeof globalThis.require');
       expect(typeOfRequire).toBe('function');
     });
 
     it('should return module from requireObject', () => {
-      addRequireShimToContext(vm, { enableLocalModules: false });
+      addRequireShimToContext(vm);
 
       // Register a mock module
       vm.evalCode(`
@@ -96,7 +94,7 @@ describe('require shim tests', () => {
     });
 
     it('should support aliased destructuring', () => {
-      addRequireShimToContext(vm, { enableLocalModules: false });
+      addRequireShimToContext(vm);
 
       vm.evalCode(`
         globalThis.requireObject['utils'] = { v1: () => 'version-1' };
@@ -111,7 +109,7 @@ describe('require shim tests', () => {
     });
 
     it('should throw error for unknown modules', () => {
-      addRequireShimToContext(vm, { enableLocalModules: false });
+      addRequireShimToContext(vm);
 
       const result = vm.evalCode(`
         try {
@@ -130,7 +128,7 @@ describe('require shim tests', () => {
     });
 
     it('should allow requiring the same module multiple times', () => {
-      addRequireShimToContext(vm, { enableLocalModules: false });
+      addRequireShimToContext(vm);
 
       vm.evalCode(`
         globalThis.requireObject['counter'] = { count: 0 };
@@ -148,15 +146,9 @@ describe('require shim tests', () => {
 
   describe('enableLocalModules option', () => {
     it('should include local module loading code when enabled', () => {
-      const code = getRequireCode({ enableLocalModules: true });
+      const code = getRequireCode();
       expect(code).toContain('isModuleAPath');
       expect(code).toContain('__brunoLoadLocalModule');
-    });
-
-    it('should not include local module loading code when disabled', () => {
-      const code = getRequireCode({ enableLocalModules: false });
-      expect(code).not.toContain('isModuleAPath');
-      expect(code).not.toContain('__brunoLoadLocalModule');
     });
   });
 });

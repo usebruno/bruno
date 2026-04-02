@@ -7,26 +7,11 @@
  * @param {boolean} options.enableLocalModules - Whether to enable local module loading (requires bru context)
  * @returns {string} JavaScript code to eval in the VM
  */
-function getRequireCode({ enableLocalModules = true } = {}) {
-  if (!enableLocalModules) {
-    // Simple version for unit tests - only looks up from requireObject
-    return `
-      globalThis.require = (mod) => {
-        let lib = globalThis.requireObject[mod];
-        if (lib) {
-          return lib;
-        } else {
-          throw new Error("Cannot find module " + mod);
-        }
-      }
-    `;
-  }
-
-  // Full version with local module support
+function getRequireCode() {
   return `
     globalThis.require = (mod) => {
       let lib = globalThis.requireObject[mod];
-      let isModuleAPath = (module) => (module?.startsWith('.') || module?.startsWith(bru.cwd()))
+      let isModuleAPath = (module) => (module?.startsWith('.') || (typeof bru !== 'undefined' && module?.startsWith(bru.cwd())))
       if (lib) {
         return lib;
       }
@@ -61,8 +46,8 @@ function getRequireCode({ enableLocalModules = true } = {}) {
  * @param {Object} vm - QuickJS VM context
  * @param {Object} options - Options passed to getRequireCode
  */
-function addRequireShimToContext(vm, options = {}) {
-  vm.evalCode(getRequireCode(options));
+function addRequireShimToContext(vm) {
+  vm.evalCode(getRequireCode());
 }
 
 module.exports = {
