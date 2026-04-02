@@ -26,7 +26,7 @@ function getRequireCode({ enableLocalModules = true } = {}) {
   return `
     globalThis.require = (mod) => {
       let lib = globalThis.requireObject[mod];
-      let isModuleAPath = (module) => (module?.startsWith('.') || module?.startsWith?.(bru.cwd()))
+      let isModuleAPath = (module) => (module?.startsWith('.') || module?.startsWith(bru.cwd()))
       if (lib) {
         return lib;
       }

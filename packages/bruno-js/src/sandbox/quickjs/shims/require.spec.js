@@ -1,7 +1,7 @@
 const { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } = require('@jest/globals');
 const { newQuickJSWASMModule } = require('quickjs-emscripten');
 const { addRequireShimToContext, getRequireCode } = require('./require');
-const { createEvalHelper } = require('../utils');
+const { createEvalHelper } = require('../utils/test-helpers');
 
 describe('require shim tests', () => {
   let vm, module, evalAndDump;

@@ -2,7 +2,7 @@ const { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } = req
 const { newQuickJSWASMModule } = require('quickjs-emscripten');
 const addUuidShimToContext = require('./uuid');
 const { addRequireShimToContext } = require('../require');
-const { createEvalHelper } = require('../../utils');
+const { createEvalHelper } = require('../../utils/test-helpers');
 
 describe('uuid shim tests', () => {
   let vm, module, evalAndDump;
@@ -78,6 +78,7 @@ describe('uuid shim tests', () => {
         const { v7 } = require('uuid');
         [v7(), v7()];
       `);
+      // v7 UUIDs are lexicographically sortable by design (timestamp in most significant bits)
       expect(uuid1 <= uuid2).toBe(true);
     });
   });
