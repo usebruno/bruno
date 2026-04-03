@@ -3230,8 +3230,6 @@ export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) =>
 
     const collectionPathname = collection.pathname;
     const uid = collection.uid;
-    const oldBrunoConfig = cloneDeep(collection.brunoConfig);
-
     ipcRenderer
       .invoke('renderer:migrate-collection-to-yml', collectionPathname, collectionUid)
       .then(async (updatedBrunoConfig) => {
@@ -3251,13 +3249,16 @@ export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) =>
             brunoConfig: updatedBrunoConfig
           }));
         } catch (reopenError) {
-          // Restore the old collection in Redux so the user doesn't lose the UI
-          await dispatch(openCollectionEvent(uid, collectionPathname, oldBrunoConfig));
+          // Files on disk are already yml, so restore with updatedBrunoConfig (not old bru config)
+          await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
           throw reopenError;
         }
 
-        // Expand the collection in the sidebar
-        dispatch(toggleCollection(uid));
+        // Expand the collection in the sidebar (only if collapsed)
+        const reopenedCollection = findCollectionByUid(getState().collections.collections, uid);
+        if (reopenedCollection?.collapsed) {
+          dispatch(toggleCollection(uid));
+        }
 
         // Reopen collection settings on the overview tab
         dispatch(addTab({

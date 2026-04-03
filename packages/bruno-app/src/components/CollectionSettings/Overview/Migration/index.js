@@ -51,6 +51,7 @@ const Migration = ({ collection }) => {
               </a>
             </div>
             <Button
+              data-testid="migrate-collection-to-yml-button"
               size="sm"
               color="primary"
               className="mt-2"
