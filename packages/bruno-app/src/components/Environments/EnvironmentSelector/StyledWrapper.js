@@ -63,13 +63,12 @@ const Wrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.base};
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .configure-button {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    flex-shrink: 0;
     background-color: ${(props) => props.theme.dropdown.bg};
     border-top: 0.0625rem solid ${(props) => props.theme.dropdown.separator};
     z-index: 10;
@@ -120,8 +119,7 @@ const Wrapper = styled.div`
   .environment-list {
     flex: 1;
     overflow-y: auto;
-    max-height: calc(75vh - 8rem);
-    padding-bottom: 2.625rem;
+    min-height: 0;
   }
 
   .dropdown-item-list {
