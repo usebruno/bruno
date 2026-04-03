@@ -71,7 +71,29 @@ const Wrapper = styled.div`
 
   .upload-btn,
   .clear-file-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: ${(props) => props.theme.colors.text.muted};
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 0.15s ease;
     flex-shrink: 0;
+
+    &:hover {
+      color: ${(props) => props.theme.text};
+    }
+  }
+
+  .clear-file-btn:hover {
+    color: ${(props) => props.theme.colors.text.danger};
+  }
+
+  .file-value-cell {
+    width: 100%;
   }
 
   .value-cell {
