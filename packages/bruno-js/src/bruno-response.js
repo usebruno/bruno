@@ -1,15 +1,26 @@
 const { get } = require('@usebruno/query');
 const _ = require('lodash');
+const ReadOnlyPropertyList = require('./readonly-property-list');
+const { createHeadersProxy } = require('./headers-proxy');
 
 class BrunoResponse {
   constructor(res) {
     this.res = res;
     this.status = res ? res.status : null;
     this.statusText = res ? res.statusText : null;
-    this.headers = res ? res.headers : null;
     this.body = res ? res.data : null;
     this.responseTime = res ? res.responseTime : null;
     this.url = res?.request ? res.request.protocol + '//' + res.request.host + res.request.path : null;
+
+    // headers is a ReadOnlyPropertyList (static mode) wrapped in a Proxy
+    // for backward-compatible bracket access (e.g. res.headers['content-type'])
+    const rawHeaders = res ? res.headers : {};
+    const headersList = new ReadOnlyPropertyList({
+      keyProperty: 'key',
+      valueProperty: 'value',
+      items: Object.entries(rawHeaders || {}).map(([key, value]) => ({ key, value }))
+    });
+    this._headersList = createHeadersProxy(headersList, rawHeaders || {});
 
     // Make the instance callable
     const callable = (...args) => get(this.body, ...args);
@@ -17,6 +28,13 @@ class BrunoResponse {
     Object.assign(callable, this);
 
     return callable;
+  }
+
+  /**
+   * Returns a ReadOnlyPropertyList for the response headers.
+   */
+  get headers() {
+    return this._headersList;
   }
 
   getStatus() {

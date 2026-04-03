@@ -81,6 +81,7 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
     globalPath,
     syncReadMethods = [],
     syncReadObjectMethods = [],
+    syncWriteMethods = [],
     asyncWriteMethods = [],
     withIterators = false
   } = options;
@@ -99,6 +100,16 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
     const fn = vm.newFunction(methodName, (...vmArgs) => {
       const args = vmArgs.map((a) => vm.dump(a));
       return marshallToVm(cleanCircularJson(nativeList[methodName](...args)), vm);
+    });
+    fn.consume((handle) => vm.setProp(targetObj, methodName, handle));
+  }
+
+  // Sync write methods — void return, just call and discard
+  for (const methodName of syncWriteMethods) {
+    const fn = vm.newFunction(methodName, (...vmArgs) => {
+      const args = vmArgs.map((a) => vm.dump(a));
+      nativeList[methodName](...args);
+      return vm.undefined;
     });
     fn.consume((handle) => vm.setProp(targetObj, methodName, handle));
   }

@@ -1,9 +1,11 @@
+const HeaderList = require('./header-list');
+
 class BrunoRequest {
   /**
    * The following properties are available as shorthand:
    * - req.url
    * - req.method
-   * - req.headers
+   * - req.headers (PropertyList API for headers)
    * - req.timeout
    * - req.body
    *
@@ -15,7 +17,6 @@ class BrunoRequest {
     this.req = req;
     this.url = req.url;
     this.method = req.method;
-    this.headers = req.headers;
     this.timeout = req.timeout;
     this.name = req.name;
     this.pathParams = req.pathParams;
@@ -31,6 +32,17 @@ class BrunoRequest {
     if (isJson) {
       this.body = this.__safeParseJSON(req.data);
     }
+  }
+
+  /**
+   * Returns a HeaderList (PropertyList) for the request headers.
+   * Lazily created and cached. Dynamic mode ensures reads always reflect current req.headers.
+   */
+  get headers() {
+    if (!this._headers) {
+      this._headers = new HeaderList(this);
+    }
+    return this._headers;
   }
 
   getUrl() {
@@ -94,19 +106,20 @@ class BrunoRequest {
   }
 
   getAuthMode() {
+    const headers = this.req.headers;
     if (this.req?.oauth2) {
       return 'oauth2';
     } else if (this.req?.oauth1config) {
       return 'oauth1';
-    } else if (this.headers?.['Authorization']?.startsWith('Bearer')) {
+    } else if (headers?.['Authorization']?.startsWith('Bearer')) {
       return 'bearer';
-    } else if (this.headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {
+    } else if (headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {
       return 'basic';
     } else if (this.req?.awsv4) {
       return 'awsv4';
     } else if (this.req?.digestConfig) {
       return 'digest';
-    } else if (this.headers?.['X-WSSE'] || this.req?.auth?.username) {
+    } else if (headers?.['X-WSSE'] || this.req?.auth?.username) {
       return 'wsse';
     } else {
       return 'none';
@@ -123,7 +136,6 @@ class BrunoRequest {
   }
 
   setHeaders(headers) {
-    this.headers = headers;
     this.req.headers = headers;
   }
 
@@ -136,12 +148,10 @@ class BrunoRequest {
   }
 
   setHeader(name, value) {
-    this.headers[name] = value;
     this.req.headers[name] = value;
   }
 
   deleteHeader(name) {
-    delete this.headers[name];
     delete this.req.headers[name];
 
     /**

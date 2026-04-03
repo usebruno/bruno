@@ -1,4 +1,5 @@
 const { marshallToVm } = require('../utils');
+const { createPropertyListBridge } = require('../utils/property-list-bridge');
 
 // Marshal a QuickJS query argument to a host-compatible value.
 // Function handles are wrapped as native callbacks; other values are dumped as-is.
@@ -34,24 +35,32 @@ const addBrunoResponseShimToContext = (vm, res) => {
 
   const status = marshallToVm(res?.status, vm);
   const statusText = marshallToVm(res?.statusText, vm);
-  const headers = marshallToVm(res?.headers, vm);
   const body = marshallToVm(res?.body, vm);
   const responseTime = marshallToVm(res?.responseTime, vm);
   const url = marshallToVm(res?.url, vm);
 
   vm.setProp(resFn, 'status', status);
   vm.setProp(resFn, 'statusText', statusText);
-  vm.setProp(resFn, 'headers', headers);
   vm.setProp(resFn, 'body', body);
   vm.setProp(resFn, 'responseTime', responseTime);
   vm.setProp(resFn, 'url', url);
 
   status.dispose();
-  headers.dispose();
   body.dispose();
   responseTime.dispose();
   url.dispose();
   statusText.dispose();
+
+  // Wire res.headers as a read-only PropertyList bridge
+  const headersObj = vm.newObject();
+  const { evalCode: resHeadersEvalCode } = createPropertyListBridge(vm, res.headers, headersObj, {
+    globalPath: 'globalThis.res.headers',
+    syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
+    syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
+    withIterators: true
+  });
+  vm.setProp(resFn, 'headers', headersObj);
+  headersObj.dispose();
 
   let getStatusText = vm.newFunction('getStatusText', function () {
     return marshallToVm(res.getStatusText(), vm);
@@ -109,6 +118,11 @@ const addBrunoResponseShimToContext = (vm, res) => {
 
   vm.setProp(vm.global, 'res', resFn);
   resFn.dispose();
+
+  // Evaluate iterator code after res is on global (iterators reference globalThis.res.headers)
+  if (resHeadersEvalCode) {
+    vm.evalCode(resHeadersEvalCode);
+  }
 };
 
 module.exports = addBrunoResponseShimToContext;
