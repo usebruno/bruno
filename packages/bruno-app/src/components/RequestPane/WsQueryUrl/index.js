@@ -1,4 +1,5 @@
-import { IconArrowRight, IconDeviceFloppy, IconPlugConnected, IconPlugConnectedX } from '@tabler/icons';
+import { IconDeviceFloppy, IconPlugConnected, IconPlugConnectedX } from '@tabler/icons';
+import Button from 'ui/Button';
 import classnames from 'classnames';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { requestUrlChanged } from 'providers/ReduxStore/slices/collections';
@@ -187,15 +188,20 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                 </div>
               </div>
             )}
-
-            <div data-testid="run-button" className="cursor-pointer" onClick={handleRunClick}>
-              <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={20} />
-            </div>
           </div>
+          {connectionStatus === CONNECTION_STATUS.CONNECTED && <div className="connection-status-strip"></div>}
         </div>
+        <Button
+          size="sm"
+          variant="filled"
+          color="primary"
+          data-testid="run-button"
+          onClick={handleRunClick}
+          className="ml-2 send-btn"
+        >
+          Send
+        </Button>
       </div>
-
-      {connectionStatus === CONNECTION_STATUS.CONNECTED && <div className="connection-status-strip"></div>}
     </StyledWrapper>
   );
 };

@@ -3,12 +3,12 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   height: 2.1rem;
   position: relative;
-  border: ${(props) => props.theme.requestTabPanel.url.border};
-  border-radius: ${(props) => props.theme.border.radius.base};
 
   .input-container {
     background-color: ${(props) => props.theme.requestTabPanel.url.bg};
+    border: ${(props) => props.theme.requestTabPanel.url.border};
     border-radius: ${(props) => props.theme.border.radius.base};
+    position: relative;
 
     input {
       background-color: ${(props) => props.theme.requestTabPanel.url.bg};
@@ -97,6 +97,16 @@ const StyledWrapper = styled.div`
       &:hover {
         background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 6%, transparent);
       }
+    }
+  }
+
+  .send-btn {
+    align-self: stretch;
+    display: flex;
+    min-width: 4.1rem;
+
+    button {
+      width: 100%;
     }
   }
 `;
