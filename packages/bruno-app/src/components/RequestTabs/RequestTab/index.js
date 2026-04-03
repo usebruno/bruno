@@ -22,6 +22,7 @@ import NewRequest from 'components/Sidebar/NewRequest/index';
 import GradientCloseButton from './GradientCloseButton';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
+import { getInvalidVariableNames } from 'utils/common/variables';
 import ExampleTab from '../ExampleTab';
 import toast from 'react-hot-toast';
 
@@ -356,6 +357,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                 window.addEventListener('dotenv-save-failed', onFailed, { once: true });
                 window.dispatchEvent(new Event('dotenv-save'));
               } else if (draft?.environmentUid && draft?.variables) {
+                const invalidNames = getInvalidVariableNames(draft.variables);
+                if (invalidNames.length > 0) {
+                  toast.error(`Invalid variable name(s): ${invalidNames.join(', ')}`);
+                  return;
+                }
                 dispatch(saveEnvironment(draft.variables, draft.environmentUid, collection.uid))
                   .then(() => {
                     dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
@@ -402,6 +408,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                 window.addEventListener('dotenv-save-failed', onFailed, { once: true });
                 window.dispatchEvent(new Event('dotenv-save'));
               } else if (draft?.environmentUid && draft?.variables) {
+                const invalidNames = getInvalidVariableNames(draft.variables);
+                if (invalidNames.length > 0) {
+                  toast.error(`Invalid variable name(s): ${invalidNames.join(', ')}`);
+                  return;
+                }
                 dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }))
                   .then(() => {
                     dispatch(clearGlobalEnvironmentDraft());
