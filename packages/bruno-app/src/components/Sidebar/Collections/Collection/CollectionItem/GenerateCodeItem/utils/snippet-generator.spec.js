@@ -1241,3 +1241,54 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).toBe(`curl -X GET '${rawUrl}'`);
   });
 });
+
+describe('generateSnippet – URL special character handling', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+
+  let originalHTTPSnippet;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+  });
+
+  afterEach(() => {
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+  });
+
+  const makeItem = (url) => ({
+    uid: 'url-char-test',
+    request: { method: 'GET', url, headers: [], body: { mode: 'none' }, auth: { mode: 'none' } },
+    settings: { encodeUrl: false }
+  });
+
+  const testCases = [
+    ['no special chars', 'http://link/no/special-chars'],
+    ['open paren', 'http://link/with/open-paren('],
+    ['close paren', 'http://link/with/close-paren)'],
+    ['comma in path', 'http://link/with/comma,in/path'],
+    ['multiple query params', 'http://link/path?foo=1&bar=2'],
+    ['simple query param', 'http://link/path?query=value'],
+    ['exclamation mark', 'http://link/with/exclamation!mark'],
+    ['equals in query value', 'http://link/path?key=value=extra'],
+    ['already encoded %20', 'http://link/encoded/already%20'],
+    ['fragment', 'http://link/path#fragment'],
+    ['plus in query', 'http://link/path?q=hello+world'],
+    ['at sign', 'http://link/with/at@sign'],
+    ['semicolon in path', 'http://link/with/semicolon;in/path'],
+    ['dollar sign', 'http://link/with/dollar/$'],
+    ['euro sign', 'http://link/with/euro/%E2%82%AC'],
+    ['pound sign', 'http://link/with/pound/%C2%A3'],
+    ['yen sign', 'http://link/with/yen/%C2%A5'],
+    ['rupee sign', 'http://link/with/rupee/%E2%82%B9'],
+    ['won sign', 'http://link/with/won/%E2%82%A9'],
+    ['cent sign', 'http://link/with/cent/%C2%A2']
+  ];
+
+  test.each(testCases)('should generate snippet for URL with %s', (_, url) => {
+    const result = generateSnippet({ language, item: makeItem(url), collection: baseCollection });
+    expect(result).not.toBe('Error generating code snippet');
+  });
+});
