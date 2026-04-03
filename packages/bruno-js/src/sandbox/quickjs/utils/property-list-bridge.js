@@ -167,6 +167,20 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
     ${globalPath}.reduce = (fn, ...rest) => rest.length ? _allNative().reduce(fn, rest[0]) : _allNative().reduce(fn);\n`;
   }
 
+  // Override `remove` when it's a syncWriteMethod so function predicates work in-VM.
+  // The native bridge can't serialize function handles (vm.dump fails on functions).
+  // Instead: pull items via all(), run the predicate in-VM, call native remove(key) per match.
+  if (withIterators && syncWriteMethods.includes('remove')) {
+    evalCode += `const _removeNative = ${globalPath}.remove;
+    ${globalPath}.remove = (predicate) => {
+      if (typeof predicate === 'function') {
+        _allNative().filter(predicate).forEach(item => _removeNative(item.key));
+      } else {
+        _removeNative(predicate);
+      }
+    };\n`;
+  }
+
   return { evalCode };
 };
 

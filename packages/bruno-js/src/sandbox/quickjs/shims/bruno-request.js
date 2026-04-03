@@ -34,7 +34,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
     globalPath: 'globalThis.req.headers',
     syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
     syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
-    syncWriteMethods: ['add', 'upsert', 'remove', 'clear'],
+    syncWriteMethods: ['add', 'append', 'prepend', 'insert', 'insertAfter', 'upsert', 'remove', 'clear', 'populate', 'repopulate', 'assimilate'],
     withIterators: true
   });
   vm.setProp(reqObject, 'headers', headersObj);

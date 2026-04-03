@@ -35,7 +35,10 @@ const createHeadersProxy = (propertyList, rawHeadersOrGetter, options = {}) => {
         return Reflect.get(target, prop, receiver);
       }
 
-      // PropertyList methods and internal properties take precedence
+      // PropertyList methods take precedence over header names in bracket access.
+      // e.g., proxy['get'] returns the .get() method, not a header named "get".
+      // No standard HTTP headers collide. For custom headers with method names,
+      // use req.getHeader('get') or req.headers.one('get') instead.
       if (prop in target) {
         const value = Reflect.get(target, prop, receiver);
         // Bind methods so `this` stays correct
