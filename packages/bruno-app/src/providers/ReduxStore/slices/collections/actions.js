@@ -61,7 +61,8 @@ import {
   updateCollectionVar,
   addTransientDirectory,
   addSaveTransientRequestModal,
-  updatePathParam
+  updatePathParam,
+  toggleCollection
 } from './index';
 
 import { each } from 'lodash';
@@ -3215,4 +3216,55 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
 export const reopenClosedTab = ({ collectionUid } = {}) => async (dispatch) => {
   dispatch(reopenLastClosedTab({ collectionUid }));
   await dispatch(ensureActiveTabInCurrentWorkspace());
+};
+
+export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionPathname = collection.pathname;
+    const uid = collection.uid;
+
+    ipcRenderer
+      .invoke('renderer:migrate-collection-to-yml', collectionPathname, collectionUid)
+      .then(async (updatedBrunoConfig) => {
+        // Remove the old collection from state and close its tabs
+        dispatch(_removeCollection({ collectionUid }));
+        dispatch(closeAllCollectionTabs({ collectionUid }));
+
+        // Reopen the collection with updated config (now yml format)
+        await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
+
+        // Mount the collection (starts the watcher and loads items)
+        await dispatch(mountCollection({
+          collectionUid: uid,
+          collectionPathname: collectionPathname,
+          brunoConfig: updatedBrunoConfig
+        }));
+
+        // Expand the collection in the sidebar
+        dispatch(toggleCollection(uid));
+
+        // Reopen collection settings on the overview tab
+        dispatch(addTab({
+          uid: uid,
+          collectionUid: uid,
+          type: 'collection-settings'
+        }));
+        dispatch(updateSettingsSelectedTab({ collectionUid: uid, tab: 'overview' }));
+
+        toast.success('Collection migrated to YML format successfully');
+        resolve();
+      })
+      .catch((err) => {
+        toast.error(`Migration failed: ${err.message || 'Unknown error'}`);
+        reject(err);
+      });
+  });
 };
