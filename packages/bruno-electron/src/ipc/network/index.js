@@ -532,7 +532,8 @@ const registerNetworkIpc = (mainWindow) => {
     runtimeVariables,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    consoleLog = onConsoleLog
   ) => {
     // run pre-request script
     let scriptResult;
@@ -547,7 +548,7 @@ const registerNetworkIpc = (mainWindow) => {
         envVars,
         runtimeVariables,
         collectionPath,
-        onConsoleLog,
+        consoleLog,
         processEnvVars,
         scriptingConfig,
         runRequestByItemPathname,
@@ -647,7 +648,8 @@ const registerNetworkIpc = (mainWindow) => {
     runtimeVariables,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    consoleLog = onConsoleLog
   ) => {
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
@@ -702,7 +704,7 @@ const registerNetworkIpc = (mainWindow) => {
         envVars,
         runtimeVariables,
         collectionPath,
-        onConsoleLog,
+        consoleLog,
         processEnvVars,
         scriptingConfig,
         runRequestByItemPathname,
@@ -1298,6 +1300,9 @@ const registerNetworkIpc = (mainWindow) => {
       // Iteration data: array of row objects (from CSV/JSON), one entry per run
       const iterationDataRows = (iterationData && iterationData.length > 0) ? iterationData : [{}];
       const totalIterations = iterationDataRows.length;
+      // Snapshot the runtime variables as they exist before any iteration starts so
+      // each iteration can restore from this baseline instead of clearing to empty.
+      const initialRuntimeVariables = { ...runtimeVariables };
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
@@ -1389,8 +1394,9 @@ const registerNetworkIpc = (mainWindow) => {
 
           // Seed runtimeVariables with iteration data (unless keepVariableValues preserves existing ones)
           if (!keepVariableValues) {
-            // Clear keys that are not part of the original env to avoid cross-iteration bleed
+            // Restore from the pre-run snapshot to avoid cross-iteration bleed
             Object.keys(runtimeVariables).forEach((k) => { delete runtimeVariables[k]; });
+            Object.assign(runtimeVariables, initialRuntimeVariables);
           }
           Object.assign(runtimeVariables, currentIterationData);
 
@@ -1508,7 +1514,8 @@ const registerNetworkIpc = (mainWindow) => {
                   runtimeVariables,
                   processEnvVars,
                   scriptingConfig,
-                  runRequestByItemPathname
+                  runRequestByItemPathname,
+                  runnerConsoleLog
                 );
               } catch (error) {
                 console.error('Pre-request script error:', error);
@@ -1754,7 +1761,8 @@ const registerNetworkIpc = (mainWindow) => {
                   runtimeVariables,
                   processEnvVars,
                   scriptingConfig,
-                  runRequestByItemPathname
+                  runRequestByItemPathname,
+                  runnerConsoleLog
                 );
               } catch (error) {
                 console.error('Post-response script error:', error);

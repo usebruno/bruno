@@ -63,26 +63,48 @@ const parseCSV = (content) => {
     return fields;
   };
 
-  // Split while respecting quoted newlines
+  // Split while respecting quoted newlines.
+  // Only enters quoted mode when '"' starts a field (after comma or at line start),
+  // matching the behaviour of parseFields() so mid-field quotes never absorb the next line.
   const splitLines = (text) => {
     const lines = [];
     let current = '';
     let inQuotes = false;
+    let atFieldStart = true;
 
     for (let i = 0; i < text.length; i++) {
       const ch = text[i];
       if (ch === '"') {
-        if (inQuotes && text[i + 1] === '"') {
-          current += '""';
-          i++;
+        if (inQuotes) {
+          if (text[i + 1] === '"') {
+            // Escaped quote inside a quoted field
+            current += '""';
+            i++;
+          } else {
+            // Closing quote
+            inQuotes = false;
+            current += ch;
+            atFieldStart = false;
+          }
+        } else if (atFieldStart) {
+          // Opening quote — only valid at field boundary
+          inQuotes = true;
+          current += ch;
+          atFieldStart = false;
         } else {
-          inQuotes = !inQuotes;
+          // Mid-field quote in an unquoted field — treat as literal
           current += ch;
         }
       } else if (ch === '\n' && !inQuotes) {
         lines.push(current);
         current = '';
+        atFieldStart = true;
       } else {
+        if (ch === ',') {
+          atFieldStart = true;
+        } else {
+          atFieldStart = false;
+        }
         current += ch;
       }
     }
@@ -105,6 +127,17 @@ const parseCSV = (content) => {
   if (headers.length === 0) {
     return [];
   }
+
+  const seenHeaders = new Set();
+  headers.forEach((header, idx) => {
+    if (!header) {
+      throw new Error(`Malformed CSV: header at column ${idx + 1} is empty.`);
+    }
+    if (seenHeaders.has(header)) {
+      throw new Error(`Malformed CSV: duplicate header "${header}".`);
+    }
+    seenHeaders.add(header);
+  });
 
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
