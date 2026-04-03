@@ -1394,9 +1394,10 @@ const registerNetworkIpc = (mainWindow) => {
 
           // Seed runtimeVariables with iteration data (unless keepVariableValues preserves existing ones)
           if (!keepVariableValues) {
-            // Restore from the pre-run snapshot to avoid cross-iteration bleed
+            // Restore from a fresh deep clone each iteration to prevent nested
+            // object mutations in scripts from bleeding into the baseline
             Object.keys(runtimeVariables).forEach((k) => { delete runtimeVariables[k]; });
-            Object.assign(runtimeVariables, initialRuntimeVariables);
+            Object.assign(runtimeVariables, cloneDeep(initialRuntimeVariables));
           }
           Object.assign(runtimeVariables, currentIterationData);
 
@@ -1473,7 +1474,7 @@ const registerNetworkIpc = (mainWindow) => {
                 error: 'Request has been skipped due to containing prompt variables',
                 responseReceived: {
                   status: 'skipped',
-                  statusText: `Prompt variables detected in request. Runner execution is not supported for requests with prompt variables. \n Promps: ${promptVars.join(', ')}`,
+                  statusText: `Prompt variables detected in request. Runner execution is not supported for requests with prompt variables. \n Prompts: ${promptVars.join(', ')}`,
                   data: null,
                   responseTime: 0,
                   headers: null
@@ -1706,7 +1707,7 @@ const registerNetworkIpc = (mainWindow) => {
 
                 if (error?.response) {
                   error.response.data = await promisifyStream(error.response.data, currentAbortController, false);
-                  const { data, dataBuffer } = parseDataFromResponse(error.response);
+                  const { data, dataBuffer } = parseDataFromResponse(error.response, request.__brunoDisableParsingResponseJson);
                   error.response.responseTime = error.response.headers.get('request-duration');
                   error.response.headers.delete('request-duration');
                   error.response.data = data;
@@ -1718,30 +1719,37 @@ const registerNetworkIpc = (mainWindow) => {
                   }
 
                   timeEnd = Date.now();
-                  // Keep the full parsed response for post-response scripts, assertions, and tests
+                  // Keep internal response consistent with the success path so
+                  // post-response scripts, assertions, and tests see the same structure
                   response = {
                     status: error.response.status,
                     statusText: error.response.statusText,
                     headers: error.response.headers,
                     duration: timeEnd - timeStart,
-                    dataBuffer: dataBuffer.toString('base64'),
-                    size: Buffer.byteLength(dataBuffer),
                     data: error.response.data,
+                    dataBuffer: error.response.dataBuffer,
+                    size: Buffer.byteLength(dataBuffer),
                     responseTime: error.response.responseTime,
                     timeline: error.response.timeline
                   };
 
                   // Build a separate renderer payload that respects persistResponses
-                  const errorResponseReceived = {
-                    ...response,
-                    ...(persistResponses ? {} : { dataBuffer: undefined, data: undefined })
-                  };
-
-                  // if we get a response from the server, we consider it as a success
                   mainWindow.webContents.send('main:run-folder-event', {
                     type: 'response-received',
                     error: error ? error.message : 'An error occurred while running the request',
-                    responseReceived: errorResponseReceived,
+                    responseReceived: {
+                      status: response.status,
+                      statusText: response.statusText,
+                      headers: response.headers,
+                      duration: response.duration,
+                      ...(persistResponses ? {
+                        dataBuffer: dataBuffer.toString('base64'),
+                        data: response.data
+                      } : {}),
+                      size: response.size,
+                      responseTime: response.responseTime,
+                      timeline: response.timeline
+                    },
                     ...eventData
                   });
                 } else {
