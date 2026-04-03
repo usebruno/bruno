@@ -121,6 +121,7 @@ const getCertsAndProxyConfig = async ({
    */
   let proxyMode = 'off';
   let proxyConfig = {};
+  let proxyModeReason = '';
 
   const collectionProxyConfig = get(brunoConfig, 'proxy', {});
   const collectionProxyDisabled = get(collectionProxyConfig, 'disabled', false);
@@ -154,12 +155,14 @@ const getCertsAndProxyConfig = async ({
       proxyMode = 'system';
       const systemProxyConfig = await getCachedSystemProxy();
       proxyConfig = systemProxyConfig || { http_proxy: null, https_proxy: null, no_proxy: null, source: 'cache-miss' };
+    } else {
+      proxyModeReason = 'App-level proxy is disabled';
     }
-    // else: global proxy is disabled, proxyMode stays 'off'
+  } else {
+    proxyModeReason = 'Collection-level proxy is disabled';
   }
-  // else: collection proxy is disabled, proxyMode stays 'off'
 
-  return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
+  return { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions };
 };
 
 /**

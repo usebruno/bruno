@@ -107,11 +107,20 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
 async function setupProxyAgents({
   requestConfig,
   proxyMode = 'off',
+  proxyModeReason = '',
   proxyConfig,
   httpsAgentRequestFields,
   interpolationOptions,
   timeline
 }) {
+  if (timeline) {
+    let modeMsg = `Proxy mode: ${proxyMode}`;
+    if (proxyMode === 'pac') modeMsg += ` | PAC URL: ${get(proxyConfig, 'pacUrl') || '(empty)'}`;
+    else if (proxyMode === 'on') modeMsg += ` | ${get(proxyConfig, 'protocol')}://${get(proxyConfig, 'hostname')}:${get(proxyConfig, 'port')}`;
+    else if (proxyMode === 'off' && proxyModeReason) modeMsg += ` (${proxyModeReason})`;
+    timeline.push({ timestamp: new Date(), type: 'info', message: modeMsg });
+  }
+
   // Clear stale agents so we always recreate them for the current URL
   // (handles protocol switches, host changes, and proxy-bypass rules on redirects).
   delete requestConfig.httpAgent;
@@ -222,6 +231,7 @@ async function setupProxyAgents({
   } else if (proxyMode === 'pac') {
     const pacUrl = get(proxyConfig, 'pacUrl');
     if (pacUrl) {
+      if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving PAC: ${pacUrl}` });
       try {
         const resolver = await getPacResolver({ pacUrl, httpsAgentRequestFields });
         const directives = await resolver.resolve(requestConfig.url);
@@ -240,6 +250,8 @@ async function setupProxyAgents({
             requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
             requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
           }
+        } else {
+          if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: 'PAC resolved: DIRECT (no proxy)' });
         }
       } catch (err) {
         if (timeline) timeline.push({ timestamp: new Date(), type: 'error', message: `PAC resolution failed: ${err.message}` });
