@@ -180,6 +180,8 @@ class PreferencesStore {
       if (hasOldFormat) {
         let newProxy = {
           inherit: true,
+          source: 'manual',
+          pac: { source: '' },
           config: {
             protocol: proxy.protocol || 'http',
             hostname: proxy.hostname || '',

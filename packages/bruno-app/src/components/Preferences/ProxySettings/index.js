@@ -112,7 +112,7 @@ const ProxySettings = ({ close }) => {
   const [proxyMode, setProxyMode] = useState(() => {
     if (preferences.proxy.disabled) return 'off';
     if (preferences.proxy.inherit) return 'system';
-    if (preferences.proxy.pac?.source) return 'pac';
+    if (preferences.proxy.source === 'pac') return 'pac';
     return 'on';
   });
 
@@ -147,7 +147,6 @@ const ProxySettings = ({ close }) => {
                   setProxyMode('off');
                   formik.setFieldValue('disabled', true);
                   formik.setFieldValue('inherit', false);
-                  formik.setFieldValue('pac.source', '');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -163,7 +162,7 @@ const ProxySettings = ({ close }) => {
                   setProxyMode('on');
                   formik.setFieldValue('disabled', false);
                   formik.setFieldValue('inherit', false);
-                  formik.setFieldValue('pac.source', '');
+                  formik.setFieldValue('source', 'manual');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -179,7 +178,6 @@ const ProxySettings = ({ close }) => {
                   setProxyMode('system');
                   formik.setFieldValue('disabled', false);
                   formik.setFieldValue('inherit', true);
-                  formik.setFieldValue('pac.source', '');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -195,6 +193,7 @@ const ProxySettings = ({ close }) => {
                   setProxyMode('pac');
                   formik.setFieldValue('disabled', false);
                   formik.setFieldValue('inherit', false);
+                  formik.setFieldValue('source', 'pac');
                 }}
                 className="mr-1 cursor-pointer"
               />

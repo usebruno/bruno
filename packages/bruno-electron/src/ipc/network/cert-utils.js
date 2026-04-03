@@ -139,13 +139,13 @@ const getCertsAndProxyConfig = async ({
     const globalProxyConfigData = get(globalProxy, 'config', globalProxy);
 
     if (!globalDisabled && !globalInherit) {
-      const pacUrl = get(globalProxy, 'pac.source');
-      if (pacUrl) {
+      const globalSource = get(globalProxy, 'source');
+      if (globalSource === 'pac') {
         // Use PAC-based proxy
         proxyMode = 'pac';
-        proxyConfig = { pacUrl };
+        proxyConfig = { pacUrl: get(globalProxy, 'pac.source') };
       } else {
-        // Use global custom proxy
+        // Use global custom proxy (source='manual' or absent)
         proxyConfig = globalProxyConfigData;
         proxyMode = 'on';
       }
