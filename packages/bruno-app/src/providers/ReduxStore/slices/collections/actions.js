@@ -3230,23 +3230,31 @@ export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) =>
 
     const collectionPathname = collection.pathname;
     const uid = collection.uid;
+    const oldBrunoConfig = cloneDeep(collection.brunoConfig);
 
     ipcRenderer
       .invoke('renderer:migrate-collection-to-yml', collectionPathname, collectionUid)
       .then(async (updatedBrunoConfig) => {
-        // Remove the old collection from state and close its tabs
+        // Remove old collection state so we can recreate it with the new yml config.
+        // openCollectionEvent requires no existing collection with the same pathname.
         dispatch(_removeCollection({ collectionUid }));
         dispatch(closeAllCollectionTabs({ collectionUid }));
 
-        // Reopen the collection with updated config (now yml format)
-        await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
+        try {
+          // Reopen the collection with updated config (now yml format)
+          await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
 
-        // Mount the collection (starts the watcher and loads items)
-        await dispatch(mountCollection({
-          collectionUid: uid,
-          collectionPathname: collectionPathname,
-          brunoConfig: updatedBrunoConfig
-        }));
+          // Mount the collection (starts the watcher and loads items)
+          await dispatch(mountCollection({
+            collectionUid: uid,
+            collectionPathname: collectionPathname,
+            brunoConfig: updatedBrunoConfig
+          }));
+        } catch (reopenError) {
+          // Restore the old collection in Redux so the user doesn't lose the UI
+          await dispatch(openCollectionEvent(uid, collectionPathname, oldBrunoConfig));
+          throw reopenError;
+        }
 
         // Expand the collection in the sidebar
         dispatch(toggleCollection(uid));

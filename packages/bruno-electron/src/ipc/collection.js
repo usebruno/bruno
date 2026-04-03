@@ -2447,6 +2447,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       watcher.removeWatcher(collectionPathname, mainWindow, collectionUid);
     }
 
+    // Track all written yml files so we can roll back on failure
+    const writtenYmlFiles = [];
+
     try {
       const brunoJsonPath = path.join(collectionPathname, 'bruno.json');
       const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
@@ -2463,17 +2466,21 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       delete ymlBrunoConfig.version;
       ymlBrunoConfig.opencollection = '1.0.0';
 
+      const ocYmlPath = path.join(collectionPathname, 'opencollection.yml');
       const ymlCollectionContent = stringifyCollection(collectionRoot, ymlBrunoConfig, { format: 'yml' });
-      await writeFile(path.join(collectionPathname, 'opencollection.yml'), ymlCollectionContent);
+      await writeFile(ocYmlPath, ymlCollectionContent);
+      writtenYmlFiles.push(ocYmlPath);
 
       const bruFiles = searchForFiles(collectionPathname, '.bru');
       const envDirPath = path.join(collectionPathname, 'environments');
+      const bruFilesToDelete = [];
 
       for (const bruFilePath of bruFiles) {
         const basename = path.basename(bruFilePath);
         const dirname = path.dirname(bruFilePath);
 
         if (basename === 'collection.bru' && path.normalize(dirname) === path.normalize(collectionPathname)) {
+          bruFilesToDelete.push(bruFilePath);
           continue;
         }
 
@@ -2487,7 +2494,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           const ymlContent = stringifyFolder(folderData, { format: 'yml' });
           const ymlFilePath = path.join(dirname, 'folder.yml');
           await writeFile(ymlFilePath, ymlContent);
-          fs.unlinkSync(bruFilePath);
+          writtenYmlFiles.push(ymlFilePath);
+          bruFilesToDelete.push(bruFilePath);
           continue;
         }
 
@@ -2496,7 +2504,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const ymlContent = stringifyRequest(requestData, { format: 'yml' });
         const ymlFilePath = bruFilePath.replace(/\.bru$/, '.yml');
         await writeFile(ymlFilePath, ymlContent);
-        fs.unlinkSync(bruFilePath);
+        writtenYmlFiles.push(ymlFilePath);
+        bruFilesToDelete.push(bruFilePath);
       }
 
       if (fs.existsSync(envDirPath)) {
@@ -2507,12 +2516,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           const ymlContent = stringifyEnvironment(envData, { format: 'yml' });
           const ymlFilePath = envBruFilePath.replace(/\.bru$/, '.yml');
           await writeFile(ymlFilePath, ymlContent);
-          fs.unlinkSync(envBruFilePath);
+          writtenYmlFiles.push(ymlFilePath);
+          bruFilesToDelete.push(envBruFilePath);
         }
       }
 
-      if (fs.existsSync(collectionBruPath)) {
-        fs.unlinkSync(collectionBruPath);
+      for (const bruFile of bruFilesToDelete) {
+        fs.unlinkSync(bruFile);
       }
       fs.unlinkSync(brunoJsonPath);
 
@@ -2522,16 +2532,19 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       return ymlBrunoConfig;
     } catch (error) {
+      for (const ymlFile of writtenYmlFiles) {
+        try {
+          if (fs.existsSync(ymlFile)) {
+            fs.unlinkSync(ymlFile);
+          }
+        } catch (_) {
+        }
+      }
+
+      // Restart the watcher on the original bru collection
       if (watcher) {
         try {
-          const currentFormat = getCollectionFormat(collectionPathname);
-          const configPath = currentFormat === 'yml'
-            ? path.join(collectionPathname, 'opencollection.yml')
-            : path.join(collectionPathname, 'bruno.json');
-          const configContent = fs.readFileSync(configPath, 'utf8');
-          const config = currentFormat === 'yml'
-            ? parseCollection(configContent, { format: 'yml' }).brunoConfig
-            : JSON.parse(configContent);
+          const config = JSON.parse(fs.readFileSync(path.join(collectionPathname, 'bruno.json'), 'utf8'));
           watcher.addWatcher(mainWindow, collectionPathname, collectionUid, config);
         } catch (watcherError) {
           console.error('Failed to restart watcher after migration error:', watcherError);
