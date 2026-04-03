@@ -1,5 +1,6 @@
 const { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } = require('@jest/globals');
 const { newQuickJSWASMModule } = require('quickjs-emscripten');
+const { validate: uuidValidate, version: uuidVersion } = require('uuid');
 const addUuidShimToContext = require('./uuid');
 const { addRequireShimToContext } = require('../require');
 const { createEvalHelper } = require('../../utils/test-helpers');
@@ -41,10 +42,11 @@ describe('uuid shim tests', () => {
   });
 
   /**
-   * Regex pattern for validating UUID format with specific version
+   * Validates that a string is a valid UUID of the expected version
    */
-  function uuidPattern(version) {
-    return new RegExp(`^[0-9a-f]{8}-[0-9a-f]{4}-${version}[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`, 'i');
+  function expectUuidVersion(uuid, expectedVersion) {
+    expect(uuidValidate(uuid)).toBe(true);
+    expect(uuidVersion(uuid)).toBe(expectedVersion);
   }
 
   describe('uuid version functions', () => {
@@ -58,11 +60,11 @@ describe('uuid shim tests', () => {
     it.each(versionTests)('$fn should generate valid uuid and be accessible via require', ({ fn, version }) => {
       // Test direct access
       const directUuid = evalAndDump(`globalThis.uuid.${fn}()`);
-      expect(directUuid).toMatch(uuidPattern(version));
+      expectUuidVersion(directUuid, version);
 
       // Test require with destructuring
       const requireUuid = evalAndDump(`const { ${fn} } = require('uuid'); ${fn}()`);
-      expect(requireUuid).toMatch(uuidPattern(version));
+      expectUuidVersion(requireUuid, version);
     });
 
     it('v7 should be accessible with alias pattern (v7: uuidv7) - issue #7333', () => {
@@ -70,7 +72,7 @@ describe('uuid shim tests', () => {
         const { v7: uuidv7 } = require('uuid');
         uuidv7();
       `);
-      expect(uuid).toMatch(uuidPattern(7));
+      expectUuidVersion(uuid, 7);
     });
 
     it('v7 should generate time-ordered uuids', () => {
@@ -94,7 +96,7 @@ describe('uuid shim tests', () => {
         const { ${fn} } = require('uuid');
         ${fn}('example.com', '${DNS_NAMESPACE}');
       `);
-      expect(uuid).toMatch(uuidPattern(version));
+      expectUuidVersion(uuid, version);
     });
   });
 
@@ -107,10 +109,10 @@ describe('uuid shim tests', () => {
         [v1Uuid, v1ToV6(v1Uuid), v6Uuid, v6ToV1(v6Uuid)];
       `);
 
-      expect(v1Uuid).toMatch(uuidPattern(1));
-      expect(v6FromV1).toMatch(uuidPattern(6));
-      expect(v6Uuid).toMatch(uuidPattern(6));
-      expect(v1FromV6).toMatch(uuidPattern(1));
+      expectUuidVersion(v1Uuid, 1);
+      expectUuidVersion(v6FromV1, 6);
+      expectUuidVersion(v6Uuid, 6);
+      expectUuidVersion(v1FromV6, 1);
     });
   });
 
@@ -156,8 +158,8 @@ describe('uuid shim tests', () => {
       `);
 
       expect(typeOfFn).toBe('function');
-      expect(id1).toMatch(uuidPattern(7));
-      expect(id2).toMatch(uuidPattern(7));
+      expectUuidVersion(id1, 7);
+      expectUuidVersion(id2, 7);
       expect(id1).not.toBe(id2);
     });
   });
