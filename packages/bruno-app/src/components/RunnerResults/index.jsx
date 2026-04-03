@@ -255,9 +255,10 @@ export default function RunnerResults({ collection }) {
     const n = parseInt(iterationCount, 10);
     const count = !isNaN(n) && n > 0 ? n : 1;
 
-    if (iterationDataFile && iterationDataFile.rows.length > 0) {
+    const rows = iterationDataFile?.rows;
+    if (rows && rows.length > 0) {
       // If user typed a count lower than file rows, slice; if higher, cycle through rows
-      return Array.from({ length: count }, (_, i) => iterationDataFile.rows[i % iterationDataFile.rows.length]);
+      return Array.from({ length: count }, (_, i) => rows[i % rows.length]);
     }
 
     if (count > 1) {
@@ -416,9 +417,16 @@ export default function RunnerResults({ collection }) {
                           {iterationDataFile.filePath.split(/[\\/]/).pop()}
                         </span>
                         <span className="iteration-file-meta">
-                          {iterationDataFile.rows.length} row{iterationDataFile.rows.length !== 1 ? 's' : ''}
-                          {' · '}
-                          {Object.keys(iterationDataFile.rows[0] || {}).length} variable{Object.keys(iterationDataFile.rows[0] || {}).length !== 1 ? 's' : ''}
+                          {(() => {
+                            const rowCount = iterationDataFile.rows?.length ?? iterationDataFile.rowCount ?? 0;
+                            const varCount = Object.keys(iterationDataFile.rows?.[0] || {}).length;
+                            return (
+                              <>
+                                {rowCount} row{rowCount !== 1 ? 's' : ''}
+                                {varCount > 0 && <>{' · '}{varCount} variable{varCount !== 1 ? 's' : ''}</>}
+                              </>
+                            );
+                          })()}
                         </span>
                       </div>
                       <div className="iteration-file-actions">
