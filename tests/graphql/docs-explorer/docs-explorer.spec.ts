@@ -35,16 +35,15 @@ test.describe('GraphQL Docs Explorer', () => {
       await docsItem.click();
 
       await expect(docsContainer).toBeVisible();
-      await expect(docsContainer).not.toHaveClass(/hidden/);
       await expect(docsContainer.locator('.doc-explorer-title')).toContainText('Documentation Explorer');
     });
 
     await test.step('Close docs explorer with the close button', async () => {
-      const closeButton = docsContainer.locator('button[aria-label="Close Documentation Explorer"]');
+      const closeButton = docsContainer.getByTestId('graphql-docs-close-button');
       await expect(closeButton).toBeVisible();
       await closeButton.click();
 
-      await expect(docsContainer).toHaveClass(/hidden/);
+      await expect(docsContainer).toBeHidden();
     });
   });
 });

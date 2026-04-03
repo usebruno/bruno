@@ -398,7 +398,12 @@ const RequestTabPanel = () => {
         {item.type === 'graphql-request' ? (
           <div className={`graphql-docs-explorer-container ${showGqlDocs ? '' : 'hidden'}`}>
             <DocExplorer schema={schema} ref={(r) => (docExplorerRef.current = r)}>
-              <button className="mr-2" onClick={() => dispatch(updateGqlDocsOpen({ uid: activeTabUid, gqlDocsOpen: false }))} aria-label="Close Documentation Explorer">
+              <button
+                className="mr-2"
+                data-testid="graphql-docs-close-button"
+                onClick={() => dispatch(updateGqlDocsOpen({ uid: activeTabUid, gqlDocsOpen: false }))}
+                aria-label="Close Documentation Explorer"
+              >
                 {'\u2715'}
               </button>
             </DocExplorer>
