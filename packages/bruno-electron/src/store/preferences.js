@@ -31,11 +31,12 @@ const defaultPreferences = {
   },
   proxy: {
     inherit: true,
+    source: 'manual',
+    pac: { source: '' },
     config: {
       protocol: 'http',
       hostname: '',
       port: null,
-      pacUrl: '',
       auth: {
         username: '',
         password: ''
@@ -95,11 +96,14 @@ const preferencesSchema = Yup.object().shape({
   proxy: Yup.object({
     disabled: Yup.boolean().optional(),
     inherit: Yup.boolean().required(),
+    source: Yup.string().oneOf(['manual', 'pac']).optional(),
+    pac: Yup.object({
+      source: Yup.string().optional().max(2048).nullable()
+    }).optional(),
     config: Yup.object({
       protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
       hostname: Yup.string().max(1024),
       port: Yup.number().min(1).max(65535).nullable(),
-      pacUrl: Yup.string().optional().max(2048).nullable(),
       auth: Yup.object({
         disabled: Yup.boolean().optional(),
         username: Yup.string().max(1024),

@@ -139,7 +139,7 @@ const getCertsAndProxyConfig = async ({
     const globalProxyConfigData = get(globalProxy, 'config', globalProxy);
 
     if (!globalDisabled && !globalInherit) {
-      const pacUrl = get(globalProxy, 'config.pacUrl');
+      const pacUrl = get(globalProxy, 'pac.source');
       if (pacUrl) {
         // Use PAC-based proxy
         proxyMode = 'pac';

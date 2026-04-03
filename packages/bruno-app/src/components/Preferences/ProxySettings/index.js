@@ -21,6 +21,22 @@ const ProxySettings = ({ close }) => {
   const proxySchema = Yup.object({
     disabled: Yup.boolean().optional(),
     inherit: Yup.boolean().required(),
+    source: Yup.string().oneOf(['manual', 'pac']).optional(),
+    pac: Yup.object({
+      source: Yup.string()
+        .optional()
+        .test('pac-url', 'Specify a valid PAC URL', (value) => {
+          if (!value) return true;
+          try {
+            const u = new URL(value);
+            return u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'file:';
+          } catch {
+            return false;
+          }
+        })
+        .max(2048)
+        .nullable()
+    }).optional(),
     config: Yup.object({
       protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
       hostname: Yup.string().max(1024),
@@ -35,19 +51,6 @@ const ProxySettings = ({ close }) => {
         username: Yup.string().max(1024),
         password: Yup.string().max(1024)
       }).optional(),
-      pacUrl: Yup.string()
-        .optional()
-        .test('pac-url', 'Specify a valid PAC URL', (value) => {
-          if (!value) return true;
-          try {
-            const u = new URL(value);
-            return u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'file:';
-          } catch {
-            return false;
-          }
-        })
-        .max(2048)
-        .nullable(),
       bypassProxy: Yup.string().optional().max(1024)
     }).required()
   });
@@ -56,11 +59,14 @@ const ProxySettings = ({ close }) => {
     initialValues: {
       disabled: preferences.proxy.disabled || false,
       inherit: preferences.proxy.inherit || false,
+      source: preferences.proxy.source || 'manual',
+      pac: {
+        source: preferences.proxy.pac?.source || ''
+      },
       config: {
         protocol: preferences.proxy.config?.protocol || 'http',
         hostname: preferences.proxy.config?.hostname || '',
         port: preferences.proxy.config?.port || 0,
-        pacUrl: preferences.proxy.config?.pacUrl || '',
         auth: {
           disabled: preferences.proxy.config?.auth?.disabled || false,
           username: preferences.proxy.config?.auth?.username || '',
@@ -106,7 +112,7 @@ const ProxySettings = ({ close }) => {
   const [proxyMode, setProxyMode] = useState(() => {
     if (preferences.proxy.disabled) return 'off';
     if (preferences.proxy.inherit) return 'system';
-    if (preferences.proxy.config?.pacUrl) return 'pac';
+    if (preferences.proxy.pac?.source) return 'pac';
     return 'on';
   });
 
@@ -114,7 +120,7 @@ const ProxySettings = ({ close }) => {
     if (formik.dirty && formik.isValid) {
       // Don't auto-save PAC mode until a URL is actually entered — an empty pacUrl
       // would save as non-PAC (the mode is inferred from pacUrl being truthy on load).
-      if (proxyMode === 'pac' && !formik.values.config.pacUrl) return;
+      if (proxyMode === 'pac' && !formik.values.pac.source) return;
       debouncedSave(formik.values);
     }
     return () => {
@@ -141,7 +147,7 @@ const ProxySettings = ({ close }) => {
                   setProxyMode('off');
                   formik.setFieldValue('disabled', true);
                   formik.setFieldValue('inherit', false);
-                  formik.setFieldValue('config.pacUrl', '');
+                  formik.setFieldValue('pac.source', '');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -157,7 +163,7 @@ const ProxySettings = ({ close }) => {
                   setProxyMode('on');
                   formik.setFieldValue('disabled', false);
                   formik.setFieldValue('inherit', false);
-                  formik.setFieldValue('config.pacUrl', '');
+                  formik.setFieldValue('pac.source', '');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -173,7 +179,7 @@ const ProxySettings = ({ close }) => {
                   setProxyMode('system');
                   formik.setFieldValue('disabled', false);
                   formik.setFieldValue('inherit', true);
-                  formik.setFieldValue('config.pacUrl', '');
+                  formik.setFieldValue('pac.source', '');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -385,20 +391,20 @@ const ProxySettings = ({ close }) => {
         {proxyMode === 'pac' ? (
           <>
             <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="config.pacUrl">
+              <label className="settings-label" htmlFor="pac.source">
                 PAC URL
               </label>
               <input
-                id="config.pacUrl"
+                id="pac.source"
                 type="text"
-                name="config.pacUrl"
+                name="pac.source"
                 className="block textbox pac-url-input"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
                 onChange={formik.handleChange}
-                value={formik.values.config.pacUrl || ''}
+                value={formik.values.pac.source || ''}
                 placeholder="https://example.com/proxy.pac"
               />
               <Button
@@ -413,7 +419,7 @@ const ProxySettings = ({ close }) => {
                         const fileUrl = isWindowsOS()
                           ? 'file:///' + filePath.replace(/\\/g, '/')
                           : 'file://' + filePath;
-                        formik.setFieldValue('config.pacUrl', fileUrl);
+                        formik.setFieldValue('pac.source', fileUrl);
                         toast.success('PAC file selected');
                       }
                     })
@@ -422,8 +428,8 @@ const ProxySettings = ({ close }) => {
               >
                 Browse
               </Button>
-              {formik.touched.config?.pacUrl && formik.errors.config?.pacUrl ? (
-                <div className="ml-3 text-red-500">{formik.errors.config.pacUrl}</div>
+              {formik.touched.pac?.source && formik.errors.pac?.source ? (
+                <div className="ml-3 text-red-500">{formik.errors.pac.source}</div>
               ) : null}
             </div>
           </>
