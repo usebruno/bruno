@@ -45,7 +45,8 @@ const parseCSV = (content) => {
           throw new Error(`Malformed CSV: unexpected character '${line[pos]}' after closing quote`);
         }
         fields.push(field);
-        // skip comma
+        // skip comma, or stop if we reached the end of the line
+        if (pos >= line.length) break;
         if (line[pos] === ',') pos++;
       } else {
         // Unquoted field
@@ -142,6 +143,11 @@ const parseCSV = (content) => {
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
     const values = parseFields(lines[i], 0);
+    if (values.length > headers.length) {
+      throw new Error(
+        `Malformed CSV: row ${i + 1} has ${values.length} columns but the header has only ${headers.length}.`
+      );
+    }
     const row = {};
     headers.forEach((header, idx) => {
       row[header] = values[idx] !== undefined ? values[idx] : '';
@@ -159,9 +165,11 @@ const parseCSV = (content) => {
  * @returns {object[]} Array of row objects
  */
 const parseJSON = (content) => {
+  // Strip UTF-8 BOM (U+FEFF) if present — some editors prepend it and JSON.parse rejects it
+  const normalized = content.charCodeAt(0) === 0xFEFF ? content.slice(1) : content;
   let data;
   try {
-    data = JSON.parse(content);
+    data = JSON.parse(normalized);
   } catch (err) {
     throw new Error(`Failed to parse JSON data file: ${err.message}`);
   }

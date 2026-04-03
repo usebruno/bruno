@@ -1302,7 +1302,7 @@ const registerNetworkIpc = (mainWindow) => {
       const totalIterations = iterationDataRows.length;
       // Snapshot the runtime variables as they exist before any iteration starts so
       // each iteration can restore from this baseline instead of clearing to empty.
-      const initialRuntimeVariables = { ...runtimeVariables };
+      const initialRuntimeVariables = cloneDeep(runtimeVariables);
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
@@ -1718,25 +1718,30 @@ const registerNetworkIpc = (mainWindow) => {
                   }
 
                   timeEnd = Date.now();
+                  // Keep the full parsed response for post-response scripts, assertions, and tests
                   response = {
                     status: error.response.status,
                     statusText: error.response.statusText,
                     headers: error.response.headers,
                     duration: timeEnd - timeStart,
-                    ...(persistResponses ? {
-                      dataBuffer: dataBuffer.toString('base64'),
-                      data: error.response.data
-                    } : {}),
+                    dataBuffer: dataBuffer.toString('base64'),
                     size: Buffer.byteLength(dataBuffer),
+                    data: error.response.data,
                     responseTime: error.response.responseTime,
                     timeline: error.response.timeline
+                  };
+
+                  // Build a separate renderer payload that respects persistResponses
+                  const errorResponseReceived = {
+                    ...response,
+                    ...(persistResponses ? {} : { dataBuffer: undefined, data: undefined })
                   };
 
                   // if we get a response from the server, we consider it as a success
                   mainWindow.webContents.send('main:run-folder-event', {
                     type: 'response-received',
                     error: error ? error.message : 'An error occurred while running the request',
-                    responseReceived: response,
+                    responseReceived: errorResponseReceived,
                     ...eventData
                   });
                 } else {
