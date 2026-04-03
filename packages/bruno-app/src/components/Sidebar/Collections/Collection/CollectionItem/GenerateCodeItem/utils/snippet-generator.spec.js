@@ -1284,7 +1284,15 @@ describe('generateSnippet – URL special character handling', () => {
     ['yen sign', 'http://link/with/yen/%C2%A5'],
     ['rupee sign', 'http://link/with/rupee/%E2%82%B9'],
     ['won sign', 'http://link/with/won/%E2%82%A9'],
-    ['cent sign', 'http://link/with/cent/%C2%A2']
+    ['cent sign', 'http://link/with/cent/%C2%A2'],
+
+    // by encoding in path only
+    ['opening square bracket', 'http://link/with/opening-square-brace['],
+    ['closing square bracket', 'http://link/with/close-square-brace]'],
+    ['bare percent', 'http://link/with/bare-percent%in/path'],
+    // IPv6 host — [ ] must NOT be encoded in the host portion
+    ['IPv6 host', 'http://[::1]/path'],
+    ['IPv6 host with port', 'http://[::1]:8080/path']
   ];
 
   test.each(testCases)('should generate snippet for URL with %s', (_, url) => {
