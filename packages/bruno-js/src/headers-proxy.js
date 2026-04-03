@@ -22,8 +22,11 @@
  * @param {Function} [options.onDelete] - Called with (name) on bracket deletion
  * @returns {Proxy} A proxy that supports both PropertyList methods and bracket access
  */
-const createHeadersProxy = (propertyList, rawHeaders, options = {}) => {
+const createHeadersProxy = (propertyList, rawHeadersOrGetter, options = {}) => {
   const { onSet, onDelete } = options;
+  const getRawHeaders = typeof rawHeadersOrGetter === 'function'
+    ? rawHeadersOrGetter
+    : () => rawHeadersOrGetter;
 
   return new Proxy(propertyList, {
     get(target, prop, receiver) {
@@ -43,7 +46,7 @@ const createHeadersProxy = (propertyList, rawHeaders, options = {}) => {
       }
 
       // Fall through to raw headers for bracket access
-      return rawHeaders[prop];
+      return getRawHeaders()[prop];
     },
 
     set(target, prop, value) {
@@ -63,7 +66,7 @@ const createHeadersProxy = (propertyList, rawHeaders, options = {}) => {
       if (onSet) {
         onSet(prop, value);
       } else {
-        rawHeaders[prop] = value;
+        getRawHeaders()[prop] = value;
       }
       return true;
     },
@@ -73,7 +76,7 @@ const createHeadersProxy = (propertyList, rawHeaders, options = {}) => {
         if (onDelete) {
           onDelete(prop);
         } else {
-          delete rawHeaders[prop];
+          delete getRawHeaders()[prop];
         }
       }
       return true;
@@ -81,14 +84,15 @@ const createHeadersProxy = (propertyList, rawHeaders, options = {}) => {
 
     has(target, prop) {
       if (prop in target) return true;
-      return prop in rawHeaders;
+      return prop in getRawHeaders();
     },
 
     ownKeys() {
-      return Object.keys(rawHeaders);
+      return Object.keys(getRawHeaders());
     },
 
     getOwnPropertyDescriptor(target, prop) {
+      const rawHeaders = getRawHeaders();
       if (prop in rawHeaders) {
         return {
           configurable: true,

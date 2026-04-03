@@ -93,7 +93,7 @@ class HeaderList extends PropertyList {
     //   req.headers['X-Custom'] = 'val'   → delegates to setHeader
     //   delete req.headers['X-Custom']    → delegates to deleteHeader
     //   Object.keys(req.headers)          → returns raw header names
-    return createHeadersProxy(this, brunoRequest.req.headers, {
+    return createHeadersProxy(this, () => brunoRequest.req.headers, {
       onSet: (name, value) => brunoRequest.setHeader(name, value),
       onDelete: (name) => brunoRequest.deleteHeader(name)
     });

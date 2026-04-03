@@ -217,6 +217,15 @@ describe('HeaderList (req.headers)', () => {
       expect(list.count()).toBe(1);
       expect(list.get('X-Only')).toBe('one');
     });
+
+    test('bracket access reflects headers replaced via BrunoRequest.setHeaders', () => {
+      const { list, brunoReq } = createReqHeaders();
+      expect(list['Content-Type']).toBe('application/json');
+      brunoReq.setHeaders({ 'X-Only': 'one' });
+      expect(list['X-Only']).toBe('one');
+      expect(list['Content-Type']).toBeUndefined();
+      expect(Object.keys(list)).toEqual(['X-Only']);
+    });
   });
 
   // ── Write methods ─────────────────────────────────────────────────────
