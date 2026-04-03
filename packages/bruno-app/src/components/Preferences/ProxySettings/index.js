@@ -10,8 +10,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import { useState } from 'react';
 import SystemProxy from './SystemProxy';
-import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
-import { isWindowsOS } from 'utils/common/platform';
 import Button from 'ui/Button';
 
 const ProxySettings = ({ close }) => {
@@ -411,13 +409,10 @@ const ProxySettings = ({ close }) => {
                 size="sm"
                 className="ml-2"
                 onClick={() => {
-                  dispatch(browseFiles([{ name: 'PAC Files', extensions: ['pac', 'js'] }], []))
-                    .then((filePaths) => {
-                      if (filePaths && filePaths.length > 0) {
-                        const filePath = filePaths[0];
-                        const fileUrl = isWindowsOS()
-                          ? 'file:///' + filePath.replace(/\\/g, '/')
-                          : 'file://' + filePath;
+                  window.ipcRenderer
+                    .invoke('renderer:browse-pac-file')
+                    .then((fileUrl) => {
+                      if (fileUrl) {
                         formik.setFieldValue('pac.source', fileUrl);
                         toast.success('PAC file selected');
                       }
