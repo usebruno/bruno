@@ -1716,9 +1716,11 @@ const registerNetworkIpc = (mainWindow) => {
                     statusText: error.response.statusText,
                     headers: error.response.headers,
                     duration: timeEnd - timeStart,
-                    dataBuffer: dataBuffer.toString('base64'),
+                    ...(persistResponses ? {
+                      dataBuffer: dataBuffer.toString('base64'),
+                      data: error.response.data
+                    } : {}),
                     size: Buffer.byteLength(dataBuffer),
-                    data: error.response.data,
                     responseTime: error.response.responseTime,
                     timeline: error.response.timeline
                   };
@@ -1813,8 +1815,7 @@ const registerNetworkIpc = (mainWindow) => {
                 mainWindow.webContents.send('main:run-folder-event', {
                   type: 'assertion-results',
                   assertionResults: results,
-                  itemUid: item.uid,
-                  collectionUid
+                  ...eventData
                 });
               }
 

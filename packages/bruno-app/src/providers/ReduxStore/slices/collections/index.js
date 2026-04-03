@@ -3176,11 +3176,15 @@ export const collectionsSlice = createSlice({
       if (collection) {
         collection.runnerConfiguration = {
           ...collection.runnerConfiguration,
-          selectedRequestItems: selectedRequestItems || [],
-          requestItemsOrder: requestItemsOrder || [],
+          ...(selectedRequestItems !== undefined && { selectedRequestItems }),
+          ...(requestItemsOrder !== undefined && { requestItemsOrder }),
           ...(delay !== undefined && { delay }),
           ...(advancedSettings !== undefined && { advancedSettings }),
-          ...(iterationDataFile !== undefined && { iterationDataFile }),
+          ...(iterationDataFile !== undefined && {
+            iterationDataFile: iterationDataFile
+              ? { filePath: iterationDataFile.filePath, rowCount: iterationDataFile.rowCount ?? iterationDataFile.rows?.length ?? 0 }
+              : null
+          }),
           ...(iterationCount !== undefined && { iterationCount })
         };
       }

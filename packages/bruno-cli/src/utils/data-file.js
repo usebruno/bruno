@@ -20,6 +20,7 @@ const parseCSV = (content) => {
       if (line[pos] === '"') {
         // Quoted field
         let field = '';
+        let closed = false;
         pos++; // skip opening quote
         while (pos < line.length) {
           if (line[pos] === '"') {
@@ -29,12 +30,19 @@ const parseCSV = (content) => {
               pos += 2;
             } else {
               pos++; // skip closing quote
+              closed = true;
               break;
             }
           } else {
             field += line[pos];
             pos++;
           }
+        }
+        if (!closed) {
+          throw new Error(`Malformed CSV: unterminated quoted field starting near "${field.slice(0, 20)}"`);
+        }
+        if (pos < line.length && line[pos] !== ',') {
+          throw new Error(`Malformed CSV: unexpected character '${line[pos]}' after closing quote`);
         }
         fields.push(field);
         // skip comma
@@ -127,6 +135,10 @@ const parseJSON = (content) => {
 
   if (!Array.isArray(data)) {
     throw new Error('JSON data file must contain an array of objects at the top level.');
+  }
+
+  if (!data.every((row) => row !== null && typeof row === 'object' && !Array.isArray(row))) {
+    throw new Error('JSON data file must contain only plain objects (no nulls, arrays, or primitives).');
   }
 
   return data;

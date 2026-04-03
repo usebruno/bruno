@@ -94,6 +94,7 @@ export default function RunnerResults({ collection }) {
     saveCookiesAfterRun: true
   });
   const isReRunningRef = useRef(false);
+  const isRestoredRef = useRef(false);
   // ref for the runner output body
   const runnerBodyRef = useRef();
 
@@ -186,10 +187,12 @@ export default function RunnerResults({ collection }) {
         setAdvancedSettings(savedConfiguration.advancedSettings);
       }
     }
+    isRestoredRef.current = true;
   }, []);
 
-  // Auto-save runner config to Redux whenever settings change
+  // Auto-save runner config to Redux whenever settings change (skip first render before restore completes)
   useEffect(() => {
+    if (!isRestoredRef.current) return;
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
     const savedOrder = savedConfiguration?.requestItemsOrder || selectedRequestItems;
     dispatch(updateRunnerConfiguration(

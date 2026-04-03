@@ -1,3 +1,4 @@
+const path = require('path');
 const Bru = require('../src/bru');
 
 const makeBru = (opts = {}) =>
@@ -6,7 +7,7 @@ const makeBru = (opts = {}) =>
     envVariables: {},
     runtimeVariables: {},
     processEnvVars: {},
-    collectionPath: '/',
+    collectionPath: path.resolve(process.cwd()),
     collectionName: 'Test',
     ...opts
   });

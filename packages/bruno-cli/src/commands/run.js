@@ -386,7 +386,11 @@ const handler = async function (argv) {
         console.error(chalk.red(`Failed to parse iteration data file: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
       }
-    } else if (iterationCount && iterationCount > 0) {
+    } else if (iterationCount !== undefined) {
+      if (!Number.isInteger(iterationCount) || iterationCount <= 0) {
+        console.error(chalk.red(`--iteration-count must be a positive integer, got: ${iterationCount}`));
+        process.exit(constants.EXIT_STATUS.ERROR_GENERIC);
+      }
       iterationDataRows = Array.from({ length: iterationCount }, () => ({}));
     } else {
       iterationDataRows = [{}];
@@ -718,32 +722,30 @@ const handler = async function (argv) {
 
       const runSingleRequestByPathname = async (relativeItemPathname) => {
         const ext = FORMAT_CONFIG[collection.format].ext;
-        return new Promise(async (resolve, reject) => {
-          let itemPathname = path.join(collectionPath, relativeItemPathname);
-          if (itemPathname && !itemPathname?.endsWith(ext)) {
-            itemPathname = `${itemPathname}${ext}`;
-          }
-          const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
-          if (requestItem) {
-            requestItem.__brunoIterationData = currentIterationData;
-            requestItem.__brunoIterationIndex = iterationIndex;
-            const res = await runSingleRequest(
-              requestItem,
-              collectionPath,
-              runtimeVariables,
-              envVars,
-              processEnvVars,
-              brunoConfig,
-              collectionRoot,
-              runtime,
-              collection,
-              runSingleRequestByPathname,
-              globalEnvVars
-            );
-            resolve(res?.response);
-          }
-          reject(`bru.runRequest: invalid request path - ${itemPathname}`);
-        });
+        let itemPathname = path.join(collectionPath, relativeItemPathname);
+        if (itemPathname && !itemPathname?.endsWith(ext)) {
+          itemPathname = `${itemPathname}${ext}`;
+        }
+        const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
+        if (!requestItem) {
+          throw new Error(`bru.runRequest: invalid request path - ${itemPathname}`);
+        }
+        requestItem.__brunoIterationData = currentIterationData;
+        requestItem.__brunoIterationIndex = iterationIndex;
+        const res = await runSingleRequest(
+          requestItem,
+          collectionPath,
+          runtimeVariables,
+          envVars,
+          processEnvVars,
+          brunoConfig,
+          collectionRoot,
+          runtime,
+          collection,
+          runSingleRequestByPathname,
+          globalEnvVars
+        );
+        return res?.response;
       };
 
       let currentRequestIndex = 0;
