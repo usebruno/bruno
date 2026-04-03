@@ -122,11 +122,6 @@ const Wrapper = styled.div`
     min-height: 0;
   }
 
-  .dropdown-item-list {
-    max-height: 75vh;
-    overflow-y: scroll;
-  }
-
   .empty-state {
     max-width: 20rem;
     margin: 0 auto;
