@@ -101,11 +101,18 @@ const useIpcEvents = () => {
       const isSidebarOptimized = store.getState().app.preferences?.beta?.[BETA_FEATURES.SIDEBAR_OPTIMIZATIONS] || false;
 
       if (type === 'addDir' || type === 'addFile') {
-        if (isSidebarOptimized) {
-          // Optimized path: batch events and flush periodically
+        // Only batch during initial collection mount (isLoading=true).
+        // For active use (creating requests/folders), dispatch immediately for instant feedback.
+        const collectionUid = val?.meta?.collectionUid;
+        const collections = store.getState().collections?.collections || [];
+        const collection = collections.find((c) => c.uid === collectionUid);
+        const isCollectionLoading = collection?.isLoading;
+
+        if (isSidebarOptimized && isCollectionLoading) {
+          // Mount path: batch events, flush in two phases (skeleton + final)
           bufferAddEvent(type, val);
         } else {
-          // Original path: dispatch individually
+          // Active use path: dispatch individually for instant UI feedback
           if (type === 'addDir') {
             dispatch(collectionAddDirectoryEvent({ dir: val }));
           } else {

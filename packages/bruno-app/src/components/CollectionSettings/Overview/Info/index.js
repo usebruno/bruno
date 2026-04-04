@@ -9,6 +9,10 @@ import GenerateDocumentation from 'components/Sidebar/Collections/Collection/Gen
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import StyledWrapper from './StyledWrapper';
 
+// Persists load times across collection switches and re-renders.
+// Key = collectionUid, Value = { startTime, finalTime }
+const _loadTimeCache = new Map();
+
 const Info = ({ collection }) => {
   const dispatch = useDispatch();
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
@@ -18,29 +22,37 @@ const Info = ({ collection }) => {
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
 
-  // --- Performance Benchmark Stopwatch ---
+  // --- Performance Benchmark Stopwatch (persisted per collection) ---
+  const collectionUid = collection?.uid;
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [finalTime, setFinalTime] = useState(null);
+  const [finalTime, setFinalTime] = useState(() => _loadTimeCache.get(collectionUid)?.finalTime ?? null);
   const intervalRef = useRef(null);
-  const startTimeRef = useRef(null);
 
   useEffect(() => {
+    const cached = _loadTimeCache.get(collectionUid);
+
     if (isCollectionLoading) {
       // Loading started — reset and start stopwatch
+      const startTime = performance.now();
+      _loadTimeCache.set(collectionUid, { startTime, finalTime: null });
       setFinalTime(null);
       setElapsedMs(0);
-      startTimeRef.current = performance.now();
       intervalRef.current = setInterval(() => {
-        setElapsedMs(performance.now() - startTimeRef.current);
+        setElapsedMs(performance.now() - startTime);
       }, 10);
-    } else if (startTimeRef.current && !finalTime) {
-      // Loading finished — stop and record final time
+    } else if (cached?.startTime && !cached?.finalTime) {
+      // Loading just finished — record final time
       clearInterval(intervalRef.current);
-      setFinalTime(performance.now() - startTimeRef.current);
-      startTimeRef.current = null;
+      const final = performance.now() - cached.startTime;
+      _loadTimeCache.set(collectionUid, { startTime: null, finalTime: final });
+      setFinalTime(final);
+    } else if (cached?.finalTime) {
+      // Switched back to a collection that already finished loading — restore
+      setFinalTime(cached.finalTime);
     }
+
     return () => clearInterval(intervalRef.current);
-  }, [isCollectionLoading]);
+  }, [isCollectionLoading, collectionUid]);
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
 
