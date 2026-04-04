@@ -203,6 +203,7 @@ const ResponsiveTabs = ({
         data-testid={`responsive-tab-${tab.key}`}
         className={classnames('tab select-none', tab.key, { active: isActive })}
         onClick={() => handleTabSelect(tab.key)}
+        data-onboarding={tab['data-onboarding']}
       >
         {tab.label}
         {tab.indicator}

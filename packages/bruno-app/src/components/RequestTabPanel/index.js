@@ -37,6 +37,7 @@ import { ScopedPersistenceProvider } from 'hooks/usePersistedState/PersistedScop
 import ResponseExample from 'components/ResponseExample';
 import WorkspaceOverview from 'components/WorkspaceHome/WorkspaceOverview';
 import Preferences from 'components/Preferences';
+import Guides from 'components/Preferences/Guides';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
@@ -201,6 +202,14 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'preferences') {
     return <Preferences />;
+  }
+
+  if (focusedTab.type === 'guides') {
+    return (
+      <div className="flex flex-grow px-6 pt-4 pb-6 overflow-auto">
+        <Guides />
+      </div>
+    );
   }
 
   if (focusedTab.type === 'workspaceOverview') {

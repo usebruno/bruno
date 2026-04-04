@@ -30,6 +30,7 @@ export const tabsSlice = createSlice({
         'environment-settings',
         'global-environment-settings',
         'preferences',
+        'guides',
         'workspaceOverview',
         'workspaceEnvironments',
         'openapi-sync',

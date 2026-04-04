@@ -10,7 +10,8 @@ const SidebarSection = ({
   icon: Icon,
   actions,
   children,
-  className = ''
+  className = '',
+  ...rest
 }) => {
   const { isExpanded, setSectionExpanded, getExpandedCount } = useSidebarAccordion();
   const [localExpanded, setLocalExpanded] = useState(() => isExpanded(id));
@@ -37,6 +38,7 @@ const SidebarSection = ({
       <div
         ref={sectionRef}
         className={`sidebar-section ${localExpanded ? 'expanded' : ''} ${isOnlyExpanded ? 'single-expanded' : ''} ${expandedCount > 1 && localExpanded ? 'multi-expanded' : ''}`}
+        {...rest}
       >
         <div
           className="section-header"

@@ -164,6 +164,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     'environment-settings',
     'global-environment-settings',
     'preferences',
+    'guides',
     'workspaceOverview',
     'workspaceEnvironments',
     'openapi-sync',
