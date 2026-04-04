@@ -881,6 +881,7 @@ class CollectionWatcher {
       state.isProcessing = true;
     } else {
       // No pending files, collection is fully loaded
+      _parseTimings.printSummary();
       win.webContents.send('main:collection-loading-state-updated', {
         collectionUid,
         isLoading: false
