@@ -17,7 +17,8 @@ assert {
 
 tests {
   test("req.getUrl()", function() {
+    const host = bru.getEnvVar("host");
     const url = req.getUrl();
-    expect(url).to.equal("https://testbench-sanity.usebruno.com/ping");
+    expect(url).to.equal(host + "/ping");
   });
 }

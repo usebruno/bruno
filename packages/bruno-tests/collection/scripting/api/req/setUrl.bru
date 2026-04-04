@@ -17,12 +17,14 @@ assert {
 }
 
 script:pre-request {
-  req.setUrl("https://testbench-sanity.usebruno.com/ping");
+  const host = bru.getEnvVar("host");
+  req.setUrl(host + "/ping");
 }
 
 tests {
   test("req.setUrl()", function() {
+    const host = bru.getEnvVar("host");
     const url = req.getUrl();
-    expect(url).to.equal("https://testbench-sanity.usebruno.com/ping");
+    expect(url).to.equal(host + "/ping");
   });
 }
