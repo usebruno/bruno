@@ -7,7 +7,6 @@
       "hasSeenWelcomeModal": true
     },
     "proxy": {
-      "inherit": false,
       "source": "pac",
       "pac": {
         "source": "{{pacFileUrl}}"

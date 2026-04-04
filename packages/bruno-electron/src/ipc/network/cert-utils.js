@@ -136,25 +136,22 @@ const getCertsAndProxyConfig = async ({
     // Inherit from global preferences
     const globalProxy = preferencesUtil.getGlobalProxyConfig();
     const globalDisabled = get(globalProxy, 'disabled', false);
-    const globalInherit = get(globalProxy, 'inherit', false);
-    const globalProxyConfigData = get(globalProxy, 'config', globalProxy);
+    const globalProxySource = get(globalProxy, 'source', 'inherit');
+    const globalProxyConfigData = get(globalProxy, 'config', {});
 
-    if (!globalDisabled && !globalInherit) {
-      const globalSource = get(globalProxy, 'source');
-      if (globalSource === 'pac') {
-        // Use PAC-based proxy
+    if (!globalDisabled) {
+      if (globalProxySource === 'pac') {
         proxyMode = 'pac';
         proxyConfig = { pacUrl: get(globalProxy, 'pac.source') };
+      } else if (globalProxySource === 'inherit') {
+        proxyMode = 'system';
+        const systemProxyConfig = await getCachedSystemProxy();
+        proxyConfig = systemProxyConfig || { http_proxy: null, https_proxy: null, no_proxy: null, source: 'cache-miss' };
       } else {
-        // Use global custom proxy (source='manual' or absent)
+        // source === 'manual'
         proxyConfig = globalProxyConfigData;
         proxyMode = 'on';
       }
-    } else if (!globalDisabled && globalInherit) {
-      // Use system proxy (cached at app startup)
-      proxyMode = 'system';
-      const systemProxyConfig = await getCachedSystemProxy();
-      proxyConfig = systemProxyConfig || { http_proxy: null, https_proxy: null, no_proxy: null, source: 'cache-miss' };
     } else {
       proxyModeReason = 'App-level proxy is disabled';
     }

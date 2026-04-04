@@ -339,24 +339,22 @@ const getCertsAndProxyConfig = ({
     // Inherit from app-level proxy settings
     if (appLevelProxyConfig) {
       const globalDisabled = get(appLevelProxyConfig, 'disabled', false);
-      const globalInherit = get(appLevelProxyConfig, 'inherit', false);
-      const globalProxyConfigData = get(appLevelProxyConfig, 'config', appLevelProxyConfig);
+      const globalProxySource = get(appLevelProxyConfig, 'source', 'inherit');
+      const globalProxyConfigData = get(appLevelProxyConfig, 'config', {});
 
-      if (!globalDisabled && !globalInherit) {
-        const globalSource = get(appLevelProxyConfig, 'source');
-        if (globalSource === 'pac') {
+      if (!globalDisabled) {
+        if (globalProxySource === 'pac') {
           proxyConfig = { pacUrl: get(appLevelProxyConfig, 'pac.source') };
           proxyMode = 'pac';
+        } else if (globalProxySource === 'inherit') {
+          const { http_proxy, https_proxy } = systemProxyConfig || {};
+          if (http_proxy?.length || https_proxy?.length) {
+            proxyMode = 'system';
+          }
         } else {
-          // source='manual' or absent — use config
+          // source === 'manual'
           proxyConfig = globalProxyConfigData;
           proxyMode = 'on';
-        }
-      } else if (!globalDisabled && globalInherit) {
-        // App-level also inherits, fall through to system proxy
-        const { http_proxy, https_proxy } = systemProxyConfig || {};
-        if (http_proxy?.length || https_proxy?.length) {
-          proxyMode = 'system';
         }
       }
       // else: app-level proxy is disabled, proxyMode stays 'off'

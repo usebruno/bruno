@@ -18,8 +18,7 @@ const ProxySettings = ({ close }) => {
 
   const proxySchema = Yup.object({
     disabled: Yup.boolean().optional(),
-    inherit: Yup.boolean().required(),
-    source: Yup.string().oneOf(['manual', 'pac']).optional(),
+    source: Yup.string().oneOf(['manual', 'pac', 'inherit']).required(),
     pac: Yup.object({
       source: Yup.string()
         .optional()
@@ -56,8 +55,7 @@ const ProxySettings = ({ close }) => {
   const formik = useFormik({
     initialValues: {
       disabled: preferences.proxy.disabled || false,
-      inherit: preferences.proxy.inherit || false,
-      source: preferences.proxy.source || 'manual',
+      source: preferences.proxy.source || 'inherit',
       pac: {
         source: preferences.proxy.pac?.source || ''
       },
@@ -109,8 +107,8 @@ const ProxySettings = ({ close }) => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [proxyMode, setProxyMode] = useState(() => {
     if (preferences.proxy.disabled) return 'off';
-    if (preferences.proxy.inherit) return 'system';
     if (preferences.proxy.source === 'pac') return 'pac';
+    if (preferences.proxy.source === 'inherit') return 'system';
     return 'on';
   });
 
@@ -144,7 +142,6 @@ const ProxySettings = ({ close }) => {
                 onChange={(e) => {
                   setProxyMode('off');
                   formik.setFieldValue('disabled', true);
-                  formik.setFieldValue('inherit', false);
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -159,7 +156,6 @@ const ProxySettings = ({ close }) => {
                 onChange={(e) => {
                   setProxyMode('on');
                   formik.setFieldValue('disabled', false);
-                  formik.setFieldValue('inherit', false);
                   formik.setFieldValue('source', 'manual');
                 }}
                 className="mr-1 cursor-pointer"
@@ -175,7 +171,7 @@ const ProxySettings = ({ close }) => {
                 onChange={(e) => {
                   setProxyMode('system');
                   formik.setFieldValue('disabled', false);
-                  formik.setFieldValue('inherit', true);
+                  formik.setFieldValue('source', 'inherit');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -190,7 +186,6 @@ const ProxySettings = ({ close }) => {
                 onChange={(e) => {
                   setProxyMode('pac');
                   formik.setFieldValue('disabled', false);
-                  formik.setFieldValue('inherit', false);
                   formik.setFieldValue('source', 'pac');
                 }}
                 className="mr-1 cursor-pointer"
