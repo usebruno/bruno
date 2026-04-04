@@ -75,6 +75,7 @@ const useIpcEvents = () => {
         dispatch(collectionBatchAddEvents({ events }));
         const dispatchMs = performance.now() - t0;
         _totalDispatchMs += dispatchMs;
+
         console.log(`[RENDERER-BATCH #${_flushCount}] phase=${_flushCount === 1 ? 'SKELETON' : 'FINAL'}  events=${events.length}  dispatchMs=${dispatchMs.toFixed(1)}  totalEvents=${_totalEventsDispatched}  wallClock=${(performance.now() - _rendererStart).toFixed(1)}ms`);
       }
       flushTimer = null;
