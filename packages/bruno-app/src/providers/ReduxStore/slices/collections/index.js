@@ -66,6 +66,24 @@ const wsStatusCodes = {
   1015: 'TLS_HANDSHAKE'
 };
 
+const MAX_TIMELINE_ENTRIES = 100;
+const MAX_STREAM_MESSAGES = 500;
+const MAX_DATA_BUFFER_BYTES = 10 * 1024 * 1024; // 10 MB
+
+/**
+ * Appends an entry to collection.timeline while enforcing a maximum size.
+ * When the limit is exceeded, the oldest entries are dropped.
+ */
+const pushToTimeline = (collection, entry) => {
+  if (!collection.timeline) {
+    collection.timeline = [];
+  }
+  collection.timeline.push(entry);
+  if (collection.timeline.length > MAX_TIMELINE_ENTRIES) {
+    collection.timeline = collection.timeline.slice(-MAX_TIMELINE_ENTRIES);
+  }
+};
+
 /**
  * Preserves UIDs from existing array items when merging with new data.
  * UIDs are matched by position to keep React keys stable after file reloads.
@@ -534,17 +552,13 @@ export const collectionsSlice = createSlice({
           item.cancelTokenUid = item.response.stream?.running ? item.cancelTokenUid : null;
           item.requestStartTime = null;
 
-          if (!collection.timeline) {
-            collection.timeline = [];
-          }
-
           // Ensure timestamp is a number (milliseconds since epoch)
           const timestamp = item?.requestSent?.timestamp instanceof Date
             ? item.requestSent.timestamp.getTime()
             : item?.requestSent?.timestamp || Date.now();
 
           // Append the new timeline entry with numeric timestamp
-          collection.timeline.push({
+          pushToTimeline(collection, {
             type: 'request',
             collectionUid: collection.uid,
             folderUid: null,
@@ -579,11 +593,7 @@ export const collectionsSlice = createSlice({
         };
       }
 
-      if (!collection.timeline) {
-        collection.timeline = [];
-      }
-
-      collection.timeline.push({
+      pushToTimeline(collection, {
         type: 'request',
         eventType: eventType, // Add the specific gRPC event type
         collectionUid: collection.uid,
@@ -698,13 +708,8 @@ export const collectionsSlice = createSlice({
       item.requestState = 'received';
       item.response = updatedResponse;
 
-      // Update the timeline
-      if (!collection?.timeline) {
-        collection.timeline = [];
-      }
-
       // Append the new timeline entry with specific gRPC event type
-      collection.timeline.push({
+      pushToTimeline(collection, {
         type: 'request',
         eventType: eventType, // Add the specific gRPC event type
         collectionUid: collection.uid,
@@ -3231,12 +3236,8 @@ export const collectionsSlice = createSlice({
 
       collection.oauth2Credentials = filteredOauth2Credentials;
 
-      if (!collection.timeline) {
-        collection.timeline = [];
-      }
-
       if (debugInfo) {
-        collection.timeline.push({
+        pushToTimeline(collection, {
           type: 'oauth2',
           collectionUid,
           folderUid,
@@ -3303,6 +3304,8 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
+        if (!item?.response) return;
+
         if (data.data) {
           item.response.data ||= [];
           item.response.data.push({
@@ -3312,11 +3315,19 @@ export const collectionsSlice = createSlice({
             messageHexdump: hexdump(data.data),
             timestamp: timestamp || Date.now()
           });
+          if (item.response.data.length > MAX_STREAM_MESSAGES) {
+            item.response.data = item.response.data.slice(-MAX_STREAM_MESSAGES);
+          }
         }
         if (data.dataBuffer) {
-          item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
+          const existing = item.response.dataBuffer || '';
+          const combined = Buffer.concat([Buffer.from(existing, 'base64'), Buffer.from(data.dataBuffer, 'base64')]);
+          const capped = combined.length > MAX_DATA_BUFFER_BYTES
+            ? combined.slice(-MAX_DATA_BUFFER_BYTES)
+            : combined;
+          item.response.dataBuffer = capped.toString('base64');
         }
-        item.response.size = data.data?.length + (item.response.size || 0);
+        item.response.size = (data.data?.length || 0) + (item.response.size || 0);
       }
     },
     addRequestTag: (state, action) => {
@@ -3387,11 +3398,7 @@ export const collectionsSlice = createSlice({
         };
       }
 
-      if (!collection.timeline) {
-        collection.timeline = [];
-      }
-
-      collection.timeline.push({
+      pushToTimeline(collection, {
         type: 'request',
         eventType: eventType,
         collectionUid: collection.uid,
