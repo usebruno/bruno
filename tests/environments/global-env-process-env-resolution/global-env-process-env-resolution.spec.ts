@@ -4,17 +4,10 @@ import {
   openEnvironmentSelector,
   openRequest,
   sendRequest,
-  expectResponseContains,
-  closeAllCollections
+  expectResponseContains
 } from '../../utils/page';
 
 test.describe('Global Environment process.env Resolution', () => {
-  test.setTimeout(60000);
-
-  test.afterEach(async ({ pageWithUserData: page }) => {
-    await closeAllCollections(page);
-  });
-
   test('should resolve process.env variables referenced in global environment', async ({
     pageWithUserData: page
   }) => {
