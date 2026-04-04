@@ -8,11 +8,12 @@ const CollapsibleSection = ({
   onToggle,
   badge,
   actions,
-  children
+  children,
+  testId
 }) => {
   return (
     <StyledWrapper className={expanded ? 'expanded' : 'collapsed'}>
-      <div className="section-header" onClick={onToggle}>
+      <div className="section-header" onClick={onToggle} data-testid={testId}>
         <div className="section-title-wrapper">
           <IconChevronRight
             size={14}

@@ -45,6 +45,10 @@ const EnvironmentVariablesTable = ({
 }) => {
   const { storedTheme } = useTheme();
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const activeWorkspace = useSelector((state) => {
+    const uid = state.workspaces?.activeWorkspaceUid;
+    return state.workspaces?.workspaces?.find((w) => w.uid === uid);
+  });
 
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -136,6 +140,12 @@ const EnvironmentVariablesTable = ({
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   if (_collection) {
     _collection.globalEnvironmentVariables = globalEnvironmentVariables;
+  }
+
+  // When collection is null (global/workspace environments), populate process env
+  // variables from the active workspace so that {{process.env.X}} can resolve
+  if (!collection && activeWorkspace?.processEnvVariables) {
+    _collection.workspaceProcessEnvVariables = activeWorkspace.processEnvVariables;
   }
 
   const initialValues = useMemo(() => {
