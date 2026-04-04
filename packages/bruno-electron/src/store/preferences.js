@@ -47,9 +47,9 @@ const defaultPreferences = {
   },
   beta: {
     'openapi-sync': false,
-    'sidebar-optimizations': false,
-    'skip-loading-badge-event': false,
-    'parallel-workers': false
+    'sidebar-optimizations': true,
+    'skip-loading-badge-event': true,
+    'parallel-workers': true
   },
   onboarding: {
     hasLaunchedBefore: false,
