@@ -194,14 +194,33 @@ export default function RunnerResults({ collection }) {
     }));
   };
 
+  const [isPreparing, setIsPreparing] = useState(false);
+
   const runCollection = () => {
-    if (configureMode && selectedRequestItems.length > 0) {
-      dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, selectedRequestItems, delay));
-      dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags, selectedRequestItems));
-    } else {
-      dispatch(updateRunnerConfiguration(collection.uid, [], [], delay));
-      dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags));
-    }
+    // Check if there are partial (unparsed) items — show preparing state while they parse
+    const hasPartialItems = (items = []) => {
+      for (const item of items) {
+        if (item.partial && item.type !== 'folder') return true;
+        if (item.items && hasPartialItems(item.items)) return true;
+      }
+      return false;
+    };
+    const needsParsing = hasPartialItems(collection.items);
+    if (needsParsing) setIsPreparing(true);
+
+    const runFn = () => {
+      if (configureMode && selectedRequestItems.length > 0) {
+        dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, selectedRequestItems, delay));
+        return dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags, selectedRequestItems));
+      } else {
+        dispatch(updateRunnerConfiguration(collection.uid, [], [], delay));
+        return dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags));
+      }
+    };
+
+    runFn()
+      .then(() => setIsPreparing(false))
+      .catch(() => setIsPreparing(false));
   };
 
   const runAgain = () => {
@@ -210,6 +229,16 @@ export default function RunnerResults({ collection }) {
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
     const savedSelectedItems = savedConfiguration?.selectedRequestItems || [];
     const savedDelay = savedConfiguration?.delay !== undefined ? savedConfiguration.delay : delay;
+
+    const hasPartialItems = (items = []) => {
+      for (const item of items) {
+        if (item.partial && item.type !== 'folder') return true;
+        if (item.items && hasPartialItems(item.items)) return true;
+      }
+      return false;
+    };
+    if (hasPartialItems(collection.items)) setIsPreparing(true);
+
     dispatch(
       runCollectionFolder(
         collection.uid,
@@ -219,7 +248,9 @@ export default function RunnerResults({ collection }) {
         tagsEnabled && tags,
         savedSelectedItems
       )
-    );
+    )
+      .then(() => setIsPreparing(false))
+      .catch(() => setIsPreparing(false));
   };
 
   const resetRunner = () => {
@@ -310,12 +341,14 @@ export default function RunnerResults({ collection }) {
             <div className="flex flex-row gap-2">
               <Button
                 type="submit"
-                disabled={shouldDisableCollectionRun || (configureMode && selectedRequestItems.length === 0) || isCollectionLoading}
+                disabled={shouldDisableCollectionRun || (configureMode && selectedRequestItems.length === 0) || isCollectionLoading || isPreparing}
                 onClick={runCollection}
               >
-                {configureMode && selectedRequestItems.length > 0
-                  ? `Run ${selectedRequestItems.length} Selected Request${selectedRequestItems.length > 1 ? 's' : ''}`
-                  : 'Run Collection'}
+                {isPreparing
+                  ? 'Preparing collection...'
+                  : configureMode && selectedRequestItems.length > 0
+                    ? `Run ${selectedRequestItems.length} Selected Request${selectedRequestItems.length > 1 ? 's' : ''}`
+                    : 'Run Collection'}
               </Button>
 
               <Button type="button" variant="ghost" onClick={resetRunner}>

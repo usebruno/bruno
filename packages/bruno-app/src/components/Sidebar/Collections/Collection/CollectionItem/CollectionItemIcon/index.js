@@ -12,6 +12,11 @@ const CollectionItemIcon = ({ item }) => {
   }
 
   if (item?.partial) {
+    // Deferred-parse items have metadata (name, type, method) — show the method badge
+    // Only show warning triangle for items with errors (e.g., large files that failed to load)
+    if (item?.request?.method || item?.type) {
+      return <RequestMethod item={item} />;
+    }
     return <StyledWrapper><IconAlertTriangle size={18} className="w-fit mr-2 partial" strokeWidth={1.5} /></StyledWrapper>;
   }
 

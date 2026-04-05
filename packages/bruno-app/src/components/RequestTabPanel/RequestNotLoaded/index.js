@@ -1,14 +1,43 @@
+import { useEffect, useRef } from 'react';
 import { IconLoader2, IconFile, IconAlertTriangle } from '@tabler/icons';
-import { loadLargeRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { loadLargeRequest, parseRequestOnDemand } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 
 const RequestNotLoaded = ({ collection, item }) => {
   const dispatch = useDispatch();
+  const parseTriggered = useRef(false);
 
   const handleLoadLargeRequest = () => {
     !item?.loading && dispatch(loadLargeRequest({ collectionUid: collection?.uid, pathname: item?.pathname }));
   };
+
+  // Auto-trigger full parse for deferred items (partial=true, not a large-file error)
+  // Large files have item.error set; deferred items have partial=true with no error
+  const isDeferredItem = item?.partial && !item?.error && !item?.loading;
+
+  useEffect(() => {
+    if (isDeferredItem && !parseTriggered.current) {
+      parseTriggered.current = true;
+      dispatch(parseRequestOnDemand({
+        collectionUid: collection?.uid,
+        pathname: item?.pathname,
+        collectionPath: collection?.pathname
+      }));
+    }
+  }, [isDeferredItem]);
+
+  // For deferred items, show a simple loading state
+  if (isDeferredItem) {
+    return (
+      <StyledWrapper>
+        <div className="flex flex-col items-center justify-center p-8">
+          <IconLoader2 className="animate-spin mb-2" size={24} strokeWidth={2} />
+          <span>Loading request...</span>
+        </div>
+      </StyledWrapper>
+    );
+  }
 
   return (
     <StyledWrapper>

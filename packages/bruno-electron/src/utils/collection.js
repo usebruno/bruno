@@ -452,6 +452,28 @@ const parseBruFileMeta = (data) => {
       }
 
       const sequence = metaJson.seq;
+      // Extract HTTP method from the BRU file.
+      // BRU format uses the method as the block name: "get {", "post {", "delete {", etc.
+      // gRPC: "grpc { ... method: package.Service/Method ... }"
+      let method = '';
+      if (requestType === 'http-request' || requestType === 'graphql-request') {
+        const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace', 'connect'];
+        const methodBlockRegex = new RegExp(`^(${httpMethods.join('|')})\\s*\\{`, 'm');
+        const methodMatch = data?.match?.(methodBlockRegex);
+        if (methodMatch) {
+          method = methodMatch[1].toUpperCase();
+        }
+      } else if (requestType === 'grpc-request') {
+        const grpcBlockRegex = /grpc\s*\{([\s\S]*?)\}/;
+        const grpcMatch = data?.match?.(grpcBlockRegex);
+        if (grpcMatch) {
+          const methodLine = grpcMatch[1].match(/method\s*:\s*(.+)/);
+          if (methodLine) {
+            method = methodLine[1].trim();
+          }
+        }
+      }
+
       const transformedJson = {
         type: requestType,
         name: metaJson.name,
@@ -459,7 +481,7 @@ const parseBruFileMeta = (data) => {
         settings: {},
         tags: metaJson.tags || [],
         request: {
-          method: '',
+          method,
           url: '',
           params: [],
           headers: [],
@@ -507,6 +529,17 @@ const parseYmlFileMeta = (data) => {
     };
     requestType = typeMap[requestType] || 'http-request';
 
+    // Extract method from the parsed YAML based on type:
+    // HTTP/GraphQL: parsed.http.method (e.g., "get", "post")
+    // gRPC: parsed.grpc.method (e.g., "package.Service/Method")
+    // WS: no method field
+    let method = '';
+    if (parsed.http && parsed.http.method) {
+      method = String(parsed.http.method).toUpperCase();
+    } else if (parsed.grpc && parsed.grpc.method) {
+      method = String(parsed.grpc.method);
+    }
+
     const sequence = metaJson.seq;
     const transformedJson = {
       type: requestType,
@@ -515,7 +548,7 @@ const parseYmlFileMeta = (data) => {
       settings: {},
       tags: metaJson.tags || [],
       request: {
-        method: '',
+        method,
         url: '',
         params: [],
         headers: [],
