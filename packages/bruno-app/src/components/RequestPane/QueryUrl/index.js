@@ -179,7 +179,6 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     event.preventDefault();
 
     editorRef.current?.editor?.getInputField()?.blur();
-
     try {
       // Parse the curl command
       const request = getRequestFromCurlCommand(pastedData);
