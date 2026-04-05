@@ -265,10 +265,17 @@ const RequestBody = ({ item, collection }) => {
     if (!tabToDuplicate) return;
 
     const newTabId = Math.max(0, ...bodyTabs.map((tab) => tab.id)) + 1;
+    let copyName = `${tabToDuplicate.name} (copy)`;
+    const existingNames = new Set(bodyTabs.map((t) => t.name));
+    let counter = 1;
+    while (existingNames.has(copyName)) {
+      counter++;
+      copyName = `${tabToDuplicate.name} (copy ${counter})`;
+    }
     const newTab = {
       ...tabToDuplicate,
       id: newTabId,
-      name: `${tabToDuplicate.name} (copy)`
+      name: copyName
     };
 
     const insertIndex = bodyTabs.findIndex((tab) => tab.id === tabId) + 1;
