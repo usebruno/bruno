@@ -4,13 +4,26 @@ import { ThemeProvider } from 'styled-components';
 import '@testing-library/jest-dom';
 import BodyTabs from './index';
 
+jest.mock('react-dnd', () => ({
+  useDrag: () => [{ isDragging: false }, jest.fn()],
+  useDrop: () => [{ isOver: false }, jest.fn()]
+}));
+
+jest.mock('ui/MenuDropdown', () => {
+  const React = require('react');
+  return React.forwardRef(function MockMenuDropdown(props, ref) {
+    React.useImperativeHandle(ref, () => ({ show: jest.fn(), hide: jest.fn() }));
+    return null;
+  });
+});
+
 const mockTheme = {
   bg: { secondary: '#f5f5f5' },
   border: '#ddd',
-  tabs: { active: { color: '#007acc' } },
+  tabs: { active: { color: '#007acc', border: '#007acc' } }
 };
 
-const renderWithTheme = component => {
+const renderWithTheme = (component) => {
   return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };
 
@@ -18,7 +31,7 @@ describe('BodyTabs Component', () => {
   const mockTabs = [
     { id: 1, title: 'Tab 1' },
     { id: 2, title: 'Tab 2' },
-    { id: 3, title: 'Tab 3' },
+    { id: 3, title: 'Tab 3' }
   ];
 
   const mockProps = {
@@ -28,7 +41,9 @@ describe('BodyTabs Component', () => {
     onAddTab: jest.fn(),
     onTabRename: jest.fn(),
     onTabClose: jest.fn(),
-    children: <div data-testid="tab-content">Tab Content</div>,
+    onDuplicateTab: jest.fn(),
+    onCloseOtherTabs: jest.fn(),
+    children: <div data-testid="tab-content">Tab Content</div>
   };
 
   beforeEach(() => {
@@ -47,7 +62,7 @@ describe('BodyTabs Component', () => {
     it('should highlight active tab', () => {
       renderWithTheme(<BodyTabs {...mockProps} />);
 
-      const activeTab = screen.getByText('Tab 1').closest('.body-tab');
+      const activeTab = screen.getByText('Tab 1').closest('[role="tab"]');
       expect(activeTab).toHaveClass('active');
     });
 
@@ -73,7 +88,7 @@ describe('BodyTabs Component', () => {
     it('should hide close button when only one tab exists', () => {
       const singleTabProps = {
         ...mockProps,
-        tabs: [{ id: 1, title: 'Only Tab' }],
+        tabs: [{ id: 1, title: 'Only Tab' }]
       };
 
       renderWithTheme(<BodyTabs {...singleTabProps} />);
@@ -115,7 +130,6 @@ describe('BodyTabs Component', () => {
       const closeButtons = screen.getAllByTitle('Close tab');
       fireEvent.click(closeButtons[0]);
 
-      // onTabChange should not be called when close button is clicked
       expect(mockProps.onTabChange).not.toHaveBeenCalled();
     });
   });
@@ -192,7 +206,7 @@ describe('BodyTabs Component', () => {
     it('should handle empty tabs array', () => {
       const emptyProps = {
         ...mockProps,
-        tabs: [],
+        tabs: []
       };
 
       renderWithTheme(<BodyTabs {...emptyProps} />);
@@ -204,53 +218,128 @@ describe('BodyTabs Component', () => {
     it('should handle missing tab title', () => {
       const tabsWithMissingTitle = [
         { id: 1, title: 'Tab 1' },
-        { id: 2 }, // Missing title
-        { id: 3, title: 'Tab 3' },
+        { id: 2 },
+        { id: 3, title: 'Tab 3' }
       ];
 
       const propsWithMissingTitle = {
         ...mockProps,
-        tabs: tabsWithMissingTitle,
+        tabs: tabsWithMissingTitle
       };
 
       renderWithTheme(<BodyTabs {...propsWithMissingTitle} />);
 
       expect(screen.getByText('Tab 1')).toBeInTheDocument();
       expect(screen.getByText('Tab 3')).toBeInTheDocument();
-      // Tab with missing title should still render but might show empty or fallback content
     });
 
     it('should handle invalid activeTabId', () => {
       const invalidActiveProps = {
         ...mockProps,
-        activeTabId: 999, // Non-existent tab ID
+        activeTabId: 999
       };
 
       renderWithTheme(<BodyTabs {...invalidActiveProps} />);
 
-      // Should still render without throwing errors
       expect(screen.getByText('Tab 1')).toBeInTheDocument();
     });
   });
 
-  describe('Accessibility', () => {
-    it('should have proper ARIA attributes', () => {
+  describe('ARIA Attributes', () => {
+    it('should have role="tablist" on the tabs container', () => {
       renderWithTheme(<BodyTabs {...mockProps} />);
 
-      const tabElements = screen.getAllByRole('button');
-      // Includes tab buttons and add/close buttons
-      expect(tabElements.length).toBeGreaterThan(0);
+      expect(screen.getByRole('tablist')).toBeInTheDocument();
     });
 
-    it('should support keyboard navigation', () => {
+    it('should have role="tab" on each tab', () => {
       renderWithTheme(<BodyTabs {...mockProps} />);
 
-      const firstTab = screen.getByText('Tab 1').closest('.body-tab');
+      const tabs = screen.getAllByRole('tab');
+      expect(tabs).toHaveLength(3);
+    });
 
-      // Tab should be clickable (which indicates it's interactive)
-      expect(firstTab).toBeInTheDocument();
-      fireEvent.click(firstTab);
+    it('should have aria-selected=true only on the active tab', () => {
+      renderWithTheme(<BodyTabs {...mockProps} />);
+
+      const tabs = screen.getAllByRole('tab');
+      expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+      expect(tabs[1]).toHaveAttribute('aria-selected', 'false');
+      expect(tabs[2]).toHaveAttribute('aria-selected', 'false');
+    });
+
+    it('should have tabIndex=0 on active tab and tabIndex=-1 on others', () => {
+      renderWithTheme(<BodyTabs {...mockProps} />);
+
+      const tabs = screen.getAllByRole('tab');
+      expect(tabs[0]).toHaveAttribute('tabindex', '0');
+      expect(tabs[1]).toHaveAttribute('tabindex', '-1');
+      expect(tabs[2]).toHaveAttribute('tabindex', '-1');
+    });
+
+    it('should have role="tabpanel" on the content area', () => {
+      renderWithTheme(<BodyTabs {...mockProps} />);
+
+      expect(screen.getByRole('tabpanel')).toBeInTheDocument();
+    });
+  });
+
+  describe('Keyboard Navigation', () => {
+    it('should move to next tab on ArrowRight', () => {
+      renderWithTheme(<BodyTabs {...mockProps} />);
+
+      const tabs = screen.getAllByRole('tab');
+      fireEvent.keyDown(tabs[0], { key: 'ArrowRight' });
+
+      expect(mockProps.onTabChange).toHaveBeenCalledWith(2);
+    });
+
+    it('should wrap around to first tab on ArrowRight from last tab', () => {
+      const props = { ...mockProps, activeTabId: 3 };
+      renderWithTheme(<BodyTabs {...props} />);
+
+      const tabs = screen.getAllByRole('tab');
+      fireEvent.keyDown(tabs[2], { key: 'ArrowRight' });
+
       expect(mockProps.onTabChange).toHaveBeenCalledWith(1);
+    });
+
+    it('should move to previous tab on ArrowLeft', () => {
+      const props = { ...mockProps, activeTabId: 2 };
+      renderWithTheme(<BodyTabs {...props} />);
+
+      const tabs = screen.getAllByRole('tab');
+      fireEvent.keyDown(tabs[1], { key: 'ArrowLeft' });
+
+      expect(mockProps.onTabChange).toHaveBeenCalledWith(1);
+    });
+
+    it('should wrap around to last tab on ArrowLeft from first tab', () => {
+      renderWithTheme(<BodyTabs {...mockProps} />);
+
+      const tabs = screen.getAllByRole('tab');
+      fireEvent.keyDown(tabs[0], { key: 'ArrowLeft' });
+
+      expect(mockProps.onTabChange).toHaveBeenCalledWith(3);
+    });
+
+    it('should move to first tab on Home', () => {
+      const props = { ...mockProps, activeTabId: 3 };
+      renderWithTheme(<BodyTabs {...props} />);
+
+      const tabs = screen.getAllByRole('tab');
+      fireEvent.keyDown(tabs[2], { key: 'Home' });
+
+      expect(mockProps.onTabChange).toHaveBeenCalledWith(1);
+    });
+
+    it('should move to last tab on End', () => {
+      renderWithTheme(<BodyTabs {...mockProps} />);
+
+      const tabs = screen.getAllByRole('tab');
+      fireEvent.keyDown(tabs[0], { key: 'End' });
+
+      expect(mockProps.onTabChange).toHaveBeenCalledWith(3);
     });
   });
 });

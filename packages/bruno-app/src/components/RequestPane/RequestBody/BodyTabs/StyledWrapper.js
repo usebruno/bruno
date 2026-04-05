@@ -2,8 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .body-tabs-header {
-    border-bottom: 1px solid ${props => props.theme.border || 'rgba(0, 0, 0, 0.1)'};
-    padding-bottom: 8px;
+    border-bottom: 1px solid ${(props) => props.theme.border || 'rgba(0, 0, 0, 0.1)'};
     margin-bottom: 12px;
   }
 
@@ -23,7 +22,7 @@ const Wrapper = styled.div`
     flex: 1;
     padding-right: 8px;
     scrollbar-width: thin;
-    scrollbar-color: ${props => props.theme.border || 'rgba(0, 0, 0, 0.2)'} transparent;
+    scrollbar-color: ${(props) => props.theme.border || 'rgba(0, 0, 0, 0.2)'} transparent;
 
     &::-webkit-scrollbar {
       height: 4px;
@@ -34,12 +33,12 @@ const Wrapper = styled.div`
     }
 
     &::-webkit-scrollbar-thumb {
-      background-color: ${props => props.theme.border || 'rgba(0, 0, 0, 0.2)'};
+      background-color: ${(props) => props.theme.border || 'rgba(0, 0, 0, 0.2)'};
       border-radius: 2px;
     }
 
     &::-webkit-scrollbar-thumb:hover {
-      background-color: ${props => props.theme.tabs?.active?.color || 'rgba(0, 0, 0, 0.4)'};
+      background-color: ${(props) => props.theme.tabs?.active?.color || 'rgba(0, 0, 0, 0.4)'};
     }
   }
 
@@ -50,7 +49,7 @@ const Wrapper = styled.div`
     padding: 6px 12px;
     border: none;
     border-radius: 4px;
-    color: ${props => props.theme.tabs?.inactive?.color || props.theme.colors?.text?.muted || '#6b7280'};
+    color: ${(props) => props.theme.tabs?.inactive?.color || props.theme.colors?.text?.muted || '#6b7280'};
     cursor: pointer;
     font-size: 0.875rem;
     font-weight: 500;
@@ -63,13 +62,14 @@ const Wrapper = styled.div`
     white-space: nowrap;
 
     &:hover {
-      color: ${props => props.theme.tabs?.active?.color || props.theme.colors?.text?.default || '#374151'};
-      background: ${props => props.theme.bg?.secondary || 'rgba(0, 0, 0, 0.05)'};
+      color: ${(props) => props.theme.tabs?.active?.color || props.theme.colors?.text?.default || '#374151'};
+      background: ${(props) => props.theme.bg?.secondary || 'rgba(0, 0, 0, 0.05)'};
     }
 
     &.active {
-      color: ${props => props.theme.tabs?.active?.color || props.theme.colors?.text?.yellow || '#f59e0b'};
-      background: ${props => props.theme.bg?.secondary || 'rgba(0, 0, 0, 0.05)'};
+      color: ${(props) => props.theme.tabs?.active?.color || props.theme.colors?.text?.yellow || '#f59e0b'};
+      background: transparent;
+      border-bottom: 2px solid ${(props) => props.theme.tabs?.active?.border || props.theme.tabs?.active?.color || '#f59e0b'};
     }
 
     &:focus,
@@ -106,7 +106,7 @@ const Wrapper = styled.div`
 
       &:hover {
         opacity: 1;
-        background: rgba(255, 255, 255, 0.2);
+        background: ${(props) => props.theme.bg?.secondary || 'rgba(0, 0, 0, 0.05)'};
         color: #ef4444;
       }
 
@@ -118,13 +118,13 @@ const Wrapper = styled.div`
     }
 
     .tab-rename-input {
-      background: ${props => props.theme.bg?.primary || '#ffffff'};
-      border: 1px solid ${props => props.theme.tabs?.active?.color || '#f59e0b'};
+      background: ${(props) => props.theme.bg?.primary || '#ffffff'};
+      border: 1px solid ${(props) => props.theme.tabs?.active?.color || '#f59e0b'};
       border-radius: 3px;
       padding: 2px 6px;
       font-size: 0.875rem;
       font-weight: 500;
-      color: ${props => props.theme.text || '#000000'};
+      color: ${(props) => props.theme.text || '#000000'};
       outline: none;
       min-width: 60px;
       max-width: 120px;
@@ -137,10 +137,10 @@ const Wrapper = styled.div`
 
   .add-tab-btn {
     padding: 6px 8px;
-    border: 1px dashed ${props => props.theme.border || 'rgba(0, 0, 0, 0.2)'};
+    border: 1px dashed ${(props) => props.theme.border || 'rgba(0, 0, 0, 0.2)'};
     border-radius: 4px;
     background: transparent;
-    color: ${props => props.theme.tabs?.inactive?.color || props.theme.colors?.text?.muted || '#9ca3af'};
+    color: ${(props) => props.theme.tabs?.inactive?.color || props.theme.colors?.text?.muted || '#9ca3af'};
     cursor: pointer;
     transition: all 0.15s ease;
     margin-left: 4px;
@@ -149,9 +149,9 @@ const Wrapper = styled.div`
     right: 0;
 
     &:hover {
-      color: ${props => props.theme.tabs?.active?.color || props.theme.colors?.text?.default || '#374151'};
-      border-color: ${props => props.theme.tabs?.active?.color || props.theme.colors?.text?.muted || '#9ca3af'};
-      background: ${props => props.theme.bg?.secondary || 'rgba(0, 0, 0, 0.05)'};
+      color: ${(props) => props.theme.tabs?.active?.color || props.theme.colors?.text?.default || '#374151'};
+      border-color: ${(props) => props.theme.tabs?.active?.color || props.theme.colors?.text?.muted || '#9ca3af'};
+      background: ${(props) => props.theme.bg?.secondary || 'rgba(0, 0, 0, 0.05)'};
     }
 
     &:focus,

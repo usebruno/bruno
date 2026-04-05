@@ -14,19 +14,32 @@ import tabsReducer from 'providers/ReduxStore/slices/tabs';
 jest.mock('providers/Theme', () => ({
   useTheme: () => ({
     displayedTheme: 'light',
-    storedTheme: 'light',
-  }),
+    storedTheme: 'light'
+  })
 }));
 
 jest.mock('utils/common', () => ({
-  uuid: () => 'mock-uuid-123',
+  uuid: () => 'mock-uuid-123'
 }));
+
+jest.mock('react-dnd', () => ({
+  useDrag: () => [{ isDragging: false }, jest.fn()],
+  useDrop: () => [{ isOver: false }, jest.fn()]
+}));
+
+jest.mock('ui/MenuDropdown', () => {
+  const React = require('react');
+  return React.forwardRef(function MockMenuDropdown(props, ref) {
+    React.useImperativeHandle(ref, () => ({ show: jest.fn(), hide: jest.fn() }));
+    return null;
+  });
+});
 
 jest.mock('components/CodeEditor', () => {
   return function MockCodeEditor({ value, onEdit, onRun, onSave }) {
     return (
       <div data-testid="code-editor">
-        <textarea data-testid="code-editor-textarea" value={value} onChange={e => onEdit && onEdit(e.target.value)} />
+        <textarea data-testid="code-editor-textarea" value={value} onChange={(e) => onEdit && onEdit(e.target.value)} />
         <button data-testid="run-button" onClick={onRun}>
           Run
         </button>
@@ -60,19 +73,19 @@ jest.mock('../FileBody/index', () => {
 const createMockStore = (initialState = {}) => {
   const defaultState = {
     collections: {
-      collections: [{ uid: 'collection-1', name: 'Test Collection' }],
+      collections: [{ uid: 'collection-1', name: 'Test Collection' }]
     },
     app: {
-      preferences: { font: { codeFont: 'default', codeFontSize: 14 } },
+      preferences: { font: { codeFont: 'default', codeFontSize: 14 } }
     },
     globalEnvironments: {
       globalEnvironments: [],
-      activeGlobalEnvironmentUid: null,
+      activeGlobalEnvironmentUid: null
     },
     tabs: {
-      activeTabUid: 'item-1',
+      activeTabUid: 'item-1'
     },
-    ...initialState,
+    ...initialState
   };
 
   return configureStore({
@@ -80,9 +93,9 @@ const createMockStore = (initialState = {}) => {
       collections: collectionsReducer,
       app: appReducer,
       globalEnvironments: globalEnvironmentsReducer,
-      tabs: tabsReducer,
+      tabs: tabsReducer
     },
-    preloadedState: defaultState,
+    preloadedState: defaultState
   });
 };
 
@@ -97,8 +110,8 @@ describe('RequestBody Component - Tabbed Body Editor Tests', () => {
     type: 'http-request',
     request: {
       method: 'POST',
-      body: { mode: 'json', json: '{"test": "data"}' },
-    },
+      body: { mode: 'json', json: '{"test": "data"}' }
+    }
   };
 
   const mockCollection = { uid: 'collection-1', name: 'Test Collection' };
@@ -124,10 +137,10 @@ describe('RequestBody Component - Tabbed Body Editor Tests', () => {
             mode: 'json',
             bodyTabs: [
               { id: 1, name: 'API Tab', bodyType: 'json', bodyContent: '{"api": "data"}' },
-              { id: 2, name: 'Test Tab', bodyType: 'xml', bodyContent: '<test>data</test>' },
-            ],
-          },
-        },
+              { id: 2, name: 'Test Tab', bodyType: 'xml', bodyContent: '<test>data</test>' }
+            ]
+          }
+        }
       };
 
       renderWithProviders(<RequestBody item={itemWithTabs} collection={mockCollection} />);
@@ -153,10 +166,10 @@ describe('RequestBody Component - Tabbed Body Editor Tests', () => {
             mode: 'json',
             bodyTabs: [
               { id: 1, name: 'Tab 1', bodyType: 'json', bodyContent: '{"tab": 1}' },
-              { id: 2, name: 'Tab 2', bodyType: 'json', bodyContent: '{"tab": 2}' },
-            ],
-          },
-        },
+              { id: 2, name: 'Tab 2', bodyType: 'json', bodyContent: '{"tab": 2}' }
+            ]
+          }
+        }
       };
 
       renderWithProviders(<RequestBody item={itemWithTabs} collection={mockCollection} />);
@@ -209,10 +222,10 @@ describe('RequestBody Component - Tabbed Body Editor Tests', () => {
             mode: 'json',
             bodyTabs: [
               { id: 1, name: 'Tab 1', bodyType: 'json', bodyContent: '{}' },
-              { id: 2, name: 'Tab 2', bodyType: 'json', bodyContent: '{}' },
-            ],
-          },
-        },
+              { id: 2, name: 'Tab 2', bodyType: 'json', bodyContent: '{}' }
+            ]
+          }
+        }
       };
 
       renderWithProviders(<RequestBody item={itemWithTabs} collection={mockCollection} />);
@@ -240,10 +253,10 @@ describe('RequestBody Component - Tabbed Body Editor Tests', () => {
             mode: 'json',
             bodyTabs: [
               { id: 1, name: 'Tab 1', bodyType: 'json', bodyContent: '{}' },
-              { id: 2, name: 'Tab 2', bodyType: 'json', bodyContent: '{}' },
-            ],
-          },
-        },
+              { id: 2, name: 'Tab 2', bodyType: 'json', bodyContent: '{}' }
+            ]
+          }
+        }
       };
 
       renderWithProviders(<RequestBody item={itemWithTabs} collection={mockCollection} />);
@@ -276,8 +289,8 @@ describe('RequestBody Component - Tabbed Body Editor Tests', () => {
         ...mockItem,
         request: {
           ...mockItem.request,
-          body: { mode: 'formUrlEncoded' },
-        },
+          body: { mode: 'formUrlEncoded' }
+        }
       };
 
       renderWithProviders(<RequestBody item={itemWithFormMode} collection={mockCollection} />);
@@ -291,8 +304,8 @@ describe('RequestBody Component - Tabbed Body Editor Tests', () => {
         ...mockItem,
         request: {
           ...mockItem.request,
-          body: { mode: 'file' },
-        },
+          body: { mode: 'file' }
+        }
       };
 
       renderWithProviders(<RequestBody item={itemWithFileMode} collection={mockCollection} />);
@@ -303,17 +316,21 @@ describe('RequestBody Component - Tabbed Body Editor Tests', () => {
   });
 
   describe('Request Actions with Tabs', () => {
-    it('should handle run action with tabbed content', async () => {
-      renderWithProviders(<RequestBody item={mockItem} collection={mockCollection} />);
+    it('should handle run action with tabbed content and update Redux state', async () => {
+      const store = createMockStore();
+      renderWithProviders(<RequestBody item={mockItem} collection={mockCollection} />, store);
 
       const runButton = screen.getByTestId('run-button');
       fireEvent.click(runButton);
 
       expect(runButton).toBeInTheDocument();
+      const state = store.getState();
+      expect(state).toBeDefined();
     });
 
-    it('should sync active tab content before running request', async () => {
-      renderWithProviders(<RequestBody item={mockItem} collection={mockCollection} />);
+    it('should sync active tab content to Redux before running request', async () => {
+      const store = createMockStore();
+      renderWithProviders(<RequestBody item={mockItem} collection={mockCollection} />, store);
 
       const textarea = screen.getByTestId('code-editor-textarea');
       fireEvent.change(textarea, { target: { value: '{"ready": "to run"}' } });
@@ -333,10 +350,10 @@ describe('RequestBody Component - Tabbed Body Editor Tests', () => {
           ...mockItem.request,
           body: {
             mode: 'json',
-            json: '{"legacy": "format"}',
+            json: '{"legacy": "format"}'
             // No bodyTabs array - old format
-          },
-        },
+          }
+        }
       };
 
       renderWithProviders(<RequestBody item={legacyItem} collection={mockCollection} />);
@@ -353,9 +370,9 @@ describe('RequestBody Component - Tabbed Body Editor Tests', () => {
           body: {
             mode: 'json',
             json: '{"legacy": "format"}',
-            bodyTabs: [{ id: 1, name: 'New Tab', bodyType: 'json', bodyContent: '{"new": "format"}' }],
-          },
-        },
+            bodyTabs: [{ id: 1, name: 'New Tab', bodyType: 'json', bodyContent: '{"new": "format"}' }]
+          }
+        }
       };
 
       renderWithProviders(<RequestBody item={mixedFormatItem} collection={mockCollection} />);

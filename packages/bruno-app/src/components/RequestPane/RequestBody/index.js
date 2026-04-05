@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
+import { debounce } from 'lodash';
 import CodeEditor from 'components/CodeEditor';
 import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
 import MultipartFormParams from 'components/RequestPane/MultipartFormParams';
@@ -9,7 +10,7 @@ import { useTheme } from 'providers/Theme';
 import {
   updateRequestBody,
   updateRequestBodyMode,
-  updateRequestBodyTabs,
+  updateRequestBodyTabs
 } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateRequestBodyScrollPosition } from 'providers/ReduxStore/slices/tabs';
@@ -18,6 +19,13 @@ import FileBody from '../FileBody/index';
 import BodyTabs from './BodyTabs';
 
 const RAW_BODY_MODES = ['json', 'xml', 'text', 'sparql'];
+
+const getNextTabName = (existingTabs) => {
+  const names = new Set(existingTabs.map((t) => t.name));
+  let n = 1;
+  while (names.has(`Body ${n}`)) n++;
+  return `Body ${n}`;
+};
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -39,7 +47,7 @@ const RequestBody = ({ item, collection }) => {
           id: typeof tab.id === 'number' ? tab.id : index + 1,
           name: tab.name || `Body ${index + 1}`,
           bodyContent: tab.bodyContent ?? '',
-          bodyType: safeBodyType,
+          bodyType: safeBodyType
         };
       });
     }
@@ -52,18 +60,16 @@ const RequestBody = ({ item, collection }) => {
         id: 1,
         name: 'Body 1',
         bodyContent: initialContent,
-        bodyType: fallbackMode,
-      },
+        bodyType: fallbackMode
+      }
     ];
   };
 
-  const [bodyTabs, setBodyTabs] = useState(() => initializeTabContent());
-  const [activeBodyTab, setActiveBodyTab] = useState(() => {
-    const tabs = initializeTabContent();
-    return tabs[0]?.id || 1;
-  });
+  const initialTabs = useMemo(() => initializeTabContent(), []);
+  const [bodyTabs, setBodyTabs] = useState(initialTabs);
+  const [activeBodyTab, setActiveBodyTab] = useState(initialTabs[0]?.id || 1);
 
-  const modeSyncSuppressedRef = useRef(false);
+  const lastChangeSourceRef = useRef(null);
   const lastSyncedTabIdRef = useRef(null);
   const lastSyncedContentRef = useRef('');
 
@@ -72,21 +78,20 @@ const RequestBody = ({ item, collection }) => {
     setBodyTabs(newTabs);
     const initialTabId = newTabs[0]?.id || 1;
     setActiveBodyTab(initialTabId);
-    modeSyncSuppressedRef.current = false;
+    lastChangeSourceRef.current = null;
     lastSyncedTabIdRef.current = initialTabId;
-    lastSyncedContentRef.current = newTabs.find(tab => tab.id === initialTabId)?.bodyContent ?? '';
+    lastSyncedContentRef.current = newTabs.find((tab) => tab.id === initialTabId)?.bodyContent ?? '';
   }, [item.uid]);
 
   const getActiveTab = () => {
-    const activeTab = bodyTabs.find(tab => tab.id === activeBodyTab);
+    const activeTab = bodyTabs.find((tab) => tab.id === activeBodyTab);
     if (!activeTab) {
-      console.warn(`Active tab with id ${activeBodyTab} not found, falling back to first tab`);
       return bodyTabs.length > 0 ? bodyTabs[0] : null;
     }
     return activeTab;
   };
 
-  const saveBodyTabsToRedux = tabs => {
+  const saveBodyTabsToRedux = (tabs) => {
     if (!Array.isArray(tabs)) {
       return;
     }
@@ -99,90 +104,74 @@ const RequestBody = ({ item, collection }) => {
         : RAW_BODY_MODES.includes(bodyMode)
           ? bodyMode
           : 'json',
-      bodyContent: tab.bodyContent ?? '',
+      bodyContent: tab.bodyContent ?? ''
     }));
 
     dispatch(updateRequestBodyTabs({
       bodyTabs: sanitizedTabs,
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
   };
 
-  useEffect(() => {
-    if (!bodyTabs || bodyTabs.length === 0) {
-      return;
-    }
-
-    if (!bodyMode || !RAW_BODY_MODES.includes(bodyMode)) {
-      return;
-    }
-
-    const activeTab = getActiveTab();
-    if (!activeTab || activeTab.bodyType === bodyMode) {
-      return;
-    }
-
-    modeSyncSuppressedRef.current = true;
-
-    const updatedTabs = bodyTabs.map(tab => (tab.id === activeBodyTab ? { ...tab, bodyType: bodyMode } : tab));
-
-    setBodyTabs(updatedTabs);
-    saveBodyTabsToRedux(updatedTabs);
-  }, [bodyMode, activeBodyTab, bodyTabs]);
+  const debouncedSaveBodyTabs = useMemo(
+    () => debounce((tabs) => saveBodyTabsToRedux(tabs), 300),
+    [item.uid, collection.uid]
+  );
 
   useEffect(() => {
-    if (!bodyTabs || bodyTabs.length === 0) {
-      return;
-    }
+    return () => debouncedSaveBodyTabs.cancel();
+  }, [debouncedSaveBodyTabs]);
 
+  useEffect(() => {
+    if (!bodyTabs?.length) return;
     const activeTab = getActiveTab();
-    if (!activeTab) {
-      return;
-    }
+    if (!activeTab) return;
 
     const activeTabMode = activeTab.bodyType && RAW_BODY_MODES.includes(activeTab.bodyType) ? activeTab.bodyType : null;
-
     const bodyModeIsRaw = bodyMode && RAW_BODY_MODES.includes(bodyMode);
 
+    if (bodyModeIsRaw && activeTabMode && activeTab.bodyType !== bodyMode && lastChangeSourceRef.current !== 'tab-switch') {
+      const updatedTabs = bodyTabs.map((tab) => tab.id === activeBodyTab ? { ...tab, bodyType: bodyMode } : tab);
+      setBodyTabs(updatedTabs);
+      saveBodyTabsToRedux(updatedTabs);
+      lastChangeSourceRef.current = null;
+      return;
+    }
+
     if (activeTabMode && bodyModeIsRaw && bodyMode !== activeTabMode) {
-      if (modeSyncSuppressedRef.current) {
-        modeSyncSuppressedRef.current = false;
-      } else {
-        dispatch(updateRequestBodyMode({
-          itemUid: item.uid,
-          collectionUid: collection.uid,
-          mode: activeTabMode,
-        }));
-      }
+      lastChangeSourceRef.current = 'tab-switch';
+      dispatch(updateRequestBodyMode({
+        itemUid: item.uid,
+        collectionUid: collection.uid,
+        mode: activeTabMode
+      }));
     } else {
-      modeSyncSuppressedRef.current = false;
+      lastChangeSourceRef.current = null;
     }
 
     if (activeTab.bodyContent !== undefined) {
       const content = activeTab.bodyContent || '';
-
       if (lastSyncedTabIdRef.current !== activeTab.id || lastSyncedContentRef.current !== content) {
         dispatch(updateRequestBody({
           content,
           itemUid: item.uid,
-          collectionUid: collection.uid,
+          collectionUid: collection.uid
         }));
-
         lastSyncedTabIdRef.current = activeTab.id;
         lastSyncedContentRef.current = content;
       }
     }
   }, [activeBodyTab, bodyTabs, bodyMode, collection.uid, dispatch, item.uid]);
 
-  const handleTabChange = tabId => {
+  const handleTabChange = (tabId) => {
     const currentTab = getActiveTab();
     if (currentTab && currentTab.bodyContent !== undefined) {
       const content = currentTab.bodyContent || '';
       dispatch(updateRequestBody({
         content,
         itemUid: item.uid,
-        collectionUid: collection.uid,
+        collectionUid: collection.uid
       }));
       lastSyncedTabIdRef.current = currentTab.id;
       lastSyncedContentRef.current = content;
@@ -192,13 +181,13 @@ const RequestBody = ({ item, collection }) => {
   };
 
   const handleAddTab = () => {
-    const newTabId = Math.max(0, ...bodyTabs.map(tab => tab.id)) + 1;
+    const newTabId = Math.max(0, ...bodyTabs.map((tab) => tab.id)) + 1;
     const fallbackMode = bodyMode && RAW_BODY_MODES.includes(bodyMode) ? bodyMode : 'json';
     const newTab = {
       id: newTabId,
-      name: `Body ${newTabId}`,
+      name: getNextTabName(bodyTabs),
       bodyContent: '',
-      bodyType: fallbackMode,
+      bodyType: fallbackMode
     };
 
     const newTabs = [...bodyTabs, newTab];
@@ -211,7 +200,7 @@ const RequestBody = ({ item, collection }) => {
     const trimmedName = newName.trim();
     if (!trimmedName) return;
 
-    const existingNames = bodyTabs.filter(tab => tab.id !== tabId).map(tab => tab.name);
+    const existingNames = bodyTabs.filter((tab) => tab.id !== tabId).map((tab) => tab.name);
     let finalName = trimmedName;
     let counter = 1;
 
@@ -219,21 +208,21 @@ const RequestBody = ({ item, collection }) => {
       counter++;
       finalName = `${trimmedName} ${counter}`;
     }
-    const newTabs = bodyTabs.map(tab => (tab.id === tabId ? { ...tab, name: finalName } : tab));
+    const newTabs = bodyTabs.map((tab) => (tab.id === tabId ? { ...tab, name: finalName } : tab));
     setBodyTabs(newTabs);
     saveBodyTabsToRedux(newTabs);
   };
 
-  const handleTabClose = tabId => {
-    const tabIndex = bodyTabs.findIndex(tab => tab.id === tabId);
+  const handleTabClose = (tabId) => {
+    const tabIndex = bodyTabs.findIndex((tab) => tab.id === tabId);
     const isClosingActiveTab = tabId === activeBodyTab;
 
     if (bodyTabs.length === 1) {
       const newBlankTab = {
-        id: Math.max(0, ...bodyTabs.map(tab => tab.id)) + 1,
-        name: 'Body 1',
+        id: Math.max(0, ...bodyTabs.map((tab) => tab.id)) + 1,
+        name: getNextTabName([]),
         bodyContent: '',
-        bodyType: bodyMode || 'json',
+        bodyType: bodyMode || 'json'
       };
       setBodyTabs([newBlankTab]);
       setActiveBodyTab(newBlankTab.id);
@@ -241,13 +230,13 @@ const RequestBody = ({ item, collection }) => {
       return;
     }
 
-    const newTabs = bodyTabs.filter(tab => tab.id !== tabId);
+    const newTabs = bodyTabs.filter((tab) => tab.id !== tabId);
 
     const tabForPersistence = (() => {
       if (isClosingActiveTab) {
         return tabIndex > 0 ? newTabs[tabIndex - 1] : newTabs[0];
       }
-      return newTabs.find(tab => tab.id === activeBodyTab) || newTabs[0];
+      return newTabs.find((tab) => tab.id === activeBodyTab) || newTabs[0];
     })();
 
     if (isClosingActiveTab && tabForPersistence) {
@@ -258,10 +247,50 @@ const RequestBody = ({ item, collection }) => {
     saveBodyTabsToRedux(newTabs);
   };
 
-  const onEdit = value => {
-    const newTabs = bodyTabs.map(tab => (tab.id === activeBodyTab ? { ...tab, bodyContent: value } : tab));
+  const handleReorderTab = (dragId, hoverId) => {
+    const dragIndex = bodyTabs.findIndex((tab) => tab.id === dragId);
+    const hoverIndex = bodyTabs.findIndex((tab) => tab.id === hoverId);
+    if (dragIndex === -1 || hoverIndex === -1 || dragIndex === hoverIndex) return;
+
+    const reordered = [...bodyTabs];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(hoverIndex, 0, moved);
+    setBodyTabs(reordered);
+    saveBodyTabsToRedux(reordered);
+  };
+
+  const handleDuplicateTab = (tabId) => {
+    const tabToDuplicate = bodyTabs.find((tab) => tab.id === tabId);
+    if (!tabToDuplicate) return;
+
+    const newTabId = Math.max(0, ...bodyTabs.map((tab) => tab.id)) + 1;
+    const newTab = {
+      ...tabToDuplicate,
+      id: newTabId,
+      name: `${tabToDuplicate.name} (copy)`
+    };
+
+    const insertIndex = bodyTabs.findIndex((tab) => tab.id === tabId) + 1;
+    const newTabs = [...bodyTabs];
+    newTabs.splice(insertIndex, 0, newTab);
     setBodyTabs(newTabs);
+    setActiveBodyTab(newTabId);
     saveBodyTabsToRedux(newTabs);
+  };
+
+  const handleCloseOtherTabs = (tabId) => {
+    const tabToKeep = bodyTabs.find((tab) => tab.id === tabId);
+    if (!tabToKeep) return;
+
+    setBodyTabs([tabToKeep]);
+    setActiveBodyTab(tabToKeep.id);
+    saveBodyTabsToRedux([tabToKeep]);
+  };
+
+  const onEdit = (value) => {
+    const newTabs = bodyTabs.map((tab) => (tab.id === activeBodyTab ? { ...tab, bodyContent: value } : tab));
+    setBodyTabs(newTabs);
+    debouncedSaveBodyTabs(newTabs);
 
     const content = value || '';
     lastSyncedTabIdRef.current = activeBodyTab;
@@ -271,13 +300,13 @@ const RequestBody = ({ item, collection }) => {
       updateRequestBody({
         content,
         itemUid: item.uid,
-        collectionUid: collection.uid,
-      }),
+        collectionUid: collection.uid
+      })
     );
   };
 
   const syncActiveTabBeforeAction = () => {
-    const currentActiveTab = bodyTabs.find(tab => tab.id === activeBodyTab);
+    const currentActiveTab = bodyTabs.find((tab) => tab.id === activeBodyTab);
     if (!currentActiveTab) {
       return null;
     }
@@ -291,7 +320,7 @@ const RequestBody = ({ item, collection }) => {
       dispatch(updateRequestBodyMode({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        mode: activeTabMode,
+        mode: activeTabMode
       }));
     }
 
@@ -300,7 +329,7 @@ const RequestBody = ({ item, collection }) => {
       dispatch(updateRequestBody({
         content,
         itemUid: item.uid,
-        collectionUid: collection.uid,
+        collectionUid: collection.uid
       }));
 
       lastSyncedTabIdRef.current = currentActiveTab.id;
@@ -339,7 +368,7 @@ const RequestBody = ({ item, collection }) => {
       json: 'application/ld+json',
       text: 'application/text',
       xml: 'application/xml',
-      sparql: 'application/sparql-query',
+      sparql: 'application/sparql-query'
     };
 
     return (
@@ -350,12 +379,15 @@ const RequestBody = ({ item, collection }) => {
           </div>
         ) : (
           <BodyTabs
-            tabs={bodyTabs.map(tab => ({ id: tab.id, title: tab.name }))}
+            tabs={bodyTabs.map((tab) => ({ id: tab.id, title: tab.name }))}
             activeTabId={activeBodyTab}
             onTabChange={handleTabChange}
             onAddTab={handleAddTab}
             onTabRename={handleTabRename}
             onTabClose={handleTabClose}
+            onReorderTab={handleReorderTab}
+            onDuplicateTab={handleDuplicateTab}
+            onCloseOtherTabs={handleCloseOtherTabs}
           >
             <CodeEditor
               collection={collection}
