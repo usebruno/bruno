@@ -83,6 +83,7 @@ const createMockStore = (initialState = {}) => {
       activeGlobalEnvironmentUid: null
     },
     tabs: {
+      tabs: [{ uid: 'item-1', requestBodyScrollPosition: 0 }],
       activeTabUid: 'item-1'
     },
     ...initialState

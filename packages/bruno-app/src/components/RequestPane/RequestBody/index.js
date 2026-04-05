@@ -218,11 +218,12 @@ const RequestBody = ({ item, collection }) => {
     const isClosingActiveTab = tabId === activeBodyTab;
 
     if (bodyTabs.length === 1) {
+      const fallbackMode = bodyMode && RAW_BODY_MODES.includes(bodyMode) ? bodyMode : 'json';
       const newBlankTab = {
         id: Math.max(0, ...bodyTabs.map((tab) => tab.id)) + 1,
         name: getNextTabName([]),
         bodyContent: '',
-        bodyType: bodyMode || 'json'
+        bodyType: fallbackMode
       };
       setBodyTabs([newBlankTab]);
       setActiveBodyTab(newBlankTab.id);
@@ -352,6 +353,7 @@ const RequestBody = ({ item, collection }) => {
   };
 
   const onScroll = (editor) => {
+    if (!focusedTab) return;
     dispatch(
       updateRequestBodyScrollPosition({
         uid: focusedTab.uid,
