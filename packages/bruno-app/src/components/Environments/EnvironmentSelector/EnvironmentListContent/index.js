@@ -46,7 +46,7 @@ const EnvironmentListContent = ({
               </div>
             </ToolHint>
             <div className="dropdown-item configure-button">
-              <button onClick={onSettingsClick} id="configure-env">
+              <button onClick={onSettingsClick} id="configure-env" data-testid="configure-env">
                 <IconSettings size={16} strokeWidth={1.5} />
                 <span>Configure</span>
               </button>

@@ -1,0 +1,79 @@
+name: Auth Tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  oauth1-tests-for-linux:
+    name: OAuth 1.0 Auth Tests - Linux
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Setup Feature Dependencies
+        uses: ./.github/actions/auth/oauth1/linux/setup-feature-specific-deps
+
+      - name: Run Auth E2E Tests
+        uses: ./.github/actions/auth/oauth1/linux/run-auth-e2e-tests
+
+      - name: Start Test Server
+        uses: ./.github/actions/auth/oauth1/linux/start-test-server
+
+      - name: Run OAuth1 CLI Tests
+        uses: ./.github/actions/auth/oauth1/linux/run-oauth1-cli-tests
+
+  oauth1-tests-for-macos:
+    name: OAuth 1.0 Auth Tests - macOS
+    timeout-minutes: 60
+    runs-on: macos-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Run Auth E2E Tests
+        uses: ./.github/actions/auth/oauth1/macos/run-auth-e2e-tests
+
+      - name: Start Test Server
+        uses: ./.github/actions/auth/oauth1/macos/start-test-server
+
+      - name: Run OAuth1 CLI Tests
+        uses: ./.github/actions/auth/oauth1/macos/run-oauth1-cli-tests
+
+  oauth1-tests-for-windows:
+    name: OAuth 1.0 Auth Tests - Windows
+    timeout-minutes: 60
+    runs-on: windows-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Run Auth E2E Tests
+        uses: ./.github/actions/auth/oauth1/windows/run-auth-e2e-tests
+
+      - name: Start Test Server
+        uses: ./.github/actions/auth/oauth1/windows/start-test-server
+
+      - name: Run OAuth1 CLI Tests
+        uses: ./.github/actions/auth/oauth1/windows/run-oauth1-cli-tests

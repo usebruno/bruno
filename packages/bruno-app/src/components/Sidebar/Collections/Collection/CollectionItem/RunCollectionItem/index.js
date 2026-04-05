@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
@@ -14,15 +14,13 @@ import Button from 'ui/Button';
 
 const RunCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
+  const [delay, setDelay] = useState('');
 
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const isCollectionRunInProgress = collection?.runnerResult?.info?.status && (collection?.runnerResult?.info?.status !== 'ended');
 
   // tags for the collection run
   const tags = get(collection, 'runnerTags', { include: [], exclude: [] });
-
-  // have tags been enabled for the collection run
-  const tagsEnabled = get(collection, 'runnerTagsEnabled', false);
 
   const onSubmit = (recursive) => {
     dispatch(
@@ -33,7 +31,7 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
       })
     );
     if (!isCollectionRunInProgress) {
-      dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive, 0, tagsEnabled && tags));
+      dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive, delay ? Number(delay) : null, tags));
     }
     onClose();
   };
@@ -68,14 +66,33 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
             <span className="font-medium">Run</span>
             <span className="ml-1 text-xs">({totalRequestItemsCountForFolderRun} requests)</span>
           </div>
-          <div className="mb-8">This will only run the requests in this folder.</div>
+          <div className="mb-3 description">This will only run the requests in this folder.</div>
           <div className="mb-1">
             <span className="font-medium">Recursive Run</span>
             <span className="ml-1 text-xs">({totalRequestItemsCountForRecursiveFolderRun} requests)</span>
           </div>
-          <div className={isFolderLoading ? 'mb-2' : 'mb-8'}>This will run all the requests in this folder and all its subfolders.</div>
+          <div className={`description ${isFolderLoading ? 'mb-2' : 'mb-6'}`}>This will run all the requests in this folder and all its subfolders.</div>
           {isFolderLoading ? <div className="mb-8 warning">Requests in this folder are still loading.</div> : null}
           {isCollectionRunInProgress ? <div className="mb-6 warning">A Collection Run is already in progress.</div> : null}
+
+          <hr className="divider" />
+
+          {/* Timings */}
+          <div className="flex flex-col items-start gap-2 mb-8">
+            <label htmlFor="runner-delay" className="block text-sm">Delay between requests (ms)</label>
+            <input
+              id="runner-delay"
+              type="number"
+              className="textbox w-1/2"
+              placeholder="e.g. 5"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              value={delay}
+              onChange={(e) => setDelay(e.target.value)}
+            />
+          </div>
 
           {/* Tags for the collection run */}
           <RunnerTags collectionUid={collection.uid} className="mb-6" />

@@ -1,7 +1,8 @@
 import React, { useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
 import EditableTable from 'components/EditableTable';
@@ -13,6 +14,16 @@ import { setFolderVars } from 'providers/ReduxStore/slices/collections/index';
 const VarsTable = ({ folder, collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const folderVarsWidths = focusedTab?.tableColumnWidths?.['folder-vars'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
 
@@ -74,11 +85,14 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
   return (
     <StyledWrapper className="w-full">
       <EditableTable
+        tableId="folder-vars"
         columns={columns}
         rows={vars}
         onChange={handleVarsChange}
         defaultRow={defaultRow}
         getRowError={getRowError}
+        columnWidths={folderVarsWidths}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('folder-vars', widths)}
       />
     </StyledWrapper>
   );

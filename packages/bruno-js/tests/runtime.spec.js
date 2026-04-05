@@ -317,12 +317,36 @@ describe('runtime', () => {
         expect(results[0].status).toBe('pass');
       });
 
-      it('should fail for an array', () => {
+      it('should pass for an array', () => {
         const results = runAssertions(
           [{ name: 'res.body', value: 'isJson', enabled: true }],
           makeResponse([1, 2, 3])
         );
-        expect(results[0].status).toBe('fail');
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for an array of strings', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse(['A55001213ZX0A'])
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for an empty array', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse([])
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for an array of objects', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse([{ id: 1 }, { id: 2 }])
+        );
+        expect(results[0].status).toBe('pass');
       });
 
       it('should fail for a string', () => {

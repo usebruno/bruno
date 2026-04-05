@@ -98,10 +98,13 @@ const QueryResult = ({
   headers,
   error,
   selectedFormat, // one of the options in PREVIEW_FORMAT_OPTIONS
-  selectedTab // 'editor' or 'preview'
+  selectedTab, // 'editor' or 'preview'
+  filter,
+  filterExpanded,
+  onFilterChange,
+  onFilterExpandChange
 }) => {
   const contentType = getContentType(headers);
-  const [filter, setFilter] = useState(null);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
   const { displayedTheme } = useTheme();
 
@@ -134,9 +137,11 @@ const QueryResult = ({
     [data, dataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse]
   );
 
-  const debouncedResultFilterOnChange = debounce((e) => {
-    setFilter(e.target.value);
-  }, 250);
+  const handleFilterChange = (value) => {
+    if (onFilterChange) {
+      onFilterChange(value);
+    }
+  };
 
   const previewMode = useMemo(() => {
     // Derive preview mode based on selected format
@@ -213,7 +218,13 @@ const QueryResult = ({
               />
             </div>
             {queryFilterEnabled && (
-              <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={codeMirrorMode} />
+              <QueryResultFilter
+                filter={filter}
+                filterExpanded={filterExpanded}
+                onChange={handleFilterChange}
+                onExpandChange={onFilterExpandChange}
+                mode={codeMirrorMode}
+              />
             )}
           </div>
         </div>

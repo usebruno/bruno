@@ -3,7 +3,8 @@ import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor/index';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
@@ -44,13 +45,41 @@ const EnvironmentVariablesTable = ({
 }) => {
   const { storedTheme } = useTheme();
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const activeWorkspace = useSelector((state) => {
+    const uid = state.workspaces?.activeWorkspaceUid;
+    return state.workspaces?.workspaces?.find((w) => w.uid === uid);
+  });
+
+  const dispatch = useDispatch();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
   const [tableHeight, setTableHeight] = useState(MIN_H);
-  const [columnWidths, setColumnWidths] = useState({ name: '30%', value: 'auto' });
+
+  // Use environment UID as part of tableId so each environment has its own column widths
+  const tableId = `env-vars-table-${environment.uid}`;
+
+  // Get column widths from Redux - derived value (not state)
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const storedColumnWidths = focusedTab?.tableColumnWidths?.[tableId];
+
+  // Local state initialized from Redux (computed once on mount/environment change via key)
+  const [columnWidths, setColumnWidths] = useState(() => {
+    return storedColumnWidths || { name: '30%', value: 'auto' };
+  });
+
   const [resizing, setResizing] = useState(null);
   const [pinnedData, setPinnedData] = useState({ query: '', uids: new Set() });
+
+  const handleColumnWidthsChange = (id, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId: id, widths }));
+  };
+
+  // Store column widths in ref for access in event handlers
+  const columnWidthsRef = useRef(columnWidths);
+  columnWidthsRef.current = columnWidths;
 
   const handleResizeStart = useCallback((e, columnKey) => {
     e.preventDefault();
@@ -73,21 +102,24 @@ const EnvironmentVariablesTable = ({
       const maxShrink = startWidth - MIN_COLUMN_WIDTH;
       const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
 
-      setColumnWidths({
+      const newWidths = {
         [columnKey]: `${startWidth + clampedDiff}px`,
         [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
-      });
+      };
+      setColumnWidths(newWidths);
     };
 
     const handleMouseUp = () => {
       setResizing(null);
+      // Save to Redux after resize ends using ref for latest values
+      handleColumnWidthsChange(tableId, columnWidthsRef.current);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, []);
+  }, [handleColumnWidthsChange]);
 
   const handleTotalHeightChanged = useCallback((h) => {
     setTableHeight(h);
@@ -108,6 +140,12 @@ const EnvironmentVariablesTable = ({
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   if (_collection) {
     _collection.globalEnvironmentVariables = globalEnvironmentVariables;
+  }
+
+  // When collection is null (global/workspace environments), populate process env
+  // variables from the active workspace so that {{process.env.X}} can resolve
+  if (!collection && activeWorkspace?.processEnvVariables) {
+    _collection.workspaceProcessEnvVariables = activeWorkspace.processEnvVariables;
   }
 
   const initialValues = useMemo(() => {

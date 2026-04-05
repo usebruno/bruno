@@ -2,6 +2,7 @@ const axios = require('axios');
 const { CLI_VERSION } = require('../constants');
 const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const { createFormData } = require('./form-data');
+const { setupProxyAgents } = require('./proxy-util');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
@@ -71,7 +72,17 @@ const createRedirectConfig = (error, redirectUrl) => {
  * @see https://github.com/axios/axios/issues/695
  * @returns {axios.AxiosInstance}
  */
-function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies, followRedirects = true } = {}) {
+function makeAxiosInstance({
+  requestMaxRedirects = 5,
+  disableCookies,
+  followRedirects = true,
+  proxyMode,
+  proxyConfig,
+  systemProxyConfig,
+  httpsAgentRequestFields,
+  interpolationOptions,
+  disableCache
+} = {}) {
   let redirectCount = 0;
 
   /** @type {axios.AxiosInstance} */
@@ -166,6 +177,16 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies, followRedi
           }
 
           const requestConfig = createRedirectConfig(error, redirectUrl);
+
+          setupProxyAgents({
+            requestConfig,
+            proxyMode,
+            proxyConfig,
+            systemProxyConfig,
+            httpsAgentRequestFields,
+            interpolationOptions,
+            disableCache
+          });
 
           if (!disableCookies) {
             const cookieString = getCookieStringForUrl(redirectUrl);

@@ -151,8 +151,14 @@ const StyledWrapper = styled.div`
   
   //matching bracket fix
   .CodeMirror-matchingbracket {
-    background: #5cc0b48c !important;
-    text-decoration:unset;
+    background: ${(props) => props.theme.status.success.background} !important;
+    text-decoration: unset;
+  }
+
+  .CodeMirror-nonmatchingbracket {
+    color: ${(props) => props.theme.colors.text.danger} !important;
+    background: ${(props) => props.theme.status.danger.background} !important;
+    text-decoration: unset;
   }
 
   .cm-search-line-highlight {

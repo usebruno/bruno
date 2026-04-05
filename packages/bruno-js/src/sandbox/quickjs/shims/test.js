@@ -69,8 +69,8 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
         Object.defineProperty(proto, 'json', {
           get: function () {
             var obj = this._obj;
-            var isJson = typeof obj === 'object' && obj !== null && !Array.isArray(obj) &&
-              Object.prototype.toString.call(obj) === '[object Object]';
+            var isJson = typeof obj === 'object' && obj !== null &&
+              (Array.isArray(obj) || Object.prototype.toString.call(obj) === '[object Object]');
             this.assert(isJson, 'expected #{this} to be JSON', 'expected #{this} not to be JSON');
             return this;
           },

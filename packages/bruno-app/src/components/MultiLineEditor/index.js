@@ -45,26 +45,6 @@ class MultiLineEditor extends Component {
       readOnly: this.props.readOnly,
       tabindex: 0,
       extraKeys: {
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
         'Cmd-F': () => {},
         'Ctrl-F': () => {},
         // Tabbing disabled to make tabindex work
@@ -90,14 +70,27 @@ class MultiLineEditor extends Component {
 
     setupLinkAware(this.editor);
 
+    // Add mousetrap calss so Mousetrap captures shortcuts even when Codemirror is focused
+    const cmInput = this.editor.getInputField();
+    if (cmInput) {
+      cmInput.classList.add('mousetrap');
+    }
+
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
+    this.editor.on('blur', this._onBlur);
     this.addOverlay(variables);
 
     // Initialize masking if this is a secret field
     this.setState({ maskInput: this.props.isSecret });
     this._enableMaskedEditor(this.props.isSecret);
   }
+
+  _onBlur = () => {
+    if (this.editor) {
+      this.editor.setCursor(this.editor.getCursor());
+    }
+  };
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
@@ -154,16 +147,13 @@ class MultiLineEditor extends Component {
       this.editor.setOption('readOnly', this.props.readOnly);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
-      const nextValue = String(this.props.value ?? '');
-      const currentValue = this.editor.getValue();
-      if (this.editor.hasFocus?.() && currentValue !== nextValue) {
-        this.cachedValue = currentValue;
-      } else {
-        const cursor = this.editor.getCursor();
-        this.cachedValue = nextValue;
-        this.editor.setValue(nextValue);
-        this.editor.setCursor(cursor);
+      const cursor = this.editor.getCursor();
+      this.cachedValue = String(this.props.value);
+      this.editor.setValue(String(this.props.value) || '');
+      this.editor.setCursor(cursor);
+      // Re-apply masking after setValue() since it destroys all CodeMirror marks
+      if (this.maskedEditor && this.maskedEditor.isEnabled()) {
+        this.maskedEditor.update();
       }
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
@@ -189,7 +179,11 @@ class MultiLineEditor extends Component {
       this.maskedEditor.destroy();
       this.maskedEditor = null;
     }
-    this.editor.getWrapperElement().remove();
+    if (this.editor) {
+      this.editor.off('change', this._onEdit);
+      this.editor.off('blur', this._onBlur);
+      this.editor.getWrapperElement().remove();
+    }
   }
 
   addOverlay = (variables) => {

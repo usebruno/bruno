@@ -3,7 +3,7 @@ const path = require('path');
 const { execSync } = require('node:child_process');
 const isDev = require('electron-is-dev');
 const os = require('os');
-const { initializeShellEnv } = require('@usebruno/requests');
+const { initializeShellEnv, waitForShellEnv } = require('./store/shell-env-state');
 const { percentageToZoomLevel } = require('@usebruno/common');
 
 if (isDev) {
@@ -122,6 +122,12 @@ const focusMainWindow = () => {
   }
 };
 
+const closeAllWatchers = () => {
+  collectionWatcher.closeAllWatchers();
+  workspaceWatcher.closeAllWatchers();
+  apiSpecWatcher.closeAllWatchers();
+};
+
 // Parse protocol URL from command line arguments (if any)
 appProtocolUrl = getAppProtocolUrlFromArgv(process.argv);
 
@@ -175,8 +181,7 @@ if (useSingleInstance && !gotTheLock) {
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
-  // Ensure shell environment is loaded before any operations that need it
-  await initializeShellEnv();
+  initializeShellEnv();
 
   if (isDev) {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
@@ -197,9 +202,18 @@ app.on('ready', async () => {
 
   // Initialize system proxy cache early (non-blocking)
   const { fetchSystemProxy } = require('./store/system-proxy');
-  fetchSystemProxy().catch((err) => {
-    console.warn('Failed to initialize system proxy cache:', err);
-  });
+
+  // Note: irrespective of the state of the shell,
+  // try to fetch the system proxy information
+  waitForShellEnv()
+    .catch((err) => {
+      console.warn('Shell env init failed:', err);
+    })
+    .finally(() => {
+      fetchSystemProxy().catch((err) => {
+        console.warn('Failed to initialize system proxy cache:', err);
+      });
+    });
 
   Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
@@ -459,6 +473,7 @@ app.on('ready', async () => {
 
 // Quit the app once all windows are closed
 app.on('before-quit', () => {
+  closeAllWatchers();
   // Release single instance lock to allow other instances to take over
   if (useSingleInstance && gotTheLock) {
     app.releaseSingleInstanceLock();

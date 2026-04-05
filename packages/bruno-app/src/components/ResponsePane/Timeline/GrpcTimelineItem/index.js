@@ -10,9 +10,11 @@ import {
   IconCircleCheck,
   IconCircleX,
   IconX,
-  IconSend
+  IconSend,
+  IconArrowsRightLeft
 } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
+import { usePersistedState } from 'hooks/usePersistedState/index';
 
 // Event type display names
 const EventTypeNames = {
@@ -26,9 +28,12 @@ const EventTypeNames = {
   cancel: 'Cancelled'
 };
 
-const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, item }) => {
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const toggleCollapse = () => setIsCollapsed((prev) => !prev);
+const GrpcTimelineItem = ({ timestamp, request, response, eventType, collection, eventData, item }) => {
+  const [isExpanded, onToggleExpand] = usePersistedState({
+    key: `grpc-timeline-${timestamp}`,
+    default: false
+  });
+  const toggleCollapse = () => onToggleExpand(!isExpanded);
 
   // Use requestSent if available, otherwise fall back to request
   const effectiveRequest = item.requestSent || request || item.request || {};
@@ -74,6 +79,28 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       case 'request':
         return (
           <div className="content-request">
+            {effectiveRequest.proxy && effectiveRequest.proxy.mode !== 'off' && (
+              <div>
+                <div className="content-request-label mb-1">
+                  <IconArrowsRightLeft size={14} strokeWidth={1.5} className="inline-block mr-1" />
+                  Proxy
+                </div>
+                <div className="content-box">
+                  {effectiveRequest.proxy.url ? (
+                    <div>
+                      Using {effectiveRequest.proxy.mode === 'system' ? 'system ' : ''}proxy: {effectiveRequest.proxy.url}
+                    </div>
+                  ) : (
+                    <div className="empty-text">
+                      {effectiveRequest.proxy.mode === 'system'
+                        ? 'No system proxy configured for this request'
+                        : 'Proxy enabled but not applicable for this request'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {effectiveRequest.headers && Object.keys(effectiveRequest.headers).length > 0 && (
               <div>
                 <div className="content-request-label mb-1">Metadata</div>
@@ -247,7 +274,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
   return (
     <StyledWrapper className={`${eventClass} pl-1 mb-2`}>
       <div className="event-header" onClick={toggleCollapse}>
-        {isCollapsed ? <IconChevronRight size={16} strokeWidth={1.5} /> : <IconChevronDown size={16} strokeWidth={1.5} />}
+        {!isExpanded ? <IconChevronRight size={16} strokeWidth={1.5} /> : <IconChevronDown size={16} strokeWidth={1.5} />}
         <div className="event-icon-container">
           {eventIcon}
         </div>
@@ -272,7 +299,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, eventData, 
       <div className="url-text">{url}</div>
 
       {/* Expanded content - only show for non-status items */}
-      {!isCollapsed && renderEventContent()}
+      {isExpanded && renderEventContent()}
     </StyledWrapper>
   );
 };
