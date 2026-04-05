@@ -99,6 +99,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       return;
     }
     event.preventDefault();
+    editorRef.current?.editor?.getInputField()?.blur();
     try {
       const request = getRequestFromCurlCommand(pastedData, 'graphql-request');
       if (!request || !request.url) {
@@ -176,6 +177,8 @@ const QueryUrl = ({ item, collection, handleRun }) => {
 
     // Prevent the default paste behavior
     event.preventDefault();
+
+    editorRef.current?.editor?.getInputField()?.blur();
 
     try {
       // Parse the curl command
