@@ -470,6 +470,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       // Full parse happens on-demand when user clicks the request or runner needs it.
       const deferredParse = preferencesUtil.isBetaFeatureEnabled('deferred-parse');
       if (deferredParse) {
+        file.deferredParse = true; // Explicit flag so renderer can distinguish from large-file placeholders
         _log('STEP-6: DEFERRED — skipping worker parse (deferred-parse ON)');
         _parseTimings.add({
           name: _fname,

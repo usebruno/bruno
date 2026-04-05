@@ -2721,6 +2721,7 @@ export const collectionsSlice = createSlice({
             currentItem.examples = file.data.examples;
             currentItem.draft = null;
             currentItem.partial = file.partial;
+            currentItem.deferredParse = file.deferredParse || false;
             currentItem.loading = file.loading;
             currentItem.size = file.size;
             currentItem.error = file.error;
@@ -2740,6 +2741,7 @@ export const collectionsSlice = createSlice({
               pathname: file.meta.pathname,
               draft: null,
               partial: file.partial,
+              deferredParse: file.deferredParse || false,
               loading: file.loading,
               size: file.size,
               error: file.error,
@@ -2873,6 +2875,7 @@ export const collectionsSlice = createSlice({
                 currentItem.examples = file.data.examples;
                 currentItem.draft = null;
                 currentItem.partial = file.partial;
+                currentItem.deferredParse = file.deferredParse || false;
                 currentItem.loading = file.loading;
                 currentItem.size = file.size;
                 currentItem.error = file.error;
@@ -2892,6 +2895,7 @@ export const collectionsSlice = createSlice({
                   pathname: file.meta.pathname,
                   draft: null,
                   partial: file.partial,
+                  deferredParse: file.deferredParse || false,
                   loading: file.loading,
                   size: file.size,
                   error: file.error,

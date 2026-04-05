@@ -1991,6 +1991,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
     } catch (error) {
       console.error(`Error parsing request on demand: ${pathname}`, error);
+      // Send error state to renderer so UI shows error instead of stuck spinner
+      file.partial = true;
+      file.deferredParse = false;
+      file.loading = false;
+      file.error = { message: error?.message };
+      mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
       return Promise.reject(error);
     }
   });

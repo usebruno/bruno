@@ -447,6 +447,10 @@ const parseBruFileMeta = (data) => {
         requestType = 'http-request';
       } else if (requestType === 'graphql') {
         requestType = 'graphql-request';
+      } else if (requestType === 'grpc') {
+        requestType = 'grpc-request';
+      } else if (requestType === 'ws') {
+        requestType = 'ws-request';
       } else {
         requestType = 'http-request';
       }

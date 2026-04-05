@@ -12,9 +12,11 @@ const RequestNotLoaded = ({ collection, item }) => {
     !item?.loading && dispatch(loadLargeRequest({ collectionUid: collection?.uid, pathname: item?.pathname }));
   };
 
-  // Auto-trigger full parse for deferred items (partial=true, not a large-file error)
-  // Large files have item.error set; deferred items have partial=true with no error
-  const isDeferredItem = item?.partial && !item?.error && !item?.loading;
+  // Auto-trigger full parse for deferred items only.
+  // item.deferredParse is set explicitly by collection-watcher when deferred-parse beta flag is ON.
+  // Large-file placeholders (>2.5MB) also have partial=true but do NOT have deferredParse,
+  // so they still go through the manual loadLargeRequest/redaction flow.
+  const isDeferredItem = item?.deferredParse === true && !item?.loading;
 
   useEffect(() => {
     if (isDeferredItem && !parseTriggered.current) {
