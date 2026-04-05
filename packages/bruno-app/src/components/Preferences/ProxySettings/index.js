@@ -10,7 +10,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import { useState } from 'react';
 import SystemProxy from './SystemProxy';
-import Button from 'ui/Button';
 
 const ProxySettings = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -111,6 +110,9 @@ const ProxySettings = ({ close }) => {
     if (preferences.proxy.source === 'inherit') return 'system';
     return 'on';
   });
+  const [pacInputMode, setPacInputMode] = useState(() =>
+    preferences.proxy.pac?.source?.startsWith('file://') ? 'file' : 'url'
+  );
 
   useEffect(() => {
     if (formik.dirty && formik.isValid) {
@@ -382,44 +384,74 @@ const ProxySettings = ({ close }) => {
         ) : null}
         {proxyMode === 'pac' ? (
           <>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="pac.source">
-                PAC URL
-              </label>
-              <input
-                id="pac.source"
-                type="text"
-                name="pac.source"
-                className="block textbox pac-url-input"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                onChange={formik.handleChange}
-                value={formik.values.pac.source || ''}
-                placeholder="https://example.com/proxy.pac"
-              />
-              <Button
-                type="button"
-                size="sm"
-                className="ml-2"
-                onClick={() => {
-                  window.ipcRenderer
-                    .invoke('renderer:browse-pac-file')
-                    .then((fileUrl) => {
-                      if (fileUrl) {
-                        formik.setFieldValue('pac.source', fileUrl);
-                        toast.success('PAC file selected');
-                      }
-                    })
-                    .catch(() => toast.error('Failed to open file picker'));
-                }}
-              >
-                Browse
-              </Button>
-              {formik.touched.pac?.source && formik.errors.pac?.source ? (
-                <div className="ml-3 text-red-500">{formik.errors.pac.source}</div>
-              ) : null}
+            <div className="mb-3">
+              <div className="flex items-center">
+                <label className="settings-label">PAC</label>
+                <div className="pac-mode-toggle">
+                  <button
+                    type="button"
+                    className={`pac-mode-btn ${pacInputMode === 'url' ? 'active' : ''}`}
+                    onClick={() => {
+                      setPacInputMode('url');
+                      formik.setFieldValue('pac.source', '');
+                    }}
+                  >
+                    URL
+                  </button>
+                  <button
+                    type="button"
+                    className={`pac-mode-btn ${pacInputMode === 'file' ? 'active' : ''}`}
+                    onClick={() => {
+                      setPacInputMode('file');
+                      formik.setFieldValue('pac.source', '');
+                    }}
+                  >
+                    File
+                  </button>
+                </div>
+                {pacInputMode === 'url' ? (
+                  <input
+                    id="pac.source"
+                    type="text"
+                    name="pac.source"
+                    className="block textbox pac-source-input"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    onChange={formik.handleChange}
+                    value={formik.values.pac.source || ''}
+                    placeholder="https://example.com/proxy.pac"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="textbox pac-source-input pac-file-btn"
+                    onClick={() => {
+                      window.ipcRenderer
+                        .invoke('renderer:browse-pac-file')
+                        .then((fileUrl) => {
+                          if (fileUrl) {
+                            formik.setFieldValue('pac.source', fileUrl);
+                          }
+                        })
+                        .catch(() => toast.error('Failed to open file picker'));
+                    }}
+                  >
+                    {formik.values.pac.source
+                      ? decodeURIComponent(formik.values.pac.source.split('/').pop())
+                      : 'Choose file...'}
+                  </button>
+                )}
+                {formik.touched.pac?.source && formik.errors.pac?.source ? (
+                  <div className="ml-3 text-red-500">{formik.errors.pac.source}</div>
+                ) : null}
+              </div>
+              <p className="pac-hint">
+                {pacInputMode === 'url'
+                  ? 'Enter the URL to your PAC file'
+                  : 'Supports .pac files for automatic proxy configuration'}
+              </p>
             </div>
           </>
         ) : null}

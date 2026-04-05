@@ -461,9 +461,12 @@ async function createAgents({
         const directives = await resolver.resolve(requestUrl);
         if (directives && directives.length) {
           const first = directives[0];
-          if (/^(PROXY|HTTP)\s+/i.test(first)) {
-            const hostPort = first.split(/\s+/)[1];
-            const proxyUri = `http://${hostPort}`;
+          if (/^(PROXY|HTTPS?)\s+/i.test(first)) {
+            const parts = first.split(/\s+/);
+            const keyword = parts[0].toUpperCase();
+            const hostPort = parts[1];
+            const scheme = keyword === 'HTTPS' ? 'https' : 'http';
+            const proxyUri = `${scheme}://${hostPort}`;
             if (isHttpsRequest) {
               httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
             } else {

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import crypto from 'node:crypto';
 import { readFile } from 'fs/promises';
 import https, { type AgentOptions } from 'https';
 import { fileURLToPath } from 'url';
@@ -57,9 +58,17 @@ export async function getPacResolver({ pacUrl, httpsAgentRequestFields = {}, opt
   if (!pacUrl) throw new Error('pacUrl must be provided');
 
   const cacheTtlMs = opts.cacheTtlMs ?? 5 * 60 * 1000;
-  const caRaw = httpsAgentRequestFields.ca;
-  const caNorm = Array.isArray(caRaw) ? caRaw.join('|') : (caRaw ?? '');
-  const key = `url:${pacUrl}|ca:${caNorm}|ru:${httpsAgentRequestFields.rejectUnauthorized ?? ''}|mv:${httpsAgentRequestFields.minVersion ?? ''}`;
+  let key: string;
+  if (pacUrl.startsWith('https://')) {
+    const caRaw = httpsAgentRequestFields.ca;
+    const caHash = caRaw
+      ? crypto.createHash('sha256').update(Array.isArray(caRaw) ? caRaw.join('|') : caRaw).digest('hex').slice(0, 16)
+      : '';
+    key = `url:${pacUrl}|ca:${caHash}|ru:${httpsAgentRequestFields.rejectUnauthorized ?? ''}|mv:${httpsAgentRequestFields.minVersion ?? ''}`;
+  } else {
+    // file:// and http:// — no TLS options involved in fetching
+    key = `url:${pacUrl}`;
+  }
   const now = Date.now();
   const cached = CACHE.get(key);
   if (cached && now - cached.ts < cacheTtlMs) return cached.wrapper;
