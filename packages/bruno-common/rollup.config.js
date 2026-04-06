@@ -71,4 +71,10 @@ module.exports = [
     esmOutput: 'dist/utils/esm/index.js',
     dtsOutput: 'dist/utils/index.d.ts'
   }),
+  ...createBuildConfig({
+    inputDir: 'src/sync/**/*',
+    input: 'src/sync/index.ts',
+    cjsOutput: 'dist/sync/cjs/index.js',
+    esmOutput: 'dist/sync/esm/index.js'
+  }),
 ];
