@@ -19,3 +19,16 @@ export function clearPersistedScope(scope: string) {
     .filter((k) => k.startsWith(prefix))
     .forEach((k) => localStorage.removeItem(k));
 }
+
+export function clearAllPersistedState() {
+  Object.keys(localStorage)
+    .filter((k) => k.startsWith('persisted::'))
+    .forEach((k) => localStorage.removeItem(k));
+}
+
+// Clear all persisted state on app boot so no orphaned keys from the previous session remain.
+// Done on startup (not on close) because Electron's renderer process is killed before
+// beforeunload can reliably fire.
+if (typeof window !== 'undefined') {
+  clearAllPersistedState();
+}
