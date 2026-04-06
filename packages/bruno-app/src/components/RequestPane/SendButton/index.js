@@ -10,6 +10,7 @@ const SendButton = ({ isLoading = false, onSend, onCancel, sendTestId, cancelTes
         variant={isLoading ? 'outline' : 'filled'}
         color="primary"
         data-testid={isLoading ? cancelTestId : sendTestId}
+        data-action={isLoading ? 'cancel' : 'send'}
         onClick={isLoading ? onCancel : onSend}
       >
         {isLoading ? 'Cancel' : 'Send'}
