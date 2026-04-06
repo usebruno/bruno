@@ -2,6 +2,8 @@ const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
 const { isFormData } = require('@usebruno/common').utils;
 
+const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
+
 const getContentType = (headers = {}) => {
   let contentType = '';
   forOwn(headers, (value, key) => {
@@ -107,10 +109,11 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   if (typeof contentType === 'string' && !isGraphqlRequest) {
     /*
-      We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode.
-      Even if the selected file's content type is JSON, this prevents the buffer object from being interpolated.
+      We explicitly avoid interpolating binary payloads because raw file bodies can be represented as
+      buffers or streams depending on size. Even if the selected file's content type is JSON, the
+      transport object itself must not be interpolated.
     */
-    if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
+    if (contentType.includes('json') && !isBinaryRequestBody(request.data)) {
       if (typeof request.data === 'string') {
         if (request.data.length) {
           request.data = _interpolate(request.data, {
