@@ -21,13 +21,16 @@ export function usePersistedEditorScroll(editorRef: RefObject<any>, key: string)
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
       saveTimeout.current = setTimeout(() => {
         setScroll(editor.doc.scrollTop);
-      }, 300);
+      }, 200);
     };
     editor.on('scroll', onScroll);
 
     return () => {
       editor.off('scroll', onScroll);
-      if (saveTimeout.current) clearTimeout(saveTimeout.current);
+      if (saveTimeout.current) {
+        clearTimeout(saveTimeout.current);
+        setScroll(editor.doc.scrollTop);
+      }
     };
   }, [editorRef, setScroll]);
 
