@@ -34,17 +34,21 @@ const Script = ({ item, collection }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  const preReqScroll = usePersistedEditorScroll(preRequestEditorRef, `pre-req-scroll-${item.uid}`);
-  const postResScroll = usePersistedEditorScroll(postResponseEditorRef, `post-res-scroll-${item.uid}`);
+  const preReqScroll = usePersistedEditorScroll(preRequestEditorRef, `request-pre-req-scroll-${item.uid}`);
+  const postResScroll = usePersistedEditorScroll(postResponseEditorRef, `request-post-res-scroll-${item.uid}`);
 
-  // Refresh CodeMirror when tab becomes visible
+  // Refresh CodeMirror when tab becomes visible and restore scroll position.
+  // CodeMirror's scrollTo() is silently ignored when the editor is inside a display:none container
+  // (TabsContent hides inactive tabs via display:none). So the scroll set during componentDidMount
+  // is lost for the hidden editor. After refresh() recalculates layout, we re-apply scrollTo().
   useEffect(() => {
-    // Small delay to ensure DOM is updated
     const timer = setTimeout(() => {
       if (activeTab === 'pre-request' && preRequestEditorRef.current?.editor) {
         preRequestEditorRef.current.editor.refresh();
+        preRequestEditorRef.current.editor.scrollTo(null, preReqScroll);
       } else if (activeTab === 'post-response' && postResponseEditorRef.current?.editor) {
         postResponseEditorRef.current.editor.refresh();
+        postResponseEditorRef.current.editor.scrollTo(null, postResScroll);
       }
     }, 0);
 

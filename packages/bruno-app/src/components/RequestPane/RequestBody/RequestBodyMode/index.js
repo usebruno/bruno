@@ -24,8 +24,8 @@ const DEFAULT_MODES = [
   {
     name: 'Form',
     options: [
-      { id: 'multipartForm', label: 'Multipart Form', leftSection: IconForms },
-      { id: 'formUrlEncoded', label: 'Form URL Encoded', leftSection: IconForms }
+      { id: 'multipartForm', label: 'Multipart Form - form', leftSection: IconForms },
+      { id: 'formUrlEncoded', label: 'Form URL Encoded - from', leftSection: IconForms }
     ]
   },
   {

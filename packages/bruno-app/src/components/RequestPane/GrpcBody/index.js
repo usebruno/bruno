@@ -10,6 +10,7 @@ import useLocalStorage from 'hooks/useLocalStorage';
 import CodeEditor from 'components/CodeEditor/index';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
+import { usePersistedEditorScroll } from 'hooks/usePersistedState/usePersistedEditorScroll';
 import { IconSend, IconRefresh, IconWand, IconPlus, IconTrash } from '@tabler/icons';
 import ToolHint from 'components/ToolHint/index';
 import { toastError } from 'utils/common/error';
@@ -70,8 +71,10 @@ const MessageToolbar = ({
 
 const SingleGrpcMessage = ({ message, item, collection, index, methodType, handleRun, canClientSendMultipleMessages, isLast }) => {
   const dispatch = useDispatch();
+  const editorRef = useRef(null);
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+  const grpcScroll = usePersistedEditorScroll(editorRef, `request-grpc-msg-scroll-${item.uid}-${index}`);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const isConnectionActive = useSelector((state) => state.collections.activeConnections.includes(item.uid));
 
@@ -199,6 +202,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
       />
       <div className="editor-container">
         <CodeEditor
+          ref={editorRef}
           collection={collection}
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
@@ -209,6 +213,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
           onSave={onSave}
           mode="application/ld+json"
           enableVariableHighlighting={true}
+          initialScroll={grpcScroll}
         />
       </div>
     </div>

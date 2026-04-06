@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import InfoTip from 'components/InfoTip';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,6 +14,7 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import BulkEditor from '../../BulkEditor';
+import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -25,6 +26,8 @@ const QueryParams = ({ item, collection }) => {
   const pathParams = params.filter((param) => param.type === 'path');
 
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const wrapperRef = useRef(null);
+  usePersistedContainerScroll(wrapperRef, '.flex-boundary', `request-params-scroll-${item.uid}`);
 
   // Get column widths from Redux
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
@@ -146,7 +149,7 @@ const QueryParams = ({ item, collection }) => {
   }
 
   return (
-    <StyledWrapper className="w-full flex flex-col">
+    <StyledWrapper className="w-full flex flex-col" ref={wrapperRef}>
       <div className="flex-1">
         <div className="mb-3 title text-xs">Query</div>
         <EditableTable
