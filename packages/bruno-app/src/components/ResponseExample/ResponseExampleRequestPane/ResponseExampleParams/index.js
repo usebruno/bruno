@@ -119,6 +119,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={() => {}}
@@ -139,6 +140,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={() => {}}
@@ -168,6 +170,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={() => {}}

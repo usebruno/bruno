@@ -145,6 +145,7 @@ const Assertions = ({ item, collection }) => {
 
         return (
           <SingleLineEditor
+            deferred
             value={assertionValue}
             theme={storedTheme}
             onSave={onSave}

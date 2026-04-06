@@ -190,6 +190,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
               <IconFile size={16} className="text-muted mr-1" />
               <div className="file-name flex-1 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
                 <SingleLineEditor
+                  deferred
                   theme={storedTheme}
                   value={fileName}
                   readOnly={true}
@@ -212,6 +213,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
           <div className="flex items-center value-cell">
             <div className="flex-1">
               <MultiLineEditor
+                deferred
                 onSave={() => {}}
                 theme={storedTheme}
                 value={value || ''}
@@ -243,6 +245,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          deferred
           onSave={() => {}}
           theme={storedTheme}
           placeholder={!value ? 'Auto' : ''}

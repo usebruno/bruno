@@ -137,6 +137,7 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={() => {}}
@@ -157,6 +158,7 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={() => {}}

@@ -136,6 +136,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
       <label className="block mb-1">Access Key ID</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
+          deferred
           value={awsv4Auth.accessKeyId || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -150,6 +151,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
       <label className="block mb-1">Secret Access Key</label>
       <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
+          deferred
           value={awsv4Auth.secretAccessKey || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -167,6 +169,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
       <label className="block mb-1">Session Token</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
+          deferred
           value={awsv4Auth.sessionToken || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -181,6 +184,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
       <label className="block mb-1">Service</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
+          deferred
           value={awsv4Auth.service || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -195,6 +199,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
       <label className="block mb-1">Region</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
+          deferred
           value={awsv4Auth.region || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -209,6 +214,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
       <label className="block mb-1">Profile Name</label>
       <div className="single-line-editor-wrapper">
         <SingleLineEditor
+          deferred
           value={awsv4Auth.profileName || ''}
           theme={storedTheme}
           onSave={handleSave}

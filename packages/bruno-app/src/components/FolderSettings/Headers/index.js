@@ -73,6 +73,7 @@ const Headers = ({ collection, folder }) => {
       width: '30%',
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -89,6 +90,7 @@ const Headers = ({ collection, folder }) => {
       placeholder: 'Value',
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={handleSave}

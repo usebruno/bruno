@@ -56,6 +56,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
       <label className="block mb-1">Username</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
+          deferred
           value={wsseAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -70,6 +71,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
       <label className="block mb-1">Password</label>
       <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
+          deferred
           value={wsseAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}

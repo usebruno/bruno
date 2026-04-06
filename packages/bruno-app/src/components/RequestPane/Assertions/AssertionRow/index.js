@@ -166,6 +166,7 @@ const AssertionRow = ({
       <td>
         {!isUnaryOperator(operator) ? (
           <SingleLineEditor
+            deferred
             value={value}
             theme={storedTheme}
             onSave={onSave}

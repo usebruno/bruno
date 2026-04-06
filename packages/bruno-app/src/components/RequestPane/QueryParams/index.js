@@ -84,6 +84,7 @@ const QueryParams = ({ item, collection }) => {
       placeholder: 'Value',
       render: ({ value, onChange }) => (
         <MultiLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={onSave}
@@ -112,6 +113,7 @@ const QueryParams = ({ item, collection }) => {
       placeholder: 'Value',
       render: ({ row, value, onChange }) => (
         <MultiLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={onSave}

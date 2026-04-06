@@ -362,6 +362,7 @@ const ClientCertSettings = ({ collection }) => {
           </label>
           <div className="textbox flex flex-row items-center w-[300px] h-[1.70rem] relative">
             <SingleLineEditor
+              deferred
               value={formik.values.passphrase || ''}
               theme={storedTheme}
               onChange={(val) => formik.setFieldValue('passphrase', val)}

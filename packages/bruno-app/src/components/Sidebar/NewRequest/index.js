@@ -523,6 +523,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       className="flex px-2 items-center flex-grow input-container h-full min-w-0"
                     >
                       <SingleLineEditor
+                        deferred
                         onPaste={handlePaste}
                         placeholder="Request URL"
                         value={formik.values.requestUrl || ''}

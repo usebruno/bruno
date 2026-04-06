@@ -45,6 +45,7 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
   return (
     <StyledWrapper className="flex flex-wrap flex-col gap-2">
       <SingleLineEditor
+        deferred
         className="border border-gray-500/50 px-2"
         value={text}
         placeholder="e.g., smoke, regression"

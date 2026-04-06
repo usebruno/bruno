@@ -60,6 +60,7 @@ const ApiKeyAuth = ({ collection }) => {
       <label className="block mb-1">Key</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
+          deferred
           value={apikeyAuth.key || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -72,6 +73,7 @@ const ApiKeyAuth = ({ collection }) => {
       <label className="block mb-1">Value</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
+          deferred
           value={apikeyAuth.value || ''}
           theme={storedTheme}
           onSave={handleSave}

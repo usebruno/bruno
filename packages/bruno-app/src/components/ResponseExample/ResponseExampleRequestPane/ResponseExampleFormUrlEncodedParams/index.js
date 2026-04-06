@@ -71,6 +71,7 @@ const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, edi
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <MultiLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={() => {}}

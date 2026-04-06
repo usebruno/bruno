@@ -81,6 +81,7 @@ const WSSettingsPane = ({ item, collection }) => {
               text={formErrors.timeout ? formErrors.timeout : ''}
             >
               <SingleLineEditor
+                deferred
                 value={connectionTimeout}
                 theme={storedTheme}
                 onChange={(newValue) => updateSetting('timeout', newValue)}
@@ -119,6 +120,7 @@ const WSSettingsPane = ({ item, collection }) => {
               text={formErrors.keepAliveInterval ? formErrors.keepAliveInterval : ''}
             >
               <SingleLineEditor
+                deferred
                 value={keepAliveInterval}
                 theme={storedTheme}
                 onChange={(newValue) => updateSetting('keepAliveInterval', newValue)}

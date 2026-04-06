@@ -60,6 +60,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
       placeholder: 'Value',
       render: ({ value, onChange }) => (
         <MultiLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={onSave}

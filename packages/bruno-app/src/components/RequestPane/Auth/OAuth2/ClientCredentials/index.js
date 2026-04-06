@@ -90,6 +90,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
             <label className="block min-w-[140px]">{label}</label>
             <div className="single-line-editor-wrapper flex-1 flex items-center">
               <SingleLineEditor
+                deferred
                 value={value}
                 theme={storedTheme}
                 onSave={handleSave}
@@ -153,6 +154,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
         <label className="block min-w-[140px]">Token ID</label>
         <div className="single-line-editor-wrapper flex-1">
           <SingleLineEditor
+            deferred
             value={oAuth['credentialsId'] || ''}
             theme={storedTheme}
             onSave={handleSave}
@@ -189,6 +191,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                 <label className="block min-w-[140px]">Header Prefix</label>
                 <div className="single-line-editor-wrapper flex-1">
                   <SingleLineEditor
+                    deferred
                     value={oAuth['tokenHeaderPrefix'] || ''}
                     theme={storedTheme}
                     onSave={handleSave}
@@ -205,6 +208,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                 <label className="block min-w-[140px]">Query Param Key</label>
                 <div className="single-line-editor-wrapper flex-1">
                   <SingleLineEditor
+                    deferred
                     value={oAuth['tokenQueryKey'] || ''}
                     theme={storedTheme}
                     onSave={handleSave}
@@ -230,6 +234,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
         <label className="block min-w-[140px]">Refresh Token URL</label>
         <div className="single-line-editor-wrapper flex-1">
           <SingleLineEditor
+            deferred
             value={get(request, 'auth.oauth2.refreshTokenUrl', '')}
             theme={storedTheme}
             onSave={handleSave}

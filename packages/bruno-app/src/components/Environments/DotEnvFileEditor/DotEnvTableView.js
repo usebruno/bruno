@@ -69,6 +69,7 @@ const DotEnvTableView = ({
           <td className="flex flex-row flex-nowrap items-center">
             <div className="overflow-hidden grow w-full relative">
               <MultiLineEditor
+                deferred
                 theme={theme}
                 name={`${index}.value`}
                 value={variable.value}

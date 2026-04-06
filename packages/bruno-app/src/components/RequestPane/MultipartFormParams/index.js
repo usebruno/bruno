@@ -151,6 +151,7 @@ const MultipartFormParams = ({ item, collection }) => {
               <IconFile size={16} className="text-muted mr-1" />
               <div className="file-name flex-1 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
                 <SingleLineEditor
+                  deferred
                   theme={storedTheme}
                   value={fileName}
                   readOnly={true}
@@ -173,6 +174,7 @@ const MultipartFormParams = ({ item, collection }) => {
           <div className="flex items-center value-cell">
             <div className="flex-1">
               <MultiLineEditor
+                deferred
                 onSave={onSave}
                 theme={storedTheme}
                 value={value || ''}
@@ -202,6 +204,7 @@ const MultipartFormParams = ({ item, collection }) => {
       width: '20%',
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          eferred
           onSave={onSave}
           theme={storedTheme}
           placeholder={!value ? 'Auto' : ''}

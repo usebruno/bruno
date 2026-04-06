@@ -107,6 +107,7 @@ const FileBody = ({ item, collection }) => {
                     </td>
                     <td>
                       <SingleLineEditor
+                        deferred
                         className="flex items-center justify-center"
                         onSave={onSave}
                         theme={storedTheme}

@@ -73,6 +73,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
       <label className="block mb-1">Username</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
+          deferred
           value={ntlmAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -87,6 +88,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
       <label className="block mb-1">Password</label>
       <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
+          deferred
           value={ntlmAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -103,6 +105,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
       <label className="block mb-1">Domain</label>
       <div className="single-line-editor-wrapper">
         <SingleLineEditor
+          deferred
           value={ntlmAuth.domain || ''}
           theme={storedTheme}
           onSave={handleSave}

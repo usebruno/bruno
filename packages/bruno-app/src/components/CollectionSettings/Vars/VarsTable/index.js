@@ -59,6 +59,7 @@ const VarsTable = ({ collection, vars, varType }) => {
       placeholder: varType === 'request' ? 'Value' : 'Expr',
       render: ({ value, onChange }) => (
         <MultiLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={onSave}

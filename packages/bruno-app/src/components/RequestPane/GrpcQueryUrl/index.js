@@ -304,6 +304,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       </div>
       <div className="flex items-center w-full input-container h-full relative overflow-auto">
         <SingleLineEditor
+          deferred
           ref={editorRef}
           value={url}
           onSave={(finalValue) => onSave(finalValue)}

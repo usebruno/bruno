@@ -556,6 +556,7 @@ const EnvironmentVariablesTable = ({
                     onFocus={() => handleRowFocus(variable.uid)}
                   >
                     <MultiLineEditor
+                      deferred
                       theme={storedTheme}
                       collection={_collection}
                       name={`${actualIndex}.value`}

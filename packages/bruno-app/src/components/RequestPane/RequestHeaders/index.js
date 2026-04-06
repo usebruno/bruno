@@ -79,6 +79,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       width: '30%',
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={onSave}
@@ -97,6 +98,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       placeholder: 'Value',
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          deferred
           value={value || ''}
           theme={storedTheme}
           onSave={onSave}

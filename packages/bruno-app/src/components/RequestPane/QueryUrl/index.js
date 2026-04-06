@@ -392,6 +392,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         className="h-full w-full flex flex-row input-container overflow-auto"
       >
         <SingleLineEditor
+          deferred
           ref={editorRef}
           value={url}
           placeholder="Enter URL or paste a cURL request"

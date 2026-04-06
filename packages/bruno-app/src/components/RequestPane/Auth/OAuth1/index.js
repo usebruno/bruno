@@ -124,6 +124,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
         <label className="block min-w-[140px]">Consumer Key</label>
         <div className="single-line-editor-wrapper flex-1">
           <SingleLineEditor
+            deferred
             value={oauth1.consumerKey || ''}
             theme={storedTheme}
             onSave={handleSave}
@@ -141,6 +142,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
           <label className="block min-w-[140px]">Consumer Secret</label>
           <div className="single-line-editor-wrapper flex-1 flex items-center">
             <SingleLineEditor
+              deferred
               value={oauth1.consumerSecret || ''}
               theme={storedTheme}
               onSave={handleSave}
@@ -160,6 +162,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
         <label className="block min-w-[140px]">Token</label>
         <div className="single-line-editor-wrapper flex-1">
           <SingleLineEditor
+            deferred
             value={oauth1.accessToken || ''}
             theme={storedTheme}
             onSave={handleSave}
@@ -176,6 +179,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
         <label className="block min-w-[140px]">Token Secret</label>
         <div className="single-line-editor-wrapper flex-1 flex items-center">
           <SingleLineEditor
+            deferred
             value={oauth1.accessTokenSecret || ''}
             theme={storedTheme}
             onSave={handleSave}
@@ -240,6 +244,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
             <div className="flex flex-1 flex-col gap-2">
               <div className="private-key-editor-wrapper flex-1 flex items-center">
                 <MultiLineEditor
+                  deferred
                   value={privateKeyValue}
                   theme={storedTheme}
                   onSave={handleSave}
@@ -339,6 +344,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
             <label className="block min-w-[140px]">Callback URL</label>
             <div className="single-line-editor-wrapper flex-1">
               <SingleLineEditor
+                deferred
                 value={oauth1.callbackUrl || ''}
                 theme={storedTheme}
                 onSave={handleSave}
@@ -355,6 +361,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
             <label className="block min-w-[140px]">Verifier</label>
             <div className="single-line-editor-wrapper flex-1">
               <SingleLineEditor
+                deferred
                 value={oauth1.verifier || ''}
                 theme={storedTheme}
                 onSave={handleSave}
@@ -371,6 +378,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
             <label className="block min-w-[140px]">Timestamp</label>
             <div className="single-line-editor-wrapper flex-1">
               <SingleLineEditor
+                deferred
                 value={oauth1.timestamp || ''}
                 theme={storedTheme}
                 onSave={handleSave}
@@ -387,6 +395,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
             <label className="block min-w-[140px]">Nonce</label>
             <div className="single-line-editor-wrapper flex-1">
               <SingleLineEditor
+                deferred
                 value={oauth1.nonce || ''}
                 theme={storedTheme}
                 onSave={handleSave}
@@ -403,6 +412,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
             <label className="block min-w-[140px]">Version</label>
             <div className="single-line-editor-wrapper flex-1">
               <SingleLineEditor
+                deferred
                 value={oauth1.version || ''}
                 theme={storedTheme}
                 onSave={handleSave}
@@ -419,6 +429,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
             <label className="block min-w-[140px]">Realm</label>
             <div className="single-line-editor-wrapper flex-1">
               <SingleLineEditor
+                deferred
                 value={oauth1.realm || ''}
                 theme={storedTheme}
                 onSave={handleSave}

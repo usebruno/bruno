@@ -59,6 +59,35 @@ const StyledWrapper = styled.div`
       background-color: rgba(212, 125, 59, 0.3);
     }
   }
+
+  /* Deferred viewer — exactly matches .CodeMirror + .CodeMirror-line + pre styles */
+  .viewer-content {
+    background: transparent;
+    /* Use same height as .CodeMirror (not the wrapper) so text sits at the same vertical position */
+    height: ${(props) => (props.$isCompact ? '1.375rem' : '2.125rem')};
+    font-family: Inter, sans-serif !important;
+    font-weight: 400;
+    font-size: ${(props) => props.theme.font.size.base};
+    line-height: ${(props) => (props.$isCompact ? '1.375rem' : '1.875rem')};
+    padding: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: ${(props) => props.theme.text};
+  }
+
+  .viewer-content .viewer-placeholder {
+    color: ${(props) => props.theme.codemirror.placeholder.color} !important;
+    opacity: ${(props) => props.theme.codemirror.placeholder.opacity} !important;
+  }
+
+  .viewer-content .variable-valid {
+    color: ${(props) => props.theme.codemirror.variable.valid};
+  }
+
+  .viewer-content .variable-invalid {
+    color: ${(props) => props.theme.codemirror.variable.invalid};
+  }
 `;
 
 export default StyledWrapper;

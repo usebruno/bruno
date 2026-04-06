@@ -65,6 +65,42 @@ const StyledWrapper = styled.div`
       background-color: rgba(212, 125, 59, 0.3);
     }
   }
+
+  /* Deferred viewer — exactly matches .CodeMirror + .CodeMirror-line + pre styles */
+  .viewer-content {
+    background: transparent;
+    height: fit-content;
+    min-height: 30px;
+    max-height: 200px;
+    font-family: Inter, sans-serif !important;
+    font-weight: 400;
+    font-size: ${(props) => props.theme.font.size.base};
+    line-height: 30px;
+    padding: 0;
+    overflow: hidden;
+    color: ${(props) => props.theme.text};
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  &.read-only .viewer-content {
+    color: ${(props) => props.theme.colors.text.muted};
+    cursor: not-allowed;
+  }
+
+  .viewer-content .viewer-placeholder {
+    color: ${(props) => props.theme.text};
+    opacity: 0.5;
+    padding-left: 0;
+  }
+
+  .viewer-content .variable-valid {
+    color: ${(props) => props.theme.codemirror.variable.valid};
+  }
+
+  .viewer-content .variable-invalid {
+    color: ${(props) => props.theme.codemirror.variable.invalid};
+  }
 `;
 
 export default StyledWrapper;

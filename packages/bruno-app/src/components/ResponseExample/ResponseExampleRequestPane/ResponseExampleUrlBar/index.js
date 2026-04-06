@@ -64,6 +64,7 @@ const ResponseExampleUrlBar = ({ item, collection, editMode, onSave, exampleUid 
           className="response-example-url flex items-center flex-1 h-6 min-w-0 overflow-hidden"
         >
           <SingleLineEditor
+            deferred
             value={url}
             onSave={onSave}
             onChange={onChange}

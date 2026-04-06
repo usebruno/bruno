@@ -128,6 +128,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             <span className="text-xs font-medium method-ws">WS</span>
           </div>
           <SingleLineEditor
+            deferred
             value={url}
             onSave={(finalValue) => onSave(finalValue)}
             onChange={handleUrlChange}

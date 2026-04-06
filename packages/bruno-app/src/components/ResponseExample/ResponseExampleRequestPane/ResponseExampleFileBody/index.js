@@ -143,6 +143,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          deferred
           className="flex items-center justify-center"
           onSave={() => {}}
           theme={storedTheme}

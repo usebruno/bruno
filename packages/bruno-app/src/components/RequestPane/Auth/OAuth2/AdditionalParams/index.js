@@ -193,6 +193,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
             <tr key={index}>
               <td className="flex relative">
                 <SingleLineEditor
+                  deferred
                   value={param?.name || ''}
                   theme={storedTheme}
                   onChange={(value) => handleUpdateAdditionalParam({
@@ -208,6 +209,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
               </td>
               <td>
                 <MultiLineEditor
+                  deferred
                   value={param?.value || ''}
                   theme={storedTheme}
                   onChange={(value) => handleUpdateAdditionalParam({
