@@ -163,14 +163,6 @@ async function setupProxyAgents({
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
 
-      if (timeline) {
-        timeline.push({
-          timestamp: new Date(),
-          type: 'info',
-          message: `Using proxy: ${proxyProtocol}://${proxyHostname}${uriPort}`
-        });
-      }
-
       // When the proxy itself uses HTTPS, the agent connecting to it needs TLS options
       // (e.g., ca certs) even for plain HTTP requests
       const isHttpsProxy = proxyProtocol === 'https';
@@ -238,9 +230,12 @@ async function setupProxyAgents({
         if (directives && directives.length) {
           const first = directives[0];
           if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `PAC directives: ${directives.join('; ')}` });
-          if (/^(PROXY|HTTP)\s+/i.test(first)) {
-            const hostPort = first.split(/\s+/)[1];
-            const proxyUri = `http://${hostPort}`;
+          if (/^(PROXY|HTTPS?)\s+/i.test(first)) {
+            const parts = first.split(/\s+/);
+            const keyword = parts[0].toUpperCase();
+            const hostPort = parts[1];
+            const scheme = keyword === 'HTTPS' ? 'https' : 'http';
+            const proxyUri = `${scheme}://${hostPort}`;
             requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
             requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
           } else if (/^SOCKS/i.test(first)) {

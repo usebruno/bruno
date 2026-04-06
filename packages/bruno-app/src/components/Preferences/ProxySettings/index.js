@@ -116,8 +116,7 @@ const ProxySettings = ({ close }) => {
 
   useEffect(() => {
     if (formik.dirty && formik.isValid) {
-      // Don't auto-save PAC mode until a URL is actually entered — an empty pacUrl
-      // would save as non-PAC (the mode is inferred from pacUrl being truthy on load).
+      // Don't auto-save PAC mode until a URL or file is actually selected.
       if (proxyMode === 'pac' && !formik.values.pac.source) return;
       debouncedSave(formik.values);
     }

@@ -9,7 +9,7 @@
     "proxy": {
       "source": "pac",
       "pac": {
-        "source": "http://localhost:18080/test.pac"
+        "source": "{{pacUrl}}"
       },
       "config": {}
     }
