@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconAlertTriangle } from '@tabler/icons';
 import { removeCollectionFromWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
-import { findCollectionByUid } from 'utils/collections/index';
 import StyledWrapper from './StyledWrapper';
+import { makeSelectWorkspaceByUid } from 'src/selectors/workspaces';
+import { makeSelectCollectionByUid } from 'src/selectors/collections';
 
 const DeleteCollection = ({ onClose, collectionUid, workspaceUid }) => {
   const dispatch = useDispatch();
   const [confirmText, setConfirmText] = useState('');
-  const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
-  const workspace = useSelector((state) => state.workspaces.workspaces.find((w) => w.uid === workspaceUid));
+  const selectWorkspaceByUid = useMemo(makeSelectWorkspaceByUid, []);
+  const selectCollectionByUid = useMemo(makeSelectCollectionByUid, []);
+  const collection = useSelector((state) => selectCollectionByUid(state, collectionUid));
+  const workspace = useSelector((state) => selectWorkspaceByUid(state, workspaceUid));
 
   const isConfirmed = confirmText.toLowerCase() === 'delete';
 

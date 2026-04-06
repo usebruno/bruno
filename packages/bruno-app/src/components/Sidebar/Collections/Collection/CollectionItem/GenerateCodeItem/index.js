@@ -13,6 +13,7 @@ import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
+import { makeSelectCollectionByUid } from 'src/selectors/collections';
 
 const TEMPLATE_VAR_PATTERN = /\{\{([^}]+)\}\}/;
 
@@ -24,7 +25,8 @@ const validateURLWithVars = (url) => {
 
 const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exampleUid = null }) => {
   const languages = getLanguages();
-  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const selectCollectionByUid = useMemo(makeSelectCollectionByUid, []);
+  const collection = useSelector((state) => selectCollectionByUid(state, collectionUid));
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const generateCodePrefs = useSelector((state) => state.app.generateCode);
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({

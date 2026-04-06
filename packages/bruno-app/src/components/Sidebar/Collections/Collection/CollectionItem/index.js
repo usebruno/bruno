@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
@@ -46,7 +46,7 @@ import ExampleItem from './ExampleItem';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
-import { isEqual } from 'lodash';
+import { makeSelectCollectionByUid } from 'src/selectors/collections';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
@@ -60,14 +60,16 @@ import useKeybinding from 'hooks/useKeybinding';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
-  const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
-  const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
+  const _isTabForItemActiveSelector = useMemo(() => isTabForItemActiveSelector({ itemUid: item.uid }), [item.uid]);
+  const isTabForItemActive = useSelector(_isTabForItemActiveSelector);
 
-  const _isTabForItemPresentSelector = isTabForItemPresentSelector({ itemUid: item.uid });
-  const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
+  const _isTabForItemPresentSelector = useMemo(() => isTabForItemPresentSelector({ itemUid: item.uid }), [item.uid]);
+  const isTabForItemPresent = useSelector(_isTabForItemPresentSelector);
+
+  const selectCollectionByUid = useMemo(makeSelectCollectionByUid, []);
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
-  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const collection = useSelector((state) => selectCollectionByUid(state, collectionUid));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const dispatch = useDispatch();
 

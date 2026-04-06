@@ -13,14 +13,17 @@ import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, sav
 import { toggleSidebarCollapse, toggleSidebarSearch, savePreferences } from 'providers/ReduxStore/slices/app';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
+import { selectTabs, selectActiveTabUid } from 'src/selectors/tabs';
+import { selectCollections } from 'src/selectors/collections';
+import { selectActiveWorkspace } from 'src/selectors/workspaces';
 
 export const HotkeysContext = React.createContext();
 
 export const HotkeysProvider = (props) => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const collections = useSelector((state) => state.collections.collections);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const tabs = useSelector(selectTabs);
+  const collections = useSelector(selectCollections);
+  const activeTabUid = useSelector(selectActiveTabUid);
   const userKeyBindings = useSelector((state) => state.app.preferences?.keyBindings);
   const keybindingsEnabled = useSelector((state) => state.app.preferences?.keybindingsEnabled !== false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
@@ -304,10 +307,7 @@ export const HotkeysProvider = (props) => {
   // Open terminal — context-aware:
   // focusedSidebarPath: null = no sidebar focus, '' = request focused (no-op), '/path' = folder/collection
   const focusedSidebarPath = useSelector((state) => state.app.focusedSidebarPath);
-  const activeWorkspace = useSelector((state) => {
-    const { workspaces, activeWorkspaceUid } = state.workspaces;
-    return workspaces?.find((w) => w.uid === activeWorkspaceUid);
-  });
+  const activeWorkspace = useSelector(selectActiveWorkspace);
 
   useEffect(() => {
     bindAction('openTerminal', (e) => {
