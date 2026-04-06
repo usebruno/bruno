@@ -693,7 +693,6 @@ export const runCollectionFolder
       );
 
       const { ipcRenderer } = window;
-
       ipcRenderer
         .invoke(
           'renderer:run-collection-folder',
