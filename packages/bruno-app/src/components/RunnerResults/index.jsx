@@ -184,25 +184,10 @@ export default function RunnerResults({ collection }) {
     }));
   };
 
-  const [isPreparing, setIsPreparing] = useState(false);
-
   const runCollection = () => {
-    // Check if there are partial (unparsed) items — show preparing state while they parse
-    const hasPartialItems = (items = []) => {
-      for (const item of items) {
-        if (item.partial && item.type !== 'folder') return true;
-        if (item.items && hasPartialItems(item.items)) return true;
-      }
-      return false;
-    };
-    const needsParsing = hasPartialItems(collection.items);
-    if (needsParsing) setIsPreparing(true);
-
     const savedOrder = get(collection, 'runnerConfiguration.requestItemsOrder', selectedRequestItems);
     dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, savedOrder, delay));
-    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tags, selectedRequestItems))
-      .then(() => setIsPreparing(false))
-      .catch(() => setIsPreparing(false));
+    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tags, selectedRequestItems));
   };
 
   const runAgain = () => {
@@ -213,15 +198,6 @@ export default function RunnerResults({ collection }) {
     const savedSelectedItems = savedConfiguration?.selectedRequestItems || [];
     const savedDelay = savedConfiguration?.delay !== undefined ? savedConfiguration.delay : delay;
 
-    const hasPartialItems = (items = []) => {
-      for (const item of items) {
-        if (item.partial && item.type !== 'folder') return true;
-        if (item.items && hasPartialItems(item.items)) return true;
-      }
-      return false;
-    };
-    if (hasPartialItems(collection.items)) setIsPreparing(true);
-
     dispatch(
       runCollectionFolder(
         collection.uid,
@@ -231,9 +207,7 @@ export default function RunnerResults({ collection }) {
         tags,
         savedSelectedItems
       )
-    )
-      .then(() => setIsPreparing(false))
-      .catch(() => setIsPreparing(false));
+    );
   };
 
   const resetRunner = () => {
@@ -307,12 +281,10 @@ export default function RunnerResults({ collection }) {
               <Button
                 type="submit"
                 data-testid="runner-run-button"
-                disabled={selectedRequestItems.length === 0 || isCollectionLoading || isPreparing}
+                disabled={selectedRequestItems.length === 0 || isCollectionLoading}
                 onClick={runCollection}
               >
-                {isPreparing
-                  ? 'Preparing collection...'
-                  : `Run ${selectedRequestItems.length} Request${selectedRequestItems.length !== 1 ? 's' : ''}`}
+                Run {selectedRequestItems.length} Request{selectedRequestItems.length !== 1 ? 's' : ''}
               </Button>
 
               <Button type="button" variant="ghost" onClick={resetRunner}>

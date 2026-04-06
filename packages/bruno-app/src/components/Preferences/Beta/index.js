@@ -34,11 +34,6 @@ const BETA_FEATURES = [
     id: BETA_FEATURE_IDS.PARALLEL_WORKERS,
     label: 'Parallel Workers',
     description: 'Uses 4 parallel worker threads per lane instead of 1 for BRU file parsing. Distributes parsing work across multiple CPU cores for faster collection loading.'
-  },
-  {
-    id: BETA_FEATURE_IDS.DEFERRED_PARSE,
-    label: 'Deferred Parse',
-    description: 'Only parses file metadata at mount time for instant sidebar rendering (~0.5s). Full request data is parsed on-demand when you click a file or run the collection.'
   }
 ];
 

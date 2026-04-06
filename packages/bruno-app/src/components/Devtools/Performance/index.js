@@ -127,7 +127,7 @@ const Performance = () => {
 
         <SystemResourceCard
           icon={IconDatabase}
-          title="Memory Usage"
+          title="Memory Usage 1"
           value={formatBytes(systemResources.memory)}
           subtitle="Total memory usage"
           color={systemResources.memory > (500 * 1024 * 1024) ? 'danger' : 'default'}
@@ -174,7 +174,7 @@ const Performance = () => {
 
           <SystemResourceCard
             icon={IconDatabase}
-            title="Memory Usage"
+            title="Memory Usage 2"
             value={formatBytes(process.memory)}
             subtitle="Current memory usage"
             color={process.memory > (500 * 1024 * 1024) ? 'danger' : 'default'}

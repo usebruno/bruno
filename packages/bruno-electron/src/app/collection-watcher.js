@@ -466,25 +466,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       _log('STEP-5: IPC send addFile (partial=true, loading=false)');
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
-      // Deferred parse: stop here during mount — only send metadata for sidebar rendering.
-      // Full parse happens on-demand when user clicks the request or runner needs it.
-      const deferredParse = preferencesUtil.isBetaFeatureEnabled('deferred-parse');
-      if (deferredParse) {
-        file.deferredParse = true; // Explicit flag so renderer can distinguish from large-file placeholders
-        _log('STEP-6: DEFERRED — skipping worker parse (deferred-parse ON)');
-        _parseTimings.add({
-          name: _fname,
-          readMs: _tRead - _t0,
-          metaParseMs: _tMeta1 - _tMeta0,
-          actualParseMs: 0,
-          queueWaitMs: 0,
-          roundTripMs: 0,
-          totalMs: performance.now() - _t0,
-          sizeBytes: fileStats.size,
-          threadId: 'deferred',
-          flowPath: 'deferred'
-        });
-      } else if (fileStats.size < MAX_FILE_SIZE) {
+      if (fileStats.size < MAX_FILE_SIZE) {
         const skipLoadingBadge = preferencesUtil.isBetaFeatureEnabled('skip-loading-badge-event');
 
         if (!skipLoadingBadge) {

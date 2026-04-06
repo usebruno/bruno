@@ -694,89 +694,23 @@ export const runCollectionFolder
 
       const { ipcRenderer } = window;
 
-      // Pre-parse: if deferred-parse is enabled, bulk parse any partial request items before running
-      const collectPartialItems = (items = []) => {
-        let partials = [];
-        for (const item of items) {
-          if (item.partial && item.type !== 'folder') {
-            partials.push(item);
-          }
-          if (item.items) {
-            partials = partials.concat(collectPartialItems(item.items));
-          }
-        }
-        return partials;
-      };
-
-      const targetItems = folder ? folder.items : collectionCopy.items;
-      const partialItems = collectPartialItems(targetItems || []);
-
-      const runAfterParse = () => {
-        // Re-read the collection from state after parsing completes (it has been updated via IPC addFile events)
-        const freshState = getState();
-        const freshCollection = cloneDeep(findCollectionByUid(freshState.collections.collections, collectionUid));
-        freshCollection.globalEnvironmentVariables = globalEnvironmentVariables;
-        const freshFolder = folderUid ? findItemInCollection(freshCollection, folderUid) : null;
-        const freshEnvironment = findEnvironmentInCollection(freshCollection, collection.activeEnvironmentUid);
-
-        ipcRenderer
-          .invoke(
-            'renderer:run-collection-folder',
-            freshFolder,
-            freshCollection,
-            freshEnvironment,
-            freshCollection.runtimeVariables,
-            recursive,
-            delay,
-            tags,
-            selectedRequestUids
-          )
-          .then(resolve)
-          .catch((err) => {
-            toast.error(get(err, 'error.message') || 'Something went wrong!');
-            reject(err);
-          });
-      };
-
-      if (partialItems.length > 0) {
-        console.log(`[RUNNER-PRE-PARSE] Bulk parsing ${partialItems.length} deferred files using Phase 1 pipeline...`);
-        const pathnames = partialItems.map((item) => item.pathname);
-
-        // Single IPC call — main process uses parallel workers + sends addFile events
-        // Renderer batches them via isLoading state (Phase 1 batch dispatch flow)
-        ipcRenderer.invoke('renderer:bulk-parse-deferred-requests', {
-          collectionUid,
-          collectionPath: collectionCopy.pathname,
-          pathnames
-        })
-          .then(() => {
-            console.log(`[RUNNER-PRE-PARSE] All ${partialItems.length} files parsed. Starting runner.`);
-            // Small delay to let the final batch flush complete in renderer
-            setTimeout(runAfterParse, 200);
-          })
-          .catch((err) => {
-            console.error('[RUNNER-PRE-PARSE] Error during bulk parse:', err);
-            reject(err);
-          });
-      } else {
-        ipcRenderer
-          .invoke(
-            'renderer:run-collection-folder',
-            folder,
-            collectionCopy,
-            environment,
-            collectionCopy.runtimeVariables,
-            recursive,
-            delay,
-            tags,
-            selectedRequestUids
-          )
-          .then(resolve)
-          .catch((err) => {
-            toast.error(get(err, 'error.message') || 'Something went wrong!');
-            reject(err);
-          });
-      }
+      ipcRenderer
+        .invoke(
+          'renderer:run-collection-folder',
+          folder,
+          collectionCopy,
+          environment,
+          collectionCopy.runtimeVariables,
+          recursive,
+          delay,
+          tags,
+          selectedRequestUids
+        )
+        .then(resolve)
+        .catch((err) => {
+          toast.error(get(err, 'error.message') || 'Something went wrong!');
+          reject(err);
+        });
     });
   };
 
@@ -3046,15 +2980,6 @@ export const loadLargeRequest
       return new Promise(async (resolve, reject) => {
         const { ipcRenderer } = window;
         ipcRenderer.invoke('renderer:load-large-request', { collectionUid, pathname }).then(resolve).catch(reject);
-      });
-    };
-
-export const parseRequestOnDemand
-  = ({ collectionUid, pathname, collectionPath }) =>
-    (dispatch, getState) => {
-      return new Promise(async (resolve, reject) => {
-        const { ipcRenderer } = window;
-        ipcRenderer.invoke('renderer:parse-request-on-demand', { collectionUid, pathname, collectionPath }).then(resolve).catch(reject);
       });
     };
 
