@@ -4,6 +4,7 @@ const StyledWrapper = styled.div`
   display: flex;
   align-self: stretch;
   min-width: 4.1rem;
+  flex-shrink: 0;
 
   > div {
     display: flex;

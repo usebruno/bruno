@@ -6,6 +6,8 @@ const Wrapper = styled.div`
   .url-input-group {
     border: ${(props) => props.theme.requestTabPanel.url.border};
     border-radius: ${(props) => props.theme.border.radius.base};
+    flex: 1;
+    min-width: 0;
   }
 
   .infotip {

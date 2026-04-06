@@ -385,7 +385,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   };
   return (
     <StyledWrapper className="flex items-center w-full">
-      <div className="flex items-center h-full w-full url-input-group">
+      <div className="flex items-center h-full url-input-group">
         <div className="flex items-center h-full min-w-fit">
           <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
         </div>
