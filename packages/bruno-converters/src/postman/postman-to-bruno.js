@@ -363,34 +363,103 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
   }
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false } = {}, scriptMap) => {
+const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false } = {}, scriptMap, parentPath = '') => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
 
   item.forEach((i, index) => {
-    if (isItemAFolder(i)) {
-      const baseFolderName = i.name || 'Untitled Folder';
-      let folderName = baseFolderName;
-      let count = 1;
+    const itemName = (i && i.name) || `Item ${index + 1}`;
+    const itemPath = parentPath ? `${parentPath} / ${itemName}` : itemName;
 
-      while (folderMap[folderName]) {
-        folderName = `${baseFolderName}_${count}`;
-        count++;
-      }
+    try {
+      if (isItemAFolder(i)) {
+        const baseFolderName = i.name || 'Untitled Folder';
+        let folderName = baseFolderName;
+        let count = 1;
 
-      const brunoFolderItem = {
-        uid: uuid(),
-        name: folderName,
-        type: 'folder',
-        items: [],
-        seq: index + 1,
-        root: {
-          docs: transformDescription(i.description),
-          meta: {
-            name: folderName
-          },
+        while (folderMap[folderName]) {
+          folderName = `${baseFolderName}_${count}`;
+          count++;
+        }
+
+        const brunoFolderItem = {
+          uid: uuid(),
+          name: folderName,
+          type: 'folder',
+          items: [],
+          seq: index + 1,
+          root: {
+            docs: transformDescription(i.description),
+            meta: {
+              name: folderName
+            },
+            request: {
+              auth: {
+                mode: 'inherit',
+                basic: null,
+                bearer: null,
+                awsv4: null,
+                apikey: null,
+                oauth1: null,
+                oauth2: null,
+                digest: null
+              },
+              headers: [],
+              script: {},
+              tests: '',
+              vars: {}
+            }
+          }
+        };
+
+        brunoParent.items.push(brunoFolderItem);
+
+        // Folder level auth
+        processAuth(i.auth, brunoFolderItem.root.request);
+
+        if (i.item && i.item.length) {
+          importPostmanV2CollectionItem(brunoFolderItem, i.item, { useWorkers }, scriptMap, itemPath);
+        }
+
+        if (i.event) {
+          if (useWorkers) {
+            scriptMap.set(brunoFolderItem.uid, {
+              events: i.event,
+              request: brunoFolderItem.root.request
+            });
+          } else {
+            importScriptsFromEvents(i.event, brunoFolderItem.root.request);
+          }
+        }
+
+        folderMap[folderName] = brunoFolderItem;
+      } else if (i.request) {
+        const method = i?.request?.method?.toUpperCase();
+        if (!method || typeof method !== 'string' || !method.trim()) {
+          console.warn('Missing or invalid request.method', method);
+          return;
+        }
+
+        const baseRequestName = i.name || 'Untitled Request';
+        let requestName = baseRequestName;
+        let count = 1;
+
+        while (requestMap[requestName]) {
+          requestName = `${baseRequestName}_${count}`;
+          count++;
+        }
+
+        const url = constructUrl(i.request.url);
+
+        const brunoRequestItem = {
+          uid: uuid(),
+          name: requestName,
+          type: 'http-request',
+          seq: index + 1,
           request: {
+            url: url,
+            method: method,
             auth: {
               mode: 'inherit',
               basic: null,
@@ -402,406 +471,345 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               digest: null
             },
             headers: [],
-            script: {},
-            tests: '',
-            vars: {}
-          }
-        }
-      };
-
-      brunoParent.items.push(brunoFolderItem);
-
-      // Folder level auth
-      processAuth(i.auth, brunoFolderItem.root.request);
-
-      if (i.item && i.item.length) {
-        importPostmanV2CollectionItem(brunoFolderItem, i.item, { useWorkers }, scriptMap);
-      }
-
-      if (i.event) {
-        if (useWorkers) {
-          scriptMap.set(brunoFolderItem.uid, {
-            events: i.event,
-            request: brunoFolderItem.root.request
-          });
-        } else {
-          importScriptsFromEvents(i.event, brunoFolderItem.root.request);
-        }
-      }
-
-      folderMap[folderName] = brunoFolderItem;
-    } else if (i.request) {
-      const method = i?.request?.method?.toUpperCase();
-      if (!method || typeof method !== 'string' || !method.trim()) {
-        console.warn('Missing or invalid request.method', method);
-        return;
-      }
-
-      const baseRequestName = i.name || 'Untitled Request';
-      let requestName = baseRequestName;
-      let count = 1;
-
-      while (requestMap[requestName]) {
-        requestName = `${baseRequestName}_${count}`;
-        count++;
-      }
-
-      const url = constructUrl(i.request.url);
-
-      const brunoRequestItem = {
-        uid: uuid(),
-        name: requestName,
-        type: 'http-request',
-        seq: index + 1,
-        request: {
-          url: url,
-          method: method,
-          auth: {
-            mode: 'inherit',
-            basic: null,
-            bearer: null,
-            awsv4: null,
-            apikey: null,
-            oauth1: null,
-            oauth2: null,
-            digest: null
-          },
-          headers: [],
-          params: [],
-          body: {
-            mode: 'none',
-            json: null,
-            text: null,
-            xml: null,
-            formUrlEncoded: [],
-            multipartForm: []
-          },
-          docs: transformDescription(i.request.description)
-        }
-      };
-
-      const settings = {
-        encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true
-      };
-
-      // Handle followRedirects setting
-      if (i.protocolProfileBehavior?.followRedirects !== undefined) {
-        settings.followRedirects = i.protocolProfileBehavior.followRedirects;
-      }
-
-      // Handle maxRedirects setting
-      if (i.protocolProfileBehavior?.maxRedirects !== undefined) {
-        settings.maxRedirects = i.protocolProfileBehavior.maxRedirects;
-      }
-
-      brunoRequestItem.settings = settings;
-
-      brunoParent.items.push(brunoRequestItem);
-
-      if (i.event) {
-        if (useWorkers) {
-          scriptMap.set(brunoRequestItem.uid, {
-            events: i.event,
-            request: brunoRequestItem.request
-          });
-        } else {
-          i.event.forEach((event) => {
-            if (event.listen === 'prerequest' && event.script && event.script.exec) {
-              if (!brunoRequestItem.request?.script) {
-                brunoRequestItem.request.script = {};
-              }
-              if (event.script.exec && event.script.exec.length > 0) {
-                brunoRequestItem.request.script.req = postmanTranslation(event.script.exec);
-              } else {
-                brunoRequestItem.request.script.req = '';
-                console.warn('Unexpected event.script.exec type', typeof event.script.exec);
-              }
-            }
-            if (event.listen === 'test' && event.script && event.script.exec) {
-              if (!brunoRequestItem.request?.script) {
-                brunoRequestItem.request.script = {};
-              }
-              if (event.script.exec && event.script.exec.length > 0) {
-                brunoRequestItem.request.script.res = postmanTranslation(event.script.exec);
-              } else {
-                brunoRequestItem.request.script.res = '';
-                console.warn('Unexpected event.script.exec type', typeof event.script.exec);
-              }
-            }
-          });
-        }
-      }
-
-      const bodyMode = get(i, 'request.body.mode');
-      if (bodyMode) {
-        if (bodyMode === 'formdata') {
-          brunoRequestItem.request.body.mode = 'multipartForm';
-
-          each(i.request.body.formdata, (param) => {
-            if (param.key == null && param.value == null) return;
-            const isFile = param.type === 'file' || (param.type === 'default' && param.src);
-            const value = isFile
-              ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
-              : (Array.isArray(param.value) ? param.value.join('') : ensureString(param.value));
-
-            brunoRequestItem.request.body.multipartForm.push({
-              uid: uuid(),
-              type: isFile ? 'file' : 'text',
-              name: ensureString(param.key),
-              value,
-              description: transformDescription(param.description),
-              enabled: !param.disabled,
-              ...(param.contentType && { contentType: param.contentType })
-            });
-          });
-        }
-
-        if (bodyMode === 'urlencoded') {
-          brunoRequestItem.request.body.mode = 'formUrlEncoded';
-          each(i.request.body.urlencoded, (param) => {
-            if (param.key == null && param.value == null) return;
-            brunoRequestItem.request.body.formUrlEncoded.push({
-              uid: uuid(),
-              name: ensureString(param.key),
-              value: ensureString(param.value),
-              description: transformDescription(param.description),
-              enabled: !param.disabled
-            });
-          });
-        }
-
-        if (bodyMode === 'raw') {
-          let language = get(i, 'request.body.options.raw.language');
-          if (!language) {
-            language = searchLanguageByHeader(i.request.header);
-          }
-          if (language === 'json') {
-            brunoRequestItem.request.body.mode = 'json';
-            brunoRequestItem.request.body.json = i.request.body.raw;
-          } else if (language === 'xml') {
-            brunoRequestItem.request.body.mode = 'xml';
-            brunoRequestItem.request.body.xml = i.request.body.raw;
-          } else {
-            brunoRequestItem.request.body.mode = 'text';
-            brunoRequestItem.request.body.text = i.request.body.raw;
-          }
-        }
-      }
-
-      if (bodyMode === 'graphql') {
-        brunoRequestItem.type = 'graphql-request';
-        brunoRequestItem.request.body.mode = 'graphql';
-        brunoRequestItem.request.body.graphql = parseGraphQLRequest(i.request.body.graphql);
-      }
-
-      each(normalizeHeaders(i.request.header), (header) => {
-        if (header.key == null && header.value == null) return;
-        brunoRequestItem.request.headers.push({
-          uid: uuid(),
-          name: ensureString(header.key),
-          value: ensureString(header.value),
-          description: transformDescription(header.description),
-          enabled: !header.disabled
-        });
-      });
-
-      // Request-level auth
-      processAuth(i.request.auth, brunoRequestItem.request);
-
-      each(get(i, 'request.url.query'), (param) => {
-        if (param.key == null && param.value == null) {
-          return;
-        }
-        brunoRequestItem.request.params.push({
-          uid: uuid(),
-          name: ensureString(param.key),
-          value: ensureString(param.value),
-          description: transformDescription(param.description),
-          type: 'query',
-          enabled: !param.disabled
-        });
-      });
-
-      each(get(i, 'request.url.variable', []), (param) => {
-        if (!param.key) {
-          // If no key, skip this iteration and discard the param
-          return;
-        }
-
-        brunoRequestItem.request.params.push({
-          uid: uuid(),
-          name: ensureString(param.key),
-          value: ensureString(param.value),
-          description: transformDescription(param.description),
-          type: 'path',
-          enabled: true
-        });
-      });
-
-      // Handle Postman examples (responses)
-      if (i.response && Array.isArray(i.response)) {
-        brunoRequestItem.examples = [];
-
-        i.response.forEach((response, responseIndex) => {
-          const sanitized = String(response.name ?? '').replace(/\r?\n/g, ' ').trim();
-          const exampleName = sanitized || `Example ${responseIndex + 1}`;
-
-          // Convert originalRequest to Bruno request format
-          const originalRequest = response.originalRequest || {};
-          const exampleUrl = constructUrl(originalRequest.url);
-          const exampleMethod = originalRequest.method?.toUpperCase() || method;
-
-          const example = {
-            uid: uuid(),
-            itemUid: brunoRequestItem.uid,
-            name: exampleName,
-            description: '',
-            type: 'http-request',
-            request: {
-              url: exampleUrl,
-              method: exampleMethod,
-              headers: [],
-              params: [],
-              body: {
-                mode: 'none',
-                json: null,
-                text: null,
-                xml: null,
-                formUrlEncoded: [],
-                multipartForm: []
-              }
+            params: [],
+            body: {
+              mode: 'none',
+              json: null,
+              text: null,
+              xml: null,
+              formUrlEncoded: [],
+              multipartForm: []
             },
-            response: {
-              status: response.code || null,
-              statusText: response.status || '',
-              headers: [],
-              body: {
-                type: getBodyTypeFromContentTypeHeader(response.header),
-                content: response.body || ''
-              }
-            }
-          };
+            docs: transformDescription(i.request.description)
+          }
+        };
 
-          // Convert original request headers
-          if (originalRequest.header) {
-            normalizeHeaders(originalRequest.header).forEach((header) => {
-              if (header.key == null && header.value == null) return;
-              example.request.headers.push({
+        const settings = {
+          encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true
+        };
+
+        // Handle followRedirects setting
+        if (i.protocolProfileBehavior?.followRedirects !== undefined) {
+          settings.followRedirects = i.protocolProfileBehavior.followRedirects;
+        }
+
+        // Handle maxRedirects setting
+        if (i.protocolProfileBehavior?.maxRedirects !== undefined) {
+          settings.maxRedirects = i.protocolProfileBehavior.maxRedirects;
+        }
+
+        brunoRequestItem.settings = settings;
+
+        brunoParent.items.push(brunoRequestItem);
+
+        if (i.event) {
+          if (useWorkers) {
+            scriptMap.set(brunoRequestItem.uid, {
+              events: i.event,
+              request: brunoRequestItem.request
+            });
+          } else {
+            i.event.forEach((event) => {
+              if (event.listen === 'prerequest' && event.script && event.script.exec) {
+                if (!brunoRequestItem.request?.script) {
+                  brunoRequestItem.request.script = {};
+                }
+                if (event.script.exec && event.script.exec.length > 0) {
+                  brunoRequestItem.request.script.req = postmanTranslation(event.script.exec);
+                } else {
+                  brunoRequestItem.request.script.req = '';
+                  console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+                }
+              }
+              if (event.listen === 'test' && event.script && event.script.exec) {
+                if (!brunoRequestItem.request?.script) {
+                  brunoRequestItem.request.script = {};
+                }
+                if (event.script.exec && event.script.exec.length > 0) {
+                  brunoRequestItem.request.script.res = postmanTranslation(event.script.exec);
+                } else {
+                  brunoRequestItem.request.script.res = '';
+                  console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+                }
+              }
+            });
+          }
+        }
+
+        const bodyMode = get(i, 'request.body.mode');
+        if (bodyMode) {
+          if (bodyMode === 'formdata') {
+            brunoRequestItem.request.body.mode = 'multipartForm';
+
+            each(i.request.body.formdata, (param) => {
+              if (param.key == null && param.value == null) return;
+              const isFile = param.type === 'file' || (param.type === 'default' && param.src);
+              const value = isFile
+                ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
+                : (Array.isArray(param.value) ? param.value.join('') : ensureString(param.value));
+
+              brunoRequestItem.request.body.multipartForm.push({
                 uid: uuid(),
-                name: ensureString(header.key),
-                value: ensureString(header.value),
-                description: transformDescription(header.description),
-                enabled: !header.disabled
+                type: isFile ? 'file' : 'text',
+                name: ensureString(param.key),
+                value,
+                description: transformDescription(param.description),
+                enabled: !param.disabled,
+                ...(param.contentType && { contentType: param.contentType })
               });
             });
           }
 
-          // Convert original request query parameters
-          if (originalRequest.url && originalRequest.url.query && Array.isArray(originalRequest.url.query)) {
-            originalRequest.url.query.forEach((param) => {
-              if (param.key == null && param.value == null) {
-                return;
-              }
-              example.request.params.push({
+          if (bodyMode === 'urlencoded') {
+            brunoRequestItem.request.body.mode = 'formUrlEncoded';
+            each(i.request.body.urlencoded, (param) => {
+              if (param.key == null && param.value == null) return;
+              brunoRequestItem.request.body.formUrlEncoded.push({
                 uid: uuid(),
                 name: ensureString(param.key),
                 value: ensureString(param.value),
                 description: transformDescription(param.description),
-                type: 'query',
                 enabled: !param.disabled
               });
             });
           }
 
-          if (originalRequest.url && originalRequest.url.variable && Array.isArray(originalRequest.url.variable)) {
-            originalRequest.url.variable.forEach((param) => {
-              if (!param.key) return;
-              example.request.params.push({
-                uid: uuid(),
-                name: ensureString(param.key),
-                value: ensureString(param.value),
-                description: transformDescription(param.description),
-                type: 'path',
-                enabled: true
-              });
-            });
-          }
-
-          // Convert original request body
-          if (originalRequest.body) {
-            const bodyMode = originalRequest.body.mode;
-            if (bodyMode === 'formdata') {
-              example.request.body.mode = 'multipartForm';
-              if (originalRequest.body.formdata && Array.isArray(originalRequest.body.formdata)) {
-                originalRequest.body.formdata.forEach((param) => {
-                  if (param.key == null && param.value == null) return;
-                  const isFile = param.type === 'file' || (param.type === 'default' && param.src);
-                  const value = isFile
-                    ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
-                    : (Array.isArray(param.value) ? param.value.join('') : ensureString(param.value));
-
-                  example.request.body.multipartForm.push({
-                    uid: uuid(),
-                    type: isFile ? 'file' : 'text',
-                    name: ensureString(param.key),
-                    value,
-                    description: transformDescription(param.description),
-                    enabled: !param.disabled,
-                    ...(param.contentType && { contentType: param.contentType })
-                  });
-                });
-              }
-            } else if (bodyMode === 'urlencoded') {
-              example.request.body.mode = 'formUrlEncoded';
-              if (originalRequest.body.urlencoded && Array.isArray(originalRequest.body.urlencoded)) {
-                originalRequest.body.urlencoded.forEach((param) => {
-                  if (param.key == null && param.value == null) return;
-                  example.request.body.formUrlEncoded.push({
-                    uid: uuid(),
-                    name: ensureString(param.key),
-                    value: ensureString(param.value),
-                    description: transformDescription(param.description),
-                    enabled: !param.disabled
-                  });
-                });
-              }
-            } else if (bodyMode === 'raw') {
-              let language = get(originalRequest, 'body.options.raw.language');
-              if (!language) {
-                language = searchLanguageByHeader(originalRequest.header || []);
-              }
-              if (language === 'json') {
-                example.request.body.mode = 'json';
-                example.request.body.json = originalRequest.body.raw;
-              } else if (language === 'xml') {
-                example.request.body.mode = 'xml';
-                example.request.body.xml = originalRequest.body.raw;
-              } else {
-                example.request.body.mode = 'text';
-                example.request.body.text = originalRequest.body.raw;
-              }
+          if (bodyMode === 'raw') {
+            let language = get(i, 'request.body.options.raw.language');
+            if (!language) {
+              language = searchLanguageByHeader(i.request.header);
+            }
+            if (language === 'json') {
+              brunoRequestItem.request.body.mode = 'json';
+              brunoRequestItem.request.body.json = i.request.body.raw;
+            } else if (language === 'xml') {
+              brunoRequestItem.request.body.mode = 'xml';
+              brunoRequestItem.request.body.xml = i.request.body.raw;
+            } else {
+              brunoRequestItem.request.body.mode = 'text';
+              brunoRequestItem.request.body.text = i.request.body.raw;
             }
           }
+        }
 
-          // Convert response headers
-          if (response.header) {
-            normalizeHeaders(response.header).forEach((header) => {
-              if (header.key == null && header.value == null) return;
-              example.response.headers.push({
-                uid: uuid(),
-                name: ensureString(header.key),
-                value: ensureString(header.value),
-                description: transformDescription(header.description),
-                enabled: true
-              });
-            });
+        if (bodyMode === 'graphql') {
+          brunoRequestItem.type = 'graphql-request';
+          brunoRequestItem.request.body.mode = 'graphql';
+          brunoRequestItem.request.body.graphql = parseGraphQLRequest(i.request.body.graphql);
+        }
+
+        each(normalizeHeaders(i.request.header), (header) => {
+          if (header.key == null && header.value == null) return;
+          brunoRequestItem.request.headers.push({
+            uid: uuid(),
+            name: ensureString(header.key),
+            value: ensureString(header.value),
+            description: transformDescription(header.description),
+            enabled: !header.disabled
+          });
+        });
+
+        // Request-level auth
+        processAuth(i.request.auth, brunoRequestItem.request);
+
+        each(get(i, 'request.url.query'), (param) => {
+          if (param.key == null && param.value == null) {
+            return;
+          }
+          brunoRequestItem.request.params.push({
+            uid: uuid(),
+            name: ensureString(param.key),
+            value: ensureString(param.value),
+            description: transformDescription(param.description),
+            type: 'query',
+            enabled: !param.disabled
+          });
+        });
+
+        each(get(i, 'request.url.variable', []), (param) => {
+          if (!param.key) {
+          // If no key, skip this iteration and discard the param
+            return;
           }
 
-          brunoRequestItem.examples.push(example);
+          brunoRequestItem.request.params.push({
+            uid: uuid(),
+            name: ensureString(param.key),
+            value: ensureString(param.value),
+            description: transformDescription(param.description),
+            type: 'path',
+            enabled: true
+          });
         });
-      }
 
-      requestMap[requestName] = brunoRequestItem;
+        // Handle Postman examples (responses)
+        if (i.response && Array.isArray(i.response)) {
+          brunoRequestItem.examples = [];
+
+          i.response.forEach((response, responseIndex) => {
+            const sanitized = String(response.name ?? '').replace(/\r?\n/g, ' ').trim();
+            const exampleName = sanitized || `Example ${responseIndex + 1}`;
+
+            // Convert originalRequest to Bruno request format
+            const originalRequest = response.originalRequest || {};
+            const exampleUrl = constructUrl(originalRequest.url);
+            const exampleMethod = originalRequest.method?.toUpperCase() || method;
+
+            const example = {
+              uid: uuid(),
+              itemUid: brunoRequestItem.uid,
+              name: exampleName,
+              description: '',
+              type: 'http-request',
+              request: {
+                url: exampleUrl,
+                method: exampleMethod,
+                headers: [],
+                params: [],
+                body: {
+                  mode: 'none',
+                  json: null,
+                  text: null,
+                  xml: null,
+                  formUrlEncoded: [],
+                  multipartForm: []
+                }
+              },
+              response: {
+                status: response.code || null,
+                statusText: response.status || '',
+                headers: [],
+                body: {
+                  type: getBodyTypeFromContentTypeHeader(response.header),
+                  content: response.body || ''
+                }
+              }
+            };
+
+            // Convert original request headers
+            if (originalRequest.header) {
+              normalizeHeaders(originalRequest.header).forEach((header) => {
+                if (header.key == null && header.value == null) return;
+                example.request.headers.push({
+                  uid: uuid(),
+                  name: ensureString(header.key),
+                  value: ensureString(header.value),
+                  description: transformDescription(header.description),
+                  enabled: !header.disabled
+                });
+              });
+            }
+
+            // Convert original request query parameters
+            if (originalRequest.url && originalRequest.url.query && Array.isArray(originalRequest.url.query)) {
+              originalRequest.url.query.forEach((param) => {
+                if (param.key == null && param.value == null) {
+                  return;
+                }
+                example.request.params.push({
+                  uid: uuid(),
+                  name: ensureString(param.key),
+                  value: ensureString(param.value),
+                  description: transformDescription(param.description),
+                  type: 'query',
+                  enabled: !param.disabled
+                });
+              });
+            }
+
+            if (originalRequest.url && originalRequest.url.variable && Array.isArray(originalRequest.url.variable)) {
+              originalRequest.url.variable.forEach((param) => {
+                if (!param.key) return;
+                example.request.params.push({
+                  uid: uuid(),
+                  name: ensureString(param.key),
+                  value: ensureString(param.value),
+                  description: transformDescription(param.description),
+                  type: 'path',
+                  enabled: true
+                });
+              });
+            }
+
+            // Convert original request body
+            if (originalRequest.body) {
+              const bodyMode = originalRequest.body.mode;
+              if (bodyMode === 'formdata') {
+                example.request.body.mode = 'multipartForm';
+                if (originalRequest.body.formdata && Array.isArray(originalRequest.body.formdata)) {
+                  originalRequest.body.formdata.forEach((param) => {
+                    if (param.key == null && param.value == null) return;
+                    const isFile = param.type === 'file' || (param.type === 'default' && param.src);
+                    const value = isFile
+                      ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
+                      : (Array.isArray(param.value) ? param.value.join('') : ensureString(param.value));
+
+                    example.request.body.multipartForm.push({
+                      uid: uuid(),
+                      type: isFile ? 'file' : 'text',
+                      name: ensureString(param.key),
+                      value,
+                      description: transformDescription(param.description),
+                      enabled: !param.disabled,
+                      ...(param.contentType && { contentType: param.contentType })
+                    });
+                  });
+                }
+              } else if (bodyMode === 'urlencoded') {
+                example.request.body.mode = 'formUrlEncoded';
+                if (originalRequest.body.urlencoded && Array.isArray(originalRequest.body.urlencoded)) {
+                  originalRequest.body.urlencoded.forEach((param) => {
+                    if (param.key == null && param.value == null) return;
+                    example.request.body.formUrlEncoded.push({
+                      uid: uuid(),
+                      name: ensureString(param.key),
+                      value: ensureString(param.value),
+                      description: transformDescription(param.description),
+                      enabled: !param.disabled
+                    });
+                  });
+                }
+              } else if (bodyMode === 'raw') {
+                let language = get(originalRequest, 'body.options.raw.language');
+                if (!language) {
+                  language = searchLanguageByHeader(originalRequest.header || []);
+                }
+                if (language === 'json') {
+                  example.request.body.mode = 'json';
+                  example.request.body.json = originalRequest.body.raw;
+                } else if (language === 'xml') {
+                  example.request.body.mode = 'xml';
+                  example.request.body.xml = originalRequest.body.raw;
+                } else {
+                  example.request.body.mode = 'text';
+                  example.request.body.text = originalRequest.body.raw;
+                }
+              }
+            }
+
+            // Convert response headers
+            if (response.header) {
+              normalizeHeaders(response.header).forEach((header) => {
+                if (header.key == null && header.value == null) return;
+                example.response.headers.push({
+                  uid: uuid(),
+                  name: ensureString(header.key),
+                  value: ensureString(header.value),
+                  description: transformDescription(header.description),
+                  enabled: true
+                });
+              });
+            }
+
+            brunoRequestItem.examples.push(example);
+          });
+        }
+
+        requestMap[requestName] = brunoRequestItem;
+      }
+    } catch (err) {
+      const contextMsg = `Error processing item "${itemName}" at path: ${itemPath}`;
+      throw new Error(`${contextMsg}\n  Reason: ${err.message}`);
     }
   });
 };

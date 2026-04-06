@@ -12,9 +12,9 @@ import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { processOpenCollection } from 'utils/importers/opencollection';
 import { wsdlToBruno } from '@usebruno/converters';
-import { toastError } from 'utils/common/error';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import Modal from 'components/Modal';
+import ImportErrorModal from 'components/ImportErrorModal';
 import Help from 'components/Help';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
@@ -87,7 +87,6 @@ const convertCollection = async (format, rawData, groupingType, collectionFormat
     return collection;
   } catch (err) {
     console.error('Conversion error:', err);
-    toastError(err, 'Failed to convert collection');
     throw err;
   }
 };
@@ -102,6 +101,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const dispatch = useDispatch();
   const [groupingType, setGroupingType] = useState('tags');
   const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
+  const [importError, setImportError] = useState(null);
   const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
   const [enableCheckForSpecUpdates, setEnableCheckForSpecUpdates] = useState(isOpenAPISyncEnabled);
   const dropdownTippyRef = useRef();
@@ -135,7 +135,17 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         .required('Location is required')
     }),
     onSubmit: async (values) => {
-      const convertedCollection = await convertCollection(format, rawData, groupingType, collectionFormat);
+      let convertedCollection;
+      try {
+        convertedCollection = await convertCollection(format, rawData, groupingType, collectionFormat);
+      } catch (err) {
+        setImportError({
+          message: err.message || 'Failed to convert collection',
+          rawError: err.rawError || err.message || null
+        });
+        return;
+      }
+
       const options = { format: collectionFormat };
 
       if (showCheckForSpecUpdatesOption && enableCheckForSpecUpdates) {
@@ -345,6 +355,13 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
           )}
         </form>
       </Modal>
+      {importError && (
+        <ImportErrorModal
+          title="Import Failed"
+          error={importError}
+          onClose={() => setImportError(null)}
+        />
+      )}
     </StyledWrapper>
   );
 };

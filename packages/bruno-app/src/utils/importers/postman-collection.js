@@ -1,5 +1,4 @@
-import fileDialog from 'file-dialog';
-import { BrunoError } from 'utils/common/error';
+import { BrunoError, formatIpcError } from 'utils/common/error';
 import { safeParseJSON } from 'utils/common/index';
 
 const readFile = (files) => {
@@ -11,13 +10,22 @@ const readFile = (files) => {
   });
 };
 
+const parseConversionError = (rawMessage) => {
+  const full = rawMessage || 'Conversion failed';
+  const summary = full.split('\n')[0].replace(/^Import collection failed:\s*/, '').trim() || full;
+  return summary;
+};
+
 const postmanToBruno = (collection) => {
   return new Promise((resolve, reject) => {
     window.ipcRenderer.invoke('renderer:convert-postman-to-bruno', collection)
       .then((result) => resolve(result))
       .catch((err) => {
         console.error('Error converting Postman to Bruno via Electron:', err);
-        reject(new BrunoError('Conversion failed'));
+        const rawError = formatIpcError(err) || err.message || 'Conversion failed';
+        const error = new BrunoError(parseConversionError(rawError));
+        error.rawError = rawError;
+        reject(error);
       });
   });
 };

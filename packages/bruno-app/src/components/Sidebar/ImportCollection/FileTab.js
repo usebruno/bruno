@@ -25,11 +25,12 @@ const convertFileToObject = async (file) => {
 
     const parsed = jsyaml.load(text);
     if (typeof parsed !== 'object' || parsed === null) {
-      throw new Error();
+      throw new Error('File content is not a valid object');
     }
     return parsed;
-  } catch {
-    throw new Error('Failed to parse the file – ensure it is valid JSON or YAML');
+  } catch (err) {
+    const detail = err.message || '';
+    throw new Error(`Failed to parse the file: ensure it is valid JSON or YAML.\n${detail}`);
   }
 };
 
