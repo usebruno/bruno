@@ -65,7 +65,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
@@ -553,13 +553,6 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       }
       return reject(error);
     }
-
-    await dispatch(
-      updateResponsePaneScrollPosition({
-        uid: state.tabs.activeTabUid,
-        scrollY: 0
-      })
-    );
 
     await dispatch(
       initRunRequestEvent({

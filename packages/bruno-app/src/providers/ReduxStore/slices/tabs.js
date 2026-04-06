@@ -88,7 +88,6 @@ export const tabsSlice = createSlice({
         requestPaneWidth: null,
         requestPaneTab: requestPaneTab || defaultRequestPaneTab,
         responsePaneTab: 'response',
-        responsePaneScrollPosition: null,
         responseFormat: null,
         responseViewTab: null,
         responseFilter: null,
@@ -160,20 +159,6 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.responsePaneTab = action.payload.responsePaneTab;
-      }
-    },
-    updateResponsePaneScrollPosition: (state, action) => {
-      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
-
-      if (tab) {
-        tab.responsePaneScrollPosition = action.payload.scrollY;
-      }
-    },
-    updateRequestBodyScrollPosition: (state, action) => {
-      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
-
-      if (tab) {
-        tab.requestBodyScrollPosition = action.payload.scrollY;
       }
     },
     updateResponseFormat: (state, action) => {
@@ -381,8 +366,6 @@ export const {
   updateRequestPaneTabHeight,
   updateRequestPaneTab,
   updateResponsePaneTab,
-  updateResponsePaneScrollPosition,
-  updateRequestBodyScrollPosition,
   updateResponseFormat,
   updateResponseViewTab,
   updateResponseFilter,

@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import get from 'lodash/get';
-import find from 'lodash/find';
 import CodeEditor from 'components/CodeEditor';
 import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
 import MultipartFormParams from 'components/RequestPane/MultipartFormParams';
@@ -8,19 +7,18 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { updateRequestBodyScrollPosition } from 'providers/ReduxStore/slices/tabs';
 import StyledWrapper from './StyledWrapper';
 import FileBody from '../FileBody/index';
+import { usePersistedEditorScroll } from 'hooks/usePersistedState/usePersistedEditorScroll';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const editorRef = useRef(null);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const bodyScroll = usePersistedEditorScroll(editorRef, `request-body-scroll-${item.uid}`);
 
   const onEdit = (value) => {
     dispatch(
@@ -34,15 +32,6 @@ const RequestBody = ({ item, collection }) => {
 
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
-
-  const onScroll = (editor) => {
-    dispatch(
-      updateRequestBodyScrollPosition({
-        uid: focusedTab.uid,
-        scrollY: editor.doc.scrollTop
-      })
-    );
-  };
 
   if (['json', 'xml', 'text', 'sparql'].includes(bodyMode)) {
     let codeMirrorMode = {
@@ -62,6 +51,7 @@ const RequestBody = ({ item, collection }) => {
     return (
       <StyledWrapper className="w-full" data-testid="request-body-editor">
         <CodeEditor
+          ref={editorRef}
           collection={collection}
           item={item}
           theme={displayedTheme}
@@ -71,8 +61,7 @@ const RequestBody = ({ item, collection }) => {
           onEdit={onEdit}
           onRun={onRun}
           onSave={onSave}
-          onScroll={onScroll}
-          initialScroll={focusedTab?.requestBodyScrollPosition || 0}
+          initialScroll={bodyScroll}
           mode={codeMirrorMode[bodyMode]}
           enableVariableHighlighting={true}
           showHintsFor={['variables']}
