@@ -204,7 +204,7 @@ const MultipartFormParams = ({ item, collection }) => {
       width: '20%',
       render: ({ value, onChange }) => (
         <SingleLineEditor
-          eferred
+          deferred
           onSave={onSave}
           theme={storedTheme}
           placeholder={!value ? 'Auto' : ''}
