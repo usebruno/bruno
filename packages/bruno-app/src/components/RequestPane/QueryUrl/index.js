@@ -407,7 +407,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             item={item}
             showNewlineArrow={true}
           />
-          <div className="flex items-center h-full mx-2 gap-3" id="send-request">
+          <div className="flex items-center h-full mx-2 gap-3" id="request-actions">
             <div
               title="Generate Code"
               className="infotip"
