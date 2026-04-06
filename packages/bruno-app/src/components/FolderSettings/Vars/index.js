@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import get from 'lodash/get';
 import VarsTable from './VarsTable';
 import StyledWrapper from './StyledWrapper';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import Button from 'ui/Button';
+import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
 
 const Vars = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -12,8 +13,11 @@ const Vars = ({ collection, folder }) => {
   const responseVars = folder.draft ? get(folder, 'draft.request.vars.res', []) : get(folder, 'root.request.vars.res', []);
   const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
 
+  const wrapperRef = useRef(null);
+  usePersistedContainerScroll(wrapperRef, '.folder-settings-content', `folder-vars-scroll-${folder.uid}`);
+
   return (
-    <StyledWrapper className="w-full flex flex-col">
+    <StyledWrapper className="w-full flex flex-col" ref={wrapperRef}>
       <div>
         <div className="mb-3 title text-xs">Pre Request</div>
         <VarsTable folder={folder} collection={collection} vars={requestVars} varType="request" />

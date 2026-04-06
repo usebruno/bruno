@@ -254,7 +254,11 @@ const RequestTabPanel = () => {
       return <FolderNotFound folderUid={focusedTab.folderUid} />;
     }
 
-    return <FolderSettings collection={collection} folder={folder} />;
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <FolderSettings collection={collection} folder={folder} />
+      </ScopedPersistenceProvider>
+    );
   }
 
   if (focusedTab.type === 'environment-settings') {

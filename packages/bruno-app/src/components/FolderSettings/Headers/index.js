@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -13,6 +13,7 @@ import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from 'components/BulkEditor/index';
 import Button from 'ui/Button';
 import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
+import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
@@ -25,6 +26,8 @@ const Headers = ({ collection, folder }) => {
     ? get(folder, 'draft.request.headers', [])
     : get(folder, 'root.request.headers', []);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const wrapperRef = useRef(null);
+  usePersistedContainerScroll(wrapperRef, '.folder-settings-content', `folder-headers-scroll-${folder.uid}`);
 
   // Get column widths from Redux
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
@@ -125,7 +128,7 @@ const Headers = ({ collection, folder }) => {
   }
 
   return (
-    <StyledWrapper className="w-full">
+    <StyledWrapper className="w-full" ref={wrapperRef}>
       <div className="text-xs mb-4 text-muted">
         Request headers that will be sent with every request inside this folder.
       </div>
