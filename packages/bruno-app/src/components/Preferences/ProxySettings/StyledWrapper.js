@@ -67,15 +67,13 @@ const StyledWrapper = styled.div`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: flex;
-    align-items: center;
   }
 
   .pac-hint {
     font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.colors.text.muted};
     margin-top: 4px;
-    margin-left: 106px;
+    padding-left: 100px;
   }
 
   .system-proxy-settings {
