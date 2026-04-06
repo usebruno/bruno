@@ -18,7 +18,7 @@ import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
 import { IconDeviceFloppy, IconCode } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
-import Button from 'ui/Button';
+import SendButton from 'components/RequestPane/SendButton';
 import { isMacOS } from 'utils/common/platform';
 import { hasRequestChanges } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
@@ -440,29 +440,13 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           </div>
         </div>
       </div>
-      {isLoading || item.response?.stream?.running ? (
-        <Button
-          size="sm"
-          variant="outline"
-          color="primary"
-          data-testid="cancel-request-icon"
-          onClick={handleCancelRequest}
-          className="ml-2 send-btn"
-        >
-          Cancel
-        </Button>
-      ) : (
-        <Button
-          size="sm"
-          variant="filled"
-          color="primary"
-          data-testid="send-arrow-icon"
-          onClick={handleRun}
-          className="ml-2 send-btn"
-        >
-          Send
-        </Button>
-      )}
+      <SendButton
+        isLoading={isLoading || item.response?.stream?.running}
+        onSend={handleRun}
+        onCancel={handleCancelRequest}
+        sendTestId="send-arrow-icon"
+        cancelTestId="cancel-request-icon"
+      />
       {generateCodeItemModalOpen && (
         <GenerateCodeItem
           collectionUid={collection.uid}

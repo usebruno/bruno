@@ -100,15 +100,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .send-btn {
-    align-self: stretch;
-    display: flex;
-    min-width: 4.1rem;
-
-    button {
-      width: 100%;
-    }
-  }
 `;
 
 export default StyledWrapper;

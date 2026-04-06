@@ -1,5 +1,5 @@
 import { IconDeviceFloppy, IconPlugConnected, IconPlugConnectedX } from '@tabler/icons';
-import Button from 'ui/Button';
+import SendButton from 'components/RequestPane/SendButton';
 import classnames from 'classnames';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { requestUrlChanged } from 'providers/ReduxStore/slices/collections';
@@ -191,16 +191,10 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
           </div>
           {connectionStatus === CONNECTION_STATUS.CONNECTED && <div className="connection-status-strip"></div>}
         </div>
-        <Button
-          size="sm"
-          variant="filled"
-          color="primary"
-          data-testid="run-button"
-          onClick={handleRunClick}
-          className="ml-2 send-btn"
-        >
-          Send
-        </Button>
+        <SendButton
+          onSend={handleRunClick}
+          sendTestId="run-button"
+        />
       </div>
     </StyledWrapper>
   );
