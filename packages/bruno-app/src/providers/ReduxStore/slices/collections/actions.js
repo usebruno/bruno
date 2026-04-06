@@ -608,12 +608,16 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
         })
         .then(resolve)
         .catch((err) => {
+          const request = itemCopy.draft?.request || itemCopy.request;
+          const requestSent = request ? { url: request.url, method: request.method } : undefined;
+
           if (err && err.message === 'Error invoking remote method \'send-http-request\': Error: Request cancelled') {
             dispatch(
               responseReceived({
                 itemUid,
                 collectionUid,
-                response: null
+                response: null,
+                requestSent
               })
             );
             return;
@@ -631,7 +635,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
             responseReceived({
               itemUid,
               collectionUid,
-              response: errorResponse
+              response: errorResponse,
+              requestSent
             })
           );
         });
