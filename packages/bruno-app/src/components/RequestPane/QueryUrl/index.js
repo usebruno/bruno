@@ -444,8 +444,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         isLoading={isLoading || item.response?.stream?.running}
         onSend={handleRun}
         onCancel={handleCancelRequest}
-        sendTestId="send-arrow-icon"
-        cancelTestId="cancel-request-icon"
+        testId="send-arrow-icon"
       />
       {generateCodeItemModalOpen && (
         <GenerateCodeItem

@@ -193,7 +193,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
         </div>
         <SendButton
           onSend={handleRunClick}
-          sendTestId="run-button"
+          testId="run-button"
         />
       </div>
     </StyledWrapper>
