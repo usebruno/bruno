@@ -6,6 +6,7 @@ import { openApiSpec } from 'providers/ReduxStore/slices/apiSpec';
 import ApiSpecItem from './ApiSpecItem';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
+import { selectActiveWorkspace } from 'src/selectors/workspaces';
 
 const LinkStyle = styled.span`
   color: ${(props) => props.theme['text-link']};
@@ -15,9 +16,7 @@ const ApiSpecs = () => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
   const allApiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
-  const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
 
   const apiSpecs = React.useMemo(() => {
     if (!activeWorkspace) return [];

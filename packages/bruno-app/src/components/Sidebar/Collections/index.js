@@ -7,13 +7,15 @@ import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
+import { selectCollections } from 'src/selectors/collections';
+import { selectWorkspaces, selectActiveOrDefaultWorkspace } from 'src/selectors/workspaces';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const { collections } = useSelector((state) => state.collections);
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const collections = useSelector(selectCollections);
+  const workspaces = useSelector(selectWorkspaces);
 
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
+  const activeWorkspace = useSelector(selectActiveOrDefaultWorkspace);
 
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];

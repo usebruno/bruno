@@ -7,16 +7,16 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from 'src/selectors/tabs';
 
 const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, editMode = false }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const tableColumnWidths = useSelector(selectActiveTabTableColumnWidths);
 
   // Get column widths from Redux
-  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
-  const formUrlEncodedWidths = focusedTab?.tableColumnWidths?.['example-form-url-encoded'] || {};
+  const formUrlEncodedWidths = tableColumnWidths['example-form-url-encoded'] || {};
 
   const handleColumnWidthsChange = (tableId, widths) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));

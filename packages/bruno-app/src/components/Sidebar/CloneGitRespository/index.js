@@ -18,6 +18,7 @@ import StyledWrapper from './StyledWrapper';
 import { getRepoNameFromUrl } from 'utils/git';
 import GitNotFoundModal from 'components/Git/GitNotFoundModal/index';
 import get from 'lodash/get';
+import { selectActiveWorkspace } from 'src/selectors/workspaces';
 
 const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null }) => {
   const [collectionPaths, setCollectionPaths] = useState([]);
@@ -28,9 +29,8 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
 
   const progressData = useSelector((state) => state.app.gitOperationProgress[processUid]);
   const { gitVersion } = useSelector((state) => state.app);
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
   const preferences = useSelector((state) => state.app.preferences);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
   const defaultLocation = isDefaultWorkspace
     ? get(preferences, 'general.defaultLocation', '')

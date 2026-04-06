@@ -36,16 +36,19 @@ import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import StatusBadge from 'ui/StatusBadge/index';
+import { selectWorkspaces, selectActiveWorkspaceUid, selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectCollections } from 'src/selectors/collections';
+import { selectTabs } from 'src/selectors/tabs';
 
 const CollectionHeader = ({ collection, isScratchCollection }) => {
   const dispatch = useDispatch();
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
-  const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
-  const collections = useSelector((state) => state.collections.collections);
-  const tabs = useSelector((state) => state.tabs.tabs);
+  const workspaces = useSelector(selectWorkspaces);
+  const activeWorkspaceUid = useSelector(selectActiveWorkspaceUid);
+  const collections = useSelector(selectCollections);
+  const tabs = useSelector(selectTabs);
 
   // Get the current active workspace
-  const currentWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const currentWorkspace = useSelector(selectActiveWorkspace);
   const gitRootPath = collection?.git?.gitRootPath;
   const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
 

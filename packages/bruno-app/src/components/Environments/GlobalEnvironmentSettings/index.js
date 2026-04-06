@@ -1,12 +1,10 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import WorkspaceEnvironments from 'components/WorkspaceHome/WorkspaceEnvironments';
+import { selectActiveWorkspace } from 'src/selectors/workspaces';
 
 const GlobalEnvironmentSettings = () => {
-  const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
-  const workspace = useSelector((state) =>
-    state.workspaces.workspaces.find((w) => w.uid === activeWorkspaceUid)
-  );
+  const workspace = useSelector(selectActiveWorkspace);
 
   return <WorkspaceEnvironments workspace={workspace} />;
 };

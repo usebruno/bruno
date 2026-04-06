@@ -39,6 +39,8 @@ import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsBy
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
 import { apiSpecAddFileEvent, apiSpecChangeFileEvent } from 'providers/ReduxStore/slices/apiSpec';
+import { selectActiveTab } from 'src/selectors/tabs';
+import { selectActiveWorkspace } from 'src/selectors/workspaces';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -274,13 +276,9 @@ const useIpcEvents = () => {
 
     const removeShowPreferencesListener = ipcRenderer.on('main:open-preferences', () => {
       const state = store.getState();
-      const activeWorkspaceUid = state.workspaces?.activeWorkspaceUid;
-      const workspaces = state.workspaces?.workspaces;
-      const tabs = state.tabs?.tabs;
-      const activeTabUid = state.tabs?.activeTabUid;
-      const activeTab = tabs?.find((t) => t.uid === activeTabUid);
+      const activeTab = selectActiveTab(state);
 
-      const activeWorkspace = workspaces?.find((w) => w.uid === activeWorkspaceUid);
+      const activeWorkspace = selectActiveWorkspace(state);
       const collectionUid = activeTab?.collectionUid || activeWorkspace?.scratchCollectionUid;
 
       dispatch(

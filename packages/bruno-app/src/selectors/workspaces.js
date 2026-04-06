@@ -14,6 +14,16 @@ export const selectActiveWorkspace = createSelector(
   (workspaces, activeWorkspaceUid) => workspaces.find((workspace) => workspace.uid === activeWorkspaceUid) || null
 );
 
+export const selectDefaultWorkspace = createSelector(
+  [selectWorkspaces],
+  (workspaces) => workspaces.find((workspace) => workspace.type === 'default') || null
+);
+
+export const selectActiveOrDefaultWorkspace = createSelector(
+  [selectActiveWorkspace, selectDefaultWorkspace],
+  (activeWorkspace, defaultWorkspace) => activeWorkspace || defaultWorkspace || null
+);
+
 export const makeSelectWorkspaceByUid = () =>
   createSelector([selectWorkspaces, (_, workspaceUid) => workspaceUid], (workspaces, workspaceUid) =>
     workspaces.find((workspace) => workspace.uid === workspaceUid) || null

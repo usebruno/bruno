@@ -24,6 +24,8 @@ import { itemSchema } from '@usebruno/schema';
 import { uuid } from 'utils/common';
 import { formatIpcError } from 'utils/common/error';
 import get from 'lodash/get';
+import { selectWorkspaces, selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectCollections } from 'src/selectors/collections';
 
 const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose }) => {
   const dispatch = useDispatch();
@@ -36,9 +38,9 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   const item = itemProp;
   const collection = collectionProp;
 
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
-  const allCollections = useSelector((state) => state.collections.collections);
+  const workspaces = useSelector(selectWorkspaces);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
+  const allCollections = useSelector(selectCollections);
   const isScratchCollection = activeWorkspace?.scratchCollectionUid === collection?.uid;
   const preferences = useSelector((state) => state.app.preferences);
   const isDefaultWorkspace = activeWorkspace?.type === 'default';

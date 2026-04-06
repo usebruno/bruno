@@ -10,16 +10,16 @@ import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from 'src/selectors/tabs';
 
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const tableColumnWidths = useSelector(selectActiveTabTableColumnWidths);
 
   // Get column widths from Redux
-  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
-  const varsWidths = focusedTab?.tableColumnWidths?.['request-vars'] || {};
+  const varsWidths = tableColumnWidths['request-vars'] || {};
 
   const handleColumnWidthsChange = (tableId, widths) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));

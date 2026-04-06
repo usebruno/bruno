@@ -11,16 +11,16 @@ import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import RadioButton from 'components/RadioButton';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from 'src/selectors/tabs';
 
 const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = false }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const tableColumnWidths = useSelector(selectActiveTabTableColumnWidths);
 
   // Get column widths from Redux
-  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
-  const fileBodyWidths = focusedTab?.tableColumnWidths?.['example-file-body'] || {};
+  const fileBodyWidths = tableColumnWidths['example-file-body'] || {};
 
   const handleColumnWidthsChange = (tableId, widths) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));

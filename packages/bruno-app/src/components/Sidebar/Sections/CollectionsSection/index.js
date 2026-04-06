@@ -37,13 +37,14 @@ import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import useKeybinding from 'hooks/useKeybinding';
+import { selectWorkspaces, selectActiveWorkspace } from 'src/selectors/workspaces';
 
 const CollectionsSection = () => {
   const dispatch = useDispatch();
   const showSearch = useSelector((state) => state.app.showSidebarSearch);
 
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const workspaces = useSelector(selectWorkspaces);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
 
   const { collections } = useSelector((state) => state.collections);
   const { collectionSortOrder } = useSelector((state) => state.collections);
