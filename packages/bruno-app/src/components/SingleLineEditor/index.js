@@ -409,7 +409,7 @@ class SingleLineEditor extends Component {
           $isCompact={this.props.isCompact}
           onClick={this.props.readOnly ? undefined : this._activate}
         >
-          <div className="viewer-content" style={{ cursor: this.props.readOnly ? 'default' : 'text' }}>
+          <div className="CodeMirror viewer-content" onMouseLeave={() => this._removeViewerPopup()} style={{ cursor: this.props.readOnly ? 'default' : 'text' }}>
             {!hasContent && this.props.placeholder ? (
               <span className="viewer-placeholder">{this.props.placeholder}</span>
             ) : isSecret ? (

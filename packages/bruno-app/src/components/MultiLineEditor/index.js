@@ -396,7 +396,7 @@ class MultiLineEditor extends Component {
       <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
         <StyledWrapper ref={(el) => { this._viewerRef = el; }} className={wrapperClass}>
           <div
-            className="viewer-content"
+            className="CodeMirror viewer-content"
             onClick={this.props.readOnly ? undefined : this._activate}
             style={{ cursor: this.props.readOnly ? 'default' : 'text' }}
           >
