@@ -15,6 +15,9 @@ import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
 import { stripEnvVarUid } from 'utils/environments';
+import { selectGlobalEnvironments, selectActiveGlobalEnvironmentUid } from 'src/selectors/global-environments';
+import { selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from 'src/selectors/tabs';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
@@ -44,15 +47,13 @@ const EnvironmentVariablesTable = ({
   searchQuery = ''
 }) => {
   const { storedTheme } = useTheme();
-  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
-  const activeWorkspace = useSelector((state) => {
-    const uid = state.workspaces?.activeWorkspaceUid;
-    return state.workspaces?.workspaces?.find((w) => w.uid === uid);
-  });
+  const globalEnvironments = useSelector(selectGlobalEnvironments);
+  const activeGlobalEnvironmentUid = useSelector(selectActiveGlobalEnvironmentUid);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
 
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const tableColumnWidths = useSelector(selectActiveTabTableColumnWidths);
 
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
@@ -62,8 +63,7 @@ const EnvironmentVariablesTable = ({
   const tableId = `env-vars-table-${environment.uid}`;
 
   // Get column widths from Redux - derived value (not state)
-  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
-  const storedColumnWidths = focusedTab?.tableColumnWidths?.[tableId];
+  const storedColumnWidths = tableColumnWidths[tableId];
 
   // Local state initialized from Redux (computed once on mount/environment change via key)
   const [columnWidths, setColumnWidths] = useState(() => {
