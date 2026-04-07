@@ -40,7 +40,9 @@ type ProxyConfig = {
   auth?: ProxyAuth;
   bypassProxy?: string;
   mode?: ProxyMode;
-  pacUrl?: string;
+  pac?: {
+    source: string;
+  };
 };
 
 type SystemProxyConfig = {
@@ -344,7 +346,7 @@ const getCertsAndProxyConfig = ({
 
       if (!globalDisabled) {
         if (globalProxySource === 'pac') {
-          proxyConfig = { pacUrl: get(appLevelProxyConfig, 'pac.source') };
+          proxyConfig = { pac: get(appLevelProxyConfig, 'pac.source') };
           proxyMode = 'pac';
         } else if (globalProxySource === 'inherit') {
           const { http_proxy, https_proxy } = systemProxyConfig || {};
