@@ -454,7 +454,7 @@ async function createAgents({
       }
     }
   } else if (proxyMode === 'pac') {
-    const pacSource = get(proxyConfig, 'pacSource');
+    const pacSource = get(proxyConfig, 'pac.source');
     if (pacSource && requestUrl) {
       try {
         const resolver = await getPacResolver({ pacSource, httpsAgentRequestFields: { ca: tlsOptions.ca, rejectUnauthorized: tlsOptions.rejectUnauthorized, minVersion: tlsOptions.minVersion } });

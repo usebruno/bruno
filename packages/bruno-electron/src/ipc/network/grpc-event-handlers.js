@@ -32,7 +32,7 @@ let grpcClient;
  */
 const resolveGrpcProxyConfig = async (proxyMode, proxyConfig, requestUrl, interpolationOptions) => {
   if (proxyMode === 'pac') {
-    const pacSource = get(proxyConfig, 'pacSource');
+    const pacSource = get(proxyConfig, 'pac.source');
     if (!pacSource || !requestUrl) return { proxyUrl: null };
 
     try {

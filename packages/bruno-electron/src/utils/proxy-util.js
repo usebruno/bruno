@@ -115,7 +115,7 @@ async function setupProxyAgents({
 }) {
   if (timeline) {
     let modeMsg = `Proxy mode: ${proxyMode}`;
-    if (proxyMode === 'pac') modeMsg += ` | PAC URL: ${get(proxyConfig, 'pacSource') || '(empty)'}`;
+    if (proxyMode === 'pac') modeMsg += ` | PAC URL: ${get(proxyConfig, 'pac.source') || '(empty)'}`;
     else if (proxyMode === 'on') modeMsg += ` | ${get(proxyConfig, 'protocol')}://${get(proxyConfig, 'hostname')}:${get(proxyConfig, 'port')}`;
     else if (proxyMode === 'off' && proxyModeReason) modeMsg += ` (${proxyModeReason})`;
     timeline.push({ timestamp: new Date(), type: 'info', message: modeMsg });
@@ -221,7 +221,7 @@ async function setupProxyAgents({
       }
     }
   } else if (proxyMode === 'pac') {
-    const pacSource = get(proxyConfig, 'pacSource');
+    const pacSource = get(proxyConfig, 'pac.source');
     if (pacSource) {
       if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving PAC: ${pacSource}` });
       try {

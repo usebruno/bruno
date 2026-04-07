@@ -142,7 +142,9 @@ const getCertsAndProxyConfig = async ({
     if (!globalDisabled) {
       if (globalProxySource === 'pac') {
         proxyMode = 'pac';
-        proxyConfig = { pacSource: get(globalProxy, 'pac.source') };
+        proxyConfig = {
+          pac: globalProxy.pac ?? {}
+        };
       } else if (globalProxySource === 'inherit') {
         proxyMode = 'system';
         const systemProxyConfig = await getCachedSystemProxy();
