@@ -241,7 +241,11 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'collection-settings') {
-    return <CollectionSettings collection={collection} />;
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <CollectionSettings collection={collection} />
+      </ScopedPersistenceProvider>
+    );
   }
 
   if (focusedTab.type === 'collection-overview') {

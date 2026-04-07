@@ -146,7 +146,7 @@ const CollectionSettings = ({ collection }) => {
           {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
         </div>
       </div>
-      <section className="mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
+      <section className="collection-settings-content mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
     </StyledWrapper>
   );
 };

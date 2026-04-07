@@ -12,6 +12,7 @@ import StatusDot from 'components/StatusDot';
 import { flattenItems, isItemARequest } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
+import { usePersistedEditorScroll } from 'hooks/usePersistedState/usePersistedEditorScroll';
 
 const Script = ({ collection }) => {
   const dispatch = useDispatch();
@@ -38,13 +39,20 @@ const Script = ({ collection }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  // Refresh CodeMirror when tab becomes visible
+  const preReqScroll = usePersistedEditorScroll(preRequestEditorRef, `collection-pre-req-scroll-${collection.uid}`);
+  const postResScroll = usePersistedEditorScroll(postResponseEditorRef, `collection-post-res-scroll-${collection.uid}`);
+
+  // Refresh CodeMirror when tab becomes visible and restore scroll position.
+  // CodeMirror's scrollTo() is silently ignored when the editor is inside a display:none container
+  // (TabsContent hides inactive tabs via display:none). After refresh() recalculates layout, we re-apply scrollTo().
   useEffect(() => {
     const timer = setTimeout(() => {
       if (activeTab === 'pre-request' && preRequestEditorRef.current?.editor) {
         preRequestEditorRef.current.editor.refresh();
+        preRequestEditorRef.current.editor.scrollTo(null, preReqScroll);
       } else if (activeTab === 'post-response' && postResponseEditorRef.current?.editor) {
         postResponseEditorRef.current.editor.refresh();
+        postResponseEditorRef.current.editor.scrollTo(null, postResScroll);
       }
     }, 0);
 
@@ -111,6 +119,7 @@ const Script = ({ collection }) => {
             font={get(preferences, 'font.codeFont', 'default')}
             fontSize={get(preferences, 'font.codeFontSize')}
             showHintsFor={['req', 'bru']}
+            initialScroll={preReqScroll}
           />
         </TabsContent>
 
@@ -126,6 +135,7 @@ const Script = ({ collection }) => {
             font={get(preferences, 'font.codeFont', 'default')}
             fontSize={get(preferences, 'font.codeFontSize')}
             showHintsFor={['req', 'res', 'bru']}
+            initialScroll={postResScroll}
           />
         </TabsContent>
       </Tabs>

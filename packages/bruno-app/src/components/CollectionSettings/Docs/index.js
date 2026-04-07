@@ -2,7 +2,7 @@ import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
 import { updateCollectionDocs, deleteCollectionDraft } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
@@ -11,6 +11,7 @@ import StyledWrapper from './StyledWrapper';
 import { IconEdit, IconX, IconFileText } from '@tabler/icons';
 import Button from 'ui/Button/index';
 import ActionIcon from 'ui/ActionIcon/index';
+import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
@@ -18,6 +19,18 @@ const Docs = ({ collection }) => {
   const [isEditing, setIsEditing] = useState(false);
   const docs = collection.draft?.root ? get(collection, 'draft.root.docs', '') : get(collection, 'root.docs', '');
   const preferences = useSelector((state) => state.app.preferences);
+
+  // StyledWrapper has overflow-y: auto — use null selector.
+  // Preview mode: hook tracks wrapper scroll. Edit mode: CodeEditor's onScroll/initialScroll.
+  const wrapperRef = useRef(null);
+  const storageKey = usePersistedContainerScroll(wrapperRef, null, `collection-docs-scroll-${collection.uid}`, !isEditing);
+
+  const readScroll = () => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      return raw !== null ? JSON.parse(raw) : 0;
+    } catch { return 0; }
+  };
 
   const toggleViewMode = () => {
     setIsEditing((prev) => !prev);
@@ -48,7 +61,7 @@ const Docs = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="h-full w-full relative flex flex-col">
+    <StyledWrapper className="h-full w-full relative flex flex-col" ref={wrapperRef}>
       <div className="flex flex-row w-full justify-between items-center mb-4">
         <div className="text-lg font-medium flex items-center gap-2">
           <IconFileText size={20} strokeWidth={1.5} />
@@ -81,9 +94,11 @@ const Docs = ({ collection }) => {
           mode="application/text"
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
+          initialScroll={readScroll()}
+          onScroll={(editor) => localStorage.setItem(storageKey, JSON.stringify(editor.doc.scrollTop))}
         />
       ) : (
-        <div className="h-full overflow-auto pl-1">
+        <div className="pl-1">
           <div className="h-[1px] min-h-[500px]">
             {
               docs?.length > 0
