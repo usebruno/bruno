@@ -18,7 +18,7 @@ import StyledWrapper from './StyledWrapper';
 import { getRepoNameFromUrl } from 'utils/git';
 import GitNotFoundModal from 'components/Git/GitNotFoundModal/index';
 import get from 'lodash/get';
-import { selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectActiveWorkspace } from '../../../selectors/workspaces';
 
 const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null }) => {
   const [collectionPaths, setCollectionPaths] = useState([]);

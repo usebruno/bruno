@@ -36,9 +36,9 @@ import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import StatusBadge from 'ui/StatusBadge/index';
-import { selectWorkspaces, selectActiveWorkspaceUid, selectActiveWorkspace } from 'src/selectors/workspaces';
-import { selectCollections } from 'src/selectors/collections';
-import { selectTabs } from 'src/selectors/tabs';
+import { selectWorkspaces, selectActiveWorkspaceUid, selectActiveWorkspace } from '../../../selectors/workspaces';
+import { selectCollections } from '../../../selectors/collections';
+import { selectTabs } from '../../../selectors/tabs';
 
 const CollectionHeader = ({ collection, isScratchCollection }) => {
   const dispatch = useDispatch();

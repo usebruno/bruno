@@ -7,8 +7,8 @@ import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
-import { selectCollections } from 'src/selectors/collections';
-import { selectWorkspaces, selectActiveOrDefaultWorkspace } from 'src/selectors/workspaces';
+import { selectCollections } from '../../../selectors/collections';
+import { selectWorkspaces, selectActiveOrDefaultWorkspace } from '../../../selectors/workspaces';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');

@@ -11,7 +11,7 @@ import { areItemsLoading } from 'utils/collections';
 import RunnerTags from 'components/RunnerResults/RunnerTags/index';
 import { getRequestItemsForCollectionRun } from 'utils/collections/index';
 import Button from 'ui/Button';
-import { makeSelectCollectionByUid } from 'src/selectors/collections';
+import { makeSelectCollectionByUid } from '../../../../../../selectors/collections';
 
 const RunCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();

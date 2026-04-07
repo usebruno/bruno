@@ -12,8 +12,8 @@ import { openConsole } from 'providers/ReduxStore/slices/logs';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useApp } from 'providers/App';
 import StyledWrapper from './StyledWrapper';
-import { selectActiveTab } from 'src/selectors/tabs';
-import { selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectActiveTab } from '../../selectors/tabs';
+import { selectActiveWorkspace } from '../../selectors/workspaces';
 
 const StatusBar = () => {
   const dispatch = useDispatch();

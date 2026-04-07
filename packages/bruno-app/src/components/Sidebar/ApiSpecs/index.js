@@ -6,7 +6,7 @@ import { openApiSpec } from 'providers/ReduxStore/slices/apiSpec';
 import ApiSpecItem from './ApiSpecItem';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
-import { selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectActiveWorkspace } from '../../../selectors/workspaces';
 
 const LinkStyle = styled.span`
   color: ${(props) => props.theme['text-link']};

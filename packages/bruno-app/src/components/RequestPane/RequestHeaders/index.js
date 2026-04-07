@@ -12,7 +12,7 @@ import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from '../../BulkEditor';
 import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
-import { selectActiveTabUid, selectActiveTabTableColumnWidths } from 'src/selectors/tabs';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../selectors/tabs';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 

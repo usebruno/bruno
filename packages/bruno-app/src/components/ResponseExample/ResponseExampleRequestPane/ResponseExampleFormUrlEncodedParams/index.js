@@ -7,7 +7,7 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
-import { selectActiveTabUid, selectActiveTabTableColumnWidths } from 'src/selectors/tabs';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../../selectors/tabs';
 
 const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, editMode = false }) => {
   const dispatch = useDispatch();

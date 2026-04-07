@@ -15,7 +15,7 @@ import Portal from 'components/Portal';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
-import { makeSelectCollectionByUid } from 'src/selectors/collections';
+import { makeSelectCollectionByUid } from '../../../../../../selectors/collections';
 
 const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();

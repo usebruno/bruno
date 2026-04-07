@@ -11,9 +11,9 @@ import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
 import CreateTransientRequest from 'components/CreateTransientRequest';
 import ActionIcon from 'ui/ActionIcon/index';
-import { selectActiveTabUid, selectActiveTab, makeSelectTabsByCollectionUid } from 'src/selectors/tabs';
-import { makeSelectCollectionByUid } from 'src/selectors/collections';
-import { selectWorkspaces } from 'src/selectors/workspaces';
+import { selectActiveTabUid, selectActiveTab, makeSelectTabsByCollectionUid } from '../../selectors/tabs';
+import { makeSelectCollectionByUid } from '../../selectors/collections';
+import { selectWorkspaces } from '../../selectors/workspaces';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();

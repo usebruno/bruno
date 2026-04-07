@@ -13,7 +13,7 @@ import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from 'components/BulkEditor/index';
 import Button from 'ui/Button';
 import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
-import { selectActiveTabUid, selectActiveTabTableColumnWidths } from 'src/selectors/tabs';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../selectors/tabs';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 

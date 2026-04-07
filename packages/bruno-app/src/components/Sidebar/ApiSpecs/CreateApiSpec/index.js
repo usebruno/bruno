@@ -12,7 +12,7 @@ import { exportApiSpec } from 'utils/exporters/openapi-spec';
 import { each } from 'lodash';
 import { showApiSpecPage } from 'providers/ReduxStore/slices/app';
 import { validateName, validateNameError } from 'utils/common/regex';
-import { selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectActiveWorkspace } from '../../../../selectors/workspaces';
 
 export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
   let variables = {};

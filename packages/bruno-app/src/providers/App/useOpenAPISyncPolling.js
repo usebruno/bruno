@@ -3,8 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { checkActiveWorkspaceCollectionsForUpdates } from 'providers/ReduxStore/slices/openapi-sync';
 import { normalizePath } from 'utils/common/path';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
-import { selectCollections } from 'src/selectors/collections';
-import { selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectCollections } from '../../selectors/collections';
+import { selectActiveWorkspace } from '../../selectors/workspaces';
 
 const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
 

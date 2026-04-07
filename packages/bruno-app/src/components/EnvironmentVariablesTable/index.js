@@ -15,9 +15,9 @@ import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
 import { stripEnvVarUid } from 'utils/environments';
-import { selectGlobalEnvironments, selectActiveGlobalEnvironmentUid } from 'src/selectors/global-environments';
-import { selectActiveWorkspace } from 'src/selectors/workspaces';
-import { selectActiveTabUid, selectActiveTabTableColumnWidths } from 'src/selectors/tabs';
+import { selectGlobalEnvironments, selectActiveGlobalEnvironmentUid } from '../../selectors/global-environments';
+import { selectActiveWorkspace } from '../../selectors/workspaces';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../selectors/tabs';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;

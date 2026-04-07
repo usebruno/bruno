@@ -9,7 +9,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import AssertionOperator from './AssertionOperator';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
-import { selectActiveTabUid, selectActiveTabTableColumnWidths } from 'src/selectors/tabs';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../selectors/tabs';
 
 const unaryOperators = [
   'isEmpty',

@@ -13,9 +13,9 @@ import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, sav
 import { toggleSidebarCollapse, toggleSidebarSearch, savePreferences } from 'providers/ReduxStore/slices/app';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
-import { selectTabs, selectActiveTabUid } from 'src/selectors/tabs';
-import { selectCollections } from 'src/selectors/collections';
-import { selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectTabs, selectActiveTabUid } from '../../selectors/tabs';
+import { selectCollections } from '../../selectors/collections';
+import { selectActiveWorkspace } from '../../selectors/workspaces';
 
 export const HotkeysContext = React.createContext();
 

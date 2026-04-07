@@ -19,7 +19,7 @@ import { wsdlToBruno } from '@usebruno/converters';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
-import { selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectActiveWorkspace } from '../../../selectors/workspaces';
 
 const STATUS = {
   LOADING: 'loading',

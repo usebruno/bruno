@@ -16,7 +16,7 @@ import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import path from 'utils/common/path';
 import { isWindowsOS } from 'utils/common/platform';
-import { selectActiveTabUid, selectActiveTabTableColumnWidths } from 'src/selectors/tabs';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../selectors/tabs';
 
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();

@@ -17,9 +17,9 @@ import { normalizePath } from 'utils/common/path';
 import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, getItemPath } from './utils/searchUtils';
 import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG, DOCUMENTATION_RESULT } from './constants';
 import StyledWrapper from './StyledWrapper';
-import { selectCollections } from 'src/selectors/collections';
-import { selectWorkspaces, selectActiveWorkspaceUid, selectActiveWorkspace } from 'src/selectors/workspaces';
-import { selectTabs } from 'src/selectors/tabs';
+import { selectCollections } from '../../selectors/collections';
+import { selectWorkspaces, selectActiveWorkspaceUid, selectActiveWorkspace } from '../../selectors/workspaces';
+import { selectTabs } from '../../selectors/tabs';
 
 const GlobalSearchModal = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');

@@ -37,7 +37,7 @@ import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import useKeybinding from 'hooks/useKeybinding';
-import { selectWorkspaces, selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectWorkspaces, selectActiveWorkspace } from '../../../../selectors/workspaces';
 
 const CollectionsSection = () => {
   const dispatch = useDispatch();

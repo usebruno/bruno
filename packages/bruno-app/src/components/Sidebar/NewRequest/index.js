@@ -23,7 +23,7 @@ import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useTheme } from 'styled-components';
 import Button from 'ui/Button';
-import { makeSelectCollectionByUid } from 'src/selectors/collections';
+import { makeSelectCollectionByUid } from '../../../selectors/collections';
 
 const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();

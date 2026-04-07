@@ -39,8 +39,8 @@ import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsBy
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
 import { apiSpecAddFileEvent, apiSpecChangeFileEvent } from 'providers/ReduxStore/slices/apiSpec';
-import { selectActiveTab } from 'src/selectors/tabs';
-import { selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectActiveTab } from '../../selectors/tabs';
+import { selectActiveWorkspace } from '../../selectors/workspaces';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();

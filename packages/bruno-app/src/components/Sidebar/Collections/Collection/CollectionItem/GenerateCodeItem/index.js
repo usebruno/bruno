@@ -13,7 +13,7 @@ import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
-import { makeSelectCollectionByUid } from 'src/selectors/collections';
+import { makeSelectCollectionByUid } from '../../../../../../selectors/collections';
 
 const TEMPLATE_VAR_PATTERN = /\{\{([^}]+)\}\}/;
 

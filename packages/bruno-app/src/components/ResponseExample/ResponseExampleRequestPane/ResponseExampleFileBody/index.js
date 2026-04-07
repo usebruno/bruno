@@ -11,7 +11,7 @@ import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import RadioButton from 'components/RadioButton';
-import { selectActiveTabUid, selectActiveTabTableColumnWidths } from 'src/selectors/tabs';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../../selectors/tabs';
 
 const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = false }) => {
   const dispatch = useDispatch();

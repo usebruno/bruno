@@ -24,8 +24,8 @@ import { itemSchema } from '@usebruno/schema';
 import { uuid } from 'utils/common';
 import { formatIpcError } from 'utils/common/error';
 import get from 'lodash/get';
-import { selectWorkspaces, selectActiveWorkspace } from 'src/selectors/workspaces';
-import { selectCollections } from 'src/selectors/collections';
+import { selectWorkspaces, selectActiveWorkspace } from '../../selectors/workspaces';
+import { selectCollections } from '../../selectors/collections';
 
 const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose }) => {
   const dispatch = useDispatch();

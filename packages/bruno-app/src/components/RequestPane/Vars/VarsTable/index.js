@@ -10,7 +10,7 @@ import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
-import { selectActiveTabUid, selectActiveTabTableColumnWidths } from 'src/selectors/tabs';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../../selectors/tabs';
 
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();

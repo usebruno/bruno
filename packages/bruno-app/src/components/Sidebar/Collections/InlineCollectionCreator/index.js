@@ -10,7 +10,7 @@ import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import { multiLineMsg } from 'utils/common';
 import { formatIpcError } from 'utils/common/error';
 import StyledWrapper from './StyledWrapper';
-import { selectWorkspaces, selectActiveWorkspaceUid, selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectWorkspaces, selectActiveWorkspaceUid, selectActiveWorkspace } from '../../../../selectors/workspaces';
 
 const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
   const inputRef = useRef(null);

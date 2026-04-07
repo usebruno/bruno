@@ -19,7 +19,7 @@ import Help from 'components/Help';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
-import { selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectActiveWorkspace } from '../../../selectors/workspaces';
 
 // Extract collection name from raw data
 const getCollectionName = (format, rawData) => {

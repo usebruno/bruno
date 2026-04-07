@@ -41,10 +41,10 @@ import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
-import { selectTabs, selectActiveTabUid, selectActiveTab } from 'src/selectors/tabs';
-import { selectGlobalEnvironments, selectActiveGlobalEnvironmentUid } from 'src/selectors/global-environments';
-import { selectCollections } from 'src/selectors/collections';
-import { selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectTabs, selectActiveTabUid, selectActiveTab } from '../../selectors/tabs';
+import { selectGlobalEnvironments, selectActiveGlobalEnvironmentUid } from '../../selectors/global-environments';
+import { selectCollections } from '../../selectors/collections';
+import { selectActiveWorkspace } from '../../selectors/workspaces';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 490;

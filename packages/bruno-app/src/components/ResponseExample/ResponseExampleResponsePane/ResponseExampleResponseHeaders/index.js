@@ -11,7 +11,7 @@ import BulkEditor from 'components/BulkEditor';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import StyledWrapper from './StyledWrapper';
-import { selectActiveTabUid, selectActiveTabTableColumnWidths } from 'src/selectors/tabs';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../../selectors/tabs';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 

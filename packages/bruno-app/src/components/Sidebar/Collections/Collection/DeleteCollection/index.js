@@ -5,8 +5,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { IconAlertTriangle } from '@tabler/icons';
 import { removeCollectionFromWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 import StyledWrapper from './StyledWrapper';
-import { makeSelectWorkspaceByUid } from 'src/selectors/workspaces';
-import { makeSelectCollectionByUid } from 'src/selectors/collections';
+import { makeSelectWorkspaceByUid } from '../../../../../selectors/workspaces';
+import { makeSelectCollectionByUid } from '../../../../../selectors/collections';
 
 const DeleteCollection = ({ onClose, collectionUid, workspaceUid }) => {
   const dispatch = useDispatch();

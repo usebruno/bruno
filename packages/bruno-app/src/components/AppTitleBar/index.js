@@ -24,7 +24,7 @@ import StyledWrapper from './StyledWrapper';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
 import { isMacOS, isWindowsOS, isLinuxOS } from 'utils/common/platform';
 import classNames from 'classnames';
-import { selectWorkspaces, selectActiveWorkspaceUid, selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectWorkspaces, selectActiveWorkspaceUid, selectActiveWorkspace } from '../../selectors/workspaces';
 
 const getOsClass = () => {
   if (isMacOS()) return 'os-mac';

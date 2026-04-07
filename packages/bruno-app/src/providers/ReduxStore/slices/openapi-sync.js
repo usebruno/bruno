@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { normalizePath } from 'utils/common/path';
-import { selectActiveWorkspace } from 'src/selectors/workspaces';
+import { selectActiveWorkspace } from '../../../selectors/workspaces';
 
 const initialState = {
   // Map of collectionUid -> { hasUpdates, diff, lastChecked, error }
