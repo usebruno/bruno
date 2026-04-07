@@ -178,7 +178,8 @@ module.exports = runESMImports().then(() => defineConfig([
       }
     },
     rules: {
-      'no-undef': 'error'
+      'no-undef': 'error',
+      'no-case-declarations': 'error'
     }
   },
   {

@@ -5,6 +5,11 @@ import { isPotentiallyTrustworthyOrigin } from '../utils/url-validation';
 
 const cookieJar = new CookieJar();
 
+// __Host- prefixed cookies must have hostOnly=true per the cookie spec.
+// tough-cookie only sets hostOnly=true when domain is derived from the URL,
+// so we must not set domain explicitly for these cookies.
+const hasHostPrefix = (cookieName: string): boolean => cookieName.startsWith('__Host-');
+
 const addCookieToJar = (setCookieHeader: string, requestUrl: string): void => {
   const cookie = Cookie.parse(setCookieHeader, { loose: true });
   if (!cookie) return;
@@ -300,11 +305,11 @@ const cookieJarWrapper = () => {
 
           if (!cookieName) throw new Error('Cookie name is required');
 
-          const cookie = new Cookie({
-            key: cookieName,
-            value: cookieValue,
-            domain: new URL(url).hostname
-          });
+          const cookie = new Cookie(
+            hasHostPrefix(cookieName)
+              ? { key: cookieName, value: cookieValue }
+              : { key: cookieName, value: cookieValue, domain: new URL(url).hostname }
+          );
 
           cookieJar.setCookieSync(cookie, url, { ignoreError: true });
           return;
@@ -317,10 +322,8 @@ const cookieJarWrapper = () => {
           if (!obj.key && obj.name) obj.key = obj.name;
           if (!obj.key) throw new Error('cookieObject.key (name) is required');
 
-          const base = {
-            domain: new URL(url).hostname,
-            ...obj
-          } as any;
+          const defaults = hasHostPrefix(obj.key) ? {} : { domain: new URL(url).hostname };
+          const base = { ...defaults, ...obj } as any;
 
           const processedCookie = createCookieObj(base);
           const cookie = new Cookie(processedCookie);
@@ -371,10 +374,8 @@ const cookieJarWrapper = () => {
           if (!obj.key && obj.name) obj.key = obj.name;
           if (!obj.key) throw new Error('cookieObject.key (name) is required');
 
-          const base = {
-            domain: new URL(url).hostname,
-            ...obj
-          } as any;
+          const defaults = hasHostPrefix(obj.key) ? {} : { domain: new URL(url).hostname };
+          const base = { ...defaults, ...obj } as any;
 
           const processedCookie = createCookieObj(base);
           const cookie = new Cookie(processedCookie);

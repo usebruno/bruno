@@ -736,6 +736,7 @@ const EnvironmentList = ({
 
             <CollapsibleSection
               title=".env Files"
+              testId="dotenv-files-section"
               expanded={dotEnvExpanded}
               onToggle={() => setDotEnvExpanded(!dotEnvExpanded)}
               badge={dotEnvFiles.length}
@@ -744,6 +745,7 @@ const EnvironmentList = ({
                   className="btn-action"
                   onClick={handleCreateDotEnvInlineClick}
                   title="Create .env file"
+                  data-testid="create-dotenv-file"
                 >
                   <IconPlus size={14} strokeWidth={1.5} />
                 </button>
@@ -768,6 +770,7 @@ const EnvironmentList = ({
                       ref={dotEnvInputRef}
                       type="text"
                       className="environment-name-input"
+                      data-testid="dotenv-name-input"
                       value={newDotEnvName}
                       onChange={handleDotEnvNameChange}
                       onKeyDown={handleDotEnvNameKeyDown}

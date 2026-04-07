@@ -219,18 +219,10 @@ export default class CodeEditor extends React.Component {
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
-      const nextValue = this.props.value ?? '';
-      const currentValue = this.editor.getValue();
-      // Skip updating only when focused and editable; read-only editors (e.g. response viewer) must always show new value
-      if (this.editor.hasFocus?.() && currentValue !== nextValue && !this.props.readOnly) {
-        this.cachedValue = currentValue;
-      } else {
-        const cursor = this.editor.getCursor();
-        this.cachedValue = nextValue;
-        this.editor.setValue(nextValue);
-        this.editor.setCursor(cursor);
-      }
+      const cursor = this.editor.getCursor();
+      this.cachedValue = String(this?.props?.value ?? '');
+      this.editor.setValue(String(this.props.value) || '');
+      this.editor.setCursor(cursor);
     }
 
     if (this.editor) {

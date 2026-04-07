@@ -15,7 +15,7 @@ const Wrapper = styled.div`
     transition: color 0.15s ease;
 
     &:hover {
-      color: ${(props) => props.theme.colors.text.link};
+      color: ${(props) => props.theme.text};
     }
   }
 

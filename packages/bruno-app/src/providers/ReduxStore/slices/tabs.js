@@ -341,9 +341,12 @@ export const tabsSlice = createSlice({
       state.tabs = tabs;
     },
     reopenLastClosedTab: (state, action) => {
-      const { collectionUid } = action.payload;
-      // Find the last closed tab for this collection (LIFO)
-      const index = state.recentlyClosedTabs.findLastIndex((t) => t.collectionUid === collectionUid);
+      const collectionUid = action.payload?.collectionUid;
+      // Find the last closed tab for this collection (LIFO). If no collectionUid is
+      // available, reopen the latest closed tab globally.
+      const index = collectionUid
+        ? state.recentlyClosedTabs.findLastIndex((t) => t.collectionUid === collectionUid)
+        : state.recentlyClosedTabs.length - 1;
       if (index === -1) return;
 
       const [tab] = state.recentlyClosedTabs.splice(index, 1);

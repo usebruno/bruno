@@ -68,12 +68,21 @@ const MultipartFormParams = ({ item, collection }) => {
         const currentParams = item.draft
           ? get(item, 'draft.request.body.multipartForm')
           : get(item, 'request.body.multipartForm');
-        const updatedParams = (currentParams || []).map((p) => {
-          if (p.uid === row.uid) {
-            return { ...p, type: 'file', value: processedPaths };
-          }
-          return p;
-        });
+        const existsInParams = (currentParams || []).some((p) => p.uid === row.uid);
+        let updatedParams;
+        if (existsInParams) {
+          updatedParams = currentParams.map((p) => {
+            if (p.uid === row.uid) {
+              return { ...p, type: 'file', value: processedPaths };
+            }
+            return p;
+          });
+        } else {
+          updatedParams = [
+            ...(currentParams || []),
+            { uid: row.uid, name: row.name || '', enabled: true, type: 'file', value: processedPaths, contentType: '' }
+          ];
+        }
         handleParamsChange(updatedParams);
       })
       .catch((error) => {
@@ -142,13 +151,6 @@ const MultipartFormParams = ({ item, collection }) => {
         if (fileName) {
           return (
             <div className="flex items-center file-value-cell">
-              <button
-                className="clear-file-btn ml-1"
-                onClick={() => handleClearFile(row)}
-                title="Remove file"
-              >
-                <IconX size={16} />
-              </button>
               <IconFile size={16} className="text-muted mr-1" />
               <div className="file-name flex-1 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
                 <SingleLineEditor
@@ -159,6 +161,13 @@ const MultipartFormParams = ({ item, collection }) => {
                   item={item}
                 />
               </div>
+              <button
+                className="clear-file-btn ml-1"
+                onClick={() => handleClearFile(row)}
+                title="Remove file"
+              >
+                <IconX size={16} />
+              </button>
             </div>
           );
         }

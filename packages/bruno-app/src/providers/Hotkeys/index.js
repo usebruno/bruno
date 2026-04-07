@@ -8,8 +8,8 @@ import SaveRequestsModal from 'providers/App/ConfirmAppClose/SaveRequestsModal';
 import filter from 'lodash/filter';
 import each from 'lodash/each';
 import { findCollectionByUid, findItemInCollection, flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
-import { addTab, focusTab, reorderTabs, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
-import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { addTab, focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
+import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, reopenClosedTab } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleSidebarCollapse, toggleSidebarSearch, savePreferences } from 'providers/ReduxStore/slices/app';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
@@ -209,8 +209,10 @@ export const HotkeysProvider = (props) => {
   useEffect(() => {
     bindAction('reopenLastClosedTab', (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if (activeTab) {
-        dispatch(reopenLastClosedTab({ collectionUid: activeTab.collectionUid }));
+      if (activeTab?.collectionUid) {
+        dispatch(reopenClosedTab({ collectionUid: activeTab.collectionUid }));
+      } else {
+        dispatch(reopenClosedTab({}));
       }
       return false;
     });

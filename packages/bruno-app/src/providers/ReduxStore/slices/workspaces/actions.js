@@ -1001,6 +1001,11 @@ export const mountScratchCollection = (workspaceUid) => {
         brunoConfig
       });
 
+      // Map scratch collection to workspace so getProcessEnvVars can resolve workspace .env values
+      if (workspace.pathname) {
+        await ipcRenderer.invoke('renderer:set-collection-workspace', scratchCollectionUid, workspace.pathname);
+      }
+
       await dispatch(openScratchCollectionEvent(scratchCollectionUid, tempDirectoryPath, brunoConfig));
 
       dispatch(setWorkspaceScratchCollection({

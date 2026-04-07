@@ -153,6 +153,8 @@ function makeAxiosInstance({
           callback(null, ip, useIpv6 ? 6 : 4);
         });
       };
+    } else {
+      delete config.lookup;
     }
 
     config.headers['request-start-time'] = Date.now();

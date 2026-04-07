@@ -22,6 +22,7 @@ import NewRequest from 'components/Sidebar/NewRequest/index';
 import GradientCloseButton from './GradientCloseButton';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
+import { getInvalidVariableNames } from 'utils/common/variables';
 import ExampleTab from '../ExampleTab';
 import toast from 'react-hot-toast';
 
@@ -101,6 +102,13 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     event.preventDefault();
     event.stopPropagation();
     menuDropdownRef.current?.show();
+  };
+
+  // Prevent the browser's autoscroll (triggered on middle-button mousedown)
+  const handleMouseDown = (e) => {
+    if (e.button === 1) {
+      e.preventDefault();
+    }
   };
 
   const handleMouseUp = (e) => {
@@ -260,6 +268,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return (
       <StyledWrapper
         className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
+        onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
       >
         {showConfirmCollectionClose && tab.type === 'collection-settings' && (
@@ -348,6 +357,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                 window.addEventListener('dotenv-save-failed', onFailed, { once: true });
                 window.dispatchEvent(new Event('dotenv-save'));
               } else if (draft?.environmentUid && draft?.variables) {
+                const invalidNames = getInvalidVariableNames(draft.variables);
+                if (invalidNames.length > 0) {
+                  toast.error(`Invalid variable name(s): ${invalidNames.join(', ')}`);
+                  return;
+                }
                 dispatch(saveEnvironment(draft.variables, draft.environmentUid, collection.uid))
                   .then(() => {
                     dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
@@ -394,6 +408,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                 window.addEventListener('dotenv-save-failed', onFailed, { once: true });
                 window.dispatchEvent(new Event('dotenv-save'));
               } else if (draft?.environmentUid && draft?.variables) {
+                const invalidNames = getInvalidVariableNames(draft.variables);
+                if (invalidNames.length > 0) {
+                  toast.error(`Invalid variable name(s): ${invalidNames.join(', ')}`);
+                  return;
+                }
                 dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }))
                   .then(() => {
                     dispatch(clearGlobalEnvironmentDraft());
@@ -447,6 +466,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return (
       <StyledWrapper
         className="flex items-center justify-between tab-container"
+        onMouseDown={handleMouseDown}
         onMouseUp={(e) => {
           if (e.button === 1) {
             e.preventDefault();
@@ -503,6 +523,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
+        onMouseDown={handleMouseDown}
         onMouseUp={(e) => {
           if (!hasChanges) return handleMouseUp(e);
 

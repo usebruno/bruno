@@ -93,7 +93,7 @@ const convertCollection = async (format, rawData, groupingType, collectionFormat
 };
 
 const groupingOptions = [
-  { value: 'tags', label: 'Tags', description: 'Group requests by OpenAPI tags', testId: 'grouping-option-tags' },
+  { value: 'tags', label: 'Tags', description: 'Group requests by OpenAPI/Swagger tags', testId: 'grouping-option-tags' },
   { value: 'path', label: 'Paths', description: 'Group requests by URL path structure', testId: 'grouping-option-path' }
 ];
 
@@ -109,6 +109,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const isZipImport = format === 'bruno-zip';
   const isOpenApiFromUrl = isOpenApi && !!sourceUrl && !filePath;
   const isOpenApiFromFile = isOpenApi && !!filePath && !sourceUrl;
+  const isSwagger2 = isOpenApi && rawData?.swagger && String(rawData.swagger).startsWith('2');
   const showCheckForSpecUpdatesOption = isOpenAPISyncEnabled && (isOpenApiFromUrl || isOpenApiFromFile);
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
@@ -324,18 +325,21 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
           )}
 
           {showCheckForSpecUpdatesOption && (
-            <div className="mt-4">
-              <label className="flex items-center gap-2 cursor-pointer">
+            <div className={`mt-4 ${isSwagger2 ? 'opacity-50 pointer-events-none' : ''}`}>
+              <label className={`flex items-center gap-2 ${isSwagger2 ? '' : 'cursor-pointer'}`}>
                 <input
                   type="checkbox"
-                  checked={enableCheckForSpecUpdates}
+                  checked={isSwagger2 ? false : enableCheckForSpecUpdates}
                   onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
-                  className="cursor-pointer checkbox"
+                  disabled={isSwagger2}
+                  className={`checkbox ${isSwagger2 ? '' : 'cursor-pointer'}`}
                 />
                 <span className="font-medium">Check for Spec Updates</span>
               </label>
               <p className="text-muted text-xs mt-1">
-                Stay notified of spec changes and sync your collection with the spec.
+                {isSwagger2
+                  ? 'OpenAPI Sync is not supported for Swagger 2.0 specs.'
+                  : 'Stay notified of spec changes and sync your collection with the spec.'}
               </p>
             </div>
           )}
