@@ -54,7 +54,7 @@ const ProxySettings = ({ close }) => {
   const formik = useFormik({
     initialValues: {
       disabled: preferences.proxy.disabled || false,
-      source: preferences.proxy.source || 'inherit',
+      source: preferences.proxy.source || 'manual',
       pac: {
         source: preferences.proxy.pac?.source || ''
       },
@@ -107,8 +107,8 @@ const ProxySettings = ({ close }) => {
   const [proxyMode, setProxyMode] = useState(() => {
     if (preferences.proxy.disabled) return 'off';
     if (preferences.proxy.source === 'pac') return 'pac';
-    if (preferences.proxy.source === 'inherit') return 'system';
-    return 'on';
+    if (preferences.proxy.source === 'inherit') return 'inherit';
+    return 'manual';
   });
   const [pacInputMode, setPacInputMode] = useState(() =>
     preferences.proxy.pac?.source?.startsWith('file://') ? 'file' : 'url'
@@ -152,10 +152,10 @@ const ProxySettings = ({ close }) => {
               <input
                 type="radio"
                 name="mode"
-                value="on"
-                checked={proxyMode === 'on'}
+                value="manual"
+                checked={proxyMode === 'manual'}
                 onChange={(e) => {
-                  setProxyMode('on');
+                  setProxyMode('manual');
                   formik.setFieldValue('disabled', false);
                   formik.setFieldValue('source', 'manual');
                 }}
@@ -167,10 +167,10 @@ const ProxySettings = ({ close }) => {
               <input
                 type="radio"
                 name="mode"
-                value="system"
-                checked={proxyMode === 'system'}
+                value="inherit"
+                checked={proxyMode === 'inherit'}
                 onChange={(e) => {
-                  setProxyMode('system');
+                  setProxyMode('inherit');
                   formik.setFieldValue('disabled', false);
                   formik.setFieldValue('source', 'inherit');
                 }}
@@ -195,12 +195,12 @@ const ProxySettings = ({ close }) => {
             </label>
           </div>
         </div>
-        {proxyMode === 'system' ? (
+        {proxyMode === 'inherit' ? (
           <div className="mb-3 pt-1 text-muted system-proxy-settings">
             <SystemProxy />
           </div>
         ) : null}
-        {proxyMode === 'on' ? (
+        {proxyMode === 'manual' ? (
           <>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="protocol">

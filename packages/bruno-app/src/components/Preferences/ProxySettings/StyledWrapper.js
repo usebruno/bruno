@@ -32,10 +32,11 @@ const StyledWrapper = styled.div`
     border: 1px solid ${(props) => props.theme.input.border};
     border-radius: ${(props) => props.theme.border.radius.base};
     overflow: hidden;
-    margin-right: 6px;
+    margin-right: 12px;
   }
 
   .pac-mode-btn {
+    height: 34px;
     padding: 0.1rem 0.6rem;
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;

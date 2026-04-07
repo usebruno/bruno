@@ -115,7 +115,7 @@ async function setupProxyAgents({
 }) {
   if (timeline) {
     let modeMsg = `Proxy mode: ${proxyMode}`;
-    if (proxyMode === 'pac') modeMsg += ` | PAC URL: ${get(proxyConfig, 'pacUrl') || '(empty)'}`;
+    if (proxyMode === 'pac') modeMsg += ` | PAC URL: ${get(proxyConfig, 'pacSource') || '(empty)'}`;
     else if (proxyMode === 'on') modeMsg += ` | ${get(proxyConfig, 'protocol')}://${get(proxyConfig, 'hostname')}:${get(proxyConfig, 'port')}`;
     else if (proxyMode === 'off' && proxyModeReason) modeMsg += ` (${proxyModeReason})`;
     timeline.push({ timestamp: new Date(), type: 'info', message: modeMsg });
@@ -221,11 +221,11 @@ async function setupProxyAgents({
       }
     }
   } else if (proxyMode === 'pac') {
-    const pacUrl = get(proxyConfig, 'pacUrl');
-    if (pacUrl) {
-      if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving PAC: ${pacUrl}` });
+    const pacSource = get(proxyConfig, 'pacSource');
+    if (pacSource) {
+      if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving PAC: ${pacSource}` });
       try {
-        const resolver = await getPacResolver({ pacUrl, httpsAgentRequestFields });
+        const resolver = await getPacResolver({ pacSource, httpsAgentRequestFields });
         const directives = await resolver.resolve(requestConfig.url);
         if (directives && directives.length) {
           const first = directives[0];

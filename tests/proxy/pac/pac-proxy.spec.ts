@@ -5,8 +5,6 @@ import { setSandboxMode, runCollection, validateRunnerResults } from '../../util
 import { startServers, stopServers, PAC_PORT, type TestServers } from './server';
 
 test.describe('PAC Proxy', () => {
-  test.setTimeout(60_000);
-
   let servers: TestServers;
 
   test.beforeAll(async () => {

@@ -454,10 +454,10 @@ async function createAgents({
       }
     }
   } else if (proxyMode === 'pac') {
-    const pacUrl = get(proxyConfig, 'pacUrl');
-    if (pacUrl && requestUrl) {
+    const pacSource = get(proxyConfig, 'pacSource');
+    if (pacSource && requestUrl) {
       try {
-        const resolver = await getPacResolver({ pacUrl, httpsAgentRequestFields: { ca: tlsOptions.ca, rejectUnauthorized: tlsOptions.rejectUnauthorized, minVersion: tlsOptions.minVersion } });
+        const resolver = await getPacResolver({ pacSource, httpsAgentRequestFields: { ca: tlsOptions.ca, rejectUnauthorized: tlsOptions.rejectUnauthorized, minVersion: tlsOptions.minVersion } });
         const directives = await resolver.resolve(requestUrl);
         if (directives && directives.length) {
           const first = directives[0];

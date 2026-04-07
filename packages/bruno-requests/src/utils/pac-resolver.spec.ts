@@ -46,9 +46,9 @@ describe('pac-resolver (shared)', () => {
     jest.doMock('axios', () => ({ get: jest.fn().mockRejectedValue(new Error(message)) }));
   };
 
-  test('throws when pacUrl is not provided', async () => {
+  test('throws when pacSource is not provided', async () => {
     const { getPacResolver } = require('./pac-resolver');
-    await expect(getPacResolver({})).rejects.toThrow('pacUrl must be provided');
+    await expect(getPacResolver({})).rejects.toThrow('pacSource must be provided');
   });
 
   test('downloads PAC via axios and returns resolver that splits directives', async () => {
@@ -59,13 +59,13 @@ describe('pac-resolver (shared)', () => {
     const { getPacResolver } = require('./pac-resolver');
     const { get: axiosGet } = require('axios');
 
-    const pacUrl = 'http://example.com/proxy.pac';
-    const wrapper = await getPacResolver({ pacUrl });
+    const pacSource = 'http://example.com/proxy.pac';
+    const wrapper = await getPacResolver({ pacSource });
 
     const directives = await wrapper.resolve('http://foo.example/');
     expect(directives).toEqual(['PROXY p.example:8080', 'DIRECT']);
     expect(createPacResolverMock).toHaveBeenCalledWith(expect.any(Object), pacScript);
-    expect(axiosGet).toHaveBeenCalledWith(pacUrl, expect.objectContaining({ proxy: false }));
+    expect(axiosGet).toHaveBeenCalledWith(pacSource, expect.objectContaining({ proxy: false }));
   });
 
   test('passes TLS options to https.Agent for HTTPS pac URLs', async () => {
@@ -82,7 +82,7 @@ describe('pac-resolver (shared)', () => {
       rejectUnauthorized: false,
       minVersion: 'TLSv1.2'
     };
-    await getPacResolver({ pacUrl: 'https://secure.example.com/proxy.pac', httpsAgentRequestFields });
+    await getPacResolver({ pacSource: 'https://secure.example.com/proxy.pac', httpsAgentRequestFields });
 
     expect(mockAgentConstructor).toHaveBeenCalledWith({
       ca: 'ca-cert-data',
@@ -99,7 +99,7 @@ describe('pac-resolver (shared)', () => {
     jest.doMock('https', () => ({ Agent: mockAgentConstructor }));
 
     const { getPacResolver } = require('./pac-resolver');
-    await getPacResolver({ pacUrl: 'http://example.com/proxy.pac' });
+    await getPacResolver({ pacSource: 'http://example.com/proxy.pac' });
 
     expect(mockAgentConstructor).not.toHaveBeenCalled();
   });
@@ -109,10 +109,10 @@ describe('pac-resolver (shared)', () => {
     const { createPacResolverMock } = setupPacMocks(async () => 'DIRECT');
 
     const { getPacResolver, _CACHE } = require('./pac-resolver');
-    const pacUrl = 'http://example.com/proxy.pac';
+    const pacSource = 'http://example.com/proxy.pac';
 
-    const w1 = await getPacResolver({ pacUrl });
-    const w2 = await getPacResolver({ pacUrl });
+    const w1 = await getPacResolver({ pacSource });
+    const w2 = await getPacResolver({ pacSource });
 
     expect(w1).toBe(w2);
     expect(_CACHE.size).toBeGreaterThan(0);
@@ -124,7 +124,7 @@ describe('pac-resolver (shared)', () => {
     setupPacMocks(async () => null);
 
     const { getPacResolver } = require('./pac-resolver');
-    const wrapper = await getPacResolver({ pacUrl: 'http://example.com/proxy.pac' });
+    const wrapper = await getPacResolver({ pacSource: 'http://example.com/proxy.pac' });
     expect(await wrapper.resolve('http://example.com/')).toEqual([]);
   });
 
@@ -134,7 +134,7 @@ describe('pac-resolver (shared)', () => {
     jest.doMock('quickjs-emscripten', () => ({ getQuickJS: jest.fn(async () => ({})) }));
 
     const { getPacResolver } = require('./pac-resolver');
-    await expect(getPacResolver({ pacUrl: 'http://unreachable/proxy.pac' })).rejects.toThrow('ECONNREFUSED');
+    await expect(getPacResolver({ pacSource: 'http://unreachable/proxy.pac' })).rejects.toThrow('ECONNREFUSED');
   });
 
   test('rejects with readable message when PAC server returns non-2xx', async () => {
@@ -143,7 +143,7 @@ describe('pac-resolver (shared)', () => {
     jest.doMock('quickjs-emscripten', () => ({ getQuickJS: jest.fn(async () => ({})) }));
 
     const { getPacResolver } = require('./pac-resolver');
-    await expect(getPacResolver({ pacUrl: 'http://example.com/missing.pac' })).rejects.toThrow('Failed to fetch PAC (404)');
+    await expect(getPacResolver({ pacSource: 'http://example.com/missing.pac' })).rejects.toThrow('Failed to fetch PAC (404)');
   });
 
   test('re-downloads PAC after cache TTL expires', async () => {
@@ -152,16 +152,16 @@ describe('pac-resolver (shared)', () => {
     const { createPacResolverMock } = setupPacMocks(async () => 'DIRECT');
 
     const { getPacResolver } = require('./pac-resolver');
-    const pacUrl = 'http://example.com/proxy.pac';
+    const pacSource = 'http://example.com/proxy.pac';
     const ttlMs = 100;
 
-    const w1 = await getPacResolver({ pacUrl, opts: { cacheTtlMs: ttlMs } });
+    const w1 = await getPacResolver({ pacSource, opts: { cacheTtlMs: ttlMs } });
     expect(axiosGetMock).toHaveBeenCalledTimes(1);
 
     const realNow = Date.now;
     Date.now = () => realNow() + ttlMs + 1;
     try {
-      const w2 = await getPacResolver({ pacUrl, opts: { cacheTtlMs: ttlMs } });
+      const w2 = await getPacResolver({ pacSource, opts: { cacheTtlMs: ttlMs } });
       expect(axiosGetMock).toHaveBeenCalledTimes(2);
       expect(w2).not.toBe(w1);
     } finally {
@@ -174,7 +174,7 @@ describe('pac-resolver (shared)', () => {
     setupPacMocks(async () => { throw new Error('invalid PAC script'); });
 
     const { getPacResolver } = require('./pac-resolver');
-    const wrapper = await getPacResolver({ pacUrl: 'http://example.com/bad.pac' });
+    const wrapper = await getPacResolver({ pacSource: 'http://example.com/bad.pac' });
     await expect(wrapper.resolve('http://example.com/')).rejects.toThrow('invalid PAC script');
   });
 
@@ -191,8 +191,8 @@ describe('pac-resolver (shared)', () => {
     const { getPacResolver } = require('./pac-resolver');
     const { readFile } = require('fs/promises');
 
-    const pacUrl = 'file:///Users/test/proxy.pac';
-    const wrapper = await getPacResolver({ pacUrl });
+    const pacSource = 'file:///Users/test/proxy.pac';
+    const wrapper = await getPacResolver({ pacSource });
 
     expect(readFile).toHaveBeenCalledWith(expectedPath, 'utf8');
     expect(axiosGetMock).not.toHaveBeenCalled();
@@ -215,7 +215,7 @@ describe('pac-resolver (shared)', () => {
     const { readFile } = require('fs/promises');
     const { fileURLToPath } = require('url');
 
-    await getPacResolver({ pacUrl: 'file:///C:/Users/test/proxy.pac' });
+    await getPacResolver({ pacSource: 'file:///C:/Users/test/proxy.pac' });
 
     expect(fileURLToPath).toHaveBeenCalledWith('file:///C:/Users/test/proxy.pac');
     expect(readFile).toHaveBeenCalledWith('C:\\Users\\test\\proxy.pac', 'utf8');
@@ -228,7 +228,7 @@ describe('pac-resolver (shared)', () => {
     jest.doMock('quickjs-emscripten', () => ({ getQuickJS: jest.fn(async () => ({})) }));
 
     const { getPacResolver } = require('./pac-resolver');
-    await expect(getPacResolver({ pacUrl: 'file:///nonexistent/proxy.pac' })).rejects.toThrow('no such file or directory');
+    await expect(getPacResolver({ pacSource: 'file:///nonexistent/proxy.pac' })).rejects.toThrow('no such file or directory');
   });
 
   test('caches resolver for file:// URL and reads file only once', async () => {
@@ -238,9 +238,9 @@ describe('pac-resolver (shared)', () => {
     const { getPacResolver } = require('./pac-resolver');
     const { readFile } = require('fs/promises');
 
-    const pacUrl = 'file:///Users/test/proxy.pac';
-    const w1 = await getPacResolver({ pacUrl });
-    const w2 = await getPacResolver({ pacUrl });
+    const pacSource = 'file:///Users/test/proxy.pac';
+    const w1 = await getPacResolver({ pacSource });
+    const w2 = await getPacResolver({ pacSource });
 
     expect(w1).toBe(w2);
     expect(readFile).toHaveBeenCalledTimes(1);
@@ -255,7 +255,7 @@ describe('pac-resolver (shared)', () => {
     jest.doMock('https', () => ({ Agent: mockAgentConstructor }));
 
     const { getPacResolver } = require('./pac-resolver');
-    await getPacResolver({ pacUrl: 'file:///Users/test/proxy.pac' });
+    await getPacResolver({ pacSource: 'file:///Users/test/proxy.pac' });
 
     expect(mockAgentConstructor).not.toHaveBeenCalled();
   });
@@ -265,8 +265,8 @@ describe('pac-resolver (shared)', () => {
     setupPacMocks(async () => 'DIRECT');
 
     const { getPacResolver, _CACHE, clearPacCache } = require('./pac-resolver');
-    await getPacResolver({ pacUrl: 'http://one/pac' });
-    await getPacResolver({ pacUrl: 'http://two/pac' });
+    await getPacResolver({ pacSource: 'http://one/pac' });
+    await getPacResolver({ pacSource: 'http://two/pac' });
 
     expect(_CACHE.size).toBeGreaterThanOrEqual(2);
 

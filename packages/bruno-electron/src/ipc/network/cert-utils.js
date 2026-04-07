@@ -136,13 +136,13 @@ const getCertsAndProxyConfig = async ({
     // Inherit from global preferences
     const globalProxy = preferencesUtil.getGlobalProxyConfig();
     const globalDisabled = get(globalProxy, 'disabled', false);
-    const globalProxySource = get(globalProxy, 'source', 'inherit');
+    const globalProxySource = get(globalProxy, 'source', 'manual');
     const globalProxyConfigData = get(globalProxy, 'config', {});
 
     if (!globalDisabled) {
       if (globalProxySource === 'pac') {
         proxyMode = 'pac';
-        proxyConfig = { pacUrl: get(globalProxy, 'pac.source') };
+        proxyConfig = { pacSource: get(globalProxy, 'pac.source') };
       } else if (globalProxySource === 'inherit') {
         proxyMode = 'system';
         const systemProxyConfig = await getCachedSystemProxy();

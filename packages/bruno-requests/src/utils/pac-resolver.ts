@@ -18,9 +18,9 @@ export type PacWrapper = {
   resolve: (url: string) => Promise<string[]>;
 };
 
-async function downloadPac(pacUrl: string, tlsOptions: TlsOptions, timeoutMs: number): Promise<string> {
-  if (pacUrl.startsWith('file://')) {
-    return readFile(fileURLToPath(pacUrl), 'utf8');
+async function downloadPac(pacSource: string, tlsOptions: TlsOptions, timeoutMs: number): Promise<string> {
+  if (pacSource.startsWith('file://')) {
+    return readFile(fileURLToPath(pacSource), 'utf8');
   }
 
   const config: Record<string, any> = {
@@ -30,7 +30,7 @@ async function downloadPac(pacUrl: string, tlsOptions: TlsOptions, timeoutMs: nu
     maxRedirects: 3
   };
 
-  if (pacUrl.startsWith('https://')) {
+  if (pacSource.startsWith('https://')) {
     const agentOpts: AgentOptions = {
       ca: tlsOptions.ca,
       rejectUnauthorized: tlsOptions.rejectUnauthorized,
@@ -40,7 +40,7 @@ async function downloadPac(pacUrl: string, tlsOptions: TlsOptions, timeoutMs: nu
   }
 
   try {
-    const response = await axios.get(pacUrl, config);
+    const response = await axios.get(pacSource, config);
     return response.data;
   } catch (err: any) {
     if (err.response) throw new Error(`Failed to fetch PAC (${err.response.status})`);
@@ -49,32 +49,32 @@ async function downloadPac(pacUrl: string, tlsOptions: TlsOptions, timeoutMs: nu
 }
 
 export type GetPacResolverParams = {
-  pacUrl: string;
+  pacSource: string;
   httpsAgentRequestFields?: TlsOptions;
   opts?: { cacheTtlMs?: number; timeoutMs?: number };
 };
 
-export async function getPacResolver({ pacUrl, httpsAgentRequestFields = {}, opts = {} }: GetPacResolverParams): Promise<PacWrapper> {
-  if (!pacUrl) throw new Error('pacUrl must be provided');
+export async function getPacResolver({ pacSource, httpsAgentRequestFields = {}, opts = {} }: GetPacResolverParams): Promise<PacWrapper> {
+  if (!pacSource) throw new Error('pacSource must be provided');
 
   const cacheTtlMs = opts.cacheTtlMs ?? 5 * 60 * 1000;
   let key: string;
-  if (pacUrl.startsWith('https://')) {
+  if (pacSource.startsWith('https://')) {
     const caRaw = httpsAgentRequestFields.ca;
     const caHash = caRaw
       ? crypto.createHash('sha256').update(Array.isArray(caRaw) ? caRaw.join('|') : caRaw).digest('hex').slice(0, 16)
       : '';
-    key = `url:${pacUrl}|ca:${caHash}|ru:${httpsAgentRequestFields.rejectUnauthorized ?? ''}|mv:${httpsAgentRequestFields.minVersion ?? ''}`;
+    key = `url:${pacSource}|ca:${caHash}|ru:${httpsAgentRequestFields.rejectUnauthorized ?? ''}|mv:${httpsAgentRequestFields.minVersion ?? ''}`;
   } else {
     // file:// and http:// — no TLS options involved in fetching
-    key = `url:${pacUrl}`;
+    key = `url:${pacSource}`;
   }
   const now = Date.now();
   const cached = CACHE.get(key);
   if (cached && now - cached.ts < cacheTtlMs) return cached.wrapper;
 
   const wrapperPromise: Promise<PacWrapper> = (async () => {
-    const script = await downloadPac(pacUrl, httpsAgentRequestFields, opts.timeoutMs ?? 5000);
+    const script = await downloadPac(pacSource, httpsAgentRequestFields, opts.timeoutMs ?? 5000);
 
     // pac-resolver v7 uses QuickJS WASM sandbox — not affected by CVE GHSA-9j49-mfvp-vmhm (<v5)
     const qjs = await getQuickJS();
