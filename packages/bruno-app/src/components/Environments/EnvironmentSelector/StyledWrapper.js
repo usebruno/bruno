@@ -120,6 +120,14 @@ const Wrapper = styled.div`
     flex: 1;
     overflow-y: auto;
     min-height: 0;
+
+    button.dropdown-item {
+      background: none;
+      border: none;
+      font: inherit;
+      text-align: left;
+      width: 100%;
+    }
   }
 
   .empty-state {

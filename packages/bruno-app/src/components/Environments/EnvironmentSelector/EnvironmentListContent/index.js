@@ -34,9 +34,14 @@ const EnvironmentListContent = ({
   return (
     <>
       <div className="environment-list" data-testid="environment-list">
-        <div className="dropdown-item no-environment" onClick={() => onEnvironmentSelect(null)}>
+        <button
+          type="button"
+          className="dropdown-item no-environment"
+          onClick={() => onEnvironmentSelect(null)}
+          data-testid="no-environment"
+        >
           <span>No Environment</span>
-        </div>
+        </button>
         <ToolHint
           anchorSelect="[data-tooltip-content]"
           place="right"
@@ -49,8 +54,9 @@ const EnvironmentListContent = ({
         >
           <div>
             {environments.map((env) => (
-              <div
+              <button
                 key={env.uid}
+                type="button"
                 className={`dropdown-item ${env.uid === activeEnvironmentUid ? 'dropdown-item-active' : ''}`}
                 onClick={() => onEnvironmentSelect(env)}
                 data-tooltip-content={env.name}
@@ -58,7 +64,7 @@ const EnvironmentListContent = ({
               >
                 <ColorBadge color={env.color} size={8} />
                 <span className="max-w-100% truncate no-wrap">{env.name}</span>
-              </div>
+              </button>
             ))}
           </div>
         </ToolHint>
