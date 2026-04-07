@@ -141,7 +141,7 @@ const createUntitledRequest = async (
     if (url) {
       await page.locator('#request-url .CodeMirror').click();
       await page.locator('#request-url textarea').fill(url);
-      await page.locator('#send-request').getByTitle('Save Request').click();
+      await page.locator('#request-actions').getByTitle('Save Request').click();
       await page.waitForTimeout(200);
     }
 

@@ -1,4 +1,5 @@
-import { IconArrowRight, IconDeviceFloppy, IconPlugConnected, IconPlugConnectedX } from '@tabler/icons';
+import { IconDeviceFloppy, IconPlugConnected, IconPlugConnectedX } from '@tabler/icons';
+import SendButton from 'components/RequestPane/SendButton';
 import classnames from 'classnames';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { requestUrlChanged } from 'providers/ReduxStore/slices/collections';
@@ -123,7 +124,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   return (
     <StyledWrapper>
       <div className="flex items-center h-full">
-        <div className="flex items-center input-container flex-1 w-full h-full relative">
+        <div className="flex items-center input-container flex-1 min-w-0 h-full relative">
           <div className="flex items-center justify-center px-[10px]">
             <span className="text-xs font-medium method-ws">WS</span>
           </div>
@@ -187,15 +188,14 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                 </div>
               </div>
             )}
-
-            <div data-testid="run-button" className="cursor-pointer" onClick={handleRunClick}>
-              <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={20} />
-            </div>
           </div>
+          {connectionStatus === CONNECTION_STATUS.CONNECTED && <div className="connection-status-strip"></div>}
         </div>
+        <SendButton
+          onSend={handleRunClick}
+          testId="run-button"
+        />
       </div>
-
-      {connectionStatus === CONNECTION_STATUS.CONNECTED && <div className="connection-status-strip"></div>}
     </StyledWrapper>
   );
 };
