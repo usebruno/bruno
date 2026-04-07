@@ -38,14 +38,14 @@ export function usePersistedContainerScroll(
     if (!el) return;
 
     // Restore from localStorage (no state, no re-render)
+    // Always set scrollTop — including 0 — because .flex-boundary is shared across tabs
+    // and may retain the previous tab's scroll position.
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw !== null) {
         const parsed = JSON.parse(raw);
-        if (parsed) {
-          el.scrollTop = parsed;
-          scrollPosRef.current = parsed;
-        }
+        el.scrollTop = parsed;
+        scrollPosRef.current = parsed;
       }
     } catch {}
 
