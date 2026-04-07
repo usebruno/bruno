@@ -1,4 +1,5 @@
-import * as tls from 'node:tls';
+import { systemCertsSync } from 'system-ca';
+import { rootCertificates } from 'node:tls';
 import * as fs from 'node:fs';
 
 type T_CACertificatesOptions = {
@@ -22,7 +23,7 @@ function getSystemCerts(): string[] {
   if (systemCertsCache) return systemCertsCache;
 
   try {
-    systemCertsCache = tls.getCACertificates('system');
+    systemCertsCache = systemCertsSync();
 
     return systemCertsCache;
   } catch (error) {
@@ -128,7 +129,7 @@ const getCACertificates = ({ caCertFilePath, shouldKeepDefaultCerts = true }: T_
         caCertificatesCount.system = systemCerts.length;
 
         // get root certs
-        rootCerts = [...tls.rootCertificates];
+        rootCerts = [...rootCertificates];
         caCertificatesCount.root = rootCerts.length;
       }
     } else {
@@ -137,7 +138,7 @@ const getCACertificates = ({ caCertFilePath, shouldKeepDefaultCerts = true }: T_
       caCertificatesCount.system = systemCerts.length;
 
       // get root certs
-      rootCerts = [...tls.rootCertificates];
+      rootCerts = [...rootCertificates];
       caCertificatesCount.root = rootCerts.length;
     }
 
