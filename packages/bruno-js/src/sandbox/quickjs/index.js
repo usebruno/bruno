@@ -56,9 +56,8 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     externalScript = removeQuotes(externalScript);
   }
 
-  const vm = QuickJSModule.newContext();
-
   try {
+    const vm = QuickJSModule.newContext();
     const { bru, req, res, ...variables } = externalContext;
 
     bru && addBruShimToContext(vm, bru);
