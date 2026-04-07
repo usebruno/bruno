@@ -14,10 +14,9 @@ const { marshallToVm } = require('./utils');
 const addCryptoUtilsShimToContext = require('./shims/lib/crypto-utils');
 const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
 
-let QuickJSSyncContext;
+let QuickJSModule;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
-const getContext = (opts) => loader().then((mod) => (QuickJSSyncContext = mod.newContext(opts)));
-getContext();
+loader().then((mod) => (QuickJSModule = mod));
 
 const toNumber = (value) => {
   const num = Number(value);
@@ -57,7 +56,7 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     externalScript = removeQuotes(externalScript);
   }
 
-  const vm = QuickJSSyncContext;
+  const vm = QuickJSModule.newContext();
 
   try {
     const { bru, req, res, ...variables } = externalContext;
@@ -97,7 +96,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
   externalScript = externalScript?.trim();
 
   try {
-    const module = await newQuickJSWASMModule();
+    const module = await loader();
     const vm = module.newContext();
 
     // add crypto utilities required by the crypto-js library in bundledCode
