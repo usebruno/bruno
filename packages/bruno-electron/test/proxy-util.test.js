@@ -44,7 +44,7 @@ describe('proxy-util', () => {
     await setupProxyAgents({
       requestConfig,
       proxyMode: 'pac',
-      proxyConfig: { pacUrl: 'http://pac-server/proxy.pac' },
+      proxyConfig: { pac: { source: 'http://pac-server/proxy.pac' } },
       httpsAgentRequestFields: {},
       interpolationOptions: {},
       timeline
@@ -70,7 +70,7 @@ describe('proxy-util', () => {
     await setupProxyAgents({
       requestConfig,
       proxyMode: 'pac',
-      proxyConfig: { pacUrl: 'http://pac-server/proxy.pac' },
+      proxyConfig: { pac: { source: 'http://pac-server/proxy.pac' } },
       httpsAgentRequestFields: {},
       interpolationOptions: {},
       timeline
@@ -96,7 +96,7 @@ describe('proxy-util', () => {
     await setupProxyAgents({
       requestConfig,
       proxyMode: 'pac',
-      proxyConfig: { pacUrl: 'http://pac-server/proxy.pac' },
+      proxyConfig: { pac: { source: 'http://pac-server/proxy.pac' } },
       httpsAgentRequestFields: {},
       interpolationOptions: {},
       timeline
@@ -132,7 +132,7 @@ describe('proxy-util', () => {
     await setupProxyAgents({
       requestConfig,
       proxyMode: 'pac',
-      proxyConfig: { pacUrl: 'http://unreachable/proxy.pac' },
+      proxyConfig: { pac: { source: 'http://unreachable/proxy.pac' } },
       httpsAgentRequestFields: {},
       interpolationOptions: {},
       timeline
