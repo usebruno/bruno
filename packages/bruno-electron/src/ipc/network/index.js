@@ -144,9 +144,10 @@ const configureRequest = async (
   request.maxRedirects = 0;
 
   const { promptVariables = {} } = collection;
-  let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
+  let { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
     proxyMode,
+    proxyModeReason,
     proxyConfig,
     requestMaxRedirects,
     httpsAgentRequestFields,
