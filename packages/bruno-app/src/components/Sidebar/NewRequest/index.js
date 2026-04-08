@@ -111,7 +111,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
       filename: '',
       requestType: getRequestType(collectionPresets),
       requestUrl: collectionPresets.requestUrl || '',
-      requestMethod: 'GET',
+      requestMethod: getRequestType(collectionPresets) === 'graphql-request' ? 'POST' : 'GET',
       curlCommand: ''
     },
     validationSchema: Yup.object({
@@ -357,7 +357,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="graphql-request"
                       checked={formik.values.requestType === 'graphql-request'}
-                      onChange={formik.handleChange}
+                      onChange={(e) => {
+                        formik.handleChange(e);
+                        formik.setFieldValue('requestMethod', 'POST');
+                      }}
                       data-testid="graphql-request"
                     />
                     <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
