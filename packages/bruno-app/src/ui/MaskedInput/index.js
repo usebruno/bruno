@@ -90,7 +90,7 @@ const MaskedInput = ({
             onBlur={() => setIsFocused(false)}
           />
           {!disabled && (
-            <button type="button" className="masked-input-toggle" onClick={handleToggle} tabIndex={-1}>
+            <button type="button" className="masked-input-toggle" onClick={handleToggle} aria-label={isVisible ? 'Hide value' : 'Show value'}>
               {isVisible ? <IconEyeOff size={16} strokeWidth={2} /> : <IconEye size={16} strokeWidth={2} />}
             </button>
           )}
