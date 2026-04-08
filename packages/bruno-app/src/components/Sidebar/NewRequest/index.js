@@ -261,6 +261,11 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
 
   const onSubmit = () => formik.handleSubmit();
 
+  const handleRequestTypeChange = (e) => {
+    formik.handleChange(e);
+    formik.setFieldValue('requestMethod', e.target.value === 'graphql-request' ? 'POST' : 'GET');
+  };
+
   const handlePaste = useCallback(
     (event) => {
       const clipboardData = event.clipboardData || window.clipboardData;
@@ -343,7 +348,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="http-request"
                       checked={formik.values.requestType === 'http-request'}
-                      onChange={formik.handleChange}
+                      onChange={handleRequestTypeChange}
                       data-testid="http-request"
                     />
                     <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
@@ -357,10 +362,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="graphql-request"
                       checked={formik.values.requestType === 'graphql-request'}
-                      onChange={(e) => {
-                        formik.handleChange(e);
-                        formik.setFieldValue('requestMethod', 'POST');
-                      }}
+                      onChange={handleRequestTypeChange}
                       data-testid="graphql-request"
                     />
                     <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
