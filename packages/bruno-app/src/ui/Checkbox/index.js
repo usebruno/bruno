@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useId } from 'react';
 import { IconCheck, IconMinus } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
@@ -48,6 +48,8 @@ const Checkbox = ({
   'data-testid': testId
 }) => {
   const inputRef = useRef(null);
+  const autoId = useId();
+  const inputId = id || autoId;
 
   useEffect(() => {
     if (inputRef.current) {
@@ -56,6 +58,10 @@ const Checkbox = ({
   }, [indeterminate]);
 
   const iconSize = ICON_SIZES[size] || 12;
+  const labelId = label ? `${inputId}-label` : undefined;
+  const descId = description ? `${inputId}-desc` : undefined;
+  const errId = error ? `${inputId}-err` : undefined;
+  const describedBy = [descId, errId].filter(Boolean).join(' ') || undefined;
 
   const handleClick = (e) => {
     e.stopPropagation();
@@ -86,7 +92,7 @@ const Checkbox = ({
           ref={inputRef}
           type="checkbox"
           className={`checkbox-input ${indeterminate ? 'checkbox-indeterminate' : ''}`}
-          id={id}
+          id={inputId}
           name={name}
           data-testid={testId}
           value={value}
@@ -94,15 +100,17 @@ const Checkbox = ({
           defaultChecked={defaultChecked}
           disabled={disabled}
           onChange={onChange}
+          aria-labelledby={labelId}
+          aria-describedby={describedBy}
           onClick={(e) => e.stopPropagation()}
         />
         <span className="checkbox-icon">{checkedIcon}</span>
       </div>
       {(label || description || error) && (
         <div className="checkbox-label-content">
-          {label && <span className="checkbox-label">{label}</span>}
-          {description && <span className="checkbox-description">{description}</span>}
-          {error && <span className="checkbox-error">{error}</span>}
+          {label && <span id={labelId} className="checkbox-label">{label}</span>}
+          {description && <span id={descId} className="checkbox-description">{description}</span>}
+          {error && <span id={errId} className="checkbox-error">{error}</span>}
         </div>
       )}
     </StyledWrapper>
