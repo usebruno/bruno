@@ -261,11 +261,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
 
   const onSubmit = () => formik.handleSubmit();
 
-  const handleRequestTypeChange = (e) => {
-    formik.handleChange(e);
-    formik.setFieldValue('requestMethod', e.target.value === 'graphql-request' ? 'POST' : 'GET');
-  };
-
   const handlePaste = useCallback(
     (event) => {
       const clipboardData = event.clipboardData || window.clipboardData;
@@ -348,7 +343,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="http-request"
                       checked={formik.values.requestType === 'http-request'}
-                      onChange={handleRequestTypeChange}
+                      onChange={(e) => {
+                        formik.handleChange(e);
+                        formik.setFieldValue('requestMethod', 'GET');
+                      }}
                       data-testid="http-request"
                     />
                     <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
@@ -362,7 +360,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="graphql-request"
                       checked={formik.values.requestType === 'graphql-request'}
-                      onChange={handleRequestTypeChange}
+                      onChange={formik.handleChange}
                       data-testid="graphql-request"
                     />
                     <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
@@ -379,7 +377,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="grpc-request"
                       checked={formik.values.requestType === 'grpc-request'}
-                      onChange={formik.handleChange}
+                      onChange={(e) => {
+                        formik.handleChange(e);
+                        formik.setFieldValue('requestMethod', 'GET');
+                      }}
                       data-testid="grpc-request"
                     />
                     <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
