@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo, useId } from 'react';
 import Dropdown from 'components/Dropdown';
 import { IconCaretDown, IconX, IconLoader2 } from '@tabler/icons';
 import InputWrapper from 'ui/InputWrapper';
@@ -78,6 +78,7 @@ const Select = ({
   loading = false,
   leftSection,
   rightSection,
+  required = false,
   size = 'md',
   className,
   'data-testid': testId
@@ -88,6 +89,11 @@ const Select = ({
   const menuRef = useRef(null);
   const inputRef = useRef(null);
   const tippyRef = useRef(null);
+  const autoId = useId();
+  const labelId = label ? `${autoId}-label` : undefined;
+  const descriptionId = description ? `${autoId}-desc` : undefined;
+  const errorId = error ? `${autoId}-err` : undefined;
+  const describedBy = [descriptionId, errorId].filter(Boolean).join(' ') || undefined;
 
   const options = useMemo(() => normalizeData(data), [data]);
 
@@ -174,6 +180,7 @@ const Select = ({
           if (!opt.disabled) acc.push(i);
           return acc;
         }, []);
+        if (enabledIndices.length === 0) return;
         const currentEnabledIdx = enabledIndices.indexOf(focusedIndex);
         const nextEnabledIdx = getNextIndex(currentEnabledIdx, enabledIndices.length, e.key);
         setFocusedIndex(enabledIndices[nextEnabledIdx] ?? 0);
@@ -233,14 +240,14 @@ const Select = ({
     }
     if (clearable && value != null && value !== '') {
       return (
-        <span
+        <button
+          type="button"
           className="select-section select-right-section select-clear"
           onClick={handleClear}
-          role="button"
           aria-label="Clear selection"
         >
           <IconX size={14} strokeWidth={2} />
-        </span>
+        </button>
       );
     }
     return (
@@ -297,6 +304,9 @@ const Select = ({
       role="combobox"
       aria-expanded={isOpen}
       aria-haspopup="listbox"
+      aria-labelledby={labelId}
+      aria-describedby={describedBy}
+      aria-required={required || undefined}
       data-testid={testId}
     >
       {leftSection && <span className="select-section select-left-section">{leftSection}</span>}
@@ -342,7 +352,7 @@ const Select = ({
   };
 
   return (
-    <InputWrapper label={label} description={description} error={error} size={size} className={className}>
+    <InputWrapper label={label} description={description} error={error} required={required} size={size} className={className} labelId={labelId} descriptionId={descriptionId} errorId={errorId}>
       <StyledWrapper $size={size}>
         <Dropdown
           onCreate={onDropdownCreate}

@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { INPUT_SIZES } from './index';
+import { INPUT_SIZES } from './constants';
 
 const StyledWrapper = styled.div`
   position: relative;

@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { INPUT_SIZES } from 'ui/InputWrapper';
+import { INPUT_SIZES } from 'ui/InputWrapper/constants';
 
 const StyledWrapper = styled.div`
   .text-input-wrapper {

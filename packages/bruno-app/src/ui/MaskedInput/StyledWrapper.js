@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { INPUT_SIZES } from 'ui/InputWrapper';
+import { INPUT_SIZES } from 'ui/InputWrapper/constants';
 
 const StyledWrapper = styled.div`
   .masked-input-wrapper {
@@ -53,14 +53,22 @@ const StyledWrapper = styled.div`
     justify-content: center;
     background: none;
     border: none;
+    outline: none;
     padding: 0;
     margin-left: 0.5rem;
     cursor: pointer;
     color: inherit;
     opacity: 0.6;
+    border-radius: 2px;
 
     &:hover {
       opacity: 1;
+    }
+
+    &:focus-visible {
+      opacity: 1;
+      outline: 2px solid ${(props) => props.theme.primary.solid};
+      outline-offset: 1px;
     }
   }
 
