@@ -395,7 +395,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="ws-request"
                       checked={formik.values.requestType === 'ws-request'}
-                      onChange={formik.handleChange}
+                      onChange={(e) => {
+                        formik.handleChange(e);
+                        formik.setFieldValue('requestMethod', 'ws');
+                      }}
                       data-testid="ws-request"
                     />
                     <label htmlFor="ws-request" className="ml-1 cursor-pointer select-none">
