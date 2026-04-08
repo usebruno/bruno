@@ -1,11 +1,22 @@
 const Yup = require('yup');
 const { uidSchema } = require('../common');
 
+const annotationSchema = Yup.object({
+  name: Yup.string().min(1).required('annotation name is required'),
+  value: Yup.string().nullable()
+}).noUnknown(true)
+  .strict();
+
 const environmentVariablesSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().nullable(),
   // Allow mixed types (string, number, boolean, object) to support setting non-string values via scripts.
   value: Yup.mixed().nullable(),
+  annotations: Yup.array()
+    .of(
+      annotationSchema
+    )
+    .nullable(),
   type: Yup.string().oneOf(['text']).required('type is required'),
   enabled: Yup.boolean().defined(),
   secret: Yup.boolean()
@@ -29,6 +40,11 @@ const keyValueSchema = Yup.object({
   name: Yup.string().nullable(),
   value: Yup.string().nullable(),
   description: Yup.string().nullable(),
+  annotations: Yup.array()
+    .of(
+      annotationSchema
+    )
+    .nullable(),
   enabled: Yup.boolean()
 })
   .noUnknown(true)
@@ -79,6 +95,12 @@ const varsSchema = Yup.object({
   name: Yup.string().nullable(),
   value: Yup.string().nullable(),
   description: Yup.string().nullable(),
+  // Optional annotations on variables
+  annotations: Yup.array()
+    .of(
+      annotationSchema
+    )
+    .nullable(),
   enabled: Yup.boolean(),
 
   // todo
@@ -109,6 +131,17 @@ const multipartFormSchema = Yup.object({
     then: Yup.array().of(Yup.string().nullable()).nullable(),
     otherwise: Yup.string().nullable()
   }),
+  // Optional annotations on multipart entries
+  annotations: Yup.array()
+    .of(
+      Yup.object({
+        name: Yup.string().min(1).required('annotation name is required'),
+        value: Yup.string().nullable()
+      })
+        .noUnknown(true)
+        .strict()
+    )
+    .nullable(),
   description: Yup.string().nullable(),
   contentType: Yup.string().nullable(),
   enabled: Yup.boolean()
@@ -126,6 +159,16 @@ const fileSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+// Add annotations to file entries (when parsed from body:file blocks they can have @contentType only currently,
+// but adding annotations ensures roundtrip validation doesn't fail if annotations are present in future)
+const fileSchemaWithAnnotations = fileSchema.shape({
+  annotations: Yup.array()
+    .of(
+      annotationSchema
+    )
+    .nullable()
+});
+
 const requestBodySchema = Yup.object({
   mode: Yup.string()
     .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql', 'file'])
@@ -137,7 +180,7 @@ const requestBodySchema = Yup.object({
   formUrlEncoded: Yup.array().of(keyValueSchema).nullable(),
   multipartForm: Yup.array().of(multipartFormSchema).nullable(),
   graphql: graphqlBodySchema.nullable(),
-  file: Yup.array().of(fileSchema).nullable()
+  file: Yup.array().of(fileSchemaWithAnnotations).nullable()
 })
   .noUnknown(true)
   .strict();
@@ -378,6 +421,12 @@ const requestParamsSchema = Yup.object({
   name: Yup.string().nullable(),
   value: Yup.string().nullable(),
   description: Yup.string().nullable(),
+  // Optional annotations on params
+  annotations: Yup.array()
+    .of(
+      annotationSchema
+    )
+    .nullable(),
   type: Yup.string().oneOf(['query', 'path']).required('type is required'),
   enabled: Yup.boolean()
 })
@@ -649,5 +698,6 @@ module.exports = {
   itemSchema,
   environmentSchema,
   environmentsSchema,
-  collectionSchema
+  collectionSchema,
+  annotationSchema
 };

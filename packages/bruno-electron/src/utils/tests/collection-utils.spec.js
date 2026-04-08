@@ -20,6 +20,7 @@ describe('transformRequestToSaveToFilesystem', () => {
             name: 'param1',
             value: 'value1',
             description: 'Test parameter',
+            annotations: [{ name: 'note', value: 'param annotation' }],
             type: 'text',
             enabled: true
           }
@@ -30,6 +31,7 @@ describe('transformRequestToSaveToFilesystem', () => {
             name: 'Content-Type',
             value: 'application/json',
             description: 'Request content type',
+            annotations: [{ name: 'note', value: 'header annotation' }],
             enabled: true
           }
         ],
@@ -101,6 +103,7 @@ describe('transformRequestToSaveToFilesystem', () => {
       name: 'param1',
       value: 'value1',
       description: 'Test parameter',
+      annotations: [{ name: 'note', value: 'param annotation' }],
       type: 'text',
       enabled: true
     });
@@ -112,6 +115,7 @@ describe('transformRequestToSaveToFilesystem', () => {
       name: 'Content-Type',
       value: 'application/json',
       description: 'Request content type',
+      annotations: [{ name: 'note', value: 'header annotation' }],
       enabled: true
     });
   });
