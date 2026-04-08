@@ -1,5 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { normalizePath } from 'utils/common/path';
+import { selectActiveWorkspace } from '../../../selectors/workspaces';
 
 const initialState = {
   // Map of collectionUid -> { hasUpdates, diff, lastChecked, error }
@@ -173,8 +174,7 @@ export const checkCollectionForUpdates = (collection) => async (dispatch) => {
 export const checkActiveWorkspaceCollectionsForUpdates = () => async (dispatch, getState) => {
   const state = getState();
   const collections = state.collections?.collections || [];
-  const { workspaces, activeWorkspaceUid } = state.workspaces;
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const activeWorkspace = selectActiveWorkspace(state);
   const now = Date.now();
 
   // Filter to active workspace collections that have OpenAPI sync configured and auto-check enabled

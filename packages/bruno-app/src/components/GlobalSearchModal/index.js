@@ -17,6 +17,9 @@ import { normalizePath } from 'utils/common/path';
 import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, getItemPath } from './utils/searchUtils';
 import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG, DOCUMENTATION_RESULT } from './constants';
 import StyledWrapper from './StyledWrapper';
+import { selectCollections } from '../../selectors/collections';
+import { selectWorkspaces, selectActiveWorkspaceUid, selectActiveWorkspace } from '../../selectors/workspaces';
+import { selectTabs } from '../../selectors/tabs';
 
 const GlobalSearchModal = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
@@ -27,11 +30,12 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const debounceTimeoutRef = useRef(null);
   const dispatch = useDispatch();
 
-  const allCollections = useSelector((state) => state.collections.collections);
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const tabs = useSelector((state) => state.tabs.tabs);
+  const allCollections = useSelector(selectCollections);
+  const workspaces = useSelector(selectWorkspaces);
+  const activeWorkspaceUid = useSelector(selectActiveWorkspaceUid);
+  const tabs = useSelector(selectTabs);
 
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
 
   const collections = useMemo(() => {
     if (!activeWorkspace) return allCollections;

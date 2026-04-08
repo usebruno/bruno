@@ -19,6 +19,7 @@ import { wsdlToBruno } from '@usebruno/converters';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
+import { selectActiveWorkspace } from '../../../selectors/workspaces';
 
 const STATUS = {
   LOADING: 'loading',
@@ -129,9 +130,8 @@ export const BulkImportCollectionLocation = ({
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
 
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
   const preferences = useSelector((state) => state.app.preferences);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
   const defaultLocation = isDefaultWorkspace
     ? get(preferences, 'general.defaultLocation', '')
