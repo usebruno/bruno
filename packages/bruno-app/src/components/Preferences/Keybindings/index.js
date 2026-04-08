@@ -218,23 +218,21 @@ const RESERVED_BY_OS = {
     comboSignature(['f12']) // Dashboard (older macOS)
   ]),
   windows: new Set([
+    // System-level shortcuts (intercepted by Windows before reaching the app)
     comboSignature(['alt', 'tab']),
+    comboSignature(['alt', 'shift', 'tab']),
     comboSignature(['alt', 'f4']),
-    comboSignature(['f1']), // Windows Help
+    comboSignature(['alt', 'esc']),
+    comboSignature(['alt', 'space']),
     comboSignature(['ctrl', 'alt', 'delete']),
-    comboSignature(['command', 'l']),
-    comboSignature(['command', 'd']),
-    comboSignature(['command', 'e']),
-    comboSignature(['command', 'r']),
-    comboSignature(['command', 'i']),
-    comboSignature(['command', 's']),
-    comboSignature(['command', 'a']),
-    comboSignature(['command', 'x']),
-    comboSignature(['command', 'm']),
-    comboSignature(['command', 'tab']),
     comboSignature(['ctrl', 'shift', 'esc']),
+    // Function keys
+    comboSignature(['f1']), // Windows Help
+    comboSignature(['f11']), // Fullscreen toggle
+    comboSignature(['f12']), // DevTools
     // Undo/Redo - standard text editing shortcuts that browsers handle natively
     comboSignature(['ctrl', 'z']),
+    comboSignature(['ctrl', 'y']),
     comboSignature(['ctrl', 'shift', 'z']),
     // Toggle Developer Tools
     comboSignature(['ctrl', 'shift', 'i'])
