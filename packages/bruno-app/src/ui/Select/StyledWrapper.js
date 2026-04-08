@@ -1,5 +1,5 @@
 import styled, { keyframes } from 'styled-components';
-import { INPUT_SIZES } from 'ui/InputWrapper';
+import { INPUT_SIZES } from 'ui/InputWrapper/constants';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -78,6 +78,11 @@ const StyledWrapper = styled.div`
   }
 
   .select-clear {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font: inherit;
     cursor: pointer;
     opacity: 0.4;
     transition: opacity 0.15s ease;

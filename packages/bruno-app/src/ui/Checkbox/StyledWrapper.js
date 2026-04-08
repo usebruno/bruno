@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const SIZES = {
   sm: { box: '14px', icon: '10px', gap: '0.375rem' },
@@ -8,7 +9,7 @@ const SIZES = {
 const StyledWrapper = styled.div`
   display: inline-flex;
   align-items: flex-start;
-  gap: ${(props) => SIZES[props.$size || 'md'].gap};
+  gap: ${(props) => (SIZES[props.$size] || SIZES.md).gap};
   cursor: ${(props) => (props.$disabled ? 'not-allowed' : 'pointer')};
   opacity: ${(props) => (props.$disabled ? 0.5 : 1)};
   flex-direction: ${(props) => (props.$labelPosition === 'left' ? 'row-reverse' : 'row')};
@@ -16,8 +17,8 @@ const StyledWrapper = styled.div`
   .checkbox-box {
     position: relative;
     flex-shrink: 0;
-    width: ${(props) => SIZES[props.$size || 'md'].box};
-    height: ${(props) => SIZES[props.$size || 'md'].box};
+    width: ${(props) => (SIZES[props.$size] || SIZES.md).box};
+    height: ${(props) => (SIZES[props.$size] || SIZES.md).box};
   }
 
   .checkbox-input {
@@ -44,7 +45,7 @@ const StyledWrapper = styled.div`
     }
 
     &:focus-visible {
-      box-shadow: 0 0 0 2px ${(props) => (props.$color || props.theme.primary.solid)}40;
+      box-shadow: 0 0 0 2px ${(props) => rgba(props.$color || props.theme.primary.solid, 0.25)};
     }
   }
 
