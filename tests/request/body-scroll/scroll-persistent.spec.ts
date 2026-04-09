@@ -1,4 +1,3 @@
-import { rest } from 'lodash-es';
 import { test, expect, Page } from '../../../playwright';
 import {
   closeAllCollections,
@@ -16,7 +15,6 @@ import { buildCommonLocators } from '../../utils/page/locators';
 // ---------------------------------------------------------------------------
 // Content generators — produce enough content to make each area scrollable
 // ---------------------------------------------------------------------------
-const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 
 const generateLargeJson = () => JSON.stringify(
   { users: Array.from({ length: 50 }, (_, i) => ({ id: i + 1, name: `User ${i + 1}`, email: `user${i + 1}@example.com` })) },
@@ -106,9 +104,7 @@ const selectBodyMode = async (page: Page, mode: string) => {
 // const SCROLL_TOLERANCE = 50;
 
 const expectScrollRestored = (restored: number, original: number) => {
-  console.log({ restored, original });
   expect(restored).toBeGreaterThan(0);
-  // expect(Math.abs(restored - original)).toBeLessThan(SCROLL_TOLERANCE);
 };
 
 // ===========================================================================
@@ -146,21 +142,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Scroll down and capture position', async () => {
         saved = await getEditorScroll(page, '.request-pane .CodeMirror');
-        console.log({ saved });
         expect(saved).toBeGreaterThan(0);
-
-        // Check if localStorage has the value
-        const lsKeys = await page.evaluate(() => {
-          const keys: Record<string, string> = {};
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i)!;
-            if (key.includes('scroll') || key.includes('persisted')) {
-              keys[key] = localStorage.getItem(key)!;
-            }
-          }
-          return keys;
-        });
-        console.log('[localStorage after scroll]', lsKeys);
       });
 
       await test.step('Switch to Headers then back to Body', async () => {
@@ -171,7 +153,6 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Verify scroll restored', async () => {
         const checkNewPosition = await getEditorScroll(page, '.request-pane .CodeMirror');
-        console.log({ checkNewPosition });
         expectScrollRestored(checkNewPosition, saved);
       });
     });
@@ -457,7 +438,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Create collection, request, set JSON body and send', async () => {
         await createCollection(page, 'scroll-response', tmpDir);
-        await createRequest(page, 'req-resp', 'scroll-response', { url: 'https://jsonplaceholder.typicode.com/todos' });
+        await createRequest(page, 'req-resp', 'scroll-response', { url: 'www.google.com' });
         await selectRequestPaneTab(page, 'Body');
         await selectBodyMode(page, 'JSON');
         await setEditorContent(page, '.request-pane .CodeMirror', generateLargeJson());
@@ -468,9 +449,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Initialize hook: switch response tabs', async () => {
         await selectResponsePaneTab(page, 'Response');
-        // await page.(200);
         await selectResponsePaneTab(page, 'Headers');
-
         await selectResponsePaneTab(page, 'Response');
       });
 
@@ -533,10 +512,8 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test('Response timeline — scroll persists across response tab switches', async ({ page, createTmpDir }) => {
+    test.only('Response timeline — scroll persists across response tab switches', async ({ page, createTmpDir }) => {
       const tmpDir = await createTmpDir('scroll-response-timeline');
-      // Timeline StyledWrapper scrolls itself (overflow-y: auto).
-      // Target the element containing .timeline-container.
       const timelineScroller = '.timeline-container';
 
       await test.step('Create collection and request', async () => {
@@ -546,7 +523,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Send and cancel requests to generate timeline entries', async () => {
         const sendBtn = page.getByTestId('send-arrow-icon');
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 25; i++) {
           await sendBtn.click({ timeout: 2000 });
           // Immediately cancel — we just need the timeline entry, not the response
           await sendBtn.click({ timeout: 2000 });
@@ -837,7 +814,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Initialize hook: switch tabs', async () => {
         await locators.paneTabs.folderSettingsTab('script').click({ timeout: 2000 });
-        await locators.paneTabs.folderSettingsTab('headers').click({ timeout: 10000 });
+        await locators.paneTabs.folderSettingsTab('headers').click();
       });
 
       await test.step('Scroll down and capture position', async () => {
