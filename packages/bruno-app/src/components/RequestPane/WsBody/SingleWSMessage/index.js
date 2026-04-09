@@ -1,56 +1,141 @@
-import { IconTrash, IconWand } from '@tabler/icons';
+import { IconTrash, IconWand, IconSend, IconChevronRight, IconChevronDown } from '@tabler/icons';
 import CodeEditor from 'components/CodeEditor/index';
 import ToolHint from 'components/ToolHint/index';
 import { get } from 'lodash';
-import invert from 'lodash/invert';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import React, { useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { autoDetectLang } from 'utils/codemirror/lang-detect';
+import { queueWsMessage, isWsConnectionActive } from 'utils/network/index';
+import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
+import toast from 'react-hot-toast';
 import { toastError } from 'utils/common/error';
 import { prettifyJsonString } from 'utils/common/index';
 import xmlFormat from 'xml-formatter';
 import WSRequestBodyMode from '../BodyMode/index';
 import StyledWrapper from './StyledWrapper';
 
-export const TYPE_BY_DECODER = {
-  base64: 'binary',
-  json: 'json',
-  xml: 'xml'
+// Maps stored type to display mode
+const typeToMode = (type) => {
+  switch (type) {
+    case 'json': return 'json';
+    case 'xml': return 'xml';
+    default: return 'text';
+  }
 };
 
-export const DECODER_BY_TYPE = invert(TYPE_BY_DECODER);
+// Maps display mode back to stored type
+const modeToType = (mode) => {
+  switch (mode) {
+    case 'json': return 'json';
+    case 'xml': return 'xml';
+    default: return 'text';
+  }
+};
 
 export const SingleWSMessage = ({
   message,
   item,
   collection,
   index,
-  methodType,
   handleRun,
-  canClientSendMultipleMessages,
-  isLast
+  isExpanded,
+  onToggle,
+  isNew,
+  onNewRendered
 }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
+  const nameInputRef = useRef(null);
 
   const { name, content, type } = message;
-  const [messageFormat, setMessageFormat] = useState(autoDetectLang(content));
+  const displayMode = typeToMode(type);
+  const displayName = name || `message ${index + 1}`;
 
-  const onUpdateMessageType = (type) => {
-    setMessageFormat(type);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(displayName);
 
+  // Auto-focus the name input when this is a newly created message
+  useEffect(() => {
+    if (isNew) {
+      setIsEditing(true);
+      setEditValue(displayName);
+      onNewRendered();
+    }
+  }, [isNew]);
+
+  // Focus the input when editing starts
+  useEffect(() => {
+    if (isEditing && nameInputRef.current) {
+      nameInputRef.current.focus();
+      nameInputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const saveName = (value) => {
+    const trimmed = value.trim() || `message ${index + 1}`;
     const currentMessages = [...(body.ws || [])];
-
     currentMessages[index] = {
       ...currentMessages[index],
-      type: DECODER_BY_TYPE[type]
+      name: trimmed
     };
+    dispatch(updateRequestBody({
+      content: currentMessages,
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    }));
+    setIsEditing(false);
+  };
 
+  const handleNameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      saveName(editValue);
+    } else if (e.key === 'Escape') {
+      setEditValue(displayName);
+      setIsEditing(false);
+    }
+  };
+
+  const handleNameBlur = () => {
+    saveName(editValue);
+  };
+
+  const clickTimerRef = useRef(null);
+
+  const handleNameClick = useCallback((e) => {
+    e.stopPropagation();
+    if (clickTimerRef.current) {
+      // Double click — cancel the pending single click toggle and enter edit mode
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+      setEditValue(displayName);
+      setIsEditing(true);
+    } else {
+      // First click — wait to see if a second click comes
+      clickTimerRef.current = setTimeout(() => {
+        clickTimerRef.current = null;
+        onToggle();
+      }, 250);
+    }
+  }, [displayName, onToggle]);
+
+  const fontSize = get(preferences, 'font.codeFontSize', 14);
+  const lineHeight = fontSize * 1.5;
+  const editorHeight = useMemo(() => {
+    const lineCount = (content || '').split('\n').length;
+    const lines = lineCount + 1;
+    return `${lines * lineHeight + 10}px`;
+  }, [content, lineHeight]);
+
+  const onUpdateMessageType = (newMode) => {
+    const currentMessages = [...(body.ws || [])];
+    currentMessages[index] = {
+      ...currentMessages[index],
+      type: modeToType(newMode)
+    };
     dispatch(updateRequestBody({
       content: currentMessages,
       itemUid: item.uid,
@@ -60,13 +145,11 @@ export const SingleWSMessage = ({
 
   const onEdit = (value) => {
     const currentMessages = [...(body.ws || [])];
-
     currentMessages[index] = {
-      name: name ? name : `message ${index + 1}`,
-      type: DECODER_BY_TYPE[messageFormat],
+      ...currentMessages[index],
+      name: name || `message ${index + 1}`,
       content: value
     };
-
     dispatch(updateRequestBody({
       content: currentMessages,
       itemUid: item.uid,
@@ -78,9 +161,7 @@ export const SingleWSMessage = ({
 
   const onDeleteMessage = () => {
     const currentMessages = [...(body.ws || [])];
-
     currentMessages.splice(index, 1);
-
     dispatch(updateRequestBody({
       content: currentMessages,
       itemUid: item.uid,
@@ -88,10 +169,26 @@ export const SingleWSMessage = ({
     }));
   };
 
-  let codeType = messageFormat;
-  if (TYPE_BY_DECODER[type]) {
-    codeType = TYPE_BY_DECODER[type];
-  }
+  const onSendMessage = async () => {
+    try {
+      const state = dispatch((_, getState) => getState());
+      const col = findCollectionByUid(state.collections.collections, collection.uid);
+      const environment = findEnvironmentInCollection(col, col?.activeEnvironmentUid);
+
+      const connectionStatus = await isWsConnectionActive(item.uid);
+      if (!connectionStatus.isActive) {
+        toast.error('WebSocket is not connected. Please connect first.');
+        return;
+      }
+
+      const result = await queueWsMessage(item, col, environment, col?.runtimeVariables, content);
+      if (!result.success) {
+        toast.error(result.error || 'Failed to send message');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to send message');
+    }
+  };
 
   const codemirrorMode = {
     text: 'application/text',
@@ -100,13 +197,13 @@ export const SingleWSMessage = ({
   };
 
   const onPrettify = () => {
-    if (codeType === 'json') {
+    if (displayMode === 'json') {
       try {
         const prettyBodyJson = prettifyJsonString(content);
         const currentMessages = [...(body.ws || [])];
         currentMessages[index] = {
           ...currentMessages[index],
-          name: name ? name : `message ${index + 1}`,
+          name: name || `message ${index + 1}`,
           content: prettyBodyJson
         };
         dispatch(updateRequestBody({
@@ -119,17 +216,15 @@ export const SingleWSMessage = ({
       }
     }
 
-    if (codeType === 'xml') {
+    if (displayMode === 'xml') {
       try {
         const prettyBodyXML = xmlFormat(content, { collapseContent: true });
-
         const currentMessages = [...(body.ws || [])];
         currentMessages[index] = {
           ...currentMessages[index],
-          name: name ? name : `message ${index + 1}`,
+          name: name || `message ${index + 1}`,
           content: prettyBodyXML
         };
-
         dispatch(updateRequestBody({
           content: currentMessages,
           itemUid: item.uid,
@@ -141,44 +236,69 @@ export const SingleWSMessage = ({
     }
   };
 
-  const isSingleMessage = !canClientSendMultipleMessages || body.ws.length === 1;
-
   return (
-    <StyledWrapper className={`message-container ${isSingleMessage ? 'single' : ''} ${isLast ? 'last' : ''}`}>
-      <div className="message-toolbar">
-        <span className="message-label">Message {index + 1}</span>
-        <div className="toolbar-actions">
-          <WSRequestBodyMode mode={messageFormat} onModeChange={onUpdateMessageType} />
-
+    <StyledWrapper>
+      <div className="accordion-header" data-testid={`ws-message-header-${index}`} onClick={onToggle}>
+        <div className="accordion-left">
+          {isExpanded ? (
+            <IconChevronDown size={14} strokeWidth={2} />
+          ) : (
+            <IconChevronRight size={14} strokeWidth={2} />
+          )}
+          {isEditing ? (
+            <input
+              ref={nameInputRef}
+              className="name-input"
+              data-testid={`ws-message-name-input-${index}`}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={handleNameKeyDown}
+              onBlur={handleNameBlur}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span className="message-label" data-testid={`ws-message-label-${index}`} onClick={handleNameClick}>
+              {displayName}
+            </span>
+          )}
+        </div>
+        <div className="accordion-actions" onClick={(e) => e.stopPropagation()}>
+          <WSRequestBodyMode mode={displayMode} onModeChange={onUpdateMessageType} />
           <ToolHint text="Format" toolhintId={`prettify-msg-${index}`}>
-            <button onClick={onPrettify} className="toolbar-btn">
+            <button onClick={onPrettify} className="action-btn" data-testid={`ws-prettify-msg-${index}`}>
               <IconWand size={16} strokeWidth={1.5} />
             </button>
           </ToolHint>
-
+          <ToolHint text="Send" toolhintId={`send-msg-${index}`}>
+            <button onClick={onSendMessage} className="action-btn" data-testid={`ws-send-msg-${index}`}>
+              <IconSend size={16} strokeWidth={1.5} />
+            </button>
+          </ToolHint>
           {index > 0 && (
-            <ToolHint text="Delete message" toolhintId={`delete-msg-${index}`}>
-              <button onClick={onDeleteMessage} className="toolbar-btn delete">
+            <ToolHint text="Delete" toolhintId={`delete-msg-${index}`}>
+              <button onClick={onDeleteMessage} className="action-btn delete" data-testid={`ws-delete-msg-${index}`}>
                 <IconTrash size={16} strokeWidth={1.5} />
               </button>
             </ToolHint>
           )}
         </div>
       </div>
-      <div className="editor-container">
-        <CodeEditor
-          collection={collection}
-          theme={displayedTheme}
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-          value={content}
-          onEdit={onEdit}
-          onRun={handleRun}
-          onSave={onSave}
-          mode={codemirrorMode[codeType] ?? 'text/plain'}
-          enableVariableHighlighting={true}
-        />
-      </div>
+      {isExpanded && (
+        <div className="accordion-body" data-testid={`ws-message-body-${index}`} style={{ height: editorHeight }}>
+          <CodeEditor
+            collection={collection}
+            theme={displayedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+            value={content}
+            onEdit={onEdit}
+            onRun={handleRun}
+            onSave={onSave}
+            mode={codemirrorMode[displayMode] ?? 'text/plain'}
+            enableVariableHighlighting={true}
+          />
+        </div>
+      )}
     </StyledWrapper>
   );
 };

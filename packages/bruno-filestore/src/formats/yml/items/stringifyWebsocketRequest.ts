@@ -1,6 +1,6 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import type { WebSocketRequest as BrunoWebSocketRequest } from '@usebruno/schema-types/requests/websocket';
-import type { WebSocketRequest, WebSocketMessage, WebSocketRequestInfo, WebSocketRequestDetails, WebSocketRequestRuntime } from '@opencollection/types/requests/websocket';
+import type { WebSocketRequest, WebSocketRequestInfo, WebSocketRequestDetails, WebSocketRequestRuntime, WebSocketMessage, WebSocketMessageVariant } from '@opencollection/types/requests/websocket';
 import type { Auth } from '@opencollection/types/common/auth';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import type { Variable } from '@opencollection/types/common/variables';
@@ -41,21 +41,28 @@ const stringifyWebsocketRequest = (item: BrunoItem): string => {
       websocket.headers = headers;
     }
 
-    // message
+    // message: single message without a custom name uses flat WebSocketMessage (backward compatible),
+    // otherwise uses WebSocketMessageVariant[] to preserve names
     if (brunoRequest.body?.mode === 'ws' && brunoRequest.body.ws?.length) {
       const messages = brunoRequest.body.ws;
+      const hasCustomName = messages.length === 1 && messages[0].name && messages[0].name.trim().length > 0;
 
-      // todo: bruno app supports only one message for now
-      // update this when bruno app supports multiple messages
-      if (messages.length) {
+      if (messages.length === 1 && !hasCustomName) {
         const msg = messages[0];
         const message: WebSocketMessage = {
-          type: (msg.type as 'text' | 'json' | 'xml' | 'binary') || 'text',
+          type: (msg.type as WebSocketMessage['type']) || 'text',
           data: msg.content || ''
         };
-        if (message.data.trim().length) {
-          websocket.message = message;
-        }
+        websocket.message = message;
+      } else {
+        const variants: WebSocketMessageVariant[] = messages.map((msg, index) => ({
+          title: msg.name || `message ${index + 1}`,
+          message: {
+            type: (msg.type as WebSocketMessage['type']) || 'text',
+            data: msg.content || ''
+          }
+        }));
+        websocket.message = variants;
       }
     }
 

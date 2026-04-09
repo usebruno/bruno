@@ -1,0 +1,24 @@
+info:
+  name: ws-multi-msg
+  type: websocket
+  seq: 1
+
+websocket:
+  url: ws://localhost:8081/ws/echo
+  message:
+    - title: message 1
+      message:
+        type: json
+        data: |-
+          {
+            "action": "subscribe"
+          }
+    - title: message 2
+      message:
+        type: text
+        data: hello world
+  auth: inherit
+
+settings:
+  timeout: 0
+  keepAliveInterval: 0

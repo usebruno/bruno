@@ -5,21 +5,10 @@ const Wrapper = styled.div`
   flex-direction: column;
   width: 100%;
   height: 100%;
-  position: relative;
 
   .messages-container {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-
-    &.single {
-      height: 100%;
-    }
-
-    &.multi {
-      overflow-y: auto;
-      padding-bottom: 48px;
-    }
+    overflow-y: auto;
   }
 
   .empty-state {
@@ -37,12 +26,24 @@ const Wrapper = styled.div`
   }
 
   .add-message-footer {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 8px;
-    background: ${(props) => props.theme.bg};
+    padding-top: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .add-message-link {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.875rem;
+    color: ${(props) => props.theme.request.ws};
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 4px 0;
+
+    &:hover {
+      opacity: 0.8;
+    }
   }
 `;
 
