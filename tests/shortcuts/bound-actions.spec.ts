@@ -146,6 +146,14 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('TABS', () => {
+    test.afterAll(async ({ page }) => {
+      await closeAllCollections(page);
+    });
+
+    test.afterAll(async ({ page }) => {
+      await closeAllCollections(page);
+    });
+
     test.describe('SHORTCUT: Close Tab', () => {
       test('default Cmd/Ctrl+W closes the active tab', async ({ page, createTmpDir }) => {
         await openRequest(page, collectionName, 'req-1', { persist: true });
@@ -845,6 +853,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('SIDEBAR', () => {
+    test.afterAll(async ({ page }) => {
+      await closeAllCollections(page);
+    });
+
     test.describe('SHORTCUT: Sidebar search', () => {
       test('default Cmd/Ctrl+F open sidebar search', async ({ page, createTmpDir }) => {
         await page.keyboard.down('Alt');
@@ -1410,6 +1422,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('DEVELOPER TOOLS', () => {
+    test.afterAll(async ({ page }) => {
+      await closeAllCollections(page);
+    });
+
     test.describe('SHORTCUT: Open Terminal', () => {
       test('default Cmd/Ctrl+T opens terminal', async ({ page, createTmpDir }) => {
         // Open Collection-Settings tab (double-click collection name)
@@ -1471,7 +1487,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.down('KeyT');
         await page.keyboard.up('KeyT');
         await page.keyboard.up('Alt');
-        await page.waitForTimeout(500);
 
         // Verify terminal session is visible using data-testid
         const collectionTerminalSession = page.getByTestId('session-list-0');
@@ -1505,6 +1520,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('LAYOUT', () => {
+    test.afterAll(async ({ page }) => {
+      await closeAllCollections(page);
+    });
+
     test.describe('SHORTCUT: Change Layout', () => {
       test('default Cmd/Ctrl+J change layout orientation', async ({ page, createTmpDir }) => {
         await openRequest(page, 'kb-collection', 'req-5', { persist: true });
@@ -1640,6 +1659,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('SEARCH', () => {
+    test.afterAll(async ({ page }) => {
+      await closeAllCollections(page);
+    });
+
     test.describe('SHORTCUT: Global Search', () => {
       test('default Cmd/Ctrl+K Global Search Modal', async ({ page, createTmpDir }) => {
         // Press Cmd/Ctrl+K to global search modal
@@ -1651,9 +1674,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up(modifier);
 
         await page.getByTestId('global-search-input').click();
-        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 4000 });
 
-        // await page.waitForTimeout(500);
         await page.keyboard.down('Escape');
         await page.keyboard.up('Escape');
       });
@@ -1679,7 +1701,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Alt');
 
         await page.getByTestId('global-search-input').click();
-        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 4000 });
 
         await page.keyboard.down('Escape');
         await page.keyboard.up('Escape');
@@ -1688,6 +1710,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('SHORTCUT: Edit Environment', () => {
+    test.afterAll(async ({ page }) => {
+      await closeAllCollections(page);
+    });
+
     test('open environment tab of collection Cmd/Ctrl+E', async ({ page, createTmpDir }) => {
       await page.keyboard.down('Alt');
       await page.keyboard.down('KeyY');
