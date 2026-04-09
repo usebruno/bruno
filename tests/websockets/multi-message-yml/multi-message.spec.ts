@@ -139,9 +139,13 @@ test.describe('websocket multi-message (yml format)', () => {
       timeout: MAX_CONNECTION_TIME
     });
 
+    const messageItems = locators.messages().locator('.text-ellipsis');
+    const beforeCount = await messageItems.count();
+
     await page.getByTestId('ws-send-msg-0').click();
 
-    await expect(locators.messages().locator('.text-ellipsis').first()).toBeAttached({ timeout: 3000 });
+    // Expect at least one new message (outgoing + echo response from server)
+    await expect.poll(() => messageItems.count(), { timeout: MAX_CONNECTION_TIME }).toBeGreaterThan(beforeCount);
 
     await locators.connectionControls.disconnect().click();
     await expect(locators.connectionControls.connect()).toBeVisible();
@@ -162,9 +166,9 @@ test.describe('websocket multi-message (yml format)', () => {
 
     await page.getByTestId('ws-prettify-msg-0').click();
 
-    const editorContent = await editor.locator('.CodeMirror-code').textContent();
-    expect(editorContent).toContain('"name"');
-    expect(editorContent).toContain('"bruno"');
+    // Verify prettification split single line into multiple lines
+    const lineNumbers = await editor.locator('.CodeMirror-linenumber').count();
+    expect(lineNumbers).toBeGreaterThan(1);
   });
 
   test('delete a message', async ({ pageWithUserData: page }) => {

@@ -1,10 +1,20 @@
 import { get } from 'lodash';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { IconPlus } from '@tabler/icons';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
+import { uuid } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 import { SingleWSMessage } from './SingleWSMessage/index';
+
+const ensureMessageUids = (messages, uidMapRef) => {
+  const newMap = new Map();
+  messages.forEach((_, index) => {
+    const existingUid = uidMapRef.current.get(index);
+    newMap.set(index, existingUid || uuid());
+  });
+  return newMap;
+};
 
 const WSBody = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -12,25 +22,36 @@ const WSBody = ({ item, collection, handleRun }) => {
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const messages = body?.ws || [];
 
-  // First message is expanded by default
-  const [expandedMessages, setExpandedMessages] = useState(new Set([0]));
-  const [newMessageIndex, setNewMessageIndex] = useState(null);
+  const uidMapRef = useRef(new Map());
+  uidMapRef.current = ensureMessageUids(messages, uidMapRef);
 
-  const toggleMessage = (index) => {
-    setExpandedMessages((prev) => {
+  const getMessageUid = (index) => uidMapRef.current.get(index);
+
+  // First message is expanded by default (using uid)
+  const [expandedUids, setExpandedUids] = useState(() => {
+    const firstUid = getMessageUid(0);
+    return new Set(firstUid ? [firstUid] : []);
+  });
+  const [newMessageUid, setNewMessageUid] = useState(null);
+
+  const toggleMessage = useCallback((index) => {
+    const uid = getMessageUid(index);
+    if (!uid) return;
+    setExpandedUids((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
+      if (next.has(uid)) {
+        next.delete(uid);
       } else {
-        next.add(index);
+        next.add(uid);
       }
       return next;
     });
-  };
+  }, []);
 
   const addNewMessage = () => {
     const currentMessages = Array.isArray(body.ws) ? [...body.ws] : [];
     const newIndex = currentMessages.length;
+    const msgUid = uuid();
     currentMessages.push({
       name: `message ${newIndex + 1}`,
       content: '{}',
@@ -41,15 +62,15 @@ const WSBody = ({ item, collection, handleRun }) => {
       itemUid: item.uid,
       collectionUid: collection.uid
     }));
-    // Expand the newly added message and mark it as new for auto-focus
-    setExpandedMessages((prev) => new Set(prev).add(newIndex));
-    setNewMessageIndex(newIndex);
+    // Pre-assign uid for the new message so we can expand and focus it
+    uidMapRef.current.set(newIndex, msgUid);
+    setExpandedUids((prev) => new Set(prev).add(msgUid));
+    setNewMessageUid(msgUid);
   };
 
-  // Clear newMessageIndex after it's been consumed
-  const handleNewMessageRendered = () => {
-    setNewMessageIndex(null);
-  };
+  const handleNewMessageRendered = useCallback(() => {
+    setNewMessageUid(null);
+  }, []);
 
   // Auto-scroll to bottom when new message is added
   useEffect(() => {
@@ -76,20 +97,23 @@ const WSBody = ({ item, collection, handleRun }) => {
   return (
     <StyledWrapper>
       <div ref={messagesContainerRef} className="messages-container">
-        {messages.map((message, index) => (
-          <SingleWSMessage
-            key={index}
-            message={message}
-            item={item}
-            collection={collection}
-            index={index}
-            handleRun={handleRun}
-            isExpanded={expandedMessages.has(index)}
-            onToggle={() => toggleMessage(index)}
-            isNew={newMessageIndex === index}
-            onNewRendered={handleNewMessageRendered}
-          />
-        ))}
+        {messages.map((message, index) => {
+          const msgUid = getMessageUid(index);
+          return (
+            <SingleWSMessage
+              key={msgUid}
+              message={message}
+              item={item}
+              collection={collection}
+              index={index}
+              handleRun={handleRun}
+              isExpanded={expandedUids.has(msgUid)}
+              onToggle={() => toggleMessage(index)}
+              isNew={newMessageUid === msgUid}
+              onNewRendered={handleNewMessageRendered}
+            />
+          );
+        })}
       </div>
       <div className="add-message-footer">
         <button className="add-message-link" data-testid="ws-add-message" onClick={addNewMessage}>
