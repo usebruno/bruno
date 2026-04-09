@@ -316,18 +316,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
           <form
             className="bruno-form"
             onSubmit={formik.handleSubmit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.defaultPrevented) {
-                const isTextInput
-                  = ['input', 'textarea'].includes(e.target.tagName.toLowerCase())
-                    || e.target.isContentEditable;
-
-                if (!isTextInput) {
-                  e.preventDefault();
-                  formik.handleSubmit();
-                }
-              }
-            }}
           >
             <div>
               <label htmlFor="requestName" className="block font-medium">
