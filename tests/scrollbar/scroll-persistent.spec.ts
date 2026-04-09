@@ -1,4 +1,4 @@
-import { test, expect, Page } from '../../../playwright';
+import { test, expect, Page } from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -9,8 +9,8 @@ import {
   selectScriptSubTab,
   openRequest,
   sendRequest
-} from '../../utils/page';
-import { buildCommonLocators } from '../../utils/page/locators';
+} from '../utils/page';
+import { buildCommonLocators } from '../utils/page/locators';
 
 // ---------------------------------------------------------------------------
 // Content generators — produce enough content to make each area scrollable
@@ -112,7 +112,7 @@ const expectScrollRestored = (restored: number, original: number) => {
 // ===========================================================================
 
 test.describe('Scroll Position Persistence', () => {
-  test.afterEach(async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
@@ -428,7 +428,7 @@ test.describe('Scroll Position Persistence', () => {
   // -------------------------------------------------------------------------
 
   test.describe('Response Pane', () => {
-    test.afterEach(async ({ page }) => {
+    test.beforeEach(async ({ page }) => {
       await closeAllCollections(page);
     });
 
@@ -572,7 +572,7 @@ test.describe('Scroll Position Persistence', () => {
   // -------------------------------------------------------------------------
 
   test.describe('Folder Settings', () => {
-    test.afterEach(async ({ page }) => {
+    test.beforeEach(async ({ page }) => {
       await closeAllCollections(page);
     });
 
@@ -842,7 +842,7 @@ test.describe('Scroll Position Persistence', () => {
   // -------------------------------------------------------------------------
 
   test.describe('Collection Settings', () => {
-    test.afterEach(async ({ page }) => {
+    test.beforeEach(async ({ page }) => {
       await closeAllCollections(page);
     });
 
