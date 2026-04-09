@@ -830,7 +830,7 @@ test.describe('Scroll Position Persistence', () => {
           cm?.setValue(content);
         }, bulkHeaders);
 
-        await page.getByTestId('key-value-edit-toggle');
+        await page.getByTestId('key-value-edit-toggle').click();
       });
 
       let saved: number;
