@@ -47,7 +47,9 @@ const stringifyWebsocketRequest = (item: BrunoItem): string => {
       const messages = brunoRequest.body.ws;
       const hasCustomName = messages.length === 1 && messages[0].name && messages[0].name.trim().length > 0;
 
-      if (messages.length === 1 && !hasCustomName) {
+      const hasContent = messages.length === 1 && (messages[0].content || '').trim().length > 0;
+
+      if (messages.length === 1 && !hasCustomName && hasContent) {
         const msg = messages[0];
         const message: WebSocketMessage = {
           type: (msg.type as WebSocketMessage['type']) || 'text',

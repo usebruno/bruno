@@ -238,7 +238,19 @@ export const SingleWSMessage = ({
 
   return (
     <StyledWrapper>
-      <div className="accordion-header" data-testid={`ws-message-header-${index}`} onClick={onToggle}>
+      <div
+        className="accordion-header"
+        data-testid={`ws-message-header-${index}`}
+        role="button"
+        tabIndex={0}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+      >
         <div className="accordion-left">
           {isExpanded ? (
             <IconChevronDown size={14} strokeWidth={2} />
