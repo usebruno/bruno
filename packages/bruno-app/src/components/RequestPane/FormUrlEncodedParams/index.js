@@ -17,7 +17,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const wrapperRef = useRef(null);
-  usePersistedContainerScroll(wrapperRef, '.flex-boundary', `request-body-scroll-${item.uid}-formUrlEncoded`);
+  usePersistedContainerScroll(wrapperRef, '.flex-boundary', `request-body-formUrlEncoded-scroll-${item.uid}`);
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const params = item.draft ? get(item, 'draft.request.body.formUrlEncoded') : get(item, 'request.body.formUrlEncoded');

@@ -138,7 +138,7 @@ const Headers = ({ collection }) => {
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('collection-headers', widths)}
       />
       <div className="flex justify-end mt-2">
-        <button className="text-link select-none" onClick={toggleBulkEditMode}>
+        <button className="text-link select-none" data-testid="bulk-edit-toggle" onClick={toggleBulkEditMode}>
           Bulk Edit
         </button>
       </div>

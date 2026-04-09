@@ -103,7 +103,7 @@ const Script = ({ item, collection }) => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pre-request" className="mt-2" dataTestId="pre-request-script-editor">
+        <TabsContent value="pre-request" className="mt-2" data-testid="pre-request-script-editor">
           <CodeEditor
             ref={preRequestEditorRef}
             collection={collection}
@@ -120,7 +120,7 @@ const Script = ({ item, collection }) => {
           />
         </TabsContent>
 
-        <TabsContent value="post-response" className="mt-2" dataTestId="post-response-script-editor">
+        <TabsContent value="post-response" className="mt-2" data-testid="post-response-script-editor">
           <CodeEditor
             ref={postResponseEditorRef}
             collection={collection}
