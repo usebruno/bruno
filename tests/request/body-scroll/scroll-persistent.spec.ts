@@ -512,7 +512,7 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test.only('Response timeline — scroll persists across response tab switches', async ({ page, createTmpDir }) => {
+    test('Response timeline — scroll persists across response tab switches', async ({ page, createTmpDir }) => {
       const tmpDir = await createTmpDir('scroll-response-timeline');
       const timelineScroller = '.timeline-container';
 
