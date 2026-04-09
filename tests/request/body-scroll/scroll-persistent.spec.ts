@@ -300,7 +300,7 @@ test.describe('Scroll Position Persistence', () => {
       let saved: number;
 
       await test.step('Initialize hook via tab switch, then scroll', async () => {
-        await selectRequestPaneTab(page, 'Body');
+        await selectRequestPaneTab(page, 'Vars');
 
         await selectRequestPaneTab(page, 'Tests');
 
@@ -313,7 +313,7 @@ test.describe('Scroll Position Persistence', () => {
       });
 
       await test.step('Switch to Body then back to Tests', async () => {
-        await selectRequestPaneTab(page, 'Body');
+        await selectRequestPaneTab(page, 'Vars');
         await selectRequestPaneTab(page, 'Tests');
       });
 
@@ -438,7 +438,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Create collection, request, set JSON body and send', async () => {
         await createCollection(page, 'scroll-response', tmpDir);
-        await createRequest(page, 'req-resp', 'scroll-response', { url: 'www.google.com' });
+        await createRequest(page, 'req-resp', 'scroll-response', { url: 'https://jsonplaceholder.typicode.com/todos' });
         await selectRequestPaneTab(page, 'Body');
         await selectBodyMode(page, 'JSON');
         await setEditorContent(page, '.request-pane .CodeMirror', generateLargeJson());
@@ -518,7 +518,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Create collection and request', async () => {
         await createCollection(page, 'scroll-response-timeline', tmpDir);
-        await createRequest(page, 'req-timeline', 'scroll-response-timeline', { url: 'www.google.com' });
+        await createRequest(page, 'req-timeline', 'scroll-response-timeline', { url: 'http://localhost:8081' });
       });
 
       await test.step('Send and cancel requests to generate timeline entries', async () => {
