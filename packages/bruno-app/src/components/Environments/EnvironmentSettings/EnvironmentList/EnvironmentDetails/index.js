@@ -1,6 +1,6 @@
 import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch } from '@tabler/icons';
 import { useState, useRef } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { renameEnvironment, updateEnvironmentColor } from 'providers/ReduxStore/slices/collections/actions';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
@@ -8,7 +8,12 @@ import CopyEnvironment from 'components/Environments/EnvironmentSettings/CopyEnv
 import DeleteEnvironment from 'components/Environments/EnvironmentSettings/DeleteEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
 import ColorPicker from 'components/ColorPicker';
+import ActionIcon from 'ui/ActionIcon';
+import ResponsiveTabs from 'ui/ResponsiveTabs';
+import { updateTabState } from 'providers/ReduxStore/slices/tabs';
 import StyledWrapper from './StyledWrapper';
+
+const TABS = [{ key: 'variables', label: 'Variables' }];
 
 const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuery, setSearchQuery, isSearchExpanded, setIsSearchExpanded, debouncedSearchQuery, searchInputRef }) => {
   const dispatch = useDispatch();
@@ -19,7 +24,11 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState('');
   const [nameError, setNameError] = useState('');
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.envTab) || 'variables';
+  const setActiveTab = (tab) => dispatch(updateTabState({ uid: activeTabUid, tabState: { envTab: tab } }));
   const inputRef = useRef(null);
+  const rightContentRef = useRef(null);
 
   const validateEnvironmentName = (name) => {
     if (!name || name.trim() === '') {
@@ -187,57 +196,72 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}
         <div className="actions">
-          {isSearchExpanded ? (
-            <div className="search-input-wrapper">
-              <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search variables..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onBlur={handleSearchBlur}
-                className="search-input"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-              />
-              {searchQuery && (
-                <button
-                  className="clear-search"
-                  onClick={handleClearSearch}
-                  onMouseDown={(e) => e.preventDefault()}
-                  title="Clear search"
-                >
-                  <IconX size={14} strokeWidth={1.5} />
-                </button>
-              )}
-            </div>
-          ) : (
-            <button onClick={handleSearchIconClick} title="Search variables">
-              <IconSearch size={15} strokeWidth={1.5} />
-            </button>
-          )}
-          <button onClick={handleRenameClick} title="Rename">
+          <ActionIcon label="Rename" onClick={handleRenameClick}>
             <IconEdit size={15} strokeWidth={1.5} />
-          </button>
-          <button onClick={() => setOpenCopyModal(true)} title="Copy">
+          </ActionIcon>
+          <ActionIcon label="Copy" onClick={() => setOpenCopyModal(true)}>
             <IconCopy size={15} strokeWidth={1.5} />
-          </button>
-          <button onClick={() => setOpenDeleteModal(true)} title="Delete">
+          </ActionIcon>
+          <ActionIcon label="Delete" onClick={() => setOpenDeleteModal(true)} colorOnHover="danger">
             <IconTrash size={15} strokeWidth={1.5} />
-          </button>
+          </ActionIcon>
         </div>
       </div>
 
-      <div className="content">
-        <EnvironmentVariables
-          environment={environment}
-          setIsModified={setIsModified}
-          collection={collection}
-          searchQuery={debouncedSearchQuery}
+      <div className="tabs-container">
+        <ResponsiveTabs
+          tabs={TABS}
+          activeTab={activeTab}
+          onTabSelect={setActiveTab}
+          rightContent={activeTab === 'variables' ? (
+            <div ref={rightContentRef} className="env-search-container">
+              {isSearchExpanded ? (
+                <div className="search-input-wrapper">
+                  <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search variables..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onBlur={handleSearchBlur}
+                    className="search-input"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                  />
+                  {searchQuery && (
+                    <button
+                      className="clear-search"
+                      onClick={handleClearSearch}
+                      onMouseDown={(e) => e.preventDefault()}
+                      title="Clear search"
+                    >
+                      <IconX size={14} strokeWidth={1.5} />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <ActionIcon label="Search variables" onClick={handleSearchIconClick}>
+                  <IconSearch size={15} strokeWidth={1.5} />
+                </ActionIcon>
+              )}
+            </div>
+          ) : null}
+          rightContentRef={activeTab === 'variables' ? rightContentRef : null}
         />
+      </div>
+
+      <div className="content">
+        {activeTab === 'variables' && (
+          <EnvironmentVariables
+            environment={environment}
+            setIsModified={setIsModified}
+            collection={collection}
+            searchQuery={debouncedSearchQuery}
+          />
+        )}
       </div>
     </StyledWrapper>
   );
