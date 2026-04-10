@@ -15,6 +15,7 @@ const Wrapper = styled.div`
     overflow-y: auto;
     border-radius: 8px;
     border: solid 1px ${(props) => props.theme.border.border0};
+    transition: height 0.15s ease;
   }
 
   table {

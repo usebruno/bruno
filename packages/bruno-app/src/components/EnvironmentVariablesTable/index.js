@@ -56,7 +56,8 @@ const EnvironmentVariablesTable = ({
 
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
-  const [tableHeight, setTableHeight] = useState(MIN_H);
+  const rowCount = (environment.variables?.length || 0) + 1;
+  const [tableHeight, setTableHeight] = useState(rowCount * 35);
 
   // Use environment UID as part of tableId so each environment has its own column widths
   const tableId = `env-vars-table-${environment.uid}`;
@@ -623,6 +624,8 @@ const EnvironmentVariablesTable = ({
         />
       )}
 
+      {/* We should re-think of these buttons placement in component as we use TableVirtuoso which because of
+      these buttons renders at some transition: height 0.1s ease` */}
       <div className="button-container">
         <div className="flex items-center">
           <button type="button" className="submit" onClick={handleSave} data-testid="save-env">
