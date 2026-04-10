@@ -36,7 +36,7 @@ const ANNOTATIONS_KEY = Symbol('annotations');
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authOauth2Configs
-  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
+  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws | bodytab
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
   
@@ -164,6 +164,7 @@ const grammar = ohm.grammar(`Bru {
   bodygraphql = "body:graphql" st* "{" nl* textblock tagend
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
   bodygrpc = "body:grpc" dictionary
+  bodytab = "body:tab" dictionary
   bodyws = "body:ws" dictionary
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
@@ -1023,6 +1024,20 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       body: {
         json: outdentString(textblock.sourceString)
       }
+    };
+  },
+  bodytab(_1, dictionary) {
+    const tab = mapPairListToKeyValPair(dictionary.ast);
+
+    if (tab && Object.prototype.hasOwnProperty.call(tab, 'id')) {
+      const parsedId = Number(tab.id);
+      tab.id = Number.isNaN(parsedId) ? tab.id : parsedId;
+    }
+
+    return {
+      body: {
+        bodyTabs: [tab],
+      },
     };
   },
   bodyjson(_1, _2, _3, _4, textblock, _5) {

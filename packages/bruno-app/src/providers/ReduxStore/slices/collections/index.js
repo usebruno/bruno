@@ -1738,6 +1738,21 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateRequestBodyTabs: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          item.draft.request.body.bodyTabs = action.payload.bodyTabs;
+        }
+      }
+    },
     updateRequestGraphqlQuery: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -3656,6 +3671,7 @@ export const {
   updateRequestAuthMode,
   updateRequestBodyMode,
   updateRequestBody,
+  updateRequestBodyTabs,
   updateRequestGraphqlQuery,
   updateRequestGraphqlVariables,
   updateRequestScript,
