@@ -568,6 +568,28 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       _settings.keepAliveInterval = keepAliveInterval;
     }
 
+    // Parse gRPC-specific numeric settings
+    const grpcNumericSettings = [
+      'maxReceiveMessageLength', 'maxSendMessageLength',
+      'keepaliveTime', 'keepaliveTimeout',
+      'clientIdleTimeout', 'maxReconnectBackoff', 'deadline'
+    ];
+    for (const key of grpcNumericSettings) {
+      if (settings[key] !== undefined) {
+        const val = parseInt(settings[key], 10);
+        if (!isNaN(val)) {
+          _settings[key] = val;
+        }
+      }
+    }
+
+    // Parse gRPC includeDefaultValues as boolean
+    if (settings.includeDefaultValues !== undefined) {
+      _settings.includeDefaultValues = typeof settings.includeDefaultValues === 'boolean'
+        ? settings.includeDefaultValues
+        : settings.includeDefaultValues === 'true';
+    }
+
     return {
       settings: _settings
     };

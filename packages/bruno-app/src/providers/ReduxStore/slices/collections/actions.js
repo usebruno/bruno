@@ -1744,13 +1744,15 @@ export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async
       return reject(error);
     }
 
+    const settings = itemCopy.draft ? itemCopy.draft.settings : itemCopy.settings;
     const { ipcRenderer } = window;
     ipcRenderer
       .invoke('grpc:load-methods-reflection', {
         request: requestItem,
         collection: collectionCopy,
         environment,
-        runtimeVariables
+        runtimeVariables,
+        settings
       })
       .then(resolve)
       .catch(reject);
