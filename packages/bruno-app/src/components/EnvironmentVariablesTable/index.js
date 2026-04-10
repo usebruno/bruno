@@ -16,19 +16,18 @@ import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
 import { stripEnvVarUid } from 'utils/environments';
 
-const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
 
 const TableRow = React.memo(
-  ({ children, item }) => (
-    <tr key={item.uid} data-testid={`env-var-row-${item.name}`}>
+  ({ children, item, style, ...rest }) => (
+    <tr style={style} {...rest} data-testid={`env-var-row-${item?.name}`}>
       {children}
     </tr>
   ),
   (prevProps, nextProps) => {
     const prevUid = prevProps?.item?.uid;
     const nextUid = nextProps?.item?.uid;
-    return prevUid === nextUid && prevProps.children === nextProps.children;
+    return prevUid === nextUid && prevProps.children === nextProps.children && prevProps.style === nextProps.style;
   }
 );
 
@@ -56,7 +55,7 @@ const EnvironmentVariablesTable = ({
 
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
-  const [tableHeight, setTableHeight] = useState(MIN_H);
+  const [tableHeight, setTableHeight] = useState(70);
 
   // Use environment UID as part of tableId so each environment has its own column widths
   const tableId = `env-vars-table-${environment.uid}`;
@@ -122,7 +121,8 @@ const EnvironmentVariablesTable = ({
   }, [handleColumnWidthsChange]);
 
   const handleTotalHeightChanged = useCallback((h) => {
-    setTableHeight(h);
+    const rounded = Math.ceil(h);
+    setTableHeight((prev) => (Math.abs(prev - rounded) > 0.1 ? rounded : prev));
   }, []);
 
   const handleRowFocus = useCallback((uid) => {
@@ -483,6 +483,7 @@ const EnvironmentVariablesTable = ({
         <TableVirtuoso
           className="table-container"
           style={{ height: tableHeight }}
+          overscan={200}
           components={{ TableRow }}
           data={filteredVariables}
           totalListHeightChanged={handleTotalHeightChanged}
@@ -493,7 +494,7 @@ const EnvironmentVariablesTable = ({
                 Name
                 <div
                   className={`resize-handle ${resizing === 'name' ? 'resizing' : ''}`}
-                  style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
+                  style={{ height: '100%' }}
                   onMouseDown={(e) => handleResizeStart(e, 'name')}
                 />
               </td>
@@ -502,7 +503,6 @@ const EnvironmentVariablesTable = ({
               <td></td>
             </tr>
           )}
-          fixedItemHeight={35}
           computeItemKey={(virtualIndex, item) => `${environment.uid}-${item.index}`}
           itemContent={(virtualIndex, { variable, index: actualIndex }) => {
             const isLastRow = actualIndex === formik.values.length - 1;
@@ -569,6 +569,19 @@ const EnvironmentVariablesTable = ({
                         if (variable.ephemeral) {
                           formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
                           formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
+                        }
+                        // Append a new empty row when editing value on the last row
+                        if (isLastRow) {
+                          setTimeout(() => {
+                            formik.setFieldValue(formik.values.length, {
+                              uid: uuid(),
+                              name: '',
+                              value: '',
+                              type: 'text',
+                              secret: false,
+                              enabled: true
+                            }, false);
+                          }, 0);
                         }
                       }}
                       onSave={handleSave}
