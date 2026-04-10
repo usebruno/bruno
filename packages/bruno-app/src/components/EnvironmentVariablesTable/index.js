@@ -16,18 +16,19 @@ import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
 import { stripEnvVarUid } from 'utils/environments';
 
+const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
 
 const TableRow = React.memo(
   ({ children, item, style, ...rest }) => (
-    <tr style={style} {...rest} data-testid={`env-var-row-${item?.name}`}>
+    <tr key={item.uid} style={style} {...rest} data-testid={`env-var-row-${item?.name}`}>
       {children}
     </tr>
   ),
   (prevProps, nextProps) => {
     const prevUid = prevProps?.item?.uid;
     const nextUid = nextProps?.item?.uid;
-    return prevUid === nextUid && prevProps.children === nextProps.children && prevProps.style === nextProps.style;
+    return prevUid === nextUid && prevProps.children === nextProps.children;
   }
 );
 
@@ -55,7 +56,7 @@ const EnvironmentVariablesTable = ({
 
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
-  const [tableHeight, setTableHeight] = useState(70);
+  const [tableHeight, setTableHeight] = useState(MIN_H);
 
   // Use environment UID as part of tableId so each environment has its own column widths
   const tableId = `env-vars-table-${environment.uid}`;
@@ -121,8 +122,7 @@ const EnvironmentVariablesTable = ({
   }, [handleColumnWidthsChange]);
 
   const handleTotalHeightChanged = useCallback((h) => {
-    const rounded = Math.ceil(h);
-    setTableHeight((prev) => (Math.abs(prev - rounded) > 0.1 ? rounded : prev));
+    setTableHeight(h);
   }, []);
 
   const handleRowFocus = useCallback((uid) => {
@@ -494,7 +494,7 @@ const EnvironmentVariablesTable = ({
                 Name
                 <div
                   className={`resize-handle ${resizing === 'name' ? 'resizing' : ''}`}
-                  style={{ height: '100%' }}
+                  style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
                   onMouseDown={(e) => handleResizeStart(e, 'name')}
                 />
               </td>
@@ -535,7 +535,7 @@ const EnvironmentVariablesTable = ({
                         id={`${actualIndex}.name`}
                         name={`${actualIndex}.name`}
                         value={variable.name}
-                        placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Name' : ''}
+                        placeholder={!variable.name || (typeof variable.name === 'string' && variable.name.trim() === '') ? 'Name' : ''}
                         onChange={(e) => handleNameChange(actualIndex, e)}
                         onFocus={() => handleRowFocus(variable.uid)}
                         onBlur={() => {
@@ -560,7 +560,7 @@ const EnvironmentVariablesTable = ({
                       collection={_collection}
                       name={`${actualIndex}.value`}
                       value={variable.value}
-                      placeholder={isLastEmptyRow ? 'Value' : ''}
+                      placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
                       isSecret={variable.secret}
                       readOnly={typeof variable.value !== 'string'}
                       onChange={(newValue) => {
