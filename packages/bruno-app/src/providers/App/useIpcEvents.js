@@ -5,6 +5,11 @@ import {
   setGitVersion
 } from 'providers/ReduxStore/slices/app';
 import {
+  updateServerStatus,
+  addRequestLogEntry,
+  setRouteTable
+} from 'providers/ReduxStore/slices/mock-server';
+import {
   addTab
 } from 'providers/ReduxStore/slices/tabs';
 import {
@@ -338,6 +343,19 @@ const useIpcEvents = () => {
       dispatch(setGitVersion(val));
     });
 
+    // Mock server events
+    const removeMockServerStatusListener = ipcRenderer.on('main:mock-server-status-changed', (val) => {
+      dispatch(updateServerStatus(val));
+    });
+
+    const removeMockServerRequestLogListener = ipcRenderer.on('main:mock-server-request-log', (val) => {
+      dispatch(addRequestLogEntry(val));
+    });
+
+    const removeMockServerRouteTableListener = ipcRenderer.on('main:mock-server-route-table-updated', (val) => {
+      dispatch(setRouteTable(val));
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
       removeApiSpecTreeUpdateListener();
@@ -371,6 +389,9 @@ const useIpcEvents = () => {
       removePersistentEnvVariablesUpdateListener();
       removeSystemResourcesListener();
       gitVersionListener();
+      removeMockServerStatusListener();
+      removeMockServerRequestLogListener();
+      removeMockServerRouteTableListener();
     };
   }, [isElectron]);
 };

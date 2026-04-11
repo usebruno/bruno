@@ -167,7 +167,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     'workspaceOverview',
     'workspaceEnvironments',
     'openapi-sync',
-    'openapi-spec'
+    'openapi-spec',
+    'mock-server-dashboard'
   ];
 
   const hasDraft = tab.type === 'collection-settings' && collection?.draft;

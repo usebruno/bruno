@@ -2,10 +2,20 @@ import { useState, useEffect } from 'react';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
 
-const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response Example', initialName = '' }) => {
+const STATUS_CODES = [200, 201, 204, 400, 401, 403, 404, 500, 502, 503];
+const BODY_TYPES = [
+  { value: 'json', label: 'JSON' },
+  { value: 'text', label: 'Text' },
+  { value: 'xml', label: 'XML' },
+  { value: 'html', label: 'HTML' }
+];
+
+const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response Example', initialName = '', showMockFields = false }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [nameError, setNameError] = useState('');
+  const [statusCode, setStatusCode] = useState(200);
+  const [bodyType, setBodyType] = useState('json');
 
   const handleNameChange = (e) => {
     setName(e.target.value);
@@ -17,11 +27,17 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
 
   const handleConfirm = () => {
     if (name.trim()) {
-      onSave(name.trim(), description.trim());
+      if (showMockFields) {
+        onSave(name.trim(), description.trim(), { statusCode: Number(statusCode), bodyType });
+      } else {
+        onSave(name.trim(), description.trim());
+      }
       // Reset form
       setName('');
       setDescription('');
       setNameError('');
+      setStatusCode(200);
+      setBodyType('json');
     } else {
       setNameError('Example name is required');
     }
@@ -32,6 +48,8 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
     setName('');
     setDescription('');
     setNameError('');
+    setStatusCode(200);
+    setBodyType('json');
     onClose();
   };
 
@@ -40,6 +58,8 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
       setName(initialName);
       setDescription('');
       setNameError('');
+      setStatusCode(200);
+      setBodyType('json');
     }
   }, [isOpen, initialName]);
 
@@ -93,6 +113,42 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
               data-testid="create-example-description-input"
             />
           </div>
+
+          {showMockFields && (
+            <>
+              <div>
+                <label htmlFor="statusCode" className="block font-medium">
+                  Status Code
+                </label>
+                <select
+                  id="statusCode"
+                  className="textbox mt-2 w-full"
+                  value={statusCode}
+                  onChange={(e) => setStatusCode(e.target.value)}
+                >
+                  {STATUS_CODES.map((code) => (
+                    <option key={code} value={code}>{code}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="bodyType" className="block font-medium">
+                  Body Type
+                </label>
+                <select
+                  id="bodyType"
+                  className="textbox mt-2 w-full"
+                  value={bodyType}
+                  onChange={(e) => setBodyType(e.target.value)}
+                >
+                  {BODY_TYPES.map((type) => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     </Portal>
