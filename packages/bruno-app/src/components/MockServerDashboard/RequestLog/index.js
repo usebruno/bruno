@@ -157,8 +157,8 @@ const RequestLog = ({ collection }) => {
           allLabel="All Status"
         />
         <div className="flex-grow" />
-        <span className="text-xs text-muted">{logs.length} requests</span>
-        <button className="text-link select-none" onClick={handleClear}>
+        <span className="text-xs text-muted" data-testid="mock-server-log-count">{logs.length} requests</span>
+        <button className="text-link select-none" onClick={handleClear} data-testid="mock-server-log-clear">
           Clear
         </button>
       </div>

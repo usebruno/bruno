@@ -696,7 +696,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                 {item.name}
               </span>
               {hasExamples && (
-                <sup className="ml-1 example-count-badge" title={`${item.examples.length} example${item.examples.length > 1 ? 's' : ''}`}>
+                <sup className="ml-1 example-count-badge" title={`${item.examples.length} example${item.examples.length > 1 ? 's' : ''}`} data-testid="example-count-badge">
                   {item.examples.length}
                 </sup>
               )}

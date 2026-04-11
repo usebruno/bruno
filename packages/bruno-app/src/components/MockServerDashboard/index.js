@@ -100,16 +100,16 @@ const MockServerDashboard = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-hidden">
+    <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-hidden" data-testid="mock-server-dashboard">
       {/* Server control bar */}
-      <div className="server-bar">
+      <div className="server-bar" data-testid="mock-server-controls">
         <div className="status-indicator">
-          <div className={`status-dot ${statusDotClass}`} />
-          <span className="status-text">{statusLabel}</span>
+          <div className={`status-dot ${statusDotClass}`} data-testid="mock-server-status-dot" />
+          <span className="status-text" data-testid="mock-server-status-text">{statusLabel}</span>
         </div>
 
         {isRunning && baseUrl && (
-          <button className="copy-url-btn" onClick={handleCopyUrl} title="Copy mock server URL">
+          <button className="copy-url-btn" onClick={handleCopyUrl} title="Copy mock server URL" data-testid="mock-server-copy-url">
             {copied ? <IconCheck size={13} strokeWidth={2} /> : <IconCopy size={13} strokeWidth={1.5} />}
             <span className="url-text">{baseUrl}</span>
           </button>
@@ -125,6 +125,7 @@ const MockServerDashboard = ({ collection }) => {
               disabled={isRunning || isStarting}
               min={1}
               max={65535}
+              data-testid="mock-server-port-input"
             />
           </div>
 
@@ -137,19 +138,20 @@ const MockServerDashboard = ({ collection }) => {
               disabled={isStarting}
               min={0}
               step={100}
+              data-testid="mock-server-delay-input"
             />
           </div>
 
           {!isRunning ? (
-            <button className="action-btn start-btn" onClick={handleStart} disabled={isStarting}>
+            <button className="action-btn start-btn" onClick={handleStart} disabled={isStarting} data-testid="mock-server-start-btn">
               {isStarting ? 'Starting...' : 'Start Server'}
             </button>
           ) : (
             <>
-              <button className="action-btn stop-btn" onClick={handleStop}>
+              <button className="action-btn stop-btn" onClick={handleStop} data-testid="mock-server-stop-btn">
                 Stop Server
               </button>
-              <button className="action-btn refresh-btn" onClick={handleRefresh} title="Refresh routes from collection">
+              <button className="action-btn refresh-btn" onClick={handleRefresh} title="Refresh routes from collection" data-testid="mock-server-refresh-btn">
                 <IconRefresh size={14} strokeWidth={1.5} />
               </button>
             </>
@@ -157,24 +159,24 @@ const MockServerDashboard = ({ collection }) => {
         </div>
 
         {isRunning && (
-          <div className="server-stats">
+          <div className="server-stats" data-testid="mock-server-stats">
             <span>{serverState.routeCount} routes</span>
             <span>{serverState.exampleCount} examples</span>
           </div>
         )}
 
         {serverState.error && (
-          <div className="error-message">{serverState.error}</div>
+          <div className="error-message" data-testid="mock-server-error">{serverState.error}</div>
         )}
       </div>
 
       {/* Tabs - same pattern as CollectionSettings */}
       <div className="flex flex-wrap items-center tabs" role="tablist">
-        <div className={getTabClassname('routes')} role="tab" onClick={() => setActiveTab('routes')}>
+        <div className={getTabClassname('routes')} role="tab" data-testid="mock-server-tab-routes" onClick={() => setActiveTab('routes')}>
           Routes
           {serverState.routeCount > 0 && <sup className="ml-1 font-medium">{serverState.routeCount}</sup>}
         </div>
-        <div className={getTabClassname('log')} role="tab" onClick={() => setActiveTab('log')}>
+        <div className={getTabClassname('log')} role="tab" data-testid="mock-server-tab-log" onClick={() => setActiveTab('log')}>
           Request Log
           {logs.length > 0 && <sup className="ml-1 font-medium">{logs.length}</sup>}
         </div>

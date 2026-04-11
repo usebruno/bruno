@@ -162,7 +162,7 @@ const normalizePath = (reqPath) => {
 
 const logRequest = (server, collectionUid, data) => {
   const entry = {
-    id: uuidv4(),
+    uid: uuidv4(),
     timestamp: new Date().toISOString(),
     method: data.method,
     path: data.path,

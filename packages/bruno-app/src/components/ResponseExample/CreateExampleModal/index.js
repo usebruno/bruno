@@ -125,6 +125,7 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
                   className="textbox mt-2 w-full"
                   value={statusCode}
                   onChange={(e) => setStatusCode(e.target.value)}
+                  data-testid="status-code-select"
                 >
                   {STATUS_CODES.map((code) => (
                     <option key={code} value={code}>{code}</option>
@@ -141,6 +142,7 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
                   className="textbox mt-2 w-full"
                   value={bodyType}
                   onChange={(e) => setBodyType(e.target.value)}
+                  data-testid="body-type-select"
                 >
                   {BODY_TYPES.map((type) => (
                     <option key={type.value} value={type.value}>{type.label}</option>

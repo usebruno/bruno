@@ -144,6 +144,7 @@ const StatusBar = () => {
                   onClick={handleMockServerClick}
                   tabIndex={0}
                   aria-label={`Mock Server on port ${runningMockServer[1].port}`}
+                  data-testid="mock-server-statusbar-btn"
                 >
                   <div className="console-button-content">
                     <span className="mock-server-status-dot" />

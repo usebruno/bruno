@@ -102,6 +102,7 @@ const RouteTable = ({ collection }) => {
           placeholder="Search routes..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          data-testid="mock-server-route-search"
         />
         <FilterDropdown
           label="Method"
