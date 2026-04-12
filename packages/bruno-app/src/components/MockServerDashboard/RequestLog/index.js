@@ -148,6 +148,7 @@ const RequestLog = ({ collection }) => {
           value={matchFilter}
           onChange={setMatchFilter}
           allLabel="All Requests"
+          testId="mock-server-match-filter"
         />
         <FilterDropdown
           label="Status"
@@ -155,6 +156,7 @@ const RequestLog = ({ collection }) => {
           value={statusFilter}
           onChange={setStatusFilter}
           allLabel="All Status"
+          testId="mock-server-status-filter"
         />
         <div className="flex-grow" />
         <span className="text-xs text-muted" data-testid="mock-server-log-count">{logs.length} requests</span>

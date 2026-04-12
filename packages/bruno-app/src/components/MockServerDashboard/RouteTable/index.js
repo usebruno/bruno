@@ -28,9 +28,9 @@ const RouteTable = ({ collection }) => {
         if (searchQuery && !route.path.toLowerCase().includes(searchQuery.toLowerCase())) return false;
         return true;
       })
-      .map((route, idx) => ({
+      .map((route) => ({
         ...route,
-        uid: `route-${idx}`,
+        uid: `${route.method} ${route.path}`,
         hits: hitCounts[`${route.method} ${route.path}`] || 0,
         source: route.examples?.[0]?.sourceFile || '-'
       }));
@@ -111,6 +111,7 @@ const RouteTable = ({ collection }) => {
           onChange={setMethodFilter}
           allLabel="All Methods"
           placement="right"
+          testId="mock-server-method-filter"
         />
       </div>
 

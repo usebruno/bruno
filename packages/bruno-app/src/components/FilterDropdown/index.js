@@ -12,7 +12,7 @@ import StyledWrapper from './StyledWrapper';
  * @param {string} [allLabel='All'] - Label for the "clear filter" option
  * @param {string} [placement='left'] - Menu alignment: 'left' or 'right'
  */
-const FilterDropdown = ({ label, options, value, onChange, allLabel = 'All', placement = 'left' }) => {
+const FilterDropdown = ({ label, options, value, onChange, allLabel = 'All', placement = 'left', testId }) => {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef(null);
 
@@ -65,6 +65,7 @@ const FilterDropdown = ({ label, options, value, onChange, allLabel = 'All', pla
       <button
         className={`filter-trigger ${isActive ? 'active' : ''}`}
         onClick={handleToggle}
+        data-testid={testId}
       >
         <span>{selectedLabel}</span>
         <IconChevronDown size={12} strokeWidth={2} className={`filter-chevron ${open ? 'open' : ''}`} />

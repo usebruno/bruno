@@ -30,7 +30,8 @@ const countExamples = (routeMap) => {
 const extractRoutePath = (rawUrl) => {
   if (!rawUrl) return null;
 
-  let cleaned = rawUrl.replace(/\{\{[^}]+\}\}/g, '');
+  // Strip host-level variables (e.g. {{baseUrl}}, {{host}}) that appear before the path
+  let cleaned = rawUrl.replace(/^\{\{[^}]+\}\}/, '');
 
   if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
     try {
@@ -43,6 +44,9 @@ const extractRoutePath = (rawUrl) => {
     const qIndex = cleaned.indexOf('?');
     if (qIndex !== -1) cleaned = cleaned.substring(0, qIndex);
   }
+
+  // Convert path-level variables to Express-style params: {{id}} -> :id
+  cleaned = cleaned.replace(/\{\{([^}]+)\}\}/g, ':$1');
 
   if (!cleaned.startsWith('/')) cleaned = '/' + cleaned;
   if (cleaned.length > 1 && cleaned.endsWith('/')) cleaned = cleaned.slice(0, -1);
@@ -154,6 +158,26 @@ const emitRouteTableUpdated = (collectionUid) => {
 
 // --- Request handling ---
 
+const findParameterizedMatch = (routeMap, method, reqPath) => {
+  const reqSegments = reqPath.split('/');
+
+  for (const [routeKey, examples] of routeMap) {
+    const [routeMethod, ...pathParts] = routeKey.split(' ');
+    if (routeMethod !== method) continue;
+
+    const routeSegments = pathParts.join(' ').split('/');
+    if (routeSegments.length !== reqSegments.length) continue;
+
+    const matches = routeSegments.every((seg, i) =>
+      seg.startsWith(':') || seg === reqSegments[i]
+    );
+
+    if (matches) return examples;
+  }
+
+  return null;
+};
+
 const normalizePath = (reqPath) => {
   let p = reqPath || '/';
   if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
@@ -191,8 +215,13 @@ const handleRequest = (collectionUid, req, res) => {
 
   const startTime = Date.now();
   const reqPath = normalizePath(req.path);
-  const routeKey = `${req.method.toUpperCase()} ${reqPath}`;
-  const examples = server.routeMap.get(routeKey);
+  const method = req.method.toUpperCase();
+
+  // Try exact match first, then parameterized match
+  let examples = server.routeMap.get(`${method} ${reqPath}`);
+  if (!examples) {
+    examples = findParameterizedMatch(server.routeMap, method, reqPath);
+  }
 
   if (!examples || examples.length === 0) {
     logRequest(server, collectionUid, {
@@ -233,9 +262,20 @@ const handleRequest = (collectionUid, req, res) => {
     const statusCode = selected.response.status || 200;
 
     for (const header of selected.response.headers) {
-      if (header.name && header.value) {
-        res.setHeader(header.name, header.value);
-      }
+      if (!header.name || !header.value) continue;
+
+      // Skip transport-level headers -- Express manages these for the mock response.
+      // The saved example may have gzip/chunked from the original API, but the mock
+      // server sends raw uncompressed bodies, so these would cause client parse errors.
+      const name = header.name.toLowerCase();
+      if (
+        name === 'transfer-encoding'
+        || name === 'content-length'
+        || name === 'content-encoding'
+        || name === 'connection'
+      ) continue;
+
+      res.setHeader(header.name, header.value);
     }
 
     if (!res.getHeader('content-type')) {
@@ -297,7 +337,7 @@ const start = async (collectionUid, collectionPath, port = 4000, globalDelay = 0
   app.all('*', (req, res) => handleRequest(collectionUid, req, res));
 
   const httpServer = await new Promise((resolve, reject) => {
-    const server = app.listen(port, () => resolve(server));
+    const server = app.listen(port, '127.0.0.1', () => resolve(server));
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
         reject(new Error(`Port ${port} is already in use. Choose a different port.`));
@@ -329,7 +369,20 @@ const stop = async (collectionUid) => {
   const server = servers.get(collectionUid);
   if (!server) return;
 
-  await new Promise((resolve) => server.httpServer.close(resolve));
+  emitStatusChanged(collectionUid, { status: 'stopping', port: server.port, routeCount: 0, exampleCount: 0, globalDelay: 0 });
+
+  await new Promise((resolve) => {
+    // Stop accepting new connections, wait for in-flight requests to finish
+    server.httpServer.close(resolve);
+
+    // Force-close lingering keep-alive connections after 3s
+    const forceCloseTimeout = setTimeout(() => {
+      server.httpServer.closeAllConnections();
+    }, 3000);
+
+    server.httpServer.on('close', () => clearTimeout(forceCloseTimeout));
+  });
+
   servers.delete(collectionUid);
 
   emitStatusChanged(collectionUid, { status: 'stopped', port: null, routeCount: 0, exampleCount: 0, globalDelay: 0 });

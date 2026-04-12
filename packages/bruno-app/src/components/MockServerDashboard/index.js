@@ -26,6 +26,7 @@ const MockServerDashboard = ({ collection }) => {
 
   const isRunning = serverState.status === 'running';
   const isStarting = serverState.status === 'starting';
+  const isStopping = serverState.status === 'stopping';
   const baseUrl = isRunning ? `http://localhost:${serverState.port}` : null;
 
   const handleStart = async () => {
@@ -79,8 +80,8 @@ const MockServerDashboard = ({ collection }) => {
     }
   };
 
-  const statusDotClass = isRunning ? 'running' : isStarting ? 'starting' : serverState.status === 'error' ? 'error' : '';
-  const statusLabel = isRunning ? `Running on port ${serverState.port}` : isStarting ? 'Starting...' : serverState.status === 'error' ? 'Error' : 'Stopped';
+  const statusDotClass = isRunning ? 'running' : isStarting ? 'starting' : isStopping ? 'stopping' : serverState.status === 'error' ? 'error' : '';
+  const statusLabel = isRunning ? `Running on port ${serverState.port}` : isStarting ? 'Starting...' : isStopping ? 'Stopping...' : serverState.status === 'error' ? 'Error' : 'Stopped';
 
   const getTabClassname = (tabName) => {
     return classnames('tab select-none', {
@@ -142,18 +143,20 @@ const MockServerDashboard = ({ collection }) => {
             />
           </div>
 
-          {!isRunning ? (
+          {!isRunning && !isStopping ? (
             <button className="action-btn start-btn" onClick={handleStart} disabled={isStarting} data-testid="mock-server-start-btn">
               {isStarting ? 'Starting...' : 'Start Server'}
             </button>
           ) : (
             <>
-              <button className="action-btn stop-btn" onClick={handleStop} data-testid="mock-server-stop-btn">
-                Stop Server
+              <button className="action-btn stop-btn" onClick={handleStop} disabled={isStopping} data-testid="mock-server-stop-btn">
+                {isStopping ? 'Stopping...' : 'Stop Server'}
               </button>
-              <button className="action-btn refresh-btn" onClick={handleRefresh} title="Refresh routes from collection" data-testid="mock-server-refresh-btn">
-                <IconRefresh size={14} strokeWidth={1.5} />
-              </button>
+              {!isStopping && (
+                <button className="action-btn refresh-btn" onClick={handleRefresh} title="Refresh routes from collection" data-testid="mock-server-refresh-btn">
+                  <IconRefresh size={14} strokeWidth={1.5} />
+                </button>
+              )}
             </>
           )}
         </div>

@@ -33,6 +33,11 @@ const StyledWrapper = styled.div`
           animation: pulse 1s infinite;
         }
 
+        &.stopping {
+          background: #f59e0b;
+          animation: pulse 1s infinite;
+        }
+
         &.error {
           background: #ef4444;
         }
