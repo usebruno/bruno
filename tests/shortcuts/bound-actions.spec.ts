@@ -12,8 +12,21 @@ const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 const collectionName = 'kb-collection';
 const baseRequests = ['req-1', 'req-2', 'req-3', 'req-4', 'req-5', 'req-6', 'req-7', 'req-8', 'req-9'];
 
+const resetKeybindingsToDefault = async (page: Page) => {
+  await openKeybindingsTab(page);
+  await page.getByTestId('reset-all-keybindings-btn').click();
+  await closePreferencesTab(page);
+};
+
 const setupBoundActionsData = async (page: Page, createTmpDir: (prefix: string) => Promise<string>) => {
+  // Dismiss any open modals/popups left from a failed previous test
+  await page.keyboard.press('Escape');
+
   await closeAllCollections(page);
+
+  // Reset keybindings to defaults so each test starts from a clean state
+  await resetKeybindingsToDefault(page);
+
   const path = await createTmpDir('kb-collection-path');
   await createCollection(page, collectionName, path);
 
@@ -59,7 +72,7 @@ const closePreferencesTab = async (page: Page) => {
   await expect(prefTab).not.toBeVisible({ timeout: 2000 });
 };
 
-const closeTabByName = async (page: any, name: string | RegExp) => {
+const closeTabByName = async (page: Page, name: string | RegExp) => {
   const tab = page.locator('.request-tab').filter({ hasText: name });
   await tab.click();
   await tab.hover();
@@ -76,19 +89,19 @@ const openFolderSettingsTab = async (page: Page, folderName: string) => {
 };
 
 const reopenClosedTab = async (page: Page, shortcut: () => Promise<void>, expectedTabName: string | RegExp) => {
-  for (let attempt = 0; attempt < 3; attempt++) {
+  const reopenedTab = page.locator('.request-tab').filter({ hasText: expectedTabName });
+
+  // Ensure focus is on the tab bar so the shortcut is recognized
+  await page.locator('.request-tab').first().click();
+  await shortcut();
+
+  // If the tab didn't appear, retry once (focus might not have settled)
+  if (!(await reopenedTab.isVisible({ timeout: 2000 }).catch(() => false))) {
     await page.locator('.request-tab').first().click();
-    await page.waitForTimeout(150);
     await shortcut();
-    const reopenedTab = page.locator('.request-tab').filter({ hasText: expectedTabName });
-    if ((await reopenedTab.count()) > 0) {
-      await expect(reopenedTab).toBeVisible({ timeout: 3000 });
-      return;
-    }
-    await page.waitForTimeout(200);
   }
 
-  await expect(page.locator('.request-tab').filter({ hasText: expectedTabName })).toBeVisible({ timeout: 5000 });
+  await expect(reopenedTab).toBeVisible({ timeout: 5000 });
 };
 
 const remapKeybinding = async (
@@ -151,7 +164,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-1', { persist: true });
         await expect(page.locator('.request-tab').filter({ hasText: 'req-1' })).toBeVisible({ timeout: 2000 });
 
-        await page.keyboard.press(`${modifier}+KeyW`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyW');
+        await page.keyboard.up('KeyW');
+        await page.keyboard.up(modifier);
         await expect(page.locator('.request-tab')).toHaveCount(2, { timeout: 3000 });
       });
 
@@ -483,11 +499,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         // Verify draft indicator is gone after saving
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
-
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
       });
     });
 
@@ -499,11 +510,21 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('.request-tab').filter({ hasText: 'req-6' })).toBeVisible({ timeout: 2000 });
 
         // req-6 is active (last opened) — press previous → req-5
-        await page.keyboard.press(`${modifier}+Shift+BracketLeft`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up('Shift');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
 
         // Press again → req-4
-        await page.keyboard.press(`${modifier}+Shift+BracketLeft`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up('Shift');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/, { timeout: 3000 });
       });
 
@@ -550,11 +571,21 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/);
 
         // req-4 is active — press next → req-5
-        await page.keyboard.press(`${modifier}+Shift+BracketRight`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('BracketRight');
+        await page.keyboard.up('BracketRight');
+        await page.keyboard.up('Shift');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
 
         // Press again → req-6
-        await page.keyboard.press(`${modifier}+Shift+BracketRight`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('BracketRight');
+        await page.keyboard.up('BracketRight');
+        await page.keyboard.up('Shift');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-6/, { timeout: 3000 });
       });
 
@@ -604,12 +635,18 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(tabs.nth(totalTabs - 1)).toHaveText(/req-9/);
 
         // Press Cmd/Ctrl+[ → req-9 moves left, req-8 becomes last
-        await page.keyboard.press(`${modifier}+BracketLeft`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up(modifier);
         await expect(tabs.nth(totalTabs - 1)).toHaveText(/req-8/, { timeout: 3000 });
         await expect(tabs.nth(totalTabs - 2)).toHaveText(/req-9/);
 
         // Press again → req-9 moves one more position left
-        await page.keyboard.press(`${modifier}+BracketLeft`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up(modifier);
         await expect(tabs.nth(totalTabs - 3)).toHaveText(/req-9/, { timeout: 3000 });
       });
 
@@ -664,22 +701,40 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-9', { persist: true });
 
         // Move req-9 to first position first
-        await page.keyboard.press(`${modifier}+BracketLeft`);
-        await page.keyboard.press(`${modifier}+BracketLeft`);
-        await page.keyboard.press(`${modifier}+BracketLeft`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up(modifier);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up(modifier);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-9/);
         const startIndex = await getTabIndex(page, 'req-9');
         expect(startIndex).toBeGreaterThanOrEqual(0);
 
-        await page.keyboard.press(`${modifier}+BracketRight`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketRight');
+        await page.keyboard.up('BracketRight');
+        await page.keyboard.up(modifier);
         const indexAfterOneMove = await getTabIndex(page, 'req-9');
         expect(indexAfterOneMove).toBeGreaterThanOrEqual(startIndex);
 
-        await page.keyboard.press(`${modifier}+BracketRight`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketRight');
+        await page.keyboard.up('BracketRight');
+        await page.keyboard.up(modifier);
         const indexAfterTwoMoves = await getTabIndex(page, 'req-9');
         expect(indexAfterTwoMoves).toBeGreaterThanOrEqual(indexAfterOneMove);
 
-        await page.keyboard.press(`${modifier}+BracketRight`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketRight');
+        await page.keyboard.up('BracketRight');
+        await page.keyboard.up(modifier);
         const indexAfterThreeMoves = await getTabIndex(page, 'req-9');
         expect(indexAfterThreeMoves).toBeGreaterThanOrEqual(indexAfterTwoMoves);
       });
@@ -737,12 +792,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         const indexAfterThreeMoves = await getTabIndex(page, 'req-7');
         expect(indexAfterThreeMoves).toBeGreaterThanOrEqual(indexAfterTwoMoves);
-
-        // Close all tabs
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
       });
     });
 
@@ -762,21 +811,45 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const tabs = page.locator('.request-tab');
 
         await expect(tabs.nth(0)).toHaveText(/req-1/, { timeout: 2000 });
-        await page.keyboard.press(`${modifier}+1`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('1');
+        await page.keyboard.up('1');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-1/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+2`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('2');
+        await page.keyboard.up('2');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-2/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+3`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('3');
+        await page.keyboard.up('3');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-3/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+4`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('4');
+        await page.keyboard.up('4');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+5`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('5');
+        await page.keyboard.up('5');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+6`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('6');
+        await page.keyboard.up('6');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-6/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+7`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('7');
+        await page.keyboard.up('7');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-7/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+8`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('8');
+        await page.keyboard.up('8');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-8/, { timeout: 3000 });
       });
     });
@@ -790,7 +863,14 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(req1Tab).toHaveClass(/active/);
         await closeTabByName(page, 'req-1');
 
-        await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), 'req-1');
+        await reopenClosedTab(page, async () => {
+          await page.keyboard.down(modifier);
+          await page.keyboard.down('Shift');
+          await page.keyboard.down('KeyT');
+          await page.keyboard.up('KeyT');
+          await page.keyboard.up('Shift');
+          await page.keyboard.up(modifier);
+        }, 'req-1');
       });
 
       test('default Cmd/Ctrl+Shift+T reopens multiple tab types in LIFO order', async ({ page }) => {
@@ -819,10 +899,18 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await closeTabByName(page, 'Runner');
 
         // Reopen LIFO: Runner was closed last → reopens first
-        await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), 'Runner');
-        await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), /variables/i);
-        await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), 'Collection');
-        await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), 'kb-folder');
+        const pressReopenShortcut = async () => {
+          await page.keyboard.down(modifier);
+          await page.keyboard.down('Shift');
+          await page.keyboard.down('KeyT');
+          await page.keyboard.up('KeyT');
+          await page.keyboard.up('Shift');
+          await page.keyboard.up(modifier);
+        };
+        await reopenClosedTab(page, pressReopenShortcut, 'Runner');
+        await reopenClosedTab(page, pressReopenShortcut, /variables/i);
+        await reopenClosedTab(page, pressReopenShortcut, 'Collection');
+        await reopenClosedTab(page, pressReopenShortcut, 'kb-folder');
       });
 
       test('customized Alt+Z reopens last closed tab', async ({ page }) => {
@@ -838,7 +926,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await closeTabByName(page, 'req-1');
 
         await reopenClosedTab(page, async () => {
-          await page.keyboard.press('Alt+z');
+          await page.keyboard.down('Alt');
+          await page.keyboard.down('KeyZ');
+          await page.keyboard.up('KeyZ');
+          await page.keyboard.up('Alt');
         }, 'req-1');
       });
     });
@@ -847,54 +938,40 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.describe('SIDEBAR', () => {
     test.describe('SHORTCUT: Sidebar search', () => {
       test('default Cmd/Ctrl+F open sidebar search', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyF');
+        await page.keyboard.up('KeyF');
+        await page.keyboard.up(modifier);
 
-        await page.keyboard.press(`${modifier}+KeyF`);
-
-        // await expect(page.getByPlaceholder('Search requests...')).toBeVisible({ timeout: 3000 });
         await expect(page.getByTestId('sidebar-search-input')).toBeVisible({ timeout: 3000 });
         await page.getByTitle('Search requests').click();
       });
 
       test('customized Alt+F opens sidebar search', async ({ page }) => {
         // Remap sidebarSearch to Alt+F
-        await openKeybindingsTab(page);
-        const row = page.getByTestId('keybinding-row-sidebarSearch');
-        await row.hover();
-        await page.getByTestId('keybinding-edit-sidebarSearch').click();
-        await expect(page.getByTestId('keybinding-input-sidebarSearch')).toBeVisible({ timeout: 2000 });
+        await remapKeybinding(page, 'sidebarSearch', async () => {
+          await page.keyboard.press('Alt+KeyF');
+        });
 
-        await page.keyboard.down('Backspace');
-
+        // Press Alt+F to open sidebar search
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyF');
         await page.keyboard.up('KeyF');
         await page.keyboard.up('Alt');
 
-        // Press Cmd/Ctrl+T to open sidebar search
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyF');
-        await page.keyboard.up('KeyF');
-        await page.keyboard.up('Alt');
-
-        await expect(page.getByTestId('sidebar-search-input')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('sidebar-search-input')).toBeVisible({ timeout: 3000 });
         await page.getByTitle('Search requests').click();
       });
     });
 
     test.describe('SHORTCUT: New request', () => {
       test('default Cmd/Ctrl+N open new request modal', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await page.locator('.collection-item-name').filter({ hasText: 'kb-folder' }).click();
 
-        await page.keyboard.press(`${modifier}+KeyN`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyN');
+        await page.keyboard.up('KeyN');
+        await page.keyboard.up(modifier);
 
         await page.getByTestId('request-name').fill('nr-folder');
         await page.getByTestId('new-request-url').locator('.CodeMirror').click();
@@ -905,19 +982,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('customized Alt+N open new request modal', async ({ page, createTmpDir }) => {
-        // Remap newRequest to Alt+N
-        await openKeybindingsTab(page);
-        const row = page.getByTestId('keybinding-row-newRequest');
-        await row.hover();
-        await page.getByTestId('keybinding-edit-newRequest').click();
-        await expect(page.getByTestId('keybinding-input-newRequest')).toBeVisible({ timeout: 2000 });
-
-        await page.keyboard.down('Backspace');
-
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyN');
-        await page.keyboard.up('KeyN');
-        await page.keyboard.up('Alt');
+        await remapKeybinding(page, 'newRequest', async () => {
+          await page.keyboard.press('Alt+KeyN');
+        });
 
         await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
 
@@ -937,14 +1004,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Rename Item', () => {
       test('default Cmd/Ctrl+R open rename item modal for request', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
         await openRequest(page, 'kb-collection', 'req-1', { persist: true });
-        await page.keyboard.press(`${modifier}+KeyR`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyR');
+        await page.keyboard.up('KeyR');
+        await page.keyboard.up(modifier);
 
         // Verify rename modal opens
         const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename request/i });
@@ -963,13 +1027,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('default Cmd/Ctrl+R open rename item modal for folder', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await page.locator('.collection-item-name').filter({ hasText: 'kb-folder' }).dblclick();
-        await page.keyboard.press(`${modifier}+KeyR`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyR');
+        await page.keyboard.up('KeyR');
+        await page.keyboard.up(modifier);
 
         // Verify rename modal opens
         const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename folder/i });
@@ -987,13 +1049,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('default Cmd/Ctrl+R open rename item modal for collection', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
-        await page.keyboard.press(`${modifier}+KeyR`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyR');
+        await page.keyboard.up('KeyR');
+        await page.keyboard.up(modifier);
 
         // Verify rename modal opens
         const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename collection/i });
@@ -1011,24 +1071,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('customized Alt+X open rename item modal for request', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
-        // Remap renameItem to Alt+R
-        await openKeybindingsTab(page);
-        const row = page.getByTestId('keybinding-row-renameItem');
-        await row.hover();
-        await page.getByTestId('keybinding-edit-renameItem').click();
-        await expect(page.getByTestId('keybinding-input-renameItem')).toBeVisible({ timeout: 2000 });
-
-        await page.keyboard.down('Backspace');
-
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyX');
-        await page.keyboard.up('KeyX');
-        await page.keyboard.up('Alt');
+        await remapKeybinding(page, 'renameItem', async () => {
+          await page.keyboard.press('Alt+KeyX');
+        });
 
         await openRequest(page, collectionName, 'req-1', { persist: true });
         await page.keyboard.down('Alt');
@@ -1052,11 +1097,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('customized Alt+R open rename item modal for folder', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await remapKeybinding(page, 'renameItem', async () => {
           await page.keyboard.press('Alt+KeyX');
         });
@@ -1084,11 +1124,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('customized Alt+R open rename item modal for collection', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await remapKeybinding(page, 'renameItem', async () => {
           await page.keyboard.press('Alt+KeyX');
         });
@@ -1117,13 +1152,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Clone Item', () => {
       test('default Cmd/Ctrl+D open clone item modal for request', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await openRequest(page, 'kb-collection', 'req-1', { persist: true });
-        await page.keyboard.press(`${modifier}+KeyD`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyD');
+        await page.keyboard.up('KeyD');
+        await page.keyboard.up(modifier);
 
         // Verify clone modal opens
         const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone request/i });
@@ -1141,13 +1174,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('default Cmd/Ctrl+D open clone item modal for folder', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await page.locator('.collection-item-name').filter({ hasText: 'kb-folder' }).dblclick();
-        await page.keyboard.press(`${modifier}+KeyD`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyD');
+        await page.keyboard.up('KeyD');
+        await page.keyboard.up(modifier);
 
         // Verify clone modal opens
         const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone folder/i });
@@ -1165,24 +1196,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('customized Alt+D open clone item modal for request', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
-        // Remap cloneItem to Alt+D
-        await openKeybindingsTab(page);
-        const row = page.getByTestId('keybinding-row-cloneItem');
-        await row.hover();
-        await page.getByTestId('keybinding-edit-cloneItem').click();
-        await expect(page.getByTestId('keybinding-input-cloneItem')).toBeVisible({ timeout: 2000 });
-
-        await page.keyboard.down('Backspace');
-
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyD');
-        await page.keyboard.up('KeyD');
-        await page.keyboard.up('Alt');
+        await remapKeybinding(page, 'cloneItem', async () => {
+          await page.keyboard.press('Alt+KeyD');
+        });
 
         await openRequest(page, 'kb-collection', 'req-2', { persist: true });
 
@@ -1207,10 +1223,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('customized Alt+D open clone item modal for folder', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
+        await remapKeybinding(page, 'cloneItem', async () => {
+          await page.keyboard.press('Alt+KeyD');
+        });
 
         await createFolder(page, 'kb-folder-clone-src', collectionName, true);
         await openCollection(page, collectionName);
@@ -1238,66 +1253,42 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Copy Paste Item', () => {
       test('default Cmd/Ctrl+C/V copy paste item for request', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await openRequest(page, 'kb-collection', 'req-3', { persist: true });
-        await page.keyboard.press(`${modifier}+KeyC`);
-        await page.keyboard.press(`${modifier}+KeyV`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyC');
+        await page.keyboard.up('KeyC');
+        await page.keyboard.up(modifier);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyV');
+        await page.keyboard.up('KeyV');
+        await page.keyboard.up(modifier);
 
         // Verify cloned request appears in sidebar
         await expect(page.locator('.collection-item-name').filter({ hasText: 'req-3 (1)' })).toBeVisible({ timeout: 2000 });
       });
 
       test('default Cmd/Ctrl+C/V copy paste item for folder', async ({ page }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await openRequest(page, collectionName, 'kb-folder', { persist: true });
-        await page.keyboard.press(`${modifier}+KeyC`);
-        await page.keyboard.press(`${modifier}+KeyV`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyC');
+        await page.keyboard.up('KeyC');
+        await page.keyboard.up(modifier);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyV');
+        await page.keyboard.up('KeyV');
+        await page.keyboard.up(modifier);
 
         // Verify copied item appears in sidebar as child of folder
         await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder' })).toHaveCount(2);
       });
 
       test('customized Alt+C/V copy paste item for request', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
-        // Remap copyItem to Alt+D
-        await openKeybindingsTab(page);
-        const row = page.getByTestId('keybinding-row-copyItem');
-        await row.hover();
-        await page.getByTestId('keybinding-edit-copyItem').click();
-        await expect(page.getByTestId('keybinding-input-copyItem')).toBeVisible({ timeout: 2000 });
-
-        await page.keyboard.down('Backspace');
-
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyC');
-        await page.keyboard.up('KeyC');
-        await page.keyboard.up('Alt');
-
-        // Remap pasteItem to Alt+V
-        await openKeybindingsTab(page);
-        const row2 = page.getByTestId('keybinding-row-pasteItem');
-        await row2.hover();
-        await page.getByTestId('keybinding-edit-pasteItem').click();
-        await expect(page.getByTestId('keybinding-input-pasteItem')).toBeVisible({ timeout: 2000 });
-
-        await page.keyboard.down('Backspace');
-
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyV');
-        await page.keyboard.up('KeyV');
-        await page.keyboard.up('Alt');
+        await remapKeybinding(page, 'copyItem', async () => {
+          await page.keyboard.press('Alt+KeyC');
+        });
+        await remapKeybinding(page, 'pasteItem', async () => {
+          await page.keyboard.press('Alt+KeyV');
+        });
 
         await openRequest(page, 'kb-collection', 'req-4', { persist: true });
         await page.keyboard.down('Alt');
@@ -1315,11 +1306,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('customized Alt+C/V copy paste item for folder', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await remapKeybinding(page, 'copyItem', async () => {
           await page.keyboard.press('Alt+KeyC');
         });
@@ -1350,15 +1336,21 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.locator('body').click({ position: { x: 1, y: 1 } });
 
         // Press Cmd/Ctrl+\ to collapse sidebar
-        await page.keyboard.press(`${modifier}+Backslash`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Backslash');
+        await page.keyboard.up('Backslash');
+        await page.keyboard.up(modifier);
 
         await expect.poll(
           () => page.locator('aside.sidebar').evaluate((el) => parseFloat(getComputedStyle(el).width)),
           { timeout: 5000 }
         ).toBeLessThan(5);
 
-        // Press Cmd/Ctrl+\ to collapse expanded sidebar
-        await page.keyboard.press(`${modifier}+Backslash`);
+        // Press Cmd/Ctrl+\ to expand sidebar
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Backslash');
+        await page.keyboard.up('Backslash');
+        await page.keyboard.up(modifier);
 
         await expect.poll(
           () => page.locator('aside.sidebar').evaluate((el) => parseFloat(getComputedStyle(el).width)),
@@ -1417,7 +1409,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
-        await page.keyboard.press(`${modifier}+KeyT`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyT');
+        await page.keyboard.up('KeyT');
+        await page.keyboard.up(modifier);
 
         // Verify terminal session is visible using data-testid
         const collectionTerminalSession = page.getByTestId('session-list-0');
@@ -1432,7 +1427,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.locator('.collection-item-name').filter({ hasText: 'kb-terminal-folder' }).dblclick();
         await expect(page.locator('.request-tab').filter({ hasText: 'kb-terminal-folder' })).toBeVisible({ timeout: 2000 });
 
-        await page.keyboard.press(`${modifier}+KeyT`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyT');
+        await page.keyboard.up('KeyT');
+        await page.keyboard.up(modifier);
         const folderTerminalSession = page.getByTestId('session-list-1');
         await expect(folderTerminalSession).toBeVisible({ timeout: 2000 });
 
@@ -1442,36 +1440,25 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Close all sessions with terminal tab
         await page.getByTestId('session-close-1').click();
-        await page.waitForTimeout(1000);
+        await expect(page.getByTestId('session-list-1')).not.toBeVisible({ timeout: 3000 });
         await page.getByTestId('session-close-0').click();
         await expect(page.getByTestId('session-close-0')).not.toBeVisible({ timeout: 3000 });
         await page.getByTitle('Close console').click();
       });
 
       test('customized Alt+T opens terminal', async ({ page, createTmpDir }) => {
-        // Remap openTerminal to Alt+T
-        await openKeybindingsTab(page);
-        const row = page.getByTestId('keybinding-row-openTerminal');
-        await row.hover();
-        await page.getByTestId('keybinding-edit-openTerminal').click();
-        await expect(page.getByTestId('keybinding-input-openTerminal')).toBeVisible({ timeout: 2000 });
-
-        await page.keyboard.down('Backspace');
-
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyT');
-        await page.keyboard.up('KeyT');
-        await page.keyboard.up('Alt');
+        await remapKeybinding(page, 'openTerminal', async () => {
+          await page.keyboard.press('Alt+KeyT');
+        });
 
         await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
         await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
 
-        // Press Cmd/Ctrl+T to open terminal at workspace level
+        // Press Alt+T to open terminal at collection level
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyT');
         await page.keyboard.up('KeyT');
         await page.keyboard.up('Alt');
-        await page.waitForTimeout(500);
 
         // Verify terminal session is visible using data-testid
         const collectionTerminalSession = page.getByTestId('session-list-0');
@@ -1496,7 +1483,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Close all sessions with terminal tab
         await page.getByTestId('session-close-1').click();
-        await page.waitForTimeout(1000);
+        await expect(page.getByTestId('session-list-1')).not.toBeVisible({ timeout: 3000 });
         await page.getByTestId('session-close-0').click();
         await expect(page.getByTestId('session-close-0')).not.toBeVisible({ timeout: 3000 });
         await page.getByTitle('Close console').click();
@@ -1510,21 +1497,30 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, 'kb-collection', 'req-5', { persist: true });
 
         // Press Cmd/Ctrl+J to change layout
-        await page.keyboard.press(`${modifier}+KeyJ`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyJ');
+        await page.keyboard.up('KeyJ');
+        await page.keyboard.up(modifier);
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
         ).toHaveAttribute('title', 'Switch to horizontal layout', { timeout: 2000 });
 
         // Press Cmd/Ctrl+J to change layout
-        await page.keyboard.press(`${modifier}+KeyJ`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyJ');
+        await page.keyboard.up('KeyJ');
+        await page.keyboard.up(modifier);
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
         ).toHaveAttribute('title', 'Switch to vertical layout', { timeout: 2000 });
 
         // Press Cmd/Ctrl+J to change layout
-        await page.keyboard.press(`${modifier}+KeyJ`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyJ');
+        await page.keyboard.up('KeyJ');
+        await page.keyboard.up(modifier);
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
@@ -1532,26 +1528,14 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('customized Alt+Shift+Y change layout orientation', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
-        // Remap changeLayout to Alt+D
-        await openKeybindingsTab(page);
-        const row = page.getByTestId('keybinding-row-changeLayout');
-        await row.hover();
-        await page.getByTestId('keybinding-edit-changeLayout').click();
-        await expect(page.getByTestId('keybinding-input-changeLayout')).toBeVisible({ timeout: 2000 });
-
-        await page.keyboard.down('Backspace');
-
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Shift');
-        await page.keyboard.up('Alt');
+        await remapKeybinding(page, 'changeLayout', async () => {
+          await page.keyboard.down('Alt');
+          await page.keyboard.down('Shift');
+          await page.keyboard.down('KeyY');
+          await page.keyboard.up('KeyY');
+          await page.keyboard.up('Shift');
+          await page.keyboard.up('Alt');
+        });
 
         await openRequest(page, 'kb-collection', 'req-5', { persist: true });
 
@@ -1594,12 +1578,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Open Preferences', () => {
       test('default Cmd/Ctrl+, open preferences', async ({ page }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
-        // Press Cmd/Ctrl+J to change layout
+        // Press Cmd/Ctrl+, to open preferences
         await page.keyboard.down(modifier);
         await page.keyboard.down('Comma');
         await page.keyboard.up('Comma');
@@ -1623,12 +1602,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyP');
         await page.keyboard.up(modifier);
 
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
+        await closePreferencesTab(page);
 
-        // Press Cmd/Ctrl+J to change layout
+        // Press Cmd/Ctrl+P to open preferences with custom shortcut
         await page.keyboard.down(modifier);
         await page.keyboard.down('KeyP');
         await page.keyboard.up('KeyP');
@@ -1642,58 +1618,38 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.describe('SEARCH', () => {
     test.describe('SHORTCUT: Global Search', () => {
       test('default Cmd/Ctrl+K Global Search Modal', async ({ page, createTmpDir }) => {
-        // Press Cmd/Ctrl+K to global search modal
-        await page.keyboard.press(`${modifier}+KeyK`);
-
+        // Press Cmd/Ctrl+K to open global search modal
         await page.keyboard.down(modifier);
         await page.keyboard.down('KeyK');
         await page.keyboard.up('KeyK');
         await page.keyboard.up(modifier);
 
-        await page.getByTestId('global-search-input').click();
-        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 3000 });
 
-        // await page.waitForTimeout(500);
-        await page.keyboard.down('Escape');
-        await page.keyboard.up('Escape');
+        await page.keyboard.press('Escape');
       });
 
       test('customized Alt+K Global Search Modal', async ({ page, createTmpDir }) => {
         // Remap globalSearch to Alt+K
-        await openKeybindingsTab(page);
-        const row = page.getByTestId('keybinding-row-globalSearch');
-        await row.hover();
-        await page.getByTestId('keybinding-edit-globalSearch').click();
-        await expect(page.getByTestId('keybinding-input-globalSearch')).toBeVisible({ timeout: 2000 });
+        await remapKeybinding(page, 'globalSearch', async () => {
+          await page.keyboard.press('Alt+KeyK');
+        });
 
-        await page.keyboard.down('Backspace');
-
+        // Press Alt+K to open global search modal
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyK');
         await page.keyboard.up('KeyK');
         await page.keyboard.up('Alt');
 
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyK');
-        await page.keyboard.up('KeyK');
-        await page.keyboard.up('Alt');
+        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 3000 });
 
-        await page.getByTestId('global-search-input').click();
-        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 2000 });
-
-        await page.keyboard.down('Escape');
-        await page.keyboard.up('Escape');
+        await page.keyboard.press('Escape');
       });
     });
   });
 
   test.describe('SHORTCUT: Edit Environment', () => {
     test('open environment tab of collection Cmd/Ctrl+E', async ({ page, createTmpDir }) => {
-      await page.keyboard.down('Alt');
-      await page.keyboard.down('KeyY');
-      await page.keyboard.up('KeyY');
-      await page.keyboard.up('Alt');
-
       await openRequest(page, 'kb-collection', 'req-7', { persist: true });
 
       await page.keyboard.down(modifier);
@@ -1701,28 +1657,13 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       await page.keyboard.up('KeyE');
       await page.keyboard.up(modifier);
 
-      await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible({ timeout: 2000 });
+      await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible({ timeout: 3000 });
     });
 
     test('open environment tab of collection customized Alt+E', async ({ page, createTmpDir }) => {
-      await page.keyboard.down('Alt');
-      await page.keyboard.down('KeyY');
-      await page.keyboard.up('KeyY');
-      await page.keyboard.up('Alt');
-
-      // Remap editEnvironment to Alt+E
-      await openKeybindingsTab(page);
-      const row = page.getByTestId('keybinding-row-editEnvironment');
-      await row.hover();
-      await page.getByTestId('keybinding-edit-editEnvironment').click();
-      await expect(page.getByTestId('keybinding-input-editEnvironment')).toBeVisible({ timeout: 2000 });
-
-      await page.keyboard.down('Backspace');
-
-      await page.keyboard.down('Alt');
-      await page.keyboard.down('KeyE');
-      await page.keyboard.up('KeyE');
-      await page.keyboard.up('Alt');
+      await remapKeybinding(page, 'editEnvironment', async () => {
+        await page.keyboard.press('Alt+KeyE');
+      });
 
       await openRequest(page, 'kb-collection', 'req-7', { persist: true });
 
@@ -1731,11 +1672,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       await page.keyboard.up('KeyE');
       await page.keyboard.up('Alt');
 
-      await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible({ timeout: 2000 });
-
-      // Rest Default - just in case to not fail shortcuts in other places
-      await openKeybindingsTab(page);
-      await page.getByTestId('reset-all-keybindings-btn').click({ timeout: 2000 });
+      await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible({ timeout: 3000 });
     });
   });
 });
