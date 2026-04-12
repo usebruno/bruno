@@ -22,9 +22,9 @@ import {
   runFolderEvent,
   runRequestEvent,
   scriptEnvironmentUpdateEvent,
-  streamDataReceived,
   setDotEnvVariables
 } from 'providers/ReduxStore/slices/collections';
+import { streamMessagesReceived } from 'providers/ReduxStore/slices/streamMessages';
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import {
   workspaceOpenedEvent,
@@ -322,11 +322,48 @@ const useIpcEvents = () => {
       dispatch(collectionClearOauth2CredentialsByCredentialsId(val));
     });
 
+    const streamBatchBuffers = {};
+    const streamFlushTimers = {};
+
     const removeHttpStreamNewDataListener = ipcRenderer.on('main:http-stream-new-data', (val) => {
-      dispatch(streamDataReceived(val));
+      const key = `${val.collectionUid}:${val.itemUid}`;
+      if (!streamBatchBuffers[key]) {
+        streamBatchBuffers[key] = [];
+      }
+      streamBatchBuffers[key].push(val);
+
+      if (!streamFlushTimers[key]) {
+        streamFlushTimers[key] = setTimeout(() => {
+          const batch = streamBatchBuffers[key];
+          if (batch?.length) {
+            dispatch(streamMessagesReceived({
+              collectionUid: val.collectionUid,
+              itemUid: val.itemUid,
+              items: batch
+            }));
+            streamBatchBuffers[key] = [];
+          }
+          streamFlushTimers[key] = null;
+        }, 100);
+      }
     });
 
     const removeHttpStreamEndListener = ipcRenderer.on('main:http-stream-end', (val) => {
+      // Flush any pending batch before marking the stream as ended
+      const key = `${val.collectionUid}:${val.itemUid}`;
+      if (streamFlushTimers[key]) {
+        clearTimeout(streamFlushTimers[key]);
+        streamFlushTimers[key] = null;
+        const batch = streamBatchBuffers[key];
+        if (batch?.length) {
+          dispatch(streamMessagesReceived({
+            collectionUid: val.collectionUid,
+            itemUid: val.itemUid,
+            items: batch
+          }));
+          streamBatchBuffers[key] = [];
+        }
+      }
       dispatch(requestCancelled(val));
     });
 
@@ -367,6 +404,7 @@ const useIpcEvents = () => {
       removeCollectionOauth2CredentialsClearListener();
       removeHttpStreamNewDataListener();
       removeHttpStreamEndListener();
+      Object.values(streamFlushTimers).forEach(clearTimeout);
       removeCollectionLoadingStateListener();
       removePersistentEnvVariablesUpdateListener();
       removeSystemResourcesListener();
