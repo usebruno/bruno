@@ -43,20 +43,12 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
     return <ConfirmCollectionCloseDrafts onClose={onClose} collection={collection} collectionUid={collectionUid} />;
   }
 
-  const customHeader = (
-    <div className="flex items-center gap-2" data-testid="close-collection-modal-title">
-      <IconAlertCircle size={18} strokeWidth={1.5} className="warning-icon" />
-      <span>Remove Collection</span>
-    </div>
-  );
-
   // Otherwise, show the standard remove confirmation modal
   return (
     <StyledWrapper>
       <Modal
         size="sm"
         title="Remove Collection"
-        customHeader={customHeader}
         confirmText="Remove"
         confirmButtonColor="danger"
         handleConfirm={onConfirm}
