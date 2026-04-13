@@ -17,8 +17,8 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
     return parsed;
   }, [data]);
 
-  // Check for parsing error
-  if (parsedData && typeof parsedData === 'object' && parsedData.error) {
+  // Check for parsing error (must be a string to distinguish from XML with an <error> root element)
+  if (parsedData && typeof parsedData === 'object' && typeof parsedData.error === 'string') {
     return (
       <div className="px-2">
         <ErrorBanner errors={[{ title: 'Cannot preview as XML', message: parsedData.error }]} />
