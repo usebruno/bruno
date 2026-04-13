@@ -561,7 +561,17 @@ const Keybindings = () => {
       return next;
     });
 
-    persistToPreferences(action, def);
+    // Remove the entry from user preferences entirely so falls back to default.
+    // This also keeps `hasCustomizedKeybindings` accurate.
+    const nextKeyBindings = { ...(preferences?.keyBindings || {}) };
+    delete nextKeyBindings[action];
+
+    const updatedPreferences = {
+      ...preferences,
+      keyBindings: nextKeyBindings
+    };
+
+    dispatch(savePreferences(updatedPreferences));
   };
 
   const hasCustomizedKeybindings = useMemo(() => {
