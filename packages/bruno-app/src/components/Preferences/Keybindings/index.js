@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect, Fragment } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 
@@ -10,6 +10,7 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { KEY_BINDING_SECTIONS } from 'providers/Hotkeys/keyMappings.js';
 import { Tooltip } from 'react-tooltip';
 import ToggleSwitch from 'components/ToggleSwitch/index';
+import toast from 'react-hot-toast';
 
 const SEP = '+bind+';
 const getOS = () => (isMacOS() ? 'mac' : 'windows');
@@ -82,10 +83,10 @@ const renderDisplayValue = (displayValue, os) => {
   return (
     <span className="shortcut-pills">
       {parsed.map((keysArr, index) => (
-        <React.Fragment key={index}>
+        <Fragment key={index}>
           {index > 0 && <span className="shortcut-separator"> - </span>}
           {renderKeycaps(keysArr, os)}
-        </React.Fragment>
+        </Fragment>
       ))}
     </span>
   );
@@ -491,7 +492,7 @@ const Keybindings = () => {
     if (buildUsedSignatures(action).has(sig)) {
       return {
         code: ERROR.DUPLICATE,
-        message: 'That shortcut is already in use.'
+        message: 'This shortcut is already in use.'
       };
     }
 
@@ -563,6 +564,11 @@ const Keybindings = () => {
     persistToPreferences(action, def);
   };
 
+  const hasCustomizedKeybindings = useMemo(() => {
+    const userKeyBindings = preferences?.keyBindings || {};
+    return Object.keys(userKeyBindings).length > 0;
+  }, [preferences?.keyBindings]);
+
   const resetAllKeybindings = () => {
     const updatedPreferences = {
       ...preferences,
@@ -570,6 +576,7 @@ const Keybindings = () => {
     };
 
     dispatch(savePreferences(updatedPreferences));
+    toast.success('All shortcuts have been reset to default');
   };
 
   const startEditing = (action) => {
@@ -797,6 +804,7 @@ const Keybindings = () => {
             onClick={resetAllKeybindings}
             className="reset-btn"
             data-testid="reset-all-keybindings-btn"
+            disabled={!hasCustomizedKeybindings}
           >
             Reset Default
           </button>
@@ -815,7 +823,7 @@ const Keybindings = () => {
               </thead>
               <tbody>
                 {groupedKeyMappings.map((section, sectionIndex) => (
-                  <React.Fragment key={section.heading}>
+                  <Fragment key={section.heading}>
                     <tr className="section-heading-row">
                       <td colSpan={2}>{section.heading}</td>
                     </tr>
@@ -944,7 +952,12 @@ const Keybindings = () => {
                         </tr>
                       );
                     })}
-                  </React.Fragment>
+                    {sectionIndex < groupedKeyMappings.length - 1 && (
+                      <tr className="section-spacer-row" aria-hidden="true">
+                        <td colSpan={2}>&nbsp;</td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

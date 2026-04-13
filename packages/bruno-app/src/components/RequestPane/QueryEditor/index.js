@@ -137,6 +137,12 @@ export default class QueryEditor extends React.Component {
     this.addOverlay();
 
     setupLinkAware(editor);
+
+    // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
+    const cmInput = editor.getInputField();
+    if (cmInput) {
+      cmInput.classList.add('mousetrap');
+    }
   }
 
   componentDidUpdate(prevProps) {
