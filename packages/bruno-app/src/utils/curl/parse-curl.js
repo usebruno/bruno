@@ -44,7 +44,7 @@ const FLAG_CATEGORIES = {
  */
 const parseCurlCommand = (curl) => {
   const cleanedCommand = cleanCurlCommand(curl);
-  const parsedArgs = parse(cleanedCommand);
+  const parsedArgs = parse(cleanedCommand, (varname) => '$' + varname);
   const request = buildRequest(parsedArgs);
 
   return cleanRequest(postBuildProcessRequest(request));
