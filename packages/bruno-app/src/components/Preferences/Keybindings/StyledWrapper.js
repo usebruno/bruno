@@ -74,7 +74,7 @@ const StyledWrapper = styled.div`
 
   thead {
     color: ${(props) => props.theme.table.thead.color} !important;
-    background: ${(props) => props.theme.sidebar.bg};
+    background: ${(props) => props.theme.table.striped};
     user-select: none;
 
     td {
@@ -109,7 +109,7 @@ const StyledWrapper = styled.div`
     }
 
     tr:hover:not(.row-editing) td {
-      background: ${(props) => props.theme.tabs.secondary.active.bg};
+      background: ${(props) => props.theme.background.surface0};
       cursor: pointer;
     }
 
