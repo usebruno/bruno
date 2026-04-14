@@ -73,6 +73,7 @@ describe('fetchGqlSchemaHandler - network error handling', () => {
   }, 10000);
 
   it('should not expose raw error codes in ECONNREFUSED message', async () => {
+    expect.assertions(2);
     const endpoint = 'http://127.0.0.1:19999/graphql';
 
     try {
@@ -84,6 +85,7 @@ describe('fetchGqlSchemaHandler - network error handling', () => {
   });
 
   it('should not expose raw error codes in ENOTFOUND message', async () => {
+    expect.assertions(3);
     const endpoint = 'https://this-domain-does-not-exist-12345.com/graphql';
 
     try {

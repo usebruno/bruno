@@ -10,10 +10,11 @@ const loadGqlSchemaFile = (filePath) => {
   }
 
   const parsed = safeParseJSON(fileContent);
-  if (typeof parsed !== 'object' || parsed === null) {
-    throw new Error('The file does not contain valid JSON. Please upload a valid GraphQL schema file (JSON introspection result or SDL).');
+  if (typeof parsed === 'object' && parsed !== null) {
+    return parsed;
   }
-  return parsed;
+
+  return fileContent;
 };
 
 module.exports = { loadGqlSchemaFile };
