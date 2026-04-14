@@ -320,6 +320,35 @@ headers {
     expect(parsed.headers[0].annotations).toEqual([{ name: 'description', value: '{{baseUrl}}/path' }]);
   });
 
+  it('serializeAnnotations — annotation on params:path', () => {
+    const json = {
+      params: [{ name: 'userId', value: '123', enabled: true, type: 'path', annotations: [{ name: 'description', value: 'user id' }] }]
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('params:path {');
+    expect(bru).toContain('@description(\'user id\')\n  userId: 123');
+  });
+
+  it('serializeAnnotations — annotation on metadata', () => {
+    const json = {
+      metadata: [{ name: 'trace-id', value: 'abc123', enabled: true, annotations: [{ name: 'description', value: 'trace id' }] }]
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('metadata {');
+    expect(bru).toContain('@description(\'trace id\')\n  trace-id: abc123');
+  });
+
+  it('serializeAnnotations — annotation on body:form-urlencoded', () => {
+    const json = {
+      body: {
+        formUrlEncoded: [{ name: 'username', value: 'alice', enabled: true, annotations: [{ name: 'description', value: 'username field' }] }]
+      }
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('body:form-urlencoded {');
+    expect(bru).toContain('@description(\'username field\')\n  username: alice');
+  });
+
   it('annotation on params:query block', () => {
     const input = `
 params:query {
@@ -330,6 +359,45 @@ params:query {
     const output = parser(input);
     expect(output.params).toEqual([
       { name: 'q', value: 'search', enabled: true, type: 'query', annotations: [{ name: 'string' }] }
+    ]);
+  });
+
+  it('annotation on params:path block', () => {
+    const input = `
+params:path {
+  @description('user id')
+  userId: 123
+}
+`;
+    const output = parser(input);
+    expect(output.params).toEqual([
+      { name: 'userId', value: '123', enabled: true, type: 'path', annotations: [{ name: 'description', value: 'user id' }] }
+    ]);
+  });
+
+  it('annotation on metadata block', () => {
+    const input = `
+metadata {
+  @description('trace id')
+  trace-id: abc123
+}
+`;
+    const output = parser(input);
+    expect(output.metadata).toEqual([
+      { name: 'trace-id', value: 'abc123', enabled: true, annotations: [{ name: 'description', value: 'trace id' }] }
+    ]);
+  });
+
+  it('annotation on body:form-urlencoded block', () => {
+    const input = `
+body:form-urlencoded {
+  @description('username field')
+  username: alice
+}
+`;
+    const output = parser(input);
+    expect(output.body.formUrlEncoded).toEqual([
+      { name: 'username', value: 'alice', enabled: true, annotations: [{ name: 'description', value: 'username field' }] }
     ]);
   });
 
@@ -350,6 +418,225 @@ vars:pre-request {
         annotations: [{ name: 'description', value: 'base url' }]
       }
     ]);
+  });
+
+  it('annotation on vars:post-response block', () => {
+    const input = `
+vars:post-response {
+  @description('auth token')
+  token: abc123
+}
+`;
+    const output = parser(input);
+    expect(output.vars.res).toEqual([
+      {
+        name: 'token',
+        value: 'abc123',
+        enabled: true,
+        local: false,
+        annotations: [{ name: 'description', value: 'auth token' }]
+      }
+    ]);
+  });
+
+  it('annotation on local vars:pre-request pair', () => {
+    const input = `
+vars:pre-request {
+  @description('local base url')
+  @BASE_URL: http://localhost
+}
+`;
+    const output = parser(input);
+    expect(output.vars.req).toEqual([
+      {
+        name: 'BASE_URL',
+        value: 'http://localhost',
+        enabled: true,
+        local: true,
+        annotations: [{ name: 'description', value: 'local base url' }]
+      }
+    ]);
+  });
+
+  it('annotation on local vars:post-response pair', () => {
+    const input = `
+vars:post-response {
+  @description('local token')
+  @token: abc123
+}
+`;
+    const output = parser(input);
+    expect(output.vars.res).toEqual([
+      {
+        name: 'token',
+        value: 'abc123',
+        enabled: true,
+        local: true,
+        annotations: [{ name: 'description', value: 'local token' }]
+      }
+    ]);
+  });
+
+  it('annotation on body:multipart-form text field', () => {
+    const input = `
+body:multipart-form {
+  @description('plain field')
+  field: value @contentType(text/plain)
+}
+`;
+    const output = parser(input);
+    expect(output.body.multipartForm).toEqual([
+      {
+        name: 'field',
+        value: 'value',
+        enabled: true,
+        type: 'text',
+        contentType: 'text/plain',
+        annotations: [{ name: 'description', value: 'plain field' }]
+      }
+    ]);
+  });
+
+  it('annotation on body:multipart-form file field', () => {
+    const input = `
+body:multipart-form {
+  @description('upload image')
+  upload: @file(/tmp/a.png|/tmp/b.png) @contentType(image/png)
+}
+`;
+    const output = parser(input);
+    expect(output.body.multipartForm).toEqual([
+      {
+        name: 'upload',
+        value: ['/tmp/a.png', '/tmp/b.png'],
+        enabled: true,
+        type: 'file',
+        contentType: 'image/png',
+        annotations: [{ name: 'description', value: 'upload image' }]
+      }
+    ]);
+  });
+
+  it('annotation on body:file', () => {
+    const input = `
+body:file {
+  @description('upload doc')
+  file: @file(/tmp/readme.pdf) @contentType(application/pdf)
+}
+`;
+    const output = parser(input);
+    expect(output.body.file).toEqual([
+      {
+        filePath: '/tmp/readme.pdf',
+        selected: true,
+        contentType: 'application/pdf',
+        annotations: [{ name: 'description', value: 'upload doc' }]
+      }
+    ]);
+  });
+
+  it('serializeAnnotations — multipart text field with contentType', () => {
+    const json = {
+      body: {
+        multipartForm: [
+          {
+            name: 'field',
+            value: 'value',
+            enabled: true,
+            type: 'text',
+            contentType: 'text/plain',
+            annotations: [{ name: 'description', value: 'plain field' }]
+          }
+        ]
+      }
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('@description(\'plain field\')\n  field: value @contentType(text/plain)');
+  });
+
+  it('serializeAnnotations — multipart file field with contentType', () => {
+    const json = {
+      body: {
+        multipartForm: [
+          {
+            name: 'upload',
+            value: ['/tmp/a.png', '/tmp/b.png'],
+            enabled: true,
+            type: 'file',
+            contentType: 'image/png',
+            annotations: [{ name: 'description', value: 'upload image' }]
+          }
+        ]
+      }
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('@description(\'upload image\')\n  upload: @file(/tmp/a.png|/tmp/b.png) @contentType(image/png)');
+  });
+
+  it('serializeAnnotations — annotation on vars:post-response', () => {
+    const json = {
+      vars: {
+        res: [{ name: 'token', value: 'abc123', enabled: true, local: false, annotations: [{ name: 'description', value: 'auth token' }] }]
+      }
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('vars:post-response {');
+    expect(bru).toContain('@description(\'auth token\')\n  token: abc123');
+  });
+
+  it('serializeAnnotations — annotation on local vars:pre-request', () => {
+    const json = {
+      vars: {
+        req: [{ name: 'BASE_URL', value: 'http://localhost', enabled: true, local: true, annotations: [{ name: 'description', value: 'local base url' }] }]
+      }
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('vars:pre-request {');
+    expect(bru).toContain('@description(\'local base url\')\n  @BASE_URL: http://localhost');
+  });
+
+  it('serializeAnnotations — annotation on disabled local vars:post-response', () => {
+    const json = {
+      vars: {
+        res: [{ name: 'token', value: 'abc123', enabled: false, local: true, annotations: [{ name: 'description', value: 'local token' }] }]
+      }
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('vars:post-response {');
+    expect(bru).toContain('@description(\'local token\')\n  ~@token: abc123');
+  });
+
+  it('serializeAnnotations — body:file with annotations', () => {
+    const json = {
+      body: {
+        file: [{ filePath: '/tmp/readme.pdf', selected: true, contentType: 'application/pdf', annotations: [{ name: 'description', value: 'upload doc' }] }]
+      }
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('body:file {');
+    expect(bru).toContain('@description(\'upload doc\')\n  file: @file(/tmp/readme.pdf) @contentType(application/pdf)');
+    const parsed = parser(bru);
+    expect(parsed.body.file).toEqual(json.body.file);
+  });
+
+  it('roundtrip — multipart annotation survives json→bru→json', () => {
+    const json = {
+      body: {
+        multipartForm: [
+          {
+            name: 'upload',
+            value: ['/tmp/a.png'],
+            enabled: true,
+            type: 'file',
+            contentType: 'image/png',
+            annotations: [{ name: 'description', value: 'upload image' }]
+          }
+        ]
+      }
+    };
+    const bru = jsonToBru(json);
+    const parsed = parser(bru);
+    expect(parsed.body.multipartForm).toEqual(json.body.multipartForm);
   });
 
   it('roundtrip: bru → json → bru → json equal', () => {
@@ -790,6 +1077,39 @@ describe('collection pair annotations', () => {
     };
     const bru = jsonToCollectionBru(json);
     expect(bru).toContain('@description(\'base url\')\n  BASE_URL: http://localhost');
+  });
+
+  it('serializeAnnotations in jsonToCollectionBru — vars:post-response with annotation', () => {
+    const json = {
+      vars: {
+        res: [{ name: 'token', value: 'abc123', enabled: true, local: false, annotations: [{ name: 'description', value: 'auth token' }] }]
+      }
+    };
+    const bru = jsonToCollectionBru(json);
+    expect(bru).toContain('vars:post-response {');
+    expect(bru).toContain('@description(\'auth token\')\n  token: abc123');
+  });
+
+  it('serializeAnnotations in jsonToCollectionBru — local vars:pre-request with annotation', () => {
+    const json = {
+      vars: {
+        req: [{ name: 'BASE_URL', value: 'http://localhost', enabled: true, local: true, annotations: [{ name: 'description', value: 'local base url' }] }]
+      }
+    };
+    const bru = jsonToCollectionBru(json);
+    expect(bru).toContain('vars:pre-request {');
+    expect(bru).toContain('@description(\'local base url\')\n  @BASE_URL: http://localhost');
+  });
+
+  it('serializeAnnotations in jsonToCollectionBru — disabled local vars:post-response with annotation', () => {
+    const json = {
+      vars: {
+        res: [{ name: 'token', value: 'abc123', enabled: false, local: true, annotations: [{ name: 'description', value: 'local token' }] }]
+      }
+    };
+    const bru = jsonToCollectionBru(json);
+    expect(bru).toContain('vars:post-response {');
+    expect(bru).toContain('@description(\'local token\')\n  ~@token: abc123');
   });
 
   it('parseAndSerialise - bru sourced roundtrip check - collection headers', () => {

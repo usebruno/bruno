@@ -1079,11 +1079,12 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       const existingOtherParams = item.draft.request.params?.filter((p) => p.type !== 'query') || [];
-      const newQueryParams = map(params, ({ uid, name = '', value = '', description = '', type = 'query', enabled = true }) => ({
+      const newQueryParams = map(params, ({ uid, name = '', value = '', description = '', annotations = null, type = 'query', enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         type,
         enabled
       }));
@@ -1325,11 +1326,12 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.headers = map(action.payload.headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+      item.draft.request.headers = map(action.payload.headers, ({ uid, name = '', value = '', description = '', annotations = null, enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         enabled
       }));
     },
@@ -1353,11 +1355,12 @@ export const collectionsSlice = createSlice({
         collection.draft.root.request = {};
       }
 
-      collection.draft.root.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+      collection.draft.root.request.headers = map(headers, ({ uid, name = '', value = '', description = '', annotations = null, enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         enabled
       }));
     },
@@ -1380,11 +1383,12 @@ export const collectionsSlice = createSlice({
       if (!folder.draft.request) {
         folder.draft.request = {};
       }
-      folder.draft.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+      folder.draft.request.headers = map(headers, ({ uid, name = '', value = '', description = '', annotations = null, enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         enabled
       }));
     },
