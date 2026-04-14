@@ -50,14 +50,20 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
   const loadSchemaFromIntrospection = async () => {
     const response = await fetchGqlSchema(endpoint, environment, request, collection);
     if (!response) {
-      throw new Error('Introspection query failed');
+      throw new Error('Introspection query failed. Please check the URL and try again.');
     }
     if (response.status !== 200) {
-      throw new Error(response.statusText);
+      throw new Error('The URL may not be a valid GraphQL endpoint.');
+    }
+    if (response.data?.errors?.length) {
+      const messages = response.data.errors.map((e) => e.message).join('; ');
+      throw new Error(`GraphQL introspection returned errors: ${messages}`);
     }
     const data = response.data?.data;
     if (!data) {
-      throw new Error('No data returned from introspection query');
+      throw new Error(
+        'The response does not contain valid GraphQL introspection data. Please verify this is a GraphQL endpoint.'
+      );
     }
     setSchemaSource('introspection');
     return data;
@@ -89,7 +95,14 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
         data = await loadSchemaFromIntrospection();
       }
       if (data) {
-        const { schema, validationErrors } = buildAndValidateSchema(data);
+        let schema, validationErrors;
+        try {
+          ({ schema, validationErrors } = buildAndValidateSchema(data));
+        } catch (buildErr) {
+          throw new Error(
+            'The response could not be parsed as a valid GraphQL schema. Please verify the endpoint returns a valid GraphQL introspection result.'
+          );
+        }
         setSchema(schema);
         localStorage.setItem(localStorageKey, JSON.stringify(data));
 
@@ -106,7 +119,12 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
     } catch (err) {
       setError(err);
       console.error(err);
-      toast.error(`Error occurred while loading GraphQL Schema: ${err.message}`);
+      let errorMessage = err.message || 'Unknown error';
+      const ipcPrefix = /^Error invoking remote method '[^']+': /;
+      errorMessage = errorMessage.replace(ipcPrefix, '');
+      // Strip redundant "Error: " prefix if present after stripping IPC wrapper
+      errorMessage = errorMessage.replace(/^Error: /, '');
+      toast.error(errorMessage);
     }
 
     setIsLoading(false);
