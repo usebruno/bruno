@@ -1,3 +1,4 @@
+import { Annotation } from './annotation';
 import type { UID } from './uid';
 
 export interface MultipartFormEntry {
@@ -8,6 +9,7 @@ export interface MultipartFormEntry {
   description?: string | null;
   contentType?: string | null;
   enabled?: boolean;
+  annotations: Annotation[];
 }
 
 export type MultipartForm = MultipartFormEntry[];

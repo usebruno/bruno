@@ -1,3 +1,4 @@
+import { Annotation } from './annotation';
 import type { UID } from './uid';
 
 export interface FileEntry {
@@ -5,6 +6,7 @@ export interface FileEntry {
   filePath?: string | null;
   contentType?: string | null;
   selected: boolean;
+  annotations: Annotation[];
 }
 
 export type FileList = FileEntry[];
