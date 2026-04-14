@@ -6,7 +6,7 @@ export interface FileEntry {
   filePath?: string | null;
   contentType?: string | null;
   selected: boolean;
-  annotations: Annotation[];
+  annotations?: Annotation[];
 }
 
 export type FileList = FileEntry[];

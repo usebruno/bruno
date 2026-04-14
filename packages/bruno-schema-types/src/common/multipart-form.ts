@@ -9,7 +9,7 @@ export interface MultipartFormEntry {
   description?: string | null;
   contentType?: string | null;
   enabled?: boolean;
-  annotations: Annotation[];
+  annotations?: Annotation[];
 }
 
 export type MultipartForm = MultipartFormEntry[];
