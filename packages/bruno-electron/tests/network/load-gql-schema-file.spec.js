@@ -23,22 +23,21 @@ describe('loadGqlSchemaFile', () => {
     expect(result).toEqual(schemaData);
   });
 
-  it('should throw a clear error for invalid JSON files', () => {
-    const filePath = path.join(tmpDir, 'invalid.json');
-    fs.writeFileSync(filePath, 'this is not json', 'utf8');
+  it('should return raw string for valid SDL files', () => {
+    const filePath = path.join(tmpDir, 'schema.graphql');
+    const sdlContent = 'type Query { hello: String }';
+    fs.writeFileSync(filePath, sdlContent, 'utf8');
 
-    expect(() => loadGqlSchemaFile(filePath)).toThrow(
-      'The file does not contain valid JSON. Please upload a valid GraphQL schema file (JSON introspection result or SDL).'
-    );
+    const result = loadGqlSchemaFile(filePath);
+    expect(result).toBe(sdlContent);
   });
 
   it('should throw a clear error for binary files (e.g. PNG)', () => {
     const filePath = path.join(tmpDir, 'image.png');
-    // Write some binary content
     fs.writeFileSync(filePath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]));
 
     expect(() => loadGqlSchemaFile(filePath)).toThrow(
-      'The file does not contain valid JSON'
+      'The file does not contain a valid GraphQL schema'
     );
   });
 
@@ -47,7 +46,7 @@ describe('loadGqlSchemaFile', () => {
     fs.writeFileSync(filePath, '<html><body>Not a schema</body></html>', 'utf8');
 
     expect(() => loadGqlSchemaFile(filePath)).toThrow(
-      'The file does not contain valid JSON'
+      'The file does not contain a valid GraphQL schema'
     );
   });
 
@@ -56,7 +55,7 @@ describe('loadGqlSchemaFile', () => {
     fs.writeFileSync(filePath, '', 'utf8');
 
     expect(() => loadGqlSchemaFile(filePath)).toThrow(
-      'The file does not contain valid JSON'
+      'The file does not contain a valid GraphQL schema'
     );
   });
 
@@ -71,7 +70,7 @@ describe('loadGqlSchemaFile', () => {
     fs.writeFileSync(filePath, 'name,value\nfoo,bar\n', 'utf8');
 
     expect(() => loadGqlSchemaFile(filePath)).toThrow(
-      'The file does not contain valid JSON'
+      'The file does not contain a valid GraphQL schema'
     );
   });
 });
