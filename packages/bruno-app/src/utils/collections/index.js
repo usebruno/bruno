@@ -181,6 +181,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         name: header.name,
         value: header.value,
         description: header.description,
+        annotations: header.annotations,
         enabled: header.enabled
       };
     });
@@ -193,6 +194,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         name: param.name,
         value: param.value,
         description: param.description,
+        annotations: param.annotations,
         type: param.type,
         enabled: param.enabled
       };
@@ -745,6 +747,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
         name: param.name,
         value: param.value,
         description: param.description,
+        annotations: param.annotations,
         type: param.type,
         enabled: param.enabled
       });
@@ -757,6 +760,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -813,6 +817,7 @@ export const transformCollectionRootToSave = (collection) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -843,6 +848,7 @@ export const transformFolderRootToSave = (folder) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
