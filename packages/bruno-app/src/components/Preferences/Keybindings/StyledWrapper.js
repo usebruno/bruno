@@ -198,7 +198,7 @@ const StyledWrapper = styled.div`
   }
 
   .shortcut-input--editing {
-    outline: 1px solid #E4AE49;
+    outline: 1px solid ${(props) => props.theme.status.warning.border};
     border-radius: 4px;
     min-width: 100%;
     max-width: 100%;
@@ -207,7 +207,7 @@ const StyledWrapper = styled.div`
   }
 
   .shortcut-input--error.shortcut-input--editing {
-    outline: 1px solid #CE4F3B;
+    outline: 1px solid ${(props) => props.theme.status.danger.border};
     min-width: 100%;
     max-width: 100%;
   }
@@ -251,28 +251,28 @@ const StyledWrapper = styled.div`
 
   tbody tr.row-success td,
   tbody tr.row-success:hover td {
-    background: #2E8A540F !important;
+    background: ${(props) => props.theme.status.success.background} !important;
   }
 
   tbody tr.row-error td,
   tbody tr.row-error:hover td {
-    background: #D32F2F0F !important;
+    background: ${(props) => props.theme.status.danger.background} !important;
   }
 
   .success-icon {
-    color: #2E8A54;
+    color: ${(props) => props.theme.status.success.text};
     display: inline-flex;
     align-items: center;
   }
 
   .error-icon {
-    color: #CE4F3B;
+    color: ${(props) => props.theme.status.danger.text};
     display: inline-flex;
     align-items: center;
   }
 
   .input-error-icon {
-    color: #CE4F3B;
+    color: ${(props) => props.theme.status.danger.text};
     display: inline-flex;
     align-items: center;
     margin-left: auto;
