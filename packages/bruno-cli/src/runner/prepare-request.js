@@ -67,6 +67,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     if (collectionAuth.mode === 'apikey') {
       if (collectionAuth.apikey?.placement === 'header') {
         axiosRequest.headers[collectionAuth.apikey?.key] = collectionAuth.apikey?.value;
+        axiosRequest.apiKeyHeaderName = collectionAuth.apikey?.key;
       }
 
       if (collectionAuth.apikey?.placement === 'queryparams') {
@@ -309,6 +310,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     if (request.auth.mode === 'apikey') {
       if (request.auth.apikey?.placement === 'header') {
         axiosRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
+        axiosRequest.apiKeyHeaderName = request.auth.apikey?.key;
       }
 
       if (request.auth.apikey?.placement === 'queryparams') {
