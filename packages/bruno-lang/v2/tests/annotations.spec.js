@@ -613,7 +613,6 @@ body:file {
       }
     };
     const bru = jsonToBru(json);
-    console.log({ bru });
     expect(bru).toContain('body:file {');
     expect(bru).toContain('@description(\'upload doc\')\n  file: @file(/tmp/readme.pdf) @contentType(application/pdf)');
     const parsed = parser(bru);
