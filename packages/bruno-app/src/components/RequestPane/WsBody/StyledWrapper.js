@@ -25,11 +25,6 @@ const Wrapper = styled.div`
     }
   }
 
-  .add-message-footer {
-    padding-top: 0.5rem;
-    flex-shrink: 0;
-  }
-
   .add-message-link {
     display: flex;
     align-items: center;

@@ -583,7 +583,9 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           toast.error(err.message);
         });
     } else if (isWsRequest) {
-      sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+      const activeTab = find(state.tabs.tabs, (t) => t.uid === state.tabs.activeTabUid);
+      const wsSelectedMessageIndex = activeTab?.wsSelectedMessageIndex ?? 0;
+      sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, wsSelectedMessageIndex)
         .then(resolve)
         .catch((err) => {
           toast.error(err.message);

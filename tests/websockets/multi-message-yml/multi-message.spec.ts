@@ -129,7 +129,7 @@ test.describe('websocket multi-message (yml format)', () => {
     await expect(page.getByTestId('ws-message-header-1').locator('.selected-body-mode')).toContainText('TEXT');
   });
 
-  test('send individual message to active connection', async ({ pageWithUserData: page }) => {
+  test('send selected message to active connection', async ({ pageWithUserData: page }) => {
     const locators = buildWebsocketCommonLocators(page);
 
     await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
@@ -142,7 +142,8 @@ test.describe('websocket multi-message (yml format)', () => {
     const messageItems = locators.messages().locator('.text-ellipsis');
     const beforeCount = await messageItems.count();
 
-    await page.getByTestId('ws-send-msg-0').click();
+    // Click the main send button — sends the currently selected message
+    await page.getByTestId('run-button').click();
 
     // Expect at least one new message (outgoing + echo response from server)
     await expect.poll(() => messageItems.count(), { timeout: MAX_CONNECTION_TIME }).toBeGreaterThan(beforeCount);
@@ -164,7 +165,7 @@ test.describe('websocket multi-message (yml format)', () => {
     await page.keyboard.press(selectAllShortcut);
     await page.keyboard.insertText('{"name":"bruno","version":"1.0"}');
 
-    await page.getByTestId('ws-prettify-msg-0').click();
+    await page.getByTestId('ws-prettify-all').click();
 
     // Verify prettification split single line into multiple lines
     const lineNumbers = await editor.locator('.CodeMirror-linenumber').count();

@@ -2,6 +2,11 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   border-bottom: 1px solid ${(props) => props.theme.border.border0};
+  transition: opacity 0.15s ease;
+
+  &.disabled {
+    opacity: 0.45;
+  }
 
   .accordion-header {
     display: flex;

@@ -1,8 +1,9 @@
 import { get } from 'lodash';
-import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
+import find from 'lodash/find';
+import { updateWsSelectedMessageIndex } from 'providers/ReduxStore/slices/tabs';
 import { IconPlus } from '@tabler/icons';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { uuid } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 import { SingleWSMessage } from './SingleWSMessage/index';
@@ -16,11 +17,20 @@ const ensureMessageUids = (messages, uidMapRef) => {
   return newMap;
 };
 
-const WSBody = ({ item, collection, handleRun }) => {
+const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   const dispatch = useDispatch();
   const messagesContainerRef = useRef(null);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const messages = body?.ws || [];
+
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const rawSelectedIndex = focusedTab?.wsSelectedMessageIndex ?? 0;
+  // Clamp selected index to valid range
+  const selectedIndex = messages.length > 0
+    ? Math.min(rawSelectedIndex, messages.length - 1)
+    : 0;
 
   const uidMapRef = useRef(new Map());
   uidMapRef.current = ensureMessageUids(messages, uidMapRef);
@@ -33,6 +43,14 @@ const WSBody = ({ item, collection, handleRun }) => {
     return new Set(firstUid ? [firstUid] : []);
   });
   const [newMessageUid, setNewMessageUid] = useState(null);
+  const prevMessagesLengthRef = useRef(messages.length);
+
+  const setSelectedIndex = useCallback((index) => {
+    dispatch(updateWsSelectedMessageIndex({
+      uid: item.uid,
+      wsSelectedMessageIndex: index
+    }));
+  }, [dispatch, item.uid]);
 
   const toggleMessage = useCallback((index) => {
     const uid = getMessageUid(index);
@@ -48,25 +66,23 @@ const WSBody = ({ item, collection, handleRun }) => {
     });
   }, []);
 
-  const addNewMessage = () => {
-    const currentMessages = Array.isArray(body.ws) ? [...body.ws] : [];
-    const newIndex = currentMessages.length;
-    const msgUid = uuid();
-    currentMessages.push({
-      name: `message ${newIndex + 1}`,
-      content: '{}',
-      type: 'json'
-    });
-    dispatch(updateRequestBody({
-      content: currentMessages,
-      itemUid: item.uid,
-      collectionUid: collection.uid
-    }));
-    // Pre-assign uid for the new message so we can expand and focus it
-    uidMapRef.current.set(newIndex, msgUid);
-    setExpandedUids((prev) => new Set(prev).add(msgUid));
-    setNewMessageUid(msgUid);
-  };
+  const handleSelect = useCallback((index) => {
+    setSelectedIndex(index);
+  }, [setSelectedIndex]);
+
+  // React to new message being added (messages.length increased)
+  useEffect(() => {
+    if (messages.length > prevMessagesLengthRef.current) {
+      const newIndex = messages.length - 1;
+      const msgUid = getMessageUid(newIndex);
+      if (msgUid) {
+        setExpandedUids((prev) => new Set(prev).add(msgUid));
+        setNewMessageUid(msgUid);
+        setSelectedIndex(newIndex);
+      }
+    }
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages.length]);
 
   const handleNewMessageRendered = useCallback(() => {
     setNewMessageUid(null);
@@ -85,7 +101,7 @@ const WSBody = ({ item, collection, handleRun }) => {
       <StyledWrapper>
         <div className="empty-state">
           <p>No WebSocket messages available</p>
-          <button className="add-message-link" data-testid="ws-add-message" onClick={addNewMessage}>
+          <button className="add-message-link" data-testid="ws-add-message" onClick={onAddMessage}>
             <IconPlus size={14} strokeWidth={1.5} />
             <span>Add message</span>
           </button>
@@ -111,15 +127,11 @@ const WSBody = ({ item, collection, handleRun }) => {
               onToggle={() => toggleMessage(index)}
               isNew={newMessageUid === msgUid}
               onNewRendered={handleNewMessageRendered}
+              isSelected={selectedIndex === index}
+              onSelect={() => handleSelect(index)}
             />
           );
         })}
-      </div>
-      <div className="add-message-footer">
-        <button className="add-message-link" data-testid="ws-add-message" onClick={addNewMessage}>
-          <IconPlus size={14} strokeWidth={1.5} />
-          <span>Add message</span>
-        </button>
       </div>
     </StyledWrapper>
   );

@@ -1,4 +1,4 @@
-import { IconTrash, IconWand, IconSend, IconChevronRight, IconChevronDown } from '@tabler/icons';
+import { IconTrash, IconChevronRight, IconChevronDown } from '@tabler/icons';
 import CodeEditor from 'components/CodeEditor/index';
 import ToolHint from 'components/ToolHint/index';
 import { get } from 'lodash';
@@ -7,12 +7,6 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { queueWsMessage, isWsConnectionActive } from 'utils/network/index';
-import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
-import toast from 'react-hot-toast';
-import { toastError } from 'utils/common/error';
-import { prettifyJsonString } from 'utils/common/index';
-import xmlFormat from 'xml-formatter';
 import WSRequestBodyMode from '../BodyMode/index';
 import StyledWrapper from './StyledWrapper';
 
@@ -43,7 +37,9 @@ export const SingleWSMessage = ({
   isExpanded,
   onToggle,
   isNew,
-  onNewRendered
+  onNewRendered,
+  isSelected,
+  onSelect
 }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
@@ -169,75 +165,14 @@ export const SingleWSMessage = ({
     }));
   };
 
-  const onSendMessage = async () => {
-    try {
-      const state = dispatch((_, getState) => getState());
-      const col = findCollectionByUid(state.collections.collections, collection.uid);
-      const environment = findEnvironmentInCollection(col, col?.activeEnvironmentUid);
-
-      const connectionStatus = await isWsConnectionActive(item.uid);
-      if (!connectionStatus.isActive) {
-        toast.error('WebSocket is not connected. Please connect first.');
-        return;
-      }
-
-      const result = await queueWsMessage(item, col, environment, col?.runtimeVariables, content);
-      if (!result.success) {
-        toast.error(result.error || 'Failed to send message');
-      }
-    } catch (err) {
-      toast.error(err.message || 'Failed to send message');
-    }
-  };
-
   const codemirrorMode = {
     text: 'application/text',
     xml: 'application/xml',
     json: 'application/ld+json'
   };
 
-  const onPrettify = () => {
-    if (displayMode === 'json') {
-      try {
-        const prettyBodyJson = prettifyJsonString(content);
-        const currentMessages = [...(body.ws || [])];
-        currentMessages[index] = {
-          ...currentMessages[index],
-          name: name || `message ${index + 1}`,
-          content: prettyBodyJson
-        };
-        dispatch(updateRequestBody({
-          content: currentMessages,
-          itemUid: item.uid,
-          collectionUid: collection.uid
-        }));
-      } catch (e) {
-        toastError(new Error('Unable to prettify. Invalid JSON format.'));
-      }
-    }
-
-    if (displayMode === 'xml') {
-      try {
-        const prettyBodyXML = xmlFormat(content, { collapseContent: true });
-        const currentMessages = [...(body.ws || [])];
-        currentMessages[index] = {
-          ...currentMessages[index],
-          name: name || `message ${index + 1}`,
-          content: prettyBodyXML
-        };
-        dispatch(updateRequestBody({
-          content: currentMessages,
-          itemUid: item.uid,
-          collectionUid: collection.uid
-        }));
-      } catch (e) {
-        toastError(new Error('Unable to prettify. Invalid XML format.'));
-      }
-    }
-  };
-
   return (
-    <StyledWrapper>
+    <StyledWrapper className={!isSelected ? 'disabled' : ''} onMouseDownCapture={onSelect}>
       <div
         className="accordion-header"
         data-testid={`ws-message-header-${index}`}
@@ -277,16 +212,6 @@ export const SingleWSMessage = ({
         </div>
         <div className="accordion-actions" onClick={(e) => e.stopPropagation()}>
           <WSRequestBodyMode mode={displayMode} onModeChange={onUpdateMessageType} />
-          <ToolHint text="Format" toolhintId={`prettify-msg-${index}`}>
-            <button onClick={onPrettify} className="action-btn" data-testid={`ws-prettify-msg-${index}`}>
-              <IconWand size={16} strokeWidth={1.5} />
-            </button>
-          </ToolHint>
-          <ToolHint text="Send" toolhintId={`send-msg-${index}`}>
-            <button onClick={onSendMessage} className="action-btn" data-testid={`ws-send-msg-${index}`}>
-              <IconSend size={16} strokeWidth={1.5} />
-            </button>
-          </ToolHint>
           {index > 0 && (
             <ToolHint text="Delete" toolhintId={`delete-msg-${index}`}>
               <button onClick={onDeleteMessage} className="action-btn delete" data-testid={`ws-delete-msg-${index}`}>

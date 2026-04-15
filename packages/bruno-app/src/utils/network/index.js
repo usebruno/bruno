@@ -224,7 +224,7 @@ export const connectWS = async (item, collection, environment, runtimeVariables,
   });
 };
 
-export const sendWsRequest = async (item, collection, environment, runtimeVariables) => {
+export const sendWsRequest = async (item, collection, environment, runtimeVariables, selectedMessageIndex = 0) => {
   const ensureConnection = async () => {
     const connectionStatus = await isWsConnectionActive(item.uid);
     if (!connectionStatus.isActive) {
@@ -234,8 +234,12 @@ export const sendWsRequest = async (item, collection, environment, runtimeVariab
 
   await ensureConnection();
 
-  // Use queueWsMessage helper to queue all messages with proper variable interpolation
-  const result = await queueWsMessage(item, collection, environment, runtimeVariables, null);
+  // Send only the selected message
+  const messages = item.draft?.request?.body?.ws || item.request?.body?.ws || [];
+  const selectedMessage = messages[selectedMessageIndex];
+  const messageContent = selectedMessage?.content || null;
+
+  const result = await queueWsMessage(item, collection, environment, runtimeVariables, messageContent);
 
   if (result.success) {
     return {};

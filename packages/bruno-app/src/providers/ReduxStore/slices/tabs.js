@@ -10,7 +10,7 @@ const MAX_RECENTLY_CLOSED_TABS = 50;
 const initialState = {
   tabs: [],
   activeTabUid: null,
-  recentlyClosedTabs: [] // LIFO stack of closed tabs, grouped by collection
+  recentlyClosedTabs: []
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
@@ -265,6 +265,13 @@ export const tabsSlice = createSlice({
         tab.variablesPaneHeight = action.payload.variablesPaneHeight;
       }
     },
+    updateWsSelectedMessageIndex: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.wsSelectedMessageIndex = action.payload.wsSelectedMessageIndex;
+      }
+    },
     closeTabs: (state, action) => {
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
@@ -405,7 +412,8 @@ export const {
   updateQueryBuilderOpen,
   updateQueryBuilderWidth,
   updateVariablesPaneOpen,
-  updateVariablesPaneHeight
+  updateVariablesPaneHeight,
+  updateWsSelectedMessageIndex
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;
