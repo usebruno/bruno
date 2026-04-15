@@ -11,10 +11,11 @@ import Modal from 'components/Modal';
 import StyledWrapper from './StyledWrapper';
 import demoImage from './demo.png';
 import { useApp } from 'providers/App';
-import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading } from 'utils/collections/index';
+import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { brunoToOpenCollection } from '@usebruno/converters';
 import { sanitizeName } from 'utils/common/regex';
 import { escapeHtml } from 'utils/response';
+import { resolveCollectionForHtmlDocumentation } from 'utils/exporters/html-documentation';
 
 const CDN_BASE_URL = 'https://cdn.opencollection.com';
 
@@ -66,6 +67,15 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
   const collection = useSelector((state) =>
     findCollectionByUid(state.collections.collections, collectionUid)
   );
+  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const globalEnvironmentVariables = useMemo(
+    () =>
+      getGlobalEnvironmentVariables({
+        globalEnvironments,
+        activeGlobalEnvironmentUid
+      }),
+    [globalEnvironments, activeGlobalEnvironmentUid]
+  );
 
   const isLoading = useMemo(
     () => (collection ? areItemsLoading(collection) : false),
@@ -75,6 +85,9 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
   const handleGenerate = useCallback(() => {
     try {
       const collectionCopy = cloneDeep(collection);
+      collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+      resolveCollectionForHtmlDocumentation(collectionCopy);
+
       const transformedCollection = transformCollectionToSaveToExportAsFile(collectionCopy);
       const openCollection = brunoToOpenCollection(transformedCollection);
 
@@ -114,7 +127,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
       console.error('Error generating documentation:', error);
       toast.error('Failed to generate documentation');
     }
-  }, [collection, version, onClose]);
+  }, [collection, globalEnvironmentVariables, version, onClose]);
 
   if (!collection) {
     return <CollectionNotFound onClose={onClose} />;
