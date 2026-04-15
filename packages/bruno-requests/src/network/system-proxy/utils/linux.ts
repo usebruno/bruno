@@ -49,6 +49,23 @@ export class LinuxProxyResolver implements ProxyResolver {
   private async getGSettingsProxy(execOpts: ExecFileOptions): Promise<ProxyConfiguration | null> {
     try {
       const mode = await safeExec('gsettings', ['get', 'org.gnome.system.proxy', 'mode'], execOpts);
+
+      // Handle PAC (auto) mode
+      if (mode === '\'auto\'') {
+        const autoConfigUrl = await safeExec('gsettings', ['get', 'org.gnome.system.proxy', 'autoconfig-url'], execOpts);
+        const cleanUrl = (autoConfigUrl || '').replace(/'/g, '').trim();
+        if (cleanUrl) {
+          return {
+            http_proxy: null,
+            https_proxy: null,
+            no_proxy: null,
+            pac_url: cleanUrl,
+            source: 'linux-system'
+          };
+        }
+        return null;
+      }
+
       if (mode !== '\'manual\'') {
         return null;
       }
@@ -93,8 +110,22 @@ export class LinuxProxyResolver implements ProxyResolver {
       // 3 = Automatic proxy detection
       // 4 = Use system proxy configuration (environment variables)
 
+      if (proxyType === '2') {
+        const pacUrl = await safeExec('kreadconfig5', ['--group', 'Proxy Settings', '--key', 'Proxy Config Script'], execOpts);
+        const cleanPacUrl = (pacUrl || '').trim();
+        if (cleanPacUrl) {
+          return {
+            http_proxy: null,
+            https_proxy: null,
+            no_proxy: null,
+            pac_url: cleanPacUrl,
+            source: 'linux-system'
+          };
+        }
+        return null;
+      }
+
       if (proxyType !== '1') {
-        // Only handle manual proxy configuration for now
         return null;
       }
 

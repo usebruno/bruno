@@ -45,6 +45,7 @@ describe('MacOSProxyResolver', () => {
         http_proxy: 'http://proxy.usebruno.com:8080',
         https_proxy: 'http://secure-proxy.usebruno.com:8443',
         no_proxy: 'localhost,127.0.0.1,<local>',
+        pac_url: null,
         source: 'macos-system'
       });
     });
@@ -65,6 +66,7 @@ describe('MacOSProxyResolver', () => {
         http_proxy: null,
         https_proxy: null,
         no_proxy: null,
+        pac_url: null,
         source: 'macos-system'
       });
     });
@@ -102,6 +104,7 @@ describe('MacOSProxyResolver', () => {
         http_proxy: 'http://proxy.usebruno.com:8080',
         https_proxy: null,
         no_proxy: null,
+        pac_url: null,
         source: 'macos-system'
       });
     });
@@ -123,6 +126,7 @@ describe('MacOSProxyResolver', () => {
         http_proxy: null,
         https_proxy: 'http://secure-proxy.usebruno.com:8443',
         no_proxy: null,
+        pac_url: null,
         source: 'macos-system'
       });
     });
@@ -148,6 +152,7 @@ describe('MacOSProxyResolver', () => {
         http_proxy: 'http://proxy.usebruno.com:8080',
         https_proxy: 'http://proxy.usebruno.com:8080',
         no_proxy: null,
+        pac_url: null,
         source: 'macos-system'
       });
     });
@@ -171,6 +176,7 @@ describe('MacOSProxyResolver', () => {
         http_proxy: 'http://proxy.usebruno.com:8080',
         https_proxy: 'http://proxy.usebruno.com:8080',
         no_proxy: '<local>',
+        pac_url: null,
         source: 'macos-system'
       });
     });
@@ -200,6 +206,7 @@ describe('MacOSProxyResolver', () => {
         http_proxy: 'http://proxy.usebruno.com:8080',
         https_proxy: 'http://proxy.usebruno.com:8080',
         no_proxy: 'localhost,127.0.0.1,*.local,192.168.1.0/24,<local>',
+        pac_url: null,
         source: 'macos-system'
       });
     });
@@ -222,6 +229,7 @@ describe('MacOSProxyResolver', () => {
         http_proxy: 'http://proxy.usebruno.com:8080',
         https_proxy: null,
         no_proxy: null,
+        pac_url: null,
         source: 'macos-system'
       });
     });
