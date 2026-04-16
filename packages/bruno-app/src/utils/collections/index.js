@@ -1441,26 +1441,27 @@ export const calculateNewSequence = (isDraggedItem, targetSequence, draggedSeque
   return targetSequence > draggedSequence ? targetSequence - 1 : targetSequence;
 };
 
-export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid }) => {
+export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid, placement = 'before' }) => {
   const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
-  const targetItem = findItem(itemsWithFixedSequences, targetItemUid);
   const draggedItem = findItem(itemsWithFixedSequences, draggedItemUid);
-  const targetSequence = targetItem?.seq;
-  const draggedSequence = draggedItem?.seq;
-  itemsWithFixedSequences?.forEach((item) => {
-    const isDraggedItem = item?.uid === draggedItemUid;
-    const isBetween = isItemBetweenSequences(item?.seq, draggedSequence, targetSequence);
-    if (isBetween) {
-      item.seq += targetSequence > draggedSequence ? -1 : 1;
-    }
-    const newSequence = calculateNewSequence(isDraggedItem, targetSequence, draggedSequence);
-    if (newSequence !== null) {
-      item.seq = newSequence;
-    }
+  const itemsWithoutDragged = itemsWithFixedSequences.filter((i) => i?.uid !== draggedItemUid);
+
+  const targetIndex = findIndex(itemsWithoutDragged, (i) => i?.uid === targetItemUid);
+  if (!draggedItem || targetIndex === -1) {
+    return [];
+  }
+
+  const insertIndex = placement === 'after' ? targetIndex + 1 : targetIndex;
+  itemsWithoutDragged.splice(insertIndex, 0, draggedItem);
+
+  // Normalize sequences post-reorder.
+  itemsWithoutDragged.forEach((item, index) => {
+    item.seq = index + 1;
   });
-  // only return items that have been reordered
-  return itemsWithFixedSequences.filter((item) =>
-    items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
+
+  // Only return items that have changed sequence compared to the original input list.
+  return itemsWithoutDragged.filter(
+    (item) => items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
   );
 };
 
@@ -1471,16 +1472,16 @@ export const getReorderedItemsInSourceDirectory = ({ items }) => {
   );
 };
 
-export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropType, collectionPathname }) => {
+export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, placement, collectionPathname }) => {
   const { pathname: targetItemPathname } = targetItem;
   const { filename: draggedItemFilename } = draggedItem;
   const targetItemDirname = path.dirname(targetItemPathname);
   const isTargetTheCollection = targetItemPathname === collectionPathname;
   const isTargetItemAFolder = isItemAFolder(targetItem);
 
-  if (dropType === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
+  if (placement === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
     return path.join(targetItemPathname, draggedItemFilename);
-  } else if (dropType === 'adjacent') {
+  } else if (placement === 'before' || placement === 'after') {
     return path.join(targetItemDirname, draggedItemFilename);
   }
   return null;
