@@ -2239,6 +2239,34 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     return { name, files, ...variables };
   });
 
+  ipcMain.handle('renderer:migrate-collection-scripts', async (event, collectionPath, options = {}) => {
+    try {
+      if (!collectionPath || !fs.existsSync(collectionPath)) {
+        throw new Error('Collection path does not exist');
+      }
+
+      const { migrateCollection, formatCollectionReport, getCurrentVersion } = require('@usebruno/converters');
+
+      const fromVersion = options.fromVersion || '1';
+      const toVersion = options.toVersion || getCurrentVersion();
+      const dryRun = options.dryRun || false;
+
+      const results = migrateCollection(collectionPath, fromVersion, toVersion, { dryRun });
+      const report = formatCollectionReport(results);
+
+      return {
+        success: true,
+        results,
+        report
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+
   ipcMain.handle('renderer:export-collection-zip', async (event, collectionPath, collectionName) => {
     try {
       if (!collectionPath || !fs.existsSync(collectionPath)) {

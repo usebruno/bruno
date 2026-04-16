@@ -3227,3 +3227,25 @@ export const reopenClosedTab = ({ collectionUid } = {}) => async (dispatch) => {
   dispatch(reopenLastClosedTab({ collectionUid }));
   await dispatch(ensureActiveTabInCurrentWorkspace());
 };
+
+export const migrateCollectionScripts = (collectionUid, options = {}) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('renderer:migrate-collection-scripts', collection.pathname, options)
+      .then((result) => {
+        if (result.success) {
+          resolve(result);
+        } else {
+          reject(new Error(result.error || 'Migration failed'));
+        }
+      })
+      .catch(reject);
+  });
+};
