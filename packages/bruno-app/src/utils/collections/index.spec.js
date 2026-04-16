@@ -133,10 +133,37 @@ describe('getReorderedItemsInTargetDirectory', () => {
 });
 
 describe('calculateDraggedItemNewPathname', () => {
+  const requestFixtures = {
+    reqA: {
+      uid: 'req-a',
+      type: 'http-request',
+      name: 'req-a',
+      seq: 1,
+      filename: 'req-a.bru',
+      pathname: '/tmp/collection/folder-a/req-a.bru'
+    },
+    reqB: {
+      uid: 'req-b',
+      type: 'http-request',
+      name: 'req-b',
+      seq: 2,
+      filename: 'req-b.bru',
+      pathname: '/tmp/collection/folder-b/req-b.bru'
+    },
+    reqC: {
+      uid: 'req-c',
+      type: 'http-request',
+      name: 'req-c',
+      seq: 3,
+      filename: 'req-c.bru',
+      pathname: '/tmp/collection/folder-c/req-c.bru'
+    }
+  };
+
   it('keeps sibling drops in the target parent directory for placement \'before\'', () => {
     const collectionPathname = '/tmp/collection';
-    const draggedItem = { uid: 'req-a', filename: 'a.bru', pathname: '/tmp/collection/folder-a/a.bru' };
-    const targetItem = { uid: 'req-b', filename: 'b.bru', pathname: '/tmp/collection/folder-b/b.bru' };
+    const draggedItem = { ...requestFixtures.reqA };
+    const targetItem = { ...requestFixtures.reqB };
 
     const newPathname = calculateDraggedItemNewPathname({
       draggedItem,
@@ -145,13 +172,13 @@ describe('calculateDraggedItemNewPathname', () => {
       collectionPathname
     });
 
-    expect(newPathname).toBe('/tmp/collection/folder-b/a.bru');
+    expect(newPathname).toBe('/tmp/collection/folder-b/req-a.bru');
   });
 
   it('keeps sibling drops in the target parent directory for placement \'after\'', () => {
     const collectionPathname = '/tmp/collection';
-    const draggedItem = { uid: 'req-a', filename: 'a.bru', pathname: '/tmp/collection/folder-a/a.bru' };
-    const targetItem = { uid: 'req-b', filename: 'b.bru', pathname: '/tmp/collection/folder-b/b.bru' };
+    const draggedItem = { ...requestFixtures.reqA };
+    const targetItem = { ...requestFixtures.reqB };
 
     const newPathname = calculateDraggedItemNewPathname({
       draggedItem,
@@ -160,13 +187,13 @@ describe('calculateDraggedItemNewPathname', () => {
       collectionPathname
     });
 
-    expect(newPathname).toBe('/tmp/collection/folder-b/a.bru');
+    expect(newPathname).toBe('/tmp/collection/folder-b/req-a.bru');
   });
 
   it('remains backward-compatible with legacy dropType \'adjacent\'', () => {
     const collectionPathname = '/tmp/collection';
-    const draggedItem = { uid: 'req-a', filename: 'a.bru', pathname: '/tmp/collection/folder-a/a.bru' };
-    const targetItem = { uid: 'req-b', filename: 'b.bru', pathname: '/tmp/collection/folder-b/b.bru' };
+    const draggedItem = { ...requestFixtures.reqC };
+    const targetItem = { ...requestFixtures.reqB };
 
     const newPathname = calculateDraggedItemNewPathname({
       draggedItem,
@@ -175,6 +202,6 @@ describe('calculateDraggedItemNewPathname', () => {
       collectionPathname
     });
 
-    expect(newPathname).toBe('/tmp/collection/folder-b/a.bru');
+    expect(newPathname).toBe('/tmp/collection/folder-b/req-c.bru');
   });
 });
