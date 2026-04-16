@@ -1472,16 +1472,22 @@ export const getReorderedItemsInSourceDirectory = ({ items }) => {
   );
 };
 
-export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, placement, collectionPathname }) => {
+export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, placement, dropType, collectionPathname }) => {
   const { pathname: targetItemPathname } = targetItem;
   const { filename: draggedItemFilename } = draggedItem;
   const targetItemDirname = path.dirname(targetItemPathname);
   const isTargetTheCollection = targetItemPathname === collectionPathname;
   const isTargetItemAFolder = isItemAFolder(targetItem);
 
-  if (placement === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
+  // Back-compat: callers may still pass dropType ('inside'|'adjacent') until the UI is updated to placements.
+  const effectivePlacement
+    = placement
+      ?? (dropType === 'inside' ? 'inside' : null)
+      ?? (dropType === 'adjacent' ? 'before' : null);
+
+  if (effectivePlacement === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
     return path.join(targetItemPathname, draggedItemFilename);
-  } else if (placement === 'before' || placement === 'after') {
+  } else if (effectivePlacement === 'before' || effectivePlacement === 'after') {
     return path.join(targetItemDirname, draggedItemFilename);
   }
   return null;

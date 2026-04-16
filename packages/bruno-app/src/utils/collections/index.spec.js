@@ -95,9 +95,9 @@ describe('transformRequestToSaveToFilesystem', () => {
 describe('getReorderedItemsInTargetDirectory', () => {
   it('moves a request before a target when placement is \'before\'', () => {
     const items = [
-      { uid: 'req-a', type: 'http-request', name: 'A', seq: 1 },
-      { uid: 'req-b', type: 'http-request', name: 'B', seq: 2 },
-      { uid: 'req-c', type: 'http-request', name: 'C', seq: 3 }
+      { uid: 'req-a', type: 'http-request', name: 'A', seq: 1, pathname: '/tmp/collection/req-a.bru' },
+      { uid: 'req-b', type: 'http-request', name: 'B', seq: 2, pathname: '/tmp/collection/req-b.bru' },
+      { uid: 'req-c', type: 'http-request', name: 'C', seq: 3, pathname: '/tmp/collection/req-c.bru' }
     ];
 
     const reordered = getReorderedItemsInTargetDirectory({
@@ -114,9 +114,9 @@ describe('getReorderedItemsInTargetDirectory', () => {
 
   it('moves a request after a target when placement is \'after\'', () => {
     const items = [
-      { uid: 'req-a', type: 'http-request', name: 'A', seq: 1 },
-      { uid: 'req-b', type: 'http-request', name: 'B', seq: 2 },
-      { uid: 'req-c', type: 'http-request', name: 'C', seq: 3 }
+      { uid: 'req-a', type: 'http-request', name: 'A', seq: 1, pathname: '/tmp/collection/req-a.bru' },
+      { uid: 'req-b', type: 'http-request', name: 'B', seq: 2, pathname: '/tmp/collection/req-b.bru' },
+      { uid: 'req-c', type: 'http-request', name: 'C', seq: 3, pathname: '/tmp/collection/req-c.bru' }
     ];
 
     const reordered = getReorderedItemsInTargetDirectory({
@@ -157,6 +157,21 @@ describe('calculateDraggedItemNewPathname', () => {
       draggedItem,
       targetItem,
       placement: 'after',
+      collectionPathname
+    });
+
+    expect(newPathname).toBe('/tmp/collection/folder-b/a.bru');
+  });
+
+  it('remains backward-compatible with legacy dropType \'adjacent\'', () => {
+    const collectionPathname = '/tmp/collection';
+    const draggedItem = { uid: 'req-a', filename: 'a.bru', pathname: '/tmp/collection/folder-a/a.bru' };
+    const targetItem = { uid: 'req-b', filename: 'b.bru', pathname: '/tmp/collection/folder-b/b.bru' };
+
+    const newPathname = calculateDraggedItemNewPathname({
+      draggedItem,
+      targetItem,
+      dropType: 'adjacent',
       collectionPathname
     });
 
