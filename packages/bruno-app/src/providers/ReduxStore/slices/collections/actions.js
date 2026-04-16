@@ -1107,7 +1107,7 @@ export const moveItem
     };
 
 export const handleCollectionItemDrop
-  = ({ targetItem, draggedItem, dropType, collectionUid }) =>
+  = ({ targetItem, draggedItem, placement, dropType, collectionUid }) =>
     (dispatch, getState) => {
       const state = getState();
       const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1126,6 +1126,11 @@ export const handleCollectionItemDrop
       const sourceFormat = sourceCollection?.format || 'bru';
       const targetFormat = collection?.format || 'bru';
       const isCrossFormatMove = isCrossCollectionMove && sourceFormat !== targetFormat;
+      const effectivePlacement
+        = placement
+          ?? (dropType === 'inside' ? 'inside' : null)
+          ?? (dropType === 'adjacent' ? 'before' : null);
+      const isSiblingReorderPlacement = effectivePlacement === 'before' || effectivePlacement === 'after';
 
       const handleMoveToNewLocation = async ({
         draggedItem,
@@ -1133,7 +1138,7 @@ export const handleCollectionItemDrop
         targetItem,
         targetItemDirectoryItems,
         newPathname,
-        dropType
+        placement
       }) => {
         const { uid: targetItemUid } = targetItem;
         const { pathname: draggedItemPathname, uid: draggedItemUid } = draggedItem;
@@ -1169,7 +1174,7 @@ export const handleCollectionItemDrop
         }
 
         // Update sequences in the target directory (if dropping adjacent)
-        if (dropType === 'adjacent') {
+        if (isSiblingReorderPlacement) {
           const targetItemSequence = targetItemDirectoryItems.find((i) => i.uid === targetItemUid)?.seq;
 
           const draggedItemWithNewPathAndSequence = {
@@ -1182,7 +1187,8 @@ export const handleCollectionItemDrop
           const reorderedTargetItems = getReorderedItemsInTargetDirectory({
             items: [...targetItemDirectoryItems, draggedItemWithNewPathAndSequence],
             targetItemUid,
-            draggedItemUid
+            draggedItemUid,
+            placement
           });
 
           if (reorderedTargetItems?.length) {
@@ -1191,15 +1197,20 @@ export const handleCollectionItemDrop
         }
       };
 
-      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems }) => {
+      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems, placement }) => {
         const { uid: targetItemUid } = targetItem;
         const { uid: draggedItemUid } = draggedItem;
+
+        if (!isSiblingReorderPlacement) {
+          return;
+        }
 
         // reorder items in the targetItem's directory
         const reorderedItems = getReorderedItemsInTargetDirectory({
           items: targetItemDirectoryItems,
           targetItemUid,
-          draggedItemUid
+          draggedItemUid,
+          placement
         });
 
         if (reorderedItems?.length) {
@@ -1212,7 +1223,7 @@ export const handleCollectionItemDrop
           const newPathname = calculateDraggedItemNewPathname({
             draggedItem,
             targetItem,
-            dropType,
+            placement: effectivePlacement,
             collectionPathname: collection.pathname
           });
           if (!newPathname) return;
@@ -1237,10 +1248,15 @@ export const handleCollectionItemDrop
               draggedItem,
               draggedItemDirectoryItems,
               newPathname,
-              dropType
+              placement: effectivePlacement
             });
           } else {
-            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem });
+            await handleReorderInSameLocation({
+              draggedItem,
+              targetItemDirectoryItems,
+              targetItem,
+              placement: effectivePlacement
+            });
           }
 
           if (isCrossCollectionMove) {
@@ -2787,7 +2803,7 @@ export const importCollectionFromZip = (zipFilePath, collectionLocation) => asyn
  * Updates Redux collection order and persists it to the active workspace's workspace.yml.
  */
 export const moveCollectionAndPersist
-  = ({ draggedItem, targetItem }) =>
+  = ({ draggedItem, targetItem, placement = 'before' }) =>
     (dispatch, getState) => {
       const state = getState();
       const activeWorkspace = state.workspaces.workspaces.find(
@@ -2808,13 +2824,14 @@ export const moveCollectionAndPersist
 
       const reordered = collectionsInWorkspace.filter((i) => i.uid !== draggedItem.uid);
       const targetIndex = reordered.findIndex((i) => i.uid === targetItem.uid);
-      reordered.splice(targetIndex, 0, draggedItem);
+      const insertIndex = placement === 'after' ? targetIndex + 1 : targetIndex;
+      reordered.splice(insertIndex, 0, draggedItem);
       const collectionPaths = reordered.map((c) => c.pathname);
 
       return window.ipcRenderer
         .invoke('renderer:reorder-workspace-collections', activeWorkspace.pathname, collectionPaths)
         .then(() => {
-          dispatch(moveCollection({ draggedItem, targetItem }));
+          dispatch(moveCollection({ draggedItem, targetItem, placement }));
         })
         .catch((err) => {
           console.error('Failed to reorder workspace collections', err);

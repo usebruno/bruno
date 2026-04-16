@@ -57,6 +57,7 @@ import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useKeybinding from 'hooks/useKeybinding';
+import { DROP_PLACEMENTS, resolveCollectionItemDropPlacement } from '../drop-placement';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
@@ -114,7 +115,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
-  const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
+  const [dropPlacement, setDropPlacement] = useState(null);
+  const lastValidPlacementRef = useRef(null);
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
     type: 'collection-item',
@@ -142,23 +144,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   }, [isTabForItemActive]);
 
-  const determineDropType = (monitor) => {
-    const hoverBoundingRect = ref.current?.getBoundingClientRect();
-    const clientOffset = monitor.getClientOffset();
-    if (!hoverBoundingRect || !clientOffset) return null;
-
-    const clientY = clientOffset.y - hoverBoundingRect.top;
-    const folderUpperThreshold = hoverBoundingRect.height * 0.35;
-    const fileUpperThreshold = hoverBoundingRect.height * 0.5;
-
-    if (isItemAFolder(item)) {
-      return clientY < folderUpperThreshold ? 'adjacent' : 'inside';
-    } else {
-      return clientY < fileUpperThreshold ? 'adjacent' : null;
-    }
+  const clearDropPlacement = () => {
+    lastValidPlacementRef.current = null;
+    setDropPlacement(null);
   };
 
-  const canItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
+  const canItemBeDropped = ({ draggedItem, targetItem, placement }) => {
     const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
     const { uid: draggedItemUid, pathname: draggedItemPathname, sourceCollectionUid } = draggedItem;
 
@@ -169,7 +160,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       return true;
     }
 
-    const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType, collectionPathname });
+    const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, placement, collectionPathname });
     if (!newPathname) return false;
 
     if (targetItemPathname?.startsWith(draggedItemPathname)) return false;
@@ -183,31 +174,53 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       const { uid: targetItemUid } = item;
       const { uid: draggedItemUid } = draggedItem;
 
-      if (draggedItemUid === targetItemUid) return;
+      if (draggedItemUid === targetItemUid) {
+        clearDropPlacement();
+        return;
+      }
 
-      const dropType = determineDropType(monitor);
+      const placement = resolveCollectionItemDropPlacement({
+        isFolder,
+        rect: ref.current?.getBoundingClientRect(),
+        clientOffset: monitor.getClientOffset()
+      });
 
-      const _canItemBeDropped = canItemBeDropped({ draggedItem, targetItem: item, dropType });
+      const isValidPlacement = canItemBeDropped({ draggedItem, targetItem: item, placement });
+      if (!isValidPlacement) {
+        clearDropPlacement();
+        return;
+      }
 
-      setDropType(_canItemBeDropped ? dropType : null);
+      lastValidPlacementRef.current = placement;
+      setDropPlacement(placement);
     },
-    drop: async (draggedItem, monitor) => {
+    drop: async (draggedItem) => {
       const { uid: targetItemUid } = item;
       const { uid: draggedItemUid } = draggedItem;
 
-      if (draggedItemUid === targetItemUid) return;
+      if (draggedItemUid === targetItemUid) {
+        clearDropPlacement();
+        return;
+      }
 
-      const dropType = determineDropType(monitor);
-      if (!dropType) return;
+      const placement = lastValidPlacementRef.current;
+      if (!placement) return;
 
-      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }));
-      setDropType(null);
+      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, placement, collectionUid }));
+      clearDropPlacement();
     },
     canDrop: (draggedItem) => draggedItem.uid !== item.uid,
     collect: (monitor) => ({
-      isOver: monitor.isOver()
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop()
     })
   });
+
+  useEffect(() => {
+    if (!isOver) {
+      clearDropPlacement();
+    }
+  }, [isOver]);
 
   const iconClassName = classnames({
     'rotate-90': !itemIsCollapsed
@@ -220,8 +233,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
     'item-focused-in-tab': isTabForItemActive,
     'item-hovered': isOver && canDrop,
-    'drop-target': isOver && dropType === 'inside',
-    'drop-target-above': isOver && dropType === 'adjacent',
+    'drop-target': isOver && canDrop && dropPlacement === DROP_PLACEMENTS.INSIDE,
+    'drop-target-above': isOver && canDrop && dropPlacement === DROP_PLACEMENTS.BEFORE,
+    'drop-target-below': isOver && canDrop && dropPlacement === DROP_PLACEMENTS.AFTER,
     'item-keyboard-focused': isKeyboardFocused
   });
 

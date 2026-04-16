@@ -27,8 +27,7 @@ const Wrapper = styled.div`
     }
 
     &.item-hovered {
-      border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
-      border-bottom: 2px solid transparent;
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }
 
     &:hover {

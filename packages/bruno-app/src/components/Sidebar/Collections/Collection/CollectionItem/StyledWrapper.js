@@ -55,6 +55,7 @@ const Wrapper = styled.div`
     /* Drop target styles */
     &.drop-target {
       background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
+      box-shadow: inset 0 0 0 1px ${(props) => props.theme.dragAndDrop.border};
 
       &::before,
       &::after {
@@ -65,27 +66,12 @@ const Wrapper = styled.div`
     &.drop-target-above {
       &::before {
         opacity: 1;
-        height: 2px;
       }
     }
 
     &.drop-target-below {
       &::after {
         opacity: 1;
-        height: 2px;
-      }
-    }
-
-    /* Inside drop target style */
-    &.drop-target {
-      &::before {
-        top: 0;
-        bottom: 0;
-        height: 100%;
-        opacity: 1;
-        background: ${(props) => props.theme.dragAndDrop.hoverBg};
-        border: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
-        // border-radius: 4px;
       }
     }
 

@@ -251,10 +251,11 @@ export const collectionsSlice = createSlice({
       }
     },
     moveCollection: (state, action) => {
-      const { draggedItem, targetItem } = action.payload;
+      const { draggedItem, targetItem, placement = 'before' } = action.payload;
       state.collections = state.collections.filter((i) => i.uid !== draggedItem.uid); // Remove dragged item
       const targetItemIndex = state.collections.findIndex((i) => i.uid === targetItem.uid); // Find target item
-      state.collections.splice(targetItemIndex, 0, draggedItem); // Insert dragged-item above target-item
+      const insertIndex = placement === 'after' ? targetItemIndex + 1 : targetItemIndex;
+      state.collections.splice(insertIndex, 0, draggedItem);
     },
     updateLastAction: (state, action) => {
       const { collectionUid, lastAction } = action.payload;
