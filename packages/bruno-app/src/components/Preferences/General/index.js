@@ -60,6 +60,7 @@ const General = () => {
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()
     }),
+    defaultRequestPaneTab: Yup.string().oneOf(['params', 'body', 'headers', 'auth', 'vars', 'script', 'tests', 'docs']),
     defaultLocation: Yup.string().max(1024)
   });
 
@@ -74,6 +75,7 @@ const General = () => {
         enabled: get(preferences, 'request.keepDefaultCaCertificates.enabled', true)
       },
       timeout: preferences.request.timeout,
+      defaultRequestPaneTab: get(preferences, 'request.defaultRequestPaneTab', 'params'),
       storeCookies: get(preferences, 'request.storeCookies', true),
       sendCookies: get(preferences, 'request.sendCookies', true),
       autoSave: {
@@ -110,6 +112,7 @@ const General = () => {
             enabled: newPreferences.keepDefaultCaCertificates.enabled
           },
           timeout: newPreferences.timeout,
+          defaultRequestPaneTab: newPreferences.defaultRequestPaneTab,
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies,
           oauth2: {
@@ -321,6 +324,26 @@ const General = () => {
         {formik.touched.timeout && formik.errors.timeout ? (
           <div className="text-red-500">{formik.errors.timeout}</div>
         ) : null}
+        <div className="flex flex-col mt-6">
+          <label className="block select-none" htmlFor="defaultRequestPaneTab">
+            Default Request Tab
+          </label>
+          <select
+            name="defaultRequestPaneTab"
+            className="block textbox mt-2 w-32"
+            onChange={formik.handleChange}
+            value={formik.values.defaultRequestPaneTab}
+          >
+            <option value="params">Params</option>
+            <option value="body">Body</option>
+            <option value="headers">Headers</option>
+            <option value="auth">Auth</option>
+            <option value="vars">Vars</option>
+            <option value="script">Script</option>
+            <option value="tests">Tests</option>
+            <option value="docs">Docs</option>
+          </select>
+        </div>
         <div className="flex items-center mt-6">
           <input
             id="autoSaveEnabled"

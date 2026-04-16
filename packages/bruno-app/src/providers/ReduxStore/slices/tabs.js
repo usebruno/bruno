@@ -23,7 +23,7 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid, isTransient } = action.payload;
+      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid, isTransient, defaultRequestPaneTab: preferredDefaultTab } = action.payload;
 
       const nonReplaceableTabTypes = [
         'variables',
@@ -54,11 +54,11 @@ export const tabsSlice = createSlice({
       }
 
       // Determine the default requestPaneTab based on request type
-      let defaultRequestPaneTab = 'params';
+      let defaultPaneTab = requestPaneTab || preferredDefaultTab || 'params';
       if (type === 'grpc-request' || type === 'ws-request') {
-        defaultRequestPaneTab = 'body';
+        defaultPaneTab = 'body';
       } else if (type === 'graphql-request') {
-        defaultRequestPaneTab = 'query';
+        defaultPaneTab = 'query';
       }
 
       const lastTab = state.tabs[state.tabs.length - 1];
@@ -67,7 +67,7 @@ export const tabsSlice = createSlice({
           uid,
           collectionUid,
           requestPaneWidth: null,
-          requestPaneTab: requestPaneTab || defaultRequestPaneTab,
+          requestPaneTab: defaultPaneTab,
           responsePaneTab: 'response',
           responseFormat: null,
           responseViewTab: null,
@@ -91,7 +91,7 @@ export const tabsSlice = createSlice({
         uid,
         collectionUid,
         requestPaneWidth: null,
-        requestPaneTab: requestPaneTab || defaultRequestPaneTab,
+        requestPaneTab: defaultPaneTab,
         responsePaneTab: 'response',
         responsePaneScrollPosition: null,
         responseFormat: null,

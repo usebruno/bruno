@@ -28,6 +28,7 @@ const initialState = {
         enabled: true
       },
       timeout: 0,
+      defaultRequestPaneTab: 'params',
       oauth2: {
         useSystemBrowser: false
       }

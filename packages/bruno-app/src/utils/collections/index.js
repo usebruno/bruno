@@ -1112,7 +1112,7 @@ export const hasExampleChanges = (_item, exampleUid) => {
   return !isEqual(originalExample, draftExample);
 };
 
-export const getDefaultRequestPaneTab = (item) => {
+export const getDefaultRequestPaneTab = (item, preferredDefaultTab = 'params') => {
   if (item.type === 'http-request') {
     // If no params are enabled and body mode is set, default to 'body' tab
     // This provides better UX for POST/PUT requests with a body
@@ -1124,7 +1124,7 @@ export const getDefaultRequestPaneTab = (item) => {
     if (!hasEnabledParams && bodyMode && bodyMode !== 'none') {
       return 'body';
     }
-    return 'params';
+    return preferredDefaultTab;
   }
 
   if (item.type === 'graphql-request') {

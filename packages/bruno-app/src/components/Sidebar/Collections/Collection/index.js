@@ -74,6 +74,7 @@ const Collection = ({ collection, searchText }) => {
   const [showEmptyState, setShowEmptyState] = useState(false);
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
+  const defaultRequestPaneTab = useSelector((state) => state.app.preferences.request.defaultRequestPaneTab || 'params');
   const collectionRef = useRef(null);
   // Only count persisted items; transients don't affect empty state
   const itemCount = collection.items?.filter((i) => !i.isTransient).length || 0;
@@ -89,6 +90,7 @@ const Collection = ({ collection, searchText }) => {
       addTab({
         uid: uuid(),
         collectionUid: collection.uid,
+        defaultRequestPaneTab,
         type: 'openapi-sync'
       })
     );
@@ -99,6 +101,7 @@ const Collection = ({ collection, searchText }) => {
       addTab({
         uid: uuid(),
         collectionUid: collection.uid,
+        defaultRequestPaneTab,
         type: 'collection-runner'
       })
     );
@@ -145,6 +148,7 @@ const Collection = ({ collection, searchText }) => {
         addTab({
           uid: collection.uid,
           collectionUid: collection.uid,
+          defaultRequestPaneTab,
           type: 'collection-settings'
         })
       );
@@ -182,6 +186,7 @@ const Collection = ({ collection, searchText }) => {
       addTab({
         uid: collection.uid,
         collectionUid: collection.uid,
+        defaultRequestPaneTab,
         type: 'collection-settings'
       })
     );
