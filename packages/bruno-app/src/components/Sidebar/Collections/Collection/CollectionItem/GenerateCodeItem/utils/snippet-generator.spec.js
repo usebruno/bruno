@@ -919,7 +919,7 @@ describe('generateSnippet – encodeUrl setting', () => {
     if (!parsed.query || Object.keys(parsed.query).length === 0) {
       return parsed.pathname;
     }
-    const search = stringify(parsed.query);
+    const search = stringify(parsed.query, { sort: false });
     return search ? `${parsed.pathname}?${search}` : parsed.pathname;
   };
 
@@ -1239,5 +1239,32 @@ describe('generateSnippet – encodeUrl setting', () => {
 
     const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
     expect(result).toBe(`curl -X GET '${rawUrl}'`);
+  });
+
+  it('should preserve raw URL with multiple query params in non-alphabetical order when encodeUrl is false', () => {
+    const rawUrl = 'https://example.com/api?start=2026-02-01T00:00:00.000Z&a=b';
+    const item = makeItem(rawUrl, { encodeUrl: false });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('start=2026-02-01T00:00:00.000Z&a=b');
+    expect(result).not.toContain('%3A');
+  });
+
+  it('should encode URL with multiple query params in non-alphabetical order when encodeUrl is true', () => {
+    const rawUrl = 'https://example.com/api?start=2026-02-01T00:00:00.000Z&a=b';
+    const item = makeItem(rawUrl, { encodeUrl: true });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('%3A');
+    expect(result).toContain('start=');
+    expect(result).toContain('a=b');
+  });
+
+  it('should preserve param order in raw URL when encodeUrl is false and params are reverse-alphabetical', () => {
+    const rawUrl = 'https://example.com/api?z=last&a=first&m=middle';
+    const item = makeItem(rawUrl, { encodeUrl: false });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('?z=last&a=first&m=middle');
   });
 });
