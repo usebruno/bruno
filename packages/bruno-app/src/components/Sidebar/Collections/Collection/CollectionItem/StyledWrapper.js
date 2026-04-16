@@ -99,6 +99,15 @@ const Wrapper = styled.div`
       overflow: hidden;
     }
 
+    .unsaved-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #f59e0b;
+      margin-left: 4px;
+      flex-shrink: 0;
+    }
+
     /* Single source of truth for hover/focus states: background and menu icon visibility */
     &:hover,
     &.item-hovered,
