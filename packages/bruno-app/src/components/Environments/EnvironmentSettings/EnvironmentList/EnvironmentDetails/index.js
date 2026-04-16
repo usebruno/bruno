@@ -1,4 +1,4 @@
-import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch } from '@tabler/icons';
+import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch, IconUpload } from '@tabler/icons';
 import { useState, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { renameEnvironment, updateEnvironmentColor } from 'providers/ReduxStore/slices/collections/actions';
@@ -6,6 +6,7 @@ import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import CopyEnvironment from 'components/Environments/EnvironmentSettings/CopyEnvironment';
 import DeleteEnvironment from 'components/Environments/EnvironmentSettings/DeleteEnvironment';
+import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
 import EnvironmentVariables from './EnvironmentVariables';
 import ColorPicker from 'components/ColorPicker';
 import StyledWrapper from './StyledWrapper';
@@ -16,6 +17,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
 
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
   const [openCopyModal, setOpenCopyModal] = useState(false);
+  const [openExportModal, setOpenExportModal] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState('');
   const [nameError, setNameError] = useState('');
@@ -225,11 +227,22 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
           <button onClick={() => setOpenCopyModal(true)} title="Copy">
             <IconCopy size={15} strokeWidth={1.5} />
           </button>
+          <button onClick={() => setOpenExportModal(true)} title="Export">
+            <IconUpload size={15} strokeWidth={1.5} />
+          </button>
           <button onClick={() => setOpenDeleteModal(true)} title="Delete">
             <IconTrash size={15} strokeWidth={1.5} />
           </button>
         </div>
       </div>
+
+      {openExportModal && (
+        <ExportEnvironmentModal
+          onClose={() => setOpenExportModal(false)}
+          environments={[environment]}
+          environmentType={collection ? 'collection' : 'global'}
+        />
+      )}
 
       <div className="content">
         <EnvironmentVariables
