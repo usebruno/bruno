@@ -38,6 +38,26 @@ describe('drop placement helpers', () => {
 
       expect(placement).toBe(DROP_PLACEMENTS.INSIDE);
     });
+
+    it('returns before for folder targets in the upper band', () => {
+      const placement = resolveCollectionItemDropPlacement({
+        isFolder: true,
+        rect,
+        clientOffset: { y: 110 }
+      });
+
+      expect(placement).toBe(DROP_PLACEMENTS.BEFORE);
+    });
+
+    it('returns after for folder targets in the lower band', () => {
+      const placement = resolveCollectionItemDropPlacement({
+        isFolder: true,
+        rect,
+        clientOffset: { y: 130 }
+      });
+
+      expect(placement).toBe(DROP_PLACEMENTS.AFTER);
+    });
   });
 
   describe('resolveCollectionDropPlacement', () => {
@@ -51,6 +71,33 @@ describe('drop placement helpers', () => {
       });
 
       expect(placement).toBe(DROP_PLACEMENTS.INSIDE);
+    });
+
+    it('keeps collection-item drags as inside even without geometry', () => {
+      const missingRectPlacement = resolveCollectionDropPlacement({
+        dragType: 'collection-item',
+        rect: null,
+        clientOffset: { y: 230 }
+      });
+
+      const missingOffsetPlacement = resolveCollectionDropPlacement({
+        dragType: 'collection-item',
+        rect,
+        clientOffset: null
+      });
+
+      expect(missingRectPlacement).toBe(DROP_PLACEMENTS.INSIDE);
+      expect(missingOffsetPlacement).toBe(DROP_PLACEMENTS.INSIDE);
+    });
+
+    it('returns before for collection drags in the upper half', () => {
+      const placement = resolveCollectionDropPlacement({
+        dragType: 'collection',
+        rect,
+        clientOffset: { y: 210 }
+      });
+
+      expect(placement).toBe(DROP_PLACEMENTS.BEFORE);
     });
 
     it('returns after for collection drags in the lower half', () => {

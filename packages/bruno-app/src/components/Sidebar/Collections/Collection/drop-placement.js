@@ -30,12 +30,12 @@ export const resolveCollectionItemDropPlacement = ({ isFolder, rect, clientOffse
 };
 
 export const resolveCollectionDropPlacement = ({ dragType, rect, clientOffset }) => {
-  if (!rect || !clientOffset) {
-    return null;
-  }
-
   if (dragType === 'collection-item') {
     return DROP_PLACEMENTS.INSIDE;
+  }
+
+  if (!rect || !clientOffset) {
+    return null;
   }
 
   const relativeY = clientOffset.y - rect.top;
