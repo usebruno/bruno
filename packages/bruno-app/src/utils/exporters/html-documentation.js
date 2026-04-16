@@ -3,12 +3,49 @@ import { each } from 'lodash';
 import { flattenItems, getAllVariables, isItemARequest } from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url';
 
+const REDACTED_VALUE = '[REDACTED]';
+
 const interpolateString = (value, variables, options = {}) => {
   if (typeof value !== 'string') {
     return value;
   }
 
   return interpolate(value, variables, options);
+};
+
+const interpolateJsonValue = (value, variables, options = {}) => {
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  try {
+    const interpolated = interpolateString(JSON.stringify(value), variables, options);
+    return JSON.parse(interpolated);
+  } catch (error) {
+    return value;
+  }
+};
+
+const createSafeDocumentationVariables = (variables = {}) => {
+  const safeVariables = {
+    ...variables
+  };
+
+  // Documentation should not resolve process.env values from the local machine.
+  delete safeVariables.process;
+
+  // Do not expose secret env/global variable values in generated docs.
+  const maskedNames = Array.isArray(variables.maskedEnvVariables)
+    ? variables.maskedEnvVariables
+    : [];
+
+  maskedNames.forEach((name) => {
+    safeVariables[name] = REDACTED_VALUE;
+  });
+
+  delete safeVariables.maskedEnvVariables;
+
+  return safeVariables;
 };
 
 const interpolateEntries = (entries = [], variables = {}) => {
@@ -76,7 +113,17 @@ const interpolateRequestBody = (body, variables = {}) => {
       body.xml = interpolateString(body.xml, variables);
       break;
     case 'graphql':
-      body.graphql = interpolateString(body.graphql, variables, { escapeJSONStrings: true });
+      if (typeof body.graphql === 'string') {
+        body.graphql = interpolateString(body.graphql, variables, { escapeJSONStrings: true });
+      } else if (body.graphql && typeof body.graphql === 'object') {
+        body.graphql.query = interpolateString(body.graphql.query, variables, { escapeJSONStrings: true });
+
+        if (typeof body.graphql.variables === 'string') {
+          body.graphql.variables = interpolateString(body.graphql.variables, variables, { escapeJSONStrings: true });
+        } else {
+          body.graphql.variables = interpolateJsonValue(body.graphql.variables, variables, { escapeJSONStrings: true });
+        }
+      }
       break;
     case 'sparql':
       body.sparql = interpolateString(body.sparql, variables);
@@ -163,7 +210,7 @@ export const resolveCollectionForHtmlDocumentation = (collection) => {
       return;
     }
 
-    const variables = getAllVariables(collection, item);
+    const variables = createSafeDocumentationVariables(getAllVariables(collection, item));
 
     resolveRequestForHtmlDocumentation(item.request, variables);
 
