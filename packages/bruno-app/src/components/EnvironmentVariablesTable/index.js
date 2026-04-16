@@ -562,7 +562,7 @@ const EnvironmentVariablesTable = ({
                       collection={_collection}
                       name={`${actualIndex}.value`}
                       value={variable.value}
-                      placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
+                      placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
                       isSecret={variable.secret}
                       readOnly={typeof variable.value !== 'string'}
                       onChange={(newValue) => {
