@@ -51,6 +51,7 @@ bruno.iml
 .cursor
 .claude
 .codex
+.worktrees/
 .agents
 .agent
 skills-lock.json
