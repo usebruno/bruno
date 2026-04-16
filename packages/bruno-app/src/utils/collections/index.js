@@ -1441,17 +1441,18 @@ export const calculateNewSequence = (isDraggedItem, targetSequence, draggedSeque
   return targetSequence > draggedSequence ? targetSequence - 1 : targetSequence;
 };
 
-export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid, placement = 'before' }) => {
+export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid, placement }) => {
   const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
   const draggedItem = findItem(itemsWithFixedSequences, draggedItemUid);
   const itemsWithoutDragged = itemsWithFixedSequences.filter((i) => i?.uid !== draggedItemUid);
+  const effectivePlacement = placement ?? 'before';
 
   const targetIndex = findIndex(itemsWithoutDragged, (i) => i?.uid === targetItemUid);
-  if (!draggedItem || targetIndex === -1) {
+  if (!draggedItem || targetIndex === -1 || !['before', 'after'].includes(effectivePlacement)) {
     return [];
   }
 
-  const insertIndex = placement === 'after' ? targetIndex + 1 : targetIndex;
+  const insertIndex = effectivePlacement === 'after' ? targetIndex + 1 : targetIndex;
   itemsWithoutDragged.splice(insertIndex, 0, draggedItem);
 
   // Normalize sequences post-reorder.

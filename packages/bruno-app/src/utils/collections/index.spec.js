@@ -93,6 +93,24 @@ describe('transformRequestToSaveToFilesystem', () => {
 });
 
 describe('getReorderedItemsInTargetDirectory', () => {
+  it('keeps legacy no-placement behavior equivalent to before', () => {
+    const items = [
+      { uid: 'req-a', type: 'http-request', name: 'A', seq: 1, pathname: '/tmp/collection/req-a.bru' },
+      { uid: 'req-b', type: 'http-request', name: 'B', seq: 2, pathname: '/tmp/collection/req-b.bru' },
+      { uid: 'req-c', type: 'http-request', name: 'C', seq: 3, pathname: '/tmp/collection/req-c.bru' }
+    ];
+
+    const reordered = getReorderedItemsInTargetDirectory({
+      items,
+      draggedItemUid: 'req-c',
+      targetItemUid: 'req-b'
+    });
+
+    expect(reordered).toHaveLength(2);
+    expect(reordered.find((i) => i.uid === 'req-c')?.seq).toBe(2);
+    expect(reordered.find((i) => i.uid === 'req-b')?.seq).toBe(3);
+  });
+
   it('moves a request before a target when placement is \'before\'', () => {
     const items = [
       { uid: 'req-a', type: 'http-request', name: 'A', seq: 1, pathname: '/tmp/collection/req-a.bru' },
@@ -129,6 +147,23 @@ describe('getReorderedItemsInTargetDirectory', () => {
     expect(reordered).toHaveLength(2);
     expect(reordered.find((i) => i.uid === 'req-b')?.seq).toBe(1);
     expect(reordered.find((i) => i.uid === 'req-a')?.seq).toBe(2);
+  });
+
+  it('does not reorder when placement is unsupported', () => {
+    const items = [
+      { uid: 'req-a', type: 'http-request', name: 'A', seq: 1, pathname: '/tmp/collection/req-a.bru' },
+      { uid: 'req-b', type: 'http-request', name: 'B', seq: 2, pathname: '/tmp/collection/req-b.bru' },
+      { uid: 'req-c', type: 'http-request', name: 'C', seq: 3, pathname: '/tmp/collection/req-c.bru' }
+    ];
+
+    const reordered = getReorderedItemsInTargetDirectory({
+      items,
+      draggedItemUid: 'req-c',
+      targetItemUid: 'req-b',
+      placement: 'inside'
+    });
+
+    expect(reordered).toEqual([]);
   });
 });
 
@@ -203,5 +238,25 @@ describe('calculateDraggedItemNewPathname', () => {
     });
 
     expect(newPathname).toBe('/tmp/collection/folder-b/req-c.bru');
+  });
+
+  it('supports legacy dropType \'inside\' when target is a folder', () => {
+    const collectionPathname = '/tmp/collection';
+    const draggedItem = { ...requestFixtures.reqA };
+    const targetItem = {
+      uid: 'folder-b',
+      type: 'folder',
+      name: 'folder-b',
+      pathname: '/tmp/collection/folder-b'
+    };
+
+    const newPathname = calculateDraggedItemNewPathname({
+      draggedItem,
+      targetItem,
+      dropType: 'inside',
+      collectionPathname
+    });
+
+    expect(newPathname).toBe('/tmp/collection/folder-b/req-a.bru');
   });
 });
