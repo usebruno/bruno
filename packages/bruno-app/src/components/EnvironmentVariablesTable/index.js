@@ -484,7 +484,7 @@ const EnvironmentVariablesTable = ({
         <TableVirtuoso
           className="table-container"
           style={{ height: tableHeight }}
-          overscan={200}
+          overscan={Math.min(30, filteredVariables.length)}
           components={{ TableRow }}
           data={filteredVariables}
           totalListHeightChanged={handleTotalHeightChanged}
