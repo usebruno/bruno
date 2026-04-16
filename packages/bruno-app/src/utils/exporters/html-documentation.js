@@ -138,14 +138,13 @@ const interpolateRequestBody = (body, variables = {}) => {
               return entry;
             }
 
-            if (entry.type && entry.type !== 'text') {
-              return entry;
-            }
-
             return {
               ...entry,
               name: interpolateString(entry.name, variables),
-              value: interpolateString(entry.value, variables)
+              value:
+                entry.type === 'text'
+                  ? interpolateString(entry.value, variables)
+                  : entry.value
             };
           })
         : body.multipartForm;

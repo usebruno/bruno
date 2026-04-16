@@ -11,7 +11,13 @@ import Modal from 'components/Modal';
 import StyledWrapper from './StyledWrapper';
 import demoImage from './demo.png';
 import { useApp } from 'providers/App';
-import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading, getGlobalEnvironmentVariables } from 'utils/collections/index';
+import {
+  transformCollectionToSaveToExportAsFile,
+  findCollectionByUid,
+  areItemsLoading,
+  getGlobalEnvironmentVariables,
+  getGlobalEnvironmentVariablesMasked
+} from 'utils/collections/index';
 import { brunoToOpenCollection } from '@usebruno/converters';
 import { sanitizeName } from 'utils/common/regex';
 import { escapeHtml } from 'utils/response';
@@ -76,6 +82,14 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
       }),
     [globalEnvironments, activeGlobalEnvironmentUid]
   );
+  const globalEnvSecrets = useMemo(
+    () =>
+      getGlobalEnvironmentVariablesMasked({
+        globalEnvironments,
+        activeGlobalEnvironmentUid
+      }),
+    [globalEnvironments, activeGlobalEnvironmentUid]
+  );
 
   const isLoading = useMemo(
     () => (collection ? areItemsLoading(collection) : false),
@@ -86,6 +100,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
     try {
       const collectionCopy = cloneDeep(collection);
       collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+      collectionCopy.globalEnvSecrets = globalEnvSecrets;
       resolveCollectionForHtmlDocumentation(collectionCopy);
 
       const transformedCollection = transformCollectionToSaveToExportAsFile(collectionCopy);
@@ -127,7 +142,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
       console.error('Error generating documentation:', error);
       toast.error('Failed to generate documentation');
     }
-  }, [collection, globalEnvironmentVariables, version, onClose]);
+  }, [collection, globalEnvironmentVariables, globalEnvSecrets, version, onClose]);
 
   if (!collection) {
     return <CollectionNotFound onClose={onClose} />;

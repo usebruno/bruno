@@ -138,8 +138,10 @@ describe('resolveCollectionForHtmlDocumentation', () => {
       uid: 'collection-3',
       activeEnvironmentUid: 'env-1',
       globalEnvironmentVariables: {
-        url: 'https://postman-echo.com'
+        url: 'https://postman-echo.com',
+        globalSecret: 'super-secret-global-token'
       },
+      globalEnvSecrets: ['globalSecret'],
       processEnvVariables: {
         API_KEY: 'local-machine-value'
       },
@@ -176,12 +178,18 @@ describe('resolveCollectionForHtmlDocumentation', () => {
                 name: 'Authorization',
                 value: 'Bearer {{token}}',
                 enabled: true
+              },
+              {
+                uid: 'header-2',
+                name: 'X-Global',
+                value: '{{globalSecret}}',
+                enabled: true
               }
             ],
             params: [],
             body: {
               mode: 'text',
-              text: '{{token}}/{{process.env.API_KEY}}'
+              text: '{{token}}/{{globalSecret}}/{{process.env.API_KEY}}'
             },
             auth: {
               mode: 'none'
@@ -200,7 +208,8 @@ describe('resolveCollectionForHtmlDocumentation', () => {
     const request = collection.items[0].request;
 
     expect(request.headers[0].value).toBe('Bearer [REDACTED]');
-    expect(request.body.text).toBe('[REDACTED]/{{process.env.API_KEY}}');
+    expect(request.headers[1].value).toBe('[REDACTED]');
+    expect(request.body.text).toBe('[REDACTED]/[REDACTED]/{{process.env.API_KEY}}');
     expect(request.url).toBe('https://postman-echo.com/get?apiKey={{process.env.API_KEY}}');
   });
 
@@ -264,5 +273,67 @@ describe('resolveCollectionForHtmlDocumentation', () => {
 
     expect(request.body.graphql.query).toBe('query User { user(id: "42") { id token } }');
     expect(request.body.graphql.variables).toContain('"auth": "env-token"');
+  });
+
+  it('interpolates multipart field names for non-text entries and preserves non-text values', () => {
+    const collection = {
+      uid: 'collection-5',
+      activeEnvironmentUid: 'env-1',
+      globalEnvironmentVariables: {
+        fileFieldName: 'upload_file',
+        filePathVar: '/tmp/secret.txt'
+      },
+      environments: [
+        {
+          uid: 'env-1',
+          variables: []
+        }
+      ],
+      root: {
+        request: {
+          vars: {
+            req: []
+          }
+        }
+      },
+      items: [
+        {
+          uid: 'request-5',
+          type: 'http-request',
+          request: {
+            url: 'https://postman-echo.com/post',
+            method: 'post',
+            headers: [],
+            params: [],
+            body: {
+              mode: 'multipartForm',
+              multipartForm: [
+                {
+                  uid: 'entry-1',
+                  type: 'file',
+                  name: '{{fileFieldName}}',
+                  value: '{{filePathVar}}',
+                  enabled: true
+                }
+              ]
+            },
+            auth: {
+              mode: 'none'
+            },
+            vars: {
+              req: []
+            }
+          },
+          examples: []
+        }
+      ]
+    };
+
+    resolveCollectionForHtmlDocumentation(collection);
+
+    const multipartEntry = collection.items[0].request.body.multipartForm[0];
+
+    expect(multipartEntry.name).toBe('upload_file');
+    expect(multipartEntry.value).toBe('{{filePathVar}}');
   });
 });
