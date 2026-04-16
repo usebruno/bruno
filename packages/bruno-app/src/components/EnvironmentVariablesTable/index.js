@@ -18,6 +18,7 @@ import { stripEnvVarUid } from 'utils/environments';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
+const MIN_ROW_HEIGHT = 35;
 
 const TableRow = React.memo(
   ({ children, item, style, ...rest }) => (
@@ -57,7 +58,7 @@ const EnvironmentVariablesTable = ({
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
   const rowCount = (environment.variables?.length || 0) + 1;
-  const [tableHeight, setTableHeight] = useState(rowCount * 35);
+  const [tableHeight, setTableHeight] = useState(rowCount * MIN_ROW_HEIGHT);
 
   // Use environment UID as part of tableId so each environment has its own column widths
   const tableId = `env-vars-table-${environment.uid}`;
