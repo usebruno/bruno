@@ -88,11 +88,10 @@ const getParameterEntries = (param) => {
   }
 
   // For non-enum cases, return single entry with comprehensive value extraction
-  // Merges HEAD's detailed handling with MERGE_HEAD's broader example sources
   let value = '';
   let enabled = param.required || false;
 
-  // Priority 1: Top-level param examples (from upstream, mutually exclusive per spec)
+  // Priority 1: Top-level param examples (mutually exclusive per spec)
   if (param.example !== undefined) {
     value = String(param.example);
     enabled = true;
@@ -104,7 +103,7 @@ const getParameterEntries = (param) => {
     }
   }
 
-  // Priority 2: schema.default (from HEAD, handles array defaults with JSON.stringify)
+  // Priority 2: schema.default (handles array defaults with JSON.stringify)
   if (value === '' && schema.default !== undefined) {
     if (schema.type === 'array' && Array.isArray(schema.default)) {
       value = JSON.stringify(schema.default);
@@ -114,13 +113,13 @@ const getParameterEntries = (param) => {
     enabled = true;
   }
 
-  // Priority 3: schema.example (from upstream)
+  // Priority 3: schema.example
   if (value === '' && schema.example !== undefined) {
     value = String(schema.example);
     enabled = true;
   }
 
-  // Priority 4: Array type handling (merged from both sides)
+  // Priority 4: Array type handling
   if (value === '' && schema.type === 'array' && schema.items) {
     if (schema.items.example !== undefined) {
       value = String(schema.items.example);
@@ -134,19 +133,19 @@ const getParameterEntries = (param) => {
     enabled = param.required || false;
   }
 
-  // Priority 5: schema.examples (OAS 3.1+, from upstream)
+  // Priority 5: schema.examples (OAS 3.1+)
   if (value === '' && Array.isArray(schema.examples) && schema.examples.length > 0) {
     value = String(schema.examples[0]);
     enabled = true;
   }
 
-  // Priority 6: schema.minimum fallback for numeric types (from upstream)
+  // Priority 6: schema.minimum fallback for numeric types
   if (value === '' && schema.minimum !== undefined) {
     value = String(schema.minimum);
     enabled = param.required || false;
   }
 
-  // Priority 7: Edge cases (from HEAD)
+  // Priority 7: Edge cases
   if (value === '') {
     if (schema.nullable === true && !param.required) {
       enabled = false;
