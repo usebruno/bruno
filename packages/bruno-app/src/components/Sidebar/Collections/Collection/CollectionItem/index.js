@@ -149,6 +149,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setDropPlacement(null);
   };
 
+  const resolveDropPlacement = (monitor) => resolveCollectionItemDropPlacement({
+    isFolder,
+    rect: ref.current?.getBoundingClientRect(),
+    clientOffset: monitor?.getClientOffset?.()
+  });
+
   const canItemBeDropped = ({ draggedItem, targetItem, placement }) => {
     const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
     const { uid: draggedItemUid, pathname: draggedItemPathname, sourceCollectionUid } = draggedItem;
@@ -179,11 +185,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         return;
       }
 
-      const placement = resolveCollectionItemDropPlacement({
-        isFolder,
-        rect: ref.current?.getBoundingClientRect(),
-        clientOffset: monitor.getClientOffset()
-      });
+      const placement = resolveDropPlacement(monitor);
 
       const isValidPlacement = canItemBeDropped({ draggedItem, targetItem: item, placement });
       if (!isValidPlacement) {
@@ -209,7 +211,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, placement, collectionUid }));
       clearDropPlacement();
     },
-    canDrop: (draggedItem) => draggedItem.uid !== item.uid,
+    canDrop: (draggedItem, monitor) => {
+      const placement = resolveDropPlacement(monitor);
+      return canItemBeDropped({ draggedItem, targetItem: item, placement });
+    },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop()

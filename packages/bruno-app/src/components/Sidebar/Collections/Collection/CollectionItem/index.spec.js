@@ -27,6 +27,9 @@ jest.mock('ui/MenuDropdown', () => {
 const mockDragRef = jest.fn();
 const mockDropRef = jest.fn();
 let mockCapturedDropConfig;
+let mockIsOver = true;
+let mockDraggedItem = null;
+let mockClientOffset = { x: 10, y: 130 };
 
 const mockHandleCollectionItemDrop = jest.fn((payload) => ({
   type: 'collections/handleCollectionItemDrop',
@@ -37,7 +40,13 @@ jest.mock('react-dnd', () => ({
   useDrag: () => [{ isDragging: false }, mockDragRef, jest.fn()],
   useDrop: (config) => {
     mockCapturedDropConfig = config;
-    return [{ isOver: true, canDrop: true }, mockDropRef];
+    const monitor = {
+      isOver: () => mockIsOver,
+      canDrop: () => config.canDrop?.(mockDraggedItem, monitor) ?? false,
+      getClientOffset: () => mockClientOffset
+    };
+
+    return [config.collect ? config.collect(monitor) : { isOver: mockIsOver, canDrop: monitor.canDrop() }, mockDropRef];
   }
 }));
 
@@ -88,6 +97,13 @@ beforeAll(() => {
   });
 });
 
+beforeEach(() => {
+  mockIsOver = true;
+  mockDraggedItem = null;
+  mockClientOffset = { x: 10, y: 130 };
+  mockHandleCollectionItemDrop.mockClear();
+});
+
 describe('CollectionItem drag placement', () => {
   it('shows the bottom drop indicator and dispatches after placement for request targets', async () => {
     const store = createStore();
@@ -100,6 +116,14 @@ describe('CollectionItem drag placement', () => {
       depth: 0,
       seq: 2
     };
+    const draggedItem = {
+      uid: 'req-a',
+      pathname: '/tmp/collection/a.bru',
+      filename: 'a.bru',
+      type: 'http-request',
+      sourceCollectionUid: 'col-1'
+    };
+    mockDraggedItem = draggedItem;
 
     render(
       <Provider store={store}>
@@ -114,7 +138,7 @@ describe('CollectionItem drag placement', () => {
 
     act(() => {
       mockCapturedDropConfig.hover(
-        { uid: 'req-a', pathname: '/tmp/collection/a.bru', filename: 'a.bru', type: 'http-request', sourceCollectionUid: 'col-1' },
+        draggedItem,
         { getClientOffset: () => ({ x: 10, y: 130 }) }
       );
     });
@@ -123,7 +147,7 @@ describe('CollectionItem drag placement', () => {
 
     await act(async () => {
       await mockCapturedDropConfig.drop(
-        { uid: 'req-a', pathname: '/tmp/collection/a.bru', filename: 'a.bru', type: 'http-request', sourceCollectionUid: 'col-1' },
+        draggedItem,
         { getClientOffset: () => ({ x: 10, y: 130 }) }
       );
     });
@@ -135,5 +159,62 @@ describe('CollectionItem drag placement', () => {
         placement: 'after'
       })
     );
+  });
+
+  it('does not show droppable hover state for invalid descendant folder drops', () => {
+    const store = createStore();
+    const item = {
+      uid: 'folder-child',
+      type: 'folder',
+      name: 'Child Folder',
+      pathname: '/tmp/collection/folder-parent/folder-child',
+      filename: 'folder-child',
+      depth: 1,
+      seq: 2,
+      items: []
+    };
+    const draggedItem = {
+      uid: 'folder-parent',
+      type: 'folder',
+      name: 'Parent Folder',
+      pathname: '/tmp/collection/folder-parent',
+      filename: 'folder-parent',
+      sourceCollectionUid: 'col-1'
+    };
+    mockDraggedItem = draggedItem;
+    const monitor = {
+      getClientOffset: () => ({ x: 10, y: 130 })
+    };
+
+    const { rerender } = render(
+      <Provider store={store}>
+        <ThemeProvider>
+          <CollectionItem item={item} collectionUid="col-1" collectionPathname="/tmp/collection" searchText="" />
+        </ThemeProvider>
+      </Provider>
+    );
+
+    const row = screen.getByTestId('sidebar-collection-item-row');
+    row.getBoundingClientRect = () => ({ top: 100, height: 60 });
+
+    act(() => {
+      mockCapturedDropConfig.hover(draggedItem, monitor);
+    });
+
+    rerender(
+      <Provider store={store}>
+        <ThemeProvider>
+          <CollectionItem item={item} collectionUid="col-1" collectionPathname="/tmp/collection" searchText="" />
+        </ThemeProvider>
+      </Provider>
+    );
+
+    const updatedRow = screen.getByTestId('sidebar-collection-item-row');
+    expect(mockCapturedDropConfig.canDrop(draggedItem, monitor)).toBe(false);
+
+    expect(updatedRow).not.toHaveClass('item-hovered');
+    expect(updatedRow).not.toHaveClass('drop-target');
+    expect(updatedRow).not.toHaveClass('drop-target-above');
+    expect(updatedRow).not.toHaveClass('drop-target-below');
   });
 });
