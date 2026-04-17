@@ -13,18 +13,15 @@ import toast from 'react-hot-toast';
 import WSRequestBodyMode from '../BodyMode/index';
 import StyledWrapper from './StyledWrapper';
 
+const codemirrorMode = {
+  text: 'application/text',
+  xml: 'application/xml',
+  json: 'application/ld+json'
+};
+
 // Maps stored type to display mode
 const typeToMode = (type) => {
   switch (type) {
-    case 'json': return 'json';
-    case 'xml': return 'xml';
-    default: return 'text';
-  }
-};
-
-// Maps display mode back to stored type
-const modeToType = (mode) => {
-  switch (mode) {
     case 'json': return 'json';
     case 'xml': return 'xml';
     default: return 'text';
@@ -137,7 +134,7 @@ export const SingleWSMessage = ({
     const currentMessages = [...(body.ws || [])];
     currentMessages[index] = {
       ...currentMessages[index],
-      type: modeToType(newMode)
+      type: typeToMode(newMode)
     };
     dispatch(updateRequestBody({
       content: currentMessages,
@@ -191,12 +188,6 @@ export const SingleWSMessage = ({
     } catch (err) {
       toast.error(err.message || 'Failed to send message');
     }
-  };
-
-  const codemirrorMode = {
-    text: 'application/text',
-    xml: 'application/xml',
-    json: 'application/ld+json'
   };
 
   return (

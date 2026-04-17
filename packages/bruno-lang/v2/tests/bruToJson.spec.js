@@ -24,7 +24,8 @@ settings {
             {
               content: '{"foo":"bar"}',
               name: 'message 1',
-              type: 'json'
+              type: 'json',
+              selected: false
             }
           ]
         },
