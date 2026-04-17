@@ -216,6 +216,10 @@ export const setupVariableTooltip = (editor, collectionRef, itemRef, dispatch) =
   const showTooltip = (varInfo) => {
     hidePopup();
     const { varName, lineNumber, startCol } = varInfo;
+
+    // Prompt variables ({{?name}}) don't need a tooltip
+    if (varName.startsWith('?')) return;
+
     const collection = getCollection();
     const scopeInfo = detectScope(varName);
     const scopeType = scopeInfo.type;

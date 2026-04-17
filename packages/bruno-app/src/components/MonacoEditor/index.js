@@ -59,7 +59,7 @@ const MonacoEditor = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Register Bruno API types for intellisense (idempotent, only runs once)
+    // Register Bruno API types (idempotent, only runs once)
     registerBrunoApiTypes();
 
     // Register Bruno theme from the styled-components theme
