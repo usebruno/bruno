@@ -349,77 +349,83 @@ export const loadWorkspaceApiSpecs = (workspaceUid) => {
 
 export const switchWorkspace = (workspaceUid) => {
   return async (dispatch, getState) => {
-    dispatch(setActiveWorkspace(workspaceUid));
+    dispatch(setSnapshotReady(false));
 
-    const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
-    if (!workspace) return;
+    try {
+      dispatch(setActiveWorkspace(workspaceUid));
 
-    // Load workspace snapshot
-    const workspaceSnapshot = workspace.pathname
-      ? await ipcRenderer.invoke('renderer:snapshot:get-workspace', workspace.pathname).catch(() => null)
-      : null;
-
-    // Load global environments
-    const envResult = await ipcRenderer.invoke('renderer:get-global-environments', {
-      workspaceUid,
-      workspacePath: workspace.pathname
-    }).catch(() => null);
-
-    dispatch(updateGlobalEnvironments({
-      globalEnvironments: envResult?.globalEnvironments || [],
-      activeGlobalEnvironmentUid: envResult?.activeGlobalEnvironmentUid || null
-    }));
-
-    // Mount scratch collection and load workspace collections
-    const scratchCollection = await dispatch(mountScratchCollection(workspaceUid));
-    await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
-
-    // Hydrate tabs for ALL collections from snapshot before snapshotReady
-    // This prevents overwriting tabs for unmounted collections
-    const collections = getState().collections.collections.filter(
-      (c) => c.pathname && c.uid !== scratchCollection?.uid
-    );
-    await hydrateTabs(collections, dispatch, restoreTabs);
-
-    // Add workspace tabs
-    if (scratchCollection?.uid) {
-      dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
-      dispatch(addTab({ uid: `${scratchCollection.uid}-environments`, collectionUid: scratchCollection.uid, type: 'workspaceEnvironments' }));
-    }
-
-    // Restore active collection from snapshot using lastActiveCollectionPathname
-    const lastActiveCollectionPathname = workspaceSnapshot?.lastActiveCollectionPathname || null;
-    const activeCollection = lastActiveCollectionPathname
-      ? getState().collections.collections.find((c) => normalizePath(c.pathname) === normalizePath(lastActiveCollectionPathname))
-      : null;
-
-    if (activeCollection) {
-      dispatch(expandCollection(activeCollection.uid));
-
-      const needsMount = activeCollection.mountStatus !== 'mounted' && activeCollection.mountStatus !== 'mounting';
-      if (needsMount) {
-        await dispatch(mountCollection({
-          collectionUid: activeCollection.uid,
-          collectionPathname: activeCollection.pathname,
-          brunoConfig: activeCollection.brunoConfig
-        })).catch((err) => console.error('Failed to mount active collection:', err));
+      const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
+      if (!workspace) {
+        return;
       }
 
-      // Focus the active tab from the collection's tab snapshot
-      const activeTab = await getActiveTabFromSnapshot(activeCollection.pathname, activeCollection);
+      // Load workspace snapshot
+      const workspaceSnapshot = workspace.pathname
+        ? await ipcRenderer.invoke('renderer:snapshot:get-workspace', workspace.pathname).catch(() => null)
+        : null;
 
-      if (activeTab) {
-        dispatch(addTab(activeTab));
+      // Load global environments
+      const envResult = await ipcRenderer.invoke('renderer:get-global-environments', {
+        workspaceUid,
+        workspacePath: workspace.pathname
+      }).catch(() => null);
+
+      dispatch(updateGlobalEnvironments({
+        globalEnvironments: envResult?.globalEnvironments || [],
+        activeGlobalEnvironmentUid: envResult?.activeGlobalEnvironmentUid || null
+      }));
+
+      // Mount scratch collection and load workspace collections
+      const scratchCollection = await dispatch(mountScratchCollection(workspaceUid));
+      await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
+
+      // Hydrate tabs for ALL collections from snapshot before snapshotReady
+      // This prevents overwriting tabs for unmounted collections
+      const collections = getState().collections.collections.filter(
+        (c) => c.pathname && c.uid !== scratchCollection?.uid
+      );
+      await hydrateTabs(collections, dispatch, restoreTabs);
+
+      // Add workspace tabs
+      if (scratchCollection?.uid) {
+        dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
+        dispatch(addTab({ uid: `${scratchCollection.uid}-environments`, collectionUid: scratchCollection.uid, type: 'workspaceEnvironments' }));
+      }
+
+      // Restore active collection from snapshot using lastActiveCollectionPathname
+      const lastActiveCollectionPathname = workspaceSnapshot?.lastActiveCollectionPathname || null;
+      const activeCollection = lastActiveCollectionPathname
+        ? getState().collections.collections.find((c) => normalizePath(c.pathname) === normalizePath(lastActiveCollectionPathname))
+        : null;
+
+      if (activeCollection) {
+        dispatch(expandCollection(activeCollection.uid));
+
+        const needsMount = activeCollection.mountStatus !== 'mounted' && activeCollection.mountStatus !== 'mounting';
+        if (needsMount) {
+          await dispatch(mountCollection({
+            collectionUid: activeCollection.uid,
+            collectionPathname: activeCollection.pathname,
+            brunoConfig: activeCollection.brunoConfig
+          })).catch((err) => console.error('Failed to mount active collection:', err));
+        }
+
+        // Focus the active tab from the collection's tab snapshot
+        const activeTab = await getActiveTabFromSnapshot(activeCollection.pathname, activeCollection);
+
+        if (activeTab) {
+          dispatch(addTab(activeTab));
+        } else if (scratchCollection?.uid) {
+          dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
+        }
       } else if (scratchCollection?.uid) {
+        // No active collection, focus the workspace overview tab
         dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
       }
-    } else if (scratchCollection?.uid) {
-      // No active collection, focus the workspace overview tab
-      dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
+    } finally {
+      // Mark snapshot as ready after workspace loading completes
+      dispatch(setSnapshotReady(true));
     }
-
-    // Mark snapshot as ready after initial workspace loading completes
-    dispatch(setSnapshotReady(true));
   };
 };
 

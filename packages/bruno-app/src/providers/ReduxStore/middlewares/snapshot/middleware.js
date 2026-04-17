@@ -46,6 +46,13 @@ const serializeSnapshot = async (state) => {
     (w) => w.uid === workspaces.activeWorkspaceUid
   );
 
+  const activeWorkspaceCollectionPaths = new Set(
+    (activeWorkspace?.collections || [])
+      .map((collection) => collection?.path)
+      .filter(Boolean)
+      .map((collectionPath) => normalizePath(collectionPath))
+  );
+
   const snapshot = {
     activeWorkspacePath: activeWorkspace?.pathname || null,
     extras: {
@@ -112,6 +119,13 @@ const serializeSnapshot = async (state) => {
     }
 
     const normalizedPath = normalizePath(collection.pathname);
+
+    // Persist tab state only for the active workspace's collections.
+    // For non-active workspaces, preserve the last persisted snapshot entries.
+    if (activeWorkspace && !activeWorkspaceCollectionPaths.has(normalizedPath)) {
+      return;
+    }
+
     serializedCollectionPaths.add(normalizedPath);
 
     // Find which workspace this collection belongs to
@@ -184,6 +198,12 @@ const scheduleSave = (getState) => {
   saveTimer = setTimeout(async () => {
     try {
       const state = getState();
+
+      if (!state.app?.snapshotReady) {
+        saveTimer = null;
+        return;
+      }
+
       const snapshot = await serializeSnapshot(state);
       await ipcRenderer.invoke('renderer:snapshot:save', snapshot);
     } catch (err) {
@@ -193,12 +213,33 @@ const scheduleSave = (getState) => {
   }, DEBOUNCE_MS);
 };
 
+const flushSnapshotNow = async (getState) => {
+  try {
+    const state = getState();
+    const snapshot = await serializeSnapshot(state);
+    await ipcRenderer.invoke('renderer:snapshot:save', snapshot);
+  } catch (err) {
+    console.error('Failed to flush snapshot:', err);
+  }
+};
+
 /**
  * Snapshot middleware
  * Only saves after app signals it's ready (snapshotReady = true)
  */
 export const snapshotMiddleware = ({ getState }) => (next) => (action) => {
+  const wasSnapshotReady = getState().app.snapshotReady;
   const result = next(action);
+
+  if (action.type === 'app/setSnapshotReady' && action.payload === false && wasSnapshotReady) {
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+
+    void flushSnapshotNow(getState);
+    return result;
+  }
 
   // Only save if snapshot is ready (app has finished initial loading)
   const state = getState();
