@@ -2,6 +2,7 @@ import * as monaco from 'monaco-editor';
 import get from 'lodash/get';
 import { mockDataFunctions, interpolate, timeBasedDynamicVars } from '@usebruno/common';
 import { getAllVariables, getVariableScope, isVariableSecret } from 'utils/collections';
+import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 
 const VARIABLE_REGEX = /\{\{([^}]*)\}\}/g;
 const HOVER_DELAY = 50;
@@ -42,7 +43,7 @@ const EYE_OFF_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none
  * Green for valid, red for invalid, blue for prompt variables.
  */
 export const setupVariableHighlighting = (editor, collection, item) => {
-  let decorationIds = [];
+  const decorationCollection = editor.createDecorationsCollection([]);
 
   const updateDecorations = () => {
     const model = editor.getModel();
@@ -67,7 +68,7 @@ export const setupVariableHighlighting = (editor, collection, item) => {
       if (varName.startsWith('?')) {
         className = 'bruno-variable-prompt';
       } else {
-        const isMockVariable = varName.startsWith('$') && mockDataFunctions.hasOwnProperty(varName.substring(1));
+        const isMockVariable = varName.startsWith('$') && Object.hasOwn(mockDataFunctions, varName.substring(1));
         const isValid = isMockVariable || pathFoundInVariables(varName, varLookup);
         className = isValid ? 'bruno-variable-valid' : 'bruno-variable-invalid';
       }
@@ -80,20 +81,21 @@ export const setupVariableHighlighting = (editor, collection, item) => {
       });
     }
 
-    decorationIds = editor.deltaDecorations(decorationIds, newDecorations);
+    decorationCollection.set(newDecorations);
   };
 
   updateDecorations();
 
+  let debounceTimer = null;
   const disposable = editor.onDidChangeModelContent(() => {
-    updateDecorations();
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(updateDecorations, 120);
   });
 
   return () => {
+    clearTimeout(debounceTimer);
     disposable.dispose();
-    if (editor.getModel()) {
-      decorationIds = editor.deltaDecorations(decorationIds, []);
-    }
+    decorationCollection.clear();
   };
 };
 
@@ -148,7 +150,7 @@ export const setupVariableTooltip = (editor, collectionRef, itemRef, dispatch) =
 
     if (varName.startsWith('$')) {
       const fnName = varName.substring(1);
-      const exists = mockDataFunctions.hasOwnProperty(fnName);
+      const exists = Object.hasOwn(mockDataFunctions, fnName);
       const isTimeBased = timeBasedDynamicVars.has(fnName);
       return { type: 'dynamic', value: '', data: { exists, fnName, isTimeBased } };
     }
@@ -456,8 +458,8 @@ export const setupVariableTooltip = (editor, collectionRef, itemRef, dispatch) =
       if (left < 4) left = 4;
 
       popup.style.position = 'fixed';
-      popup.style.top = `${top / 16}rem`;
-      popup.style.left = `${left / 16}rem`;
+      popup.style.top = `${top}px`;
+      popup.style.left = `${left}px`;
     }
 
     popup.style.opacity = '1';
@@ -538,6 +540,3 @@ export const setupVariableTooltip = (editor, collectionRef, itemRef, dispatch) =
     hidePopup();
   };
 };
-
-// Import for the dispatch action
-import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';

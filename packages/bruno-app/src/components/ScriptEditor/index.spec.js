@@ -1,20 +1,21 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'styled-components';
 
-jest.mock('components/CodeEditor', () => {
-  return function MockCodeEditor(props) {
-    return <div data-testid="codemirror-editor" />;
-  };
+const mockCodeEditor = jest.fn((props) => {
+  return <div data-testid="codemirror-editor" />;
 });
 
-jest.mock('components/MonacoEditor', () => {
-  return function MockMonacoEditor(props) {
+jest.mock('components/CodeEditor', () => mockCodeEditor);
+
+jest.mock('components/MonacoEditor', () => ({
+  __esModule: true,
+  default: function MockMonacoEditor(props) {
     return <div data-testid="monaco-editor" />;
-  };
-});
+  }
+}));
 
 const MOCK_THEME = {
   codemirror: {
@@ -54,9 +55,9 @@ describe('ScriptEditor', () => {
     expect(queryByTestId('monaco-editor')).toBeNull();
   });
 
-  it('renders MonacoEditor when Monaco beta feature is enabled', () => {
+  it('renders MonacoEditor when Monaco beta feature is enabled', async () => {
     const store = createMockStore(true);
-    const { getByTestId, queryByTestId } = render(
+    const { findByTestId, queryByTestId } = render(
       <Provider store={store}>
         <ThemeProvider theme={MOCK_THEME}>
           <ScriptEditor />
@@ -64,23 +65,16 @@ describe('ScriptEditor', () => {
       </Provider>
     );
 
-    expect(getByTestId('monaco-editor')).toBeTruthy();
+    expect(await findByTestId('monaco-editor')).toBeTruthy();
     expect(queryByTestId('codemirror-editor')).toBeNull();
   });
 
   it('passes props through to the selected editor', () => {
     const store = createMockStore(false);
     const mockOnEdit = jest.fn();
+    mockCodeEditor.mockClear();
 
-    jest.isolateModules(() => {
-      jest.doMock('components/CodeEditor', () => {
-        return function MockCodeEditor(props) {
-          return <div data-testid="codemirror-editor" data-mode={props.mode} />;
-        };
-      });
-    });
-
-    const { getByTestId } = render(
+    render(
       <Provider store={store}>
         <ThemeProvider theme={MOCK_THEME}>
           <ScriptEditor mode="javascript" onEdit={mockOnEdit} />
@@ -88,6 +82,9 @@ describe('ScriptEditor', () => {
       </Provider>
     );
 
-    expect(getByTestId('codemirror-editor')).toBeTruthy();
+    expect(mockCodeEditor).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: 'javascript', onEdit: mockOnEdit }),
+      undefined
+    );
   });
 });

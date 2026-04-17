@@ -109,6 +109,12 @@ export const setupAutoComplete = (editor, collectionRef, itemRef) => {
   const completionProvider = {
     triggerCharacters: ['{', '.', '$'],
     provideCompletionItems(model, position) {
+      // Only provide completions for this editor's model — prevents cross-editor leaking
+      // when multiple MonacoEditors are mounted simultaneously
+      if (model !== editor.getModel()) {
+        return { suggestions: [] };
+      }
+
       const textUntilPosition = model.getValueInRange({
         startLineNumber: position.lineNumber,
         startColumn: 1,

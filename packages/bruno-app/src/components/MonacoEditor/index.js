@@ -1,9 +1,9 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { useDispatch } from 'react-redux';
 import 'utils/monaco/workers';
 import * as monaco from 'monaco-editor';
 import { mapCodeMirrorModeToMonaco } from 'utils/monaco/languageMapping';
-import { registerBrunoTheme } from 'utils/monaco/brunoTheme';
+import { registerBrunoTheme, getCurrentThemeName } from 'utils/monaco/brunoTheme';
 import { registerBrunoApiTypes } from 'utils/monaco/brunoApiTypes';
 import { setupVariableHighlighting, setupVariableTooltip } from 'utils/monaco/variableHighlighting';
 import { setupAutoComplete } from 'utils/monaco/autocomplete';
@@ -12,7 +12,7 @@ import StyledWrapper from './StyledWrapper';
 
 const TAB_SIZE = 2;
 
-const MonacoEditor = ({
+const MonacoEditor = forwardRef(({
   value = '',
   mode,
   theme,
@@ -28,7 +28,7 @@ const MonacoEditor = ({
   initialScroll = 0,
   collection,
   item
-}) => {
+}, ref) => {
   const containerRef = useRef(null);
   const editorRef = useRef(null);
   const cachedValueRef = useRef(value);
@@ -44,6 +44,17 @@ const MonacoEditor = ({
 
   const styledTheme = useStyledTheme();
   const dispatch = useDispatch();
+
+  // Expose a ref-compatible interface matching CodeEditor's class instance shape.
+  // Consumers call ref.current.editor.refresh() — Monaco's automaticLayout handles this,
+  // so layout() is called as a safe equivalent.
+  useImperativeHandle(ref, () => ({
+    editor: {
+      refresh: () => {
+        editorRef.current?.layout();
+      }
+    }
+  }));
 
   // Keep callback refs up to date
   useEffect(() => { onEditRef.current = onEdit; }, [onEdit]);
@@ -62,13 +73,12 @@ const MonacoEditor = ({
     // Register Bruno API types (idempotent, only runs once)
     registerBrunoApiTypes();
 
-    // Register Bruno theme from the styled-components theme
-    const themeName = registerBrunoTheme(styledTheme, theme);
-
     const editor = monaco.editor.create(containerRef.current, {
       value: value || '',
       language,
-      theme: themeName,
+      // Use a stable base theme for creation; the theme-sync effect registers
+      // and applies the full Bruno theme before the browser paints.
+      theme: getCurrentThemeName(theme),
       readOnly,
       tabSize: TAB_SIZE,
       automaticLayout: true,
@@ -168,29 +178,54 @@ const MonacoEditor = ({
     // Only run on mount/unmount
   }, []);
 
-  // Re-apply variable highlighting when collection/item changes
+  // Re-apply variable highlighting and tooltip when collection/item/flag changes
   useEffect(() => {
     const editor = editorRef.current;
-    if (!editor || !collection || !enableVariableHighlighting) return;
+    if (!editor || !collection) return;
 
-    // Clean up old highlighting (tooltip uses refs, so no re-setup needed)
-    variableCleanupRef.current?.();
+    if (enableVariableHighlighting) {
+      // Clean up and re-setup highlighting with updated variables
+      variableCleanupRef.current?.();
+      variableCleanupRef.current = setupVariableHighlighting(editor, collection, item);
 
-    // Setup new highlighting with updated variables
-    variableCleanupRef.current = setupVariableHighlighting(editor, collection, item);
-  }, [collection, item]);
+      // Setup tooltip if not already active
+      if (!tooltipCleanupRef.current) {
+        tooltipCleanupRef.current = setupVariableTooltip(
+          editor,
+          () => collectionRef.current,
+          () => itemRef.current,
+          dispatch
+        );
+      }
+    } else {
+      // Tear down when disabled
+      variableCleanupRef.current?.();
+      variableCleanupRef.current = null;
+      tooltipCleanupRef.current?.();
+      tooltipCleanupRef.current = null;
+    }
+  }, [collection, item, enableVariableHighlighting]);
 
-  // Sync external value changes
+  // Sync external value changes without resetting scroll, selections, or undo history
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
     if (value !== cachedValueRef.current) {
       cachedValueRef.current = value;
-      const position = editor.getPosition();
-      editor.setValue(value || '');
-      if (position) {
-        editor.setPosition(position);
-      }
+      const model = editor.getModel();
+      if (!model) return;
+
+      const selections = editor.getSelections();
+      const scrollTop = editor.getScrollTop();
+      const fullRange = model.getFullModelRange();
+
+      model.pushEditOperations(
+        selections,
+        [{ range: fullRange, text: value || '' }],
+        () => selections
+      );
+
+      editor.setScrollTop(scrollTop);
     }
   }, [value]);
 
@@ -241,16 +276,15 @@ const MonacoEditor = ({
     <StyledWrapper
       className="h-full w-full flex flex-col"
       aria-label="Monaco Editor"
-      font={font}
-      fontSize={fontSize}
     >
       <div
         ref={containerRef}
         className="monaco-editor-container"
+        data-testid="monaco-editor-container"
         style={{ height: '100%', width: '100%' }}
       />
     </StyledWrapper>
   );
-};
+});
 
 export default MonacoEditor;

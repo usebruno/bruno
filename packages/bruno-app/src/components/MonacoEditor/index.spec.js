@@ -17,16 +17,25 @@ const mockGetScrollTop = jest.fn(() => 0);
 const mockUpdateOptions = jest.fn();
 const mockAddCommand = jest.fn();
 const mockOnDidChangeModelContent = jest.fn(() => ({ dispose: jest.fn() }));
+const mockClassListAdd = jest.fn();
 const mockGetDomNode = jest.fn(() => ({
   querySelector: jest.fn(() => ({
-    classList: { add: jest.fn() }
+    classList: { add: mockClassListAdd }
   }))
 }));
 const mockGetModel = jest.fn(() => ({
   getValue: jest.fn(() => ''),
-  getPositionAt: jest.fn(() => ({ lineNumber: 1, column: 1 }))
+  getPositionAt: jest.fn(() => ({ lineNumber: 1, column: 1 })),
+  getFullModelRange: jest.fn(() => ({ startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 1 })),
+  pushEditOperations: jest.fn()
 }));
-const mockDeltaDecorations = jest.fn(() => []);
+const mockCreateDecorationsCollection = jest.fn(() => ({
+  set: jest.fn(),
+  clear: jest.fn()
+}));
+const mockLayout = jest.fn();
+
+const mockGetSelections = jest.fn(() => [{ startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 1 }]);
 
 const mockEditor = {
   dispose: mockDispose,
@@ -36,12 +45,14 @@ const mockEditor = {
   setPosition: mockSetPosition,
   setScrollTop: mockSetScrollTop,
   getScrollTop: mockGetScrollTop,
+  getSelections: mockGetSelections,
   updateOptions: mockUpdateOptions,
   addCommand: mockAddCommand,
   onDidChangeModelContent: mockOnDidChangeModelContent,
   getDomNode: mockGetDomNode,
   getModel: mockGetModel,
-  deltaDecorations: mockDeltaDecorations
+  createDecorationsCollection: mockCreateDecorationsCollection,
+  layout: mockLayout
 };
 
 jest.mock('utils/monaco/workers', () => {});
@@ -70,7 +81,8 @@ jest.mock('monaco-editor', () => ({
 }));
 
 jest.mock('utils/monaco/brunoTheme', () => ({
-  registerBrunoTheme: jest.fn(() => 'bruno-light-123')
+  registerBrunoTheme: jest.fn(() => 'bruno-light'),
+  getCurrentThemeName: jest.fn(() => 'vs')
 }));
 
 jest.mock('utils/monaco/brunoApiTypes', () => ({
@@ -249,6 +261,7 @@ describe('MonacoEditor', () => {
   it('adds mousetrap class to textarea', () => {
     renderEditor();
     expect(mockGetDomNode).toHaveBeenCalled();
+    expect(mockClassListAdd).toHaveBeenCalledWith('mousetrap');
   });
 
   it('applies initial scroll position', () => {

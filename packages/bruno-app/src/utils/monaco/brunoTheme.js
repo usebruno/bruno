@@ -23,7 +23,7 @@ export const registerBrunoTheme = (brunoTheme, displayedTheme) => {
   const editorFg = normalizeColor(fg);
   const gutterBgNorm = normalizeColor(gutterBg);
 
-  const themeName = `bruno-${displayedTheme}-${Date.now()}`;
+  const themeName = `bruno-${displayedTheme}`;
 
   monaco.editor.defineTheme(themeName, {
     base,
@@ -106,10 +106,25 @@ function normalizeColor(color) {
   if (!color) return '#1e1e1e';
   const s = String(color).trim();
   if (s.startsWith('#')) return s.length <= 7 ? s : s.slice(0, 7);
-  // For hsl() strings, provide a reasonable fallback since Monaco doesn't support them
+  // Convert hsl()/hsla() to hex via a temporary DOM element
   if (s.startsWith('hsl')) {
-    // Return a fallback — the base theme will handle most styling
-    return undefined;
+    try {
+      const el = document.createElement('div');
+      el.style.color = s;
+      document.body.appendChild(el);
+      const computed = getComputedStyle(el).color;
+      document.body.removeChild(el);
+      const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (match) {
+        const r = parseInt(match[1]).toString(16).padStart(2, '0');
+        const g = parseInt(match[2]).toString(16).padStart(2, '0');
+        const b = parseInt(match[3]).toString(16).padStart(2, '0');
+        return `#${r}${g}${b}`;
+      }
+    } catch {
+      // Fall through to default
+    }
+    return '#1e1e1e';
   }
   return s;
 }

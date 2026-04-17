@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { Suspense, forwardRef, lazy } from 'react';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import CodeEditor from 'components/CodeEditor';
-import MonacoEditor from 'components/MonacoEditor';
 
-const ScriptEditor = (props) => {
+const LazyMonacoEditor = lazy(() => import('components/MonacoEditor'));
+
+const ScriptEditor = forwardRef((props, ref) => {
   const useMonaco = useBetaFeature(BETA_FEATURES.MONACO_EDITOR);
-  const Editor = useMonaco ? MonacoEditor : CodeEditor;
-  return <Editor {...props} />;
-};
+
+  if (!useMonaco) {
+    return <CodeEditor ref={ref} {...props} />;
+  }
+
+  return (
+    <Suspense fallback={null}>
+      <LazyMonacoEditor ref={ref} {...props} />
+    </Suspense>
+  );
+});
 
 export default ScriptEditor;

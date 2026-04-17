@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import CodeEditor from 'components/CodeEditor';
-import MonacoEditor from 'components/MonacoEditor';
 import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
 import MultipartFormParams from 'components/RequestPane/MultipartFormParams';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,10 +13,12 @@ import { updateRequestBodyScrollPosition } from 'providers/ReduxStore/slices/tab
 import StyledWrapper from './StyledWrapper';
 import FileBody from '../FileBody/index';
 
+const LazyMonacoEditor = lazy(() => import('components/MonacoEditor'));
+
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
   const useMonaco = useBetaFeature(BETA_FEATURES.MONACO_EDITOR);
-  const Editor = useMonaco ? MonacoEditor : CodeEditor;
+  const Editor = useMonaco ? LazyMonacoEditor : CodeEditor;
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
   const { displayedTheme } = useTheme();
@@ -65,22 +66,24 @@ const RequestBody = ({ item, collection }) => {
 
     return (
       <StyledWrapper className="w-full" data-testid="request-body-editor">
-        <Editor
-          collection={collection}
-          item={item}
-          theme={displayedTheme}
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-          value={bodyContent[bodyMode] || ''}
-          onEdit={onEdit}
-          onRun={onRun}
-          onSave={onSave}
-          onScroll={onScroll}
-          initialScroll={focusedTab?.requestBodyScrollPosition || 0}
-          mode={codeMirrorMode[bodyMode]}
-          enableVariableHighlighting={true}
-          showHintsFor={['variables']}
-        />
+        <Suspense fallback={null}>
+          <Editor
+            collection={collection}
+            item={item}
+            theme={displayedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+            value={bodyContent[bodyMode] || ''}
+            onEdit={onEdit}
+            onRun={onRun}
+            onSave={onSave}
+            onScroll={onScroll}
+            initialScroll={focusedTab?.requestBodyScrollPosition || 0}
+            mode={codeMirrorMode[bodyMode]}
+            enableVariableHighlighting={true}
+            showHintsFor={['variables']}
+          />
+        </Suspense>
       </StyledWrapper>
     );
   }
