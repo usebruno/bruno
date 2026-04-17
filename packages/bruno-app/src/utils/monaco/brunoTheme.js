@@ -98,33 +98,64 @@ function normalizeHex(color) {
   return s;
 }
 
+// Memoize color conversions to avoid repeated computation
+const colorCache = new Map();
+
 /**
  * Normalize a color to Monaco's #rrggbb format for theme colors.
- * Handles hex, hsl(), and common named colors.
+ * Handles hex and hsl() strings. Results are memoized.
  */
 function normalizeColor(color) {
   if (!color) return '#1e1e1e';
   const s = String(color).trim();
-  if (s.startsWith('#')) return s.length <= 7 ? s : s.slice(0, 7);
-  // Convert hsl()/hsla() to hex via a temporary DOM element
-  if (s.startsWith('hsl')) {
-    try {
-      const el = document.createElement('div');
-      el.style.color = s;
-      document.body.appendChild(el);
-      const computed = getComputedStyle(el).color;
-      document.body.removeChild(el);
-      const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-      if (match) {
-        const r = parseInt(match[1]).toString(16).padStart(2, '0');
-        const g = parseInt(match[2]).toString(16).padStart(2, '0');
-        const b = parseInt(match[3]).toString(16).padStart(2, '0');
-        return `#${r}${g}${b}`;
-      }
-    } catch {
-      // Fall through to default
-    }
-    return '#1e1e1e';
+
+  const cached = colorCache.get(s);
+  if (cached) return cached;
+
+  let result;
+  if (s.startsWith('#')) {
+    result = s.length <= 7 ? s : s.slice(0, 7);
+  } else if (s.startsWith('hsl')) {
+    result = hslStringToHex(s);
+  } else {
+    result = s;
   }
-  return s;
+
+  colorCache.set(s, result);
+  return result;
+}
+
+/**
+ * Convert an hsl()/hsla() string to #rrggbb hex using pure math.
+ * Avoids DOM manipulation and layout thrashing.
+ */
+function hslStringToHex(hslString) {
+  const match = hslString.match(/hsla?\(\s*([\d.]+)\s*[,\s]\s*([\d.]+)%\s*[,\s]\s*([\d.]+)%/);
+  if (!match) return '#1e1e1e';
+
+  const h = parseFloat(match[1]) / 360;
+  const s = parseFloat(match[2]) / 100;
+  const l = parseFloat(match[3]) / 100;
+
+  let r, g, b;
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1 / 3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1 / 3);
+  }
+
+  const toHex = (c) => Math.round(c * 255).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }

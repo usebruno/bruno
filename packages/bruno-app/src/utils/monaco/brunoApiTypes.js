@@ -1,7 +1,5 @@
 import * as monaco from 'monaco-editor';
 
-let typesRegistered = false;
-
 /**
  * Registers the Bruno scripting API type definitions with Monaco's
  * JavaScript language service. Enables autocomplete and hover docs
@@ -10,8 +8,14 @@ let typesRegistered = false;
  * Type definitions are derived from the source implementations in
  * packages/bruno-js/src/ (bru.js, bruno-request.js, bruno-response.js).
  *
+ * Idempotent — addExtraLib with the same filename replaces the previous
+ * registration, and setDiagnosticsOptions/setCompilerOptions are safe to
+ * call multiple times.
+ *
  * Must be called after Monaco is loaded (not at module top level).
  */
+let typesRegistered = false;
+
 export const registerBrunoApiTypes = () => {
   if (typesRegistered) return;
   typesRegistered = true;

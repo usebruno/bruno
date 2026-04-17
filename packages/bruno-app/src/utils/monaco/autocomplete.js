@@ -85,98 +85,108 @@ const buildVariableHints = (allVariables) => {
   return Array.from(hints).sort();
 };
 
-// ─── Monaco Completion Provider ─────────────────────────────
+// ─── Singleton Completion Provider ──────────────────────────
+// Providers are registered once globally per language. Each editor
+// registers/unregisters itself in the registry so the provider can
+// resolve the correct collection and item for the active model.
+
+const editorRegistry = new Map();
+let providersRegistered = false;
+
+const SUPPORTED_LANGUAGES = ['javascript', 'json', 'xml', 'html', 'yaml', 'plaintext', 'markdown', 'shell'];
+
+const completionProvider = {
+  triggerCharacters: ['{', '.', '$'],
+  provideCompletionItems(model, position) {
+    const entry = editorRegistry.get(model.uri.toString());
+    if (!entry) {
+      return { suggestions: [] };
+    }
+
+    const textUntilPosition = model.getValueInRange({
+      startLineNumber: position.lineNumber,
+      startColumn: 1,
+      endLineNumber: position.lineNumber,
+      endColumn: position.column
+    });
+
+    const variableMatch = textUntilPosition.match(VARIABLE_PATTERN);
+    if (!variableMatch) {
+      return { suggestions: [] };
+    }
+
+    const typed = variableMatch[1]; // text after {{
+    // Convert 0-indexed string position to 1-indexed Monaco column
+    const braceStartCol = textUntilPosition.lastIndexOf('{{') + 2 + 1;
+
+    const collection = entry.getCollection();
+    const item = entry.getItem();
+    const allVariables = getAllVariables(collection, item);
+    const { pathParams, maskedEnvVariables, ...varLookup } = allVariables;
+
+    const allHints = buildVariableHints(varLookup);
+    const filtered = allHints.filter((h) => h.toLowerCase().includes(typed.toLowerCase()));
+    const segments = extractNextSegmentSuggestions(filtered, typed).slice(0, 50);
+
+    // Determine replacement range — replace from last dot or from start of typed text
+    let replaceStartCol;
+    if (typed.endsWith('.')) {
+      replaceStartCol = position.column;
+    } else {
+      const lastDot = typed.lastIndexOf('.');
+      replaceStartCol = lastDot !== -1
+        ? braceStartCol + lastDot + 1
+        : braceStartCol;
+    }
+
+    const range = new monaco.Range(
+      position.lineNumber,
+      replaceStartCol,
+      position.lineNumber,
+      position.column
+    );
+
+    return {
+      // incomplete: true tells Monaco to re-invoke the provider on each keystroke,
+      // so suggestions update as the user types inside {{...}}
+      incomplete: true,
+      suggestions: segments.map((segment, i) => ({
+        label: segment,
+        kind: monaco.languages.CompletionItemKind.Variable,
+        insertText: segment,
+        range,
+        sortText: String(i).padStart(4, '0')
+      }))
+    };
+  }
+};
+
+const ensureProvidersRegistered = () => {
+  if (providersRegistered) return;
+  providersRegistered = true;
+  SUPPORTED_LANGUAGES.forEach((lang) =>
+    monaco.languages.registerCompletionItemProvider(lang, completionProvider)
+  );
+};
 
 /**
  * Sets up variable autocomplete for the Monaco editor.
- * Provides {{variable}} suggestions inside double braces, including:
- * - Collection/environment/runtime variables
- * - $mockFunction names
- * - process.env.* keys
- *
- * API hints (req, res, bru) are handled by Monaco's built-in IntelliSense
- * via the type definitions registered in brunoApiTypes.js.
+ * Providers are registered once globally (singleton); each editor instance
+ * registers itself in a model-keyed registry so the shared provider can
+ * resolve the correct collection/item context.
  *
  * Returns a dispose function.
  */
-// All languages the Monaco editor may use (from languageMapping.js)
-const SUPPORTED_LANGUAGES = ['javascript', 'json', 'xml', 'html', 'yaml', 'plaintext', 'markdown', 'shell'];
-
 export const setupAutoComplete = (editor, collectionRef, itemRef) => {
   const getCollection = () => (typeof collectionRef === 'function' ? collectionRef() : collectionRef);
   const getItem = () => (typeof itemRef === 'function' ? itemRef() : itemRef);
 
-  const completionProvider = {
-    triggerCharacters: ['{', '.', '$'],
-    provideCompletionItems(model, position) {
-      // Only provide completions for this editor's model — prevents cross-editor leaking
-      // when multiple MonacoEditors are mounted simultaneously
-      if (model !== editor.getModel()) {
-        return { suggestions: [] };
-      }
+  const modelUri = editor.getModel()?.uri.toString();
+  if (modelUri) {
+    editorRegistry.set(modelUri, { getCollection, getItem });
+  }
 
-      const textUntilPosition = model.getValueInRange({
-        startLineNumber: position.lineNumber,
-        startColumn: 1,
-        endLineNumber: position.lineNumber,
-        endColumn: position.column
-      });
-
-      const variableMatch = textUntilPosition.match(VARIABLE_PATTERN);
-      if (!variableMatch) {
-        return { suggestions: [] };
-      }
-
-      const typed = variableMatch[1]; // text after {{
-      // Convert 0-indexed string position to 1-indexed Monaco column
-      const braceStartCol = textUntilPosition.lastIndexOf('{{') + 2 + 1;
-
-      const collection = getCollection();
-      const item = getItem();
-      const allVariables = getAllVariables(collection, item);
-      const { pathParams, maskedEnvVariables, ...varLookup } = allVariables;
-
-      const allHints = buildVariableHints(varLookup);
-      const filtered = allHints.filter((h) => h.toLowerCase().includes(typed.toLowerCase()));
-      const segments = extractNextSegmentSuggestions(filtered, typed).slice(0, 50);
-
-      // Determine replacement range — replace from last dot or from start of typed text
-      let replaceStartCol;
-      if (typed.endsWith('.')) {
-        replaceStartCol = position.column;
-      } else {
-        const lastDot = typed.lastIndexOf('.');
-        replaceStartCol = lastDot !== -1
-          ? braceStartCol + lastDot + 1
-          : braceStartCol;
-      }
-
-      const range = new monaco.Range(
-        position.lineNumber,
-        replaceStartCol,
-        position.lineNumber,
-        position.column
-      );
-
-      return {
-        // incomplete: true tells Monaco to re-invoke the provider on each keystroke,
-        // so suggestions update as the user types inside {{...}}
-        incomplete: true,
-        suggestions: segments.map((segment, i) => ({
-          label: segment,
-          kind: monaco.languages.CompletionItemKind.Variable,
-          insertText: segment,
-          range,
-          sortText: String(i).padStart(4, '0')
-        }))
-      };
-    }
-  };
-
-  // Register for all supported languages so {{variables}} work in body editors (json, xml, etc.)
-  const disposables = SUPPORTED_LANGUAGES.map((lang) =>
-    monaco.languages.registerCompletionItemProvider(lang, completionProvider)
-  );
+  ensureProvidersRegistered();
 
   // Auto-trigger suggestions when typing inside {{...}}
   // This ensures the suggest widget opens regardless of language-specific quickSuggestions settings
@@ -200,7 +210,9 @@ export const setupAutoComplete = (editor, collectionRef, itemRef) => {
   });
 
   return () => {
-    disposables.forEach((d) => d.dispose());
+    if (modelUri) {
+      editorRegistry.delete(modelUri);
+    }
     contentChangeDisposable.dispose();
   };
 };

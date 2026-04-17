@@ -4,6 +4,12 @@ import CodeEditor from 'components/CodeEditor';
 
 const LazyMonacoEditor = lazy(() => import('components/MonacoEditor'));
 
+const EditorLoadingFallback = () => (
+  <div style={{ padding: '8px 12px', opacity: 0.5, fontSize: '13px' }}>
+    Loading editor...
+  </div>
+);
+
 const ScriptEditor = forwardRef((props, ref) => {
   const useMonaco = useBetaFeature(BETA_FEATURES.MONACO_EDITOR);
 
@@ -12,10 +18,12 @@ const ScriptEditor = forwardRef((props, ref) => {
   }
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<EditorLoadingFallback />}>
       <LazyMonacoEditor ref={ref} {...props} />
     </Suspense>
   );
 });
+
+ScriptEditor.displayName = 'ScriptEditor';
 
 export default ScriptEditor;

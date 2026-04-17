@@ -242,6 +242,7 @@ export const setupVariableTooltip = (editor, collectionRef, itemRef, dispatch) =
     // ─── Build DOM ─────────────────────────────
 
     const popup = document.createElement('div');
+    // Reuses the CodeMirror tooltip class to share global styles defined in globalStyles.js
     popup.className = 'CodeMirror-brunoVarInfo';
 
     // Header: name + scope badge
@@ -304,20 +305,6 @@ export const setupVariableTooltip = (editor, collectionRef, itemRef, dispatch) =
       editorEl = document.createElement('textarea');
       editorEl.className = 'var-value-editor-textarea';
       editorEl.value = rawValue;
-      editorEl.style.display = 'none';
-      editorEl.style.width = '100%';
-      editorEl.style.minHeight = '1.75rem';
-      editorEl.style.maxHeight = '11.125rem';
-      editorEl.style.resize = 'vertical';
-      editorEl.style.boxSizing = 'border-box';
-      editorEl.style.padding = '0.375rem 0.5rem';
-      editorEl.style.border = 'none';
-      editorEl.style.outline = 'none';
-      editorEl.style.background = 'inherit';
-      editorEl.style.color = 'inherit';
-      editorEl.style.fontFamily = 'Inter, sans-serif';
-      editorEl.style.fontSize = 'inherit';
-      editorEl.style.lineHeight = '1.25rem';
 
       valueDisplay.addEventListener('click', () => {
         valueDisplay.style.display = 'none';

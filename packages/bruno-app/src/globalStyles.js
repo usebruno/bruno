@@ -549,6 +549,24 @@ const GlobalStyle = createGlobalStyle`
     line-height: 1.25rem;
   }
 
+  /* Monaco tooltip textarea editor (used instead of CodeMirror inline editor) */
+  .CodeMirror-brunoVarInfo .var-value-editor-textarea {
+    display: none;
+    width: 100%;
+    min-height: 1.75rem;
+    max-height: 11.125rem;
+    resize: vertical;
+    box-sizing: border-box;
+    padding: 0.375rem 0.5rem;
+    border: none;
+    outline: none;
+    background: inherit;
+    color: inherit;
+    font-family: Inter, sans-serif;
+    font-size: inherit;
+    line-height: 1.25rem;
+  }
+
   // Active/selected hint - using theme colors instead of hardcoded blue
   .CodeMirror-hint-active {
     background: ${(props) => props.theme.dropdown.hoverBg} !important;
