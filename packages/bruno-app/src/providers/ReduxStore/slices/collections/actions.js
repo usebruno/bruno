@@ -91,6 +91,7 @@ import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
+import { formatIpcError } from 'utils/common/error';
 
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
@@ -2767,20 +2768,25 @@ export const importCollection = (collection, collectionLocation, options = {}) =
 
 export const importCollectionFromZip = (zipFilePath, collectionLocation) => async (dispatch, getState) => {
   const { ipcRenderer } = window;
-  const state = getState();
-  const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+  try {
+    const state = getState();
+    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
 
-  const collectionPath = await ipcRenderer.invoke('renderer:import-collection-zip', zipFilePath, collectionLocation);
+    const collectionPath = await ipcRenderer.invoke('renderer:import-collection-zip', zipFilePath, collectionLocation);
 
-  if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
-    const collectionName = path.basename(collectionPath);
-    await ipcRenderer.invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, {
-      name: collectionName,
-      path: collectionPath
-    });
+    if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
+      const collectionName = path.basename(collectionPath);
+      await ipcRenderer.invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, {
+        name: collectionName,
+        path: collectionPath
+      });
+    }
+
+    return collectionPath;
+  } catch (error) {
+    toast.error(formatIpcError(error) || 'Failed to import collection');
+    throw error;
   }
-
-  return collectionPath;
 };
 
 /**
