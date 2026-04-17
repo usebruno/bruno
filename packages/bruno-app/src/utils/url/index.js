@@ -53,7 +53,7 @@ export const parsePathParams = (url) => {
       return;
     }
 
-    const paramRegex = /[:](\w+)/g;
+    const paramRegex = /[:]([a-zA-Z_]\w*)/g;
     let match;
     while ((match = paramRegex.exec(segment))) {
       if (!match[1]) continue;
@@ -73,7 +73,10 @@ export const splitOnFirst = (str, char) => {
     return [str];
   }
 
-  let index = str.indexOf(char);
+  // Mask {{ }} template variables so their contents don't interfere with the search
+  const masked = str.replace(/\{\{.*?\}\}/g, (match) => '_'.repeat(match.length));
+  const index = masked.indexOf(char);
+
   if (index === -1) {
     return [str];
   }
@@ -128,7 +131,7 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
           return segment;
         }
 
-        const regex = /[:](\w+)/g;
+        const regex = /[:]([a-zA-Z_]\w*)/g;
         let match;
         let result = segment;
         while ((match = regex.exec(segment))) {

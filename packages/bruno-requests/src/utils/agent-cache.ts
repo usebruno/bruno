@@ -3,6 +3,7 @@ import tls from 'node:tls';
 import type { Agent as HttpAgent } from 'node:http';
 import type { Agent as HttpsAgent } from 'node:https';
 import { createTimelineAgentClass, createTimelineHttpAgentClass, type TimelineEntry, type AgentOptions, type HttpAgentOptions, type AgentClass, type HttpAgentClass } from './timeline-agent';
+import { defaultAgentOptions } from '../network/agent-defaults';
 
 /**
  * Agent cache for SSL session reuse.
@@ -267,8 +268,16 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
   }
 
   const AgentClass = timeline ? getTimelineClass(BaseAgentClass) : BaseAgentClass;
+
+  // Inject shared agent defaults (DNS lookup, socket pool settings), then
+  // layer on the caller's options so per-agent overrides still take effect.
+  const optimizedOptions = {
+    ...defaultAgentOptions,
+    ...options
+  };
+
   // Convert raw `ca` to a secureContext that adds CAs on top of OpenSSL defaults
-  const resolvedOptions = applySecureContext(options);
+  const resolvedOptions = applySecureContext(optimizedOptions);
 
   let agent: HttpAgent | HttpsAgent;
   if (timeline) {

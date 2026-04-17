@@ -74,26 +74,6 @@ export default class CodeEditor extends React.Component {
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
-        'Cmd-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
         'Cmd-F': (cm) => {
           this.setState({ searchBarVisible: true }, () => {
             this.searchBarRef.current?.focus();
@@ -104,8 +84,8 @@ export default class CodeEditor extends React.Component {
             this.searchBarRef.current?.focus();
           });
         },
-        'Cmd-H': 'replace',
-        'Ctrl-H': 'replace',
+        'Cmd-H': this.props.readOnly ? false : 'replace',
+        'Ctrl-H': this.props.readOnly ? false : 'replace',
         'Tab': function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')
@@ -217,6 +197,12 @@ export default class CodeEditor extends React.Component {
 
       // Setup lint error tooltip on line number hover
       this.cleanupLintErrorTooltip = setupLintErrorTooltip(editor);
+
+      // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
+      const cmInput = editor.getInputField();
+      if (cmInput) {
+        cmInput.classList.add('mousetrap');
+      }
     }
   }
 
@@ -233,18 +219,10 @@ export default class CodeEditor extends React.Component {
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
-      const nextValue = this.props.value ?? '';
-      const currentValue = this.editor.getValue();
-      // Skip updating only when focused and editable; read-only editors (e.g. response viewer) must always show new value
-      if (this.editor.hasFocus?.() && currentValue !== nextValue && !this.props.readOnly) {
-        this.cachedValue = currentValue;
-      } else {
-        const cursor = this.editor.getCursor();
-        this.cachedValue = nextValue;
-        this.editor.setValue(nextValue);
-        this.editor.setCursor(cursor);
-      }
+      const cursor = this.editor.getCursor();
+      this.cachedValue = String(this?.props?.value ?? '');
+      this.editor.setValue(String(this.props.value) || '');
+      this.editor.setCursor(cursor);
     }
 
     if (this.editor) {

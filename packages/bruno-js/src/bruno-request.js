@@ -96,6 +96,8 @@ class BrunoRequest {
   getAuthMode() {
     if (this.req?.oauth2) {
       return 'oauth2';
+    } else if (this.req?.oauth1config) {
+      return 'oauth1';
     } else if (this.headers?.['Authorization']?.startsWith('Bearer')) {
       return 'bearer';
     } else if (this.headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {

@@ -11,6 +11,7 @@ describe('processAuth', () => {
         bearer: null,
         awsv4: null,
         apikey: null,
+        oauth1: null,
         oauth2: null,
         digest: null
       }
@@ -509,7 +510,134 @@ describe('processAuth', () => {
     expect(requestObject.auth.bearer).toBe(null);
     expect(requestObject.auth.awsv4).toBe(null);
     expect(requestObject.auth.apikey).toBe(null);
+    expect(requestObject.auth.oauth1).toBe(null);
     expect(requestObject.auth.oauth2).toBe(null);
     expect(requestObject.auth.digest).toBe(null);
+  });
+
+  it('should handle oauth1 auth with all fields (v2.1 object format)', () => {
+    const auth = {
+      type: 'oauth1',
+      oauth1: {
+        consumerKey: 'test-consumer-key',
+        consumerSecret: 'test-consumer-secret',
+        token: 'test-token',
+        tokenSecret: 'test-token-secret',
+        signatureMethod: 'HMAC-SHA256',
+        callback: 'https://callback.example.com',
+        verifier: 'test-verifier',
+        timestamp: '1234567890',
+        nonce: 'test-nonce',
+        version: '1.0',
+        realm: 'test-realm',
+        addParamsToHeader: true,
+        includeBodyHash: true,
+        privateKey: 'test-private-key'
+      }
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('oauth1');
+    expect(requestObject.auth.oauth1).toEqual({
+      consumerKey: 'test-consumer-key',
+      consumerSecret: 'test-consumer-secret',
+      accessToken: 'test-token',
+      accessTokenSecret: 'test-token-secret',
+      callbackUrl: 'https://callback.example.com',
+      verifier: 'test-verifier',
+      signatureMethod: 'HMAC-SHA256',
+      privateKey: 'test-private-key',
+      privateKeyType: 'text',
+      timestamp: '1234567890',
+      nonce: 'test-nonce',
+      version: '1.0',
+      realm: 'test-realm',
+      placement: 'header',
+      includeBodyHash: true
+    });
+  });
+
+  it('should handle oauth1 auth with v2.1 array format', () => {
+    const auth = {
+      type: 'oauth1',
+      oauth1: [
+        { key: 'consumerKey', value: 'ck-array', type: 'string' },
+        { key: 'consumerSecret', value: 'cs-array', type: 'string' },
+        { key: 'token', value: 'tk-array', type: 'string' },
+        { key: 'tokenSecret', value: 'ts-array', type: 'string' },
+        { key: 'signatureMethod', value: 'HMAC-SHA1', type: 'string' },
+        { key: 'addParamsToHeader', value: false, type: 'boolean' }
+      ]
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('oauth1');
+    expect(requestObject.auth.oauth1.consumerKey).toBe('ck-array');
+    expect(requestObject.auth.oauth1.consumerSecret).toBe('cs-array');
+    expect(requestObject.auth.oauth1.accessToken).toBe('tk-array');
+    expect(requestObject.auth.oauth1.accessTokenSecret).toBe('ts-array');
+    expect(requestObject.auth.oauth1.signatureMethod).toBe('HMAC-SHA1');
+    expect(requestObject.auth.oauth1.placement).toBe('query');
+  });
+
+  it('should handle oauth1 auth with missing values', () => {
+    const auth = {
+      type: 'oauth1',
+      oauth1: {}
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('oauth1');
+    expect(requestObject.auth.oauth1).toEqual({
+      consumerKey: '',
+      consumerSecret: '',
+      accessToken: '',
+      accessTokenSecret: '',
+      callbackUrl: null,
+      verifier: null,
+      signatureMethod: 'HMAC-SHA1',
+      privateKey: null,
+      privateKeyType: 'text',
+      timestamp: null,
+      nonce: null,
+      version: '1.0',
+      realm: null,
+      placement: 'header',
+      includeBodyHash: false
+    });
+  });
+
+  it('should handle oauth1 auth with missing oauth1 key', () => {
+    const auth = {
+      type: 'oauth1'
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('oauth1');
+    expect(requestObject.auth.oauth1).toEqual({
+      consumerKey: '',
+      consumerSecret: '',
+      accessToken: '',
+      accessTokenSecret: '',
+      callbackUrl: null,
+      verifier: null,
+      signatureMethod: 'HMAC-SHA1',
+      privateKey: null,
+      privateKeyType: 'text',
+      timestamp: null,
+      nonce: null,
+      version: '1.0',
+      realm: null,
+      placement: 'header',
+      includeBodyHash: false
+    });
+  });
+
+  it('should handle oauth1 addParamsToHeader false as query', () => {
+    const auth = {
+      type: 'oauth1',
+      oauth1: {
+        consumerKey: 'ck',
+        addParamsToHeader: false
+      }
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.oauth1.placement).toBe('query');
   });
 });

@@ -80,17 +80,41 @@ const replacements = {
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
   'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
-  // Direct cookie access translations (pm.cookies.has/get/toObject)
-  'pm\\.cookies\\.has\\(([^)]+)\\)': 'await bru.cookies.jar().hasCookie(req.getUrl(), $1)',
-  'pm\\.cookies\\.get\\(([^)]+)\\)': '(await bru.cookies.jar().getCookie(req.getUrl(), $1))?.value',
-  'pm\\.cookies\\.toObject\\(\\)': '(await bru.cookies.jar().getCookies(req.getUrl())).reduce((obj, c) => ({...obj, [c.key]: c.value}), {})',
-  // Cookie jar translations
-  'pm\\.cookies\\.jar\\(\\)': 'bru.cookies.jar()',
+  // Cookie jar translations — order matters:
+  // 1. Specific jar method patterns must come before the general jar() pattern,
+  //    otherwise jar() consumes the prefix and the method patterns never match.
+  // 2. All jar patterns must precede the simpler pm.cookies.* patterns below,
+  //    since replacements are applied in insertion order.
   'pm\\.cookies\\.jar\\(\\)\\.get\\(': 'bru.cookies.jar().getCookie(',
   'pm\\.cookies\\.jar\\(\\)\\.set\\(': 'bru.cookies.jar().setCookie(',
   'pm\\.cookies\\.jar\\(\\)\\.unset\\(': 'bru.cookies.jar().deleteCookie(',
   'pm\\.cookies\\.jar\\(\\)\\.clear\\(': 'bru.cookies.jar().deleteCookies(',
-  'pm\\.cookies\\.jar\\(\\)\\.getAll\\(': 'bru.cookies.jar().getCookies('
+  'pm\\.cookies\\.jar\\(\\)\\.getAll\\(': 'bru.cookies.jar().getCookies(',
+  'pm\\.cookies\\.jar\\(\\)': 'bru.cookies.jar()',
+  // Direct cookie access
+  'pm\\.cookies\\.get\\(': 'bru.cookies.get(',
+  'pm\\.cookies\\.has\\(': 'bru.cookies.has(',
+  'pm\\.cookies\\.toObject\\(': 'bru.cookies.toObject(',
+  'pm\\.cookies\\.toString\\(': 'bru.cookies.toString(',
+  'pm\\.cookies\\.clear\\(': 'bru.cookies.clear(',
+  'pm\\.cookies\\.remove\\(': 'bru.cookies.delete(',
+  // PropertyList cookie methods
+  'pm\\.cookies\\.one\\(': 'bru.cookies.one(',
+  'pm\\.cookies\\.all\\(': 'bru.cookies.all(',
+  'pm\\.cookies\\.idx\\(': 'bru.cookies.idx(',
+  'pm\\.cookies\\.count\\(': 'bru.cookies.count(',
+  'pm\\.cookies\\.indexOf\\(': 'bru.cookies.indexOf(',
+  'pm\\.cookies\\.find\\(': 'bru.cookies.find(',
+  'pm\\.cookies\\.filter\\(': 'bru.cookies.filter(',
+  'pm\\.cookies\\.each\\(': 'bru.cookies.each(',
+  'pm\\.cookies\\.map\\(': 'bru.cookies.map(',
+  'pm\\.cookies\\.reduce\\(': 'bru.cookies.reduce(',
+  'pm\\.cookies\\.add\\(': 'bru.cookies.add(',
+  'pm\\.cookies\\.upsert\\(': 'bru.cookies.upsert(',
+  // Lossy: position-aware inserts map to add (position irrelevant for cookies)
+  'pm\\.cookies\\.prepend\\(': 'bru.cookies.add(',
+  'pm\\.cookies\\.insert\\(': 'bru.cookies.add(',
+  'pm\\.cookies\\.insertAfter\\(': 'bru.cookies.add('
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
@@ -107,35 +131,29 @@ const compiledReplacements = Object.entries(extendedReplacements).map(([pattern,
 
 const processRegexReplacement = (code) => {
   for (const { regex, replacement } of compiledReplacements) {
-    if (regex.test(code)) {
-      code = code.replace(regex, replacement);
-    }
-  }
-  if ((code.includes('pm.') || code.includes('postman.'))) {
-    code = code.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
+    code = code.replace(regex, replacement);
   }
   return code;
 };
 
-const postmanTranslation = (script, options = {}) => {
+const postmanTranslation = (script) => {
   let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
+  let translatedScript;
 
   try {
-    let translatedCode = translateCode(modifiedScript);
-    if ((translatedCode.includes('pm.') || translatedCode.includes('postman.'))) {
-      translatedCode = translatedCode.replace(/^(.*(pm\.|postman\.).*)$/gm, '// $1');
-    }
-    return translatedCode;
+    translatedScript = translateCode(modifiedScript);
   } catch (e) {
     console.warn('Error in postman translation:', e);
 
     try {
-      return processRegexReplacement(modifiedScript);
+      translatedScript = processRegexReplacement(modifiedScript);
     } catch (e) {
       console.warn('Error in postman translation:', e);
-      return modifiedScript;
+      translatedScript = modifiedScript;
     }
   }
+
+  return translatedScript;
 };
 
 export default postmanTranslation;

@@ -554,10 +554,12 @@ export const collectionsSlice = createSlice({
             collection.timeline = [];
           }
 
+          const timelineRequest = action.payload.requestSent || item.requestSent || item.request;
+
           // Ensure timestamp is a number (milliseconds since epoch)
-          const timestamp = item?.requestSent?.timestamp instanceof Date
-            ? item.requestSent.timestamp.getTime()
-            : item?.requestSent?.timestamp || Date.now();
+          const timestamp = timelineRequest?.timestamp instanceof Date
+            ? timelineRequest.timestamp.getTime()
+            : timelineRequest?.timestamp || Date.now();
 
           // Append the new timeline entry with numeric timestamp
           collection.timeline.push({
@@ -565,9 +567,10 @@ export const collectionsSlice = createSlice({
             collectionUid: collection.uid,
             folderUid: null,
             itemUid: item.uid,
+            requestUid: item.requestUid,
             timestamp: timestamp,
             data: {
-              request: item.requestSent || item.request,
+              request: timelineRequest,
               response: action.payload.response,
               timestamp: timestamp
             }
@@ -1033,6 +1036,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'ntlm';
               item.draft.request.auth.ntlm = action.payload.content;
               break;
+            case 'oauth1':
+              item.draft.request.auth.mode = 'oauth1';
+              item.draft.request.auth.oauth1 = action.payload.content;
+              break;
             case 'oauth2':
               item.draft.request.auth.mode = 'oauth2';
               item.draft.request.auth.oauth2 = action.payload.content;
@@ -1088,11 +1095,12 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       const existingOtherParams = item.draft.request.params?.filter((p) => p.type !== 'query') || [];
-      const newQueryParams = map(params, ({ uid, name = '', value = '', description = '', type = 'query', enabled = true }) => ({
+      const newQueryParams = map(params, ({ uid, name = '', value = '', description = '', annotations = null, type = 'query', enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         type,
         enabled
       }));
@@ -1334,11 +1342,12 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.headers = map(action.payload.headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+      item.draft.request.headers = map(action.payload.headers, ({ uid, name = '', value = '', description = '', annotations = null, enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         enabled
       }));
     },
@@ -1362,11 +1371,12 @@ export const collectionsSlice = createSlice({
         collection.draft.root.request = {};
       }
 
-      collection.draft.root.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+      collection.draft.root.request.headers = map(headers, ({ uid, name = '', value = '', description = '', annotations = null, enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         enabled
       }));
     },
@@ -1389,11 +1399,12 @@ export const collectionsSlice = createSlice({
       if (!folder.draft.request) {
         folder.draft.request = {};
       }
-      folder.draft.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+      folder.draft.request.headers = map(headers, ({ uid, name = '', value = '', description = '', annotations = null, enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         enabled
       }));
     },
@@ -2137,6 +2148,9 @@ export const collectionsSlice = createSlice({
           case 'ntlm':
             set(collection, 'draft.root.request.auth.ntlm', action.payload.content);
             break;
+          case 'oauth1':
+            set(collection, 'draft.root.request.auth.oauth1', action.payload.content);
+            break;
           case 'oauth2':
             set(collection, 'draft.root.request.auth.oauth2', action.payload.content);
             break;
@@ -2469,6 +2483,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'ntlm':
             set(folder, 'draft.request.auth.ntlm', action.payload.content);
+            break;
+          case 'oauth1':
+            set(folder, 'draft.request.auth.oauth1', action.payload.content);
             break;
           case 'apikey':
             set(folder, 'draft.request.auth.apikey', action.payload.content);
@@ -2957,6 +2974,9 @@ export const collectionsSlice = createSlice({
       item.preRequestScriptErrorMessage = null;
       item.postResponseScriptErrorMessage = null;
       item.testScriptErrorMessage = null;
+      item.preRequestScriptErrorContext = null;
+      item.postResponseScriptErrorContext = null;
+      item.testScriptErrorContext = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -2970,14 +2990,17 @@ export const collectionsSlice = createSlice({
 
           if (type === 'pre-request-script-execution') {
             item.preRequestScriptErrorMessage = action.payload.errorMessage;
+            item.preRequestScriptErrorContext = action.payload.errorContext || null;
           }
 
           if (type === 'post-response-script-execution') {
             item.postResponseScriptErrorMessage = action.payload.errorMessage;
+            item.postResponseScriptErrorContext = action.payload.errorContext || null;
           }
 
           if (type === 'test-script-execution') {
             item.testScriptErrorMessage = action.payload.errorMessage;
+            item.testScriptErrorContext = action.payload.errorContext || null;
           }
 
           if (type === 'request-queued') {
@@ -2996,6 +3019,23 @@ export const collectionsSlice = createSlice({
             if (item.requestState === 'queued') {
               item.requestState = 'sending';
               item.cancelTokenUid = cancelTokenUid;
+            }
+
+            // If response was already received (race condition: responseReceived fired before
+            // request-sent arrived), retroactively update the timeline entry that was created
+            // with the raw item.request fallback so it has the actual sent request data.
+            if (item.requestState === 'received' && Array.isArray(collection.timeline)) {
+              for (let i = collection.timeline.length - 1; i >= 0; i--) {
+                const entry = collection.timeline[i];
+                if (entry.itemUid === item.uid && entry.requestUid === requestUid && entry.type === 'request') {
+                  entry.data.request = requestSent;
+                  if (requestSent.timestamp) {
+                    entry.timestamp = requestSent.timestamp;
+                    entry.data.timestamp = requestSent.timestamp;
+                  }
+                  break;
+                }
+              }
             }
           }
 
@@ -3108,16 +3148,19 @@ export const collectionsSlice = createSlice({
         if (type === 'post-response-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.postResponseScriptErrorMessage = action.payload.errorMessage;
+          item.postResponseScriptErrorContext = action.payload.errorContext || null;
         }
 
         if (type === 'test-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.testScriptErrorMessage = action.payload.errorMessage;
+          item.testScriptErrorContext = action.payload.errorContext || null;
         }
 
         if (type === 'pre-request-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.preRequestScriptErrorMessage = action.payload.errorMessage;
+          item.preRequestScriptErrorContext = action.payload.errorContext || null;
         }
       }
     },
@@ -3149,9 +3192,10 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
         collection.runnerConfiguration = {
+          ...collection.runnerConfiguration,
           selectedRequestItems: selectedRequestItems || [],
           requestItemsOrder: requestItemsOrder || [],
-          delay: delay
+          ...(delay !== undefined && { delay })
         };
       }
     },

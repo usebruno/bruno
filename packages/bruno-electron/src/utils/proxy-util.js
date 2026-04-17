@@ -8,6 +8,7 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
 const { getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
 const { preferencesUtil } = require('../store/preferences');
+const { getPacResolver } = require('@usebruno/requests');
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -103,14 +104,28 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
   }
 }
 
-function setupProxyAgents({
+async function setupProxyAgents({
   requestConfig,
   proxyMode = 'off',
+  proxyModeReason = '',
   proxyConfig,
   httpsAgentRequestFields,
   interpolationOptions,
   timeline
 }) {
+  if (timeline) {
+    let modeMsg = `Proxy mode: ${proxyMode}`;
+    if (proxyMode === 'pac') modeMsg += ` | PAC URL: ${get(proxyConfig, 'pac.source') || '(empty)'}`;
+    else if (proxyMode === 'on') modeMsg += ` | ${get(proxyConfig, 'protocol')}://${get(proxyConfig, 'hostname')}:${get(proxyConfig, 'port')}`;
+    else if (proxyMode === 'off' && proxyModeReason) modeMsg += ` (${proxyModeReason})`;
+    timeline.push({ timestamp: new Date(), type: 'info', message: modeMsg });
+  }
+
+  // Clear stale agents so we always recreate them for the current URL
+  // (handles protocol switches, host changes, and proxy-bypass rules on redirects).
+  delete requestConfig.httpAgent;
+  delete requestConfig.httpsAgent;
+
   const disableCache = !preferencesUtil.isSslSessionCachingEnabled();
 
   // Ensure TLS options are properly set
@@ -146,14 +161,6 @@ function setupProxyAgents({
         proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
       } else {
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
-      }
-
-      if (timeline) {
-        timeline.push({
-          timestamp: new Date(),
-          type: 'info',
-          message: `Using proxy: ${proxyProtocol}://${proxyHostname}${uriPort}`
-        });
       }
 
       // When the proxy itself uses HTTPS, the agent connecting to it needs TLS options
@@ -211,6 +218,38 @@ function setupProxyAgents({
         }
       } catch (error) {
         throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
+      }
+    }
+  } else if (proxyMode === 'pac') {
+    const pacSource = get(proxyConfig, 'pac.source');
+    if (pacSource) {
+      if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving PAC: ${pacSource}` });
+      try {
+        const resolver = await getPacResolver({ pacSource, httpsAgentRequestFields });
+        const directives = await resolver.resolve(requestConfig.url);
+        if (directives && directives.length) {
+          const first = directives[0];
+          if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `PAC directives: ${directives.join('; ')}` });
+          if (/^(PROXY|HTTPS?)\s+/i.test(first)) {
+            const parts = first.split(/\s+/);
+            const keyword = parts[0].toUpperCase();
+            const hostPort = parts[1];
+            const scheme = keyword === 'HTTPS' ? 'https' : 'http';
+            const proxyUri = `${scheme}://${hostPort}`;
+            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
+            requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
+          } else if (/^SOCKS/i.test(first)) {
+            const hostPort = first.split(/\s+/)[1];
+            const proto = /^SOCKS4\s/i.test(first) ? 'socks4' : 'socks5';
+            const proxyUri = `${proto}://${hostPort}`;
+            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
+            requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
+          }
+        } else {
+          if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: 'PAC resolved: DIRECT (no proxy)' });
+        }
+      } catch (err) {
+        if (timeline) timeline.push({ timestamp: new Date(), type: 'error', message: `PAC resolution failed: ${err.message}` });
       }
     }
   }

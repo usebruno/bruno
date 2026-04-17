@@ -181,6 +181,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         name: header.name,
         value: header.value,
         description: header.description,
+        annotations: header.annotations,
         enabled: header.enabled
       };
     });
@@ -193,6 +194,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         name: param.name,
         value: param.value,
         description: param.description,
+        annotations: param.annotations,
         type: param.type,
         enabled: param.enabled
       };
@@ -382,6 +384,25 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               username: get(si.request, 'auth.ntlm.username', ''),
               password: get(si.request, 'auth.ntlm.password', ''),
               domain: get(si.request, 'auth.ntlm.domain', '')
+            };
+            break;
+          case 'oauth1':
+            di.request.auth.oauth1 = {
+              consumerKey: get(si.request, 'auth.oauth1.consumerKey', ''),
+              consumerSecret: get(si.request, 'auth.oauth1.consumerSecret', ''),
+              accessToken: get(si.request, 'auth.oauth1.accessToken', ''),
+              accessTokenSecret: get(si.request, 'auth.oauth1.accessTokenSecret', ''),
+              callbackUrl: get(si.request, 'auth.oauth1.callbackUrl', ''),
+              verifier: get(si.request, 'auth.oauth1.verifier', ''),
+              signatureMethod: get(si.request, 'auth.oauth1.signatureMethod', 'HMAC-SHA1'),
+              privateKey: get(si.request, 'auth.oauth1.privateKey', ''),
+              privateKeyType: get(si.request, 'auth.oauth1.privateKeyType', 'text'),
+              timestamp: get(si.request, 'auth.oauth1.timestamp', ''),
+              nonce: get(si.request, 'auth.oauth1.nonce', ''),
+              version: get(si.request, 'auth.oauth1.version', '1.0'),
+              realm: get(si.request, 'auth.oauth1.realm', ''),
+              placement: get(si.request, 'auth.oauth1.placement', 'header'),
+              includeBodyHash: get(si.request, 'auth.oauth1.includeBodyHash', false)
             };
             break;
           case 'oauth2':
@@ -726,6 +747,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
         name: param.name,
         value: param.value,
         description: param.description,
+        annotations: param.annotations,
         type: param.type,
         enabled: param.enabled
       });
@@ -738,6 +760,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -794,6 +817,7 @@ export const transformCollectionRootToSave = (collection) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -804,6 +828,10 @@ export const transformCollectionRootToSave = (collection) => {
 export const transformFolderRootToSave = (folder) => {
   const _folder = folder.draft ? folder.draft : folder.root;
   const folderRootToSave = {
+    meta: {
+      name: folder.name,
+      seq: folder.seq
+    },
     docs: _folder.docs,
     request: {
       auth: _folder?.request?.auth,
@@ -820,6 +848,7 @@ export const transformFolderRootToSave = (folder) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -919,6 +948,10 @@ export const humanizeRequestAuthMode = (mode) => {
     }
     case 'ntlm': {
       label = 'NTLM';
+      break;
+    }
+    case 'oauth1': {
+      label = 'OAuth 1.0';
       break;
     }
     case 'oauth2': {

@@ -50,6 +50,18 @@ describe('encodeUrl', () => {
       expect(encodeUrl(url)).toBe(expected);
     });
 
+    it('should handle query parameters without values (no = sign)', () => {
+      const url = 'https://example.com/api?flag&age=25&verbose';
+      const expected = 'https://example.com/api?flag&age=25&verbose';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should handle mixed empty-value and no-value parameters', () => {
+      const url = 'https://example.com/api?seat=&table=2&flag';
+      const expected = 'https://example.com/api?seat=&table=2&flag';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
     it('should encode query parameters with pipe operator', () => {
       const url = 'https://example.com/api?filter=status|active&sort=name|asc&tags=frontend|backend|api';
       const expected = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc&tags=frontend%7Cbackend%7Capi';
@@ -159,13 +171,23 @@ describe('parseQueryParams', () => {
     expect(result).toEqual([]);
   });
 
-  it('should handle query parameters with empty values', () => {
+  it('should handle query parameters with empty values (has = sign)', () => {
     const queryString = 'name=&age=25&active=';
     const result = parseQueryParams(queryString);
     expect(result).toEqual([
       { name: 'name', value: '' },
       { name: 'age', value: '25' },
       { name: 'active', value: '' }
+    ]);
+  });
+
+  it('should handle query parameters without values (no = sign)', () => {
+    const queryString = 'flag&age=25&verbose';
+    const result = parseQueryParams(queryString);
+    expect(result).toEqual([
+      { name: 'flag', value: undefined },
+      { name: 'age', value: '25' },
+      { name: 'verbose', value: undefined }
     ]);
   });
 
@@ -217,5 +239,24 @@ describe('buildQueryString', () => {
     ];
     const result = buildQueryString(params, { encode: false });
     expect(result).toBe('filter=status|active&sort=name|asc');
+  });
+
+  it('should omit = for params with undefined value', () => {
+    const params = [
+      { name: 'flag', value: undefined },
+      { name: 'age', value: '25' },
+      { name: 'verbose' }
+    ];
+    const result = buildQueryString(params);
+    expect(result).toBe('flag&age=25&verbose');
+  });
+
+  it('should include = for params with empty string value', () => {
+    const params = [
+      { name: 'seat', value: '' },
+      { name: 'table', value: '2' }
+    ];
+    const result = buildQueryString(params);
+    expect(result).toBe('seat=&table=2');
   });
 });

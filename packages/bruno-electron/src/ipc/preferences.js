@@ -7,6 +7,7 @@ const { getCachedSystemProxy, fetchSystemProxy } = require('../store/system-prox
 const { resolveDefaultLocation } = require('../utils/default-location');
 const onboardUser = require('../app/onboarding');
 const LastOpenedCollections = require('../store/last-opened-collections');
+const WindowStateStore = require('../store/window-state');
 const { clearAgentCache } = require('@usebruno/requests');
 
 const registerPreferencesIpc = (mainWindow) => {
@@ -66,8 +67,13 @@ const registerPreferencesIpc = (mainWindow) => {
     }
   });
 
-  ipcMain.on('renderer:theme-change', (event, theme) => {
+  ipcMain.on('renderer:theme-change', (event, theme, themeBg) => {
     nativeTheme.themeSource = theme;
+    const windowStateStore = new WindowStateStore();
+    windowStateStore.setThemeMode(theme);
+    if (themeBg) {
+      windowStateStore.setThemeBg(themeBg);
+    }
   });
 
   ipcMain.handle('renderer:get-system-proxy-variables', async () => {

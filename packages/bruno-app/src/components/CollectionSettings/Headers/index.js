@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { setCollectionHeaders } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import SingleLineEditor from 'components/SingleLineEditor';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
@@ -18,10 +19,20 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 const Headers = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const headers = collection.draft?.root
     ? get(collection, 'draft.root.request.headers', [])
     : get(collection, 'root.request.headers', []);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const collectionHeadersWidths = focusedTab?.tableColumnWidths?.['collection-headers'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const toggleBulkEditMode = () => {
     setIsBulkEditMode(!isBulkEditMode);
@@ -114,11 +125,14 @@ const Headers = ({ collection }) => {
         Add request headers that will be sent with every request in this collection.
       </div>
       <EditableTable
+        tableId="collection-headers"
         columns={columns}
         rows={headers}
         onChange={handleHeadersChange}
         defaultRow={defaultRow}
         getRowError={getRowError}
+        columnWidths={collectionHeadersWidths}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('collection-headers', widths)}
       />
       <div className="flex justify-end mt-2">
         <button className="text-link select-none" onClick={toggleBulkEditMode}>

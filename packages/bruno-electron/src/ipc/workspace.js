@@ -10,6 +10,7 @@ const yaml = require('js-yaml');
 const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
 const { globalEnvironmentsManager } = require('../store/workspace-environments');
+const { globalEnvironmentsStore } = require('../store/global-environments');
 
 const {
   createWorkspaceConfig,
@@ -280,6 +281,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
   ipcMain.handle('renderer:close-workspace', async (event, workspacePath) => {
     try {
       lastOpenedWorkspaces.remove(workspacePath);
+      globalEnvironmentsStore.removeActiveGlobalEnvironmentUidForWorkspace(workspacePath);
 
       if (workspaceWatcher) {
         workspaceWatcher.removeWatcher(workspacePath);
@@ -463,14 +465,6 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
   ipcMain.handle('renderer:delete-workspace-environment', async (event, workspacePath, environmentUid) => {
     try {
       return await globalEnvironmentsManager.deleteGlobalEnvironment(workspacePath, { environmentUid });
-    } catch (error) {
-      throw error;
-    }
-  });
-
-  ipcMain.handle('renderer:select-workspace-environment', async (event, workspacePath, environmentUid) => {
-    try {
-      return await globalEnvironmentsManager.selectGlobalEnvironment(workspacePath, { environmentUid });
     } catch (error) {
       throw error;
     }
@@ -708,6 +702,8 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     } catch (error) {
       console.error('Error initializing workspaces:', error);
     }
+
+    ipcMain.emit('main:workspaces-ready', win);
   });
 };
 

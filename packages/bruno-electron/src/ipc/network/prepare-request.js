@@ -44,6 +44,25 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           domain: get(collectionAuth, 'ntlm.domain')
         };
         break;
+      case 'oauth1':
+        axiosRequest.oauth1config = {
+          consumerKey: get(collectionAuth, 'oauth1.consumerKey'),
+          consumerSecret: get(collectionAuth, 'oauth1.consumerSecret'),
+          accessToken: get(collectionAuth, 'oauth1.accessToken'),
+          accessTokenSecret: get(collectionAuth, 'oauth1.accessTokenSecret'),
+          callbackUrl: get(collectionAuth, 'oauth1.callbackUrl'),
+          verifier: get(collectionAuth, 'oauth1.verifier'),
+          signatureMethod: get(collectionAuth, 'oauth1.signatureMethod'),
+          privateKey: get(collectionAuth, 'oauth1.privateKey'),
+          privateKeyType: get(collectionAuth, 'oauth1.privateKeyType'),
+          timestamp: get(collectionAuth, 'oauth1.timestamp'),
+          nonce: get(collectionAuth, 'oauth1.nonce'),
+          version: get(collectionAuth, 'oauth1.version'),
+          realm: get(collectionAuth, 'oauth1.realm'),
+          placement: get(collectionAuth, 'oauth1.placement'),
+          includeBodyHash: get(collectionAuth, 'oauth1.includeBodyHash')
+        };
+        break;
       case 'wsse':
         const username = get(collectionAuth, 'wsse.username', '');
         const password = get(collectionAuth, 'wsse.password', '');
@@ -192,6 +211,26 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(request, 'auth.ntlm.password'),
           domain: get(request, 'auth.ntlm.domain')
         };
+        break;
+      case 'oauth1':
+        axiosRequest.oauth1config = {
+          consumerKey: get(request, 'auth.oauth1.consumerKey'),
+          consumerSecret: get(request, 'auth.oauth1.consumerSecret'),
+          accessToken: get(request, 'auth.oauth1.accessToken'),
+          accessTokenSecret: get(request, 'auth.oauth1.accessTokenSecret'),
+          callbackUrl: get(request, 'auth.oauth1.callbackUrl'),
+          verifier: get(request, 'auth.oauth1.verifier'),
+          signatureMethod: get(request, 'auth.oauth1.signatureMethod'),
+          privateKey: get(request, 'auth.oauth1.privateKey'),
+          privateKeyType: get(request, 'auth.oauth1.privateKeyType'),
+          timestamp: get(request, 'auth.oauth1.timestamp'),
+          nonce: get(request, 'auth.oauth1.nonce'),
+          version: get(request, 'auth.oauth1.version'),
+          realm: get(request, 'auth.oauth1.realm'),
+          placement: get(request, 'auth.oauth1.placement'),
+          includeBodyHash: get(request, 'auth.oauth1.includeBodyHash')
+        };
+        break;
       case 'oauth2':
         const grantType = get(request, 'auth.oauth2.grantType');
         switch (grantType) {
@@ -466,6 +505,10 @@ const prepareRequest = async (item, collection = {}, abortController) => {
 
   if (request.tests) {
     axiosRequest.tests = request.tests;
+  }
+
+  if (request.testsMetadata) {
+    axiosRequest.testsMetadata = request.testsMetadata;
   }
 
   axiosRequest.vars = request.vars;

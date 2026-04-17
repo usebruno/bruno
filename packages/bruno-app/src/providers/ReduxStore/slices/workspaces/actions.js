@@ -737,28 +737,6 @@ export const deleteWorkspaceEnvironment = (workspaceUid, environmentUid) => {
   };
 };
 
-export const selectWorkspaceEnvironment = (workspaceUid, environmentUid) => {
-  return async (dispatch, getState) => {
-    try {
-      const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
-      if (!workspace) {
-        throw new Error('Workspace not found');
-      }
-
-      await ipcRenderer.invoke('renderer:select-workspace-environment', workspace.pathname, environmentUid);
-
-      dispatch(updateWorkspace({
-        uid: workspaceUid,
-        activeEnvironmentUid: environmentUid
-      }));
-
-      return true;
-    } catch (error) {
-      throw error;
-    }
-  };
-};
-
 export const importWorkspaceEnvironment = (workspaceUid, environmentData) => {
   return async (dispatch, getState) => {
     try {
@@ -1022,6 +1000,11 @@ export const mountScratchCollection = (workspaceUid) => {
         collectionUid: scratchCollectionUid,
         brunoConfig
       });
+
+      // Map scratch collection to workspace so getProcessEnvVars can resolve workspace .env values
+      if (workspace.pathname) {
+        await ipcRenderer.invoke('renderer:set-collection-workspace', scratchCollectionUid, workspace.pathname);
+      }
 
       await dispatch(openScratchCollectionEvent(scratchCollectionUid, tempDirectoryPath, brunoConfig));
 
