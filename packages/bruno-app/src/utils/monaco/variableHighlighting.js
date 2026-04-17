@@ -226,7 +226,7 @@ export const setupVariableTooltip = (editor, collectionRef, itemRef, dispatch) =
     const scopeInfo = detectScope(varName);
     const scopeType = scopeInfo.type;
     const scopeLabel = SCOPE_LABELS[scopeType] || 'Unknown';
-    const rawValue = scopeInfo.value !== undefined ? String(scopeInfo.value) : '';
+    let rawValue = scopeInfo.value !== undefined ? String(scopeInfo.value) : '';
     const isReadOnly = READ_ONLY_SCOPES.has(scopeType)
       || (collection?.runtimeVariables && collection.runtimeVariables[varName]);
     const isSecret = scopeType !== 'undefined' && isVariableSecret(scopeInfo);
@@ -234,8 +234,8 @@ export const setupVariableTooltip = (editor, collectionRef, itemRef, dispatch) =
     const shouldMask = isSecret || hasSecretRefs;
 
     let isRevealed = false;
-    const interpolatedValue = getInterpolatedValue(rawValue);
-    const displayValue = typeof scopeInfo.value === 'object'
+    let interpolatedValue = getInterpolatedValue(rawValue);
+    let displayValue = typeof scopeInfo.value === 'object'
       ? JSON.stringify(scopeInfo.value, null, 2)
       : interpolatedValue;
 
@@ -344,6 +344,10 @@ export const setupVariableTooltip = (editor, collectionRef, itemRef, dispatch) =
         const newValue = editorEl.value;
         if (newValue !== rawValue && dispatch) {
           dispatch(updateVariableInScope(varName, newValue, scopeInfo, collection.uid));
+          rawValue = newValue;
+          interpolatedValue = getInterpolatedValue(rawValue);
+          displayValue = interpolatedValue;
+          updateValueDisplay();
         }
         editorEl.style.display = 'none';
         valueDisplay.style.display = '';
