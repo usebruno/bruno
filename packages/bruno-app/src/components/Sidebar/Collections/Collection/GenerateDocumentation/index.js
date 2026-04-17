@@ -15,6 +15,7 @@ import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsL
 import { brunoToOpenCollection } from '@usebruno/converters';
 import { sanitizeName } from 'utils/common/regex';
 import { escapeHtml } from 'utils/response';
+import { resolveCollectionForHtmlDocumentation } from 'utils/exporters/html-documentation';
 
 const CDN_BASE_URL = 'https://cdn.opencollection.com';
 
@@ -76,7 +77,9 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
     try {
       const collectionCopy = cloneDeep(collection);
       const transformedCollection = transformCollectionToSaveToExportAsFile(collectionCopy);
-      const openCollection = brunoToOpenCollection(transformedCollection);
+      const openCollection = resolveCollectionForHtmlDocumentation(
+        brunoToOpenCollection(transformedCollection)
+      );
 
       openCollection.extensions = {
         ...openCollection.extensions,

@@ -522,12 +522,14 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         }
       }
 
-      if (si.type == 'folder' && si?.root) {
+      const folderRoot = si?.draft || si?.root;
+
+      if (si.type == 'folder' && folderRoot) {
         di.root = {
           request: {}
         };
 
-        let { request, meta, docs } = si?.root || {};
+        let { request, meta, docs } = folderRoot;
         let { auth, headers, script = {}, vars = {}, tests } = request || {};
 
         // folder level auth
@@ -613,7 +615,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     request: {}
   };
 
-  let { request, docs, meta } = collection?.root || {};
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  let { request, docs, meta } = collectionRoot;
   let { auth, headers, script = {}, vars = {}, tests } = request || {};
 
   // collection level auth

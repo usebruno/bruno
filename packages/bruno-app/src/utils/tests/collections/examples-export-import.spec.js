@@ -1,6 +1,7 @@
 import { transformCollectionToSaveToExportAsFile, transformRequestToSaveToFilesystem } from '../../collections/index';
 import { transformItemsInCollection } from '../../importers/common';
 import { deleteUidsInItems, transformItem } from '../../collections/export';
+import { resolveCollectionForHtmlDocumentation } from '../../exporters/html-documentation';
 
 describe('Examples Export/Import', () => {
   describe('transformCollectionToSaveToExportAsFile', () => {
@@ -238,6 +239,71 @@ describe('Examples Export/Import', () => {
 
       expect(httpRequest.examples).toHaveLength(0);
     });
+
+    it('should export collection docs from draft root', () => {
+      const collection = {
+        uid: 'test-collection',
+        name: 'Test Collection',
+        items: [],
+        root: {
+          docs: 'Saved docs'
+        },
+        draft: {
+          root: {
+            docs: '# Overview\nDraft overview docs'
+          }
+        }
+      };
+
+      const result = transformCollectionToSaveToExportAsFile(collection);
+
+      expect(result.root.docs).toBe('# Overview\nDraft overview docs');
+    });
+
+    it('should export folder docs from folder draft', () => {
+      const collection = {
+        uid: 'test-collection',
+        name: 'Test Collection',
+        items: [
+          {
+            uid: 'folder-1',
+            type: 'folder',
+            name: 'Folder One',
+            seq: 1,
+            root: {
+              docs: 'Saved folder docs'
+            },
+            draft: {
+              docs: '# Folder Overview\nDraft folder overview docs'
+            }
+          }
+        ]
+      };
+
+      const result = transformCollectionToSaveToExportAsFile(collection);
+
+      expect(result.items[0].root.docs).toBe('# Folder Overview\nDraft folder overview docs');
+    });
+
+    it('should omit collection docs when draft docs are empty', () => {
+      const collection = {
+        uid: 'test-collection',
+        name: 'Test Collection',
+        items: [],
+        root: {
+          docs: 'Saved docs that should not be exported'
+        },
+        draft: {
+          root: {
+            docs: ''
+          }
+        }
+      };
+
+      const result = transformCollectionToSaveToExportAsFile(collection);
+
+      expect(result.root).toBeUndefined();
+    });
   });
 
   describe('transformRequestToSaveToFilesystem', () => {
@@ -282,6 +348,86 @@ describe('Examples Export/Import', () => {
       expect(result.examples).toHaveLength(1);
       expect(result.examples[0].name).toBe('Test Example');
       expect(result.examples[0].response.status).toEqual(200);
+    });
+  });
+
+  describe('resolveCollectionForHtmlDocumentation', () => {
+    it('should create a top-level Overview folder from collection docs', () => {
+      const openCollection = {
+        info: { name: 'Test Collection' },
+        docs: {
+          content: '# Overview\nCollection overview docs',
+          type: 'text/markdown'
+        },
+        items: [
+          {
+            info: { name: 'Get users', type: 'http' },
+            http: { method: 'GET', url: 'https://api.example.com/users' }
+          }
+        ]
+      };
+
+      const result = resolveCollectionForHtmlDocumentation(openCollection);
+
+      expect(result.docs).toBeUndefined();
+      expect(result.items).toHaveLength(2);
+      expect(result.items[0].info.name).toBe('Overview');
+      expect(result.items[0].info.type).toBe('folder');
+      expect(result.items[0].docs.content).toBe('# Overview\nCollection overview docs');
+      expect(result.items[0].docs.type).toBe('text/markdown');
+    });
+
+    it('should handle docs as string', () => {
+      const openCollection = {
+        info: { name: 'Test Collection' },
+        docs: 'Collection overview docs',
+        items: []
+      };
+
+      const result = resolveCollectionForHtmlDocumentation(openCollection);
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].info.name).toBe('Overview');
+      expect(result.items[0].docs.content).toBe('Collection overview docs');
+    });
+
+    it('should not create duplicate Overview folder when one already exists', () => {
+      const openCollection = {
+        info: { name: 'Test Collection' },
+        docs: {
+          content: '# Overview\nCollection overview docs',
+          type: 'text/markdown'
+        },
+        items: [
+          {
+            info: { name: 'Overview', type: 'folder' },
+            docs: {
+              content: 'Existing overview docs',
+              type: 'text/markdown'
+            }
+          }
+        ]
+      };
+
+      const result = resolveCollectionForHtmlDocumentation(openCollection);
+
+      expect(result).toBe(openCollection);
+      expect(result.items).toHaveLength(1);
+    });
+
+    it('should leave collection unchanged when docs are empty', () => {
+      const openCollection = {
+        info: { name: 'Test Collection' },
+        docs: {
+          content: '   ',
+          type: 'text/markdown'
+        },
+        items: []
+      };
+
+      const result = resolveCollectionForHtmlDocumentation(openCollection);
+
+      expect(result).toBe(openCollection);
     });
   });
 
