@@ -5,7 +5,7 @@ import StyledWrapper from './StyledWrapper';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import Button from 'ui/Button';
-import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
+import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
 
 const Vars = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -14,7 +14,8 @@ const Vars = ({ collection, folder }) => {
   const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
 
   const wrapperRef = useRef(null);
-  usePersistedContainerScroll(wrapperRef, '.folder-settings-content', `folder-vars-scroll-${folder.uid}`);
+  const [scroll, setScroll] = usePersistedState({ key: `folder-vars-scroll-${folder.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.folder-settings-content', onChange: setScroll, initialValue: scroll });
 
   return (
     <StyledWrapper className="w-full flex flex-col" ref={wrapperRef}>

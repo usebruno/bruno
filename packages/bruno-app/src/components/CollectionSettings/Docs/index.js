@@ -1,8 +1,10 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
+import find from 'lodash/find';
 import { updateCollectionDocs, deleteCollectionDraft } from 'providers/ReduxStore/slices/collections';
+import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
@@ -11,29 +13,26 @@ import StyledWrapper from './StyledWrapper';
 import { IconEdit, IconX, IconFileText } from '@tabler/icons';
 import Button from 'ui/Button/index';
 import ActionIcon from 'ui/ActionIcon/index';
-import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
+import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
-  const [isEditing, setIsEditing] = useState(false);
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const isEditing = focusedTab?.docsEditing || false;
   const docs = collection.draft?.root ? get(collection, 'draft.root.docs', '') : get(collection, 'root.docs', '');
   const preferences = useSelector((state) => state.app.preferences);
 
   // StyledWrapper has overflow-y: auto — use null selector.
   // Preview mode: hook tracks wrapper scroll. Edit mode: CodeEditor's onScroll/initialScroll.
   const wrapperRef = useRef(null);
-  const storageKey = usePersistedContainerScroll(wrapperRef, null, `collection-docs-scroll-${collection.uid}`, !isEditing);
-
-  const readScroll = () => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      return raw !== null ? JSON.parse(raw) : 0;
-    } catch { return 0; }
-  };
+  const [scroll, setScroll] = usePersistedState({ key: `collection-docs-scroll-${collection.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, onChange: setScroll, enabled: !isEditing, initialValue: scroll });
 
   const toggleViewMode = () => {
-    setIsEditing((prev) => !prev);
+    dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: !isEditing }));
   };
 
   const onEdit = (value) => {
@@ -94,8 +93,8 @@ const Docs = ({ collection }) => {
           mode="application/text"
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
-          initialScroll={readScroll()}
-          onScroll={(editor) => localStorage.setItem(storageKey, JSON.stringify(editor.doc.scrollTop))}
+          initialScroll={scroll}
+          onScroll={setScroll}
         />
       ) : (
         <div className="pl-1">

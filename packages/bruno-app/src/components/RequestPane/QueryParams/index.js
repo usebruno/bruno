@@ -14,7 +14,7 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import BulkEditor from '../../BulkEditor';
-import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
+import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -27,7 +27,8 @@ const QueryParams = ({ item, collection }) => {
 
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
   const wrapperRef = useRef(null);
-  usePersistedContainerScroll(wrapperRef, '.flex-boundary', `request-params-scroll-${item.uid}`);
+  const [scroll, setScroll] = usePersistedState({ key: `request-params-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
 
   // Get column widths from Redux
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);

@@ -2,14 +2,15 @@ import React, { useRef } from 'react';
 import get from 'lodash/get';
 import VarsTable from './VarsTable';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
+import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
 
 const Vars = ({ item, collection }) => {
   const requestVars = item.draft ? get(item, 'draft.request.vars.req') : get(item, 'request.vars.req');
   const responseVars = item.draft ? get(item, 'draft.request.vars.res') : get(item, 'request.vars.res');
 
   const wrapperRef = useRef(null);
-  usePersistedContainerScroll(wrapperRef, '.flex-boundary', `request-vars-scroll-${item.uid}`);
+  const [scroll, setScroll] = usePersistedState({ key: `request-vars-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
 
   return (
     <StyledWrapper className="w-full flex flex-col" ref={wrapperRef}>

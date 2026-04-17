@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
+import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
 import {
   IconChevronDown,
   IconChevronRight,
@@ -86,7 +86,8 @@ const TestResults = ({ item, results, assertionResults, preRequestTestResults, p
   postResponseTestResults = postResponseTestResults || [];
 
   const wrapperRef = useRef(null);
-  usePersistedContainerScroll(wrapperRef, '.response-tab-content', `response-tests-scroll-${item?.uid}`);
+  const [scroll, setScroll] = usePersistedState({ key: `response-tests-scroll-${item?.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.response-tab-content', onChange: setScroll, initialValue: scroll });
 
   const [expandedSections, setExpandedSections] = useState({
     preRequest: true,

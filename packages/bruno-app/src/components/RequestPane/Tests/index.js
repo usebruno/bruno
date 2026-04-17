@@ -5,7 +5,7 @@ import CodeEditor from 'components/CodeEditor';
 import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import { usePersistedEditorScroll } from 'hooks/usePersistedState/usePersistedEditorScroll';
+import { usePersistedState } from 'hooks/usePersistedState';
 
 const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -14,7 +14,7 @@ const Tests = ({ item, collection }) => {
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-  const testsScroll = usePersistedEditorScroll(testsEditorRef, `request-tests-scroll-${item.uid}`);
+  const [testsScroll, setTestsScroll] = usePersistedState({ key: `request-tests-scroll-${item.uid}`, default: 0 });
 
   const onEdit = (value) => {
     dispatch(
@@ -44,6 +44,7 @@ const Tests = ({ item, collection }) => {
         onSave={onSave}
         showHintsFor={['req', 'res', 'bru']}
         initialScroll={testsScroll}
+        onScroll={setTestsScroll}
       />
     </div>
   );

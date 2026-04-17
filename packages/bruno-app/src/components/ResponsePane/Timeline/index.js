@@ -4,7 +4,7 @@ import { findItemInCollection, findParentItemInCollection } from 'utils/collecti
 import { get } from 'lodash';
 import TimelineItem from './TimelineItem/index';
 import GrpcTimelineItem from './GrpcTimelineItem/index';
-import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
+import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
 
 const getEffectiveAuthSource = (collection, item) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
@@ -46,7 +46,8 @@ const getEffectiveAuthSource = (collection, item) => {
 
 const Timeline = ({ collection, item }) => {
   const wrapperRef = useRef(null);
-  usePersistedContainerScroll(wrapperRef, null, `response-timeline-scroll-${item.uid}`);
+  const [scroll, setScroll] = usePersistedState({ key: `response-timeline-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: null, onChange: setScroll, initialValue: scroll });
   // Get the effective auth source if auth mode is inherit
   const authSource = getEffectiveAuthSource(collection, item);
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';

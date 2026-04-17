@@ -10,7 +10,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
+import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -22,19 +22,9 @@ const Documentation = ({ item, collection }) => {
   const docs = item.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
   const preferences = useSelector((state) => state.app.preferences);
 
-  // Scroll persistence for both edit (CodeMirror) and preview (Markdown) modes using one shared key.
-  // Preview mode: hook tracks .flex-boundary scroll (enabled only when not editing).
-  // Edit mode: CodeEditor's onScroll/initialScroll props write/read the same localStorage key.
   const wrapperRef = useRef(null);
-  // Pass null selector — wrapperRef itself is the scrollable container (has overflow-y: auto)
-  const storageKey = usePersistedContainerScroll(wrapperRef, null, `request-docs-scroll-${item.uid}`, !isEditing);
-
-  const readScroll = () => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      return raw !== null ? JSON.parse(raw) || 0 : 0;
-    } catch { return 0; }
-  };
+  const [scroll, setScroll] = usePersistedState({ key: `request-docs-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, onChange: setScroll, enabled: !isEditing, initialValue: scroll });
 
   const toggleViewMode = () => {
     dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: !isEditing }));
@@ -72,8 +62,8 @@ const Documentation = ({ item, collection }) => {
           onEdit={onEdit}
           onSave={onSave}
           mode="application/text"
-          initialScroll={readScroll()}
-          onScroll={(editor) => localStorage.setItem(storageKey, JSON.stringify(editor.doc.scrollTop))}
+          initialScroll={scroll}
+          onScroll={setScroll}
         />
       ) : (
         <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />

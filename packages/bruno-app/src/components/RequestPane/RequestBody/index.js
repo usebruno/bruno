@@ -9,7 +9,7 @@ import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import FileBody from '../FileBody/index';
-import { usePersistedEditorScroll } from 'hooks/usePersistedState/usePersistedEditorScroll';
+import { usePersistedState } from 'hooks/usePersistedState';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -18,7 +18,7 @@ const RequestBody = ({ item, collection }) => {
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-  const bodyScroll = usePersistedEditorScroll(editorRef, `request-body-${bodyMode}-scroll-${item.uid}`);
+  const [bodyScroll, setBodyScroll] = usePersistedState({ key: `request-body-${bodyMode}-scroll-${item.uid}`, default: 0 });
 
   const onEdit = (value) => {
     dispatch(
@@ -62,6 +62,7 @@ const RequestBody = ({ item, collection }) => {
           onRun={onRun}
           onSave={onSave}
           initialScroll={bodyScroll}
+          onScroll={setBodyScroll}
           mode={codeMirrorMode[bodyMode]}
           enableVariableHighlighting={true}
           showHintsFor={['variables']}

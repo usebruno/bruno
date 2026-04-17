@@ -7,7 +7,7 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
-import { usePersistedEditorScroll } from 'hooks/usePersistedState/usePersistedEditorScroll';
+import { usePersistedState } from 'hooks/usePersistedState';
 
 const Tests = ({ collection }) => {
   const dispatch = useDispatch();
@@ -16,7 +16,7 @@ const Tests = ({ collection }) => {
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-  const testsScroll = usePersistedEditorScroll(testsEditorRef, `collection-tests-scroll-${collection.uid}`);
+  const [testsScroll, setTestsScroll] = usePersistedState({ key: `collection-tests-scroll-${collection.uid}`, default: 0 });
 
   const onEdit = (value) => {
     dispatch(
@@ -44,6 +44,7 @@ const Tests = ({ collection }) => {
         fontSize={get(preferences, 'font.codeFontSize')}
         showHintsFor={['req', 'res', 'bru']}
         initialScroll={testsScroll}
+        onScroll={setTestsScroll}
       />
 
       <div className="mt-6">

@@ -5,7 +5,7 @@ import StyledWrapper from './StyledWrapper';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import Button from 'ui/Button';
-import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
+import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
 
 const Vars = ({ collection }) => {
   const dispatch = useDispatch();
@@ -14,7 +14,8 @@ const Vars = ({ collection }) => {
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
   const wrapperRef = useRef(null);
-  usePersistedContainerScroll(wrapperRef, '.collection-settings-content', `collection-vars-scroll-${collection.uid}`);
+  const [scroll, setScroll] = usePersistedState({ key: `collection-vars-scroll-${collection.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.collection-settings-content', onChange: setScroll, initialValue: scroll });
 
   return (
     <StyledWrapper className="w-full flex flex-col" ref={wrapperRef}>

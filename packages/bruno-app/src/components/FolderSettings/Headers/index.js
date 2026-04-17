@@ -13,7 +13,7 @@ import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from 'components/BulkEditor/index';
 import Button from 'ui/Button';
 import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
-import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
+import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
@@ -27,7 +27,8 @@ const Headers = ({ collection, folder }) => {
     : get(folder, 'root.request.headers', []);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
   const wrapperRef = useRef(null);
-  usePersistedContainerScroll(wrapperRef, '.folder-settings-content', `folder-headers-scroll-${folder.uid}`);
+  const [scroll, setScroll] = usePersistedState({ key: `folder-headers-scroll-${folder.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.folder-settings-content', onChange: setScroll, initialValue: scroll });
 
   // Get column widths from Redux
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);

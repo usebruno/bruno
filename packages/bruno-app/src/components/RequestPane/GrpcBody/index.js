@@ -10,7 +10,7 @@ import useLocalStorage from 'hooks/useLocalStorage';
 import CodeEditor from 'components/CodeEditor/index';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedEditorScroll } from 'hooks/usePersistedState/usePersistedEditorScroll';
+import { usePersistedState } from 'hooks/usePersistedState';
 import { IconSend, IconRefresh, IconWand, IconPlus, IconTrash } from '@tabler/icons';
 import ToolHint from 'components/ToolHint/index';
 import { toastError } from 'utils/common/error';
@@ -74,7 +74,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
   const editorRef = useRef(null);
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-  const grpcScroll = usePersistedEditorScroll(editorRef, `request-grpc-msg-scroll-${item.uid}-${index}`);
+  const [grpcScroll, setGrpcScroll] = usePersistedState({ key: `request-grpc-msg-scroll-${item.uid}-${index}`, default: 0 });
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const isConnectionActive = useSelector((state) => state.collections.activeConnections.includes(item.uid));
 
@@ -214,6 +214,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
           mode="application/ld+json"
           enableVariableHighlighting={true}
           initialScroll={grpcScroll}
+          onScroll={setGrpcScroll}
         />
       </div>
     </div>

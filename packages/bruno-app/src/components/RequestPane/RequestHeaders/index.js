@@ -12,7 +12,7 @@ import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from '../../BulkEditor';
 import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
-import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
+import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
@@ -24,7 +24,8 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
   const wrapperRef = useRef(null);
-  usePersistedContainerScroll(wrapperRef, '.flex-boundary', `request-headers-scroll-${item.uid}`);
+  const [scroll, setScroll] = usePersistedState({ key: `request-headers-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
 
   // Get column widths from Redux
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);

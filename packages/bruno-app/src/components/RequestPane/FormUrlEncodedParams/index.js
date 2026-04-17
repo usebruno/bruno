@@ -11,13 +11,14 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
+import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
 
 const FormUrlEncodedParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const wrapperRef = useRef(null);
-  usePersistedContainerScroll(wrapperRef, '.flex-boundary', `request-body-formUrlEncoded-scroll-${item.uid}`);
+  const [scroll, setScroll] = usePersistedState({ key: `request-body-formUrlEncoded-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const params = item.draft ? get(item, 'draft.request.body.formUrlEncoded') : get(item, 'request.body.formUrlEncoded');

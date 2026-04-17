@@ -7,7 +7,7 @@ import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions'
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
-import { usePersistedEditorScroll } from 'hooks/usePersistedState/usePersistedEditorScroll';
+import { usePersistedState } from 'hooks/usePersistedState';
 
 const Tests = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -16,7 +16,7 @@ const Tests = ({ collection, folder }) => {
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-  const testsScroll = usePersistedEditorScroll(testsEditorRef, `folder-tests-scroll-${folder.uid}`);
+  const [testsScroll, setTestsScroll] = usePersistedState({ key: `folder-tests-scroll-${folder.uid}`, default: 0 });
 
   const onEdit = (value) => {
     dispatch(
@@ -45,6 +45,7 @@ const Tests = ({ collection, folder }) => {
         fontSize={get(preferences, 'font.codeFontSize')}
         showHintsFor={['req', 'res', 'bru']}
         initialScroll={testsScroll}
+        onScroll={setTestsScroll}
       />
 
       <div className="mt-6">

@@ -178,6 +178,17 @@ export default class CodeEditor extends React.Component {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
       editor.scrollTo(null, this.props.initialScroll);
+      this._lastScrollTop = this.props.initialScroll || 0;
+      this._scrollSaveTimeout = null;
+      editor.on('scroll', () => {
+        const wrapper = editor.getWrapperElement();
+        if (wrapper && wrapper.offsetParent === null) return;
+        this._lastScrollTop = editor.getScrollInfo().top;
+        if (this.props.onScroll) {
+          if (this._scrollSaveTimeout) clearTimeout(this._scrollSaveTimeout);
+          this._scrollSaveTimeout = setTimeout(() => this.props.onScroll(this._lastScrollTop), 200);
+        }
+      });
       this.addOverlay();
 
       const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
@@ -268,7 +279,8 @@ export default class CodeEditor extends React.Component {
   componentWillUnmount() {
     if (this.editor) {
       if (this.props.onScroll) {
-        this.props.onScroll(this.editor);
+        if (this._scrollSaveTimeout) clearTimeout(this._scrollSaveTimeout);
+        this.props.onScroll(this._lastScrollTop);
       }
 
       this.editor?._destroyLinkAware?.();

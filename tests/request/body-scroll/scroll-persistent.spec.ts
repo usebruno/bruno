@@ -143,6 +143,11 @@ test.describe('Scroll Position Persistence', () => {
         await setEditorContent(page, '.request-pane .CodeMirror', generateLargeJson());
       });
 
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, '.request-pane .CodeMirror');
+        expect(initial).toBe(0);
+      });
+
       let saved: number;
 
       await test.step('Switch to Headers then back to Body', async () => {
@@ -177,6 +182,11 @@ test.describe('Scroll Position Persistence', () => {
         await selectRequestPaneTab(page, 'Body');
         await selectBodyMode(page, 'XML');
         await setEditorContent(page, '.request-pane .CodeMirror', generateLargeXml());
+      });
+
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, '.request-pane .CodeMirror');
+        expect(initial).toBe(0);
       });
 
       let saved: number;
@@ -223,6 +233,11 @@ test.describe('Scroll Position Persistence', () => {
         await setEditorContent(page, PRE_SELECTOR, generateLargeScript());
       });
 
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, PRE_SELECTOR);
+        expect(initial).toBe(0);
+      });
+
       await test.step('Init pre-request hook: switch to Headers and back', async () => {
         await selectRequestPaneTab(page, 'Headers');
 
@@ -254,6 +269,11 @@ test.describe('Scroll Position Persistence', () => {
         await selectScriptSubTab(page, 'post-response');
 
         await setEditorContent(page, POST_SELECTOR, generateLargeScript());
+      });
+
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, POST_SELECTOR);
+        expect(initial).toBe(0);
       });
 
       await test.step('Init post-response hook: switch to Headers and back', async () => {
@@ -308,6 +328,11 @@ test.describe('Scroll Position Persistence', () => {
         await setEditorContent(page, '[data-testid="test-script-editor"] .CodeMirror', generateLargeScript());
       });
 
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, '[data-testid="test-script-editor"] .CodeMirror');
+        expect(initial).toBe(0);
+      });
+
       let saved: number;
 
       await test.step('Initialize hook via tab switch, then scroll', async () => {
@@ -350,6 +375,14 @@ test.describe('Scroll Position Persistence', () => {
         await selectRequestPaneTab(page, 'Body');
         await selectBodyMode(page, 'JSON');
         await setEditorContent(page, '.request-pane .CodeMirror', generateLargeJson());
+      });
+
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, '.request-pane .CodeMirror');
+        expect(initial).toBe(0);
+      });
+
+      await test.step('Initialize hook via tab switch, then scroll', async () => {
         // Initialize hook
         await selectRequestPaneTab(page, 'Headers');
 
@@ -403,6 +436,12 @@ test.describe('Scroll Position Persistence', () => {
         }, bulkHeaders);
 
         await page.getByTestId('key-value-edit-toggle').click();
+      });
+
+      await test.step('Verify initial scroll is 0', async () => {
+        const container = page.locator(scrollContainer).first();
+        const initial = await container.evaluate((el) => el.scrollTop);
+        expect(initial).toBe(0);
       });
 
       let saved: number;
@@ -468,6 +507,11 @@ test.describe('Scroll Position Persistence', () => {
         await selectResponsePaneTab(page, 'Response');
       });
 
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, responseEditor);
+        expect(initial).toBe(0);
+      });
+
       await test.step('Scroll response editor and capture position', async () => {
         await setEditorScroll(page, responseEditor, 1500);
         saved = await getEditorScroll(page, responseEditor);
@@ -504,6 +548,12 @@ test.describe('Scroll Position Persistence', () => {
         await selectResponsePaneTab(page, 'Response');
 
         await selectResponsePaneTab(page, 'Headers');
+      });
+
+      await test.step('Verify initial scroll is 0', async () => {
+        const container = page.locator(headersContainer).first();
+        const initial = await container.evaluate((el) => el.scrollTop);
+        expect(initial).toBe(0);
       });
 
       await test.step('Scroll response headers and capture position', async () => {
@@ -555,6 +605,12 @@ test.describe('Scroll Position Persistence', () => {
         await selectResponsePaneTab(page, 'Response');
 
         await selectResponsePaneTab(page, 'Timeline');
+      });
+
+      await test.step('Verify initial scroll is 0', async () => {
+        const container = page.locator(timelineScroller).first().locator('..');
+        const initial = await container.evaluate((el) => el.scrollTop);
+        expect(initial).toBe(0);
       });
 
       await test.step('Scroll timeline and capture position', async () => {
@@ -611,6 +667,11 @@ test.describe('Scroll Position Persistence', () => {
         await setEditorContent(page, '.CodeMirror', generateLargeScript());
       });
 
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, '.CodeMirror');
+        expect(initial).toBe(0);
+      });
+
       let saved: number;
 
       await test.step('Initialize hook via tab switch, then scroll', async () => {
@@ -646,6 +707,11 @@ test.describe('Scroll Position Persistence', () => {
         await locators.sidebar.folder('test-folder').click({ timeout: 2000 });
         await locators.paneTabs.folderSettingsTab('test').click({ timeout: 2000 });
         await setEditorContent(page, '.CodeMirror', generateLargeScript());
+      });
+
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, '.CodeMirror');
+        expect(initial).toBe(0);
       });
 
       let saved: number;
@@ -690,14 +756,16 @@ test.describe('Scroll Position Persistence', () => {
         await setEditorContent(page, '.CodeMirror', largeDocContent);
       });
 
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, '.CodeMirror');
+        expect(initial).toBe(0);
+      });
+
       let saved: number;
 
       await test.step('Initialize hook via tab switch, then scroll', async () => {
         await locators.paneTabs.folderSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
-        // Re-enter edit mode
-        const editToggle = page.locator('.editing-mode');
-        await editToggle.click({ timeout: 2000 });
         await setEditorScroll(page, '.CodeMirror', 1500);
       });
 
@@ -709,8 +777,6 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Switch to headers and back to docs edit mode', async () => {
         await locators.paneTabs.folderSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
-        const editToggle = page.locator('.editing-mode');
-        await editToggle.click({ timeout: 2000 });
       });
 
       await test.step('Verify scroll restored', async () => {
@@ -733,6 +799,11 @@ test.describe('Scroll Position Persistence', () => {
         await locators.paneTabs.folderSettingsTab('script').click({ timeout: 2000 });
         await page.getByTestId('tab-trigger-pre-request').click({ timeout: 2000 });
         await setEditorContent(page, PRE_SELECTOR, generateLargeScript());
+      });
+
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, PRE_SELECTOR);
+        expect(initial).toBe(0);
       });
 
       await test.step('Init hook: switch tabs', async () => {
@@ -775,6 +846,11 @@ test.describe('Scroll Position Persistence', () => {
         await setEditorContent(page, POST_SELECTOR, generateLargeScript());
       });
 
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, POST_SELECTOR);
+        expect(initial).toBe(0);
+      });
+
       await test.step('Init hook: switch tabs', async () => {
         await locators.paneTabs.folderSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.folderSettingsTab('script').click({ timeout: 2000 });
@@ -798,62 +874,6 @@ test.describe('Scroll Position Persistence', () => {
         expectScrollRestored(restored, saved);
       });
     });
-
-    // test('Folder Headers — scroll persists with many headers across tab switches', async ({ page, createTmpDir }) => {
-    //   const tmpDir = await createTmpDir('scroll-folder-headers');
-    //   const locators = buildCommonLocators(page);
-    //   const scrollContainer = '.folder-settings-content';
-
-    //   await test.step('Setup folder and navigate to Headers tab', async () => {
-    //     await createCollection(page, 'scroll-folder-headers', tmpDir);
-    //     await createFolder(page, 'test-folder', 'scroll-folder-headers');
-    //     await locators.sidebar.folder('test-folder').click({ timeout: 2000 });
-    //     await locators.paneTabs.folderSettingsTab('headers').click({ timeout: 2000 });
-    //   });
-
-    //   await test.step('Add 50 headers via Bulk Edit', async () => {
-    //     const bulkEditBtn = page.getByTestId('bulk-edit-toggle');
-    //     await bulkEditBtn.scrollIntoViewIfNeeded();
-    //     await bulkEditBtn.click({ timeout: 2000 });
-
-    //     const bulkHeaders = Array.from({ length: 50 }, (_, i) =>
-    //       `X-Custom-Header-${i + 1}:value-${i + 1}`
-    //     ).join('\n');
-
-    //     const bulkEditor = page.locator('.CodeMirror').first();
-    //     await bulkEditor.evaluate((el, content) => {
-    //       const cm = (el as any).CodeMirror;
-    //       cm?.setValue(content);
-    //     }, bulkHeaders);
-
-    //     await page.getByTestId('key-value-edit-toggle').click();
-    //   });
-
-    //   let saved: number;
-
-    //   await test.step('Initialize hook: switch tabs', async () => {
-    //     await locators.paneTabs.folderSettingsTab('script').click({ timeout: 2000 });
-    //     await locators.paneTabs.folderSettingsTab('headers').click({ timeout: 10000 });
-    //   });
-
-    //   await test.step('Scroll down and capture position', async () => {
-    //     const container = page.locator(scrollContainer).first();
-    //     await container.evaluate((el) => { el.scrollTop = 400; });
-    //     saved = await container.evaluate((el) => el.scrollTop);
-    //     expect(saved).toBeGreaterThan(0);
-    //   });
-
-    //   await test.step('Switch to script tab and back to headers', async () => {
-    //     await locators.paneTabs.folderSettingsTab('script').click({ timeout: 2000 });
-    //     await locators.paneTabs.folderSettingsTab('headers').click({ timeout: 10000 });
-    //   });
-
-    //   await test.step('Verify scroll restored', async () => {
-    //     const container = page.locator(scrollContainer).first();
-    //     const restored = await container.evaluate((el) => el.scrollTop);
-    //     expectScrollRestored(restored, saved);
-    //   });
-    // });
   });
 
   // -------------------------------------------------------------------------
@@ -896,6 +916,11 @@ test.describe('Scroll Position Persistence', () => {
         await setEditorContent(page, PRE_SELECTOR, generateLargeScript());
       });
 
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, PRE_SELECTOR);
+        expect(initial).toBe(0);
+      });
+
       await test.step('Init pre-request hook: switch tabs', async () => {
         await locators.paneTabs.collectionSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.collectionSettingsTab('script').click({ timeout: 2000 });
@@ -921,6 +946,11 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Switch to post-response and add content', async () => {
         await page.getByTestId('tab-trigger-post-response').click({ timeout: 2000 });
         await setEditorContent(page, POST_SELECTOR, generateLargeScript());
+      });
+
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, POST_SELECTOR);
+        expect(initial).toBe(0);
       });
 
       await test.step('Init post-response hook: switch tabs', async () => {
@@ -969,6 +999,11 @@ test.describe('Scroll Position Persistence', () => {
         await setEditorContent(page, '.CodeMirror', generateLargeScript());
       });
 
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, '.CodeMirror');
+        expect(initial).toBe(0);
+      });
+
       let saved: number;
 
       await test.step('Init hook via tab switch, then scroll', async () => {
@@ -1011,13 +1046,16 @@ test.describe('Scroll Position Persistence', () => {
         await setEditorContent(page, '.CodeMirror', largeDocContent);
       });
 
+      await test.step('Verify initial scroll is 0', async () => {
+        const initial = await getEditorScroll(page, '.CodeMirror');
+        expect(initial).toBe(0);
+      });
+
       let saved: number;
 
       await test.step('Init hook via tab switch, then scroll', async () => {
         await locators.paneTabs.collectionSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.collectionSettingsTab('overview').click({ timeout: 2000 });
-        const editBtn = page.locator('.editing-mode');
-        await editBtn.click({ timeout: 2000 });
         await setEditorScroll(page, '.CodeMirror', 1500);
       });
 
@@ -1029,8 +1067,6 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Switch to headers and back to docs edit mode', async () => {
         await locators.paneTabs.collectionSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.collectionSettingsTab('overview').click({ timeout: 2000 });
-        const editBtn = page.locator('.editing-mode');
-        await editBtn.click({ timeout: 2000 });
       });
 
       await test.step('Verify scroll restored', async () => {
@@ -1066,6 +1102,12 @@ test.describe('Scroll Position Persistence', () => {
         }, bulkHeaders);
 
         await page.getByTestId('key-value-edit-toggle').click({ timeout: 2000 });
+      });
+
+      await test.step('Verify initial scroll is 0', async () => {
+        const container = page.locator(scrollContainer).first();
+        const initial = await container.evaluate((el) => el.scrollTop);
+        expect(initial).toBe(0);
       });
 
       let saved: number;

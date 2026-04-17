@@ -3,7 +3,7 @@ import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { usePersistedEditorScroll } from 'hooks/usePersistedState/usePersistedEditorScroll';
+import { usePersistedState } from 'hooks/usePersistedState';
 import { Document, Page } from 'react-pdf';
 import 'pdfjs-dist/build/pdf.worker';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
@@ -32,7 +32,7 @@ const QueryResultPreview = ({
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
   const editorRef = useRef(null);
-  const responseScroll = usePersistedEditorScroll(editorRef, `response-body-scroll-${item.uid}`);
+  const [responseScroll, setResponseScroll] = usePersistedState({ key: `response-body-scroll-${item.uid}`, default: 0 });
 
   const [numPages, setNumPages] = useState(null);
   function onDocumentLoadSuccess({ numPages }) {
@@ -62,6 +62,7 @@ const QueryResultPreview = ({
         value={formattedData}
         mode={codeMirrorMode}
         initialScroll={responseScroll}
+        onScroll={setResponseScroll}
         readOnly
       />
     );

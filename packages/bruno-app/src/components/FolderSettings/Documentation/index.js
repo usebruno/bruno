@@ -1,38 +1,34 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
+import find from 'lodash/find';
 import { updateFolderDocs } from 'providers/ReduxStore/slices/collections';
+import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
+import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
 
 const Documentation = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-  const [isEditing, setIsEditing] = useState(false);
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const isEditing = focusedTab?.docsEditing || false;
   const docs = folder.draft ? get(folder, 'draft.docs', '') : get(folder, 'root.docs', '');
 
-  // Scroll persistence for both edit (CodeMirror) and preview (Markdown) modes using one shared key.
-  // Preview mode: hook tracks .folder-settings-content scroll (enabled only when not editing).
-  // Edit mode: CodeEditor's onScroll/initialScroll props write/read the same localStorage key.
   const wrapperRef = useRef(null);
-  const storageKey = usePersistedContainerScroll(wrapperRef, '.folder-settings-content', `folder-docs-scroll-${folder.uid}`, !isEditing);
-
-  const readScroll = () => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      return raw !== null ? JSON.parse(raw) || 0 : 0;
-    } catch { return 0; }
-  };
+  const [scroll, setScroll] = usePersistedState({ key: `folder-docs-scroll-${folder.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.folder-settings-content', onChange: setScroll, enabled: !isEditing, initialValue: scroll });
 
   const toggleViewMode = () => {
-    setIsEditing((prev) => !prev);
+    dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: !isEditing }));
   };
 
   const onEdit = (value) => {
@@ -69,8 +65,8 @@ const Documentation = ({ collection, folder }) => {
               font={get(preferences, 'font.codeFont', 'default')}
               fontSize={get(preferences, 'font.codeFontSize')}
               mode="application/text"
-              initialScroll={readScroll()}
-              onScroll={(editor) => localStorage.setItem(storageKey, JSON.stringify(editor.doc.scrollTop))}
+              initialScroll={scroll}
+              onScroll={setScroll}
             />
           </div>
           <div className="mt-6 flex-shrink-0">

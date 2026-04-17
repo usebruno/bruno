@@ -12,7 +12,7 @@ import StatusDot from 'components/StatusDot';
 import { flattenItems, isItemARequest } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
-import { usePersistedEditorScroll } from 'hooks/usePersistedState/usePersistedEditorScroll';
+import { usePersistedState } from 'hooks/usePersistedState';
 
 const Script = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -40,8 +40,8 @@ const Script = ({ collection, folder }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  const preReqScroll = usePersistedEditorScroll(preRequestEditorRef, `folder-pre-req-scroll-${folder.uid}`);
-  const postResScroll = usePersistedEditorScroll(postResponseEditorRef, `folder-post-res-scroll-${folder.uid}`);
+  const [preReqScroll, setPreReqScroll] = usePersistedState({ key: `folder-pre-req-scroll-${folder.uid}`, default: 0 });
+  const [postResScroll, setPostResScroll] = usePersistedState({ key: `folder-post-res-scroll-${folder.uid}`, default: 0 });
 
   // Refresh CodeMirror when tab becomes visible and restore scroll position.
   // CodeMirror's scrollTo() is silently ignored when the editor is inside a display:none container
@@ -123,6 +123,7 @@ const Script = ({ collection, folder }) => {
             fontSize={get(preferences, 'font.codeFontSize')}
             showHintsFor={['req', 'bru']}
             initialScroll={preReqScroll}
+            onScroll={setPreReqScroll}
           />
         </TabsContent>
 
@@ -139,6 +140,7 @@ const Script = ({ collection, folder }) => {
             fontSize={get(preferences, 'font.codeFontSize')}
             showHintsFor={['req', 'res', 'bru']}
             initialScroll={postResScroll}
+            onScroll={setPostResScroll}
           />
         </TabsContent>
       </Tabs>

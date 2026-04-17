@@ -9,7 +9,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import AssertionOperator from './AssertionOperator';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedContainerScroll } from 'hooks/usePersistedState/usePersistedContainerScroll';
+import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
 
 const unaryOperators = [
   'isEmpty',
@@ -57,7 +57,8 @@ const Assertions = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const wrapperRef = useRef(null);
-  usePersistedContainerScroll(wrapperRef, '.flex-boundary', `request-assert-scroll-${item.uid}`);
+  const [scroll, setScroll] = usePersistedState({ key: `request-assert-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const assertions = item.draft ? get(item, 'draft.request.assertions') : get(item, 'request.assertions');

@@ -9,7 +9,7 @@ import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
-import { usePersistedEditorScroll } from 'hooks/usePersistedState/usePersistedEditorScroll';
+import { usePersistedState } from 'hooks/usePersistedState';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -34,8 +34,8 @@ const Script = ({ item, collection }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  const preReqScroll = usePersistedEditorScroll(preRequestEditorRef, `request-pre-req-scroll-${item.uid}`);
-  const postResScroll = usePersistedEditorScroll(postResponseEditorRef, `request-post-res-scroll-${item.uid}`);
+  const [preReqScroll, setPreReqScroll] = usePersistedState({ key: `request-pre-req-scroll-${item.uid}`, default: 0 });
+  const [postResScroll, setPostResScroll] = usePersistedState({ key: `request-post-res-scroll-${item.uid}`, default: 0 });
 
   // Refresh CodeMirror when tab becomes visible and restore scroll position.
   // CodeMirror's scrollTo() is silently ignored when the editor is inside a display:none container
@@ -117,6 +117,7 @@ const Script = ({ item, collection }) => {
             onSave={onSave}
             showHintsFor={['req', 'bru']}
             initialScroll={preReqScroll}
+            onScroll={setPreReqScroll}
           />
         </TabsContent>
 
@@ -134,6 +135,7 @@ const Script = ({ item, collection }) => {
             onSave={onSave}
             showHintsFor={['req', 'res', 'bru']}
             initialScroll={postResScroll}
+            onScroll={setPostResScroll}
           />
         </TabsContent>
       </Tabs>
