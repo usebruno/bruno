@@ -2891,6 +2891,7 @@ export const collectionsSlice = createSlice({
         if (existingEnv) {
           const prevEphemerals = (existingEnv.variables || []).filter((v) => v.ephemeral);
           existingEnv.name = environment.name;
+          existingEnv.pathname = environment.pathname;
           existingEnv.variables = environment.variables;
           existingEnv.color = environment.color;
           /*
@@ -2918,9 +2919,18 @@ export const collectionsSlice = createSlice({
               // Persist the selection to the UI state snapshot
               const { ipcRenderer } = window;
               if (ipcRenderer) {
+                const extension = collection?.brunoConfig?.version === '1' ? 'bru' : 'yml';
+                const environmentPath = environment?.pathname
+                  || (environment?.name && collection?.pathname
+                    ? path.join(collection.pathname, 'environments', `${environment.name}.${extension}`)
+                    : null);
+
                 ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
                   type: 'COLLECTION_ENVIRONMENT',
-                  data: { collectionPath: collection?.pathname, environmentName: environment.name }
+                  data: {
+                    collectionPath: collection?.pathname,
+                    environmentPath
+                  }
                 });
               }
             }

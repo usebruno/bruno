@@ -2344,16 +2344,36 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
 
     const collectionCopy = cloneDeep(collection);
 
-    const environmentName = environmentUid ? findEnvironmentInCollection(collectionCopy, environmentUid)?.name : null;
+    const environment = environmentUid ? findEnvironmentInCollection(collectionCopy, environmentUid) : null;
 
-    if (environmentUid && !environmentName) {
+    if (environmentUid && !environment) {
       return reject(new Error('Environment not found'));
     }
+
+    const getEnvironmentPath = (environmentToResolve) => {
+      if (!environmentToResolve) {
+        return null;
+      }
+
+      if (typeof environmentToResolve.pathname === 'string' && environmentToResolve.pathname.length > 0) {
+        return environmentToResolve.pathname;
+      }
+
+      if (!environmentToResolve.name || !collection?.pathname) {
+        return environmentToResolve.name || null;
+      }
+
+      const extension = collection.brunoConfig?.version === '1' ? 'bru' : 'yml';
+      return normalizePath(path.join(collection.pathname, 'environments', `${environmentToResolve.name}.${extension}`));
+    };
 
     const { ipcRenderer } = window;
     ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
       type: 'COLLECTION_ENVIRONMENT',
-      data: { collectionPath: collection?.pathname, environmentName }
+      data: {
+        collectionPath: collection?.pathname,
+        environmentPath: getEnvironmentPath(environment)
+      }
     });
 
     dispatch(_selectEnvironment({ environmentUid, collectionUid }));
@@ -2720,10 +2740,18 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
 
     environmentSchema
       .validate(environment)
-      .then(() =>
+      .then(() => {
+        const environmentWithPath = {
+          ...environment,
+          pathname: meta?.pathname || environment?.pathname
+        };
+
+        return environmentWithPath;
+      })
+      .then((environmentWithPath) =>
         dispatch(
           _collectionAddEnvFileEvent({
-            environment,
+            environment: environmentWithPath,
             collectionUid: meta.collectionUid
           })
         )
@@ -2847,14 +2875,39 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
         resolve();
         return;
       }
-      const { pathname, selectedEnvironment } = collectionSnapshotData;
+      const { pathname, environmentPath, selectedEnvironment } = collectionSnapshotData;
       const collection = findCollectionByPathname(state.collections.collections, pathname);
       const collectionCopy = cloneDeep(collection);
       const collectionUid = collectionCopy?.uid;
 
       // update selected environment
-      if (selectedEnvironment) {
-        const environment = findEnvironmentInCollectionByName(collectionCopy, selectedEnvironment);
+      const normalizedEnvironmentPath = typeof environmentPath === 'string' && environmentPath.length > 0
+        ? environmentPath.replace(/\\/g, '/').replace(/\/+$/, '')
+        : null;
+
+      if (normalizedEnvironmentPath || selectedEnvironment) {
+        const environment = collectionCopy?.environments?.find((env) => {
+          const envPath = typeof env?.pathname === 'string'
+            ? env.pathname.replace(/\\/g, '/').replace(/\/+$/, '')
+            : null;
+
+          if (normalizedEnvironmentPath && envPath === normalizedEnvironmentPath) {
+            return true;
+          }
+
+          if (normalizedEnvironmentPath && env?.uid === normalizedEnvironmentPath) {
+            return true;
+          }
+
+          if (normalizedEnvironmentPath && env?.name === normalizedEnvironmentPath) {
+            return true;
+          }
+
+          return selectedEnvironment && env?.name === selectedEnvironment;
+        }) || (selectedEnvironment
+          ? findEnvironmentInCollectionByName(collectionCopy, selectedEnvironment)
+          : null);
+
         if (environment) {
           dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
         }

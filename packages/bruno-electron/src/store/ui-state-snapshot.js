@@ -1,57 +1,93 @@
-const Store = require('electron-store');
+const snapshotManager = require('../services/snapshot');
+
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
 class UiStateSnapshotStore {
-  constructor() {
-    this.store = new Store({
-      name: 'ui-state-snapshot',
-      clearInvalidConfig: true
+  getCollections() {
+    const snapshot = snapshotManager.getSnapshot() || {};
+    const collectionsMap = isObject(snapshot.collections) ? snapshot.collections : {};
+
+    return Object.entries(collectionsMap).map(([pathname, entry]) => {
+      const collectionEntry = isObject(entry) ? entry : {};
+      const environment = isObject(collectionEntry.environment) ? collectionEntry.environment : {};
+
+      return {
+        pathname,
+        environmentPath: typeof environment.collection === 'string' ? environment.collection : ''
+      };
     });
   }
 
-  getCollections() {
-    return this.store.get('collections') || [];
-  }
-
   saveCollections(collections) {
-    this.store.set('collections', collections);
+    if (!Array.isArray(collections)) {
+      return;
+    }
+
+    collections.forEach((collection) => {
+      if (!collection || typeof collection.pathname !== 'string') {
+        return;
+      }
+
+      const environmentRef = collection.environmentPath ?? collection.selectedEnvironment;
+      snapshotManager.updateCollectionEnvironment({
+        collectionPath: collection.pathname,
+        environmentPath: environmentRef
+      });
+    });
   }
 
   getCollectionByPathname({ pathname }) {
-    let collections = this.getCollections();
+    const collectionEntry = snapshotManager.getCollection(pathname);
 
-    let collection = collections.find((c) => c?.pathname === pathname);
-    if (!collection) {
-      collection = { pathname };
-      collections.push(collection);
-      this.saveCollections(collections);
+    if (!collectionEntry) {
+      const collection = {
+        pathname,
+        environmentPath: ''
+      };
+
+      this.setCollectionByPathname({ collection });
+      return collection;
     }
 
-    return collection;
+    const environment = isObject(collectionEntry.environment) ? collectionEntry.environment : {};
+
+    return {
+      pathname,
+      environmentPath: typeof environment.collection === 'string' ? environment.collection : ''
+    };
   }
 
   setCollectionByPathname({ collection }) {
-    let collections = this.getCollections();
+    if (!collection || typeof collection.pathname !== 'string') {
+      return collection;
+    }
 
-    collections = collections.filter((c) => c?.pathname !== collection.pathname);
-    collections.push({ ...collection });
-    this.saveCollections(collections);
+    const environmentRef = collection.environmentPath ?? collection.selectedEnvironment;
+    snapshotManager.updateCollectionEnvironment({
+      collectionPath: collection.pathname,
+      environmentPath: environmentRef
+    });
 
     return collection;
   }
 
-  updateCollectionEnvironment({ collectionPath, environmentName }) {
-    const collection = this.getCollectionByPathname({ pathname: collectionPath });
-    collection.selectedEnvironment = environmentName;
-    this.setCollectionByPathname({ collection });
+  updateCollectionEnvironment({ collectionPath, environmentPath, environmentName }) {
+    snapshotManager.updateCollectionEnvironment({
+      collectionPath,
+      environmentPath: environmentPath === undefined ? environmentName : environmentPath
+    });
   }
 
   update({ type, data }) {
     switch (type) {
-      case 'COLLECTION_ENVIRONMENT':
-        const { collectionPath, environmentName } = data;
-        this.updateCollectionEnvironment({ collectionPath, environmentName });
+      case 'COLLECTION_ENVIRONMENT': {
+        const collectionPath = data?.collectionPath;
+        const environmentRef = data?.environmentPath ?? data?.environmentName;
+        this.updateCollectionEnvironment({ collectionPath, environmentPath: environmentRef });
         break;
+      }
       default:
+        snapshotManager.update({ type, data });
         break;
     }
   }

@@ -25,6 +25,75 @@ async function recursiveCopy(src: string, dest: string) {
   }
 }
 
+const DEFAULT_SNAPSHOT = {
+  activeWorkspacePath: null,
+  extras: {
+    devTools: {
+      open: false,
+      height: 300,
+      tab: 'console',
+      tabData: {}
+    }
+  },
+  workspaces: {},
+  collections: {},
+  tabs: {}
+};
+
+const tryMigrateLegacySnapshot = async (userDataPath: string) => {
+  const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
+
+  try {
+    const exists = await existsAsync(snapshotPath);
+    if (!exists) {
+      return;
+    }
+
+    const raw = await fs.promises.readFile(snapshotPath, 'utf-8');
+    const parsed = JSON.parse(raw);
+
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return;
+    }
+
+    if (!Array.isArray((parsed as any).collections)) {
+      return;
+    }
+
+    const migratedCollections = ((parsed as any).collections as any[]).reduce((acc, entry) => {
+      if (!entry || typeof entry.pathname !== 'string') {
+        return acc;
+      }
+
+      const environmentRef = typeof entry.environmentPath === 'string'
+        ? entry.environmentPath
+        : (typeof entry.selectedEnvironment === 'string' ? entry.selectedEnvironment : '');
+
+      acc[entry.pathname] = {
+        workspacePathname: '',
+        environment: {
+          collection: environmentRef,
+          global: ''
+        },
+        isOpen: false,
+        isMounted: false
+      };
+
+      return acc;
+    }, {} as Record<string, any>);
+
+    const migrated = {
+      ...DEFAULT_SNAPSHOT,
+      ...parsed,
+      collections: migratedCollections
+    };
+
+    await fs.promises.writeFile(snapshotPath, JSON.stringify(migrated, null, 2), 'utf-8');
+  } catch (_) {
+    // Keep test boot resilient even with malformed fixture snapshot files.
+  }
+};
+
 const TRACING_OPTIONS = { screenshots: true, snapshots: true, sources: true };
 
 function isTracingEnabled(testInfo: TestInfo): boolean {
@@ -192,6 +261,8 @@ export const test = baseTest.extend<
             );
           }
         }
+
+        await tryMigrateLegacySnapshot(userDataPath);
 
         const app = await playwright._electron.launch({
           args: [electronAppPath, '--disable-gpu'],

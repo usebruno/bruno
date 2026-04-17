@@ -11,7 +11,7 @@ import {
   serializeTab,
   serializeActiveTab
 } from 'utils/snapshot';
-import { normalizePath } from 'utils/common/path';
+import path, { normalizePath } from 'utils/common/path';
 
 const { ipcRenderer } = window;
 
@@ -122,7 +122,23 @@ const serializeSnapshot = async (state) => {
     snapshot.collections[collection.pathname] = {
       workspacePathname,
       environment: {
-        collection: collection.activeEnvironmentUid || '',
+        collection: (() => {
+          const activeEnvironment = (collection.environments || []).find((env) => env.uid === collection.activeEnvironmentUid);
+          if (!activeEnvironment) {
+            return '';
+          }
+
+          if (typeof activeEnvironment.pathname === 'string' && activeEnvironment.pathname.length > 0) {
+            return activeEnvironment.pathname;
+          }
+
+          if (!activeEnvironment.name) {
+            return '';
+          }
+
+          const extension = collection.brunoConfig?.version === '1' ? 'bru' : 'yml';
+          return normalizePath(path.join(collection.pathname, 'environments', `${activeEnvironment.name}.${extension}`));
+        })(),
         global: globalEnvironments.activeGlobalEnvironmentUid || ''
       },
       isOpen: !collection.collapsed,

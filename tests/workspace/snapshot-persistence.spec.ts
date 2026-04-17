@@ -14,10 +14,10 @@ import { buildCommonLocators } from '../utils/page/locators';
 
 /**
  * Helper: read the snapshot JSON from the user data directory.
- * electron-store saves it as `app-snapshot.json`.
+ * electron-store saves it as `ui-state-snapshot.json`.
  */
 const readSnapshot = (userDataPath: string) => {
-  const snapshotPath = path.join(userDataPath, 'app-snapshot.json');
+  const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
   if (!fs.existsSync(snapshotPath)) return null;
   return JSON.parse(fs.readFileSync(snapshotPath, 'utf-8'));
 };
@@ -482,7 +482,7 @@ test.describe('Snapshot: Edge Cases', () => {
     const userDataPath = await createTmpDir('snap-fresh');
 
     // Ensure no snapshot file exists
-    const snapshotPath = path.join(userDataPath, 'app-snapshot.json');
+    const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
     if (fs.existsSync(snapshotPath)) {
       fs.unlinkSync(snapshotPath);
     }
@@ -501,7 +501,7 @@ test.describe('Snapshot: Edge Cases', () => {
     const userDataPath = await createTmpDir('snap-corrupt');
 
     // Write invalid JSON to snapshot file
-    const snapshotPath = path.join(userDataPath, 'app-snapshot.json');
+    const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
     fs.writeFileSync(snapshotPath, '{ invalid json !!!', 'utf-8');
 
     const app = await launchElectronApp({ userDataPath });
