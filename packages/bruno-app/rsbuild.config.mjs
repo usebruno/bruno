@@ -32,6 +32,16 @@ export default defineConfig({
   tools: {
     rspack: {
       module: {
+        rules: [
+          {
+            test: /monaco-editor\/esm\/vs\/.*\.worker/,
+            parser: {
+              javascript: {
+                dynamicImportMode: 'lazy'
+              }
+            }
+          },
+        ],
         parser: {
           javascript: {
             // This loads the JavaScript contents from a library along with the main JavaScript bundle.

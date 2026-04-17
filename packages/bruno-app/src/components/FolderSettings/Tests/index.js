@@ -1,7 +1,7 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
-import CodeEditor from 'components/CodeEditor';
+import ScriptEditor from 'components/ScriptEditor';
 import { updateFolderTests } from 'providers/ReduxStore/slices/collections';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
@@ -30,7 +30,7 @@ const Tests = ({ collection, folder }) => {
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">These tests will run any time a request in this collection is sent.</div>
-      <CodeEditor
+      <ScriptEditor
         collection={collection}
         value={tests || ''}
         theme={displayedTheme}

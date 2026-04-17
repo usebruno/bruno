@@ -1,7 +1,7 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
-import CodeEditor from 'components/CodeEditor';
+import ScriptEditor from 'components/ScriptEditor';
 import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
@@ -28,7 +28,7 @@ const Tests = ({ item, collection }) => {
 
   return (
     <div data-testid="test-script-editor">
-      <CodeEditor
+      <ScriptEditor
         collection={collection}
         value={tests || ''}
         theme={displayedTheme}

@@ -19,6 +19,11 @@ const BETA_FEATURES = [
     id: BETA_FEATURE_IDS.OPENAPI_SYNC,
     label: 'OpenAPI Sync',
     description: 'Synchronize your Bruno collection with an OpenAPI specification. Detect drift, review changes, and sync with a single click.'
+  },
+  {
+    id: BETA_FEATURE_IDS.MONACO_EDITOR,
+    label: 'Monaco Editor (Beta)',
+    description: 'Use Monaco Editor (VS Code editor) for scripting. Provides multi-cursor editing, better autocomplete, and other VS Code features for pre-request, post-response, and test scripts.'
   }
 ];
 

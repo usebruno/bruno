@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
-import CodeEditor from 'components/CodeEditor';
+import ScriptEditor from 'components/ScriptEditor';
 import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -96,7 +96,7 @@ const Script = ({ item, collection }) => {
         </TabsList>
 
         <TabsContent value="pre-request" className="mt-2" dataTestId="pre-request-script-editor">
-          <CodeEditor
+          <ScriptEditor
             ref={preRequestEditorRef}
             collection={collection}
             value={requestScript || ''}
@@ -112,7 +112,7 @@ const Script = ({ item, collection }) => {
         </TabsContent>
 
         <TabsContent value="post-response" className="mt-2" dataTestId="post-response-script-editor">
-          <CodeEditor
+          <ScriptEditor
             ref={postResponseEditorRef}
             collection={collection}
             value={responseScript || ''}
