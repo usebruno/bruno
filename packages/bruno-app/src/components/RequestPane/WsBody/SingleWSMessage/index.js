@@ -1,4 +1,4 @@
-import { IconTrash, IconChevronRight, IconChevronDown } from '@tabler/icons';
+import { IconTrash, IconSend, IconChevronRight, IconChevronDown } from '@tabler/icons';
 import CodeEditor from 'components/CodeEditor/index';
 import ToolHint from 'components/ToolHint/index';
 import { get } from 'lodash';
@@ -7,6 +7,9 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { queueWsMessage, isWsConnectionActive, connectWS } from 'utils/network/index';
+import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
+import toast from 'react-hot-toast';
 import WSRequestBodyMode from '../BodyMode/index';
 import StyledWrapper from './StyledWrapper';
 
@@ -101,6 +104,10 @@ export const SingleWSMessage = ({
 
   const clickTimerRef = useRef(null);
 
+  useEffect(() => {
+    return () => clearTimeout(clickTimerRef.current);
+  }, []);
+
   const handleNameClick = useCallback((e) => {
     e.stopPropagation();
     if (clickTimerRef.current) {
@@ -165,6 +172,27 @@ export const SingleWSMessage = ({
     }));
   };
 
+  const onSendMessage = async () => {
+    try {
+      const state = dispatch((_, getState) => getState());
+      const col = findCollectionByUid(state.collections.collections, collection.uid);
+      const environment = findEnvironmentInCollection(col, col?.activeEnvironmentUid);
+
+      // Auto-connect if not already connected
+      const connectionStatus = await isWsConnectionActive(item.uid);
+      if (!connectionStatus.isActive) {
+        await connectWS(item, col, environment, col?.runtimeVariables, { connectOnly: true });
+      }
+
+      const result = await queueWsMessage(item, col, environment, col?.runtimeVariables, content);
+      if (!result.success) {
+        toast.error(result.error || 'Failed to send message');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to send message');
+    }
+  };
+
   const codemirrorMode = {
     text: 'application/text',
     xml: 'application/xml',
@@ -211,14 +239,21 @@ export const SingleWSMessage = ({
           )}
         </div>
         <div className="accordion-actions" onClick={(e) => e.stopPropagation()}>
-          <WSRequestBodyMode mode={displayMode} onModeChange={onUpdateMessageType} />
-          {index > 0 && (
-            <ToolHint text="Delete" toolhintId={`delete-msg-${index}`}>
-              <button onClick={onDeleteMessage} className="action-btn delete" data-testid={`ws-delete-msg-${index}`}>
-                <IconTrash size={16} strokeWidth={1.5} />
+          <div className="hover-actions">
+            <ToolHint text="Send" toolhintId={`send-msg-${index}`}>
+              <button onClick={onSendMessage} className="hover-action-btn" data-testid={`ws-send-msg-${index}`}>
+                <IconSend size={14} strokeWidth={1.5} />
               </button>
             </ToolHint>
-          )}
+            {(body.ws || []).length > 1 && (
+              <ToolHint text="Delete" toolhintId={`delete-msg-${index}`}>
+                <button onClick={onDeleteMessage} className="hover-action-btn delete" data-testid={`ws-delete-msg-${index}`}>
+                  <IconTrash size={14} strokeWidth={1.5} />
+                </button>
+              </ToolHint>
+            )}
+          </div>
+          <WSRequestBodyMode mode={displayMode} onModeChange={onUpdateMessageType} />
         </div>
       </div>
       {isExpanded && (

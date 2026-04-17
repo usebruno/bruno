@@ -1159,10 +1159,12 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const namePair = _.find(pairs, { name: 'name' });
     const contentPair = _.find(pairs, { name: 'content' });
     const typePair = _.find(pairs, { name: 'type' });
+    const selectedPair = _.find(pairs, { name: 'selected' });
 
     const messageName = namePair ? namePair.value : '';
     const messageContent = contentPair ? contentPair.value : '';
     const messageTypeContent = typePair ? typePair.value : '';
+    const messageSelected = selectedPair ? selectedPair.value === 'true' : false;
 
     return {
       body: {
@@ -1171,7 +1173,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           {
             name: messageName,
             type: messageTypeContent,
-            content: messageContent
+            content: messageContent,
+            selected: messageSelected
           }
         ]
       }

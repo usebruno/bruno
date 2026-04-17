@@ -1,20 +1,15 @@
 import { get } from 'lodash';
-import find from 'lodash/find';
-import { updateWsSelectedMessageIndex } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { IconPlus } from '@tabler/icons';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useDispatch } from 'react-redux';
 import { uuid } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 import { SingleWSMessage } from './SingleWSMessage/index';
 
-const ensureMessageUids = (messages, uidMapRef) => {
-  const newMap = new Map();
-  messages.forEach((_, index) => {
-    const existingUid = uidMapRef.current.get(index);
-    newMap.set(index, existingUid || uuid());
-  });
-  return newMap;
+const getSelectedIndex = (messages) => {
+  const idx = messages.findIndex((msg) => msg.selected);
+  return idx >= 0 ? idx : 0;
 };
 
 const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
@@ -23,37 +18,44 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const messages = body?.ws || [];
 
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  const rawSelectedIndex = focusedTab?.wsSelectedMessageIndex ?? 0;
-  // Clamp selected index to valid range
-  const selectedIndex = messages.length > 0
-    ? Math.min(rawSelectedIndex, messages.length - 1)
-    : 0;
+  const selectedIndex = getSelectedIndex(messages);
 
-  const uidMapRef = useRef(new Map());
-  uidMapRef.current = ensureMessageUids(messages, uidMapRef);
+  const ensuredMessages = useMemo(() => {
+    return messages.map((msg) => msg.uid ? msg : { ...msg, uid: uuid() });
+  }, [messages]);
 
-  const getMessageUid = (index) => uidMapRef.current.get(index);
+  useEffect(() => {
+    if (messages.some((msg) => !msg.uid)) {
+      dispatch(updateRequestBody({
+        content: ensuredMessages,
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      }));
+    }
+  }, [messages]);
 
-  // First message is expanded by default (using uid)
+  // Expand the selected message by default (falls back to first)
   const [expandedUids, setExpandedUids] = useState(() => {
-    const firstUid = getMessageUid(0);
-    return new Set(firstUid ? [firstUid] : []);
+    const uid = ensuredMessages[selectedIndex]?.uid || ensuredMessages[0]?.uid;
+    return new Set(uid ? [uid] : []);
   });
   const [newMessageUid, setNewMessageUid] = useState(null);
-  const prevMessagesLengthRef = useRef(messages.length);
+  const prevMessagesLengthRef = useRef(ensuredMessages.length);
 
   const setSelectedIndex = useCallback((index) => {
-    dispatch(updateWsSelectedMessageIndex({
-      uid: item.uid,
-      wsSelectedMessageIndex: index
+    const currentMessages = [...(body?.ws || [])];
+    const updated = currentMessages.map((msg, i) => ({
+      ...msg,
+      selected: i === index
     }));
-  }, [dispatch, item.uid]);
+    dispatch(updateRequestBody({
+      content: updated,
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    }));
+  }, [body, dispatch, item.uid, collection.uid]);
 
-  const toggleMessage = useCallback((index) => {
-    const uid = getMessageUid(index);
+  const toggleMessage = useCallback((uid) => {
     if (!uid) return;
     setExpandedUids((prev) => {
       const next = new Set(prev);
@@ -67,22 +69,23 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   }, []);
 
   const handleSelect = useCallback((index) => {
-    setSelectedIndex(index);
-  }, [setSelectedIndex]);
+    if (index !== selectedIndex) {
+      setSelectedIndex(index);
+    }
+  }, [selectedIndex, setSelectedIndex]);
 
   // React to new message being added (messages.length increased)
   useEffect(() => {
-    if (messages.length > prevMessagesLengthRef.current) {
-      const newIndex = messages.length - 1;
-      const msgUid = getMessageUid(newIndex);
-      if (msgUid) {
-        setExpandedUids((prev) => new Set(prev).add(msgUid));
-        setNewMessageUid(msgUid);
-        setSelectedIndex(newIndex);
+    if (ensuredMessages.length > prevMessagesLengthRef.current) {
+      const newMsg = ensuredMessages[ensuredMessages.length - 1];
+      if (newMsg?.uid) {
+        setExpandedUids((prev) => new Set(prev).add(newMsg.uid));
+        setNewMessageUid(newMsg.uid);
+        setSelectedIndex(ensuredMessages.length - 1);
       }
     }
-    prevMessagesLengthRef.current = messages.length;
-  }, [messages.length]);
+    prevMessagesLengthRef.current = ensuredMessages.length;
+  }, [ensuredMessages.length]);
 
   const handleNewMessageRendered = useCallback(() => {
     setNewMessageUid(null);
@@ -90,13 +93,13 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
 
   // Auto-scroll to bottom when new message is added
   useEffect(() => {
-    if (messagesContainerRef.current && messages.length > 0) {
+    if (messagesContainerRef.current && ensuredMessages.length > 0) {
       const container = messagesContainerRef.current;
       container.scrollTop = container.scrollHeight;
     }
-  }, [messages.length]);
+  }, [ensuredMessages.length]);
 
-  if (!messages.length) {
+  if (!ensuredMessages.length) {
     return (
       <StyledWrapper>
         <div className="empty-state">
@@ -113,25 +116,23 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   return (
     <StyledWrapper>
       <div ref={messagesContainerRef} className="messages-container">
-        {messages.map((message, index) => {
-          const msgUid = getMessageUid(index);
-          return (
-            <SingleWSMessage
-              key={msgUid}
-              message={message}
-              item={item}
-              collection={collection}
-              index={index}
-              handleRun={handleRun}
-              isExpanded={expandedUids.has(msgUid)}
-              onToggle={() => toggleMessage(index)}
-              isNew={newMessageUid === msgUid}
-              onNewRendered={handleNewMessageRendered}
-              isSelected={selectedIndex === index}
-              onSelect={() => handleSelect(index)}
-            />
-          );
-        })}
+        {ensuredMessages.map((message, index) => (
+          <SingleWSMessage
+            key={message.uid}
+            id={`ws-message-${message.uid}`}
+            message={message}
+            item={item}
+            collection={collection}
+            index={index}
+            handleRun={handleRun}
+            isExpanded={expandedUids.has(message.uid)}
+            onToggle={() => toggleMessage(message.uid)}
+            isNew={newMessageUid === message.uid}
+            onNewRendered={handleNewMessageRendered}
+            isSelected={selectedIndex === index}
+            onSelect={() => handleSelect(index)}
+          />
+        ))}
       </div>
     </StyledWrapper>
   );

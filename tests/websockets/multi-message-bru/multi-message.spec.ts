@@ -54,8 +54,11 @@ test.describe('websocket multi-message (bru format)', () => {
 
     await openRequest(page, COLLECTION_NAME, SINGLE_MSG_REQ);
 
-    // First message is already expanded by default
+    // Expand the first message if not already expanded
     const editorBody = page.getByTestId('ws-message-body-0');
+    if (!(await editorBody.isVisible())) {
+      await page.getByTestId('ws-message-header-0').click();
+    }
     const editor = editorBody.locator('.CodeMirror');
     await editor.click();
     const textarea = editor.locator('textarea');
@@ -126,8 +129,11 @@ test.describe('websocket multi-message (bru format)', () => {
 
     await openRequest(page, COLLECTION_NAME, SINGLE_MSG_REQ);
 
-    // First message is already expanded by default
+    // Expand the first message if not already expanded
     const editorBody = page.getByTestId('ws-message-body-0');
+    if (!(await editorBody.isVisible())) {
+      await page.getByTestId('ws-message-header-0').click();
+    }
     const editor = editorBody.locator('.CodeMirror');
     await editor.click();
     const textarea = editor.locator('textarea');
@@ -147,6 +153,8 @@ test.describe('websocket multi-message (bru format)', () => {
 
     await expect(page.getByTestId(/^ws-message-header-/)).toHaveCount(2);
 
+    // Hover over the message header to reveal the delete button
+    await page.getByTestId('ws-message-header-1').hover();
     await page.getByTestId('ws-delete-msg-1').click();
 
     await expect(page.getByTestId(/^ws-message-header-/)).toHaveCount(1);

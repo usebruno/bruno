@@ -35,7 +35,10 @@ test.describe('websocket multi-message (yml format)', () => {
     // The old format (message: { type, data }) should load as a single accordion
     await expect(page.getByTestId(/^ws-message-header-/)).toHaveCount(1);
 
-    // The first message should be expanded with content visible
+    // Expand the first message if not already expanded
+    if (!(await page.getByTestId('ws-message-body-0').isVisible())) {
+      await page.getByTestId('ws-message-header-0').click();
+    }
     await expect(page.getByTestId('ws-message-body-0')).toBeVisible();
 
     // Verify the type is correctly read from the old format
@@ -86,7 +89,11 @@ test.describe('websocket multi-message (yml format)', () => {
 
     await openRequest(page, COLLECTION_NAME, SINGLE_MSG_REQ);
 
+    // Expand the first message if not already expanded
     const editorBody = page.getByTestId('ws-message-body-0');
+    if (!(await editorBody.isVisible())) {
+      await page.getByTestId('ws-message-header-0').click();
+    }
     const editor = editorBody.locator('.CodeMirror');
     await editor.click();
     const textarea = editor.locator('textarea');
@@ -157,7 +164,11 @@ test.describe('websocket multi-message (yml format)', () => {
 
     await openRequest(page, COLLECTION_NAME, SINGLE_MSG_REQ);
 
+    // Expand the first message if not already expanded
     const editorBody = page.getByTestId('ws-message-body-0');
+    if (!(await editorBody.isVisible())) {
+      await page.getByTestId('ws-message-header-0').click();
+    }
     const editor = editorBody.locator('.CodeMirror');
     await editor.click();
     const textarea = editor.locator('textarea');
@@ -177,6 +188,8 @@ test.describe('websocket multi-message (yml format)', () => {
 
     await expect(page.getByTestId(/^ws-message-header-/)).toHaveCount(2);
 
+    // Hover over the message header to reveal the delete button
+    await page.getByTestId('ws-message-header-1').hover();
     await page.getByTestId('ws-delete-msg-1').click();
 
     await expect(page.getByTestId(/^ws-message-header-/)).toHaveCount(1);

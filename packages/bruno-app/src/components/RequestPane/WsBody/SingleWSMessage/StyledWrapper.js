@@ -15,7 +15,6 @@ const StyledWrapper = styled.div`
     padding: 0.5rem 0;
     cursor: pointer;
     user-select: none;
-    margin-bottom: 0.5rem;
 
     .accordion-left {
       display: flex;
@@ -27,7 +26,6 @@ const StyledWrapper = styled.div`
 
       .message-label {
         font-size: ${(props) => props.theme.font.size.sm};
-        color: ${(props) => props.theme.colors.text.subtext0};
         cursor: default;
       }
 
@@ -48,25 +46,43 @@ const StyledWrapper = styled.div`
       align-items: center;
       gap: 0.125rem;
 
-      .action-btn {
+      .hover-actions {
         display: flex;
         align-items: center;
-        justify-content: center;
-        width: 1.75rem;
-        height: 1.75rem;
-        border-radius: 0.25rem;
-        color: ${(props) => props.theme.text};
-        transition: all 0.15s ease;
+        gap: 0.125rem;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.15s ease;
 
-        &:hover {
-          background-color: ${(props) => props.theme.dropdown.hoverBg};
-        }
+        .hover-action-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 1.5rem;
+          height: 1.5rem;
+          border-radius: 0.25rem;
+          color: ${(props) => props.theme.text};
+          transition: all 0.15s ease;
 
-        &.delete:hover {
-          color: ${(props) => props.theme.colors.text.danger};
+          &:hover {
+            background-color: ${(props) => props.theme.dropdown.hoverBg};
+          }
+
+          &.delete:hover {
+            color: ${(props) => props.theme.colors.text.danger};
+          }
         }
       }
     }
+
+    &:hover .hover-actions {
+      visibility: visible;
+      opacity: 1;
+    }
+  }
+
+  &:not(.disabled) .accordion-header .message-label {
+    color: ${(props) => props.theme.primary.text};
   }
 `;
 

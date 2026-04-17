@@ -785,10 +785,11 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (itemToSave.request.body.mode === 'ws') {
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      ws: itemToSave.request.body.ws.map(({ name, content, type }, index) => ({
+      ws: itemToSave.request.body.ws.map(({ name, content, type, selected }, index) => ({
         name: name ? name : `message ${index + 1}`,
         type,
-        content: replaceTabsWithSpaces(content)
+        content: replaceTabsWithSpaces(content),
+        selected: selected || false
       }))
     };
   }

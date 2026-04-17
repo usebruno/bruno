@@ -265,13 +265,6 @@ export const tabsSlice = createSlice({
         tab.variablesPaneHeight = action.payload.variablesPaneHeight;
       }
     },
-    updateWsSelectedMessageIndex: (state, action) => {
-      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
-
-      if (tab) {
-        tab.wsSelectedMessageIndex = action.payload.wsSelectedMessageIndex;
-      }
-    },
     closeTabs: (state, action) => {
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
@@ -412,8 +405,7 @@ export const {
   updateQueryBuilderOpen,
   updateQueryBuilderWidth,
   updateVariablesPaneOpen,
-  updateVariablesPaneHeight,
-  updateWsSelectedMessageIndex
+  updateVariablesPaneHeight
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

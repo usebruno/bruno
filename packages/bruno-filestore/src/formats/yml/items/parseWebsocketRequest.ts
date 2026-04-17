@@ -41,7 +41,8 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequest): BrunoItem => {
       brunoRequest.body.ws = variants.map((variant, index) => ({
         name: variant.title || `message ${index + 1}`,
         type: variant.message?.type || 'text',
-        content: ensureString(variant.message?.data)
+        content: ensureString(variant.message?.data),
+        selected: variant.selected || false
       }));
     } else {
       // single message uses flat WebSocketMessage

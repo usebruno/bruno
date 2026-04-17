@@ -59,6 +59,7 @@ const stringifyWebsocketRequest = (item: BrunoItem): string => {
       } else {
         const variants: WebSocketMessageVariant[] = messages.map((msg, index) => ({
           title: msg.name || `message ${index + 1}`,
+          selected: msg.selected || false,
           message: {
             type: (msg.type as WebSocketMessage['type']) || 'text',
             data: msg.content || ''

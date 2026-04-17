@@ -12,7 +12,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
-import { prettifyJsonString } from 'utils/common/index';
+import { prettifyJsonString, uuid } from 'utils/common/index';
 import xmlFormat from 'xml-formatter';
 import toast from 'react-hot-toast';
 import WsBody from '../WsBody/index';
@@ -44,11 +44,15 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
   );
 
   const addNewMessage = useCallback(() => {
-    const currentMessages = Array.isArray(body?.ws) ? [...body.ws] : [];
+    const currentMessages = Array.isArray(body?.ws)
+      ? body.ws.map((msg) => ({ ...msg, selected: false }))
+      : [];
     currentMessages.push({
+      uid: uuid(),
       name: `message ${currentMessages.length + 1}`,
       content: '{}',
-      type: 'json'
+      type: 'json',
+      selected: true
     });
     dispatch(updateRequestBody({
       content: currentMessages,
@@ -189,7 +193,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
             data-testid="ws-add-message"
             onClick={addNewMessage}
           >
-            <IconPlus size={14} strokeWidth={1.5} />
+            <IconPlus size={15} strokeWidth={1.5} />
           </ActionIcon>
         </ToolHint>
       </div>
