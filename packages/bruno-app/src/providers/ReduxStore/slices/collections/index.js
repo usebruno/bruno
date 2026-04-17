@@ -23,6 +23,7 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
+import { getCollectionEnvironmentPath } from 'utils/snapshot';
 import * as exampleReducers from './exampleReducers';
 
 // gRPC status code meanings
@@ -2929,7 +2930,7 @@ export const collectionsSlice = createSlice({
                   type: 'COLLECTION_ENVIRONMENT',
                   data: {
                     collectionPath: collection?.pathname,
-                    environmentPath
+                    environmentPath: getCollectionEnvironmentPath(collection, environment, environmentPath)
                   }
                 });
               }

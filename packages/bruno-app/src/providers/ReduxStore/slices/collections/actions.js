@@ -73,7 +73,6 @@ import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'uti
 import {
   getGlobalEnvironmentVariables,
   findCollectionByPathname,
-  findEnvironmentInCollectionByName,
   getReorderedItemsInTargetDirectory,
   resetSequencesInFolder,
   getReorderedItemsInSourceDirectory,
@@ -91,6 +90,7 @@ import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
+import { getCollectionEnvironmentPath, findCollectionEnvironmentFromSnapshot, hydrateCollectionTabs } from 'utils/snapshot';
 
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
@@ -2350,29 +2350,12 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
       return reject(new Error('Environment not found'));
     }
 
-    const getEnvironmentPath = (environmentToResolve) => {
-      if (!environmentToResolve) {
-        return null;
-      }
-
-      if (typeof environmentToResolve.pathname === 'string' && environmentToResolve.pathname.length > 0) {
-        return environmentToResolve.pathname;
-      }
-
-      if (!environmentToResolve.name || !collection?.pathname) {
-        return environmentToResolve.name || null;
-      }
-
-      const extension = collection.brunoConfig?.version === '1' ? 'bru' : 'yml';
-      return normalizePath(path.join(collection.pathname, 'environments', `${environmentToResolve.name}.${extension}`));
-    };
-
     const { ipcRenderer } = window;
     ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
       type: 'COLLECTION_ENVIRONMENT',
       data: {
         collectionPath: collection?.pathname,
-        environmentPath: getEnvironmentPath(environment)
+        environmentPath: getCollectionEnvironmentPath(collection, environment)
       }
     });
 
@@ -2875,42 +2858,16 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
         resolve();
         return;
       }
-      const { pathname, environmentPath, selectedEnvironment } = collectionSnapshotData;
+      const { pathname } = collectionSnapshotData;
       const collection = findCollectionByPathname(state.collections.collections, pathname);
       const collectionCopy = cloneDeep(collection);
       const collectionUid = collectionCopy?.uid;
 
       // update selected environment
-      const normalizedEnvironmentPath = typeof environmentPath === 'string' && environmentPath.length > 0
-        ? environmentPath.replace(/\\/g, '/').replace(/\/+$/, '')
-        : null;
+      const environment = findCollectionEnvironmentFromSnapshot(collectionCopy, collectionSnapshotData);
 
-      if (normalizedEnvironmentPath || selectedEnvironment) {
-        const environment = collectionCopy?.environments?.find((env) => {
-          const envPath = typeof env?.pathname === 'string'
-            ? env.pathname.replace(/\\/g, '/').replace(/\/+$/, '')
-            : null;
-
-          if (normalizedEnvironmentPath && envPath === normalizedEnvironmentPath) {
-            return true;
-          }
-
-          if (normalizedEnvironmentPath && env?.uid === normalizedEnvironmentPath) {
-            return true;
-          }
-
-          if (normalizedEnvironmentPath && env?.name === normalizedEnvironmentPath) {
-            return true;
-          }
-
-          return selectedEnvironment && env?.name === selectedEnvironment;
-        }) || (selectedEnvironment
-          ? findEnvironmentInCollectionByName(collectionCopy, selectedEnvironment)
-          : null);
-
-        if (environment) {
-          dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
-        }
+      if (environment) {
+        dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
       }
 
       // todo: add any other redux state that you want to save
@@ -3043,9 +3000,8 @@ export const loadLargeRequest
     };
 
 export const mountCollection
-  = ({ collectionUid, collectionPathname, brunoConfig, skipTabRestore = false }) =>
+  = ({ collectionUid, collectionPathname, brunoConfig }) =>
     (dispatch, getState) => {
-      const { ipcRenderer } = window;
       dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
       return new Promise(async (resolve, reject) => {
         callIpc('renderer:mount-collection', { collectionUid, collectionPathname, brunoConfig })
@@ -3053,22 +3009,9 @@ export const mountCollection
             dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
 
-            if (!skipTabRestore) {
-              try {
-                const tabsSnapshot = await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname);
-                if (tabsSnapshot?.tabs?.length > 0) {
-                  const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
-                  if (collection) {
-                    dispatch(restoreTabs({
-                      collection,
-                      tabs: tabsSnapshot.tabs,
-                      activeTab: tabsSnapshot.activeTab
-                    }));
-                  }
-                }
-              } catch (err) {
-                console.error('Failed to restore tabs from snapshot:', err);
-              }
+            const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
+            if (collection?.pathname) {
+              await hydrateCollectionTabs(collection, dispatch, restoreTabs);
             }
           })
           .then(resolve)

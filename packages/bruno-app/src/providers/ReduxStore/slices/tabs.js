@@ -103,12 +103,10 @@ export const tabsSlice = createSlice({
         tableColumnWidths: {},
         scriptPaneTab: null,
         docsEditing: false,
-        type: type || 'request',
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
           ? preview
           : !nonReplaceableTabTypes.includes(type),
-        ...(uid ? { folderUid: uid } : {}),
         ...(exampleUid ? { exampleUid } : {}),
         ...(itemUid ? { itemUid } : {}),
         ...(exampleName ? { exampleName } : {}),

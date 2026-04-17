@@ -1,4 +1,5 @@
 import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
+import path, { normalizePath } from 'utils/common/path';
 
 const REQUEST_TAB_TYPES = new Set(['http-request', 'graphql-request', 'grpc-request', 'ws-request']);
 const SINGLETON_TAB_TYPES = new Set([
@@ -42,6 +43,59 @@ export const isRequestTab = (type) => REQUEST_TAB_TYPES.has(type);
 
 export const shouldExcludeTab = (tab, transientDirectory) => {
   return transientDirectory && tab.pathname?.startsWith(transientDirectory);
+};
+
+const normalizeSnapshotPathRef = (value) => {
+  if (typeof value !== 'string' || value.length === 0) {
+    return null;
+  }
+
+  return value.replace(/\\/g, '/').replace(/\/+$/, '');
+};
+
+export const getCollectionEnvironmentPath = (collection, environment, defaultValue = null) => {
+  if (!environment) {
+    return defaultValue;
+  }
+
+  if (typeof environment.pathname === 'string' && environment.pathname.length > 0) {
+    return normalizePath(environment.pathname);
+  }
+
+  if (!environment.name || !collection?.pathname) {
+    return environment.name || defaultValue;
+  }
+
+  const extension = collection.brunoConfig?.version === '1' ? 'bru' : 'yml';
+  return normalizePath(path.join(collection.pathname, 'environments', `${environment.name}.${extension}`));
+};
+
+export const findCollectionEnvironmentFromSnapshot = (collection, snapshotData = {}) => {
+  const { environmentPath, selectedEnvironment } = snapshotData;
+
+  const normalizedEnvironmentPath = normalizeSnapshotPathRef(environmentPath);
+
+  if ((!normalizedEnvironmentPath && !selectedEnvironment) || !Array.isArray(collection?.environments)) {
+    return null;
+  }
+
+  return collection.environments.find((environment) => {
+    const environmentPathRef = normalizeSnapshotPathRef(environment?.pathname);
+
+    if (normalizedEnvironmentPath && environmentPathRef === normalizedEnvironmentPath) {
+      return true;
+    }
+
+    if (normalizedEnvironmentPath && environment?.uid === normalizedEnvironmentPath) {
+      return true;
+    }
+
+    if (normalizedEnvironmentPath && environment?.name === normalizedEnvironmentPath) {
+      return true;
+    }
+
+    return selectedEnvironment && environment?.name === selectedEnvironment;
+  }) || null;
 };
 
 const getAccessor = (tab) => {
@@ -173,20 +227,22 @@ export const deserializeTab = (snapshotTab, collection) => {
   return tab;
 };
 
-export const hydrateTabs = async (collections, dispatch, restoreTabs) => {
+export const hydrateCollectionTabs = async (collection, dispatch, restoreTabs) => {
   const { ipcRenderer } = window;
 
+  const tabsSnapshot = await ipcRenderer.invoke('renderer:snapshot:get-tabs', collection.pathname).catch(() => null);
+  if (tabsSnapshot?.tabs?.length > 0) {
+    dispatch(restoreTabs({
+      collection,
+      tabs: tabsSnapshot.tabs,
+      activeTab: tabsSnapshot.activeTab
+    }));
+  }
+};
+
+export const hydrateTabs = async (collections, dispatch, restoreTabs) => {
   await Promise.all(
-    collections.map(async (collection) => {
-      const tabsSnapshot = await ipcRenderer.invoke('renderer:snapshot:get-tabs', collection.pathname).catch(() => null);
-      if (tabsSnapshot?.tabs?.length > 0) {
-        dispatch(restoreTabs({
-          collection,
-          tabs: tabsSnapshot.tabs,
-          activeTab: tabsSnapshot.activeTab
-        }));
-      }
-    })
+    collections.map((collection) => hydrateCollectionTabs(collection, dispatch, restoreTabs))
   );
 };
 

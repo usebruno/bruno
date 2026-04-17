@@ -401,8 +401,7 @@ export const switchWorkspace = (workspaceUid) => {
         await dispatch(mountCollection({
           collectionUid: activeCollection.uid,
           collectionPathname: activeCollection.pathname,
-          brunoConfig: activeCollection.brunoConfig,
-          skipTabRestore: true
+          brunoConfig: activeCollection.brunoConfig
         })).catch((err) => console.error('Failed to mount active collection:', err));
       }
 

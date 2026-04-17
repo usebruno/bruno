@@ -63,7 +63,7 @@ const { moveRequestUid, deleteRequestUid, syncExampleUidsCache } = require('../c
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
-const UiStateSnapshotStore = require('../store/ui-state-snapshot');
+const snapshotManager = require('../services/snapshot');
 const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
@@ -79,7 +79,6 @@ const { saveSpecAndUpdateMetadata, cleanupSpecFilesForCollection } = require('./
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
-const uiStateSnapshotStore = new UiStateSnapshotStore();
 
 // size and file count limits to determine whether the bru files in the collection should be loaded asynchronously or not.
 const MAX_COLLECTION_SIZE_IN_MB = 20;
@@ -1632,7 +1631,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:update-ui-state-snapshot', (event, { type, data }) => {
     try {
-      uiStateSnapshotStore.update({ type, data });
+      snapshotManager.update({ type, data });
     } catch (error) {
       throw new Error(error.message);
     }
