@@ -1015,6 +1015,7 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.body.ws'), (msg) => (msg.uid = uuid()));
   each(get(item, 'request.assertions'), (assertion) => (assertion.uid = uuid()));
 
   return item;
