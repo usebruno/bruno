@@ -144,9 +144,10 @@ const configureRequest = async (
   request.maxRedirects = 0;
 
   const { promptVariables = {} } = collection;
-  let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
+  let { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
     proxyMode,
+    proxyModeReason,
     proxyConfig,
     requestMaxRedirects,
     httpsAgentRequestFields,
@@ -774,6 +775,7 @@ const registerNetworkIpc = (mainWindow) => {
     // flag to see if the stream needs to be handled as an actual stream or
     // is it just a data stream from axios
     let isResponseStream = false;
+    let requestSent;
     const brunoConfig = getBrunoConfig(collectionUid, collection);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
@@ -864,7 +866,7 @@ const registerNetworkIpc = (mainWindow) => {
         }
       });
 
-      let requestSent = {
+      requestSent = {
         url: request.url,
         method: request.method,
         headers: headersSent,
@@ -1141,7 +1143,8 @@ const registerNetworkIpc = (mainWindow) => {
         size: Buffer.byteLength(response.dataBuffer),
         duration: responseTime ?? 0,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
-        timeline: response.timeline
+        timeline: response.timeline,
+        requestSent
       };
     } catch (error) {
       deleteCancelToken(cancelTokenUid);
@@ -1151,7 +1154,8 @@ const registerNetworkIpc = (mainWindow) => {
       return {
         status: error?.status,
         error: error?.message || ERROR_OCCURRED_WHILE_EXECUTING_REQUEST,
-        timeline: error?.timeline
+        timeline: error?.timeline,
+        requestSent
       };
     }
   };

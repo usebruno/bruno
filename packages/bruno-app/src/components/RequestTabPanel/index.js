@@ -112,8 +112,9 @@ const RequestTabPanel = () => {
   const showGqlDocs = focusedTab?.gqlDocsOpen || false;
 
   const onSchemaLoad = useCallback((schema) => setSchema(schema), []);
-  const toggleDocs = useCallback(() => {
-    dispatch(updateGqlDocsOpen({ uid: activeTabUid, gqlDocsOpen: !showGqlDocs }));
+  const toggleDocs = useCallback((value = null) => {
+    const newValue = value !== null ? !!value : !showGqlDocs;
+    dispatch(updateGqlDocsOpen({ uid: activeTabUid, gqlDocsOpen: newValue }));
   }, [dispatch, activeTabUid, showGqlDocs]);
 
   const handleGqlClickReference = useCallback((reference) => {
@@ -332,13 +333,7 @@ const RequestTabPanel = () => {
       toast.error('Please enter a valid WebSocket URL');
       return;
     }
-
-    if (item.response?.stream?.running) {
-      dispatch(cancelRequest(item.cancelTokenUid, item, collection)).catch((err) =>
-        toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
-          duration: 5000
-        }));
-    } else if (item.requestState !== 'sending' && item.requestState !== 'queued') {
+    if (item.requestState !== 'sending' && item.requestState !== 'queued') {
       dispatch(sendRequest(item, collection.uid)).catch((err) =>
         toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
           duration: 5000
@@ -438,7 +433,7 @@ const RequestTabPanel = () => {
         {item.type === 'graphql-request' ? (
           <div className={`graphql-docs-explorer-container ${showGqlDocs ? '' : 'hidden'}`}>
             <DocExplorer schema={schema} ref={(r) => (docExplorerRef.current = r)}>
-              <button className="mr-2" onClick={toggleDocs} aria-label="Close Documentation Explorer">
+              <button className="mr-2" data-testid="graphql-docs-close-button" onClick={() => toggleDocs(false)} aria-label="Close Documentation Explorer">
                 {'\u2715'}
               </button>
             </DocExplorer>

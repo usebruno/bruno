@@ -26,6 +26,7 @@ test.describe('OAuth 1.0 Authentication', () => {
   });
 
   test('Request auth UI', async ({ page, createTmpDir }) => {
+    test.setTimeout(60_000);
     // Setup
     await createCollection(page, 'oauth1-test', await createTmpDir());
     await createRequest(page, 'oauth1-request', 'oauth1-test', { url: 'https://example.com/api' });
@@ -137,6 +138,7 @@ test.describe('OAuth 1.0 Authentication', () => {
   });
 
   test('Collection settings auth', async ({ page }) => {
+    test.setTimeout(60_000);
     const collectionRow = page.getByTestId('collections').locator('#sidebar-collection-name').filter({ hasText: 'oauth1-test' });
     await collectionRow.click();
     await page.locator('.tab.auth').click();

@@ -17,8 +17,8 @@ chai.use(function (chai, utils) {
     // Objects created inside Node's vm.createContext() have a different Object constructor,
     // so obj.constructor === Object fails for objects passed via res.setBody() from scripts.
     // Note: toString check is more permissive than constructor check — custom class instances
-    const isJson = typeof obj === 'object' && obj !== null && !Array.isArray(obj)
-      && Object.prototype.toString.call(obj) === '[object Object]';
+    const isJson = typeof obj === 'object' && obj !== null
+      && (Array.isArray(obj) || Object.prototype.toString.call(obj) === '[object Object]');
 
     this.assert(isJson, `expected ${utils.inspect(obj)} to be JSON`, `expected ${utils.inspect(obj)} not to be JSON`);
   });

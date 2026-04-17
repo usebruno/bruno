@@ -23,7 +23,7 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid, pathname, exampleName } = action.payload;
+      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid, pathname, exampleName, isTransient } = action.payload;
 
       const nonReplaceableTabTypes = [
         'variables',
@@ -78,7 +78,8 @@ export const tabsSlice = createSlice({
           ...(uid ? { folderUid: uid } : {}),
           ...(exampleUid ? { exampleUid } : {}),
           ...(itemUid ? { itemUid } : {}),
-          ...(exampleName ? { exampleName } : {})
+          ...(exampleName ? { exampleName } : {}),
+          ...(isTransient ? { isTransient: true } : {})
         };
 
         state.activeTabUid = uid;
@@ -110,7 +111,8 @@ export const tabsSlice = createSlice({
         ...(uid ? { folderUid: uid } : {}),
         ...(exampleUid ? { exampleUid } : {}),
         ...(itemUid ? { itemUid } : {}),
-        ...(exampleName ? { exampleName } : {})
+        ...(exampleName ? { exampleName } : {}),
+        ...(isTransient ? { isTransient: true } : {})
       });
       state.activeTabUid = uid;
     },
@@ -277,8 +279,9 @@ export const tabsSlice = createSlice({
       const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
 
       // Push closed tabs onto the recently closed stack (LIFO)
+      // Exclude transient requests — they have no persisted file and can't be reopened
       const closedTabs = state.tabs.filter((t) =>
-        tabUids.includes(t.uid) && !nonClosableTypes.includes(t.type)
+        tabUids.includes(t.uid) && !nonClosableTypes.includes(t.type) && !t.isTransient
       );
       if (closedTabs.length > 0) {
         state.recentlyClosedTabs.push(...closedTabs);

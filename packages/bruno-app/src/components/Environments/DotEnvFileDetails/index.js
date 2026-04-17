@@ -44,6 +44,7 @@ const DotEnvFileDetails = ({
                   className={`toggle-btn ${viewMode === 'raw' ? 'active' : ''}`}
                   onClick={() => onViewModeChange?.('raw')}
                   aria-pressed={viewMode === 'raw'}
+                  data-testid="dotenv-view-raw"
                 >
                   Raw
                 </button>

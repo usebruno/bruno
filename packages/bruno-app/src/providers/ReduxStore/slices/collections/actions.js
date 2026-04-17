@@ -530,6 +530,10 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
+    if (item.response?.stream?.running && item.cancelTokenUid) {
+      await dispatch(cancelRequest(item.cancelTokenUid, item, collection));
+    }
+
     let collectionCopy = cloneDeep(collection);
 
     const itemCopy = cloneDeep(item);
@@ -587,10 +591,11 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     } else {
       sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
         .then((response) => {
+          const { requestSent, ...responseData } = response;
           // Ensure any timestamps in the response are converted to numbers
           const serializedResponse = {
-            ...response,
-            timeline: response.timeline?.map((entry) => ({
+            ...responseData,
+            timeline: responseData.timeline?.map((entry) => ({
               ...entry,
               timestamp: entry.timestamp instanceof Date ? entry.timestamp.getTime() : entry.timestamp
             }))
@@ -600,18 +605,23 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
             responseReceived({
               itemUid,
               collectionUid,
-              response: serializedResponse
+              response: serializedResponse,
+              requestSent
             })
           );
         })
         .then(resolve)
         .catch((err) => {
+          const request = itemCopy.draft?.request || itemCopy.request;
+          const requestSent = request ? { url: request.url, method: request.method } : undefined;
+
           if (err && err.message === 'Error invoking remote method \'send-http-request\': Error: Request cancelled') {
             dispatch(
               responseReceived({
                 itemUid,
                 collectionUid,
-                response: null
+                response: null,
+                requestSent
               })
             );
             return;
@@ -629,7 +639,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
             responseReceived({
               itemUid,
               collectionUid,
-              response: errorResponse
+              response: errorResponse,
+              requestSent
             })
           );
         });
@@ -638,7 +649,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 };
 
 export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) => {
-  cancelNetworkRequest(cancelTokenUid)
+  return cancelNetworkRequest(cancelTokenUid)
     .then(() => {
       dispatch(
         requestCancelled({

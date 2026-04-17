@@ -35,7 +35,8 @@ taskMiddleware.startListening({
                 uid: item.uid,
                 collectionUid: collection.uid,
                 requestPaneTab: getDefaultRequestPaneTab(item),
-                preview: task?.preview ?? true
+                preview: task?.preview ?? true,
+                ...(item.isTransient ? { isTransient: true } : {})
               })
             );
           }

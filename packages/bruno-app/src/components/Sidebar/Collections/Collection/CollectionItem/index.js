@@ -568,9 +568,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const handlePasteItem = () => {
-    // Paste as sibling: find the parent folder so the pasted item appears next to the focused item
-    const parentFolder = findParentItemInCollection(collection, item.uid);
-    const targetFolderUid = parentFolder ? parentFolder.uid : null;
+    // Determine target folder: if item is a folder, paste into it; otherwise paste into parent folder
+    let targetFolderUid = item.uid;
+    if (!isFolder) {
+      const parentFolder = findParentItemInCollection(collection, item.uid);
+      targetFolderUid = parentFolder ? parentFolder.uid : null;
+    }
 
     dispatch(pasteItem(collectionUid, targetFolderUid))
       .then(() => {
@@ -647,7 +650,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   key={i}
                   style={{ width: 16, minWidth: 16, height: '100%' }}
                 >
-                  &nbsp;{/* Indent */}
+                &nbsp;{/* Indent */}
                 </div>
               ))
             : null}
