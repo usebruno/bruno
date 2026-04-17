@@ -10,7 +10,7 @@ const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
-const { encodeUrl } = require('@usebruno/common').utils;
+const { encodeUrl, hasExplicitScheme } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
@@ -108,11 +108,8 @@ const configureRequest = async (
   collectionPath,
   globalEnvironmentVariables
 ) => {
-  // Treat only URL schemes with `://` as explicit protocols.
-  // This allows shorthand hosts like `localhost:8080` to default to HTTP.
-  const protocolRegex = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//;
   const hasVariables = request.url.startsWith('{{');
-  if (!hasVariables && !protocolRegex.test(request.url)) {
+  if (!hasVariables && !hasExplicitScheme(request.url)) {
     request.url = `http://${request.url}`;
   }
 
