@@ -2,10 +2,12 @@ import React from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import CodeEditor from 'components/CodeEditor';
+import MonacoEditor from 'components/MonacoEditor';
 import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
 import MultipartFormParams from 'components/RequestPane/MultipartFormParams';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateRequestBodyScrollPosition } from 'providers/ReduxStore/slices/tabs';
@@ -14,6 +16,8 @@ import FileBody from '../FileBody/index';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const useMonaco = useBetaFeature(BETA_FEATURES.MONACO_EDITOR);
+  const Editor = useMonaco ? MonacoEditor : CodeEditor;
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
   const { displayedTheme } = useTheme();
@@ -61,7 +65,7 @@ const RequestBody = ({ item, collection }) => {
 
     return (
       <StyledWrapper className="w-full" data-testid="request-body-editor">
-        <CodeEditor
+        <Editor
           collection={collection}
           item={item}
           theme={displayedTheme}

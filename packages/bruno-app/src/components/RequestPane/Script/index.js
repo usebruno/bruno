@@ -99,6 +99,7 @@ const Script = ({ item, collection }) => {
           <ScriptEditor
             ref={preRequestEditorRef}
             collection={collection}
+            item={item}
             value={requestScript || ''}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}
@@ -115,6 +116,7 @@ const Script = ({ item, collection }) => {
           <ScriptEditor
             ref={postResponseEditorRef}
             collection={collection}
+            item={item}
             value={responseScript || ''}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}

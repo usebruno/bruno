@@ -1,10 +1,12 @@
 import React, { useRef, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import 'utils/monaco/workers';
 import * as monaco from 'monaco-editor';
 import { mapCodeMirrorModeToMonaco } from 'utils/monaco/languageMapping';
 import { registerBrunoTheme } from 'utils/monaco/brunoTheme';
 import { registerBrunoApiTypes } from 'utils/monaco/brunoApiTypes';
-import { setupVariableHighlighting, registerVariableHoverProvider } from 'utils/monaco/variableHighlighting';
+import { setupVariableHighlighting, setupVariableTooltip } from 'utils/monaco/variableHighlighting';
+import { setupAutoComplete } from 'utils/monaco/autocomplete';
 import { useTheme as useStyledTheme } from 'styled-components';
 import StyledWrapper from './StyledWrapper';
 
@@ -21,6 +23,7 @@ const MonacoEditor = ({
   font,
   fontSize,
   enableLineWrapping = true,
+  enableVariableHighlighting = false,
   onScroll,
   initialScroll = 0,
   collection,
@@ -36,9 +39,11 @@ const MonacoEditor = ({
   const collectionRef = useRef(collection);
   const itemRef = useRef(item);
   const variableCleanupRef = useRef(null);
-  const hoverProviderRef = useRef(null);
+  const tooltipCleanupRef = useRef(null);
+  const autocompleteCleanupRef = useRef(null);
 
   const styledTheme = useStyledTheme();
+  const dispatch = useDispatch();
 
   // Keep callback refs up to date
   useEffect(() => { onEditRef.current = onEdit; }, [onEdit]);
@@ -81,6 +86,11 @@ const MonacoEditor = ({
       autoClosingBrackets: 'always',
       folding: true,
       fixedOverflowWidgets: true,
+      quickSuggestions: {
+        other: true,
+        comments: false,
+        strings: true
+      },
       scrollbar: {
         verticalScrollbarSize: 8,
         horizontalScrollbarSize: 8
@@ -114,10 +124,25 @@ const MonacoEditor = ({
       textarea.classList.add('mousetrap');
     }
 
-    // Setup variable highlighting
-    if (collectionRef.current) {
+    // Setup variable highlighting and tooltip — gated by enableVariableHighlighting
+    if (collectionRef.current && enableVariableHighlighting) {
       variableCleanupRef.current = setupVariableHighlighting(editor, collectionRef.current, itemRef.current);
-      hoverProviderRef.current = registerVariableHoverProvider(collectionRef.current, itemRef.current);
+      tooltipCleanupRef.current = setupVariableTooltip(
+        editor,
+        () => collectionRef.current,
+        () => itemRef.current,
+        dispatch
+      );
+    }
+
+    // Setup variable autocomplete ({{variable}} suggestions)
+    // API hints (req, res, bru) are handled by Monaco's built-in IntelliSense via brunoApiTypes
+    if (collectionRef.current) {
+      autocompleteCleanupRef.current = setupAutoComplete(
+        editor,
+        () => collectionRef.current,
+        () => itemRef.current
+      );
     }
 
     // Apply initial scroll position
@@ -132,9 +157,10 @@ const MonacoEditor = ({
           doc: { scrollTop: editor.getScrollTop() }
         });
       }
-      // Clean up variable highlighting
+      // Clean up variable highlighting, tooltip, and autocomplete
       variableCleanupRef.current?.();
-      hoverProviderRef.current?.dispose();
+      tooltipCleanupRef.current?.();
+      autocompleteCleanupRef.current?.();
       contentDisposable.dispose();
       editor.dispose();
       editorRef.current = null;
@@ -145,15 +171,13 @@ const MonacoEditor = ({
   // Re-apply variable highlighting when collection/item changes
   useEffect(() => {
     const editor = editorRef.current;
-    if (!editor || !collection) return;
+    if (!editor || !collection || !enableVariableHighlighting) return;
 
-    // Clean up old highlighting
+    // Clean up old highlighting (tooltip uses refs, so no re-setup needed)
     variableCleanupRef.current?.();
-    hoverProviderRef.current?.dispose();
 
     // Setup new highlighting with updated variables
     variableCleanupRef.current = setupVariableHighlighting(editor, collection, item);
-    hoverProviderRef.current = registerVariableHoverProvider(collection, item);
   }, [collection, item]);
 
   // Sync external value changes

@@ -2,6 +2,11 @@ import React from 'react';
 import { render, act } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 
+const mockDispatch = jest.fn();
+jest.mock('react-redux', () => ({
+  useDispatch: () => mockDispatch
+}));
+
 const mockDispose = jest.fn();
 const mockGetValue = jest.fn(() => '');
 const mockSetValue = jest.fn();
@@ -74,7 +79,11 @@ jest.mock('utils/monaco/brunoApiTypes', () => ({
 
 jest.mock('utils/monaco/variableHighlighting', () => ({
   setupVariableHighlighting: jest.fn(() => jest.fn()),
-  registerVariableHoverProvider: jest.fn(() => ({ dispose: jest.fn() }))
+  setupVariableTooltip: jest.fn(() => jest.fn())
+}));
+
+jest.mock('utils/monaco/autocomplete', () => ({
+  setupAutoComplete: jest.fn(() => jest.fn())
 }));
 
 const MOCK_THEME = {
@@ -107,7 +116,8 @@ const MOCK_THEME = {
 const MonacoEditor = require('./index').default;
 const monaco = require('monaco-editor');
 const { registerBrunoTheme } = require('utils/monaco/brunoTheme');
-const { setupVariableHighlighting, registerVariableHoverProvider } = require('utils/monaco/variableHighlighting');
+const { setupVariableHighlighting, setupVariableTooltip } = require('utils/monaco/variableHighlighting');
+const { setupAutoComplete } = require('utils/monaco/autocomplete');
 
 describe('MonacoEditor', () => {
   beforeEach(() => {
@@ -198,17 +208,42 @@ describe('MonacoEditor', () => {
     expect(mockDispose).toHaveBeenCalledTimes(1);
   });
 
-  it('sets up variable highlighting when collection is provided', () => {
+  it('sets up variable highlighting and tooltip when enableVariableHighlighting is true', () => {
+    const collection = { uid: 'col-1' };
+    const item = { uid: 'item-1' };
+    renderEditor({ collection, item, enableVariableHighlighting: true });
+    expect(setupVariableHighlighting).toHaveBeenCalledWith(mockEditor, collection, item);
+    expect(setupVariableTooltip).toHaveBeenCalled();
+  });
+
+  it('does not set up highlighting or tooltip when enableVariableHighlighting is not set', () => {
     const collection = { uid: 'col-1' };
     const item = { uid: 'item-1' };
     renderEditor({ collection, item });
-    expect(setupVariableHighlighting).toHaveBeenCalledWith(mockEditor, collection, item);
-    expect(registerVariableHoverProvider).toHaveBeenCalledWith(collection, item);
+    expect(setupVariableHighlighting).not.toHaveBeenCalled();
+    expect(setupVariableTooltip).not.toHaveBeenCalled();
   });
 
-  it('does not set up variable highlighting when collection is not provided', () => {
+  it('does not set up highlighting or tooltip when collection is not provided', () => {
     renderEditor({});
     expect(setupVariableHighlighting).not.toHaveBeenCalled();
+    expect(setupVariableTooltip).not.toHaveBeenCalled();
+  });
+
+  it('sets up autocomplete when collection is provided', () => {
+    const collection = { uid: 'col-1' };
+    const item = { uid: 'item-1' };
+    renderEditor({ collection, item });
+    expect(setupAutoComplete).toHaveBeenCalledWith(
+      mockEditor,
+      expect.any(Function),
+      expect.any(Function)
+    );
+  });
+
+  it('does not set up autocomplete when collection is not provided', () => {
+    renderEditor({});
+    expect(setupAutoComplete).not.toHaveBeenCalled();
   });
 
   it('adds mousetrap class to textarea', () => {

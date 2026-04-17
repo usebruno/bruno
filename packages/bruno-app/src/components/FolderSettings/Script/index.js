@@ -106,6 +106,7 @@ const Script = ({ collection, folder }) => {
           <ScriptEditor
             ref={preRequestEditorRef}
             collection={collection}
+            item={folder}
             value={requestScript || ''}
             theme={displayedTheme}
             onEdit={onRequestScriptEdit}
@@ -121,6 +122,7 @@ const Script = ({ collection, folder }) => {
           <ScriptEditor
             ref={postResponseEditorRef}
             collection={collection}
+            item={folder}
             value={responseScript || ''}
             theme={displayedTheme}
             onEdit={onResponseScriptEdit}

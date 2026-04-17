@@ -30,6 +30,7 @@ const Tests = ({ item, collection }) => {
     <div data-testid="test-script-editor">
       <ScriptEditor
         collection={collection}
+        item={item}
         value={tests || ''}
         theme={displayedTheme}
         font={get(preferences, 'font.codeFont', 'default')}
