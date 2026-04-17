@@ -234,12 +234,8 @@ export const sendWsRequest = async (item, collection, environment, runtimeVariab
 
   await ensureConnection();
 
-  // Send only the selected message
-  const messages = item.draft?.request?.body?.ws || item.request?.body?.ws || [];
-  const selectedMessage = messages[selectedMessageIndex];
-  const messageContent = selectedMessage?.content || null;
-
-  const result = await queueWsMessage(item, collection, environment, runtimeVariables, messageContent);
+  // Send only the selected message by index
+  const result = await queueWsMessage(item, collection, environment, runtimeVariables, selectedMessageIndex);
 
   if (result.success) {
     return {};
@@ -254,10 +250,10 @@ export const sendWsRequest = async (item, collection, environment, runtimeVariab
  * @param {Object} collection - The collection object
  * @param {Object} environment - The environment variables
  * @param {Object} runtimeVariables - The runtime variables
- * @param {string} messageContent - The message content to queue (or null to queue all messages)
+ * @param {number|null} selectedMessageIndex - Index of the message to queue (or null to queue all messages)
  * @returns {Promise<Object>} - The result of the queue operation
  */
-export const queueWsMessage = async (item, collection, environment, runtimeVariables, messageContent) => {
+export const queueWsMessage = async (item, collection, environment, runtimeVariables, selectedMessageIndex) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     ipcRenderer.invoke('renderer:ws:queue-message', {
@@ -265,7 +261,7 @@ export const queueWsMessage = async (item, collection, environment, runtimeVaria
       collection,
       environment,
       runtimeVariables,
-      messageContent
+      selectedMessageIndex
     }).then(resolve).catch(reject);
   });
 };

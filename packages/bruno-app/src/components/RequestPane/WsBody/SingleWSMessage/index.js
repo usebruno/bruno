@@ -181,7 +181,7 @@ export const SingleWSMessage = ({
         await connectWS(item, col, environment, col?.runtimeVariables, { connectOnly: true });
       }
 
-      const result = await queueWsMessage(item, col, environment, col?.runtimeVariables, content);
+      const result = await queueWsMessage(item, col, environment, col?.runtimeVariables, index);
       if (!result.success) {
         toast.error(result.error || 'Failed to send message');
       }
