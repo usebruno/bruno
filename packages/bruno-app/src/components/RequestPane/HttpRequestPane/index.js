@@ -26,7 +26,7 @@ const TAB_CONFIG = [
   { key: 'auth', label: 'Auth' },
   { key: 'vars', label: 'Vars' },
   { key: 'script', label: 'Script' },
-  { key: 'assert', label: 'Assert Req' },
+  { key: 'assert', label: 'Assert' },
   { key: 'tests', label: 'Tests' },
   { key: 'docs', label: 'Docs' },
   { key: 'settings', label: 'Settings' }
