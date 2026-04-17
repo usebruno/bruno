@@ -111,14 +111,53 @@ describe('encodeUrl', () => {
 
     it('should handle already encoded URLs', () => {
       const url = 'https://example.com/api?name=john%20doe&email=john%40example.com';
-      const expected = 'https://example.com/api?name=john%2520doe&email=john%2540example.com';
+      const expected = url;
       expect(encodeUrl(url)).toBe(expected);
     });
 
     it('should handle pipe operator in already encoded URLs', () => {
       const url = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
-      const expected = 'https://example.com/api?filter=status%257Cactive&sort=name%257Casc';
+      const expected = url;
       expect(encodeUrl(url)).toBe(expected);
+    });
+  });
+
+  describe('already encoded sequence preservation', () => {
+    it('should preserve %20 and %40 sequences', () => {
+      const url = 'https://example.com/api?name=john%20doe&email=john%40example.com';
+      expect(encodeUrl(url)).toBe(url);
+    });
+
+    it('should preserve %2F-heavy values in generic URLs', () => {
+      const url = 'https://example.com/api?token=abc%2Fdef%2Fghi&other=x';
+      expect(encodeUrl(url)).toBe(url);
+    });
+
+    it('should preserve encoded pipe sequences', () => {
+      const url = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
+      expect(encodeUrl(url)).toBe(url);
+    });
+
+    it('should preserve encoded values while still encoding raw values in the same URL', () => {
+      const url = 'https://example.com/api?pre=abc%2Fdef&raw=john doe';
+      const expected = 'https://example.com/api?pre=abc%2Fdef&raw=john%20doe';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should encode literal percent signs while preserving valid triplets in hybrid values', () => {
+      const url = 'https://example.com/api?v=50%off%2F';
+      const expected = 'https://example.com/api?v=50%25off%2F';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should not throw on malformed percent sequences and should encode stray percent signs', () => {
+      const trailingPercentUrl = 'https://example.com/api?v=bad%';
+      const invalidHexUrl = 'https://example.com/api?v=bad%ZZ';
+
+      expect(() => encodeUrl(trailingPercentUrl)).not.toThrow();
+      expect(() => encodeUrl(invalidHexUrl)).not.toThrow();
+      expect(encodeUrl(trailingPercentUrl)).toBe('https://example.com/api?v=bad%25');
+      expect(encodeUrl(invalidHexUrl)).toBe('https://example.com/api?v=bad%25ZZ');
     });
   });
 

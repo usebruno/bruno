@@ -11,17 +11,29 @@ interface ExtractQueryParamsOptions {
   decode?: boolean;
 }
 
+const ENCODED_MARKER = '__BRUNO_ENCODED__';
+
+const smartEncodeComponent = (value: string): string => {
+  if (!value) return value;
+
+  // replace % followed two hex characters with ENCODED_MARKER so they're not re-encoded
+  const maskedValue = value.replace(/%([0-9a-fA-F]{2})/g, `${ENCODED_MARKER}$1`);
+  const encodedValue = encodeURIComponent(maskedValue);
+
+  return encodedValue.split(ENCODED_MARKER).join('%');
+};
+
 function buildQueryString(paramsArray: QueryParam[], { encode = false }: BuildQueryStringOptions = {}): string {
   return paramsArray
     .filter(({ name }) => typeof name === 'string' && name.trim().length > 0)
     .map(({ name, value }) => {
-      const finalName = encode ? encodeURIComponent(name) : name;
+      const finalName = encode ? smartEncodeComponent(name) : name;
 
       if (value === undefined) {
         return finalName;
       }
 
-      const finalValue = encode ? encodeURIComponent(value) : value;
+      const finalValue = encode ? smartEncodeComponent(value) : value;
       return `${finalName}=${finalValue}`;
     })
     .join('&');
