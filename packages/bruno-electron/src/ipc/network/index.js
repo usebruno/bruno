@@ -108,7 +108,9 @@ const configureRequest = async (
   collectionPath,
   globalEnvironmentVariables
 ) => {
-  const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+  // Treat only URL schemes with `://` as explicit protocols.
+  // This allows shorthand hosts like `localhost:8080` to default to HTTP.
+  const protocolRegex = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//;
   const hasVariables = request.url.startsWith('{{');
   if (!hasVariables && !protocolRegex.test(request.url)) {
     request.url = `http://${request.url}`;

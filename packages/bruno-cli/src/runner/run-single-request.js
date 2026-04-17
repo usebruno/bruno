@@ -16,7 +16,9 @@ const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
-const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+// Treat only URL schemes with `://` as explicit protocols.
+// This allows shorthand hosts like `localhost:8080` to default to HTTP.
+const protocolRegex = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//;
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
 const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
