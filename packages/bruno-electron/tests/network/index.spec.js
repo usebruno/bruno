@@ -38,16 +38,22 @@ describe('hasExplicitScheme', () => {
   }
 
   // startsWith('{{') guard in configureRequest bypasses scheme detection
-  it('{{baseUrl}}/api — startsWith bypasses scheme detection', () => {
+  it('{{baseUrl}}/api — no scheme injection for template variables', async () => {
     const url = '{{baseUrl}}/api/v1';
-    const hasVariables = url.startsWith('{{');
-    expect(hasVariables).toBe(true); // will NOT be modified regardless of hasExplicitScheme
+    expect(hasExplicitScheme(url)).toBe(false);
+
+    const request = { method: 'GET', url, body: {} };
+    await configureRequest(null, {}, request, null, null, null, null);
+    expect(request.url).toEqual(url);
   });
 
-  it('{{baseUrl}} alone — startsWith bypasses scheme detection', () => {
+  it('{{baseUrl}} alone — no scheme injection for template variables', async () => {
     const url = '{{baseUrl}}';
-    const hasVariables = url.startsWith('{{');
-    expect(hasVariables).toBe(true);
+    expect(hasExplicitScheme(url)).toBe(false);
+
+    const request = { method: 'GET', url, body: {} };
+    await configureRequest(null, {}, request, null, null, null, null);
+    expect(request.url).toEqual(url);
   });
 });
 
