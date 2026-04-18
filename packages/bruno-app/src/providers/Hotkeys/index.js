@@ -162,16 +162,50 @@ export const HotkeysProvider = (props) => {
     };
   }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
 
-  // Switch to recently used tab
+  const [cyclingIndex, setCyclingIndex] = useState(0);
+  const [isCycling, setIsCycling] = useState(false);
+  const [cyclingHistory, setCyclingHistory] = useState([]);
+
+  // Detect when the modifier key is released to stop cycling and commit the MRU order
+  useEffect(() => {
+    const handleKeyUp = (e) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const modifierKey = isMac ? e.metaKey : e.ctrlKey;
+
+      if (!modifierKey && isCycling) {
+        setIsCycling(false);
+        setCyclingIndex(0);
+        setCyclingHistory([]);
+      }
+    };
+
+    window.addEventListener('keyup', handleKeyUp);
+    return () => window.removeEventListener('keyup', handleKeyUp);
+  }, [isCycling]);
+
+  // Switch to recently used tab with cycling support
   useEffect(() => {
     bindAction('switchToRecentlyUsedTab', (e) => {
       if (activeTabHistory.length < 2) return false;
 
-      // The first element is the current tab, so we switch to the second one
-      const recentTabUid = activeTabHistory[0] === activeTabUid ? activeTabHistory[1] : activeTabHistory[0];
+      let nextIndex;
+      let historyToUse;
 
-      if (recentTabUid) {
-        dispatch(focusTab({ uid: recentTabUid }));
+      if (!isCycling) {
+        setIsCycling(true);
+        historyToUse = [...activeTabHistory];
+        setCyclingHistory(historyToUse);
+        nextIndex = 1; // start from the second most recent
+      } else {
+        historyToUse = cyclingHistory;
+        nextIndex = (cyclingIndex + 1) % historyToUse.length;
+      }
+
+      setCyclingIndex(nextIndex);
+      const targetUid = historyToUse[nextIndex];
+
+      if (targetUid) {
+        dispatch(focusTab({ uid: targetUid }));
       }
       return false;
     });
@@ -179,7 +213,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('switchToRecentlyUsedTab');
     };
-  }, [activeTabUid, activeTabHistory, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, activeTabHistory, isCycling, cyclingIndex, cyclingHistory, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Switch to tab at position (Cmd+1 through Cmd+8) and last tab (Cmd+9) — collection-scoped
   useEffect(() => {
