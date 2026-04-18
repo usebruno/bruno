@@ -37,7 +37,7 @@ import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, areItemsLoading } from 'utils/collections';
+import { isItemAFolder, areItemsLoading } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
@@ -118,12 +118,13 @@ const Collection = ({ collection, searchText }) => {
     }));
   };
 
-  const handleSaveAll = () => {
+  const handleSaveAll = async () => {
     const collectionUid = collection.uid;
 
     const requestDrafts = [];
     const collectionDrafts = [];
     const folderDrafts = [];
+    const promises = [];
 
     // Collection settings draft
     if (collection.draft) {
@@ -135,7 +136,7 @@ const Collection = ({ collection, searchText }) => {
       const { environmentUid, variables } = collection.environmentsDraft;
       const environment = findEnvironmentInCollection(collection, environmentUid);
       if (environment && variables) {
-        dispatch(saveEnvironment(variables, environmentUid, collectionUid));
+        promises.push(dispatch(saveEnvironment(variables, environmentUid, collectionUid)));
       }
     }
 
@@ -152,16 +153,26 @@ const Collection = ({ collection, searchText }) => {
     });
 
     if (collectionDrafts.length > 0) {
-      dispatch(saveMultipleCollections(collectionDrafts));
+      promises.push(dispatch(saveMultipleCollections(collectionDrafts)));
     }
     if (folderDrafts.length > 0) {
-      dispatch(saveMultipleFolders(folderDrafts));
+      promises.push(dispatch(saveMultipleFolders(folderDrafts)));
     }
     if (requestDrafts.length > 0) {
-      dispatch(saveMultipleRequests(requestDrafts));
+      promises.push(dispatch(saveMultipleRequests(requestDrafts)));
     }
 
-    toast.success('All changes saved');
+    if (promises.length === 0) {
+      return;
+    }
+
+    try {
+      await Promise.all(promises);
+      toast.success('All changes saved');
+    } catch (err) {
+      toast.error('Failed to save all changes');
+      console.error(err);
+    }
   };
 
   const hasSearchText = searchText && searchText?.trim()?.length;

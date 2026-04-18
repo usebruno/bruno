@@ -103,7 +103,7 @@ const Wrapper = styled.div`
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background-color: #f59e0b;
+      background-color: ${(props) => props.theme.colors.text.warning};
       margin-left: 4px;
       flex-shrink: 0;
     }
