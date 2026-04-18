@@ -24,8 +24,7 @@ import {
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
-import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig, saveAllCollectionChanges } from 'providers/ReduxStore/slices/collections/actions';
 import { IconDeviceFloppy } from '@tabler/icons';
 import { flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
 import { useDispatch, useSelector } from 'react-redux';
@@ -119,55 +118,8 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const handleSaveAll = async () => {
-    const collectionUid = collection.uid;
-
-    const requestDrafts = [];
-    const collectionDrafts = [];
-    const folderDrafts = [];
-    const promises = [];
-
-    // Collection settings draft
-    if (collection.draft) {
-      collectionDrafts.push({ collectionUid });
-    }
-
-    // Environment draft
-    if (collection.environmentsDraft) {
-      const { environmentUid, variables } = collection.environmentsDraft;
-      const environment = findEnvironmentInCollection(collection, environmentUid);
-      if (environment && variables) {
-        promises.push(dispatch(saveEnvironment(variables, environmentUid, collectionUid)));
-      }
-    }
-
-    // Request and folder drafts
-    const items = flattenItems(collection.items);
-    const requests = items.filter((item) => isItemARequest(item) && hasRequestChanges(item));
-    requests.forEach((draft) => {
-      requestDrafts.push({ ...draft, collectionUid });
-    });
-
-    const folders = items.filter((item) => item.type === 'folder' && item.draft);
-    folders.forEach((folder) => {
-      folderDrafts.push({ folderUid: folder.uid, collectionUid });
-    });
-
-    if (collectionDrafts.length > 0) {
-      promises.push(dispatch(saveMultipleCollections(collectionDrafts)));
-    }
-    if (folderDrafts.length > 0) {
-      promises.push(dispatch(saveMultipleFolders(folderDrafts)));
-    }
-    if (requestDrafts.length > 0) {
-      promises.push(dispatch(saveMultipleRequests(requestDrafts)));
-    }
-
-    if (promises.length === 0) {
-      return;
-    }
-
     try {
-      await Promise.all(promises);
+      await dispatch(saveAllCollectionChanges(collection));
       toast.success('All changes saved');
     } catch (err) {
       toast.error('Failed to save all changes');
