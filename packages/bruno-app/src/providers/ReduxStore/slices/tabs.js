@@ -63,6 +63,7 @@ export const tabsSlice = createSlice({
 
       const lastTab = state.tabs[state.tabs.length - 1];
       if (state.tabs.length > 0 && lastTab.preview) {
+        const replacedUid = lastTab.uid;
         state.tabs[state.tabs.length - 1] = {
           uid,
           collectionUid,
@@ -83,7 +84,7 @@ export const tabsSlice = createSlice({
         };
 
         state.activeTabUid = uid;
-        state.activeTabHistory = [uid, ...state.activeTabHistory.filter((id) => id !== uid)];
+        state.activeTabHistory = [uid, ...state.activeTabHistory.filter((id) => id !== uid && id !== replacedUid)];
         return;
       }
 
@@ -141,6 +142,7 @@ export const tabsSlice = createSlice({
       }
 
       state.activeTabUid = state.tabs[toBeActivatedTabIndex].uid;
+      state.activeTabHistory = [state.activeTabUid, ...state.activeTabHistory.filter((id) => id !== state.activeTabUid)];
     },
     updateRequestPaneTabWidth: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
@@ -386,6 +388,7 @@ export const tabsSlice = createSlice({
 
       state.tabs.push(tab);
       state.activeTabUid = tab.uid;
+      state.activeTabHistory = [tab.uid, ...state.activeTabHistory.filter((id) => id !== tab.uid)];
     }
   }
 });

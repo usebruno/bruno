@@ -13,7 +13,7 @@ export const KEY_BINDING_SECTIONS = [
       switchToNextTab: { mac: 'shift+bind+command+bind+]', windows: 'shift+bind+ctrl+bind+]', name: 'Switch to Next Tab' },
       switchToPreviousTabAlternate: { mac: 'command+bind+pageup', windows: 'ctrl+bind+pageup', name: 'Switch to Previous Tab (Alt)', hidden: true },
       switchToNextTabAlternate: { mac: 'command+bind+pagedown', windows: 'ctrl+bind+pagedown', name: 'Switch to Next Tab (Alt)', hidden: true },
-      switchToRecentlyUsedTab: { mac: 'command+bind+tab', windows: 'ctrl+bind+tab', name: 'Switch to Recently Used Tab' },
+      switchToRecentlyUsedTab: { mac: 'shift+bind+command+bind+tab', windows: 'ctrl+bind+tab', name: 'Switch to Recently Used Tab' },
       moveTabLeft: { mac: 'command+bind+[', windows: 'ctrl+bind+[', name: 'Move Tab Left' }, // D
       moveTabRight: { mac: 'command+bind+]', windows: 'ctrl+bind+]', name: 'Move Tab Right' }, // D
       switchToTab1: { mac: 'command+bind+1', windows: 'ctrl+bind+1', name: 'Switch to Tab at Position', readOnly: true, hidden: true },

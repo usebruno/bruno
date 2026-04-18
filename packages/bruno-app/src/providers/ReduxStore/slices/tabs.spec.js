@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import tabsReducer, { addTab, focusTab, closeTabs, closeAllCollectionTabs } from './tabs';
+import tabsReducer, { addTab, focusTab, closeTabs, closeAllCollectionTabs, switchTab, reopenLastClosedTab } from './tabs';
 
 describe('tabs reducer with store', () => {
   let store;
@@ -57,5 +57,39 @@ describe('tabs reducer with store', () => {
 
     store.dispatch(addTab({ uid: 'tab1', collectionUid: 'c1', type: 'request', preview: false }));
     expect(store.getState().tabs.activeTabHistory).toEqual(['tab1', 'tab2']);
+  });
+
+  it('should filter out the replaced preview tab from history', () => {
+    store.dispatch(addTab({ uid: 'preview1', collectionUid: 'c1', type: 'request', preview: true }));
+    expect(store.getState().tabs.activeTabHistory).toEqual(['preview1']);
+
+    // Adding a second tab which will replace the preview tab
+    store.dispatch(addTab({ uid: 'tab2', collectionUid: 'c1', type: 'request', preview: false }));
+    expect(store.getState().tabs.activeTabHistory).toEqual(['tab2']);
+    expect(store.getState().tabs.tabs.map((t) => t.uid)).toEqual(['tab2']);
+  });
+
+  it('should update history when using switchTab', () => {
+    store.dispatch(addTab({ uid: 'tab1', collectionUid: 'c1', type: 'request', preview: false }));
+    store.dispatch(addTab({ uid: 'tab2', collectionUid: 'c1', type: 'request', preview: false }));
+    store.dispatch(addTab({ uid: 'tab3', collectionUid: 'c1', type: 'request', preview: false }));
+
+    expect(store.getState().tabs.activeTabHistory).toEqual(['tab3', 'tab2', 'tab1']);
+
+    store.dispatch(switchTab({ direction: 'pagedown' })); // Points to tab1 (circular from tab3)
+    expect(store.getState().tabs.activeTabUid).toBe('tab1');
+    expect(store.getState().tabs.activeTabHistory).toEqual(['tab1', 'tab3', 'tab2']);
+  });
+
+  it('should restore history when using reopenLastClosedTab', () => {
+    store.dispatch(addTab({ uid: 'tab1', collectionUid: 'c1', type: 'request', preview: false }));
+    store.dispatch(addTab({ uid: 'tab2', collectionUid: 'c1', type: 'request', preview: false }));
+
+    store.dispatch(closeTabs({ tabUids: ['tab2'] }));
+    expect(store.getState().tabs.activeTabHistory).toEqual(['tab1']);
+
+    store.dispatch(reopenLastClosedTab());
+    expect(store.getState().tabs.activeTabUid).toBe('tab2');
+    expect(store.getState().tabs.activeTabHistory).toEqual(['tab2', 'tab1']);
   });
 });
