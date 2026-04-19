@@ -24,6 +24,42 @@ window.JSHINT = JSHINT;
 
 const TAB_SIZE = 2;
 
+/*
+ * Per-tab Doc cache — why this exists:
+ *
+ * CodeMirror 5 splits an editor into two objects: the Editor (UI shell) and the
+ * Doc (content + cursor + selection + undo history + TextMarkers like folds).
+ * Previously, every tab switch called `editor.setValue(newContent)` which mutates
+ * the current Doc and destroys all of that state. Users lost folds, cursor,
+ * selection, and undo history on every switch.
+ *
+ * Instead, we keep one Doc per (item, mode, readOnly) combination in this cache.
+ * On tab switch we call `editor.swapDoc(cachedDoc)` — CM5's native multi-document
+ * API — which atomically swaps the entire Doc and preserves every piece of
+ * per-tab state for free.
+ *
+ * Constraint: a Doc can be attached to only one editor at a time (CM5 enforces
+ * this via `doc.cm`). See componentWillUnmount for how we release the Doc.
+ */
+const docCache = new Map();
+
+const getOrCreateDoc = (key, content, mode) => {
+  let doc = docCache.get(key);
+  if (doc) {
+    // The cached Doc may have stale content if props.value changed while this
+    // tab was inactive (e.g. a new response arrived). Sync the content so the
+    // user sees the latest value. This does reset fold state on this Doc, but
+    // that's correct — fold positions for old content are meaningless.
+    if (doc.getValue() !== content) {
+      doc.setValue(content);
+    }
+    return doc;
+  }
+  doc = new CodeMirror.Doc(content, mode);
+  docCache.set(key, doc);
+  return doc;
+};
+
 export default class CodeEditor extends React.Component {
   constructor(props) {
     super(props);
@@ -46,6 +82,24 @@ export default class CodeEditor extends React.Component {
     this.state = {
       searchBarVisible: false
     };
+  }
+
+  // Identifies which Doc in docCache belongs to this CodeEditor instance.
+  //
+  // Callers can pass an explicit `docKey` prop when the auto-derived key would
+  // collide — e.g. Pre-Request vs Post-Response script editors share the same
+  // item/mode/readOnly and need an extra disambiguator.
+  //
+  // Auto-derived parts:
+  //   id       — distinguishes different tabs (requests or collections)
+  //   mode     — distinguishes editors within the same tab (e.g. JSON body vs JS script)
+  //   readOnly — distinguishes response viewer (ro) from body editor (rw) when modes match
+  _getDocKey() {
+    if (this.props.docKey) return this.props.docKey;
+    const id = this.props.item?.uid || this.props.collection?.uid || 'default';
+    const mode = this.props.mode || 'default';
+    const readOnly = this.props.readOnly ? 'ro' : 'rw';
+    return `${id}:${mode}:${readOnly}`;
   }
 
   componentDidMount() {
@@ -175,6 +229,30 @@ export default class CodeEditor extends React.Component {
     });
 
     if (editor) {
+      // CodeMirror(node, { value }) created a throwaway initial Doc from props.value.
+      // Replace it with this tab's cached Doc so any previously preserved folds,
+      // cursor, selection, and undo history are restored.
+      const docKey = this._getDocKey();
+      let doc = getOrCreateDoc(
+        docKey,
+        this.props.value || '',
+        this.props.mode || 'application/ld+json'
+      );
+      // Defensive fallback: a CM5 Doc can only be attached to one editor at a
+      // time. If the cached Doc is still attached to a previous (dead) editor —
+      // e.g. React StrictMode double-mounting, or an unmount that skipped our
+      // release logic — swapDoc would throw "document already in use". Replace
+      // the cache entry with a fresh Doc in that case.
+      if (doc.cm && doc.cm !== editor) {
+        doc = new CodeMirror.Doc(this.props.value || '', this.props.mode || 'application/ld+json');
+        docCache.set(docKey, doc);
+      }
+      if (doc !== editor.getDoc()) {
+        editor.swapDoc(doc);
+      }
+      this._currentDocKey = docKey;
+      this.cachedValue = editor.getValue();
+
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
       editor.scrollTo(null, this.props.initialScroll);
@@ -218,11 +296,48 @@ export default class CodeEditor extends React.Component {
       this.editor.options.jump.schema = this.props.schema;
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
-    if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      const cursor = this.editor.getCursor();
-      this.cachedValue = String(this?.props?.value ?? '');
-      this.editor.setValue(String(this.props.value) || '');
-      this.editor.setCursor(cursor);
+    if (this.editor) {
+      // Two distinct update paths:
+      //   1. Doc key changed  → tab switch    → swapDoc (preserves all per-tab state)
+      //   2. Same doc, value changed → external content update → setValue (state resets)
+      const newDocKey = this._getDocKey();
+      const docKeyChanged = newDocKey !== this._currentDocKey;
+
+      if (docKeyChanged) {
+        // Path 1 — tab switch. Look up (or create) the incoming tab's Doc and
+        // swap it in. CM5 handles the rest: the outgoing Doc keeps its folds,
+        // cursor, selection, undo history, and scroll in docCache for later;
+        // the incoming Doc restores whatever state it had when last visited.
+        let doc = getOrCreateDoc(
+          newDocKey,
+          this.props.value || '',
+          this.props.mode || 'application/ld+json'
+        );
+        // Same defensive fallback as componentDidMount — see there for why.
+        if (doc.cm && doc.cm !== this.editor) {
+          doc = new CodeMirror.Doc(this.props.value || '', this.props.mode || 'application/ld+json');
+          docCache.set(newDocKey, doc);
+        }
+        this.editor.swapDoc(doc);
+        this._currentDocKey = newDocKey;
+        this.cachedValue = this.editor.getValue();
+        // swapDoc resets the editor's mode to whatever mode the incoming Doc
+        // was created with (raw, not the 'brunovariables' overlay). Re-apply
+        // the overlay and re-evaluate lint config for the new content.
+        this.addOverlay();
+        this.editor.setOption(
+          'lint',
+          this.props.mode && this.editor.getValue().trim().length > 0 ? this.lintOptions : false
+        );
+      } else if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue) {
+        // Path 2 — same tab, new external value (e.g. a fresh response arrived
+        // while this tab was active). Update the current Doc via setValue. Fold
+        // state resets because line positions no longer correspond to anything.
+        const cursor = this.editor.getCursor();
+        this.cachedValue = String(this?.props?.value ?? '');
+        this.editor.setValue(String(this.props.value) || '');
+        this.editor.setCursor(cursor);
+      }
     }
 
     if (this.editor) {
@@ -276,6 +391,22 @@ export default class CodeEditor extends React.Component {
 
       // Clean up lint error tooltip
       this.cleanupLintErrorTooltip?.();
+
+      // Release the cached Doc before the editor goes away.
+      //
+      // A CM5 Doc can only be attached to one editor at a time (enforced via
+      // doc.cm). If we destroy this editor without swapping the cached Doc out,
+      // CM5 still considers the Doc attached — and the next CodeEditor to mount
+      // for this tab will throw "This document is already in use." on swapDoc.
+      //
+      // Swapping in a fresh throwaway Doc clears doc.cm on our cached Doc while
+      // leaving its content, folds, cursor, and undo history intact inside
+      // docCache, ready to be attached to the next editor instance.
+      try {
+        this.editor.swapDoc(new CodeMirror.Doc('', this.props.mode || 'application/ld+json'));
+      } catch (e) {
+        // noop — swapDoc can fail if the editor is already in a bad state
+      }
 
       const wrapper = this.editor.getWrapperElement();
       wrapper?.parentNode?.removeChild(wrapper);

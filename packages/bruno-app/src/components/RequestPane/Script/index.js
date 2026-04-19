@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
@@ -99,6 +99,7 @@ const Script = ({ item, collection }) => {
           <CodeEditor
             ref={preRequestEditorRef}
             collection={collection}
+            docKey={`${item.uid}:script:pre-request`}
             value={requestScript || ''}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}
@@ -115,6 +116,7 @@ const Script = ({ item, collection }) => {
           <CodeEditor
             ref={postResponseEditorRef}
             collection={collection}
+            docKey={`${item.uid}:script:post-response`}
             value={responseScript || ''}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}
