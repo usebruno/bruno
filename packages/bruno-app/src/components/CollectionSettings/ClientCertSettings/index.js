@@ -59,40 +59,25 @@ const ClientCertSettings = ({ collection }) => {
       passphrase: Yup.string()
     }),
     onSubmit: (values) => {
-      let relevantValues = {};
-      if (values.type === 'cert') {
-        relevantValues = {
-          name: values.name?.trim(),
-          domain: values.domain?.trim(),
-          type: values.type,
-          certFilePath: values.certFilePath,
-          keyFilePath: values.keyFilePath,
-          passphrase: values.passphrase,
-          enabled: true
-        };
-      } else {
-        relevantValues = {
-          name: values.name?.trim(),
-          domain: values.domain?.trim(),
-          type: values.type,
-          pfxFilePath: values.pfxFilePath,
-          passphrase: values.passphrase,
-          enabled: true
-        };
-      }
-
-      // Disable other certs on the same domain (one active cert per domain)
-      const newDomain = normalizeDomain(relevantValues.domain);
-      const existingCerts = disableOtherCertsOnSameDomain(clientCertConfig, newDomain);
-      const updatedCerts = [...existingCerts, relevantValues];
-      const clientCertificates = {
+      const newCert = {
+        name: values.name?.trim(),
+        domain: values.domain?.trim(),
+        type: values.type,
+        passphrase: values.passphrase,
         enabled: true,
-        certs: updatedCerts
+        ...(values.type === 'cert'
+          ? { certFilePath: values.certFilePath, keyFilePath: values.keyFilePath }
+          : { pfxFilePath: values.pfxFilePath })
       };
+
+      const certs = [
+        ...disableOtherCertsOnSameDomain(clientCertConfig, normalizeDomain(newCert.domain)),
+        newCert
+      ];
 
       dispatch(updateCollectionClientCertificates({
         collectionUid: collection.uid,
-        clientCertificates
+        clientCertificates: { enabled: true, certs }
       }));
 
       formik.resetForm();
@@ -137,42 +122,24 @@ const ClientCertSettings = ({ collection }) => {
   };
 
   const handleRemove = (indexToRemove) => {
-    const updatedCerts = clientCertConfig.filter((cert, index) => index !== indexToRemove);
-    const clientCertificates = {
-      enabled: true,
-      certs: updatedCerts
-    };
-
     dispatch(updateCollectionClientCertificates({
       collectionUid: collection.uid,
-      clientCertificates
+      clientCertificates: {
+        enabled: true,
+        certs: clientCertConfig.filter((_, index) => index !== indexToRemove)
+      }
     }));
   };
 
   const handleToggleEnabled = (indexToToggle) => {
-    const targetCert = clientCertConfig[indexToToggle];
-    if (!targetCert) {
-      return;
-    }
-
-    const shouldEnable = targetCert.enabled === false;
-    const targetDomain = normalizeDomain(targetCert.domain);
-
-    // If enabling, disable other certs on the same domain (one active cert per domain)
-    let nextCerts = shouldEnable
-      ? disableOtherCertsOnSameDomain(clientCertConfig, targetDomain, indexToToggle)
-      : [...clientCertConfig];
-
-    nextCerts[indexToToggle] = { ...nextCerts[indexToToggle], enabled: shouldEnable };
-
-    const clientCertificates = {
-      enabled: true,
-      certs: nextCerts
-    };
+    const nextEnabled = clientCertConfig[indexToToggle].enabled === false;
+    const domain = normalizeDomain(clientCertConfig[indexToToggle].domain);
+    const certs = (nextEnabled ? disableOtherCertsOnSameDomain(clientCertConfig, domain, indexToToggle) : clientCertConfig)
+      .map((cert, i) => i === indexToToggle ? { ...cert, enabled: nextEnabled } : cert);
 
     dispatch(updateCollectionClientCertificates({
       collectionUid: collection.uid,
-      clientCertificates
+      clientCertificates: { enabled: true, certs }
     }));
   };
 
