@@ -208,18 +208,16 @@ const buildCertsAndProxyConfig = async ({
     cacheSslSession: preferencesUtil.isSslSessionCachingEnabled()
   };
 
-  // Get client certificates from bruno config and interpolate (pre-filter disabled certs for bru.sendRequest)
+  // Pre-filter disabled certs so bru.sendRequest skips them before interpolation
   const rawClientCertificates = get(brunoConfig, 'clientCertificates');
-  const interpolatedClientCertificates = rawClientCertificates
-    ? interpolateObject(rawClientCertificates, interpolationOptions)
-    : undefined;
-  const clientCertificates = interpolatedClientCertificates
-    ? {
-        ...interpolatedClientCertificates,
-        certs: (interpolatedClientCertificates.certs || []).filter(
-          (clientCert) => clientCert.enabled !== false
-        )
-      }
+  const clientCertificates = rawClientCertificates
+    ? interpolateObject(
+        {
+          ...rawClientCertificates,
+          certs: (rawClientCertificates.certs || []).filter((clientCert) => clientCert.enabled !== false)
+        },
+        interpolationOptions
+      )
     : undefined;
 
   // Get proxy config from bruno config and interpolate
