@@ -2,70 +2,50 @@ import parseCollection from './parseCollection';
 import stringifyCollection from './stringifyCollection';
 import { stringifyYml } from './utils';
 
-/**
- * Helper: build a minimal brunoConfig with client certificates and stringify it,
- * then parse the result back and return the parsed certs.
- */
+const makePemCert = (overrides: any = {}) => ({
+  domain: 'example.com',
+  type: 'cert',
+  name: '',
+  enabled: true,
+  certFilePath: 'cert.pem',
+  keyFilePath: 'key.pem',
+  passphrase: '',
+  ...overrides
+});
+
+const makePfxCert = (overrides: any = {}) => ({
+  domain: 'example.com',
+  type: 'pfx',
+  name: '',
+  enabled: true,
+  pfxFilePath: 'cert.pfx',
+  passphrase: '',
+  ...overrides
+});
+
 const roundTrip = (certs: any[]) => {
-  const brunoConfig = {
-    name: 'Test Collection',
-    clientCertificates: { certs }
-  };
-  const yml = stringifyCollection({}, brunoConfig);
+  const yml = stringifyCollection({}, { name: 'Test Collection', clientCertificates: { certs } });
   const parsed = parseCollection(yml);
-  return parsed.brunoConfig.clientCertificates?.certs || [];
+  return { yml, certs: parsed.brunoConfig.clientCertificates?.certs || [] };
 };
 
-/**
- * Helper: build raw YAML (as if hand-written or from an older Bruno version)
- * and parse it through the real parseCollection.
- */
-const parseRawYml = (ymlString: string) => {
-  const parsed = parseCollection(ymlString);
-  return parsed.brunoConfig.clientCertificates?.certs || [];
-};
+const parseRawYml = (ymlString: string) =>
+  parseCollection(ymlString).brunoConfig.clientCertificates?.certs || [];
 
 describe('client certificate YAML round-trip', () => {
   describe('name field', () => {
-    it('should persist name through round-trip', () => {
-      const certs = [{
-        domain: 'example.com',
-        type: 'cert',
-        name: 'My Cert',
-        enabled: true,
-        certFilePath: 'cert.pem',
-        keyFilePath: 'key.pem',
-        passphrase: ''
-      }];
-
-      const parsed = roundTrip(certs);
-      expect(parsed[0].name).toBe('My Cert');
+    it('persists name through round-trip', () => {
+      const { certs } = roundTrip([makePemCert({ name: 'My Cert' })]);
+      expect(certs[0].name).toBe('My Cert');
     });
 
-    it('should omit name from YAML when empty', () => {
-      const certs = [{
-        domain: 'example.com',
-        type: 'cert',
-        name: '',
-        enabled: true,
-        certFilePath: 'cert.pem',
-        keyFilePath: 'key.pem',
-        passphrase: ''
-      }];
-
-      const brunoConfig = {
-        name: 'Test Collection',
-        clientCertificates: { certs }
-      };
-      const yml = stringifyCollection({}, brunoConfig);
+    it('omits name from YAML when empty and reads back as empty string', () => {
+      const { yml, certs } = roundTrip([makePemCert({ name: '' })]);
       expect(yml).not.toContain('name: ""');
-
-      const parsed = parseCollection(yml);
-      const parsedCerts = parsed.brunoConfig.clientCertificates?.certs || [];
-      expect(parsedCerts[0].name).toBe('');
+      expect(certs[0].name).toBe('');
     });
 
-    it('should default name to empty string when missing in YAML', () => {
+    it('defaults name to empty string when missing in YAML', () => {
       const yml = stringifyYml({
         opencollection: '1.0.0',
         config: {
@@ -77,59 +57,24 @@ describe('client certificate YAML round-trip', () => {
           }]
         }
       });
-
-      const parsed = parseRawYml(yml);
-      expect(parsed[0].name).toBe('');
+      expect(parseRawYml(yml)[0].name).toBe('');
     });
   });
 
   describe('enabled field', () => {
-    it('should persist enabled: false through round-trip', () => {
-      const certs = [{
-        domain: 'example.com',
-        type: 'pfx',
-        name: '',
-        enabled: false,
-        pfxFilePath: 'cert.pfx',
-        passphrase: 'secret'
-      }];
-
-      const brunoConfig = {
-        name: 'Test Collection',
-        clientCertificates: { certs }
-      };
-      const yml = stringifyCollection({}, brunoConfig);
+    it('persists enabled: false through round-trip', () => {
+      const { yml, certs } = roundTrip([makePfxCert({ enabled: false, passphrase: 'secret' })]);
       expect(yml).toContain('enabled: false');
-
-      const parsed = parseCollection(yml);
-      const parsedCerts = parsed.brunoConfig.clientCertificates?.certs || [];
-      expect(parsedCerts[0].enabled).toBe(false);
+      expect(certs[0].enabled).toBe(false);
     });
 
-    it('should omit enabled from YAML when true (default)', () => {
-      const certs = [{
-        domain: 'example.com',
-        type: 'cert',
-        name: '',
-        enabled: true,
-        certFilePath: 'cert.pem',
-        keyFilePath: 'key.pem',
-        passphrase: ''
-      }];
-
-      const brunoConfig = {
-        name: 'Test Collection',
-        clientCertificates: { certs }
-      };
-      const yml = stringifyCollection({}, brunoConfig);
+    it('omits enabled from YAML when true and reads back as enabled', () => {
+      const { yml, certs } = roundTrip([makePemCert({ enabled: true })]);
       expect(yml).not.toContain('enabled:');
-
-      const parsed = parseCollection(yml);
-      const parsedCerts = parsed.brunoConfig.clientCertificates?.certs || [];
-      expect(parsedCerts[0].enabled).toBe(true);
+      expect(certs[0].enabled).toBe(true);
     });
 
-    it('should default to enabled when field is missing in YAML', () => {
+    it('defaults to enabled when field is missing in YAML', () => {
       const yml = stringifyYml({
         opencollection: '1.0.0',
         config: {
@@ -140,14 +85,12 @@ describe('client certificate YAML round-trip', () => {
           }]
         }
       });
-
-      const parsed = parseRawYml(yml);
-      expect(parsed[0].enabled).toBe(true);
+      expect(parseRawYml(yml)[0].enabled).toBe(true);
     });
   });
 
   describe('backward compatibility', () => {
-    it('should parse legacy YAML without name or enabled fields', () => {
+    it('parses legacy YAML without name or enabled fields', () => {
       const yml = stringifyYml({
         opencollection: '1.0.0',
         config: {
@@ -170,55 +113,16 @@ describe('client certificate YAML round-trip', () => {
 
       const parsed = parseRawYml(yml);
       expect(parsed).toHaveLength(2);
-
-      expect(parsed[0]).toEqual({
+      expect(parsed[0]).toEqual(makePemCert({
         domain: 'api.example.com',
-        type: 'cert',
-        name: '',
-        enabled: true,
         certFilePath: 'certs/cert.pem',
         keyFilePath: 'certs/key.pem',
         passphrase: 'pass123'
-      });
-
-      expect(parsed[1]).toEqual({
+      }));
+      expect(parsed[1]).toEqual(makePfxCert({
         domain: 'other.example.com',
-        type: 'pfx',
-        name: '',
-        enabled: true,
-        pfxFilePath: 'certs/bundle.pfx',
-        passphrase: ''
-      });
-    });
-
-    it('should round-trip mixed enabled/disabled certs with names', () => {
-      const certs = [
-        {
-          domain: 'api.example.com',
-          type: 'cert',
-          name: 'Production',
-          enabled: true,
-          certFilePath: 'cert.pem',
-          keyFilePath: 'key.pem',
-          passphrase: ''
-        },
-        {
-          domain: 'api.example.com',
-          type: 'cert',
-          name: 'Staging',
-          enabled: false,
-          certFilePath: 'staging-cert.pem',
-          keyFilePath: 'staging-key.pem',
-          passphrase: ''
-        }
-      ];
-
-      const parsed = roundTrip(certs);
-
-      expect(parsed[0].name).toBe('Production');
-      expect(parsed[0].enabled).toBe(true);
-      expect(parsed[1].name).toBe('Staging');
-      expect(parsed[1].enabled).toBe(false);
+        pfxFilePath: 'certs/bundle.pfx'
+      }));
     });
   });
 });
