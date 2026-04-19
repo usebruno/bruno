@@ -129,6 +129,13 @@ done
 find . -type f -name "package-lock.json" -delete
 ```
 
+When debugging unexpected dev behavior, first make sure dev is running the source you're reading. Workspace packages (`bruno-common`, `bruno-requests`, `bruno-filestore`, etc.) are imported from their compiled `dist/` output, not their source, so a stale `dist/` will run old code while you're reading (and second-guessing) the new source. This shows up most often as a feature that works in the packaged Bruno app but is broken in `npm run dev`. Rebuild after pulling or switching branches:
+
+```shell
+# Rebuild all workspace packages
+npm run setup
+```
+
 ### Testing
 
 ```bash
