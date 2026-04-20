@@ -29,7 +29,12 @@ chai.use(function (chai, utils) {
 chai.use(function (chai) {
   chai.Assertion.addMethod('jsonSchema', function (schema, ajvOptions) {
     const ajv = new Ajv({ allErrors: true, ...ajvOptions });
-    const validate = ajv.compile(schema);
+    let validate;
+    try {
+      validate = ajv.compile(schema);
+    } catch (e) {
+      this.assert(false, 'JSON schema compile error: ' + e.message, 'JSON schema compile error: ' + e.message);
+    }
     const data = this._obj;
     const isValid = validate(data);
 

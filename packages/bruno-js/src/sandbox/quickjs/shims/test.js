@@ -87,7 +87,12 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
         var proto = Object.getPrototypeOf(expect(null));
         proto.jsonSchema = function(schema, ajvOptions) {
           var ajv = new Ajv(Object.assign({ allErrors: true }, ajvOptions || {}));
-          var validate = ajv.compile(schema);
+          var validate;
+          try {
+            validate = ajv.compile(schema);
+          } catch (e) {
+            this.assert(false, 'JSON schema compile error: ' + e.message, 'JSON schema compile error: ' + e.message);
+          }
           var data = this._obj;
           var isValid = validate(data);
 

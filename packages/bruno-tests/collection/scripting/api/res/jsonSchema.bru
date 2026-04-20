@@ -262,6 +262,13 @@ tests {
     expect(failed).to.be.true;
   });
 
+  // --- Malformed schema (ajv.compile error) ---
+
+  test("Malformed schema - invalid type throws assertion error", function() {
+    const schema = { type: 'invalidType' };
+    expect(() => expect(res.getBody()).to.have.jsonSchema(schema)).to.throw('JSON schema compile error');
+  });
+
   // --- .not (negation) validations ---
 
   test(".not with mismatched type - body is object, not array", function() {
