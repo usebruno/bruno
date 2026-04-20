@@ -70,6 +70,14 @@ chai.use(function (chai, utils) {
   // Parse a property path into an array of keys.
   // Handles: dot notation (a.b), numeric brackets (a[0]), quoted brackets (a["b.c"], a['key']),
   // and combinations like data[0]["a.b"].name
+  //
+  // Examples:
+  //   "a.b.c"              -> ["a", "b", "c"]
+  //   "items[0].name"      -> ["items", "0", "name"]
+  //   'data["a.b"]'        -> ["data", "a.b"]
+  //   "matrix[0][1]"       -> ["matrix", "0", "1"]
+  //   'nested["x.y"].z'    -> ["nested", "x.y", "z"]
+  //   '["say \\"hi\\""]'   -> ["say \"hi\""]
   function parsePath(path) {
     const keys = [];
     let i = 0;

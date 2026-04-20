@@ -40,7 +40,7 @@ tests {
     const body = res.getBody();
     expect(body).to.have.jsonBody();
   });
-
+  
   test("jsonBody(object) - deep equality", function() {
     const body = res.getBody();
     expect(body).to.have.jsonBody({
@@ -62,37 +62,37 @@ tests {
       "say \"hi\"": "quoted-key"
     });
   });
-
+  
   test("jsonBody(path) - nested property exists", function() {
     const body = res.getBody();
     expect(body).to.have.jsonBody("hello");
     expect(body).to.have.jsonBody("data.items");
   });
-
+  
   test("jsonBody(path, value) - nested property equals value", function() {
     const body = res.getBody();
     expect(body).to.have.jsonBody("hello", "bruno");
   });
-
+  
   test("jsonBody with bracket notation", function() {
     const body = res.getBody();
     expect(body).to.have.jsonBody("data.items[0].name", "first");
   });
-
+  
   // --- bracket notation and array access ---
-
+  
   test("bracket notation - access array element returns object", function() {
     const body = res.getBody();
     expect(body).to.have.jsonBody("data.items[0]", { "name": "first" });
     expect(body).to.have.jsonBody("data.items[1]", { "name": "second" });
   });
-
+  
   test("bracket notation - access top-level array elements", function() {
     const body = res.getBody();
     expect(body).to.have.jsonBody("tags[0]", "api");
     expect(body).to.have.jsonBody("tags[1]", "test");
   });
-
+  
   test("bracket notation - consecutive brackets for nested arrays", function() {
     const body = res.getBody();
     expect(body).to.have.jsonBody("matrix[0][0]", 1);
@@ -100,85 +100,85 @@ tests {
     expect(body).to.have.jsonBody("matrix[1][0]", 3);
     expect(body).to.have.jsonBody("matrix[1][1]", 4);
   });
-
+  
   test("bracket notation - access nested array as whole value", function() {
     const body = res.getBody();
     expect(body).to.have.jsonBody("matrix[0]", [1, 2]);
     expect(body).to.have.jsonBody("matrix[1]", [3, 4]);
   });
-
+  
   test("bracket notation - out of bounds index is not found", function() {
     const body = res.getBody();
     expect(body).to.not.have.jsonBody("tags[5]");
     expect(body).to.not.have.jsonBody("data.items[99]");
   });
-
+  
   // --- edge cases: string bracket keys and keys with dots ---
-
+  
   test("quoted bracket notation - double quotes for string keys", function() {
     const body = res.getBody();
     expect(body).to.have.jsonBody('["some-key"]', "hyphenated");
   });
-
+  
   test("quoted bracket notation - single quotes for string keys", function() {
     const body = res.getBody();
     expect(body).to.have.jsonBody("['some-key']", "hyphenated");
   });
-
+  
   test("quoted bracket notation - keys containing dots", function() {
     const body = res.getBody();
     expect(body).to.have.jsonBody('["a.b"]', "dotted-key");
   });
-
+  
   test("quoted bracket notation - nested path with dotted keys", function() {
     const body = res.getBody();
     expect(body).to.have.jsonBody('nested["x.y"].z', "deep-dotted");
   });
-
+  
   test("quoted bracket notation - key containing the other quote type", function() {
     const body = res.getBody();
     // Key is: it's — use double quotes so the single quote is not a delimiter
     expect(body).to.have.jsonBody("[\"it's\"]", "apostrophe-key");
   });
-
+  
   test("quoted bracket notation - escaped quotes in key", function() {
     const body = res.getBody();
     // Key is: say "hi" — use escaped double quotes inside double-quoted bracket
     expect(body).to.have.jsonBody('["say \\"hi\\""]', "quoted-key");
   });
-
+  
   test("to.not.have.jsonBody(path) - negation for missing property", function() {
     const body = res.getBody();
     expect(body).to.not.have.jsonBody("nonexistent");
   });
-
+  
   test("to.not.have.jsonBody(path, value) - negation for wrong value", function() {
     const body = res.getBody();
     expect(body).to.not.have.jsonBody("hello", "wrong");
   });
-
+  
   test("to.not.have.jsonBody(object) - negation for deep inequality", function() {
     const body = res.getBody();
     expect(body).to.not.have.jsonBody({ "wrong": "data" });
   });
-
+  
   // --- not.to.have.jsonBody ---
-
+  
   test("not.to.have.jsonBody(path) - negation for missing property", function() {
     const body = res.getBody();
     expect(body).not.to.have.jsonBody("nonexistent");
   });
-
+  
   test("not.to.have.jsonBody(path, value) - negation for wrong value", function() {
     const body = res.getBody();
     expect(body).not.to.have.jsonBody("hello", "wrong");
   });
-
+  
   test("not.to.have.jsonBody(object) - negation for deep inequality", function() {
     const body = res.getBody();
     expect(body).not.to.have.jsonBody({ "wrong": "data" });
   });
-
+  
   test("not.to.have.jsonBody fails when body matches", function() {
     const body = res.getBody();
     let failed = false;
@@ -189,24 +189,24 @@ tests {
     }
     expect(failed).to.be.true;
   });
-
+  
   // --- to.have.not.jsonBody ---
-
+  
   test("to.have.not.jsonBody(path) - negation for missing property", function() {
     const body = res.getBody();
     expect(body).to.have.not.jsonBody("nonexistent");
   });
-
+  
   test("to.have.not.jsonBody(path, value) - negation for wrong value", function() {
     const body = res.getBody();
     expect(body).to.have.not.jsonBody("hello", "wrong");
   });
-
+  
   test("to.have.not.jsonBody(object) - negation for deep inequality", function() {
     const body = res.getBody();
     expect(body).to.have.not.jsonBody({ "wrong": "data" });
   });
-
+  
   test("to.have.not.jsonBody fails when body matches", function() {
     const body = res.getBody();
     let failed = false;
