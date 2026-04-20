@@ -58,7 +58,7 @@ export const KEY_BINDING_SECTIONS = [
   {
     heading: 'Cookies',
     bindings: {
-      openCookies: { mac: 'shift+bind+alt+bind+c', windows: 'shift+bind+alt+bind+c', name: 'Open Cookies' }
+      openCookies: { mac: 'command+bind+shift+bind+c', windows: 'shift+bind+alt+bind+c', name: 'Open Cookies' }
     }
   },
   {
