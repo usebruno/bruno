@@ -133,7 +133,7 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
               i++;
             } else if (path[i] === '[') {
               i++;
-              if (path[i] === "'" || path[i] === '"') {
+              if (i < path.length && (path[i] === "'" || path[i] === '"')) {
                 var quote = path[i];
                 i++;
                 var key = '';

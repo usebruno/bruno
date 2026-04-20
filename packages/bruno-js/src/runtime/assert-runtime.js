@@ -87,7 +87,7 @@ chai.use(function (chai, utils) {
         i++;
       } else if (path[i] === '[') {
         i++; // skip '['
-        if (path[i] === '\'' || path[i] === '"') {
+        if (i < path.length && (path[i] === '\'' || path[i] === '"')) {
           // Quoted key — collect until matching unescaped quote + ']'
           const quote = path[i];
           i++; // skip opening quote
