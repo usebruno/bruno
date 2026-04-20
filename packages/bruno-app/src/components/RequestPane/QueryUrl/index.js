@@ -25,7 +25,7 @@ import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import toast from 'react-hot-toast';
 
-const QueryUrl = ({ item, collection, handleRun }) => {
+const QueryUrl = ({ item, collection, handleRun, urlBarFocusRef }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
@@ -34,6 +34,17 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
+
+  // Register focus function for the focusUrlBar shortcut
+  // Places the cursor at the end of the URL text
+  if (urlBarFocusRef) {
+    urlBarFocusRef.current = () => {
+      const editor = editorRef.current?.editor;
+      if (!editor) return;
+      editor.focus();
+      editor.setCursor({ line: editor.lastLine(), ch: editor.getLine(editor.lastLine()).length });
+    };
+  }
 
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const hasChanges = useMemo(() => hasRequestChanges(item), [item]);

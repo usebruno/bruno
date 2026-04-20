@@ -66,6 +66,13 @@ const RequestTabPanel = () => {
     return false;
   }, { enabled: !!isRequestTab, deps: [isRequestTab] });
 
+  // Focus the URL bar of the currently rendered request type (http / grpc / ws / graphql)
+  const urlBarFocusRef = useRef(null);
+  useKeybinding('focusUrlBar', () => {
+    urlBarFocusRef.current?.();
+    return false;
+  }, { enabled: !!isRequestTab, deps: [isRequestTab] });
+
   // Use ref to avoid stale closure in event handlers
   const isVerticalLayoutRef = useRef(isVerticalLayout);
   useEffect(() => {
@@ -308,12 +315,12 @@ const RequestTabPanel = () => {
   };
   const renderQueryUrl = () => {
     if (isGrpcRequest) {
-      return <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />;
+      return <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} urlBarFocusRef={urlBarFocusRef} />;
     }
     if (isWsRequest) {
-      return <WsQueryUrl item={item} collection={collection} handleRun={handleRun} />;
+      return <WsQueryUrl item={item} collection={collection} handleRun={handleRun} urlBarFocusRef={urlBarFocusRef} />;
     }
-    return <QueryUrl item={item} collection={collection} handleRun={handleRun} />;
+    return <QueryUrl item={item} collection={collection} handleRun={handleRun} urlBarFocusRef={urlBarFocusRef} />;
   };
 
   const renderRequestPane = () => {

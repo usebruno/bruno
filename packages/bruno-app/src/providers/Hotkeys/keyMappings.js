@@ -38,7 +38,8 @@ export const KEY_BINDING_SECTIONS = [
     heading: 'Requests',
     bindings: {
       sendRequest: { mac: 'command+bind+enter', windows: 'ctrl+bind+enter', name: 'Send Request' }, // D
-      changeLayout: { mac: 'command+bind+j', windows: 'ctrl+bind+j', name: 'Change Orientation' } // D
+      changeLayout: { mac: 'command+bind+j', windows: 'ctrl+bind+j', name: 'Change Orientation' }, // D
+      focusUrlBar: { mac: 'command+bind+l', windows: 'ctrl+bind+l', name: 'Focus URL Bar' } // D
     }
   },
   {

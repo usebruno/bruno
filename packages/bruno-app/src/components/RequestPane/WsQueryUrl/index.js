@@ -37,7 +37,7 @@ const useWsConnectionStatus = (requestId) => {
   return [connectionStatus, setConnectionStatus];
 };
 
-const WsQueryUrl = ({ item, collection, handleRun }) => {
+const WsQueryUrl = ({ item, collection, handleRun, urlBarFocusRef }) => {
   const dispatch = useDispatch();
   const { theme, displayedTheme } = useTheme();
   // TODO: reaper, better state for connecting
@@ -46,6 +46,19 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
 
   const [connectionStatus, setConnectionStatus] = useWsConnectionStatus(item.uid);
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
+
+  const editorRef = useRef(null);
+
+  // Register focus function for the focusUrlBar shortcut
+  // Places the cursor at the end of the URL text
+  if (urlBarFocusRef) {
+    urlBarFocusRef.current = () => {
+      const editor = editorRef.current?.editor;
+      if (!editor) return;
+      editor.focus();
+      editor.setCursor({ line: editor.lastLine(), ch: editor.getLine(editor.lastLine()).length });
+    };
+  }
 
   const allVariables = useMemo(() => {
     return getAllVariables(collection, item);
@@ -129,6 +142,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             <span className="text-xs font-medium method-ws">WS</span>
           </div>
           <SingleLineEditor
+            ref={editorRef}
             value={url}
             onSave={(finalValue) => onSave(finalValue)}
             onChange={handleUrlChange}

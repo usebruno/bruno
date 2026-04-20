@@ -2,6 +2,7 @@ import { test, expect, Page } from '../../playwright';
 import {
   createCollection,
   createRequest,
+  createTransientRequest,
   openRequest as openRequestBase,
   closeAllCollections,
   createFolder,
@@ -1734,6 +1735,124 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible({ timeout: 2000 });
 
       // Rest Default - just in case to not fail shortcuts in other places
+      await openKeybindingsTab(page);
+      await page.getByTestId('reset-all-keybindings-btn').click({ timeout: 2000 });
+    });
+  });
+
+  test.describe('SHORTCUT: Focus URL Bar', () => {
+    test.only('default Cmd/Ctrl+L focuses URL bar on HTTP request', async ({ page }) => {
+      // Close any open tabs first via Alt+Y (customized closeAllTabs from earlier tests)
+      await page.keyboard.down('Alt');
+      await page.keyboard.down('KeyY');
+      await page.keyboard.up('KeyY');
+      await page.keyboard.up('Alt');
+
+      // Create a transient HTTP request (empty URL by default)
+      await createTransientRequest(page, { requestType: 'HTTP' });
+
+      // Click elsewhere to move focus away from the URL bar
+      await page.locator('body').click();
+
+      // Press Cmd/Ctrl+L to focus the URL bar
+      await page.keyboard.down(modifier);
+      await page.keyboard.down('KeyL');
+      await page.keyboard.up('KeyL');
+      await page.keyboard.up(modifier);
+
+      // Type a URL — if focus worked, the URL input will receive the characters
+      await page.keyboard.type('http://localhost:8081');
+
+      // Verify the URL input contains the typed value
+      await expect(page.locator('#request-url textarea')).toHaveValue('http://localhost:8081', { timeout: 2000 });
+    });
+
+    test.only('default Cmd/Ctrl+L focuses URL bar on WebSocket request', async ({ page }) => {
+      await page.keyboard.down('Alt');
+      await page.keyboard.down('KeyY');
+      await page.keyboard.up('KeyY');
+      await page.keyboard.up('Alt');
+
+      // Create a transient WebSocket request
+      await createTransientRequest(page, { requestType: 'WebSocket' });
+
+      // Click elsewhere to move focus away from the URL bar
+      await page.locator('body').click();
+
+      // Press Cmd/Ctrl+L to focus the URL bar
+      await page.keyboard.down(modifier);
+      await page.keyboard.down('KeyL');
+      await page.keyboard.up('KeyL');
+      await page.keyboard.up(modifier);
+
+      // Type a WS URL
+      await page.keyboard.type('ws://localhost:8081');
+
+      // WS/gRPC URL bar is in `.input-container textarea`
+      await expect(page.locator('.input-container textarea').first()).toHaveValue('ws://localhost:8081', { timeout: 2000 });
+    });
+
+    test.only('default Cmd/Ctrl+L focuses URL bar on gRPC request', async ({ page }) => {
+      await page.keyboard.down('Alt');
+      await page.keyboard.down('KeyY');
+      await page.keyboard.up('KeyY');
+      await page.keyboard.up('Alt');
+
+      // Create a transient gRPC request
+      await createTransientRequest(page, { requestType: 'gRPC' });
+
+      // Click elsewhere to move focus away from the URL bar
+      await page.locator('body').click();
+
+      // Press Cmd/Ctrl+L to focus the URL bar
+      await page.keyboard.down(modifier);
+      await page.keyboard.down('KeyL');
+      await page.keyboard.up('KeyL');
+      await page.keyboard.up(modifier);
+
+      // Type a gRPC URL
+      await page.keyboard.type('localhost:8081');
+
+      await expect(page.locator('.input-container textarea').first()).toHaveValue('localhost:8081', { timeout: 2000 });
+    });
+
+    test.only('customized Alt+U focuses URL bar on HTTP request', async ({ page }) => {
+      await page.keyboard.down('Alt');
+      await page.keyboard.down('KeyY');
+      await page.keyboard.up('KeyY');
+      await page.keyboard.up('Alt');
+
+      // Remap focusUrlBar to Alt+U
+      await openKeybindingsTab(page);
+      const row = page.getByTestId('keybinding-row-focusUrlBar');
+      await row.hover();
+      await page.getByTestId('keybinding-edit-focusUrlBar').click();
+      await expect(page.getByTestId('keybinding-input-focusUrlBar')).toBeVisible({ timeout: 2000 });
+
+      await page.keyboard.down('Backspace');
+
+      await page.keyboard.down('Alt');
+      await page.keyboard.down('KeyU');
+      await page.keyboard.up('KeyU');
+      await page.keyboard.up('Alt');
+
+      await closePreferencesTab(page);
+
+      // Create a transient HTTP request
+      await createTransientRequest(page, { requestType: 'HTTP' });
+      await page.locator('body').click();
+
+      // Press customized Alt+U to focus the URL bar
+      await page.keyboard.down('Alt');
+      await page.keyboard.down('KeyU');
+      await page.keyboard.up('KeyU');
+      await page.keyboard.up('Alt');
+
+      await page.keyboard.type('http://localhost:8081');
+
+      await expect(page.locator('#request-url textarea')).toHaveValue('http://localhost:8081', { timeout: 2000 });
+
+      // Reset Default - just in case to not fail shortcuts in other places
       await openKeybindingsTab(page);
       await page.getByTestId('reset-all-keybindings-btn').click({ timeout: 2000 });
     });

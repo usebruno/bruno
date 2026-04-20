@@ -30,7 +30,7 @@ import ProtoFileDropdown from './ProtoFileDropdown';
 const STREAMING_METHOD_TYPES = ['client-streaming', 'server-streaming', 'bidi-streaming'];
 const CLIENT_STREAMING_METHOD_TYPES = ['client-streaming', 'bidi-streaming'];
 
-const GrpcQueryUrl = ({ item, collection, handleRun }) => {
+const GrpcQueryUrl = ({ item, collection, handleRun, urlBarFocusRef }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
   const method = getPropertyFromDraftOrRequest(item, 'request.method');
@@ -40,6 +40,17 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
   const isConnectionActive = useSelector((state) => state.collections.activeConnections.includes(item.uid));
+
+  // Register focus function for the focusUrlBar shortcut
+  // Places the cursor at the end of the URL text
+  if (urlBarFocusRef) {
+    urlBarFocusRef.current = () => {
+      const editor = editorRef.current?.editor;
+      if (!editor) return;
+      editor.focus();
+      editor.setCursor({ line: editor.lastLine(), ch: editor.getLine(editor.lastLine()).length });
+    };
+  }
 
   const [grpcMethods, setGrpcMethods] = useState([]);
   const [selectedGrpcMethod, setSelectedGrpcMethod] = useState({
