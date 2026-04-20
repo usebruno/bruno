@@ -114,8 +114,56 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
       (function() {
         var proto = Object.getPrototypeOf(expect(null));
 
+        // Parse a property path into an array of keys.
+        // Handles: dot notation (a.b), numeric brackets (a[0]), quoted brackets (a["b.c"], a['key']),
+        // and combinations like data[0]["a.b"].name
+        function parsePath(path) {
+          var keys = [];
+          var i = 0;
+          while (i < path.length) {
+            if (path[i] === '.') {
+              i++;
+            } else if (path[i] === '[') {
+              i++;
+              if (path[i] === "'" || path[i] === '"') {
+                var quote = path[i];
+                i++;
+                var key = '';
+                while (i < path.length && path[i] !== quote) {
+                  if (path[i] === '\\\\' && i + 1 < path.length && path[i + 1] === quote) {
+                    key += quote;
+                    i += 2;
+                  } else {
+                    key += path[i];
+                    i++;
+                  }
+                }
+                i++; // skip closing quote
+                i++; // skip ']'
+                keys.push(key);
+              } else {
+                var key = '';
+                while (i < path.length && path[i] !== ']') {
+                  key += path[i];
+                  i++;
+                }
+                i++; // skip ']'
+                keys.push(key);
+              }
+            } else {
+              var key = '';
+              while (i < path.length && path[i] !== '.' && path[i] !== '[') {
+                key += path[i];
+                i++;
+              }
+              keys.push(key);
+            }
+          }
+          return keys;
+        }
+
         function getNestedValue(obj, path) {
-          var keys = path.replace(/\\[(\\d+)\\]/g, '.$1').split('.');
+          var keys = parsePath(path);
           var current = obj;
           for (var i = 0; i < keys.length; i++) {
             var key = keys[i];

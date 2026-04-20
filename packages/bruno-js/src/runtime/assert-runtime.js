@@ -67,8 +67,60 @@ chai.use(function (chai, utils) {
 
 // Custom assertion for jsonBody (Postman parity)
 chai.use(function (chai, utils) {
+  // Parse a property path into an array of keys.
+  // Handles: dot notation (a.b), numeric brackets (a[0]), quoted brackets (a["b.c"], a['key']),
+  // and combinations like data[0]["a.b"].name
+  function parsePath(path) {
+    const keys = [];
+    let i = 0;
+    while (i < path.length) {
+      if (path[i] === '.') {
+        // Skip dot separator
+        i++;
+      } else if (path[i] === '[') {
+        i++; // skip '['
+        if (path[i] === '\'' || path[i] === '"') {
+          // Quoted key — collect until matching unescaped quote + ']'
+          const quote = path[i];
+          i++; // skip opening quote
+          let key = '';
+          while (i < path.length && path[i] !== quote) {
+            if (path[i] === '\\' && i + 1 < path.length && path[i + 1] === quote) {
+              key += quote;
+              i += 2; // skip backslash + escaped quote
+            } else {
+              key += path[i];
+              i++;
+            }
+          }
+          i++; // skip closing quote
+          i++; // skip ']'
+          keys.push(key);
+        } else {
+          // Unquoted (numeric) key — collect until ']'
+          let key = '';
+          while (i < path.length && path[i] !== ']') {
+            key += path[i];
+            i++;
+          }
+          i++; // skip ']'
+          keys.push(key);
+        }
+      } else {
+        // Bare key — collect until '.', '[', or end
+        let key = '';
+        while (i < path.length && path[i] !== '.' && path[i] !== '[') {
+          key += path[i];
+          i++;
+        }
+        keys.push(key);
+      }
+    }
+    return keys;
+  }
+
   function getNestedValue(obj, path) {
-    const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.');
+    const keys = parsePath(path);
     let current = obj;
     for (const key of keys) {
       if (current === null || current === undefined || !Object.prototype.hasOwnProperty.call(Object(current), key)) {
