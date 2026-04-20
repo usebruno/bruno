@@ -1741,7 +1741,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('SHORTCUT: Focus URL Bar', () => {
-    test.only('default Cmd/Ctrl+L focuses URL bar on HTTP request', async ({ page }) => {
+    test('default Cmd/Ctrl+L focuses URL bar on HTTP request', async ({ page }) => {
       // Close any open tabs first via Alt+Y (customized closeAllTabs from earlier tests)
       await page.keyboard.down('Alt');
       await page.keyboard.down('KeyY');
@@ -1767,7 +1767,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       await expect(page.locator('#request-url textarea')).toHaveValue('http://localhost:8081', { timeout: 2000 });
     });
 
-    test.only('default Cmd/Ctrl+L focuses URL bar on WebSocket request', async ({ page }) => {
+    test('default Cmd/Ctrl+L focuses URL bar on WebSocket request', async ({ page }) => {
       await page.keyboard.down('Alt');
       await page.keyboard.down('KeyY');
       await page.keyboard.up('KeyY');
@@ -1792,7 +1792,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       await expect(page.locator('.input-container textarea').first()).toHaveValue('ws://localhost:8081', { timeout: 2000 });
     });
 
-    test.only('default Cmd/Ctrl+L focuses URL bar on gRPC request', async ({ page }) => {
+    test('default Cmd/Ctrl+L focuses URL bar on gRPC request', async ({ page }) => {
       await page.keyboard.down('Alt');
       await page.keyboard.down('KeyY');
       await page.keyboard.up('KeyY');
@@ -1816,7 +1816,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       await expect(page.locator('.input-container textarea').first()).toHaveValue('localhost:8081', { timeout: 2000 });
     });
 
-    test.only('customized Alt+U focuses URL bar on HTTP request', async ({ page }) => {
+    test('customized Alt+U focuses URL bar on HTTP request', async ({ page }) => {
       await page.keyboard.down('Alt');
       await page.keyboard.down('KeyY');
       await page.keyboard.up('KeyY');
