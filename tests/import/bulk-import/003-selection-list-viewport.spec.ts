@@ -4,6 +4,8 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { closeAllCollections } from '../../utils/page';
 
+const getViewportCollectionName = (index: number) => `Viewport Collection ${String(index).padStart(2, '0')}`;
+
 const getFullyVisibleRowNames = async (list: Locator) => {
   return list.evaluate((node) => {
     const listRect = node.getBoundingClientRect();
@@ -39,7 +41,7 @@ test.describe('Bulk Import Selection List', () => {
         ...sourceContent,
         info: {
           ...sourceContent.info,
-          name: `Viewport Collection ${index}`
+          name: getViewportCollectionName(index)
         }
       };
 
@@ -66,9 +68,9 @@ test.describe('Bulk Import Selection List', () => {
 
     const initialVisibleRows = await getFullyVisibleRowNames(collectionList);
     expect(initialVisibleRows).toHaveLength(expectedVisibleRows);
-    expect(initialVisibleRows[0]).toContain('Viewport Collection 1');
-    expect(initialVisibleRows[expectedVisibleRows - 1]).toContain(`Viewport Collection ${expectedVisibleRows}`);
-    expect(initialVisibleRows.join(' ')).not.toContain(`Viewport Collection ${expectedVisibleRows + 1}`);
+    expect(initialVisibleRows[0]).toBe(getViewportCollectionName(1));
+    expect(initialVisibleRows[expectedVisibleRows - 1]).toBe(getViewportCollectionName(expectedVisibleRows));
+    expect(initialVisibleRows).not.toContain(getViewportCollectionName(expectedVisibleRows + 1));
 
     await collectionList.evaluate((list) => {
       list.scrollTop = list.scrollHeight;
@@ -77,8 +79,8 @@ test.describe('Bulk Import Selection List', () => {
     await expect(async () => {
       const scrolledVisibleRows = await getFullyVisibleRowNames(collectionList);
       expect(scrolledVisibleRows).toHaveLength(expectedVisibleRows);
-      expect(scrolledVisibleRows.join(' ')).toContain('Viewport Collection 9');
-      expect(scrolledVisibleRows.join(' ')).toContain('Viewport Collection 10');
-    }).toPass();
+      expect(scrolledVisibleRows).toContain(getViewportCollectionName(9));
+      expect(scrolledVisibleRows).toContain(getViewportCollectionName(10));
+    }).toPass({ timeout: 5000 });
   });
 });
