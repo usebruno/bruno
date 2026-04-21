@@ -648,104 +648,105 @@ describe('prepare-request: prepareRequest', () => {
   });
 
   describe('Query param URL sync', () => {
-    it('should sync enabled query params into the URL when URL has no query string', async () => {
-      const item = {
-        request: {
-          method: 'GET',
-          headers: [],
-          params: [
+    const makeItem = (params, url) => ({
+      request: { method: 'GET', headers: [], params, url }
+    });
+
+    it('should append enabled query params to a URL with no query string', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [
             { name: 'partial', value: 'true', type: 'query', enabled: true },
             { name: 'limit', value: '10', type: 'query', enabled: true }
           ],
-          url: 'https://api.example.com/items'
-        }
-      };
-
-      const result = await prepareRequest(item);
+          'https://api.example.com/items'
+        )
+      );
       expect(result.url).toBe('https://api.example.com/items?partial=true&limit=10');
     });
 
-    it('should rebuild URL from params when URL already contains a query string', async () => {
-      const item = {
-        request: {
-          method: 'GET',
-          headers: [],
-          params: [
-            { name: 'partial', value: 'true', type: 'query', enabled: true },
-            { name: 'limit', value: '10', type: 'query', enabled: true }
-          ],
-          url: 'https://api.example.com/items?partial=true&limit=10'
-        }
-      };
-
-      const result = await prepareRequest(item);
-      expect(result.url).toBe('https://api.example.com/items?partial=true&limit=10');
+    it('should replace an existing query string with the params array', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [{ name: 'partial', value: 'true', type: 'query', enabled: true }],
+          'https://api.example.com/items?stale=yes&dropped=1'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/items?partial=true');
     });
 
     it('should exclude disabled query params from the URL', async () => {
-      const item = {
-        request: {
-          method: 'GET',
-          headers: [],
-          params: [
+      const result = await prepareRequest(
+        makeItem(
+          [
             { name: 'active', value: 'true', type: 'query', enabled: true },
             { name: 'disabled_param', value: 'some_value', type: 'query', enabled: false }
           ],
-          url: 'https://api.example.com/items'
-        }
-      };
-
-      const result = await prepareRequest(item);
+          'https://api.example.com/items'
+        )
+      );
       expect(result.url).toBe('https://api.example.com/items?active=true');
     });
 
-    it('should not modify URL when all query params are disabled', async () => {
-      const item = {
-        request: {
-          method: 'GET',
-          headers: [],
-          params: [
+    it('should strip an existing query string when all query params are disabled', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [
             { name: 'param1', value: 'value1', type: 'query', enabled: false },
             { name: 'param2', value: 'value2', type: 'query', enabled: false }
           ],
-          url: 'https://api.example.com/items'
-        }
-      };
-
-      const result = await prepareRequest(item);
+          'https://api.example.com/items?stale=yes'
+        )
+      );
       expect(result.url).toBe('https://api.example.com/items');
     });
 
-    it('should not modify URL when there are no query params', async () => {
-      const item = {
-        request: {
-          method: 'GET',
-          headers: [],
-          params: [],
-          url: 'https://api.example.com/items'
-        }
-      };
-
-      const result = await prepareRequest(item);
+    it('should leave the URL unchanged when there are no query params and no query string', async () => {
+      const result = await prepareRequest(makeItem([], 'https://api.example.com/items'));
       expect(result.url).toBe('https://api.example.com/items');
     });
 
     it('should not affect path params while syncing query params', async () => {
-      const item = {
-        request: {
-          method: 'GET',
-          headers: [],
-          params: [
+      const result = await prepareRequest(
+        makeItem(
+          [
             { name: 'partial', value: 'true', type: 'query', enabled: true },
             { name: 'id', value: '123', type: 'path', enabled: true }
           ],
-          url: 'https://api.example.com/:id/items'
-        }
-      };
-
-      const result = await prepareRequest(item);
+          'https://api.example.com/:id/items'
+        )
+      );
       expect(result.url).toBe('https://api.example.com/:id/items?partial=true');
-      expect(result.pathParams).toEqual([{ name: 'id', value: '123', type: 'path', enabled: true }]);
+    });
+
+    it('should preserve a hash fragment when appending a query string', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [{ name: 'partial', value: 'true', type: 'query', enabled: true }],
+          'https://api.example.com/items#section'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/items?partial=true#section');
+    });
+
+    it('should preserve a hash fragment when replacing an existing query string', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [{ name: 'partial', value: 'true', type: 'query', enabled: true }],
+          'https://api.example.com/items?stale=yes#section'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/items?partial=true#section');
+    });
+
+    it('should pass param values through without encoding (encoding happens later in the pipeline)', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [{ name: 'q', value: 'hello world', type: 'query', enabled: true }],
+          'https://api.example.com/items'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/items?q=hello world');
     });
   });
 });

@@ -2,6 +2,7 @@ export {
   encodeUrl,
   parseQueryParams,
   buildQueryString,
+  buildUrlWithQueryParams,
   stripOrigin
 } from './url';
 

@@ -1,4 +1,4 @@
-import { encodeUrl, parseQueryParams, buildQueryString } from './index';
+import { encodeUrl, parseQueryParams, buildQueryString, buildUrlWithQueryParams } from './index';
 
 describe('encodeUrl', () => {
   describe('basic functionality', () => {
@@ -258,5 +258,67 @@ describe('buildQueryString', () => {
     ];
     const result = buildQueryString(params);
     expect(result).toBe('seat=&table=2');
+  });
+});
+
+describe('buildUrlWithQueryParams', () => {
+  it('should append query string to a URL with no existing query', () => {
+    const url = 'https://api.example.com/items';
+    const params = [{ name: 'partial', value: 'true' }];
+    expect(buildUrlWithQueryParams(url, params)).toBe('https://api.example.com/items?partial=true');
+  });
+
+  it('should replace an existing query string with the provided params', () => {
+    const url = 'https://api.example.com/items?stale=yes&dropped=1';
+    const params = [{ name: 'partial', value: 'true' }];
+    expect(buildUrlWithQueryParams(url, params)).toBe('https://api.example.com/items?partial=true');
+  });
+
+  it('should strip the query string when params produce no query', () => {
+    const url = 'https://api.example.com/items?stale=yes';
+    expect(buildUrlWithQueryParams(url, [])).toBe('https://api.example.com/items');
+  });
+
+  it('should preserve a hash fragment when appending a query string', () => {
+    const url = 'https://api.example.com/items#section';
+    const params = [{ name: 'partial', value: 'true' }];
+    expect(buildUrlWithQueryParams(url, params)).toBe('https://api.example.com/items?partial=true#section');
+  });
+
+  it('should preserve a hash fragment when replacing the query string', () => {
+    const url = 'https://api.example.com/items?stale=yes#section';
+    const params = [{ name: 'partial', value: 'true' }];
+    expect(buildUrlWithQueryParams(url, params)).toBe('https://api.example.com/items?partial=true#section');
+  });
+
+  it('should preserve a hash fragment when stripping the query string', () => {
+    const url = 'https://api.example.com/items?stale=yes#section';
+    expect(buildUrlWithQueryParams(url, [])).toBe('https://api.example.com/items#section');
+  });
+
+  it('should not encode values by default', () => {
+    const url = 'https://api.example.com/items';
+    const params = [{ name: 'q', value: 'hello world' }];
+    expect(buildUrlWithQueryParams(url, params)).toBe('https://api.example.com/items?q=hello world');
+  });
+
+  it('should encode values when encode option is true', () => {
+    const url = 'https://api.example.com/items';
+    const params = [{ name: 'q', value: 'hello world' }];
+    expect(buildUrlWithQueryParams(url, params, { encode: true })).toBe('https://api.example.com/items?q=hello%20world');
+  });
+
+  it('should return empty string when url is empty', () => {
+    expect(buildUrlWithQueryParams('', [{ name: 'x', value: '1' }])).toBe('');
+  });
+
+  it('should handle a URL with only a query string', () => {
+    expect(buildUrlWithQueryParams('?x=1', [{ name: 'y', value: '2' }])).toBe('?y=2');
+  });
+
+  it('should handle a URL with an empty hash fragment', () => {
+    expect(buildUrlWithQueryParams('https://api.example.com/items#', [{ name: 'x', value: '1' }])).toBe(
+      'https://api.example.com/items?x=1#'
+    );
   });
 });

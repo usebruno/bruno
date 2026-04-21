@@ -9,7 +9,7 @@ const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollect
 const path = require('node:path');
 const { isLargeFile } = require('../utils/filesystem');
 const { getFormattedOauth2Credentials } = require('../utils/oauth2');
-const { buildQueryString } = require('@usebruno/common').utils;
+const { buildUrlWithQueryParams } = require('@usebruno/common/utils');
 
 const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
@@ -38,17 +38,10 @@ const prepareRequest = async (item = {}, collection = {}) => {
     }
   });
 
-  // Sync enabled query params into the URL.
-  // The .bru parser stores params separately from the URL; without this,
-  // query params defined in params:query are never included in the request URL.
+  // The .bru parser stores params:query separately from the URL; mirror them
+  // into request.url so the outbound request includes them.
   const enabledQueryParams = (request.params || []).filter((p) => p.enabled && p.type === 'query');
-  if (enabledQueryParams.length > 0) {
-    const queryString = buildQueryString(enabledQueryParams);
-    if (queryString) {
-      const [baseUrl] = (request.url || '').split('?');
-      request.url = baseUrl + '?' + queryString;
-    }
-  }
+  request.url = buildUrlWithQueryParams(request.url, enabledQueryParams);
 
   let axiosRequest = {
     method: request.method,
