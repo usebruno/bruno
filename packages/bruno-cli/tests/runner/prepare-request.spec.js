@@ -706,6 +706,21 @@ describe('prepare-request: prepareRequest', () => {
       expect(result.url).toBe('https://api.example.com/items');
     });
 
+    it('should preserve an inline URL query when the .bru has no params:query block', async () => {
+      const result = await prepareRequest(makeItem([], 'https://api.example.com/items?inline=1'));
+      expect(result.url).toBe('https://api.example.com/items?inline=1');
+    });
+
+    it('should preserve an inline URL query when the .bru only has path params', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [{ name: 'id', value: '123', type: 'path', enabled: true }],
+          'https://api.example.com/:id?inline=1'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/:id?inline=1');
+    });
+
     it('should not affect path params while syncing query params', async () => {
       const result = await prepareRequest(
         makeItem(

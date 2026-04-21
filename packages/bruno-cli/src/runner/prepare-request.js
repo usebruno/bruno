@@ -39,9 +39,14 @@ const prepareRequest = async (item = {}, collection = {}) => {
   });
 
   // The .bru parser stores params:query separately from the URL; mirror them
-  // into request.url so the outbound request includes them.
-  const enabledQueryParams = (request.params || []).filter((p) => p.enabled && p.type === 'query');
-  request.url = buildUrlWithQueryParams(request.url, enabledQueryParams);
+  // into request.url so the outbound request includes them. Only runs when
+  // the .bru has a params:query block — otherwise an inline ?foo=bar in the
+  // URL would be stripped despite no modeled state to replace it.
+  const params = request.params || [];
+  if (params.some((p) => p.type === 'query')) {
+    const enabledQueryParams = params.filter((p) => p.enabled && p.type === 'query');
+    request.url = buildUrlWithQueryParams(request.url, enabledQueryParams);
+  }
 
   let axiosRequest = {
     method: request.method,

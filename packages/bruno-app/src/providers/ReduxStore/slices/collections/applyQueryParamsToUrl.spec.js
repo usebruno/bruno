@@ -46,6 +46,21 @@ describe('applyQueryParamsToUrl', () => {
     expect(request.url).toBe('https://api.example.com/items');
   });
 
+  it('preserves an inline URL query when the .bru has no params:query block', () => {
+    const request = { url: 'https://api.example.com/items?inline=1', params: [] };
+    applyQueryParamsToUrl(request);
+    expect(request.url).toBe('https://api.example.com/items?inline=1');
+  });
+
+  it('preserves an inline URL query when the .bru only has path params', () => {
+    const request = {
+      url: 'https://api.example.com/:id?inline=1',
+      params: [pathParam('id', '123')]
+    };
+    applyQueryParamsToUrl(request);
+    expect(request.url).toBe('https://api.example.com/:id?inline=1');
+  });
+
   it('ignores path params when building the query string', () => {
     const request = {
       url: 'https://api.example.com/:id/items',

@@ -155,9 +155,12 @@ const initiatedWsResponse = {
  * Applies enabled query params from request.params into request.url when a
  * .bru file is loaded from disk. Without this the URL bar and outbound requests
  * omit params:query entries until the user interacts with the params UI.
+ * Skipped when the .bru has no params:query block — otherwise an inline
+ * ?foo=bar in the URL would be stripped despite no modeled state to replace it.
  */
 export const applyQueryParamsToUrl = (request) => {
   if (!request || !request.params) return;
+  if (!request.params.some((p) => p.type === 'query')) return;
   const enabledQueryParams = filter(request.params, (p) => p.enabled && p.type === 'query');
   request.url = buildUrlWithQueryParams(request.url, enabledQueryParams);
 };
